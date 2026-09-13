@@ -9,8 +9,8 @@ Exact task chronology, branch names, temporary homes, local paths, process ids, 
 ## Codex CLI reasoning effort
 
 Verified on 2026-09-12 with codex-cli 0.153.2.
-The live app-server `model/list` response reports that `gpt-5.6-luna` supports `low`, `medium`, `high`, `xhigh`, and `max` reasoning effort.
-The installed CLI accepts the same explicit configuration override for that model:
+The live app-server `model/list` response reports `max` reasoning effort for six API-visible models: `gpt-6-astra`, `gpt-reserve`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, and `codex-auto-review`.
+The installed CLI accepts the same explicit configuration override:
 
 ```sh
 codex --version
@@ -18,7 +18,7 @@ codex -c 'model_reasoning_effort="max"' features list
 ```
 
 Observed output began with `codex-cli 0.153.2` and the command completed successfully.
-The selected Codex adapter reference records the model-scoped launch flag and current discovery surface; this dated check records the runtime evidence that permits `max` to reach `fm-spawn.sh` for `gpt-5.6-luna`.
+The selected Codex adapter reference records the model-scoped launch flag and current discovery surface; this dated check records the runtime evidence that permits `max` to reach `fm-spawn.sh` for the six listed models while other or unproven model entries retain record-and-omit behavior.
 
 ## tmux
 

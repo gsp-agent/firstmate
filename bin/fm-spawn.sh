@@ -1998,11 +1998,14 @@ effort_flag_for_harness() {
       case "$effort" in
         low|medium|high|xhigh) printf -- '-c %s ' "$(shell_quote "model_reasoning_effort=\"$effort\"")" ;;
         max)
-          if [ "$model" = gpt-5.6-luna ]; then
-            printf -- '-c %s ' "$(shell_quote 'model_reasoning_effort="max"')"
-          else
-            echo "notice: Codex model '${model:-default}' has no verified max reasoning effort; omitting the flag" >&2
-          fi
+          case "$model" in
+            gpt-6-astra|gpt-reserve|gpt-5.6-sol|gpt-5.6-terra|gpt-5.6-luna|codex-auto-review)
+              printf -- '-c %s ' "$(shell_quote 'model_reasoning_effort="max"')"
+              ;;
+            *)
+              echo "notice: Codex model '${model:-default}' has no verified max reasoning effort; omitting the flag" >&2
+              ;;
+          esac
           ;;
       esac
       ;;

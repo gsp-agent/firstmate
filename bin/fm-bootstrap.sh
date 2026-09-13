@@ -1121,7 +1121,8 @@ crew_dispatch_validate() {
       elif $e == "ultra" then (($h == "pi" or $h == "pi-signed") and (($m | type) == "string") and ($m | startswith("codex-native/")) and ($m | length) > 13)
       elif $h == "claude" then (["low","medium","high","xhigh","max"] | index($e))
       elif $h == "codex" then
-        if $e == "max" then $m == "gpt-5.6-luna"
+        if $e == "max" then
+          (["gpt-6-astra","gpt-reserve","gpt-5.6-sol","gpt-5.6-terra","gpt-5.6-luna","codex-auto-review"] | index($m)) != null
         else (["low","medium","high","xhigh"] | index($e))
         end
       elif $h == "grok" then (["low","medium","high"] | index($e))

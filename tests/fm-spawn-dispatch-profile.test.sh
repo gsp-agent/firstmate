@@ -433,6 +433,22 @@ test_codex_threads_supported_max_effort() {
   pass "codex passes max effort for the catalog-proven Luna model"
 }
 
+test_codex_threads_catalog_supported_non_luna_max_effort() {
+  local rec id out status launch
+  id=profile-codex-sol-max-z4a
+  rec=$(make_spawn_case profile-codex-sol-max codex "$id")
+  read_case_record "$rec"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model gpt-5.6-sol --effort max)
+  status=$?
+  expect_code 0 "$status" "codex GPT-5.6-Sol spawn with max effort should pass the effort flag"
+  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5.6-sol max
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "codex --model 'gpt-5.6-sol' -c 'model_reasoning_effort=\"max\"' --dangerously-bypass-approvals-and-sandbox" \
+    "codex launch did not thread max for the catalog-proven non-Luna model"
+  pass "codex passes max effort for the catalog-proven GPT-5.6-Sol model"
+}
+
 test_codex_omits_unsupported_max_effort() {
   local rec id out status launch
   id=profile-codex-gpt55-max-z4b
@@ -1330,6 +1346,7 @@ test_active_dispatch_profile_allows_raw_launch_command
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort
 test_codex_threads_supported_max_effort
+test_codex_threads_catalog_supported_non_luna_max_effort
 test_codex_omits_unsupported_max_effort
 test_grok_threads_model_and_reasoning_effort
 test_grok_omits_invalid_max_reasoning_effort
