@@ -417,20 +417,40 @@ test_codex_threads_model_and_effort() {
   pass "codex receives --model and model_reasoning_effort profile flags"
 }
 
-test_codex_threads_max_effort() {
+test_codex_threads_supported_max_effort() {
   local rec id out status launch
-  id=profile-codex-max-z4
-  rec=$(make_spawn_case profile-codex-max codex "$id")
+  id=profile-codex-luna-max-z4
+  rec=$(make_spawn_case profile-codex-luna-max codex "$id")
   read_case_record "$rec"
 
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model gpt-5 --effort max)
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model gpt-5.6-luna --effort max)
   status=$?
-  expect_code 0 "$status" "codex spawn with max effort should pass the effort flag"
-  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5 max
+  expect_code 0 "$status" "codex Luna spawn with max effort should pass the effort flag"
+  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5.6-luna max
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "codex --model 'gpt-5' -c 'model_reasoning_effort=\"max\"' --dangerously-bypass-approvals-and-sandbox" \
+  assert_contains "$launch" "codex --model 'gpt-5.6-luna' -c 'model_reasoning_effort=\"max\"' --dangerously-bypass-approvals-and-sandbox" \
     "codex launch did not thread the explicit max reasoning effort"
-  pass "codex passes explicit max effort through model_reasoning_effort"
+  pass "codex passes max effort for the catalog-proven Luna model"
+}
+
+test_codex_omits_unsupported_max_effort() {
+  local rec id out status launch
+  id=profile-codex-gpt55-max-z4b
+  rec=$(make_spawn_case profile-codex-gpt55-max codex "$id")
+  read_case_record "$rec"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model gpt-5.5 --effort max)
+  status=$?
+  expect_code 0 "$status" "codex spawn with unsupported max effort should omit the effort flag"
+  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5.5 max
+  assert_contains "$out" "notice: Codex model 'gpt-5.5' has no verified max reasoning effort; omitting the flag" \
+    "codex spawn did not flag the unverified max effort"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "codex --model 'gpt-5.5' --dangerously-bypass-approvals-and-sandbox" \
+    "codex launch did not preserve the unsupported model and brief"
+  assert_not_contains "$launch" "model_reasoning_effort" \
+    "codex launch must omit max for an unsupported model"
+  pass "codex records but omits max for the unsupported GPT-5.5 model"
 }
 
 test_grok_threads_model_and_reasoning_effort() {
@@ -1309,7 +1329,8 @@ test_active_dispatch_profile_allows_positional_harness
 test_active_dispatch_profile_allows_raw_launch_command
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort
-test_codex_threads_max_effort
+test_codex_threads_supported_max_effort
+test_codex_omits_unsupported_max_effort
 test_grok_threads_model_and_reasoning_effort
 test_grok_omits_invalid_max_reasoning_effort
 test_grok_omits_invalid_xhigh_reasoning_effort

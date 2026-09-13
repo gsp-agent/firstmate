@@ -1995,11 +1995,15 @@ effort_flag_for_harness() {
       esac
       ;;
     codex)
-      # The installed codex config schema uses model_reasoning_effort, and the
-      # current model catalog advertises low|medium|high|xhigh|max. Preserve
-      # max when the caller explicitly selects it.
       case "$effort" in
-        low|medium|high|xhigh|max) printf -- '-c %s ' "$(shell_quote "model_reasoning_effort=\"$effort\"")" ;;
+        low|medium|high|xhigh) printf -- '-c %s ' "$(shell_quote "model_reasoning_effort=\"$effort\"")" ;;
+        max)
+          if [ "$model" = gpt-5.6-luna ]; then
+            printf -- '-c %s ' "$(shell_quote 'model_reasoning_effort="max"')"
+          else
+            echo "notice: Codex model '${model:-default}' has no verified max reasoning effort; omitting the flag" >&2
+          fi
+          ;;
       esac
       ;;
     grok)

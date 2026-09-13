@@ -12,7 +12,7 @@ Verified on 2026-09-12 with codex-cli 0.153.2 unless a fact gives a newer versio
 | Skill invocation | `$<skill>`, for example `$no-mistakes`; `/<skill>` is Claude-only and Codex rejects it as "Unrecognized command". |
 | Resume | `codex resume <session-id>`, using the id printed on quit. |
 | Model flag | `--model <model>`. |
-| Effort flag | `-c 'model_reasoning_effort="<low\|medium\|high\|xhigh\|max>"'`, verified on codex-cli 0.153.2 whose installed schema accepts `model_reasoning_effort`, and whose current model listing advertises `low`, `medium`, `high`, `xhigh`, and `max` for `gpt-5.6-luna`. |
+| Effort flag | `-c 'model_reasoning_effort="<low\|medium\|high\|xhigh\|max>"'`, verified on codex-cli 0.153.2; `max` is forwarded only for the catalog-proven `gpt-5.6-luna`, while other or unproven model entries keep the record-and-omit behavior. |
 | Model discovery | Open the current interactive session's `/model` picker. |
 
 A directory trust dialog appears on the first run for a repository root: "Do you trust the contents of this directory?"
