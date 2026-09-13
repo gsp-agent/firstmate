@@ -1,0 +1,32 @@
+Codex max-effort targeted runtime evidence
+target=d8d4c7235b3428d13f4699c1eed50277cd82903f
+repo=/Users/dalecarman/dev/firstmate/data/pilots/gsp-favicon/no-mistakes-runtime/worktrees/4d374246e685/01M2C7MHYDEFS3FHJ0B0T0QAFM
+
+[catalog] actual codex app-server model/list (includeHidden=true)
+gpt-6-astra	max
+gpt-reserve	max
+gpt-5.6-sol	max
+gpt-5.6-terra	max
+gpt-5.6-luna	max
+gpt-5.5	no-max
+gpt-5.3-codex-spark	no-max
+codex-auto-review	max
+
+[bootstrap] actual bin/fm-bootstrap.sh dispatch validation
+model=gpt-6-astra status=0 dispatch=accepted
+model=gpt-reserve status=0 dispatch=accepted
+model=gpt-5.6-sol status=0 dispatch=accepted
+model=gpt-5.6-terra status=0 dispatch=accepted
+model=gpt-5.6-luna status=0 dispatch=accepted
+model=codex-auto-review status=0 dispatch=accepted
+model=gpt-5.5 status=0 dispatch=CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: codex:max
+
+[spawn] actual bin/fm-spawn.sh launch construction through an isolated transport sink
+case=supported-gpt56-sol status=0 flag=present
+launch=env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI codex --model 'gpt-5.6-sol' -c 'model_reasoning_effort="max"' --dangerously-bypass-approvals-and-sandbox -c "notify=[\"bash\",\"-c\",\"touch '<fixture>/home/state/evidence-supported-gpt56-sol-z1.turn-ended'\"]" "$('<repo>/bin/fm-operational-input.sh' encode launch-brief < '<fixture>/home/data/evidence-supported-gpt56-sol-z1/launch-brief.md')"
+case=unsupported-gpt55 status=0 flag=omitted
+notice=notice: Codex model 'gpt-5.5' has no verified max reasoning effort; omitting the flag
+launch=env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI codex --model 'gpt-5.5' --dangerously-bypass-approvals-and-sandbox -c "notify=[\"bash\",\"-c\",\"touch '<fixture>/home/state/evidence-unsupported-gpt55-z1.turn-ended'\"]" "$('<repo>/bin/fm-operational-input.sh' encode launch-brief < '<fixture>/home/data/evidence-unsupported-gpt55-z1/launch-brief.md')"
+
+codex_version=codex-cli 0.153.2
+result=pass
