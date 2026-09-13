@@ -6,6 +6,20 @@ This record contains reusable version-scoped evidence for active runtime guarant
 The backend guides own current setup, safety boundaries, and limitations.
 Exact task chronology, branch names, temporary homes, local paths, process ids, thread ids, and delivery transcripts remain in private reports or PR evidence.
 
+## Codex CLI reasoning effort
+
+Verified on 2026-09-12 with codex-cli 0.153.2.
+The live app-server `model/list` response reports that `gpt-5.6-luna` supports `low`, `medium`, `high`, `xhigh`, and `max` reasoning effort.
+The installed CLI accepts the same explicit configuration override:
+
+```sh
+codex --version
+codex -c 'model_reasoning_effort="max"' features list
+```
+
+Observed output began with `codex-cli 0.153.2` and the command completed successfully.
+The selected Codex adapter reference records the launch flag and current discovery surface; this dated check records the runtime evidence that permits `max` to reach `fm-spawn.sh`.
+
 ## tmux
 
 Foreground-process behavior was verified on 2026-07-07 with tmux 3.6a on macOS.
