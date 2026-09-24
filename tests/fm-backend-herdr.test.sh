@@ -3729,6 +3729,104 @@ test_busy_state_unknown_on_no_agent() {
   pass "fm_backend_herdr_busy_state: unparseable/absent agent state reports unknown, the regex-fallback cue"
 }
 
+codex_process_info() {  # <pane-id> <pid> <pgid> <name> <argv0>
+  printf '{"result":{"type":"pane_process_info","process_info":{"pane_id":"%s","shell_pid":4200,"foreground_process_group_id":%s,"foreground_processes":[{"pid":%s,"name":"%s","argv0":"%s","argv":["%s"]}]}}}\n' \
+    "$1" "$3" "$2" "$4" "$5" "$5"
+}
+
+make_codex_ps_fake() {  # <file> <pid> <pgid> <comm>
+  local path=$1 pid=$2 pgid=$3 comm=$4
+  cat > "$path" <<'SH'
+#!/usr/bin/env bash
+set -u
+if [ "${1:-}" = -p ] && [ "${3:-}" = -o ]; then
+  [ "${2:-}" = "${FM_FAKE_CODEX_PID:-}" ] || exit 1
+  printf '%s %s %s\n' "$FM_FAKE_CODEX_PID" "$FM_FAKE_CODEX_PGID" "$FM_FAKE_CODEX_COMM"
+  exit 0
+fi
+exit 1
+SH
+  chmod +x "$path"
+  FM_FAKE_CODEX_PID=$pid
+  FM_FAKE_CODEX_PGID=$pgid
+  FM_FAKE_CODEX_COMM=$comm
+}
+
+test_codex_busy_state_requires_exact_live_foreground_process() {
+  local dir log resp fb out status
+
+  dir="$TMP_ROOT/codex-busy-live"; mkdir -p "$dir/responses"; resp="$dir/responses"; log="$dir/log"; : > "$log"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/1.out"
+  printf '%s\n' "$(codex_process_info w1:p2 4243 4243 codex codex)" > "$resp/2.out"
+  fb=$(make_herdr_fakebin "$dir")
+  make_codex_ps_fake "$dir/ps" 4243 4243 codex
+  out=$(PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    FM_HERDR_PS_BIN="$dir/ps" FM_FAKE_CODEX_PID="$FM_FAKE_CODEX_PID" \
+    FM_FAKE_CODEX_PGID="$FM_FAKE_CODEX_PGID" FM_FAKE_CODEX_COMM="$FM_FAKE_CODEX_COMM" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_codex_busy_state default:w1:p2' "$ROOT")
+  [ "$out" = busy ] || fail "an exact live Codex foreground process should prove busy, got '$out'"
+  assert_contains "$(cat "$log")" $'\x1f''pane'$'\x1f''process-info'$'\x1f''--pane'$'\x1f''w1:p2' \
+    "Codex busy proof did not inspect the exact Herdr pane"
+  assert_not_contains "$(cat "$log")" $'\x1f''server' "Codex busy proof started or mutated the Herdr server"
+
+  dir="$TMP_ROOT/codex-busy-wrong-group"; mkdir -p "$dir/responses"; resp="$dir/responses"; log="$dir/log"; : > "$log"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/1.out"
+  printf '%s\n' "$(codex_process_info w1:p2 4243 4243 codex codex)" > "$resp/2.out"
+  fb=$(make_herdr_fakebin "$dir")
+  make_codex_ps_fake "$dir/ps" 4243 9999 codex
+  out=$(PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    FM_HERDR_PS_BIN="$dir/ps" FM_FAKE_CODEX_PID="$FM_FAKE_CODEX_PID" \
+    FM_FAKE_CODEX_PGID="$FM_FAKE_CODEX_PGID" FM_FAKE_CODEX_COMM="$FM_FAKE_CODEX_COMM" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_codex_busy_state default:w1:p2' "$ROOT")
+  [ "$out" = unknown ] || fail "a process outside the reported foreground group must stay unknown, got '$out'"
+
+  dir="$TMP_ROOT/codex-busy-noncodex"; mkdir -p "$dir/responses"; resp="$dir/responses"; log="$dir/log"; : > "$log"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/1.out"
+  printf '%s\n' "$(codex_process_info w1:p2 4243 4243 node node)" > "$resp/2.out"
+  fb=$(make_herdr_fakebin "$dir")
+  make_codex_ps_fake "$dir/ps" 4243 4243 node
+  out=$(PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    FM_HERDR_PS_BIN="$dir/ps" FM_FAKE_CODEX_PID="$FM_FAKE_CODEX_PID" \
+    FM_FAKE_CODEX_PGID="$FM_FAKE_CODEX_PGID" FM_FAKE_CODEX_COMM="$FM_FAKE_CODEX_COMM" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_codex_busy_state default:w1:p2' "$ROOT")
+  [ "$out" = unknown ] || fail "a non-Codex foreground process must stay unknown, got '$out'"
+
+  dir="$TMP_ROOT/codex-busy-mismatched-pane"; mkdir -p "$dir/responses"; resp="$dir/responses"; log="$dir/log"; : > "$log"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/1.out"
+  printf '%s\n' "$(codex_process_info other:pane 4243 4243 codex codex)" > "$resp/2.out"
+  fb=$(make_herdr_fakebin "$dir")
+  make_codex_ps_fake "$dir/ps" 4243 4243 codex
+  out=$(PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    FM_HERDR_PS_BIN="$dir/ps" FM_FAKE_CODEX_PID="$FM_FAKE_CODEX_PID" \
+    FM_FAKE_CODEX_PGID="$FM_FAKE_CODEX_PGID" FM_FAKE_CODEX_COMM="$FM_FAKE_CODEX_COMM" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_codex_busy_state default:w1:p2' "$ROOT")
+  [ "$out" = unknown ] || fail "process info for a different pane must stay unknown, got '$out'"
+
+  dir="$TMP_ROOT/codex-busy-unreadable"; mkdir -p "$dir/responses"; resp="$dir/responses"; log="$dir/log"; : > "$log"
+  printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/1.out"
+  printf '1\n' > "$resp/2.exit"
+  fb=$(make_herdr_fakebin "$dir")
+  make_codex_ps_fake "$dir/ps" 4243 4243 codex
+  out=$(PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    FM_HERDR_PS_BIN="$dir/ps" FM_FAKE_CODEX_PID="$FM_FAKE_CODEX_PID" \
+    FM_FAKE_CODEX_PGID="$FM_FAKE_CODEX_PGID" FM_FAKE_CODEX_COMM="$FM_FAKE_CODEX_COMM" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_codex_busy_state default:w1:p2' "$ROOT")
+  [ "$out" = unknown ] || fail "an unreadable process view must stay unknown, got '$out'"
+
+  dir="$TMP_ROOT/codex-busy-stopped-server"; mkdir -p "$dir/responses"; resp="$dir/responses"; log="$dir/log"; : > "$log"
+  printf '{"server":{"running":false}}\n' > "$resp/1.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$(PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_HERDR_SCRIPT_STATUS=1 \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_codex_busy_state default:w1:p2' "$ROOT")
+  status=$?
+  [ "$status" -eq 0 ] && [ "$out" = unknown ] \
+    || fail "a positively stopped server must stay unknown, got status=$status output='$out'"
+  [ "$(wc -l < "$log" | tr -d ' ')" -eq 1 ] \
+    || fail "a stopped-server read must not attempt agent or process calls"
+  assert_not_contains "$(cat "$log")" $'\x1f''server' "Codex busy proof tried to start the stopped server"
+  pass "Codex busy requires a working registration and an exact live Codex foreground process"
+}
+
 # --- composer_state: structural border-row classification --------------------
 
 test_composer_state_bare_prompt_is_empty() {
@@ -5308,6 +5406,7 @@ test_current_path_reads_cwd
 test_busy_state_working_maps_to_busy
 test_busy_state_done_and_blocked_map_to_idle
 test_busy_state_unknown_on_no_agent
+test_codex_busy_state_requires_exact_live_foreground_process
 test_composer_state_bare_prompt_is_empty
 test_composer_state_styled_placeholder_draft_is_pending
 test_composer_state_real_text_is_pending

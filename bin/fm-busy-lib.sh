@@ -6,10 +6,12 @@
 # machine-readable semantic source it owns, classification always exposes
 # which source produced it, and missing, malformed, stale, unsupported, or
 # unverified semantic data is UNKNOWN - never idle. Endpoint death is the only
-# process-level override and yields dead, never busy. Child processes, CPU,
-# process sleep state, marker mtimes, and the old global UI-regex OR are not
-# state signals here; state/<id>.turn-ended files remain wake NOTIFICATIONS
-# owned by the watcher, not current-state truth.
+# process-level override that yields dead. The narrow Herdr Codex busy arm
+# corroborates native `working` with exact foreground process identity; process
+# identity alone never supplies a busy verdict. CPU, process sleep state,
+# marker mtimes, and the old global UI-regex OR are not state signals here;
+# state/<id>.turn-ended files remain wake NOTIFICATIONS owned by the watcher,
+# not current-state truth.
 #
 # Record file: state/<id>.busy-state - exactly one line, atomically replaced
 # by bin/fm-busy-event.sh (the only writer):
@@ -869,13 +871,14 @@ fm_busy_agy_tail_busy() {
 
 # fm_busy_classify: semantic classification for a task whose endpoint the
 # caller has already established as present. Prints "<verdict> <source>":
-# busy|idle|unknown plus the producing source (see header). Never probes
-# process state. <tail40> is optional pre-captured plain output used only by
+# busy|idle|unknown plus the producing source (see header). The narrow Herdr
+# Codex arm may corroborate `working` with exact foreground process identity.
+# <tail40> is optional pre-captured plain output used only by
 # the grok, rovo, and agy arms; when absent each captures through
 # fm_backend_capture if available, else reports unknown capture-failed.
 fm_busy_classify() {  # <backend> <target> <harness> <id> <state-dir> [tail40]
   local backend=$1 target=$2 harness=$3 id=$4 state=$5 tail40=${6-}
-  local out rc r_state r_source native log
+  local out rc r_state r_source native='' log
   case "$harness" in
     kimi*)
       if ! fm_busy_kimi_verified; then
@@ -885,6 +888,14 @@ fm_busy_classify() {  # <backend> <target> <harness> <id> <state-dir> [tail40]
       ;;
     codex*)
       if ! fm_busy_codex_semantic_source; then
+        if [ "$backend" = herdr ] \
+          && command -v fm_backend_herdr_codex_busy_state >/dev/null 2>&1; then
+          native=$(fm_backend_herdr_codex_busy_state "$target" 2>/dev/null || true)
+          if [ "$native" = busy ]; then
+            printf 'busy herdr-native'
+            return 0
+          fi
+        fi
         printf 'unknown codex-unverified'
         return 0
       fi
@@ -930,8 +941,19 @@ fm_busy_classify() {  # <backend> <target> <harness> <id> <state-dir> [tail40]
   # for BUSY (streaming means a turn is running); native idle is narrower
   # than turn state (a long foreground tool call reads idle) and stays
   # unknown here.
-  if [ "$backend" = herdr ] && command -v fm_backend_busy_state >/dev/null 2>&1; then
-    native=$(fm_backend_busy_state "$backend" "$target" 2>/dev/null || true)
+  if [ "$backend" = herdr ]; then
+    case "$harness" in
+      codex*)
+        if command -v fm_backend_herdr_codex_busy_state >/dev/null 2>&1; then
+          native=$(fm_backend_herdr_codex_busy_state "$target" 2>/dev/null || true)
+        fi
+        ;;
+      *)
+        if command -v fm_backend_busy_state >/dev/null 2>&1; then
+          native=$(fm_backend_busy_state "$backend" "$target" 2>/dev/null || true)
+        fi
+        ;;
+    esac
     if [ "$native" = busy ]; then
       printf 'busy herdr-native'
       return 0

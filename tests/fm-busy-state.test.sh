@@ -318,6 +318,34 @@ test_codex_unverified_gate() {
   pass "codex classifies unknown until a semantic source passes its verification gate"
 }
 
+test_codex_herdr_busy_is_a_narrow_process_exception() {
+  local state out
+  state=$(new_state_dir codex-herdr-native)
+  # shellcheck disable=SC2329 # invoked indirectly through fm_busy_classify
+  fm_backend_herdr_codex_busy_state() { printf '%s' "$FAKE_CODEX_NATIVE"; }
+  # shellcheck disable=SC2329 # invoked indirectly through fm_busy_classify
+  fm_backend_busy_state() { printf busy; }
+  FAKE_CODEX_NATIVE=busy
+  out=$(fm_busy_classify herdr s:p codex t1 "$state" '• Working')
+  [ "$out" = "busy herdr-native" ] || fail "confirmed Herdr Codex busy should be reported, got '$out'"
+  out=$(fm_busy_classify tmux w1 codex t1 "$state" '• Working')
+  [ "$out" = "unknown codex-unverified" ] || fail "non-Herdr Codex must keep its gate closed, got '$out'"
+  FAKE_CODEX_NATIVE=unknown
+  out=$(fm_busy_classify herdr s:p codex t1 "$state" '• Working')
+  [ "$out" = "unknown codex-unverified" ] || fail "unconfirmed Herdr Codex must remain unknown, got '$out'"
+
+  out=$(bash -c '
+    . "$1/bin/fm-busy-lib.sh"
+    fm_busy_codex_semantic_source() { return 0; }
+    fm_backend_busy_state() { printf busy; }
+    fm_backend_herdr_codex_busy_state() { printf unknown; }
+    fm_busy_classify herdr s:p codex t1 "$2"
+  ' _ "$ROOT" "$state")
+  [ "$out" = "unknown missing" ] || fail "generic Herdr busy must not bypass Codex process proof, got '$out'"
+  unset -f fm_backend_herdr_codex_busy_state fm_backend_busy_state
+  pass "only confirmed Codex-on-Herdr process evidence can bypass the closed Codex gate"
+}
+
 test_kimi_unverified_gate() {
   local state gen out
   state=$(new_state_dir kimi-gate)
@@ -476,6 +504,7 @@ test_source_mismatch_cross_adapter
 test_converted_adapters_ignore_footer_text
 test_grok_regex_isolated
 test_codex_unverified_gate
+test_codex_herdr_busy_is_a_narrow_process_exception
 test_kimi_unverified_gate
 test_cursor_ignores_rendered_and_native_signals
 test_dead_endpoint_overrides

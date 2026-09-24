@@ -3408,6 +3408,83 @@ fm_backend_herdr_agent_status_raw() {  # <session> <pane_id>
   printf '%s' "$out" | jq -r '.result.agent.agent_status // empty' 2>/dev/null
 }
 
+# fm_backend_herdr_codex_busy_state: narrow busy-only proof for Codex tasks.
+# This deliberately does not call target_ready/server_ensure: a status read
+# must confirm that the named server is already running before any pane read.
+# A positive verdict requires agent_status=working, an exact-pane process-info
+# response with one foreground process whose name and argv0 both identify the
+# Codex CLI, and a live ps row for that pid in Herdr's reported foreground
+# process group. Every malformed, ambiguous, unreadable, or non-Codex result
+# stays unknown; this does not establish idle state or Codex hook/app-server
+# lifecycle semantics.
+fm_backend_herdr_codex_busy_state() {  # <target>
+  local target=${1:-} session pane server agent_status info shell_pid foreground_pgid
+  local codex_pids codex_count codex_pid ps_bin ps_row
+  fm_backend_herdr_parse_target "$target" || { printf 'unknown'; return 0; }
+  session=$FM_BACKEND_HERDR_SESSION
+  pane=$FM_BACKEND_HERDR_PANE
+
+  server=$(fm_backend_herdr_server_running_state "$session")
+  [ "$server" = running ] || { printf 'unknown'; return 0; }
+  agent_status=$(fm_backend_herdr_agent_status_raw "$session" "$pane")
+  [ "$agent_status" = working ] || { printf 'unknown'; return 0; }
+
+  info=$(fm_backend_herdr_cli "$session" pane process-info --pane "$pane" 2>/dev/null) \
+    || { printf 'unknown'; return 0; }
+  printf '%s' "$info" | jq -e --arg pane "$pane" '
+    .result.type == "pane_process_info"
+    and .result.process_info.pane_id == $pane
+    and (.result.process_info.shell_pid | type == "number" and . > 1 and floor == .)
+    and (.result.process_info.foreground_process_group_id | type == "number" and . > 1 and floor == .)
+    and (.result.process_info.foreground_processes | type == "array" and length > 0)
+    and all(.result.process_info.foreground_processes[];
+      (.pid | type == "number" and . > 1 and floor == .)
+      and (.name | type == "string" and length > 0))
+    and ([.result.process_info.foreground_processes[].pid] | length == (unique | length))
+  ' >/dev/null 2>&1 || { printf 'unknown'; return 0; }
+  shell_pid=$(printf '%s' "$info" | jq -er \
+    '.result.process_info.shell_pid | floor' 2>/dev/null) || { printf 'unknown'; return 0; }
+  foreground_pgid=$(printf '%s' "$info" | jq -er \
+    '.result.process_info.foreground_process_group_id | floor' 2>/dev/null) \
+    || { printf 'unknown'; return 0; }
+  [ "$shell_pid" -gt 1 ] && [ "$foreground_pgid" -gt 1 ] \
+    || { printf 'unknown'; return 0; }
+
+  codex_pids=$(printf '%s' "$info" | jq -r '
+    def base($value): ($value | split("/") | last | ltrimstr("-"));
+    def process_argv0($process):
+      if ($process.argv0 | type) == "string" and $process.argv0 != "" then $process.argv0
+      elif ($process.argv | type) == "array"
+        and ($process.argv | length) > 0
+        and ($process.argv[0] | type) == "string" then $process.argv[0]
+      else "" end;
+    [
+      .result.process_info.foreground_processes[]
+      | . as $process
+      | select(base($process.name) == "codex" and base(process_argv0($process)) == "codex")
+      | $process.pid
+    ] | .[]
+  ' 2>/dev/null) || { printf 'unknown'; return 0; }
+  codex_count=$(printf '%s\n' "$codex_pids" | awk 'NF { count++ } END { print count + 0 }')
+  [ "$codex_count" -eq 1 ] || { printf 'unknown'; return 0; }
+  codex_pid=$codex_pids
+
+  ps_bin=${FM_HERDR_PS_BIN:-ps}
+  command -v "$ps_bin" >/dev/null 2>&1 || { printf 'unknown'; return 0; }
+  ps_row=$(LC_ALL=C "$ps_bin" -p "$codex_pid" -o pid=,pgid=,comm= 2>/dev/null) \
+    || { printf 'unknown'; return 0; }
+  printf '%s\n' "$ps_row" | awk -v pid="$codex_pid" -v pgid="$foreground_pgid" '
+    NR == 1 && NF >= 3 && $1 == pid && $2 == pgid {
+      comm = $3
+      sub(/^.*\//, "", comm)
+      sub(/^-/, "", comm)
+      valid = (comm == "codex")
+    }
+    END { exit(NR == 1 && valid ? 0 : 1) }
+  ' || { printf 'unknown'; return 0; }
+  printf 'busy'
+}
+
 # fm_backend_herdr_busy_state: semantic busy state from herdr's native
 # agent-state detection (agent.get), the "first backend where fm_session_busy_state
 # gets real semantics" per the design report. See
