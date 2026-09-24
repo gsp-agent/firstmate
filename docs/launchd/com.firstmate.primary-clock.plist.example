@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.firstmate.primary-clock</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/absolute/path/to/firstmate/bin/fm-primary-tick.sh</string>
+	</array>
+	<key>StartInterval</key>
+	<integer>900</integer>
+	<key>RunAtLoad</key>
+	<false/>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<key>FM_HOME</key>
+		<string>/absolute/path/to/firstmate</string>
+		<key>FM_ROOT_OVERRIDE</key>
+		<string>/absolute/path/to/maintained-firstmate-checkout</string>
+		<key>CODEX_HOME</key>
+		<string>/absolute/path/to/codex-home</string>
+		<key>FM_PRIMARY_SESSION_UUID</key>
+		<string>00000000-0000-4000-8000-000000000000</string>
+		<key>FM_PRIMARY_TMUX_SESSION</key>
+		<string>firstmate-primary</string>
+		<key>FM_PRIMARY_TMUX_SOCKET</key>
+		<string>/absolute/path/to/firstmate-tmux.sock</string>
+		<key>FM_PRIMARY_TMUX_BIN</key>
+		<string>/opt/homebrew/bin/tmux</string>
+		<key>FM_PRIMARY_CODEX_BIN</key>
+		<string>/opt/homebrew/bin/codex</string>
+		<key>FM_PRIMARY_MODEL</key>
+		<string>gpt-6-luna</string>
+		<key>FM_PRIMARY_EFFORT</key>
+		<string>max</string>
+	</dict>
+	<key>StandardOutPath</key>
+	<string>/absolute/path/to/Library/Logs/firstmate-primary-clock.log</string>
+	<key>StandardErrorPath</key>
+	<string>/absolute/path/to/Library/Logs/firstmate-primary-clock.err.log</string>
+</dict>
+</plist>

@@ -450,6 +450,32 @@ make_seeded_home() {
   printf 'charter\n' > "$home/data/charter.md"
 }
 
+make_seeded_git_home() {
+  local home=$1 id=$2
+  make_seeded_home "$home" "$id"
+  printf 'config/\nstate/\nprojects/\n' > "$home/.gitignore"
+  git -C "$home" init -q -b main
+  git -C "$home" add --all
+  git -C "$home" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm initial
+}
+
+assert_codex_sandbox_contract() {
+  local launch=$1 home=$2 home_real git_dir common_dir
+  home_real=$(cd "$home" && pwd -P) || fail "could not resolve Codex secondmate home: $home"
+  git_dir=$(git -C "$home_real" rev-parse --absolute-git-dir) || fail "could not resolve secondmate Git dir"
+  common_dir=$(git -C "$home_real" rev-parse --path-format=absolute --git-common-dir) \
+    || fail "could not resolve secondmate common Git dir"
+  assert_contains "$launch" "--cd '$home_real'" "Codex secondmate must start in its task home"
+  assert_contains "$launch" "--sandbox workspace-write" "Codex secondmate must use workspace-write"
+  assert_contains "$launch" "--ask-for-approval never" "Codex secondmate must use approval=never"
+  assert_contains "$launch" "-c 'sandbox_workspace_write.network_access=true'" \
+    "Codex secondmate must enable network access explicitly"
+  assert_contains "$launch" "--add-dir '$git_dir'" "Codex secondmate must grant its Git dir"
+  assert_contains "$launch" "--add-dir '$common_dir'" "Codex secondmate must grant its common Git admin dir"
+  assert_not_contains "$launch" "--dangerously-bypass-approvals-and-sandbox" \
+    "Codex secondmate must not bypass the configured sandbox"
+}
+
 # spawn_secondmate <world> <id> <home> [explicit-harness]
 # Runs fm-spawn.sh in secondmate mode. FM_ROOT is the real repo (so fm-harness.sh
 # resolves), the primary config dir is <world>/home/config, and CLAUDECODE pins
@@ -487,7 +513,7 @@ test_spawn_split_and_inherit() {
   printf 'codex\n' > "$w/home/config/secondmate-harness"
   printf 'manual\n' > "$w/home/config/backlog-backend"
   printf 'zellij\n' > "$w/home/config/backend"
-  make_seeded_home "$sm" sm
+  make_seeded_git_home "$sm" sm
 
   spawn_secondmate "$w" sm "$sm"
 
@@ -517,7 +543,7 @@ test_spawn_backward_compat_crew_fallback() {
   sm="$w/sm"
   mkdir -p "$w/home/config"
   printf 'codex\n' > "$w/home/config/crew-harness"
-  make_seeded_home "$sm" sm
+  make_seeded_git_home "$sm" sm
 
   spawn_secondmate "$w" sm "$sm"
 
@@ -861,7 +887,7 @@ test_spawn_explicit_harness_does_not_inherit_secondmate_harness_tokens() {
   launchlog="$w/launch.log"
   mkdir -p "$w/home/config"
   printf 'claude opus high\n' > "$w/home/config/secondmate-harness"
-  make_seeded_home "$sm" sm
+  make_seeded_git_home "$sm" sm
 
   spawn_secondmate_capture "$w" sm "$sm" "$launchlog" --harness codex >/dev/null 2>&1
 
@@ -870,8 +896,9 @@ test_spawn_explicit_harness_does_not_inherit_secondmate_harness_tokens() {
   [ "$(meta_field "$meta" model)" = default ] || fail "explicit-harness-no-tokens: meta model should stay default"
   [ "$(meta_field "$meta" effort)" = default ] || fail "explicit-harness-no-tokens: meta effort should stay default"
   launch=$(cat "$launchlog")
-  assert_contains "$launch" "codex --dangerously-bypass-approvals-and-sandbox" \
+  assert_contains "$launch" "codex " \
     "explicit-harness-no-tokens: launch did not use codex"
+  assert_codex_sandbox_contract "$launch" "$sm"
   assert_not_contains "$launch" "--model" "explicit-harness-no-tokens: launch must not carry a --model flag"
   assert_not_contains "$launch" "model_reasoning_effort" \
     "explicit-harness-no-tokens: launch must not carry a codex effort flag"
@@ -885,7 +912,7 @@ test_spawn_explicit_harness_uses_explicit_profile_axes() {
   launchlog="$w/launch.log"
   mkdir -p "$w/home/config"
   printf 'claude opus high\n' > "$w/home/config/secondmate-harness"
-  make_seeded_home "$sm" sm
+  make_seeded_git_home "$sm" sm
 
   spawn_secondmate_capture "$w" sm "$sm" "$launchlog" --harness codex --model gpt-5.5 --effort xhigh >/dev/null 2>&1
 
@@ -902,6 +929,7 @@ test_spawn_explicit_harness_uses_explicit_profile_axes() {
     "explicit-harness-explicit-axes: launch leaked the file's model token"
   assert_not_contains "$launch" "model_reasoning_effort=\"high\"" \
     "explicit-harness-explicit-axes: launch leaked the file's effort token"
+  assert_codex_sandbox_contract "$launch" "$sm"
   pass "C8 spawn: an explicit --harness still honors explicit model/effort flags"
 }
 
@@ -913,7 +941,11 @@ test_spawned_secondmate_uses_its_harness_supervision_model() {
     launchlog="$w/launch.log"
     mkdir -p "$w/home/config"
     printf '%s\n' "$harness" > "$w/home/config/secondmate-harness"
-    make_seeded_home "$sm" sm
+    if [ "$harness" = codex ]; then
+      make_seeded_git_home "$sm" sm
+    else
+      make_seeded_home "$sm" sm
+    fi
     spawn_secondmate_capture "$w" sm "$sm" "$launchlog" >/dev/null 2>&1
     fm_write_meta "$sm/state/task.meta" "window=firstmate:fm-task" "kind=ship"
     touch "$sm/state/.last-watcher-beat"
@@ -931,6 +963,7 @@ SH
     out=$(PATH="$fakebin:$BASE_PATH" CLAUDECODE=1 bash -c "$launch" 2>&1)
     case "$harness" in
       codex)
+        assert_codex_sandbox_contract "$launch" "$sm"
         expected='WATCHER DOWN - SUPERVISION IS OFF'
         assert_contains "$out" "$expected" \
           "Codex secondmate inherited Claude auto-arm despite its persistent watcher model"
@@ -955,7 +988,7 @@ test_spawn_fallback_chain_and_crew_scout_unaffected() {
   launchlog="$w/launch.log"
   mkdir -p "$w/home/config"
   printf 'codex\n' > "$w/home/config/crew-harness"
-  make_seeded_home "$sm" sm
+  make_seeded_git_home "$sm" sm
 
   spawn_secondmate_capture "$w" sm "$sm" "$launchlog" >/dev/null 2>&1
 
@@ -964,6 +997,8 @@ test_spawn_fallback_chain_and_crew_scout_unaffected() {
     || fail "fallback: secondmate harness did not fall back to crew-harness codex"
   [ "$(meta_field "$meta" model)" = default ] || fail "fallback: meta model should stay default with no tokens anywhere"
   [ "$(meta_field "$meta" effort)" = default ] || fail "fallback: meta effort should stay default with no tokens anywhere"
+  launch=$(cat "$launchlog")
+  assert_codex_sandbox_contract "$launch" "$sm"
 
   # Crew/scout launch: same crew-harness config, no --secondmate. Must resolve
   # the crew harness and record no model/effort - this codepath must never read

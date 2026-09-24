@@ -1,6 +1,6 @@
 # Codex
 
-Verified on 2026-06-11 with codex-cli 0.139.0 unless a fact gives a newer version.
+Verified on 2026-09-12 with codex-cli 0.153.2 unless a fact gives a newer version.
 
 ## Operating facts
 
@@ -12,8 +12,16 @@ Verified on 2026-06-11 with codex-cli 0.139.0 unless a fact gives a newer versio
 | Skill invocation | `$<skill>`, for example `$no-mistakes`; `/<skill>` is Claude-only and Codex rejects it as "Unrecognized command". |
 | Resume | `codex resume <session-id>`, using the id printed on quit. |
 | Model flag | `--model <model>`. |
-| Effort flag | `-c 'model_reasoning_effort="<low\|medium\|high\|xhigh>"'`, verified on codex-cli 0.142.1 whose installed schema contains `model_reasoning_effort`, active config uses it, and bundled catalog advertises only these four values while omitting `max`. |
+| Effort flag | `-c 'model_reasoning_effort="<low\|medium\|high\|xhigh\|max>"'`, verified on codex-cli 0.153.2; `max` is forwarded only for catalog-proven models `gpt-6-astra`, `gpt-6-luna`, `gpt-reserve`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, and `codex-auto-review`. The 2026-09-23 codex-cli 0.156.0 catalog reports `max` for `gpt-6-luna`; other or unproven entries keep the record-and-omit behavior. |
 | Model discovery | Open the current interactive session's `/model` picker. |
+
+## Canonical task launch
+
+As of 2026-09-23, Firstmate's canonical Codex adapter sets the resolved task worktree with `--cd`, selects `--sandbox workspace-write` and `--ask-for-approval never`, enables `sandbox_workspace_write.network_access=true`, and passes the resolved worktree Git directory and common directory with `--add-dir`. If either Git administration root cannot be resolved, the canonical launch is refused; it does not fall back to the raw-launch escape hatch.
+
+For non-secondmate canonical workers, it also pre-creates the exact task `.status` file and the task's `.inbox/handled` directory, then adds only that status file and that inbox directory as further writable roots. The selected `FM_HOME` is set inside the launch command so a stale value inherited from a long-lived pane cannot redirect task-state helpers. This uses codex-cli 0.156.0's `--add-dir` `PathBuf` option; its macOS Seatbelt policy treats an existing non-directory writable root as a literal path rather than a recursive directory grant ([CLI option](https://github.com/openai/codex/blob/rust-v0.156.0/codex-rs/utils/cli/src/shared_options.rs), [Seatbelt root handling](https://github.com/openai/codex/blob/rust-v0.156.0/codex-rs/sandboxing/src/seatbelt.rs)).
+
+These flags describe the launch request, not proven sandbox behavior. Codex documents that `workspace-write` protects `<writable_root>/.git` and, for a Git-pointer worktree, its resolved Git directory as read-only. Adding those paths does not by itself prove Git metadata is writable or establish outside-root denial. No live Firstmate Codex launch or Git mutation is claimed here. See [Codex agent approvals and security](https://learn.chatgpt.com/docs/agent-approvals-security) and the [Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
 
 A directory trust dialog appears on the first run for a repository root: "Do you trust the contents of this directory?"
 Accept it with Enter and verify the instructions begin processing.

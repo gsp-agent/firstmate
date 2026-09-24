@@ -282,6 +282,7 @@
 #     __GEMINISETTINGS__ firstmate-owned per-task gemini settings file (busy-state hooks)
 #     __ROVOBIN__   resolved, rovo-verified executable for a rovo launch
 #     __AGYBIN__    resolved, agy-verified executable for an agy launch
+#     __CODEXSANDBOXFLAGS__ resolved workspace-write, approval, network, and Git-root flags for Codex
 # Verified per-harness turn-end hooks are installed automatically where enabled; some live outside the worktree.
 # Kimi uses one surgically installed Firstmate region in $HOME/.kimi-code/config.toml,
 # a firstmate-owned global hook and registry, and a gitignored per-task pointer.
@@ -1316,6 +1317,7 @@ PROJ=
 ARG3=
 FIRSTMATE_HOME=
 RAW_LAUNCH=0
+CODEX_SANDBOX_FLAGS=
 
 # --relaunch adoption: every identity axis comes from the task's own validated
 # durable record, never from the command line, so a relaunch can only ever
@@ -1426,6 +1428,101 @@ shell_quote() {
   printf "'"
   printf '%s' "$1" | sed "s/'/'\\\\''/g"
   printf "'"
+}
+
+codex_sandbox_flags_for_worktree() {  # <path> -> canonical bounded Codex launch flags
+  local path=$1 worktree worktree_top worktree_top_real git_dir common_dir
+  worktree=$(cd "$path" 2>/dev/null && pwd -P) || {
+    echo "error: Codex task worktree is not a readable directory: $path" >&2
+    return 1
+  }
+  worktree_top=$(git -C "$worktree" rev-parse --show-toplevel 2>/dev/null) || {
+    echo "error: Codex task worktree is not a Git worktree: $worktree" >&2
+    return 1
+  }
+  worktree_top_real=$(cd "$worktree_top" 2>/dev/null && pwd -P) || {
+    echo "error: Codex task worktree root could not be resolved: $worktree_top" >&2
+    return 1
+  }
+  if [ "$worktree" != "$worktree_top_real" ]; then
+    echo "error: Codex task path is not its Git worktree root: $worktree" >&2
+    return 1
+  fi
+  git_dir=$(git -C "$worktree" rev-parse --absolute-git-dir 2>/dev/null) || git_dir=
+  if [ -n "$git_dir" ]; then
+    git_dir=$(cd "$git_dir" 2>/dev/null && pwd -P) || git_dir=
+  fi
+  common_dir=$(git -C "$worktree" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || common_dir=
+  if [ -n "$common_dir" ]; then
+    common_dir=$(cd "$common_dir" 2>/dev/null && pwd -P) || common_dir=
+  fi
+  if [ -z "$git_dir" ] || [ -z "$common_dir" ] || [ ! -d "$git_dir" ] || [ ! -d "$common_dir" ]; then
+    echo "error: Codex task worktree Git administration roots could not be resolved: $worktree" >&2
+    return 1
+  fi
+  printf '%s' "--cd $(shell_quote "$worktree") --sandbox workspace-write --ask-for-approval never -c $(shell_quote 'sandbox_workspace_write.network_access=true') --add-dir $(shell_quote "$git_dir") --add-dir $(shell_quote "$common_dir") "
+}
+
+codex_task_write_scope_flags() {  # <resolved-state-dir> <task-id> -> exact status/inbox roots
+  local state_real=$1 id=$2 status_file inbox_dir handled_dir
+  local symlink_path
+  [ -d "$state_real" ] && [ "$state_real" = "$(cd "$state_real" 2>/dev/null && pwd -P)" ] || {
+    echo "error: Codex task state directory is not a resolved directory: $state_real" >&2
+    return 1
+  }
+  status_file="$state_real/$id.status"
+  inbox_dir="$state_real/$id.inbox"
+  handled_dir="$inbox_dir/handled"
+
+  if [ -L "$status_file" ] || { [ -e "$status_file" ] && [ ! -f "$status_file" ]; }; then
+    echo "error: Codex task status path is not a regular file: $status_file" >&2
+    return 1
+  fi
+  if [ ! -e "$status_file" ] && [ ! -L "$status_file" ]; then
+    if ! (umask 077; set -C; : > "$status_file") 2>/dev/null \
+       && { [ -L "$status_file" ] || [ ! -f "$status_file" ]; }; then
+      echo "error: could not pre-create the exact Codex task status file: $status_file" >&2
+      return 1
+    fi
+  fi
+  if [ -L "$status_file" ] || [ ! -f "$status_file" ] || [ ! -w "$status_file" ]; then
+    echo "error: Codex task status path is not a writable regular file: $status_file" >&2
+    return 1
+  fi
+
+  if [ -L "$inbox_dir" ] || { [ -e "$inbox_dir" ] && [ ! -d "$inbox_dir" ]; }; then
+    echo "error: Codex task inbox path is not a directory: $inbox_dir" >&2
+    return 1
+  fi
+  mkdir -p "$inbox_dir" || {
+    echo "error: could not prepare the Codex task inbox: $inbox_dir" >&2
+    return 1
+  }
+  if [ ! -r "$inbox_dir" ] || [ ! -w "$inbox_dir" ] || [ ! -x "$inbox_dir" ]; then
+    echo "error: Codex task inbox is not readable, writable, and traversable: $inbox_dir" >&2
+    return 1
+  fi
+  if [ -L "$handled_dir" ] || { [ -e "$handled_dir" ] && [ ! -d "$handled_dir" ]; }; then
+    echo "error: Codex task inbox acknowledgement path is not a directory: $handled_dir" >&2
+    return 1
+  fi
+  mkdir -p "$handled_dir" || {
+    echo "error: could not prepare the Codex task inbox acknowledgement path: $handled_dir" >&2
+    return 1
+  }
+  if [ ! -r "$handled_dir" ] || [ ! -w "$handled_dir" ] || [ ! -x "$handled_dir" ]; then
+    echo "error: Codex task inbox acknowledgement path is not readable, writable, and traversable: $handled_dir" >&2
+    return 1
+  fi
+  symlink_path=$(find "$inbox_dir" -type l -print -quit) || {
+    echo "error: could not verify the Codex task inbox contents: $inbox_dir" >&2
+    return 1
+  }
+  if [ -n "$symlink_path" ]; then
+    echo "error: Codex task inbox contains a symbolic link: $symlink_path" >&2
+    return 1
+  fi
+  printf '%s' "--add-dir $(shell_quote "$status_file") --add-dir $(shell_quote "$inbox_dir") "
 }
 
 resolve_pi_executable() {
@@ -1548,9 +1645,9 @@ launch_template() {
     claude) printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude __CLAUDEPERMFLAG__ --settings '\''{"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false}}'\'' __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
     codex)
       if [ "$kind" = secondmate ]; then
-        printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+        printf '%s' 'codex __MODELFLAG____EFFORTFLAG____CODEXSANDBOXFLAGS__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
       else
-        printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox -c "notify=[\"bash\",\"-c\",\"touch __TURNEND__\"]" "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+        printf '%s' 'codex __MODELFLAG____EFFORTFLAG____CODEXSANDBOXFLAGS__-c "notify=[\"bash\",\"-c\",\"touch __TURNEND__\"]" "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
       fi
       ;;
     opencode) printf '%s' 'OPENCODE_CONFIG_CONTENT='\''{"permission":{"*":"allow"}}'\'' opencode __MODELFLAG__--prompt "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
@@ -1995,11 +2092,18 @@ effort_flag_for_harness() {
       esac
       ;;
     codex)
-      # The installed codex config schema uses model_reasoning_effort, and the
-      # bundled model catalog advertises low|medium|high|xhigh. Omit max rather
-      # than passing an unsupported value.
       case "$effort" in
         low|medium|high|xhigh) printf -- '-c %s ' "$(shell_quote "model_reasoning_effort=\"$effort\"")" ;;
+        max)
+          case "$model" in
+            gpt-6-astra|gpt-6-luna|gpt-reserve|gpt-5.6-sol|gpt-5.6-terra|gpt-5.6-luna|codex-auto-review)
+              printf -- '-c %s ' "$(shell_quote 'model_reasoning_effort="max"')"
+              ;;
+            *)
+              echo "notice: Codex model '${model:-default}' has no verified max reasoning effort; omitting the flag" >&2
+              ;;
+          esac
+          ;;
       esac
       ;;
     grok)
@@ -3361,6 +3465,19 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
   freshen_spawn_worktree_base "$WT" || exit 1
 fi
 
+if [ "$HARNESS" = codex ] && [ "$RAW_LAUNCH" -eq 0 ]; then
+  if CODEX_SANDBOX_FLAGS=$(codex_sandbox_flags_for_worktree "$WT"); then
+    :
+  else
+    echo "error: refusing Codex launch because its bounded workspace roots could not be resolved" >&2
+    if [ "$RELAUNCH" -ne 1 ] && [ "$BACKEND" != orca ]; then
+      fm_backend_kill "$BACKEND" "$T" >/dev/null 2>&1 \
+        || echo "warning: could not remove the unopened Codex endpoint $T" >&2
+    fi
+    exit 1
+  fi
+fi
+
 # Pre-register Claude's workspace trust for the directory this launch starts in,
 # at the first point that directory is known and before any per-task state is
 # created below. The dialog gates the pane before the brief is ever read, and it
@@ -3424,6 +3541,18 @@ mkdir -p "$TASK_TMP/gotmp"
 mkdir -p "$STATE"
 STATE_REAL=$(cd "$STATE" && pwd -P)
 TURNEND="$STATE_REAL/$ID.turn-ended"
+if [ "$HARNESS" = codex ] && [ "$RAW_LAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
+  if CODEX_TASK_WRITE_SCOPE_FLAGS=$(codex_task_write_scope_flags "$STATE_REAL" "$ID"); then
+    CODEX_SANDBOX_FLAGS="${CODEX_SANDBOX_FLAGS}${CODEX_TASK_WRITE_SCOPE_FLAGS}"
+  else
+    echo "error: refusing canonical Codex launch without its exact task status and inbox write paths" >&2
+    if [ "$RELAUNCH" -ne 1 ] && [ "$BACKEND" != orca ]; then
+      fm_backend_kill "$BACKEND" "$T" >/dev/null 2>&1 \
+        || echo "warning: could not remove the unopened Codex endpoint $T" >&2
+    fi
+    exit 1
+  fi
+fi
 exclude_path() {
   local rel=$1 EXCL
   EXCL=$(git -C "$WT" rev-parse --git-path info/exclude 2>/dev/null || true)
@@ -4032,6 +4161,9 @@ MODELFLAG=$(model_flag_for_harness "$HARNESS" "$MODEL")
 EFFORTFLAG=$(effort_flag_for_harness "$HARNESS" "$EFFORT" "$MODEL") || exit 1
 LAUNCH=${LAUNCH//__MODELFLAG__/$MODELFLAG}
 LAUNCH=${LAUNCH//__EFFORTFLAG__/$EFFORTFLAG}
+# Quote the replacement operand: Bash 5.3's patsub_replacement treats an
+# unquoted ampersand in the value as the matched placeholder text.
+LAUNCH=${LAUNCH//__CODEXSANDBOXFLAGS__/"$CODEX_SANDBOX_FLAGS"}
 LAUNCH=${LAUNCH//__CLAUDEPERMFLAG__/$CLAUDE_PERM_FLAG}
 if [ "$HARNESS" = rovo ]; then
   ROVOCONFIGOVERRIDE=$(rovo_config_override_flag "$EFFORT" "$DATA" "$STATE" "$ID") || {
@@ -4093,6 +4225,12 @@ if [ "$KIND" = secondmate ]; then
   # Reuse the single frozen decision from the carrier resolution above so the
   # injected carrier and this on/off snapshot are guaranteed to agree.
   LAUNCH="FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME=$sq_primary_home FM_HOME=$sq_home FM_TRACE_CONTEXT=$SPAWN_TRACE_EFFECTIVE FM_SUPERVISION_MODEL=$supervision_model $LAUNCH"
+fi
+if [ "$HARNESS" = codex ] && [ "$RAW_LAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
+  # tmux/herdr panes can retain a stale FM_HOME from an earlier Firstmate
+  # launch. Pin the selected operational home inside the command so it survives
+  # the optional env -i wrapper and task status/inbox helpers reach this home.
+  LAUNCH="FM_HOME=$(shell_quote "$FM_HOME") $LAUNCH"
 fi
 if [ -z "$SPAWN_TRACEPARENT" ] && [ "$RELAUNCH" -eq 1 ]; then
   LAUNCH="unset TRACEPARENT; $LAUNCH"
