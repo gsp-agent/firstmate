@@ -444,6 +444,8 @@ test_confirmed_death_recovers_once_with_pinned_settings() {
   assert_contains "$command_line" '--ask-for-approval never' "resume command changed approval posture"
   assert_contains "$command_line" 'FM_BOOTSTRAP_DETECT_ONLY=1' "resume could repeat startup mutation sweeps"
   assert_contains "$command_line" 'FM_CODEX_WATCH_CHECKPOINT=900' "resume omitted the bounded checkpoint cadence"
+  assert_contains "$command_line" 'Firstmate 15-minute reconciliation: inspect the existing authorized backlog' \
+    "confirmed-dead recovery omitted its native reconciliation prompt"
 
   out=$(run_tick "$DEAD_PID" dead 2>&1) && rc=0 || rc=$?
   [ "$rc" -ne 0 ] || fail "a live recovery pane without the pinned process was accepted as success"
@@ -553,8 +555,8 @@ test_launchd_example_has_one_non_boot_repeating_owner() {
   pass "primary clock: one explicit 900-second LaunchAgent job owns scheduled ticks"
 }
 
-test_resumed_owner_ignores_pre_owner_unmatched_turn() {
-  setup_case resumed-owner
+test_bare_resume_keeps_pre_owner_unmatched_turn_busy() {
+  setup_case bare-resume-orphan
   prepare_live
   seed_wake
   printf '{"timestamp":"2026-01-01T00:00:00Z","type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
@@ -562,22 +564,68 @@ test_resumed_owner_ignores_pre_owner_unmatched_turn() {
   printf '{"timestamp":"2025-12-31T23:59:59Z","type":"event_msg","payload":{"type":"task_started","turn_id":"abandoned-before-resume"}}\n' \
     >> "$CASE_ROLLOUT"
   local out
-  out=$(run_tick "$$" live) || fail "resumed owner did not reconcile its pinned session: $out"
-  assert_contains "$out" 'idle wake confirmed' "an abandoned pre-owner turn blocked the replacement process"
-  assert_equals 1 "$(count_types)" "resumed owner did not submit its reconciliation prompt once"
-  pass "primary clock: a replacement owner ignores an unmatched turn from the prior process generation"
+  out=$(run_tick "$$" live) || fail "bare resume should remain conservatively busy: $out"
+  assert_contains "$out" 'live busy:' "bare resume treated an unmatched prior task as idle"
+  assert_equals 0 "$(count_types)" "bare resume sent while the prior native task remained unmatched"
+  pass "primary clock: bare resume keeps an unmatched prior task busy until a later native task transition"
 }
 
-test_unreadable_owner_or_event_timestamp_refuses_delivery() {
-  setup_case unreadable-owner-start
+test_recovery_native_task_order_resolves_orphan_without_wallclock() {
+  setup_case recovery-native-order
+  seed_wake
+  printf '%s\n' "$DEAD_PID" > "$CASE_HOME/state/.lock"
+  printf '{"timestamp":"2026-01-01T00:00:00Z","type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
+    "$SESSION_UUID" "$SESSION_UUID" > "$CASE_ROLLOUT"
+  printf '{"timestamp":"2026-01-01T00:00:03Z","type":"event_msg","payload":{"type":"task_started","turn_id":"orphan-A"}}\n' \
+    >> "$CASE_ROLLOUT"
+  local out command_line
+  out=$(run_tick "$DEAD_PID" dead) || fail "confirmed-dead recovery did not launch: $out"
+  command_line=$(grep '^new-window ' "$CASE_BASE/tmux.log")
+  assert_contains "$command_line" 'Firstmate 15-minute reconciliation: inspect the existing authorized backlog' \
+    "recovery launch did not send the normal reconciliation prompt"
+
+  # The recovery prompt's native start is later in JSONL order, although its
+  # wall-clock timestamp moved behind the replacement owner's process start.
+  printf '{"timestamp":"2026-01-01T00:00:04Z","type":"event_msg","payload":{"type":"task_started","turn_id":"replacement-B"}}\n' \
+    >> "$CASE_ROLLOUT"
+  printf '%s\n' "$$" > "$CASE_HOME/state/.lock"
+  out=$(FM_FAKE_OWNER_START='Thu Jan  1 00:00:05 2026' run_tick "$$" live) \
+    || fail "live replacement-B task was not preserved under clock rollback: $out"
+  assert_contains "$out" 'live busy:' "a live task started after the recovery prompt was classified idle"
+  assert_equals 0 "$(count_types)" "live replacement-B task received terminal input"
+
+  # Native record order, not timestamp order, closes only B. A remains an
+  # unmatched historical start and is never rewritten as completed.
+  printf '{"timestamp":"2026-01-01T00:00:02Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"replacement-B"}}\n' \
+    >> "$CASE_ROLLOUT"
+  out=$(FM_FAKE_OWNER_START='Thu Jan  1 00:00:05 2026' run_tick "$$" live) \
+    || fail "matching replacement-B completion did not establish current idle: $out"
+  assert_contains "$out" 'idle wake confirmed' "completed replacement-B did not permit the normal reconciliation send"
+  assert_equals 1 "$(count_types)" "completed replacement-B did not send exactly one reconciliation prompt"
+  pass "primary clock: confirmed recovery prompt, ordered native B start/completion, and rollback timestamps preserve the send boundary"
+}
+
+test_nonmatching_terminal_does_not_clear_newer_task() {
+  setup_case mismatched-terminal
   prepare_live
   seed_wake
+  printf '{"timestamp":"2026-01-01T00:00:00Z","type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
+    "$SESSION_UUID" "$SESSION_UUID" > "$CASE_ROLLOUT"
+  printf '{"timestamp":"2026-01-01T00:00:01Z","type":"event_msg","payload":{"type":"task_started","turn_id":"orphan-A"}}\n' \
+    >> "$CASE_ROLLOUT"
+  printf '{"timestamp":"2026-01-01T00:00:02Z","type":"event_msg","payload":{"type":"task_started","turn_id":"live-B"}}\n' \
+    >> "$CASE_ROLLOUT"
+  printf '{"timestamp":"2026-01-01T00:00:03Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"orphan-A"}}\n' \
+    >> "$CASE_ROLLOUT"
   local out rc
-  out=$(FM_FAKE_PS_START_MODE=error run_tick "$$" live 2>&1) && rc=0 || rc=$?
-  [ "$rc" -ne 0 ] || fail "an unreadable current-owner start time was accepted"
-  assert_contains "$out" 'native turn lifecycle is unknown' "unreadable owner time did not make lifecycle evidence unknown"
-  assert_equals 0 "$(count_types)" "clock submitted with an unreadable owner start time"
+  out=$(run_tick "$$" live 2>&1) && rc=0 || rc=$?
+  [ "$rc" -ne 0 ] || fail "a terminal for superseded A cleared the current B task"
+  assert_contains "$out" 'native turn lifecycle is unknown' "nonmatching terminal did not fail closed"
+  assert_equals 0 "$(count_types)" "nonmatching terminal allowed terminal input"
+  pass "primary clock: only the active task's matching terminal can establish idle"
+}
 
+test_malformed_event_timestamp_refuses_delivery() {
   setup_case malformed-event-time
   prepare_live
   seed_wake
@@ -605,6 +653,8 @@ test_live_recovery_candidate_is_preserved_and_refused
 test_dead_or_unreadable_process_inventory_never_recovers
 test_malformed_primary_lock_never_recovers
 test_ambiguous_watcher_lock_prevents_recovery
-test_resumed_owner_ignores_pre_owner_unmatched_turn
-test_unreadable_owner_or_event_timestamp_refuses_delivery
+test_bare_resume_keeps_pre_owner_unmatched_turn_busy
+test_recovery_native_task_order_resolves_orphan_without_wallclock
+test_nonmatching_terminal_does_not_clear_newer_task
+test_malformed_event_timestamp_refuses_delivery
 test_launchd_example_has_one_non_boot_repeating_owner

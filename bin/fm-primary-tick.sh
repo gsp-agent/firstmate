@@ -199,12 +199,8 @@ fm_primary_pane_for_tty() {  # <tty without /dev/>
   printf '%s\n' "$found"
 }
 
-fm_primary_codex_lifecycle_state() {  # <owner-pid> -> busy|idle|unknown from the current owner generation
-  local owner_pid=$1 owner_started_at sessions="$CODEX_HOME/sessions" matches rollout state match_count
-  # A resumed Codex process reuses its session UUID and rollout, so earlier owners' unmatched turns are historical.
-  owner_started_at=$(LC_ALL=C TZ=UTC ps -p "$owner_pid" -o lstart= 2>/dev/null) \
-    || { printf 'unknown\n'; return 0; }
-  [ -n "$owner_started_at" ] || { printf 'unknown\n'; return 0; }
+fm_primary_codex_lifecycle_state() {  # -> busy|idle|unknown from the pinned rollout's ordered task transitions
+  local sessions="$CODEX_HOME/sessions" matches rollout state match_count
   [ -d "$sessions" ] && [ ! -L "$sessions" ] || { printf 'unknown\n'; return 0; }
   matches=$(find "$sessions" -type f -name "rollout-*-$FM_PRIMARY_SESSION_UUID.jsonl" -print 2>/dev/null) \
     || { printf 'unknown\n'; return 0; }
@@ -215,7 +211,7 @@ fm_primary_codex_lifecycle_state() {  # <owner-pid> -> busy|idle|unknown from th
   [ -f "$rollout" ] && [ ! -L "$rollout" ] && [ -r "$rollout" ] \
     || { printf 'unknown\n'; return 0; }
 
-  state=$(jq -s -r --arg uuid "$FM_PRIMARY_SESSION_UUID" --arg owner_started_at "$owner_started_at" '
+  state=$(jq -s -r --arg uuid "$FM_PRIMARY_SESSION_UUID" '
     def lifecycle_event:
       .type == "event_msg"
       and (.payload | type == "object")
@@ -228,14 +224,7 @@ fm_primary_codex_lifecycle_state() {  # <owner-pid> -> busy|idle|unknown from th
       else
         try (sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) catch null
       end;
-    def owner_epoch:
-      if type != "string" then null
-      else try (strptime("%a %b %e %H:%M:%S %Y") | mktime) catch null
-      end;
-    ($owner_started_at | owner_epoch) as $owner_epoch |
-    if $owner_epoch == null then
-      "unknown"
-    elif length == 0 or any(.[]; type != "object") or .[0].type != "session_meta" then
+    if length == 0 or any(.[]; type != "object") or .[0].type != "session_meta" then
       "unknown"
     else
       [ .[] | select(.type == "session_meta") ] as $meta |
@@ -247,12 +236,10 @@ fm_primary_codex_lifecycle_state() {  # <owner-pid> -> busy|idle|unknown from th
       else
         [ .[] | select(lifecycle_event) ] as $events |
         reduce $events[] as $event (
-          {active: [], seen: [], stale: false, invalid: false};
+          {active: [], seen: [], invalid: false};
           ($event.timestamp | rollout_epoch) as $event_epoch |
           if $event_epoch == null then
             .invalid = true
-          elif $event_epoch < $owner_epoch then
-            .stale = true
           else
             ($event.payload.type) as $kind |
             ($event.payload.turn_id // "") as $id |
@@ -260,7 +247,10 @@ fm_primary_codex_lifecycle_state() {  # <owner-pid> -> busy|idle|unknown from th
               .invalid = true
             elif $kind == "task_started" or $kind == "turn_started" then
               if (.seen | index($id)) != null then .invalid = true
-              else .active += [$id] | .seen += [$id]
+              # Codex sessions have at most one running task. A later native
+              # start supersedes an orphaned earlier task; it does not claim
+              # that earlier task completed.
+              else .active = [$id] | .seen += [$id]
               end
             elif $kind == "task_complete" or $kind == "turn_complete"
               or $kind == "task_completed" or $kind == "turn_completed"
@@ -273,7 +263,7 @@ fm_primary_codex_lifecycle_state() {  # <owner-pid> -> busy|idle|unknown from th
             end
           end
         ) as $state |
-        if $state.invalid or (($state.seen | length) == 0 and ($state.stale | not)) then "unknown"
+        if $state.invalid or ($state.seen | length) == 0 then "unknown"
         elif ($state.active | length) > 0 then "busy"
         else "idle"
         end
@@ -345,15 +335,16 @@ fm_primary_shell_quote() {
 }
 
 fm_primary_resume_command() {
-  local q_home q_root q_codex_home q_codex q_uuid q_effort
+  local q_home q_root q_codex_home q_codex q_uuid q_effort q_wake
   q_home=$(fm_primary_shell_quote "$FM_HOME") || return 1
   q_root=$(fm_primary_shell_quote "$FM_ROOT_OVERRIDE") || return 1
   q_codex_home=$(fm_primary_shell_quote "$CODEX_HOME") || return 1
   q_codex=$(fm_primary_shell_quote "$FM_PRIMARY_CODEX_BIN") || return 1
   q_uuid=$(fm_primary_shell_quote "$FM_PRIMARY_SESSION_UUID") || return 1
   q_effort=$(fm_primary_shell_quote 'model_reasoning_effort="max"') || return 1
-  printf 'exec env FM_HOME=%s FM_ROOT_OVERRIDE=%s CODEX_HOME=%s %s resume %s --model gpt-6-luna -c %s --sandbox danger-full-access --ask-for-approval never --cd %s' \
-    "$q_home" "$q_root" "$q_codex_home" "$q_codex" "$q_uuid" "$q_effort" "$q_root"
+  q_wake=$(fm_primary_shell_quote "$FM_PRIMARY_WAKE_TEXT") || return 1
+  printf 'exec env FM_HOME=%s FM_ROOT_OVERRIDE=%s CODEX_HOME=%s %s resume %s --model gpt-6-luna -c %s --sandbox danger-full-access --ask-for-approval never --cd %s %s' \
+    "$q_home" "$q_root" "$q_codex_home" "$q_codex" "$q_uuid" "$q_effort" "$q_root" "$q_wake"
 }
 
 FM_PRIMARY_RECOVERY_PANE=''
@@ -470,7 +461,7 @@ if kill -0 "$PRIMARY_PID" 2>/dev/null; then
   fm_primary_pending_wakes
   wake_state=$?
   [ "$wake_state" -ne 2 ] || fail "durable wake queue could not be read safely"
-  LIFECYCLE=$(fm_primary_codex_lifecycle_state "$PRIMARY_PID")
+  LIFECYCLE=$(fm_primary_codex_lifecycle_state)
   case "$LIFECYCLE" in
     busy)
       if fm_primary_checkpoint_active; then
@@ -501,7 +492,7 @@ if kill -0 "$PRIMARY_PID" 2>/dev/null; then
   [ "${LIVE_ROW%%$'\t'*}" = "$LIVE_TTY" ] || fail "primary terminal changed before submit"
   [ "$(fm_primary_pane_for_tty "$LIVE_TTY")" = "$PANE" ] || fail "primary pane changed before submit"
   fm_primary_no_clients || fail "a tmux client attached before submit; no input was sent"
-  [ "$(fm_primary_codex_lifecycle_state "$PRIMARY_PID")" = idle ] || fail "Codex native turn lifecycle stopped proving idle before submit"
+  [ "$(fm_primary_codex_lifecycle_state)" = idle ] || fail "Codex native turn lifecycle stopped proving idle before submit"
   [ "$(fm_tmux_composer_state "$PANE")" = empty ] || fail "composer stopped being positively empty before submit"
   verdict=$(fm_backend_send_text_submit tmux "$PANE" "$FM_PRIMARY_WAKE_TEXT" 3 1 1 2>/dev/null) \
     || fail "verified submit helper failed"
@@ -514,7 +505,7 @@ if kill -0 "$PRIMARY_PID" 2>/dev/null; then
       || fail "primary identity became ambiguous after submit"
     fm_primary_assert_unique_codex_pid "$PRIMARY_PID" \
       || fail "native Codex ownership became ambiguous after submit"
-    [ "$(fm_primary_codex_lifecycle_state "$PRIMARY_PID")" = busy ] && {
+    [ "$(fm_primary_codex_lifecycle_state)" = busy ] && {
       say "idle wake confirmed by a new native Codex turn-start event"
       exit 0
     }
