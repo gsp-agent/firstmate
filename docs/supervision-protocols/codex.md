@@ -1,5 +1,7 @@
 Mode: Codex foreground checkpoint.
 
+If the optional `com.firstmate.primary-clock` LaunchAgent is installed, its 15-minute tick is a reconciliation prompt, not proof that work exists. When the tick safely reaches an idle primary—even with an empty durable wake queue—inspect the existing authorized backlog and wake queue, apply Firstmate's eligibility rules, and create no tasks if nothing is eligible. Busy turns and foreground checkpoints receive no terminal input from the clock; process the durable queue at the next normal checkpoint. Never overwrite attached/focused user input or a nonempty/ambiguous composer.
+
 When this session owns supervision and away mode is not active:
 1. Drain first with `bin/fm-wake-drain.sh`.
    After handling all emitted wakes and reconciling open decisions and unread status lines, run the exact `--ack-through` command printed as `WAKE_ACK_REQUIRED`; until then the work remains durable for idempotent re-handling after interruption.
