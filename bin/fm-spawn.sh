@@ -4087,7 +4087,9 @@ MODELFLAG=$(model_flag_for_harness "$HARNESS" "$MODEL")
 EFFORTFLAG=$(effort_flag_for_harness "$HARNESS" "$EFFORT" "$MODEL") || exit 1
 LAUNCH=${LAUNCH//__MODELFLAG__/$MODELFLAG}
 LAUNCH=${LAUNCH//__EFFORTFLAG__/$EFFORTFLAG}
-LAUNCH=${LAUNCH//__CODEXSANDBOXFLAGS__/$CODEX_SANDBOX_FLAGS}
+# Quote the replacement operand: Bash 5.3's patsub_replacement treats an
+# unquoted ampersand in the value as the matched placeholder text.
+LAUNCH=${LAUNCH//__CODEXSANDBOXFLAGS__/"$CODEX_SANDBOX_FLAGS"}
 LAUNCH=${LAUNCH//__CLAUDEPERMFLAG__/$CLAUDE_PERM_FLAG}
 if [ "$HARNESS" = rovo ]; then
   ROVOCONFIGOVERRIDE=$(rovo_config_override_flag "$EFFORT" "$DATA" "$STATE" "$ID") || {
