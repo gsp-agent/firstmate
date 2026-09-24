@@ -1463,6 +1463,60 @@ codex_sandbox_flags_for_worktree() {  # <path> -> canonical bounded Codex launch
   printf '%s' "--cd $(shell_quote "$worktree") --sandbox workspace-write --ask-for-approval never -c $(shell_quote 'sandbox_workspace_write.network_access=true') --add-dir $(shell_quote "$git_dir") --add-dir $(shell_quote "$common_dir") "
 }
 
+codex_task_write_scope_flags() {  # <resolved-state-dir> <task-id> -> exact status/inbox roots
+  local state_real=$1 id=$2 status_file inbox_dir handled_dir
+  local symlink_path
+  [ -d "$state_real" ] && [ "$state_real" = "$(cd "$state_real" 2>/dev/null && pwd -P)" ] || {
+    echo "error: Codex task state directory is not a resolved directory: $state_real" >&2
+    return 1
+  }
+  status_file="$state_real/$id.status"
+  inbox_dir="$state_real/$id.inbox"
+  handled_dir="$inbox_dir/handled"
+
+  if [ -L "$status_file" ] || { [ -e "$status_file" ] && [ ! -f "$status_file" ]; }; then
+    echo "error: Codex task status path is not a regular file: $status_file" >&2
+    return 1
+  fi
+  if [ ! -e "$status_file" ] && [ ! -L "$status_file" ]; then
+    if ! (umask 077; set -C; : > "$status_file") 2>/dev/null \
+       && { [ -L "$status_file" ] || [ ! -f "$status_file" ]; }; then
+      echo "error: could not pre-create the exact Codex task status file: $status_file" >&2
+      return 1
+    fi
+  fi
+  if [ -L "$status_file" ] || [ ! -f "$status_file" ] || [ ! -w "$status_file" ]; then
+    echo "error: Codex task status path is not a writable regular file: $status_file" >&2
+    return 1
+  fi
+
+  if [ -L "$inbox_dir" ] || { [ -e "$inbox_dir" ] && [ ! -d "$inbox_dir" ]; }; then
+    echo "error: Codex task inbox path is not a directory: $inbox_dir" >&2
+    return 1
+  fi
+  mkdir -p "$inbox_dir" || {
+    echo "error: could not prepare the Codex task inbox: $inbox_dir" >&2
+    return 1
+  }
+  if [ -L "$handled_dir" ] || { [ -e "$handled_dir" ] && [ ! -d "$handled_dir" ]; }; then
+    echo "error: Codex task inbox acknowledgement path is not a directory: $handled_dir" >&2
+    return 1
+  fi
+  mkdir -p "$handled_dir" || {
+    echo "error: could not prepare the Codex task inbox acknowledgement path: $handled_dir" >&2
+    return 1
+  }
+  symlink_path=$(find "$inbox_dir" -type l -print -quit) || {
+    echo "error: could not verify the Codex task inbox contents: $inbox_dir" >&2
+    return 1
+  }
+  if [ -n "$symlink_path" ]; then
+    echo "error: Codex task inbox contains a symbolic link: $symlink_path" >&2
+    return 1
+  fi
+  printf '%s' "--add-dir $(shell_quote "$status_file") --add-dir $(shell_quote "$inbox_dir") "
+}
+
 resolve_pi_executable() {
   local candidate dir
   candidate=$(type -P -- "$1" 2>/dev/null) || return 1
@@ -3479,6 +3533,18 @@ mkdir -p "$TASK_TMP/gotmp"
 mkdir -p "$STATE"
 STATE_REAL=$(cd "$STATE" && pwd -P)
 TURNEND="$STATE_REAL/$ID.turn-ended"
+if [ "$HARNESS" = codex ] && [ "$RAW_LAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
+  if CODEX_TASK_WRITE_SCOPE_FLAGS=$(codex_task_write_scope_flags "$STATE_REAL" "$ID"); then
+    CODEX_SANDBOX_FLAGS="${CODEX_SANDBOX_FLAGS}${CODEX_TASK_WRITE_SCOPE_FLAGS}"
+  else
+    echo "error: refusing canonical Codex launch without its exact task status and inbox write paths" >&2
+    if [ "$RELAUNCH" -ne 1 ] && [ "$BACKEND" != orca ]; then
+      fm_backend_kill "$BACKEND" "$T" >/dev/null 2>&1 \
+        || echo "warning: could not remove the unopened Codex endpoint $T" >&2
+    fi
+    exit 1
+  fi
+fi
 exclude_path() {
   local rel=$1 EXCL
   EXCL=$(git -C "$WT" rev-parse --git-path info/exclude 2>/dev/null || true)
@@ -4151,6 +4217,12 @@ if [ "$KIND" = secondmate ]; then
   # Reuse the single frozen decision from the carrier resolution above so the
   # injected carrier and this on/off snapshot are guaranteed to agree.
   LAUNCH="FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME=$sq_primary_home FM_HOME=$sq_home FM_TRACE_CONTEXT=$SPAWN_TRACE_EFFECTIVE FM_SUPERVISION_MODEL=$supervision_model $LAUNCH"
+fi
+if [ "$HARNESS" = codex ] && [ "$RAW_LAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
+  # tmux/herdr panes can retain a stale FM_HOME from an earlier Firstmate
+  # launch. Pin the selected operational home inside the command so it survives
+  # the optional env -i wrapper and task status/inbox helpers reach this home.
+  LAUNCH="FM_HOME=$(shell_quote "$FM_HOME") $LAUNCH"
 fi
 if [ -z "$SPAWN_TRACEPARENT" ] && [ "$RELAUNCH" -eq 1 ]; then
   LAUNCH="unset TRACEPARENT; $LAUNCH"

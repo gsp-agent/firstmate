@@ -20,6 +20,7 @@ prepare_case() {
   WORKTREE_DIR="$CASE_DIR/wt"
   LAUNCH_LOG="$CASE_DIR/launch.log"
   ARGV_LOG="$CASE_DIR/codex-argv.log"
+  HOME_LOG="$CASE_DIR/codex-home.log"
   ID="fm-codex-$name"
   FAKEBIN_DIR=$(fm_test_make_spawn_fakebin "$CASE_DIR/fake")
   fm_test_spawn_home "$HOME_DIR" codex
@@ -33,6 +34,7 @@ install_fake_codex() {
 #!/usr/bin/env bash
 set -eu
 printf '%s\n' "$@" > "$FM_TEST_CODEX_ARGV_LOG"
+printf '%s\n' "${FM_HOME-unset}" > "$FM_TEST_CODEX_HOME_LOG"
 SH
   chmod +x "$FAKEBIN_DIR/codex"
 }
@@ -54,9 +56,11 @@ assert_argv_pair() {
 }
 
 test_ampersand_path_preserves_max_and_git_root_argv() {
-  local out status launch worktree_real git_dir common_dir
+  local out status launch worktree_real git_dir common_dir status_file inbox_dir
   prepare_case argv
   install_fake_codex
+  printf 'FM_TEST_CODEX_ARGV_LOG\nFM_TEST_CODEX_HOME_LOG\n' \
+    > "$HOME_DIR/config/launch-env-allowlist"
 
   out=$(run_canonical_spawn 2>&1)
   status=$?
@@ -66,8 +70,15 @@ test_ampersand_path_preserves_max_and_git_root_argv() {
   git_dir=$(git -C "$worktree_real" rev-parse --absolute-git-dir) || fail "could not resolve fixture Git dir"
   common_dir=$(git -C "$worktree_real" rev-parse --path-format=absolute --git-common-dir) \
     || fail "could not resolve fixture common Git dir"
+  status_file="$HOME_DIR/state/$ID.status"
+  inbox_dir="$HOME_DIR/state/$ID.inbox"
+  [ -f "$status_file" ] && [ ! -L "$status_file" ] \
+    || fail "canonical Codex launch did not pre-create a regular task status file"
+  [ -d "$inbox_dir/handled" ] && [ ! -L "$inbox_dir" ] && [ ! -L "$inbox_dir/handled" ] \
+    || fail "canonical Codex launch did not prepare the task inbox acknowledgement directory"
 
-  out=$(FM_TEST_CODEX_ARGV_LOG="$ARGV_LOG" PATH="$FAKEBIN_DIR:$BASE_PATH" \
+  out=$(FM_HOME="$CASE_DIR/stale-pilot" FM_TEST_CODEX_ARGV_LOG="$ARGV_LOG" \
+    FM_TEST_CODEX_HOME_LOG="$HOME_LOG" PATH="$FAKEBIN_DIR:$BASE_PATH" \
     bash -c "$launch" 2>&1)
   status=$?
   expect_code 0 "$status" "captured canonical command should execute the fake Codex argv recorder: $out"
@@ -80,6 +91,10 @@ test_ampersand_path_preserves_max_and_git_root_argv() {
     "Codex argv changed the ampersand-bearing worktree Git directory"
   assert_argv_pair --add-dir "$common_dir" "$ARGV_LOG" \
     "Codex argv changed the ampersand-bearing common Git directory"
+  assert_argv_pair --add-dir "$status_file" "$ARGV_LOG" \
+    "Codex argv did not scope the status write grant to the exact pre-created task file"
+  assert_argv_pair --add-dir "$inbox_dir" "$ARGV_LOG" \
+    "Codex argv did not scope steering and acknowledgement writes to this task inbox"
   assert_argv_pair --sandbox workspace-write "$ARGV_LOG" "Codex argv lost workspace-write"
   assert_argv_pair --ask-for-approval never "$ARGV_LOG" "Codex argv lost approval=never"
   assert_argv_pair -c sandbox_workspace_write.network_access=true "$ARGV_LOG" \
@@ -88,8 +103,10 @@ test_ampersand_path_preserves_max_and_git_root_argv() {
     "canonical Codex argv must not bypass sandbox or approval controls"
   assert_no_grep __CODEXSANDBOXFLAGS__ "$ARGV_LOG" \
     "the sandbox placeholder leaked into actual Codex argv"
+  [ "$(cat "$HOME_LOG")" = "$HOME_DIR" ] \
+    || fail "canonical Codex command inherited a stale FM_HOME instead of the selected operational home"
   assert_contains "$launch" "R&D" "captured launch no longer contains the ampersand path"
-  pass "Codex preserves ampersand-bearing worktree/Git roots and gpt-6-luna max in actual argv"
+  pass "Codex preserves ampersand-bearing roots and gpt-6-luna max, scopes status/inbox writes, and pins FM_HOME"
 }
 
 test_unresolved_git_admin_root_still_fails_closed() {
