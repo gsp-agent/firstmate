@@ -199,6 +199,65 @@ fm_primary_pane_for_tty() {  # <tty without /dev/>
   printf '%s\n' "$found"
 }
 
+fm_primary_codex_lifecycle_state() {  # print busy|idle|unknown from exact native rollout
+  local sessions="$CODEX_HOME/sessions" matches rollout state match_count
+  [ -d "$sessions" ] && [ ! -L "$sessions" ] || { printf 'unknown\n'; return 0; }
+  matches=$(find "$sessions" -type f -name "rollout-*-$FM_PRIMARY_SESSION_UUID.jsonl" -print 2>/dev/null) \
+    || { printf 'unknown\n'; return 0; }
+  [ -n "$matches" ] || { printf 'unknown\n'; return 0; }
+  match_count=$(printf '%s\n' "$matches" | awk 'END { print NR }')
+  [ "$match_count" -eq 1 ] || { printf 'unknown\n'; return 0; }
+  rollout=$matches
+  [ -f "$rollout" ] && [ ! -L "$rollout" ] && [ -r "$rollout" ] \
+    || { printf 'unknown\n'; return 0; }
+
+  state=$(jq -s -r --arg uuid "$FM_PRIMARY_SESSION_UUID" '
+    def lifecycle_event:
+      .type == "event_msg"
+      and (.payload | type == "object")
+      and (.payload.type | type == "string")
+      and (.payload.type | test("^(task|turn)_"));
+    if length == 0 or any(.[]; type != "object") or .[0].type != "session_meta" then
+      "unknown"
+    else
+      [ .[] | select(.type == "session_meta") ] as $meta |
+      if ($meta | length) != 1
+        or (($meta[0].payload.id == $uuid or $meta[0].payload.session_id == $uuid) | not)
+        or ($meta[0].payload.id != null and $meta[0].payload.id != $uuid)
+        or ($meta[0].payload.session_id != null and $meta[0].payload.session_id != $uuid) then
+        "unknown"
+      else
+        [ .[] | select(lifecycle_event) ] as $events |
+        reduce $events[] as $event (
+          {active: [], seen: [], invalid: false};
+          ($event.payload.type) as $kind |
+          ($event.payload.turn_id // "") as $id |
+          if ($id | type) != "string" or $id == "" then
+            .invalid = true
+          elif $kind == "task_started" or $kind == "turn_started" then
+            if (.seen | index($id)) != null then .invalid = true
+            else .active += [$id] | .seen += [$id]
+            end
+          elif $kind == "task_complete" or $kind == "turn_complete"
+            or $kind == "task_completed" or $kind == "turn_completed"
+            or $kind == "task_aborted" or $kind == "turn_aborted" then
+            if (.active | index($id)) == null then .invalid = true
+            else .active -= [$id]
+            end
+          else
+            .invalid = true
+          end
+        ) as $state |
+        if $state.invalid or ($state.seen | length) == 0 then "unknown"
+        elif ($state.active | length) > 0 then "busy"
+        else "idle"
+        end
+      end
+    end
+  ' "$rollout" 2>/dev/null) || state=unknown
+  case "$state" in busy|idle) printf '%s\n' "$state" ;; *) printf 'unknown\n' ;; esac
+}
+
 fm_primary_no_clients() {
   local clients
   clients=$(tmux list-clients -t "$FM_PRIMARY_TMUX_SESSION" -F '#{client_name}' 2>/dev/null) || return 1
@@ -272,26 +331,78 @@ fm_primary_resume_command() {
     "$q_home" "$q_root" "$q_codex_home" "$q_codex" "$q_uuid" "$q_effort" "$q_root"
 }
 
-fm_primary_recovery_window() {
-  local windows row name marker
-  tmux has-session -t "$FM_PRIMARY_TMUX_SESSION" 2>/dev/null || return 1
-  windows=$(tmux list-windows -t "$FM_PRIMARY_TMUX_SESSION" -F '#{window_name}\t#{@fm-primary-clock-thread}' 2>/dev/null) || return 2
-  while IFS=$'\t' read -r name marker; do
-    [ "$name" = "$FM_PRIMARY_RECOVERY_WINDOW" ] && return 0
-    [ "$marker" = "$FM_PRIMARY_SESSION_UUID" ] && return 0
-  done <<< "$windows"
+FM_PRIMARY_RECOVERY_PANE=''
+FM_PRIMARY_RECOVERY_WINDOW_ID=''
+fm_primary_recovery_candidate() {  # 0 none; 1 exactly one dead candidate; 2 ambiguous or live
+  local panes row window_id name marker pane dead extra count=0
+  FM_PRIMARY_RECOVERY_PANE=''
+  FM_PRIMARY_RECOVERY_WINDOW_ID=''
+  tmux has-session -t "$FM_PRIMARY_TMUX_SESSION" 2>/dev/null || return 0
+  panes=$(tmux list-panes -a -t "$FM_PRIMARY_TMUX_SESSION" \
+    -F '#{window_id}\t#{window_name}\t#{?@fm-primary-clock-thread,#{@fm-primary-clock-thread},-}\t#{pane_id}\t#{pane_dead}' \
+    2>/dev/null) || return 2
+  while IFS=$'\t' read -r window_id name marker pane dead extra; do
+    [ -n "$window_id" ] || continue
+    [ -z "$extra" ] || return 2
+    [[ "$window_id" =~ ^@[0-9]+$ && "$pane" =~ ^%[0-9]+$ ]] || return 2
+    case "$dead" in 0|1) ;; *) return 2 ;; esac
+    [ "$marker" = "$FM_PRIMARY_SESSION_UUID" ] && {
+      count=$((count + 1))
+      FM_PRIMARY_RECOVERY_WINDOW_ID=$window_id
+      FM_PRIMARY_RECOVERY_PANE=$pane
+      [ "$count" -eq 1 ] || return 2
+      [ "$dead" = 1 ] || return 2
+      continue
+    }
+    if [ "$name" = "$FM_PRIMARY_RECOVERY_WINDOW" ]; then
+      [ "$marker" = '-' ] || return 2
+      count=$((count + 1))
+      FM_PRIMARY_RECOVERY_WINDOW_ID=$window_id
+      FM_PRIMARY_RECOVERY_PANE=$pane
+      [ "$count" -eq 1 ] || return 2
+      [ "$dead" = 1 ] || return 2
+    fi
+  done <<< "$panes"
+  [ "$count" -eq 0 ] && return 0
+  [ "$count" -eq 1 ] || return 2
   return 1
 }
 
+fm_primary_pin_recovery_window() {  # <window id>
+  local window_id=$1
+  tmux set-window-option -t "$window_id" automatic-rename off >/dev/null 2>&1 \
+    && tmux set-window-option -t "$window_id" allow-rename off >/dev/null 2>&1 \
+    && tmux set-window-option -t "$window_id" @fm-primary-clock-thread "$FM_PRIMARY_SESSION_UUID" \
+      >/dev/null 2>&1
+}
+
 fm_primary_launch_resume() {
-  local command window_id session_exists status
-  if fm_primary_recovery_window; then
-    say "recovery window already exists; preserving it and not launching a duplicate"
-    return 0
-  else
-    status=$?
-    [ "$status" -eq 1 ] || fail "recovery window inventory is ambiguous"
-  fi
+  local command window_id session_exists status candidate_pane candidate_window
+  fm_primary_recovery_candidate
+  status=$?
+  case "$status" in
+    1)
+      candidate_pane=$FM_PRIMARY_RECOVERY_PANE
+      candidate_window=$FM_PRIMARY_RECOVERY_WINDOW_ID
+      fm_primary_no_clients || fail "dead recovery pane has an attached client or unreadable client state"
+      fm_primary_recovery_candidate
+      [ "$?" -eq 1 ] && [ "$FM_PRIMARY_RECOVERY_PANE" = "$candidate_pane" ] \
+        && [ "$FM_PRIMARY_RECOVERY_WINDOW_ID" = "$candidate_window" ] \
+        || fail "dead recovery pane changed during revalidation"
+      fm_primary_no_clients || fail "a tmux client attached before recovery; no pane was respawned"
+      command=$(fm_primary_resume_command) || fail "could not construct the pinned resume command"
+      command=${command/exec env /exec env FM_BOOTSTRAP_DETECT_ONLY=1 FM_CODEX_WATCH_CHECKPOINT=900 }
+      fm_primary_pin_recovery_window "$candidate_window" \
+        || fail "dead recovery pane exists but its identity marker could not be pinned"
+      tmux respawn-pane -t "$candidate_pane" -c "$FM_ROOT_OVERRIDE" "$command" \
+        >/dev/null 2>&1 || fail "the verified dead recovery pane could not be respawned"
+      say "same native session resume retried in the verified dead pane; primary lock/start is not yet confirmed"
+      return 0
+      ;;
+    2) fail "recovery pane inventory is live or ambiguous; refusing to overwrite it" ;;
+    0) ;;
+    *) fail "recovery pane inventory is ambiguous" ;;
+  esac
   command=$(fm_primary_resume_command) || fail "could not construct the pinned resume command"
   command=${command/exec env /exec env FM_BOOTSTRAP_DETECT_ONLY=1 FM_CODEX_WATCH_CHECKPOINT=900 }
   session_exists=0
@@ -306,12 +417,8 @@ fm_primary_launch_resume() {
       || fail "detached recovery session could not be created"
   fi
   [ -n "$window_id" ] || fail "tmux did not return the recovery window identity"
-  tmux set-window-option -t "$window_id" automatic-rename off >/dev/null 2>&1 \
-    || fail "recovery window exists but its name could not be pinned"
-  tmux set-window-option -t "$window_id" allow-rename off >/dev/null 2>&1 \
-    || fail "recovery window exists but rename protection could not be set"
-  tmux set-window-option -t "$window_id" @fm-primary-clock-thread "$FM_PRIMARY_SESSION_UUID" \
-    >/dev/null 2>&1 || fail "recovery window exists but its session marker could not be written"
+  fm_primary_pin_recovery_window "$window_id" \
+    || fail "recovery window exists but its name/identity could not be pinned"
   say "same native session resume launched in a detached window; primary lock/start is not yet confirmed"
 }
 
@@ -338,8 +445,8 @@ if kill -0 "$PRIMARY_PID" 2>/dev/null; then
   fm_primary_pending_wakes
   wake_state=$?
   [ "$wake_state" -ne 2 ] || fail "durable wake queue could not be read safely"
-  BUSY=$(fm_pane_busy_state "$PANE" codex)
-  case "$BUSY" in
+  LIFECYCLE=$(fm_primary_codex_lifecycle_state)
+  case "$LIFECYCLE" in
     busy)
       if fm_primary_checkpoint_active; then
         say "live checkpoint: reconciliation stays with the foreground primary; no terminal input sent"
@@ -351,7 +458,7 @@ if kill -0 "$PRIMARY_PID" 2>/dev/null; then
       exit 0
       ;;
     idle) ;;
-    *) fail "live primary busy state is ambiguous" ;;
+    *) fail "Codex native turn lifecycle is unknown; no terminal input sent" ;;
   esac
   COMPOSER=$(fm_tmux_composer_state "$PANE")
   [ "$COMPOSER" = empty ] || {
@@ -369,7 +476,7 @@ if kill -0 "$PRIMARY_PID" 2>/dev/null; then
   [ "${LIVE_ROW%%$'\t'*}" = "$LIVE_TTY" ] || fail "primary terminal changed before submit"
   [ "$(fm_primary_pane_for_tty "$LIVE_TTY")" = "$PANE" ] || fail "primary pane changed before submit"
   fm_primary_no_clients || fail "a tmux client attached before submit; no input was sent"
-  [ "$(fm_pane_busy_state "$PANE" codex)" = idle ] || fail "primary stopped being idle before submit"
+  [ "$(fm_primary_codex_lifecycle_state)" = idle ] || fail "Codex native turn lifecycle stopped proving idle before submit"
   [ "$(fm_tmux_composer_state "$PANE")" = empty ] || fail "composer stopped being positively empty before submit"
   verdict=$(fm_backend_send_text_submit tmux "$PANE" "$FM_PRIMARY_WAKE_TEXT" 3 1 1 2>/dev/null) \
     || fail "verified submit helper failed"
@@ -382,13 +489,13 @@ if kill -0 "$PRIMARY_PID" 2>/dev/null; then
       || fail "primary identity became ambiguous after submit"
     fm_primary_assert_unique_codex_pid "$PRIMARY_PID" \
       || fail "native Codex ownership became ambiguous after submit"
-    [ "$(fm_pane_busy_state "$PANE" codex)" = busy ] && {
-      say "idle wake confirmed by a new native Codex busy state"
+    [ "$(fm_primary_codex_lifecycle_state)" = busy ] && {
+      say "idle wake confirmed by a new native Codex turn-start event"
       exit 0
     }
     sleep 1
   done
-  say "submit cleared the composer but no native busy transition was observed; text will not be resent"
+  say "submit cleared the composer but no native turn-start event was observed; text will not be resent"
   exit 1
 fi
 

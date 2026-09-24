@@ -16,8 +16,9 @@ setup_case() {  # <name>
   CASE_HOME="$base/home"
   CASE_FAKEBIN="$base/fakebin"
   CASE_RECOVERY="$base/recovery-window"
+  CASE_ROLLOUT="$CASE_HOME/.codex/sessions/2026/09/23/rollout-2026-09-23T000000Z-$SESSION_UUID.jsonl"
   mkdir -p "$CASE_HOME/state" "$CASE_HOME/config" "$CASE_HOME/.codex" \
-    "$CASE_HOME/bin" "$CASE_FAKEBIN"
+    "$(dirname "$CASE_ROLLOUT")" "$CASE_HOME/bin" "$CASE_FAKEBIN"
   cp "$ROOT/AGENTS.md" "$CASE_HOME/AGENTS.md"
   git -C "$CASE_HOME" init -q
   git -C "$CASE_HOME" config user.name Fixture
@@ -26,37 +27,69 @@ setup_case() {  # <name>
 #!/usr/bin/env bash
 set -u
 shift 2 # exact configured -S socket
-command_name=${1:-}
-shift || true
-printf '%s %s\n' "$command_name" "$*" >> "$FM_FAKE_TMUX_LOG"
-case "$command_name" in
+  command_name=${1:-}
+  shift || true
+  printf '%s %s\n' "$command_name" "$*" >> "$FM_FAKE_TMUX_LOG"
+  case "$command_name" in
   list-panes)
-    if [ "${FM_FAKE_DUPLICATE_PANES:-}" = 1 ]; then
-      printf '%%3\t/dev/ttys009\n%%4\t/dev/ttys009\n'
-    else
-      printf '%%3\t/dev/ttys009\n'
-    fi
+    case "$*" in
+      *window_id*)
+        if [ -f "$FM_FAKE_RECOVERY_FILE" ]; then
+          case "$(<"$FM_FAKE_RECOVERY_FILE")" in
+            marked-dead)
+              printf '@8\trenamed-recovery\t%s\t%%9\t1\n' "$FM_PRIMARY_SESSION_UUID"
+              ;;
+            named-dead)
+              printf '@8\tfm-primary-clock-11111111\t-\t%%9\t1\n'
+              ;;
+            marked-live)
+              printf '@8\trenamed-recovery\t%s\t%%9\t0\n' "$FM_PRIMARY_SESSION_UUID"
+              ;;
+            new-window|respawned)
+              printf '@99\tfm-primary-clock-11111111\t%s\t%%99\t0\n' "$FM_PRIMARY_SESSION_UUID"
+              ;;
+            *) exit 2 ;;
+          esac
+        fi
+        ;;
+      *)
+        if [ "${FM_FAKE_DUPLICATE_PANES:-}" = 1 ]; then
+          printf '%%3\t/dev/ttys009\n%%4\t/dev/ttys009\n'
+        else
+          printf '%%3\t/dev/ttys009\n'
+        fi
+        ;;
+    esac
     ;;
   list-clients)
     [ "${FM_FAKE_CLIENTS:-}" != error ] || exit 1
+    if [ -n "${FM_FAKE_START_ON_CLIENTS_FILE:-}" ] && [ ! -e "$FM_FAKE_START_ON_CLIENTS_FILE" ]; then
+      printf '{"type":"event_msg","payload":{"type":"task_started","turn_id":"raced-turn"}}\n' \
+        >> "$FM_FAKE_ROLLOUT_FILE"
+      : > "$FM_FAKE_START_ON_CLIENTS_FILE"
+    fi
     [ "${FM_FAKE_CLIENTS:-}" != 1 ] || printf 'client-1\n'
     ;;
   capture-pane)
     if [ "${1:-}" = -e ]; then
       case "$(cat "$FM_FAKE_COMPOSER_FILE")" in
         pending|typed) printf '╭────────────╮\n│ › wake      │\n╰────────────╯\n' ;;
-        empty) printf '╭────────────╮\n│ › \033[2mtip\033[0m      │\n╰────────────╯\n' ;;
+        empty) printf '› \033[2mAsk Codex to do anything\033[0m\n' ;;
         *) printf 'unknown pane rendering\n' ;;
       esac
     elif [ "$(cat "$FM_FAKE_BUSY_FILE")" = busy ]; then
-      printf 'Working\nesc to interrupt\n'
+      printf 'Working (52m 55s • esc to interrupt)\n› Ask Codex to do anything\n'
+    elif [ "$(cat "$FM_FAKE_BUSY_FILE")" = unmatched ]; then
+      printf 'Working (52m 55s)\n› Ask Codex to do anything\n'
     else
       printf 'Codex\n? for shortcuts\n'
     fi
     ;;
   display-message)
     case "$*" in
-      *cursor_y*) printf '1\n' ;;
+      *cursor_y*)
+        if [ "$(cat "$FM_FAKE_COMPOSER_FILE")" = empty ]; then printf '0\n'; else printf '1\n'; fi
+        ;;
       *pane_id*) printf '%%3\n' ;;
       *) exit 1 ;;
     esac
@@ -65,9 +98,7 @@ case "$command_name" in
     [ "${FM_FAKE_SESSION_EXISTS:-1}" = 1 ]
     ;;
   list-windows)
-    if [ -f "$FM_FAKE_RECOVERY_FILE" ]; then
-      printf 'fm-primary-clock-11111111\t%s\n' "$FM_PRIMARY_SESSION_UUID"
-    fi
+    if [ -f "$FM_FAKE_RECOVERY_FILE" ]; then printf 'fm-primary-clock-11111111\t%s\n' "$FM_PRIMARY_SESSION_UUID"; fi
     ;;
   send-keys)
     case "$*" in
@@ -76,13 +107,18 @@ case "$command_name" in
         if [ "${FM_FAKE_SUBMIT_MODE:-clear}" = clear ]; then
           printf 'empty\n' > "$FM_FAKE_COMPOSER_FILE"
           printf 'busy\n' > "$FM_FAKE_BUSY_FILE"
+          printf '{"type":"event_msg","payload":{"type":"task_started","turn_id":"submitted-turn"}}\n' \
+            >> "$FM_FAKE_ROLLOUT_FILE"
         fi
         ;;
     esac
     ;;
   new-window|new-session)
-    printf 'recovery\n' > "$FM_FAKE_RECOVERY_FILE"
+    printf 'new-window\n' > "$FM_FAKE_RECOVERY_FILE"
     printf '@99\n'
+    ;;
+  respawn-pane)
+    printf 'respawned\n' > "$FM_FAKE_RECOVERY_FILE"
     ;;
   set-window-option) ;;
   *) exit 1 ;;
@@ -140,6 +176,12 @@ SH
   : > "$base/tmux.log"
   printf 'empty\n' > "$base/composer"
   printf 'idle\n' > "$base/busy"
+  printf '{"type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
+    "$SESSION_UUID" "$SESSION_UUID" > "$CASE_ROLLOUT"
+  printf '{"type":"event_msg","payload":{"type":"task_started","turn_id":"baseline-turn"}}\n' \
+    >> "$CASE_ROLLOUT"
+  printf '{"type":"event_msg","payload":{"type":"task_complete","turn_id":"baseline-turn"}}\n' \
+    >> "$CASE_ROLLOUT"
   : > "$CASE_HOME/state/.lock"
   CASE_BASE="$base"
 }
@@ -174,7 +216,16 @@ run_tick() {
     FM_FAKE_COMPOSER_FILE="$CASE_BASE/composer" \
     FM_FAKE_BUSY_FILE="$CASE_BASE/busy" \
     FM_FAKE_RECOVERY_FILE="$CASE_RECOVERY" \
+    FM_FAKE_ROLLOUT_FILE="$CASE_ROLLOUT" \
+    FM_FAKE_START_ON_CLIENTS_FILE="${FM_FAKE_START_ON_CLIENTS:+$CASE_BASE/start-on-clients}" \
     "$TICK" "$@"
+}
+
+seed_busy_rollout() {
+  printf '{"type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
+    "$SESSION_UUID" "$SESSION_UUID" > "$CASE_ROLLOUT"
+  printf '{"type":"event_msg","payload":{"type":"task_started","turn_id":"working-turn"}}\n' \
+    >> "$CASE_ROLLOUT"
 }
 
 count_types() {
@@ -199,6 +250,7 @@ test_live_busy_leaves_durable_work_for_checkpoint() {
   setup_case busy
   prepare_live
   seed_wake
+  seed_busy_rollout
   : > "$CASE_BASE/unpinned-queue"
   printf 'busy\n' > "$CASE_BASE/busy"
   local out
@@ -210,15 +262,70 @@ test_live_busy_leaves_durable_work_for_checkpoint() {
   pass "primary clock: live busy primary keeps its durable wake without terminal input"
 }
 
+test_native_lifecycle_overrides_unmatched_render_and_rechecks_before_submit() {
+  setup_case unmatched-render
+  prepare_live
+  seed_wake
+  seed_busy_rollout
+  printf 'unmatched\n' > "$CASE_BASE/busy"
+  local out rc render composer legacy_busy
+  render=$(env \
+    FM_FAKE_TMUX_LOG="$CASE_BASE/tmux.log" \
+    FM_FAKE_COMPOSER_FILE="$CASE_BASE/composer" \
+    FM_FAKE_BUSY_FILE="$CASE_BASE/busy" \
+    FM_FAKE_RECOVERY_FILE="$CASE_RECOVERY" \
+    "$CASE_FAKEBIN/tmux" -S "$CASE_BASE/tmux.sock" capture-pane -p -t %3 -S -40) \
+    || fail "could not read the deliberately misleading rendered fixture"
+  composer=$(env \
+    FM_FAKE_TMUX_LOG="$CASE_BASE/tmux.log" \
+    FM_FAKE_COMPOSER_FILE="$CASE_BASE/composer" \
+    FM_FAKE_BUSY_FILE="$CASE_BASE/busy" \
+    FM_FAKE_RECOVERY_FILE="$CASE_RECOVERY" \
+    "$CASE_FAKEBIN/tmux" -S "$CASE_BASE/tmux.sock" capture-pane -e -p -t %3 -S 0 -E -) \
+    || fail "could not read the idle-looking composer fixture"
+  assert_contains "$render" 'Working (52m 55s)' "fixture lacks its unmatched nonempty busy-looking render"
+  assert_contains "$render" '› Ask Codex to do anything' "fixture lacks its idle-looking bare composer"
+  assert_contains "$composer" 'Ask Codex to do anything' "fixture lacks the styled idle placeholder"
+  # shellcheck disable=SC2016 # Positional parameters expand inside the nested Bash probe.
+  legacy_busy=$(env \
+    FM_FAKE_TMUX_LOG="$CASE_BASE/tmux.log" \
+    FM_FAKE_COMPOSER_FILE="$CASE_BASE/composer" \
+    FM_FAKE_BUSY_FILE="$CASE_BASE/busy" \
+    FM_FAKE_RECOVERY_FILE="$CASE_RECOVERY" \
+    bash -c '
+      . "$1/bin/fm-tmux-lib.sh"
+      fake_tmux=$2
+      fake_socket=$3
+      tmux() { "$fake_tmux" -S "$fake_socket" "$@"; }
+      fm_pane_busy_state %3 codex
+    ' _ "$ROOT" "$CASE_FAKEBIN/tmux" "$CASE_BASE/tmux.sock") \
+    || fail "could not evaluate the prior rendered busy fallback"
+  assert_equals idle "$legacy_busy" "fixture must reproduce the false-idle renderer result"
+
+  out=$(run_tick "$$" live) || fail "unmatched lifecycle should defer safely: $out"
+  assert_contains "$out" 'live busy:' "an unmatched native task_started event was not treated as busy"
+  assert_equals 0 "$(grep -c '^send-keys ' "$CASE_BASE/tmux.log" 2>/dev/null || true)" \
+    "false-idle render caused terminal input during an unmatched native turn"
+
+  setup_case lifecycle-race
+  prepare_live
+  seed_wake
+  out=$(FM_FAKE_START_ON_CLIENTS=1 run_tick "$$" live 2>&1) && rc=0 || rc=$?
+  [ "$rc" -ne 0 ] || fail "a turn started during the human-input guard but was still submitted"
+  assert_contains "$out" 'lifecycle stopped proving idle before submit' "fresh pre-submit lifecycle check did not refuse"
+  assert_equals 0 "$(count_types)" "turn-start race received terminal input"
+  pass "primary clock: native turn lifecycle wins over render text and is rechecked before input"
+}
+
 test_idle_empty_prompt_delivers_existing_wake_once() {
   setup_case idle
   prepare_live
   seed_wake
   local out
   out=$(run_tick "$$" live) || fail "safe idle wake failed: $out"
-  assert_contains "$out" 'idle wake confirmed' "idle delivery must be confirmed by native busy transition"
+  assert_contains "$out" 'idle wake confirmed' "idle delivery must be confirmed by a new native turn-start event"
   assert_equals 1 "$(count_types)" "idle delivery must type the wake exactly once"
-  pass "primary clock: safe idle delivery types once and confirms a native busy transition"
+  pass "primary clock: safe idle delivery types once and confirms a native turn-start event"
 }
 
 test_idle_human_input_or_attached_client_is_preserved() {
@@ -332,11 +439,53 @@ test_confirmed_death_recovers_once_with_pinned_settings() {
   assert_contains "$command_line" 'FM_BOOTSTRAP_DETECT_ONLY=1' "resume could repeat startup mutation sweeps"
   assert_contains "$command_line" 'FM_CODEX_WATCH_CHECKPOINT=900' "resume omitted the bounded checkpoint cadence"
 
-  out=$(run_tick "$DEAD_PID" dead) || fail "repeat tick failed: $out"
-  assert_contains "$out" 'already exists' "repeat tick did not preserve the existing recovery window"
+  out=$(run_tick "$DEAD_PID" dead 2>&1) && rc=0 || rc=$?
+  [ "$rc" -ne 0 ] || fail "a live recovery pane without the pinned process was accepted as success"
+  assert_contains "$out" 'live or ambiguous' "live recovery candidate did not fail closed"
   assert_equals 1 "$(grep -c '^new-window ' "$CASE_BASE/tmux.log" 2>/dev/null || true)" \
     "repeat tick dispatched a second recovery owner"
-  pass "primary clock: confirmed death resumes the same UUID once and preserves its recovery window"
+  pass "primary clock: new recovery launch does not duplicate or trust an unverified live pane"
+}
+
+test_dead_marked_or_named_recovery_pane_is_retried_and_reacquired_once() {
+  local kind out
+  for kind in marked named; do
+    setup_case "recovery-$kind"
+    printf '%s\n' "$DEAD_PID" > "$CASE_HOME/state/.lock"
+    if [ "$kind" = marked ]; then
+      printf 'marked-dead\n' > "$CASE_RECOVERY"
+    else
+      printf 'named-dead\n' > "$CASE_RECOVERY"
+    fi
+    out=$(run_tick "$DEAD_PID" dead) || fail "$kind dead pane was not retried: $out"
+    assert_contains "$out" 'retried in the verified dead pane' "$kind stale pane did not receive bounded retry"
+    assert_contains "$(<"$CASE_BASE/tmux.log")" 'respawn-pane -t %9 -c ' "$kind pane ID was not reused"
+    assert_not_contains "$(<"$CASE_BASE/tmux.log")" 'respawn-pane -k' "recovery killed a pane instead of respawning a dead one"
+    assert_equals 0 "$(grep -c '^new-window\|^new-session' "$CASE_BASE/tmux.log" 2>/dev/null || true)" \
+      "$kind stale window created a second pane"
+
+    seed_busy_rollout
+    printf '%s\n' "$$" > "$CASE_HOME/state/.lock"
+    out=$(run_tick "$$" live) || fail "$kind retry did not recognize the reacquired exact primary: $out"
+    assert_contains "$out" 'live busy:' "$kind retry was not owned by the reacquired primary"
+    assert_equals 1 "$(grep -c '^respawn-pane ' "$CASE_BASE/tmux.log" 2>/dev/null || true)" \
+      "$kind dead pane was respawned more than once after lock reacquisition"
+    assert_equals 0 "$(count_types)" "$kind recovery duplicate received terminal input"
+  done
+  pass "primary clock: exact marked and named dead panes retry once and stop after lock reacquisition"
+}
+
+test_live_recovery_candidate_is_preserved_and_refused() {
+  setup_case live-recovery-candidate
+  printf '%s\n' "$DEAD_PID" > "$CASE_HOME/state/.lock"
+  printf 'marked-live\n' > "$CASE_RECOVERY"
+  local out rc
+  out=$(run_tick "$DEAD_PID" dead 2>&1) && rc=0 || rc=$?
+  [ "$rc" -ne 0 ] || fail "a live stale recovery pane was overwritten"
+  assert_contains "$out" 'live or ambiguous' "live stale pane refusal missing"
+  assert_equals 0 "$(grep -c '^respawn-pane\|^new-window\|^new-session' "$CASE_BASE/tmux.log" 2>/dev/null || true)" \
+    "live recovery candidate was modified or duplicated"
+  pass "primary clock: live stale candidate is preserved without overwrite or duplicate launch"
 }
 
 test_dead_or_unreadable_process_inventory_never_recovers() {
@@ -401,10 +550,13 @@ test_launchd_example_has_one_non_boot_repeating_owner() {
 test_quiet_reconciliation_does_not_create_a_task_or_queue_record
 test_live_busy_leaves_durable_work_for_checkpoint
 test_idle_empty_prompt_delivers_existing_wake_once
+test_native_lifecycle_overrides_unmatched_render_and_rechecks_before_submit
 test_idle_human_input_or_attached_client_is_preserved
 test_process_identity_ambiguity_refuses_delivery
 test_model_and_home_mismatch_refuse_before_dispatch
 test_confirmed_death_recovers_once_with_pinned_settings
+test_dead_marked_or_named_recovery_pane_is_retried_and_reacquired_once
+test_live_recovery_candidate_is_preserved_and_refused
 test_dead_or_unreadable_process_inventory_never_recovers
 test_malformed_primary_lock_never_recovers
 test_ambiguous_watcher_lock_prevents_recovery
