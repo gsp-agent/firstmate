@@ -1498,6 +1498,10 @@ codex_task_write_scope_flags() {  # <resolved-state-dir> <task-id> -> exact stat
     echo "error: could not prepare the Codex task inbox: $inbox_dir" >&2
     return 1
   }
+  if [ ! -r "$inbox_dir" ] || [ ! -w "$inbox_dir" ] || [ ! -x "$inbox_dir" ]; then
+    echo "error: Codex task inbox is not readable, writable, and traversable: $inbox_dir" >&2
+    return 1
+  fi
   if [ -L "$handled_dir" ] || { [ -e "$handled_dir" ] && [ ! -d "$handled_dir" ]; }; then
     echo "error: Codex task inbox acknowledgement path is not a directory: $handled_dir" >&2
     return 1
@@ -1506,6 +1510,10 @@ codex_task_write_scope_flags() {  # <resolved-state-dir> <task-id> -> exact stat
     echo "error: could not prepare the Codex task inbox acknowledgement path: $handled_dir" >&2
     return 1
   }
+  if [ ! -r "$handled_dir" ] || [ ! -w "$handled_dir" ] || [ ! -x "$handled_dir" ]; then
+    echo "error: Codex task inbox acknowledgement path is not readable, writable, and traversable: $handled_dir" >&2
+    return 1
+  fi
   symlink_path=$(find "$inbox_dir" -type l -print -quit) || {
     echo "error: could not verify the Codex task inbox contents: $inbox_dir" >&2
     return 1

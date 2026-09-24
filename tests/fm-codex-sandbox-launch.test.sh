@@ -138,5 +138,43 @@ SH
   pass "Codex refuses an unresolved Git administration root without launching"
 }
 
+test_unwritable_task_inbox_refuses_before_launch() {
+  local out status inbox_dir
+  prepare_case inbox-permissions
+  install_fake_codex
+  inbox_dir="$HOME_DIR/state/$ID.inbox"
+  mkdir -p "$inbox_dir/handled"
+  chmod 500 "$inbox_dir"
+
+  out=$(run_canonical_spawn 2>&1)
+  status=$?
+  chmod 700 "$inbox_dir" || fail "could not restore fixture inbox permissions"
+  expect_code 1 "$status" "canonical Codex spawn should refuse an unwritable existing inbox: $out"
+  assert_contains "$out" "Codex task inbox is not readable, writable, and traversable: $inbox_dir" \
+    "inbox permission refusal should identify the exact task inbox"
+  [ ! -s "$LAUNCH_LOG" ] || fail "unwritable task inbox still delivered a worker launch"
+  pass "Codex refuses a pre-existing unwritable task inbox before worker launch"
+}
+
+test_unwritable_handled_dir_refuses_before_launch() {
+  local out status handled_dir
+  prepare_case handled-permissions
+  install_fake_codex
+  handled_dir="$HOME_DIR/state/$ID.inbox/handled"
+  mkdir -p "$handled_dir"
+  chmod 500 "$handled_dir"
+
+  out=$(run_canonical_spawn 2>&1)
+  status=$?
+  chmod 700 "$handled_dir" || fail "could not restore fixture handled permissions"
+  expect_code 1 "$status" "canonical Codex spawn should refuse an unwritable existing handled directory: $out"
+  assert_contains "$out" "Codex task inbox acknowledgement path is not readable, writable, and traversable: $handled_dir" \
+    "handled permission refusal should identify the exact acknowledgement directory"
+  [ ! -s "$LAUNCH_LOG" ] || fail "unwritable handled directory still delivered a worker launch"
+  pass "Codex refuses a pre-existing unwritable inbox acknowledgement directory before worker launch"
+}
+
 test_ampersand_path_preserves_max_and_git_root_argv
+test_unwritable_task_inbox_refuses_before_launch
+test_unwritable_handled_dir_refuses_before_launch
 test_unresolved_git_admin_root_still_fails_closed
