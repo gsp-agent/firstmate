@@ -1,0 +1,46 @@
+---
+schema_version: "1.0.0"
+mode: checkpoint
+date: 2026-09-24T18:32:49.668Z
+session: "firstmate-source-update-and-pre-change-red-classification"
+outcome: "PARTIAL_MINUS"
+---
+
+goal: "Advance the independently reviewed Firstmate runtime onto the plain primary checkout through the normal protected Git route, preserving branch prerequisites, owners, dirt, and the active primary; then verify live gpt-6-luna/max acceptance and classify the spawn-fixture failure against pre-change 15ea60a."
+now: "Validator fix 8ca5c16 is pushed and independently reviewed; bootstrap tests pass, while the exact gpt-6-luna/max spawn assertion passes but the broader spawn suite still fails twice at a separate 60-second fixture. Plain main is 869ae90, upstream/main is 22 commits ahead, with only pre-existing untracked .worktrees/. The maintained branch is clean at 8ca5c16 and 13 commits ahead of origin/main 35761484 across 14 files, including prior bounded sandbox/max/runtime work; do not cherry-pick only the validator. Review admission and corrected Root handoff were read. Next inspect branch ownership, protection, existing PR/gate state and no-mistakes route; prepare normal landing of the full accepted branch; preserve logs and classify the fixture against 15ea60a without another unchanged test-suite retry, creating a bead only if baseline reproduces; after source advances, use supported same-process context reload/reconciliation to prove actual primary acceptance. No queue operations, primary restart, clock installation, or product dispatch."
+
+done_this_session:
+  - "Committed and pushed validator correction 8ca5c16c34e709f6181ad8412b99e260fb52df5c; remote readback matched."
+  - "Independent review passed with no P1/P2 findings; Root admitted reviewer native 01a0d4a6-5b25-7823-a03e-93d3af146aff at gpt-6-luna/max. See outputs/phase0-primary/worker-profile-review-20260924.md and worker-profile-review-admission-20260924.json."
+  - "Read plain-main and maintained-fork topology. Main is 869ae90 tracking upstream/main, behind 22, with pre-existing untracked .worktrees/. Maintained branch is clean, 13 commits ahead of origin/main 35761484."
+  - "Corrected herdr-migration-report.md from the controlling context handoff: primary attempted decision resolution but auto mode denied it; primary acked row 179; Root did not alter task state."
+next:
+  - "Inspect normal no-mistakes delivery, existing PR/gate state, and main protection. Preserve the entire reviewed runtime branch; do not cherry-pick only 8ca5c16."
+  - "After normal landing, sync the plain checkout without disturbing its untracked .worktrees/ or current primary; use supported same-process context reload/reconciliation and verify actual profile acceptance."
+  - "Classify the spawn-suite fixture against pre-change 15ea60a without a third unchanged-suite retry. Record logs and create an open bead only if baseline reproduces."
+blockers:
+  - "The exact landing mechanism and current PR/gate state remain to be read. Do not activate until the normal route is confirmed."
+questions: []
+decisions:
+  - "Preserve Root ownership of the live primary queue and historical durable-open decision; no alternate approval path, primary restart, or auto-mode change."
+  - "Carry the full 13-commit maintained branch onto its existing main base, not a validator-only cherry-pick."
+failed:
+  - "Post-change full spawn-profile run 1: test_codex_refuses_unresolved_git_admin_roots failed after 60s; assertion expected 'Codex task worktree Git administration roots could not be resolved'. Actual: 'error: treehouse get did not enter an isolated worktree within 60s' for temp .../fm-spawn-dispatch-profile.k8P4II/profile-codex-unresolved-roots/wt, classified beneath /Users/dalecarman/dev/firstmate/.worktrees/fm-codex-max-effort."
+  - "Post-change full spawn-profile serial run 2: same fixture failure after 60s; temp root .../fm-spawn-dispatch-profile.IxmHFg/profile-codex-unresolved-roots/wt, same maintained-checkout classification. No third unchanged run."
+files:
+  - "bin/fm-bootstrap.sh"
+  - "tests/fm-bootstrap.test.sh"
+  - "outputs/phase0-primary/herdr-migration-report.md (outside this repo)"
+  - "thoughts/shared/handoffs/firstmate-source-update-and-pre-change-red-classification/2026-09-24_18-32_firstmate-source-update-and-pre-change-red-classification_checkpoint.yaml"
+test:
+  - "bash tests/fm-bootstrap.test.sh: pass after fix; new gpt-6-luna/max acceptance and existing gpt-5.5/max rejection pass. Pre-fix regression reproduced invalid effort: codex:max."
+  - "bash tests/fm-spawn-dispatch-profile.test.sh: exact gpt-6-luna/max forwarding assertion passed twice; full suite failed twice at separate unresolved Git-admin-root fixture. Independent review says not plausibly caused by this bootstrap-only delta, but baseline classification remains open."
+
+# Optional fields (YAML)
+# done_this_session:, next:, blockers:, questions:, decisions:, findings:, worked:, failed:, files:, test:
+# The git: block below is generator-owned (spec 231) — never edit it; add commit references in prose fields.
+git:
+  branch: "dale/fm-codex-max-effort"
+  commit: "8ca5c16c34e709f6181ad8412b99e260fb52df5c"
+  commit_semantics: "repo HEAD when this artifact was generated (pre-artifact commit)"
+  remote: "https://github.com/gsp-agent/firstmate.git"
