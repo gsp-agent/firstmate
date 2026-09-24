@@ -83,6 +83,15 @@ make_seeded_secondmate_home() {
   printf 'charter for %s\n' "$id" > "$home/data/charter.md"
 }
 
+make_seeded_git_secondmate_home() {
+  local home=$1 id=$2
+  make_seeded_secondmate_home "$home" "$id"
+  printf 'config/\nstate/\nprojects/\n' > "$home/.gitignore"
+  git -C "$home" init -q -b main
+  git -C "$home" add --all
+  git -C "$home" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm initial
+}
+
 run_spawn() {
   local home=$1 wt=$2 fakebin=$3 launchlog=$4
   shift 4
@@ -109,6 +118,23 @@ read_case_record() {
   IFS='|' read -r CASE_DIR HOME_DIR PROJ_DIR WT_DIR FAKEBIN_DIR LAUNCH_LOG <<EOF
 $1
 EOF
+}
+
+assert_codex_sandbox_contract() {
+  local launch=$1 worktree=$2 worktree_real git_dir common_dir
+  worktree_real=$(cd "$worktree" && pwd -P) || fail "could not resolve test worktree: $worktree"
+  git_dir=$(git -C "$worktree_real" rev-parse --absolute-git-dir) || fail "could not resolve test worktree Git dir"
+  common_dir=$(git -C "$worktree_real" rev-parse --path-format=absolute --git-common-dir) \
+    || fail "could not resolve test worktree common Git dir"
+  assert_contains "$launch" "--cd '$worktree_real'" "Codex launch must start in its resolved task worktree"
+  assert_contains "$launch" "--sandbox workspace-write" "Codex launch must select workspace-write"
+  assert_contains "$launch" "--ask-for-approval never" "Codex launch must select approval=never"
+  assert_contains "$launch" "-c 'sandbox_workspace_write.network_access=true'" \
+    "Codex launch must enable network access explicitly"
+  assert_contains "$launch" "--add-dir '$git_dir'" "Codex launch must grant its worktree Git dir"
+  assert_contains "$launch" "--add-dir '$common_dir'" "Codex launch must grant its common Git admin dir"
+  assert_not_contains "$launch" "--dangerously-bypass-approvals-and-sandbox" \
+    "Codex launch must not bypass its configured sandbox"
 }
 
 assert_meta_profile() {
@@ -345,8 +371,9 @@ test_active_dispatch_profile_allows_explicit_harness() {
   assert_contains "$out" "spawned $id harness=codex" "spawn did not report explicit codex harness"
   assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5 high
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "codex --model 'gpt-5' -c 'model_reasoning_effort=\"high\"' --dangerously-bypass-approvals-and-sandbox" \
+  assert_contains "$launch" "codex --model 'gpt-5' -c 'model_reasoning_effort=\"high\"'" \
     "explicit harness launch did not thread model and effort"
+  assert_codex_sandbox_contract "$launch" "$WT_DIR"
   pass "active crew-dispatch profile allows an explicit resolved harness"
 }
 
@@ -412,8 +439,9 @@ test_codex_threads_model_and_effort() {
   expect_code 0 "$status" "codex spawn with profile flags should succeed"
   assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5 high
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "codex --model 'gpt-5' -c 'model_reasoning_effort=\"high\"' --dangerously-bypass-approvals-and-sandbox" \
+  assert_contains "$launch" "codex --model 'gpt-5' -c 'model_reasoning_effort=\"high\"'" \
     "codex launch did not thread model and reasoning effort config"
+  assert_codex_sandbox_contract "$launch" "$WT_DIR"
   pass "codex receives --model and model_reasoning_effort profile flags"
 }
 
@@ -428,9 +456,59 @@ test_codex_threads_supported_max_effort() {
   expect_code 0 "$status" "codex Luna spawn with max effort should pass the effort flag"
   assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5.6-luna max
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "codex --model 'gpt-5.6-luna' -c 'model_reasoning_effort=\"max\"' --dangerously-bypass-approvals-and-sandbox" \
+  assert_contains "$launch" "codex --model 'gpt-5.6-luna' -c 'model_reasoning_effort=\"max\"'" \
     "codex launch did not thread the explicit max reasoning effort"
+  assert_codex_sandbox_contract "$launch" "$WT_DIR"
   pass "codex passes max effort for the catalog-proven Luna model"
+}
+
+test_codex_threads_gpt6_luna_max_effort() {
+  local rec id out status launch
+  id=profile-codex-gpt6-luna-max-z4a
+  rec=$(make_spawn_case profile-codex-gpt6-luna-max codex "$id")
+  read_case_record "$rec"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    --model gpt-6-luna --effort max)
+  status=$?
+  expect_code 0 "$status" "Codex gpt-6-luna spawn with max effort should pass the effort flag"
+  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-6-luna max
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "codex --model 'gpt-6-luna' -c 'model_reasoning_effort=\"max\"'" \
+    "Codex launch did not preserve gpt-6-luna and explicit max effort"
+  assert_codex_sandbox_contract "$launch" "$WT_DIR"
+  pass "Codex forwards max for catalog-supported gpt-6-luna without changing the requested model"
+}
+
+test_codex_refuses_unresolved_git_admin_roots() {
+  local rec id out status real_git
+  id=profile-codex-unresolved-roots-z4c
+  rec=$(make_spawn_case profile-codex-unresolved-roots codex "$id")
+  read_case_record "$rec"
+  real_git=$(command -v git)
+  cat > "$FAKEBIN_DIR/git" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = -C ] && [ "${2:-}" = "${FM_TEST_CODEX_ROOT_FAIL_PATH:-}" ]; then
+  shift 2
+  if [ "${1:-}" = rev-parse ] && [ "${2:-}" = --path-format=absolute ] \
+    && [ "${3:-}" = --git-common-dir ]; then
+    exit 1
+  fi
+fi
+exec "$FM_TEST_REAL_GIT" "$@"
+SH
+  chmod +x "$FAKEBIN_DIR/git"
+
+  out=$(FM_TEST_CODEX_ROOT_FAIL_PATH="$WT_DIR" FM_TEST_REAL_GIT="$real_git" \
+    run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" 2>&1)
+  status=$?
+  expect_code 1 "$status" "Codex spawn must refuse when a Git admin root cannot be resolved"
+  assert_contains "$out" "Codex task worktree Git administration roots could not be resolved" \
+    "Codex root-resolution failure must identify the missing bounded roots"
+  assert_contains "$out" "refusing Codex launch" "Codex root-resolution failure must refuse, not downgrade"
+  assert_absent "$HOME_DIR/state/$id.meta" "Codex root-resolution failure must not publish task metadata"
+  [ ! -s "$LAUNCH_LOG" ] || fail "Codex root-resolution failure delivered a launch command"
+  pass "Codex launch fails closed when task Git administration roots cannot be resolved"
 }
 
 test_codex_threads_catalog_supported_non_luna_max_effort() {
@@ -444,8 +522,9 @@ test_codex_threads_catalog_supported_non_luna_max_effort() {
   expect_code 0 "$status" "codex GPT-5.6-Sol spawn with max effort should pass the effort flag"
   assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5.6-sol max
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "codex --model 'gpt-5.6-sol' -c 'model_reasoning_effort=\"max\"' --dangerously-bypass-approvals-and-sandbox" \
+  assert_contains "$launch" "codex --model 'gpt-5.6-sol' -c 'model_reasoning_effort=\"max\"'" \
     "codex launch did not thread max for the catalog-proven non-Luna model"
+  assert_codex_sandbox_contract "$launch" "$WT_DIR"
   pass "codex passes max effort for the catalog-proven GPT-5.6-Sol model"
 }
 
@@ -462,10 +541,11 @@ test_codex_omits_unsupported_max_effort() {
   assert_contains "$out" "notice: Codex model 'gpt-5.5' has no verified max reasoning effort; omitting the flag" \
     "codex spawn did not flag the unverified max effort"
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "codex --model 'gpt-5.5' --dangerously-bypass-approvals-and-sandbox" \
+  assert_contains "$launch" "codex --model 'gpt-5.5'" \
     "codex launch did not preserve the unsupported model and brief"
   assert_not_contains "$launch" "model_reasoning_effort" \
     "codex launch must omit max for an unsupported model"
+  assert_codex_sandbox_contract "$launch" "$WT_DIR"
   pass "codex records but omits max for the unsupported GPT-5.5 model"
 }
 
@@ -942,7 +1022,7 @@ test_active_dispatch_profile_does_not_block_secondmate_launch() {
   read_case_record "$rec"
   enable_dispatch_profile "$HOME_DIR"
   sm="$CASE_DIR/secondmate-home"
-  make_seeded_secondmate_home "$sm" "$id"
+  make_seeded_git_secondmate_home "$sm" "$id"
 
   out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$sm" --secondmate)
   status=$?
@@ -1062,7 +1142,7 @@ test_launch_environment_inherited_by_secondmate() {
   read_case_record "$rec"
   printf 'FM_TEST_ALLOWED\n' > "$HOME_DIR/config/launch-env-allowlist"
   sm="$CASE_DIR/secondmate-home"
-  make_seeded_secondmate_home "$sm" "$id"
+  make_seeded_git_secondmate_home "$sm" "$id"
   out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$sm" --secondmate)
   status=$?
   expect_code 0 "$status" "secondmate with an allowlist should spawn: $out"
@@ -1327,6 +1407,7 @@ test_non_claude_harness_ignores_claude_permission_mode() {
   expect_code 0 "$status" "codex spawn under claude-permission-mode=auto should succeed"
   launch=$(cat "$LAUNCH_LOG")
   assert_contains "$launch" "codex " "codex launch did not run codex"
+  assert_codex_sandbox_contract "$launch" "$WT_DIR"
   assert_not_contains "$launch" "--permission-mode" "the claude permission flag must not leak into a codex launch"
   pass "config/claude-permission-mode changes claude launches only"
 }
@@ -1346,6 +1427,8 @@ test_active_dispatch_profile_allows_raw_launch_command
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort
 test_codex_threads_supported_max_effort
+test_codex_threads_gpt6_luna_max_effort
+test_codex_refuses_unresolved_git_admin_roots
 test_codex_threads_catalog_supported_non_luna_max_effort
 test_codex_omits_unsupported_max_effort
 test_grok_threads_model_and_reasoning_effort

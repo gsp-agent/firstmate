@@ -282,6 +282,7 @@
 #     __GEMINISETTINGS__ firstmate-owned per-task gemini settings file (busy-state hooks)
 #     __ROVOBIN__   resolved, rovo-verified executable for a rovo launch
 #     __AGYBIN__    resolved, agy-verified executable for an agy launch
+#     __CODEXSANDBOXFLAGS__ resolved workspace-write, approval, network, and Git-root flags for Codex
 # Verified per-harness turn-end hooks are installed automatically where enabled; some live outside the worktree.
 # Kimi uses one surgically installed Firstmate region in $HOME/.kimi-code/config.toml,
 # a firstmate-owned global hook and registry, and a gitignored per-task pointer.
@@ -1316,6 +1317,7 @@ PROJ=
 ARG3=
 FIRSTMATE_HOME=
 RAW_LAUNCH=0
+CODEX_SANDBOX_FLAGS=
 
 # --relaunch adoption: every identity axis comes from the task's own validated
 # durable record, never from the command line, so a relaunch can only ever
@@ -1426,6 +1428,39 @@ shell_quote() {
   printf "'"
   printf '%s' "$1" | sed "s/'/'\\\\''/g"
   printf "'"
+}
+
+codex_sandbox_flags_for_worktree() {  # <path> -> canonical bounded Codex launch flags
+  local path=$1 worktree worktree_top worktree_top_real git_dir common_dir
+  worktree=$(cd "$path" 2>/dev/null && pwd -P) || {
+    echo "error: Codex task worktree is not a readable directory: $path" >&2
+    return 1
+  }
+  worktree_top=$(git -C "$worktree" rev-parse --show-toplevel 2>/dev/null) || {
+    echo "error: Codex task worktree is not a Git worktree: $worktree" >&2
+    return 1
+  }
+  worktree_top_real=$(cd "$worktree_top" 2>/dev/null && pwd -P) || {
+    echo "error: Codex task worktree root could not be resolved: $worktree_top" >&2
+    return 1
+  }
+  if [ "$worktree" != "$worktree_top_real" ]; then
+    echo "error: Codex task path is not its Git worktree root: $worktree" >&2
+    return 1
+  fi
+  git_dir=$(git -C "$worktree" rev-parse --absolute-git-dir 2>/dev/null) || git_dir=
+  if [ -n "$git_dir" ]; then
+    git_dir=$(cd "$git_dir" 2>/dev/null && pwd -P) || git_dir=
+  fi
+  common_dir=$(git -C "$worktree" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || common_dir=
+  if [ -n "$common_dir" ]; then
+    common_dir=$(cd "$common_dir" 2>/dev/null && pwd -P) || common_dir=
+  fi
+  if [ -z "$git_dir" ] || [ -z "$common_dir" ] || [ ! -d "$git_dir" ] || [ ! -d "$common_dir" ]; then
+    echo "error: Codex task worktree Git administration roots could not be resolved: $worktree" >&2
+    return 1
+  fi
+  printf '%s' "--cd $(shell_quote "$worktree") --sandbox workspace-write --ask-for-approval never -c $(shell_quote 'sandbox_workspace_write.network_access=true') --add-dir $(shell_quote "$git_dir") --add-dir $(shell_quote "$common_dir") "
 }
 
 resolve_pi_executable() {
@@ -1548,9 +1583,9 @@ launch_template() {
     claude) printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude __CLAUDEPERMFLAG__ --settings '\''{"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false}}'\'' __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
     codex)
       if [ "$kind" = secondmate ]; then
-        printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+        printf '%s' 'codex __MODELFLAG____EFFORTFLAG____CODEXSANDBOXFLAGS__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
       else
-        printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox -c "notify=[\"bash\",\"-c\",\"touch __TURNEND__\"]" "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+        printf '%s' 'codex __MODELFLAG____EFFORTFLAG____CODEXSANDBOXFLAGS__-c "notify=[\"bash\",\"-c\",\"touch __TURNEND__\"]" "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
       fi
       ;;
     opencode) printf '%s' 'OPENCODE_CONFIG_CONTENT='\''{"permission":{"*":"allow"}}'\'' opencode __MODELFLAG__--prompt "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
@@ -1999,7 +2034,7 @@ effort_flag_for_harness() {
         low|medium|high|xhigh) printf -- '-c %s ' "$(shell_quote "model_reasoning_effort=\"$effort\"")" ;;
         max)
           case "$model" in
-            gpt-6-astra|gpt-reserve|gpt-5.6-sol|gpt-5.6-terra|gpt-5.6-luna|codex-auto-review)
+            gpt-6-astra|gpt-6-luna|gpt-reserve|gpt-5.6-sol|gpt-5.6-terra|gpt-5.6-luna|codex-auto-review)
               printf -- '-c %s ' "$(shell_quote 'model_reasoning_effort="max"')"
               ;;
             *)
@@ -3368,6 +3403,19 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
   freshen_spawn_worktree_base "$WT" || exit 1
 fi
 
+if [ "$HARNESS" = codex ] && [ "$RAW_LAUNCH" -eq 0 ]; then
+  if CODEX_SANDBOX_FLAGS=$(codex_sandbox_flags_for_worktree "$WT"); then
+    :
+  else
+    echo "error: refusing Codex launch because its bounded workspace roots could not be resolved" >&2
+    if [ "$RELAUNCH" -ne 1 ] && [ "$BACKEND" != orca ]; then
+      fm_backend_kill "$BACKEND" "$T" >/dev/null 2>&1 \
+        || echo "warning: could not remove the unopened Codex endpoint $T" >&2
+    fi
+    exit 1
+  fi
+fi
+
 # Pre-register Claude's workspace trust for the directory this launch starts in,
 # at the first point that directory is known and before any per-task state is
 # created below. The dialog gates the pane before the brief is ever read, and it
@@ -4039,6 +4087,7 @@ MODELFLAG=$(model_flag_for_harness "$HARNESS" "$MODEL")
 EFFORTFLAG=$(effort_flag_for_harness "$HARNESS" "$EFFORT" "$MODEL") || exit 1
 LAUNCH=${LAUNCH//__MODELFLAG__/$MODELFLAG}
 LAUNCH=${LAUNCH//__EFFORTFLAG__/$EFFORTFLAG}
+LAUNCH=${LAUNCH//__CODEXSANDBOXFLAGS__/$CODEX_SANDBOX_FLAGS}
 LAUNCH=${LAUNCH//__CLAUDEPERMFLAG__/$CLAUDE_PERM_FLAG}
 if [ "$HARNESS" = rovo ]; then
   ROVOCONFIGOVERRIDE=$(rovo_config_override_flag "$EFFORT" "$DATA" "$STATE" "$ID") || {

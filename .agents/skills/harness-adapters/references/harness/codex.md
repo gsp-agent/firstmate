@@ -12,8 +12,14 @@ Verified on 2026-09-12 with codex-cli 0.153.2 unless a fact gives a newer versio
 | Skill invocation | `$<skill>`, for example `$no-mistakes`; `/<skill>` is Claude-only and Codex rejects it as "Unrecognized command". |
 | Resume | `codex resume <session-id>`, using the id printed on quit. |
 | Model flag | `--model <model>`. |
-| Effort flag | `-c 'model_reasoning_effort="<low\|medium\|high\|xhigh\|max>"'`, verified on codex-cli 0.153.2; `max` is forwarded only for the catalog-proven API-visible models `gpt-6-astra`, `gpt-reserve`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, and `codex-auto-review`, while other or unproven model entries keep the record-and-omit behavior. |
+| Effort flag | `-c 'model_reasoning_effort="<low\|medium\|high\|xhigh\|max>"'`, verified on codex-cli 0.153.2; `max` is forwarded only for catalog-proven models `gpt-6-astra`, `gpt-6-luna`, `gpt-reserve`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, and `codex-auto-review`. The 2026-09-23 codex-cli 0.156.0 catalog reports `max` for `gpt-6-luna`; other or unproven entries keep the record-and-omit behavior. |
 | Model discovery | Open the current interactive session's `/model` picker. |
+
+## Canonical task launch
+
+As of 2026-09-23, Firstmate's canonical Codex adapter sets the resolved task worktree with `--cd`, selects `--sandbox workspace-write` and `--ask-for-approval never`, enables `sandbox_workspace_write.network_access=true`, and passes the resolved worktree Git directory and common directory with `--add-dir`. If either Git administration root cannot be resolved, the canonical launch is refused; it does not fall back to the raw-launch escape hatch.
+
+These flags describe the launch request, not proven sandbox behavior. Codex documents that `workspace-write` protects `<writable_root>/.git` and, for a Git-pointer worktree, its resolved Git directory as read-only. Adding those paths does not by itself prove Git metadata is writable or establish outside-root denial. No live Firstmate Codex launch or Git mutation is claimed here. See [Codex agent approvals and security](https://learn.chatgpt.com/docs/agent-approvals-security) and the [Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
 
 A directory trust dialog appears on the first run for a repository root: "Do you trust the contents of this directory?"
 Accept it with Enter and verify the instructions begin processing.
