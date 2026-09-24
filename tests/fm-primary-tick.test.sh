@@ -64,7 +64,7 @@ shift 2 # exact configured -S socket
   list-clients)
     [ "${FM_FAKE_CLIENTS:-}" != error ] || exit 1
     if [ -n "${FM_FAKE_START_ON_CLIENTS_FILE:-}" ] && [ ! -e "$FM_FAKE_START_ON_CLIENTS_FILE" ]; then
-      printf '{"type":"event_msg","payload":{"type":"task_started","turn_id":"raced-turn"}}\n' \
+      printf '{"timestamp":"2026-01-01T00:00:03Z","type":"event_msg","payload":{"type":"task_started","turn_id":"raced-turn"}}\n' \
         >> "$FM_FAKE_ROLLOUT_FILE"
       : > "$FM_FAKE_START_ON_CLIENTS_FILE"
     fi
@@ -107,7 +107,7 @@ shift 2 # exact configured -S socket
         if [ "${FM_FAKE_SUBMIT_MODE:-clear}" = clear ]; then
           printf 'empty\n' > "$FM_FAKE_COMPOSER_FILE"
           printf 'busy\n' > "$FM_FAKE_BUSY_FILE"
-          printf '{"type":"event_msg","payload":{"type":"task_started","turn_id":"submitted-turn"}}\n' \
+          printf '{"timestamp":"2026-01-01T00:00:04Z","type":"event_msg","payload":{"type":"task_started","turn_id":"submitted-turn"}}\n' \
             >> "$FM_FAKE_ROLLOUT_FILE"
         fi
         ;;
@@ -154,6 +154,10 @@ case " $args " in
     ;;
   *' -o comm= -p '*) printf 'codex\n' ;;
   *' -o lstart= -o command= '*) printf 'Mon Jan 1 00:00:00 2026 /bin/bash fixture\n' ;;
+  *' -o lstart= '*)
+    [ "${FM_FAKE_PS_START_MODE:-normal}" != error ] || exit 1
+    printf '%s\n' "${FM_FAKE_OWNER_START:-Thu Jan  1 00:00:00 2026}"
+    ;;
   *' -o pid= '*)
     case "${FM_FAKE_PS_MODE:-live}" in
       dead|ps-error) exit 0 ;;
@@ -176,11 +180,11 @@ SH
   : > "$base/tmux.log"
   printf 'empty\n' > "$base/composer"
   printf 'idle\n' > "$base/busy"
-  printf '{"type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
+  printf '{"timestamp":"2026-01-01T00:00:00Z","type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
     "$SESSION_UUID" "$SESSION_UUID" > "$CASE_ROLLOUT"
-  printf '{"type":"event_msg","payload":{"type":"task_started","turn_id":"baseline-turn"}}\n' \
+  printf '{"timestamp":"2026-01-01T00:00:01Z","type":"event_msg","payload":{"type":"task_started","turn_id":"baseline-turn"}}\n' \
     >> "$CASE_ROLLOUT"
-  printf '{"type":"event_msg","payload":{"type":"task_complete","turn_id":"baseline-turn"}}\n' \
+  printf '{"timestamp":"2026-01-01T00:00:02Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"baseline-turn"}}\n' \
     >> "$CASE_ROLLOUT"
   : > "$CASE_HOME/state/.lock"
   CASE_BASE="$base"
@@ -211,6 +215,8 @@ run_tick() {
     FM_PRIMARY_TMUX_BIN="$CASE_FAKEBIN/tmux" \
     FM_PRIMARY_CODEX_BIN="$CASE_FAKEBIN/codex" \
     FM_FAKE_OWNER_PID="$owner" \
+    FM_FAKE_OWNER_START="${FM_FAKE_OWNER_START:-Thu Jan  1 00:00:00 2026}" \
+    FM_FAKE_PS_START_MODE="${FM_FAKE_PS_START_MODE:-normal}" \
     FM_FAKE_PS_MODE="$mode" \
     FM_FAKE_TMUX_LOG="$CASE_BASE/tmux.log" \
     FM_FAKE_COMPOSER_FILE="$CASE_BASE/composer" \
@@ -222,9 +228,9 @@ run_tick() {
 }
 
 seed_busy_rollout() {
-  printf '{"type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
+  printf '{"timestamp":"2026-01-01T00:00:00Z","type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
     "$SESSION_UUID" "$SESSION_UUID" > "$CASE_ROLLOUT"
-  printf '{"type":"event_msg","payload":{"type":"task_started","turn_id":"working-turn"}}\n' \
+  printf '{"timestamp":"2026-01-01T00:00:01Z","type":"event_msg","payload":{"type":"task_started","turn_id":"working-turn"}}\n' \
     >> "$CASE_ROLLOUT"
 }
 
@@ -547,6 +553,45 @@ test_launchd_example_has_one_non_boot_repeating_owner() {
   pass "primary clock: one explicit 900-second LaunchAgent job owns scheduled ticks"
 }
 
+test_resumed_owner_ignores_pre_owner_unmatched_turn() {
+  setup_case resumed-owner
+  prepare_live
+  seed_wake
+  printf '{"timestamp":"2026-01-01T00:00:00Z","type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
+    "$SESSION_UUID" "$SESSION_UUID" > "$CASE_ROLLOUT"
+  printf '{"timestamp":"2025-12-31T23:59:59Z","type":"event_msg","payload":{"type":"task_started","turn_id":"abandoned-before-resume"}}\n' \
+    >> "$CASE_ROLLOUT"
+  local out
+  out=$(run_tick "$$" live) || fail "resumed owner did not reconcile its pinned session: $out"
+  assert_contains "$out" 'idle wake confirmed' "an abandoned pre-owner turn blocked the replacement process"
+  assert_equals 1 "$(count_types)" "resumed owner did not submit its reconciliation prompt once"
+  pass "primary clock: a replacement owner ignores an unmatched turn from the prior process generation"
+}
+
+test_unreadable_owner_or_event_timestamp_refuses_delivery() {
+  setup_case unreadable-owner-start
+  prepare_live
+  seed_wake
+  local out rc
+  out=$(FM_FAKE_PS_START_MODE=error run_tick "$$" live 2>&1) && rc=0 || rc=$?
+  [ "$rc" -ne 0 ] || fail "an unreadable current-owner start time was accepted"
+  assert_contains "$out" 'native turn lifecycle is unknown' "unreadable owner time did not make lifecycle evidence unknown"
+  assert_equals 0 "$(count_types)" "clock submitted with an unreadable owner start time"
+
+  setup_case malformed-event-time
+  prepare_live
+  seed_wake
+  printf '{"timestamp":"2026-01-01T00:00:00Z","type":"session_meta","payload":{"id":"%s","session_id":"%s"}}\n' \
+    "$SESSION_UUID" "$SESSION_UUID" > "$CASE_ROLLOUT"
+  printf '{"timestamp":"not-a-timestamp","type":"event_msg","payload":{"type":"task_started","turn_id":"malformed-time"}}\n' \
+    >> "$CASE_ROLLOUT"
+  out=$(run_tick "$$" live 2>&1) && rc=0 || rc=$?
+  [ "$rc" -ne 0 ] || fail "a lifecycle event without a readable timestamp was accepted"
+  assert_contains "$out" 'native turn lifecycle is unknown' "malformed event time did not make lifecycle evidence unknown"
+  assert_equals 0 "$(count_types)" "clock submitted with a malformed lifecycle timestamp"
+  pass "primary clock: unreadable owner or event time prevents automatic input"
+}
+
 test_quiet_reconciliation_does_not_create_a_task_or_queue_record
 test_live_busy_leaves_durable_work_for_checkpoint
 test_idle_empty_prompt_delivers_existing_wake_once
@@ -560,4 +605,6 @@ test_live_recovery_candidate_is_preserved_and_refused
 test_dead_or_unreadable_process_inventory_never_recovers
 test_malformed_primary_lock_never_recovers
 test_ambiguous_watcher_lock_prevents_recovery
+test_resumed_owner_ignores_pre_owner_unmatched_turn
+test_unreadable_owner_or_event_timestamp_refuses_delivery
 test_launchd_example_has_one_non_boot_repeating_owner
