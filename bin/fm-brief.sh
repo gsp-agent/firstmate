@@ -417,8 +417,12 @@ $INBOX_SECTION
 Write your findings to \`$DATA/$ID/report.md\`.
 The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
 $LAVISH_LINE
-Before reporting done, read and follow \`$FM_ROOT/.agents/skills/captain-hold-lifecycle/SKILL.md\` and pass its shared completion gate for the report and any visual review.
-When the report is complete, append \`done: {one-line conclusion}\` to the status file and stop.
+Before reporting done, read and follow \`$FM_ROOT/.agents/skills/captain-hold-lifecycle/SKILL.md\`.
+In the report, add a \`Captain-hold inventory\` section that lists every unresolved captain-owned choice, its held task ID when one exists, and the question and options; explicitly write \`none\` when the reviewed report and visual review leave no such choice.
+Append the same comma-separated held task IDs, or \`none\`, to the final status line as \`done: {one-line conclusion}; captain-hold inventory: {IDs or none}\`; add \`new-hold-needed\` when the report identifies a choice that has no held task yet.
+Do not run \`bin/fm-captain-hold.sh complete\` or attest \`--none\` from the scout.
+The primary reads the report and status inventory, records any required hold in the owning home, and runs \`complete\` in the authoritative \`FM_HOME\` with the reviewed IDs or \`--none\` only after confirming none; then continue with the existing \`verify\` and teardown steps.
+When the report is complete, stop after appending that status line.
 If your findings reveal work that should ship (e.g. you reproduced a bug and the fix is clear), say so in the report; firstmate may promote this task in place, and you would then receive mode-specific ship instructions as a follow-up message.
 EOF
 echo "scaffolded: $BRIEF (scout; replace {TASK} and {FIRSTMATE_SPEC})"

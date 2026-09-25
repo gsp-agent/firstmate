@@ -13,6 +13,8 @@ metadata:
 A decision is not a separate thing: it is simply a task waiting on the captain.
 The one primitive is an ordinary backlog task held for the captain through `bin/fm-captain-hold.sh hold`; its identity is the task id, and that wrapper owns the deterministic mechanics this policy relies on.
 The agent performs the semantic inventory because scripts must not infer captain calls from report prose, visual-review artifacts, terminal output, or chat.
+For delegated scout work, the scout records that inventory in the report and final status, but does not mutate authoritative home state with `hold` or `complete`.
+The primary reads and validates the scout's report and status inventory, records any required holds in the owning home, and runs `complete` in that home's authoritative `FM_HOME` before verify and teardown.
 
 ## Policy
 
@@ -20,7 +22,7 @@ Every unresolved question that belongs to the captain and is discovered while pr
 Prefer holding the work item the question gates over minting a new row; create a new task only when no work item exists to hold.
 Put the question and its options in the hold reason, and keep one held task per genuine gate: a multi-question review is one held task pointing at its report, not a row per question. Represent that task with exactly one board card that consolidates its questions and options; never fan one task id into duplicate same-key cards.
 Register or re-hold through `bin/fm-captain-hold.sh hold`, which is idempotent per task id.
-After inventorying the whole report and review surface, run `bin/fm-captain-hold.sh complete` with every captain-held task id, or with `--none` only when the reviewed surface leaves nothing waiting on the captain.
+After inventorying the whole report and review surface, the authoritative-home owner runs `bin/fm-captain-hold.sh complete` with every captain-held task id, or with `--none` only when review confirms that nothing remains waiting on the captain.
 A completed investigation and an ended visual review use this same owner and completion command; a visual tool, including Lavish, never owns a parallel completion policy.
 Run the command in the originating work's authoritative `FM_HOME`; secondmate-owned work registers in that secondmate home's backlog, and a question already held anywhere is never re-registered as a second row.
 Do not close a captain-held task merely because the originating investigation completed, its report was archived, its visual review ended, or its task was torn down.
@@ -58,11 +60,13 @@ The absence of a routed work item is not a divergence and the guard never requir
 
 1. Read the complete investigation result and complete the visual review before declaring either complete.
 2. Inventory only genuine unresolved choices that require the captain, and find the task each one gates.
-3. Hold that task - or create one captain-held task for the review's open questions - with a concise reason carrying the question and options.
-4. Run `complete` with the full captain-held inventory for that review pass.
-5. Relay the choices to the captain as decisions from Bearings' Captain's Call section under `AGENTS.md` section 9; do not use the word hold in captain chat.
-6. Close each call only through `answer` (or a channel that feeds `answers`), close a board-requested moot call through evidence-backed `reconcile close`, record a still-active reconciliation through `reconcile note`, use `--until` when the captain defers it, or confirm a channel already closed it.
-7. Confirm Bearings reflects the outcome: answered or reconciled-moot calls leave Captain's Call, released work resumes, active reconciliations remain held, and deferred calls sit in Charted Next with their date.
+3. For delegated scout work, put each unresolved choice, its held task id when one exists, and its question and options in a `Captain-hold inventory` report section; explicitly record `none` when no choice remains.
+4. In the final `done:` status line, repeat the comma-separated held task ids or `none`, and include `new-hold-needed` if a choice has no held task yet.
+5. The primary reads the full report and status inventory, records any required hold in the authoritative home, and runs `complete` with the full inventory or `--none` only after confirming none; then run the existing `verify` and teardown steps.
+6. For work that is not delegated, the authoritative-home owner holds the task or tasks directly and runs `complete` with the full inventory.
+7. Relay the choices to the captain as decisions from Bearings' Captain's Call section under `AGENTS.md` section 9; do not use the word hold in captain chat.
+8. Close each call only through `answer` (or a channel that feeds `answers`), close a board-requested moot call through evidence-backed `reconcile close`, record a still-active reconciliation through `reconcile note`, use `--until` when the captain defers it, or confirm a channel already closed it.
+9. Confirm Bearings reflects the outcome: answered or reconciled-moot calls leave Captain's Call, released work resumes, active reconciliations remain held, and deferred calls sit in Charted Next with their date.
 
 `bin/fm-captain-hold.sh --help` owns command syntax, close modes, legacy-identity compatibility, completion attestation, retry behavior, and close ordering.
 `docs/captain-hold-lifecycle.md` records the mechanism and regression evidence without restating this policy.

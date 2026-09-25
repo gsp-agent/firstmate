@@ -1587,6 +1587,36 @@ test_self_held_lock_reclaims_instead_of_deadlocking() {
   pass "an abandoned same-process lock hold is reclaimed; a parent's live hold is not"
 }
 
+test_lock_owner_creation_failure_fails_closed() {
+  local dir state lock err out lock_name rc
+  dir=$(make_case lock-owner-create-failure)
+  state="$dir/state"
+  lock_name=$(printf '%240s' '' | tr ' ' x)
+  lock="$state/$lock_name"
+  err="$dir/acquire.err"
+  out="$dir/acquire.out"
+  : > "$lock" || fail "could not create the long-name lock fixture"
+  touch -t 200001010000 "$lock" || fail "could not age the lock fixture"
+
+  if FM_STATE_OVERRIDE="$state" bash -c '
+    . "$1"
+    fm_lock_acquire_wait "$2"
+  ' _ "$ROOT/bin/fm-wake-lib.sh" "$lock" > "$out" 2> "$err"; then
+    rc=0
+  else
+    rc=$?
+  fi
+  [ "$rc" -eq 3 ] || fail "an unavailable nested lock path did not return the distinct fail-closed status (rc=$rc)"
+  grep -F 'cannot create or claim lock safely at' "$err" >/dev/null \
+    || fail "unavailable lock creation did not emit its bounded diagnostic"
+  [ "$(wc -l < "$err" | tr -d '[:space:]')" -eq 1 ] \
+    || fail "nested lock creation emitted repeated diagnostics"
+  [ ! -e "$lock.steal" ] && [ ! -L "$lock.steal" ] \
+    || fail "failed nested lock creation left a steal lock behind"
+  [ -f "$lock" ] || fail "failed nested lock creation altered the original lock"
+  pass "unavailable nested lock creation fails closed without recursive .steal growth"
+}
+
 test_subshell_lock_ownership_without_bashpid() {
   local dir state rc
   dir=$(make_case subshell-lock-ownership)
@@ -1908,6 +1938,7 @@ test_historical_annotation_skips_announced_status() {
 }
 
 test_self_held_lock_reclaims_instead_of_deadlocking
+test_lock_owner_creation_failure_fails_closed
 test_subshell_lock_ownership_without_bashpid
 test_bounded_lock_handoff_after_contention
 test_live_presentation_holder_is_deadlined_without_weakening_ack

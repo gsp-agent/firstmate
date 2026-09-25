@@ -487,15 +487,15 @@ fm_lock_claim_blocked_by_steal() {
 
 fm_lock_claim() {
   local lockdir=$1 ownerdir=$2 allowed_steal_owner=${3:-} mypid back
-  fm_current_pid mypid || return 1
+  fm_current_pid mypid || return 3
   if ! { printf '%s\n' "$mypid" > "$ownerdir/pid"; } 2>/dev/null; then
     fm_lock_discard_owner "$ownerdir"
-    return 1
+    return 3
   fi
   back=$(cat "$ownerdir/pid" 2>/dev/null || true)
   if [ "$back" != "$mypid" ]; then
     fm_lock_discard_owner "$ownerdir"
-    return 1
+    return 3
   fi
   if ! fm_lock_points_to_owner "$lockdir" "$ownerdir"; then
     fm_lock_discard_owner "$ownerdir"
@@ -511,29 +511,44 @@ fm_lock_claim() {
   return 0
 }
 
+# Return 1 for a competing lock and 3 when a new owner cannot be established.
 fm_lock_try_create() {
-  local lockdir=$1 allowed_steal_owner=${2:-} ownerdir
+  local lockdir=$1 allowed_steal_owner=${2:-} ownerdir rc attempts=0
   FM_LOCK_OWNER_DIR=
-  ownerdir=$(fm_lock_owner_dir "$lockdir") || return 1
+  ownerdir=$(fm_lock_owner_dir "$lockdir") || return 3
   if [ -e "$lockdir" ] || [ -L "$lockdir" ]; then
     fm_lock_discard_owner "$ownerdir"
     return 1
   fi
   if ! fm_lock_prepare_owner "$ownerdir"; then
     fm_lock_discard_owner "$ownerdir"
-    return 1
+    return 3
   fi
-  if ln -s "$ownerdir" "$lockdir" 2>/dev/null && fm_lock_points_to_owner "$lockdir" "$ownerdir"; then
-    if fm_lock_claim "$lockdir" "$ownerdir" "$allowed_steal_owner"; then
-      FM_LOCK_OWNER_DIR=$ownerdir
-      return 0
+  while [ "$attempts" -lt 2 ]; do
+    if ln -s "$ownerdir" "$lockdir" 2>/dev/null; then
+      if fm_lock_points_to_owner "$lockdir" "$ownerdir"; then
+        if fm_lock_claim "$lockdir" "$ownerdir" "$allowed_steal_owner"; then
+          FM_LOCK_OWNER_DIR=$ownerdir
+          return 0
+        else
+          rc=$?
+        fi
+        if fm_lock_points_to_owner "$lockdir" "$ownerdir"; then
+          rm -f "$lockdir" 2>/dev/null || true
+        fi
+        fm_lock_discard_owner "$ownerdir"
+        return "$rc"
+      fi
+      fm_lock_remove_stray_owner_link "$lockdir" "$ownerdir"
     fi
-    if fm_lock_points_to_owner "$lockdir" "$ownerdir"; then
-      rm -f "$lockdir" 2>/dev/null || true
+    if [ -e "$lockdir" ] || [ -L "$lockdir" ]; then
+      fm_lock_discard_owner "$ownerdir"
+      return 1
     fi
-  else
-    fm_lock_remove_stray_owner_link "$lockdir" "$ownerdir"
-  fi
+    # A competing owner may release after our failed ln and before this check.
+    # Retry that transient race once before returning ordinary contention.
+    attempts=$((attempts + 1))
+  done
   fm_lock_discard_owner "$ownerdir"
   return 1
 }
@@ -890,17 +905,27 @@ fm_recovery_marker_reopen_announced() {
   fm_recovery_transition "$1" reopen-announced
 }
 
+# Return 1 for retryable contention and 3 when a safe owner cannot be established.
 fm_lock_try_acquire() {
-  local lockdir=$1 pid steal cur rc steal_owner primary_owner current
+  local lockdir=$1 pid steal cur rc steal_rc steal_owner primary_owner current
   FM_LOCK_HELD_PID=
   FM_LOCK_OWNER_DIR=
   FM_LOCK_RECOVERED_PID=
 
   if fm_lock_try_create "$lockdir"; then
     return 0
+  else
+    rc=$?
+  fi
+  if [ "$rc" -eq 3 ]; then
+    printf 'fm_lock_try_acquire: cannot create or claim lock safely at %s\n' "$lockdir" >&2
+    return 3
   fi
 
-  fm_current_pid current || return 1
+  if ! fm_current_pid current; then
+    printf 'fm_lock_try_acquire: cannot identify the current owner for %s\n' "$lockdir" >&2
+    return 3
+  fi
   pid=$(cat "$lockdir/pid" 2>/dev/null || true)
   if [ -n "$pid" ] && [ "$pid" = "$current" ]; then
     # The recorded holder is THIS very process. Single-threaded bash can only
@@ -914,6 +939,12 @@ fm_lock_try_acquire() {
     fm_lock_remove_path "$lockdir" || true
     if fm_lock_try_create "$lockdir"; then
       return 0
+    else
+      rc=$?
+    fi
+    if [ "$rc" -eq 3 ]; then
+      printf 'fm_lock_try_acquire: cannot create or claim lock safely at %s\n' "$lockdir" >&2
+      return 3
     fi
     FM_LOCK_HELD_PID=$(cat "$lockdir/pid" 2>/dev/null || true)
     return 1
@@ -928,9 +959,13 @@ fm_lock_try_acquire() {
   fi
 
   steal="$lockdir.steal"
-  if ! fm_lock_try_acquire "$steal"; then
+  if fm_lock_try_acquire "$steal"; then
+    :
+  else
+    steal_rc=$?
     FM_LOCK_HELD_PID=$(cat "$lockdir/pid" 2>/dev/null || true)
     FM_LOCK_OWNER_DIR=
+    [ "$steal_rc" -eq 3 ] && return 3
     return 1
   fi
   steal_owner=${FM_LOCK_OWNER_DIR:-}
@@ -975,11 +1010,12 @@ fm_lock_try_acquire() {
     return 1
   fi
   fm_lock_remove_path "$lockdir" || true
-  rc=1
   if fm_lock_try_create "$lockdir" "$steal_owner"; then
     rc=0
     # shellcheck disable=SC2034 # Read by sourcing callers after lock acquisition.
     FM_LOCK_RECOVERED_PID=$cur
+  else
+    rc=$?
   fi
   if [ "$rc" -ne 0 ]; then
     # shellcheck disable=SC2034 # Read by callers after fm_lock_try_acquire returns.
@@ -987,12 +1023,23 @@ fm_lock_try_acquire() {
     FM_LOCK_OWNER_DIR=
   fi
   fm_lock_release "$steal"
-  return "$rc"
+  if [ "$rc" -eq 3 ]; then
+    printf 'fm_lock_try_acquire: cannot recreate lock safely at %s\n' "$lockdir" >&2
+    return 3
+  fi
+  [ "$rc" -eq 0 ] && return 0
+  return 1
 }
 
 fm_lock_acquire_wait() {
-  local lockdir=$1
-  while ! fm_lock_try_acquire "$lockdir"; do
+  local lockdir=$1 rc
+  while :; do
+    if fm_lock_try_acquire "$lockdir"; then
+      return 0
+    else
+      rc=$?
+    fi
+    [ "$rc" -eq 1 ] || return "$rc"
     sleep 0.1
   done
 }
@@ -1006,7 +1053,11 @@ _fm_lock_acquire_wait_handoff() {  # <lockdir> <caller-pid>
   case "$caller_pid" in ''|*[!0-9]*) return 1 ;; esac
   fm_pid_alive "$caller_pid" || return 1
   trap 'fm_lock_release "$lockdir"; exit 143' TERM INT
-  fm_lock_acquire_wait "$lockdir" || return 1
+  if fm_lock_acquire_wait "$lockdir"; then
+    :
+  else
+    return $?
+  fi
   if [ -L "$lockdir" ]; then
     ownerdir=$(fm_lock_link_owner "$lockdir" 2>/dev/null) || {
       fm_lock_release "$lockdir"
@@ -1030,18 +1081,22 @@ _fm_lock_acquire_wait_handoff() {  # <lockdir> <caller-pid>
 #
 # Bounded acquire variant. It preserves the ordinary wait/reclaim behavior
 # until fm-timeout-lib.sh's hard deadline, returns 124 when a live holder still
-# owns the lock, and leaves FM_LOCK_HELD_PID naming that holder.
+# owns the lock, and leaves FM_LOCK_HELD_PID naming that holder. It returns 3
+# when it cannot create or verify an owner record.
 # Use it where a caller must refuse rather than block: wake presentation, and
 # the guarded remote link clear, whose whole contract is to return a
 # reconciliation refusal instead of wedging an unattended close.
 # Mutation-critical callers that can safely block keep fm_lock_acquire_wait.
 fm_lock_acquire_wait_bounded() {
-  local lockdir=$1 seconds=$2 caller_pid rc owner_pid
+  local lockdir=$1 seconds=$2 caller_pid rc owner_pid final_rc
   case "$seconds" in ''|*[!0-9]*|0) return 2 ;; esac
   _fm_wake_require_timeout || return 1
   if fm_lock_try_acquire "$lockdir"; then
     return 0
+  else
+    rc=$?
   fi
+  [ "$rc" -eq 1 ] || return "$rc"
 
   fm_current_pid caller_pid || return 1
   # shellcheck disable=SC2016 # Positional parameters expand in the child shell.
@@ -1062,12 +1117,19 @@ fm_lock_acquire_wait_bounded() {
     return 0
   fi
   [ "$rc" -ne 0 ] || rc=1
+  [ "$rc" -ne 3 ] || {
+    printf 'fm_lock_acquire_wait_bounded: lock is unavailable at %s\n' "$lockdir" >&2
+    return 3
+  }
   # A deadline can kill the helper just after it acquired and before handoff.
   # Give ordinary stale-owner recovery one final non-blocking chance so that
   # helper cleanup cannot manufacture a false contention advisory.
   if fm_lock_try_acquire "$lockdir"; then
     return 0
+  else
+    final_rc=$?
   fi
+  [ "$final_rc" -ne 3 ] || return 3
   if [ "$rc" -eq 124 ]; then
     owner_pid=$(cat "$lockdir/pid" 2>/dev/null || true)
     case "$owner_pid" in

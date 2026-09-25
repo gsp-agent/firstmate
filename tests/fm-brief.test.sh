@@ -807,8 +807,14 @@ test_scout_and_secondmate_load_decision_hold_policy() {
   scout="$home/data/sample-investigation/brief.md"
   assert_grep "$ROOT/.agents/skills/captain-hold-lifecycle/SKILL.md" "$scout" \
     "scout brief did not load the captain-call policy before done"
-  assert_grep "pass its shared completion gate for the report and any visual review" "$scout" \
-    "scout brief did not cross-reference visual-review completion"
+  assert_grep "Captain-hold inventory" "$scout" \
+    "scout brief did not require a semantic captain-hold inventory in the report"
+  assert_grep "captain-hold inventory: {IDs or none}" "$scout" \
+    "scout brief did not carry the inventory into the final status line"
+  assert_grep "Do not run \`bin/fm-captain-hold.sh complete\` or attest \`--none\` from the scout" "$scout" \
+    "scout brief still assigns authoritative completion to the worker"
+  assert_grep "The primary reads the report and status inventory" "$scout" \
+    "scout brief did not assign authoritative completion to the primary"
   FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" FM_SECONDMATE_CHARTER='sample reviews' \
     "$ROOT/bin/fm-brief.sh" sample-mate --secondmate --no-projects >/dev/null 2>&1
   charter="$home/data/sample-mate/brief.md"
