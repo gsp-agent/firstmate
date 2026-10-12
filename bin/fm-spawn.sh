@@ -1626,7 +1626,9 @@ launch_template() {
     # inherited CLAUDECODE cannot outrank cursor's own marker in a process that
     # only reads the environment. Cursor exposes no effort flag, so the shared
     # effort axis is deliberately omitted and stays in task metadata only.
-    cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ --trust --yolo __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+    # __CURSORPLUGINS__ carries config/cursor-plugin-dirs (see the cursor
+    # resolution block below) and is empty when that file is absent.
+    cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ --trust --yolo __CURSORPLUGINS____MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
     # gemini (Google Gemini CLI): a positional query starts the supervised
     # interactive session and auto-submits it, so the brief rides the launch
     # command exactly as it does for claude and grok (verified: a multi-line
@@ -1803,6 +1805,39 @@ case "$HARNESS" in
     # missing install a loud spawn refusal instead of a pane that dies with a
     # command-not-found the supervisor would read as a wedged worker.
     CURSOR_BIN=$(fm_cursor_resolve_binary) || exit 1
+    # config/cursor-plugin-dirs (optional, gitignored): one absolute Cursor
+    # plugin directory per line, blank lines and # comments allowed. Each one
+    # becomes a --plugin-dir flag. A non-empty list also passes --approve-mcps:
+    # Cursor approves MCP servers per workspace and every task gets a fresh
+    # worktree, so a plugin's skills could not otherwise reach the MCP servers
+    # they rely on. Read before any mutation, so a bad entry refuses the spawn
+    # instead of launching a worker without its plugin.
+    CURSOR_PLUGIN_FLAGS=
+    if ! CURSOR_PLUGINS_PRESENT=$(fm_config_source_present "$CONFIG/cursor-plugin-dirs"); then
+      exit 1
+    fi
+    if [ "$CURSOR_PLUGINS_PRESENT" = 1 ]; then
+      if [ ! -f "$CONFIG/cursor-plugin-dirs" ] || [ ! -r "$CONFIG/cursor-plugin-dirs" ]; then
+        echo "error: config/cursor-plugin-dirs must be a readable regular file holding one absolute plugin directory per line" >&2
+        exit 1
+      fi
+      while IFS= read -r cursor_plugin_dir || [ -n "$cursor_plugin_dir" ]; do
+        case "$cursor_plugin_dir" in ''|'#'*) continue ;; esac
+        case "$cursor_plugin_dir" in
+          /*) ;;
+          *)
+            echo "error: config/cursor-plugin-dirs lists '$cursor_plugin_dir'; each entry must be an absolute directory" >&2
+            exit 1
+            ;;
+        esac
+        [ -d "$cursor_plugin_dir" ] || {
+          echo "error: config/cursor-plugin-dirs lists '$cursor_plugin_dir', which is not a directory" >&2
+          exit 1
+        }
+        CURSOR_PLUGIN_FLAGS="$CURSOR_PLUGIN_FLAGS--plugin-dir $(shell_quote "$cursor_plugin_dir") "
+      done < "$CONFIG/cursor-plugin-dirs"
+      [ -z "$CURSOR_PLUGIN_FLAGS" ] || CURSOR_PLUGIN_FLAGS="--approve-mcps $CURSOR_PLUGIN_FLAGS"
+    fi
     if [ -n "$MODEL" ] && [ "$MODEL" != default ]; then
       if CURSOR_MODELS=$(fm_cursor_list_models "$CURSOR_BIN"); then
         if ! printf '%s\n' "$CURSOR_MODELS" | fm_cursor_catalog_has_model "$MODEL"; then
@@ -4050,7 +4085,10 @@ LAUNCH=${LAUNCH//__OMPWORKERCFG__/$sq_ompcfg}
 LAUNCH=${LAUNCH//__OPINPUT__/$sq_opinput}
 case "$HARNESS" in
   pi|pi-signed) LAUNCH=${LAUNCH//__PIBIN__/"$(shell_quote "$PI_BIN")"} ;;
-  cursor) LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"} ;;
+  cursor)
+    LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"}
+    LAUNCH=${LAUNCH//__CURSORPLUGINS__/"$CURSOR_PLUGIN_FLAGS"}
+    ;;
   gemini) LAUNCH=${LAUNCH//__GEMINISETTINGS__/"$(shell_quote "$STATE_REAL/$ID.gemini-settings.json")"} ;;
   omp) LAUNCH=${LAUNCH//__OMPBIN__/"$(shell_quote "$OMP_BIN")"} ;;
   agy) LAUNCH=${LAUNCH//__AGYBIN__/"$(shell_quote "$AGY_BIN")"} ;;
