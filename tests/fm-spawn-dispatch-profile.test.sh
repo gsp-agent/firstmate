@@ -519,7 +519,53 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
   assert_not_contains "$launch" "--reasoning-effort" "cursor launch must not invent a separate reasoning-effort flag"
   assert_grep 'harness=cursor' "$HOME_DIR/state/$id.meta" "cursor harness was not recorded in meta"
   assert_grep 'model=cursor-grok-4.5-high' "$HOME_DIR/state/$id.meta" "cursor model was recorded as default"
+  # Without config/cursor-plugin-dirs the launch carries no plugin or MCP flags.
+  assert_not_contains "$launch" "--plugin-dir" "cursor launch must not invent a plugin directory"
+  assert_not_contains "$launch" "--approve-mcps" "cursor launch must not approve MCP servers without a configured plugin"
   pass "cursor receives its model-qualified reasoning class and exact task workspace"
+}
+
+test_cursor_plugin_dirs_add_plugin_and_mcp_flags() {
+  local rec id out status launch plugin_a plugin_b
+  id=profile-cursor-plugins-z6f
+  rec=$(make_spawn_case profile-cursor-plugins cursor "$id")
+  read_case_record "$rec"
+  plugin_a="$TMP_ROOT/profile-cursor-plugins/plugins/pstack"
+  # A path holding a placeholder name must reach the launch literally.
+  plugin_b="$TMP_ROOT/profile-cursor-plugins/plugins/with space __WORKTREE__"
+  mkdir -p "$plugin_a" "$plugin_b"
+  printf '# Cursor plugins for pstack runs\n\n%s\n%s\n' "$plugin_a" "$plugin_b" > "$HOME_DIR/config/cursor-plugin-dirs"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    --model cursor-grok-4.5-high)
+  status=$?
+  expect_code 0 "$status" "cursor spawn with configured plugin directories should succeed: $out"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "--trust --yolo --approve-mcps --plugin-dir '$plugin_a' --plugin-dir '$plugin_b' --model 'cursor-grok-4.5-high' --workspace '$WT_DIR'" \
+    "cursor launch did not carry each configured plugin directory, in order, with MCP approval"
+  pass "cursor launch loads every configured plugin directory and approves its MCP servers"
+}
+
+test_cursor_plugin_dirs_refuse_bad_entries_before_launch() {
+  local rec id out status
+  id=profile-cursor-plugins-bad-z6g
+  rec=$(make_spawn_case profile-cursor-plugins-bad cursor "$id")
+  read_case_record "$rec"
+
+  printf '%s\n' "$TMP_ROOT/profile-cursor-plugins-bad/missing" > "$HOME_DIR/config/cursor-plugin-dirs"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 1 "$status" "cursor spawn should refuse a plugin entry that is not a directory"
+  assert_contains "$out" "which is not a directory" "missing plugin directory refusal did not name the problem"
+  [ ! -s "$LAUNCH_LOG" ] || fail "missing plugin directory refusal must happen before launch"
+
+  printf '%s\n' "relative/pstack" > "$HOME_DIR/config/cursor-plugin-dirs"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 1 "$status" "cursor spawn should refuse a relative plugin entry"
+  assert_contains "$out" "must be an absolute directory" "relative plugin entry refusal did not name the problem"
+  [ ! -s "$LAUNCH_LOG" ] || fail "relative plugin entry refusal must happen before launch"
+  pass "cursor refuses a missing or relative plugin directory before launch"
 }
 
 test_cursor_refuses_model_absent_from_live_catalog() {
@@ -1315,6 +1361,8 @@ test_grok_threads_model_and_reasoning_effort
 test_grok_omits_invalid_max_reasoning_effort
 test_grok_omits_invalid_xhigh_reasoning_effort
 test_cursor_threads_model_workspace_and_omits_effort_axis
+test_cursor_plugin_dirs_add_plugin_and_mcp_flags
+test_cursor_plugin_dirs_refuse_bad_entries_before_launch
 test_cursor_refuses_model_absent_from_live_catalog
 test_cursor_failed_catalog_probe_does_not_block_spawn
 test_opencode_threads_model_and_ignores_effort_axis
