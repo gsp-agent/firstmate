@@ -2,7 +2,7 @@
 
 The xAI `grok` TUI is Claude-Code-compatible.
 Verified initially on 2026-06-29 with 0.2.73, slash submission on 2026-07-03 with 0.2.82, effort on 2026-07-13 with 0.2.99, exit on 2026-07-19 with 0.2.103, and folder trust, the training opt-in, and unsent composer delivery on 2026-09-24 with 1.0.41.
-Launch shape: `grok --always-approve "$(cat <brief>)"`.
+Launch shape: `env GROK_DISABLE_API_KEY_AUTH=1 GROK_MEMORY=0 GROK_CLAUDE_SKILLS_ENABLED=0 GROK_CURSOR_SKILLS_ENABLED=0 GROK_CLAUDE_MCPS_ENABLED=0 GROK_CURSOR_MCPS_ENABLED=0 grok --always-approve "$(cat <brief>)"`; the prefix keeps a crewmate off the captain's Claude and Cursor MCP servers and skills, refuses API-key auth, and turns cross-session memory off.
 
 ## Operating facts
 
@@ -16,7 +16,7 @@ Launch shape: `grok --always-approve "$(cat <brief>)"`.
 | Marker | `GROK_AGENT=1` on child or tool processes in 0.2.73 and no `CLAUDECODE`; a 1.0.0 hook instead had `GROK_HOOK_EVENT`, `GROK_HOOK_NAME`, `GROK_SESSION_ID`, and `GROK_WORKSPACE_ROOT` without `GROK_AGENT`, so ancestry guarantees identity. |
 | Resume | `grok --resume <session-id>`, or `grok -c` / `--continue` for cwd latest; `--fork-session` creates a new id. |
 | Model | `--model <model>`; discover current account models with `grok models`. |
-| Effort | `--reasoning-effort <low\|medium\|high>`, alias `--effort`; version 0.2.99 rejects `xhigh` and `max` with `use one of: high, medium, low`; `references/common/model-and-effort.md` owns fallback and unsupported-value handling. |
+| Effort | `--reasoning-effort <low\|medium\|high\|xhigh>`, alias `--effort`; version 0.2.99 rejected `xhigh` and `max`, while 1.0.50 accepts `xhigh` for a model whose menu advertises it (grok-4.7) and still rejects `max` with `use one of: xhigh, high, medium, low`; `references/common/model-and-effort.md` owns fallback and unsupported-value handling. |
 
 Reliable Grok rules must account for hook markers as well as the child fast path.
 `../../../docs/turnend-guard.md` under "Harness integrations" owns the marker contract.

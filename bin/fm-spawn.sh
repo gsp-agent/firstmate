@@ -729,6 +729,10 @@ BASE_BRANCH=
 BASE_BRANCH_SET=0
 TRACEPARENT_SET=0
 RELAUNCH=0
+# The most a fresh worker's `# Task` section (the ask: Captain's intent plus
+# Firstmate spec) may carry. Not the scaffold: Setup, Rules and Definition of done
+# are upstream's fixed contract and stay as scaffolded.
+BRIEF_TASK_MAX_BYTES=2048
 # Opt-in only: exact-resume presentation-order lock waits instead of refusing.
 # Absent/unset keeps upstream refuse-on-contention. See header.
 HERDR_RESUME_LOCK_WAIT=0
@@ -2218,7 +2222,16 @@ launch_template() {
   # --dangerously-skip-permissions. grok's turn-end signal does NOT ride the
   # launch command - it is a Stop-event hook installed below (global hook +
   # per-task pointer), so the template is identical for ship/scout/secondmate.
-  grok) printf '%s' 'grok --always-approve __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+  # The env prefix keeps a crewmate off the captain's interactive surface:
+  # Grok scans ~/.claude.json, ~/.cursor/mcp.json and the Claude and Cursor
+  # skill directories by default, so every crewmate started those MCP servers
+  # (measured: 9 servers, 3 failing on every launch, one registered twice) and
+  # listed those skills. Project .mcp.json servers and grok-native plugins
+  # still load. API-key auth is refused so a crewmate cannot fall through to a
+  # metered key, and cross-session memory is off for unattended work. Each
+  # variable is documented in Grok's config reference (compat.*, auth.*) and
+  # memory guide (GROK_MEMORY).
+  grok) printf '%s' 'env GROK_DISABLE_API_KEY_AUTH=1 GROK_MEMORY=0 GROK_CLAUDE_SKILLS_ENABLED=0 GROK_CURSOR_SKILLS_ENABLED=0 GROK_CLAUDE_MCPS_ENABLED=0 GROK_CURSOR_MCPS_ENABLED=0 grok --always-approve __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
   # Cursor Agent CLI. --trust suppresses the workspace-trust prompt, which
   # --yolo does NOT cover and which would otherwise block every spawn, since
   # each task gets a fresh worktree path cursor has never seen. --yolo is the
@@ -2729,11 +2742,12 @@ effort_flag_for_harness() {
     ;;
   grok)
     # grok exposes both --effort and --reasoning-effort; firstmate's profile
-    # axis is the reasoning knob. As of grok 0.2.99, --reasoning-effort accepts
-    # only low|medium|high and rejects both xhigh and max, so omit those rather
-    # than passing a known-bad value.
+    # axis is the reasoning knob. grok 0.2.99 accepted only low|medium|high;
+    # grok 1.0.50 takes xhigh for a model whose menu advertises it (grok-4.7
+    # does) and still rejects max there ("use one of: xhigh, high, medium,
+    # low"), so max stays omitted rather than passed as a known-bad value.
     case "$effort" in
-    low | medium | high) printf -- '--reasoning-effort %s ' "$(shell_quote "$effort")" ;;
+    low | medium | high | xhigh) printf -- '--reasoning-effort %s ' "$(shell_quote "$effort")" ;;
     esac
     ;;
   agy)
@@ -3202,6 +3216,17 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   if ADDRESS_LINE=$(fm_brief_intent_address_line "$BRIEF"); then
     echo "error: $BRIEF ## Captain's intent has an operator-address line: $ADDRESS_LINE; write the captain's actual words without a Captain label or address before spawn, since the heading already records provenance" >&2
     exit 1
+  fi
+  # A fresh worker's task is capped at BRIEF_TASK_MAX_BYTES: the brief carries
+  # the ask and a pointer to where the detail lives (bead, PR, file), never the
+  # detail itself. A relaunch re-delivers the brief its task already runs on, so
+  # a long brief written before the cap cannot strand a live worker.
+  if [ "$RELAUNCH" -eq 0 ]; then
+    TASK_BYTES=$(fm_brief_heading_body "$BRIEF" "# Task" | wc -c | tr -d '[:space:]')
+    if [ "$TASK_BYTES" -gt "$BRIEF_TASK_MAX_BYTES" ]; then
+      echo "error: $BRIEF has a # Task section of $TASK_BYTES bytes, over the $BRIEF_TASK_MAX_BYTES-byte cap; keep the ask short and link to the bead, PR or file for the detail instead of pasting it" >&2
+      exit 1
+    fi
   fi
   if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
     if fm_brief_task_heading_present "$BRIEF" "## Captain's intent"; then

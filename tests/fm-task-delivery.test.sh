@@ -1627,6 +1627,66 @@ test_spawn_refreshes_legacy_worker_roles
 # --branch-prefix never touches the default "<mode> <yolo>" output (order- and
 # presence-independent), defaults an unregistered/plain project to the legacy
 # "fm/" prefix, and resolves an empty override to "" for a bare <task-id> branch.
+# A fresh worker's `# Task` section is capped at 2048 bytes (fm-spawn.sh
+# BRIEF_TASK_MAX_BYTES): the brief carries the ask and a link, never the detail.
+# The cap is on the task the caller wrote, not on the scaffold around it.
+test_spawn_refuses_a_task_section_over_the_byte_cap() {
+  local rec home proj fakebin id out status scaffold_bytes
+  rec=$(make_home taskcap)
+  IFS='|' read -r home proj fakebin <<EOF
+$rec
+EOF
+
+  # Fixture: the Task section is 146 bytes with a 100-byte intent, so an intent
+  # of 2002 bytes makes it exactly 2048 and 2003 makes it 2049.
+  task_cap_brief() {  # <id> <intent-bytes>
+    mkdir -p "$home/data/$1"
+    {
+      printf 'You are a crewmate.\n\n# Task\n## Captain'\''s intent\n'
+      printf 'a%.0s' $(seq 1 "$2")
+      printf '\n\n## Firstmate spec\nspec\n\n# Definition of done\nDelivery contract: mode=direct-PR\n'
+    } > "$home/data/$1/brief.md"
+  }
+
+  id=taskcap-at-cap
+  task_cap_brief "$id" 2002
+  out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode direct-PR --yolo off)
+  assert_not_contains "$out" "-byte cap" "a # Task section of exactly 2048 bytes was refused"
+
+  id=taskcap-over-cap
+  task_cap_brief "$id" 2003
+  out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode direct-PR --yolo off)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a # Task section of 2049 bytes should exit non-zero"
+  assert_contains "$out" "a # Task section of 2049 bytes, over the 2048-byte cap" \
+    "the refusal did not state the measured size and the cap"
+  assert_contains "$out" "link to the bead, PR or file" "the refusal did not say what to do instead"
+  assert_absent "$home/state/$id.meta" "an over-cap spawn wrote task metadata"
+  assert_absent "$home/data/$id/launch-brief.md" "an over-cap spawn rendered a launch brief"
+
+  # The scaffold around the task is upstream's fixed contract and is not capped:
+  # a scaffolded ship brief with a short filled task is far over 2048 bytes whole.
+  id=taskcap-scaffold-short-task
+  FM_HOME="$home" "$BRIEF" "$id" proj --mode direct-PR >/dev/null 2>&1 \
+    || fail "ship brief should scaffold"
+  fill_brief_subsections "$home/data/$id/brief.md" "Fix the thing." "Follow the bead."
+  scaffold_bytes=$(wc -c < "$home/data/$id/brief.md" | tr -d '[:space:]')
+  [ "$scaffold_bytes" -gt 2048 ] || fail "fixture drift: the scaffolded brief is only $scaffold_bytes bytes"
+  out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --mode direct-PR --yolo off)
+  assert_not_contains "$out" "-byte cap" "the cap fired on the scaffold, not on the task"
+
+  # A scaffolded scout brief with a long filled task is refused the same way.
+  id=taskcap-scout-over-cap
+  FM_HOME="$home" "$BRIEF" "$id" proj --scout >/dev/null 2>&1 \
+    || fail "scout brief should scaffold"
+  fill_brief_subsections "$home/data/$id/brief.md" "$(printf 'b%.0s' $(seq 1 2100))" "Report back."
+  out=$(run_spawn "$home" "$fakebin" "$id" "$proj" claude --scout)
+  status=$?
+  [ "$status" -ne 0 ] || fail "an over-cap scout task should exit non-zero"
+  assert_contains "$out" "-byte cap" "an over-cap scout task was not refused"
+  pass "fm-spawn: a # Task section over 2048 bytes is refused; the scaffold around it is not counted"
+}
+
 test_project_mode_resolves_branch_prefix() {
   local home out err
   home="$TMP_ROOT/project-mode-branch/home"
@@ -1702,5 +1762,6 @@ test_spawn_refuses_a_registry_forge_it_cannot_read
 test_promotion_carries_the_forge_binding
 test_forge_forgejo_rides_the_same_binding
 test_spawn_and_promote_require_filled_task_subsections
+test_spawn_refuses_a_task_section_over_the_byte_cap
 test_project_mode_resolves_branch_prefix
 echo "# all fm-task-delivery tests passed"
