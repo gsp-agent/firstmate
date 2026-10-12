@@ -186,6 +186,9 @@ case "${1:-}" in
           task_header 1
         fi
         printf '%s\n' '  compact-startup,in_flight,ship,firstmate,Compact startup digest,none,captain,captain choice pending'
+        if [ -n "${FM_FAKE_TASKS_AXI_INFLIGHT_LONG:-}" ]; then
+          printf '%s\n' '  repair-secondmate-pending-reply-delivery-failure,in_flight,ship,firstmate,"Repair the secondmate pending-reply delivery failure when the remote ho\n... (truncated, 140 chars total - use show repair-secondmate-pending-reply-delivery-failure --full to see complete text)",none,"-","-"'
+        fi
         if [ -n "${FM_FAKE_TASKS_AXI_INFLIGHT_PLAIN:-}" ]; then
           printf '%s\n' '  plain-flight,in_flight,ship,firstmate,"Plain flight work, with a comma",none,"-","-"'
           printf '%s\n' '  esc-flight,in_flight,ship,firstmate,"Review C:\\new\\file",none,"-","-"'
@@ -195,6 +198,9 @@ case "${1:-}" in
       *'--state held'*)
         task_header 1
         printf '%s\n' '  held-queued,queued,ship,firstmate,Held queued work,none,captain,captain choice pending'
+        if [ -n "${FM_FAKE_TASKS_AXI_HELD_LONG:-}" ]; then
+          printf '%s\n' '  held-long-title,queued,ship,groove-sight-platform,"Runway reads payroll from the payroll provider once access is granted and the c\n... (truncated, 180 chars total - use show held-long-title --full to see complete text)",none,captain,"Dale picks the payroll route; the provider access and credential are his"'
+        fi
         ;;
       *'--state queued'*'--blocked'*)
         task_header 1
@@ -2129,6 +2135,56 @@ EOF
   pass "an unheld, unblocked in-flight row is listed once, as its task line; held or blocked rows keep theirs"
 }
 
+# A long title and tasks-axi's truncation notice must never push a row's
+# blocker or hold fields past the row cap: they are what the primary acts on.
+test_listing_row_keeps_its_hold_fields_past_a_long_title() {
+  local rec root home fakebin out
+  rec=$(new_world backlog-long-title-hold)
+  IFS='|' read -r root home fakebin <<EOF
+$rec
+EOF
+  make_fake_toolchain "$fakebin"
+  make_fake_tasks_axi_compact "$fakebin"
+  make_fake_ps_claude "$fakebin"
+  write_long_body_backlog "$home/data/backlog.md"
+
+  out=$(FM_FAKE_TASKS_AXI_HELD_LONG=1 run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
+
+  assert_contains "$out" '  held-long-title,queued,ship,groove-sight-platform,"Runway reads payroll from the payroll provider once acces...",none,captain,"Dale picks the payroll route' \
+    "a long-titled held row lost its hold kind or reason to the row cap"
+  assert_not_contains "$out" "(truncated, 180 chars total" \
+    "a listing row kept tasks-axi's multi-line truncation notice"
+
+  pass "a long-titled held row keeps its blocker and hold fields inside the row cap"
+}
+
+# Long metadata must not cut a task line's newest event: the title gives way
+# first, and a bracket too long to leave room lengthens the line instead.
+test_task_line_keeps_its_newest_event_past_long_metadata() {
+  local rec root home fakebin out
+  rec=$(new_world task-line-long-metadata)
+  IFS='|' read -r root home fakebin <<EOF
+$rec
+EOF
+  make_fake_toolchain "$fakebin"
+  make_fake_tasks_axi_compact "$fakebin"
+  make_fake_ps_claude "$fakebin"
+  write_long_body_backlog "$home/data/backlog.md"
+  printf 'window=firstmate:fm-repair-secondmate-pending-reply-delivery-failure\nkind=ship\nharness=pi\nmodel=anthropic/claude-sonnet-5\n' \
+    > "$home/state/repair-secondmate-pending-reply-delivery-failure.meta"
+  printf 'blocked: [key=plan-choice] captain must choose between the two rollout plans before the deploy window\n' \
+    > "$home/state/repair-secondmate-pending-reply-delivery-failure.status"
+
+  out=$(FM_FAKE_TASKS_AXI_INFLIGHT_LONG=1 run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
+
+  assert_contains "$out" "repair-secondmate-pending-reply-delivery-failure [" \
+    "the long-metadata task line is missing"
+  assert_contains "$out" "ship pi/anthropic/claude-sonnet-5] -- last: blocked: [key=plan-choice] captain must choose" \
+    "long metadata cut the task line's status word, decision key, or the start of its event"
+
+  pass "a task line with long metadata keeps its newest event's status word and key"
+}
+
 # The bound may only ever cut the dispatchable-now listing, and whatever it cuts
 # must be disclosed with an exact count and the command that shows the rest.
 test_backlog_queued_bound_discloses_its_remainder() {
@@ -3111,6 +3167,8 @@ test_non_pi_session_start_leaves_branch_state_untouched
 test_session_start_seeds_the_outcome_display_tail_while_away
 test_backlog_compact_tasks_axi_omits_bodies_and_keeps_metadata
 test_backlog_in_flight_row_folds_into_its_task_line
+test_listing_row_keeps_its_hold_fields_past_a_long_title
+test_task_line_keeps_its_newest_event_past_long_metadata
 test_backlog_queued_bound_discloses_its_remainder
 test_backlog_compact_manual_backend_skips_indented_bodies
 test_backlog_compact_tasks_axi_unavailable_uses_manual_fallback

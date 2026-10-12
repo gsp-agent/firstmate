@@ -560,6 +560,23 @@ test_codex_threads_model_and_max_effort() {
   pass "codex Luna receives --model and model_reasoning_effort max profile flags"
 }
 
+test_codex_threads_sol_max_effort() {
+  local rec id out status launch
+  id=profile-codex-sol-max-z4b
+  rec=$(make_spawn_case profile-codex-sol-max codex "$id")
+  read_case_record "$rec"
+
+  # codex-cli 0.162.1's installed catalog advertises max for gpt-6.1-sol.
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model gpt-6.1-sol --effort max)
+  status=$?
+  expect_code 0 "$status" "codex Sol spawn with max effort should succeed"
+  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-6.1-sol max
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "codex --model 'gpt-6.1-sol' -c 'model_reasoning_effort=\"max\"' --dangerously-bypass-approvals-and-sandbox" \
+    "codex launch did not thread Sol's max reasoning effort config"
+  pass "codex Sol receives --model and model_reasoning_effort max profile flags"
+}
+
 test_codex_omits_max_effort_for_unsupported_model() {
   local rec id out status launch
   id=profile-codex-max-unsupported-z4b
@@ -2210,6 +2227,7 @@ test_chained_raw_launch_strips_ai_trailer_in_every_step
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort
 test_codex_threads_model_and_max_effort
+test_codex_threads_sol_max_effort
 test_codex_omits_max_effort_for_unsupported_model
 test_codex_crewmate_launch_disables_the_hook_layer
 test_codex_secondmate_launch_keeps_the_hook_layer

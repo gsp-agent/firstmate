@@ -397,6 +397,12 @@ case "$STATUS_TAIL" in ''|*[!0-9]*|0) STATUS_TAIL=1 ;; esac
 QUEUED_LIMIT=${FM_SESSION_START_QUEUED_LIMIT:-10}
 # One task line, newest status event included; bin/fm-line-cap-lib.sh cuts it.
 TASK_LINE_CAP=150
+# Characters of the newest status event a task line always keeps: the title
+# shortens or drops first, and a bracket too long to leave this much room
+# lengthens the line instead of cutting the event (its status word and key).
+TASK_STATUS_ROOM=60
+# A listing row's title is descriptive; its blocker and hold fields follow it.
+LISTING_TITLE_CAP=60
 case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=10 ;; esac
 # One per-task endpoint read may never outlive this bound: a hung backend CLI
 # becomes that task's 'endpoint error' marker instead of the digest's whole
@@ -519,6 +525,39 @@ print_ready_queued_bounded() {
   '
 }
 
+# compact_listing_titles: shorten each row's quoted or bare title field (the
+# fifth) to LISTING_TITLE_CAP characters and drop the multi-line truncation
+# notice tasks-axi appends to a long title, so the blocker and hold fields that
+# follow the title always fit inside the row cap below. Other lines pass as-is.
+compact_listing_titles() {
+  perl -ne '
+    BEGIN { $max = $ENV{LISTING_TITLE_CAP} || 60 }
+    if (/^(\s+)(\S.*?)\r?\n?$/) {
+      my ($indent, $rest) = ($1, $2);
+      my @f;
+      while (length $rest) {
+        if ($rest =~ s/^("(?:[^"\\]|\\.)*")(?:,|$)//) { push @f, $1 }
+        elsif ($rest =~ s/^([^,]*)(?:,|$)//) { push @f, $1 }
+        else { last }
+      }
+      if (@f >= 5 && !length $rest) {
+        my $t = $f[4];
+        my $quoted = $t =~ s/^"(.*)"$/$1/s;
+        $t =~ s/^((?:[^\\]|\\.)*?)\\n.*\z/$1/s if $quoted;
+        if (length($t) > $max) {
+          $t = substr($t, 0, $max - 3);
+          chop $t if $quoted && $t =~ /(\\+)$/ && length($1) % 2;
+          $t .= "...";
+        }
+        $f[4] = $quoted ? "\"$t\"" : $t;
+        print $indent, join(",", @f), "\n";
+        next;
+      }
+    }
+    print;
+  '
+}
+
 # cap_listing_rows: a tasks-axi listing with each indented row cut to one
 # bounded line (bin/fm-line-cap-lib.sh); headers and counts pass unchanged, and
 # the listing's own help block is dropped.
@@ -602,11 +641,11 @@ print_backlog_tasks_axi_compact() {
     printf 'compact backlog listing (tasks-axi; done rows omitted; every in-flight, held, and blocked row shown, one capped line each; ready queued bounded to %s; task bodies omitted)\n' \
       "$QUEUED_LIMIT"
     printf '\nin flight:\n'
-    printf '%s\n' "$in_flight" | fm_hold_reason_decode_stream | print_in_flight_rows
+    printf '%s\n' "$in_flight" | fm_hold_reason_decode_stream | LISTING_TITLE_CAP=$LISTING_TITLE_CAP compact_listing_titles | print_in_flight_rows
     printf '\nheld (captain- or time-gated; an in-flight item that is also held appears in both groups):\n'
-    printf '%s\n' "$held" | fm_hold_reason_decode_stream | cap_listing_rows
+    printf '%s\n' "$held" | fm_hold_reason_decode_stream | LISTING_TITLE_CAP=$LISTING_TITLE_CAP compact_listing_titles | cap_listing_rows
     printf '\nblocked queued:\n'
-    printf '%s\n' "$blocked" | fm_hold_reason_decode_stream | cap_listing_rows
+    printf '%s\n' "$blocked" | fm_hold_reason_decode_stream | LISTING_TITLE_CAP=$LISTING_TITLE_CAP compact_listing_titles | cap_listing_rows
     printf '\nready queued (dispatchable now):\n'
     print_ready_queued_bounded "$ready"
     return 0
@@ -637,14 +676,15 @@ print_backlog_compact() {
   fi
 }
 
-# print_task_line <id> <head> [<status-file>]: one capped line, "<head> --
-# last: <newest status event>", then any older events STATUS_TAIL asks for,
+# print_task_line <id> <bracket> <title> [<status-file>]: one capped line,
+# "<bracket> <title> -- last: <newest status event>", then any older events STATUS_TAIL asks for,
 # indented and capped the same way. A crewmate writes its own status lines, so
 # their length is unbounded: one observed line ran 865 characters. Cap each one
 # the way the wake digest's OPEN DECISIONS section does; the lede carries the
 # state word and the key, and state/<id>.status reaches the rest.
-print_task_line() {
-  local head=$2 status=${3:-} last=$'(no status yet)' line older=()
+print_task_line() {  # <id> <bracket> <title> <status-file>
+  local bracket=$2 title=$3 status=${4:-} last=$'(no status yet)' line older=()
+  local sep=' -- last: ' head room cap
   if [ -n "$status" ] && [ -s "$status" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
       older+=("$line")
@@ -654,7 +694,21 @@ print_task_line() {
       unset 'older[${#older[@]}-1]'
     fi
   fi
-  fm_cap_line "$head -- last: $last" "$TASK_LINE_CAP"
+  # The title gives way first: it shortens, or drops when under 12 characters
+  # would remain, so the newest event keeps TASK_STATUS_ROOM characters.
+  head=$bracket
+  if [ -n "$title" ]; then
+    title=$(short_title "$title")
+    room=$(( TASK_LINE_CAP - ${#bracket} - 1 - ${#sep} - TASK_STATUS_ROOM ))
+    if [ "$room" -ge 12 ]; then
+      [ "${#title}" -le "$room" ] || title="${title:0:$((room - 3))}..."
+      head="$bracket $title"
+    fi
+  fi
+  # A bracket too long to leave that room lengthens the line instead.
+  cap=$TASK_LINE_CAP
+  [ $(( ${#head} + ${#sep} + TASK_STATUS_ROOM )) -le "$cap" ] || cap=$(( ${#head} + ${#sep} + TASK_STATUS_ROOM ))
+  fm_cap_line "$head$sep$last" "$cap"
   for line in ${older[@]+"${older[@]}"}; do
     fm_cap_line "    earlier: $line" "$TASK_LINE_CAP"
   done
@@ -974,8 +1028,8 @@ section "FLEET STATE"
 print_backlog_compact "$DATA/backlog.md" "data/backlog.md"
 
 subsection "Work under way (state/*.meta)"
-printf 'One line per task: id [endpoint, named only when not alive; kind harness/model, PR] backlog title -- last: newest status event (wake history, not current state; capped at %s characters).\n' \
-  "$TASK_LINE_CAP"
+printf 'One line per task: id [endpoint, named only when not alive; kind harness/model, PR] backlog title -- last: newest status event (wake history, not current state; capped at %s characters, the title shortening first so the event keeps %s).\n' \
+  "$TASK_LINE_CAP" "$TASK_STATUS_ROOM"
 printf 'Full record state/<id>.meta, event history state/<id>.status, current state bin/fm-crew-state.sh <id>.\n'
 META_FOUND=0
 for meta in "$STATE"/*.meta; do
@@ -1010,10 +1064,10 @@ for meta in "$STATE"/*.meta; do
   model=$(fm_meta_get "$meta" model)
   pr=$(fm_meta_get "$meta" pr)
   title=$(printf '%s\n' "$IN_FLIGHT_TITLES" | awk -F'\t' -v id="$id" '$1 == id { print $2; exit }')
-  # Liveness leads the bracket so the line cap can never cut it.
-  head="$id [$endpoint${kind:-?} ${harness:-?}${model:+/$model}${pr:+, PR #${pr##*/}}]"
-  [ -z "$title" ] || head="$head $(short_title "$title")"
-  print_task_line "$id" "$head" "$STATE/$id.status"
+  # Liveness leads the bracket so the line cap can never cut it; the full model
+  # is a path away in the record.
+  [ "${#model}" -le 32 ] || model="${model:0:29}..."
+  print_task_line "$id" "$id [$endpoint${kind:-?} ${harness:-?}${model:+/$model}${pr:+, PR #${pr##*/}}]" "$title" "$STATE/$id.status"
 done
 [ "$META_FOUND" -eq 1 ] || printf '(none)\n'
 
@@ -1024,7 +1078,7 @@ for status in "$STATE"/*.status; do
   id=$(basename "$status" .status)
   [ -f "$STATE/$id.meta" ] && continue
   ORPHAN_STATUS_FOUND=1
-  print_task_line "$id" "$id [no task record]" "$status"
+  print_task_line "$id" "$id [no task record]" "" "$status"
 done
 [ "$ORPHAN_STATUS_FOUND" -eq 1 ] || printf '(none)\n'
 
