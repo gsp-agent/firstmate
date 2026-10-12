@@ -1137,6 +1137,8 @@ unverified dispatch harness is flagged^{"rules":[{"when":"anything","use":{"harn
 codex Luna max effort is accepted^{"rules":[{"when":"big feature","use":{"harness":"codex","model":"gpt-5.6-luna","effort":"max"}}]}^empty^
 codex Sol max effort is accepted^{"rules":[{"when":"big feature","use":{"harness":"codex","model":"gpt-6.1-sol","effort":"max"}}]}^empty^
 cursor label route is accepted and a label route effort is checked^{"label_routes":{"ep-opus":{"harness":"claude","model":"claude-opus-5-5[1m]","effort":"xhigh"}},"default":{"harness":"cursor","model":"grok-4.7-xhigh"}}^empty^
+cursor_daily_cap of 5 is accepted^{"cursor_daily_cap":5,"default":{"harness":"cursor","model":"grok-4.7-xhigh"}}^empty^
+cursor_daily_cap of 0 is flagged^{"cursor_daily_cap":0}^exact^CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_daily_cap must be a positive integer
 label route with unsupported effort is flagged^{"label_routes":{"x":{"harness":"cursor","model":"m","effort":"high"}}}^exact^CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: cursor:high
 codex unsupported model max effort is flagged^{"rules":[{"when":"big feature","use":{"harness":"codex","model":"gpt-5","effort":"max"}}]}^exact^CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: codex:max
 unsupported grok max effort is flagged^{"rules":[{"when":"deep current work","use":{"harness":"grok","model":"grok-4","effort":"max"}}]}^exact^CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: grok:max

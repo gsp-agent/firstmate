@@ -202,6 +202,7 @@ rules_err=$(jq -r --argjson verified_harnesses "$VERIFIED_HARNESSES" --arg provi
   elif any((.rules // [])[]; duplicate_profiles(profiles(.use))) then "each rule use must not contain duplicate harness, model, and effort profiles"
   elif any((.rules // [])[] | profiles(.use)[]; (verified(.harness) | not)) then "each use profile must name a verified harness"
   elif any((.rules // [])[] | profiles(.use)[]; (effort_ok(.harness; .model; .effort) | not)) then "each use profile effort must be supported by its harness and model"
+  elif has("cursor_daily_cap") and ((.cursor_daily_cap | type) != "number" or .cursor_daily_cap < 1 or .cursor_daily_cap != (.cursor_daily_cap | floor)) then "cursor_daily_cap must be a positive integer"
   elif has("label_routes") and ((.label_routes | type) != "object" or any(.label_routes[]; (profiles(.) | length) != 1 or (. | type) != "object")) then "label_routes must map each label to one profile object"
   elif any((.label_routes // {})[]; profile_bad(.)) then "each label_routes profile needs harness; model and effort must be well formed"
   elif any((.label_routes // {})[]; (verified(.harness) | not)) then "each label_routes profile must name a verified harness"

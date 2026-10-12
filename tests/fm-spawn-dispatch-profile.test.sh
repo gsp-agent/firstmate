@@ -708,7 +708,7 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
     "cursor launch did not carry print/stream-json, trust, autonomy, approve-mcps and plugin-dir flags"
   assert_contains "$launch" "--model 'cursor-grok-4.5-high' --workspace '$WT_DIR'" \
     "cursor launch did not carry model and exact workspace flags"
-  assert_contains "$launch" "| tee '" "cursor launch did not tee its stream-json"
+  assert_contains "$launch" "> >(tee '" "cursor launch did not tee its stream-json through process substitution"
   assert_contains "$launch" "$id.cursor-stream.jsonl" "cursor stream was not teed to Firstmate state"
   assert_grep 'useHttp1ForAgent": true' "$HOME_DIR/cursor-cli-config.json" "cursor config was not re-asserted before launch"
   assert_grep '"fast"' "$HOME_DIR/cursor-cli-config.json" "cursor config lost the fast tier"
@@ -749,6 +749,24 @@ test_cursor_refuses_model_absent_from_live_catalog() {
     "cursor model refusal did not tell the caller how to find valid ids"
   [ ! -s "$LAUNCH_LOG" ] || fail "cursor model refusal must happen before launch"
   pass "cursor refuses model ids absent from its resolved binary's live catalog"
+}
+
+test_cursor_daily_cap_refuses_a_new_bead() {
+  local rec id out status
+  id=profile-cursor-cap-z6f
+  rec=$(make_spawn_case profile-cursor-cap cursor "$id")
+  read_case_record "$rec"
+  mkdir -p "$HOME_DIR/config" "$HOME_DIR/state"
+  printf '{"cursor_daily_cap": 1}\n' > "$HOME_DIR/config/crew-dispatch.json"
+  printf '{"day":"%s","beads":{"other-bead":1}}\n' "$(TZ=America/Chicago date +%F)" > "$HOME_DIR/state/cursor-dispatch.json"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    --harness cursor --model cursor-grok-4.5-high)
+  status=$?
+  expect_code 1 "$status" "a new cursor bead past the daily cap must be refused"
+  assert_contains "$out" "cursor cap: refused $id" "cap refusal did not name the bead"
+  [ ! -s "$LAUNCH_LOG" ] || fail "a capped cursor spawn must not launch"
+  pass "cursor spawn is refused past the daily cap"
 }
 
 test_cursor_failed_catalog_probe_blocks_spawn() {
@@ -2240,6 +2258,7 @@ test_grok_omits_invalid_max_reasoning_effort
 test_grok_threads_xhigh_reasoning_effort
 test_cursor_threads_model_workspace_and_omits_effort_axis
 test_cursor_refuses_model_absent_from_live_catalog
+test_cursor_daily_cap_refuses_a_new_bead
 test_cursor_failed_catalog_probe_blocks_spawn
 test_opencode_threads_model_and_effort_variant
 test_opencode_without_effort_keeps_launch_config_unchanged

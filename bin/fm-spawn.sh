@@ -1335,8 +1335,13 @@ parse_orca_worktree_result() {
   fi
 }
 
+CURSOR_CAP_TAKEN=0
 spawn_abort_cleanup() {
   local status=$?
+  if [ "$status" -ne 0 ] && [ "$CURSOR_CAP_TAKEN" = 1 ] && [ "$SPAWN_LAUNCH_SENT" = 0 ]; then
+    CURSOR_CAP_TAKEN=0
+    FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-cap.sh" give "$ID" || true
+  fi
   if [ "$RELAUNCH_REPLACEMENT_PENDING" = 1 ] &&
     [ "$SPAWN_META_PUBLISH_STARTED" = 1 ] &&
     [ -n "$SPAWN_META_TMP" ] &&
@@ -2246,11 +2251,12 @@ launch_template() {
   # inherited CLAUDECODE cannot outrank cursor's own marker in a process that
   # only reads the environment. Cursor exposes no effort flag, so the shared
   # effort axis is deliberately omitted and stays in task metadata only.
-  # -p --output-format stream-json is tee'd to state/<id>.cursor-stream.jsonl
+  # -p --output-format stream-json is tee'd (through process substitution, so
+  # the pane command keeps the agent's own exit status) to state/<id>.cursor-stream.jsonl
   # and still runs in the pane, so it stays visible; steer by relaunching with
   # --resume of the bound session. --plugin-dir loads pstack and --approve-mcps
   # lets its MCP servers start unattended.
-  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" | tee __CURSORSTREAM__' ;;
+  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" > >(tee __CURSORSTREAM__)' ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
   # command exactly as it does for claude and grok (verified: a multi-line
@@ -2487,6 +2493,9 @@ cursor)
   fi
   # Re-assert Cursor's settings before every run (spawn and relaunch).
   "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
+  # Daily cap on Cursor beads; the slot is given back below if the spawn fails.
+  FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-cap.sh" take "$ID" || exit 1
+  CURSOR_CAP_TAKEN=1
   ;;
 omp)
   OMP_BIN=$(resolve_pi_executable omp) || {
