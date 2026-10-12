@@ -497,10 +497,10 @@ cap_listing_rows() {
   done
 }
 
-# print_in_flight_rows: the in-flight listing, minus the rows whose task has a
-# live record in state/<id>.meta. Those are listed once, with their backlog
-# title, under "Work under way"; an in-flight row with no record is printed
-# here, because nothing else in the digest would show it.
+# print_in_flight_rows: the in-flight listing, minus the unheld rows whose task
+# has a live record in state/<id>.meta. Those are listed once, with their
+# backlog title, under "Work under way". A row with no record, or one that also
+# carries a hold, is printed here, because nothing else would show it whole.
 print_in_flight_rows() {
   local line id covered=0
   while IFS= read -r line || [ -n "$line" ]; do
@@ -509,7 +509,7 @@ print_in_flight_rows() {
       ' '*)
         id=${line#"${line%%[! ]*}"}
         id=${id%%,*}
-        if [ -n "$id" ] && [ -f "$STATE/$id.meta" ]; then
+        if [ -n "$id" ] && [ -f "$STATE/$id.meta" ] && [ "${line%,\"-\",\"-\"}" != "$line" ]; then
           covered=$((covered + 1))
           continue
         fi

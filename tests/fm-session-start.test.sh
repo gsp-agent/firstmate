@@ -180,8 +180,14 @@ case "${1:-}" in
         exit 9
         ;;
       *'--state in_flight'*)
-        task_header 1
+        if [ -n "${FM_FAKE_TASKS_AXI_INFLIGHT_PLAIN:-}" ]; then
+          task_header 2
+        else
+          task_header 1
+        fi
         printf '%s\n' '  compact-startup,in_flight,ship,firstmate,Compact startup digest,none,captain,captain choice pending'
+        [ -z "${FM_FAKE_TASKS_AXI_INFLIGHT_PLAIN:-}" ] \
+          || printf '%s\n' '  plain-flight,in_flight,ship,firstmate,"Plain flight work, with a comma",none,"-","-"'
         ;;
       *'--state held'*)
         task_header 1
@@ -982,7 +988,7 @@ EOF
   context_line=$(printf '%s\n' "$out" | grep -n '^CONTEXT$' | head -1 | cut -d: -f1)
   fleet_line=$(printf '%s\n' "$out" | grep -n '^FLEET STATE$' | head -1 | cut -d: -f1)
   next_line=$(printf '%s\n' "$out" | grep -n '^NEXT STEP$' | head -1 | cut -d: -f1)
-  inventory_line=$(printf '%s\n' "$out" | grep -n '^--- task-a ---$' | head -1 | cut -d: -f1)
+  inventory_line=$(printf '%s\n' "$out" | grep -n '^task-a \[' | head -1 | cut -d: -f1)
 
   if [ -z "$lock_line" ] || [ -z "$boot_line" ] || [ -z "$wake_line" ] \
     || [ -z "$read_once_line" ] || [ -z "$context_line" ] || [ -z "$fleet_line" ] \
@@ -1098,17 +1104,19 @@ EOF
     > "$home/state/task-a.status"
 
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
-  assert_contains "$out" "working: step 7" "default status tail missing the most recent line"
-  assert_contains "$out" "working: step 3" "default status tail (5 lines) missing an expected recent line"
-  assert_not_contains "$out" "working: step 1" "default status tail (5 lines) leaked an older line"
-  assert_contains "$out" "$home/state/task-a.status" "digest did not print the full status log path for a deeper read"
-  assert_contains "$out" "a bounded tail of every state/*.status" "read-once contract does not distinguish bounded status tails"
+  assert_contains "$out" "task-a [ship ?] -- last: working: step 7" "the task line did not carry its newest status event"
+  assert_not_contains "$out" "working: step 6" "the default task line leaked an older status event"
+  assert_contains "$out" "event history state/<id>.status" "the task section does not say where the full status log is"
+  assert_contains "$out" "per state/*.meta task with its newest state/*.status event" \
+    "read-once contract does not describe the one-line task view"
 
-  out=$(FM_SESSION_START_STATUS_TAIL=2 run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
-  assert_contains "$out" "working: step 7" "FM_SESSION_START_STATUS_TAIL=2 tail missing the most recent line"
-  assert_not_contains "$out" "working: step 5" "FM_SESSION_START_STATUS_TAIL=2 did not bound the tail to 2 lines"
+  out=$(FM_SESSION_START_STATUS_TAIL=3 run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
+  assert_contains "$out" "task-a [ship ?] -- last: working: step 7" "FM_SESSION_START_STATUS_TAIL=3 lost the newest event on the task line"
+  assert_contains "$out" "    earlier: working: step 5" "FM_SESSION_START_STATUS_TAIL=3 did not show the older events beneath the task line"
+  assert_contains "$out" "    earlier: working: step 6" "FM_SESSION_START_STATUS_TAIL=3 did not show the older events beneath the task line"
+  assert_not_contains "$out" "working: step 4" "FM_SESSION_START_STATUS_TAIL=3 did not bound the events to 3"
 
-  pass "status tail is bounded to the configured line count, with the full log path always printed"
+  pass "each task is one line with its newest status event, and the tail setting widens it on demand"
 }
 
 # A crewmate writes its own status lines, so nothing upstream bounds their
@@ -1134,23 +1142,23 @@ EOF
     printf 'working: short line kept whole\n'
   } > "$home/state/task-cap.status"
 
-  out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
+  out=$(FM_SESSION_START_STATUS_TAIL=2 run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
 
   assert_contains "$out" "$lede" "the cap discarded the lede that carries the state word and decision key"
   assert_contains "$out" " [truncated]" "an over-long status line was not marked as truncated"
-  assert_contains "$out" "working: short line kept whole" "the cap mangled a status line already under it"
-  assert_contains "$out" "each capped at 220 characters" "the status tail header does not disclose its per-line cap"
-  assert_contains "$out" "$home/state/task-cap.status" "a capped tail dropped the full log path that recovers the rest"
+  assert_contains "$out" "-- last: working: short line kept whole" "the cap mangled a status line already under it"
+  assert_contains "$out" "capped at 180 characters" "the task section does not disclose its per-line cap"
+  assert_contains "$out" "event history state/<id>.status" "a capped line lost the pointer to the full log that recovers the rest"
 
-  # Nothing the tail emits may exceed the cap, and the padded line really was
-  # long enough to exercise it.
-  tail_section=$(printf '%s\n' "$out" | awk '/^status tail \(/ { flag = 1; next } flag && /^$/ { flag = 0 } flag')
+  # Nothing the task section emits may exceed the cap, and the padded line
+  # really was long enough to exercise it.
+  tail_section=$(printf '%s\n' "$out" | awk '/^Work under way/ { flag = 1; next } flag && /^Orphan status logs/ { flag = 0 } flag && /^task-cap |^    earlier: /')
   longest=$(printf '%s\n' "$tail_section" | awk '{ if (length($0) > max) max = length($0) } END { print max + 0 }')
-  [ "$longest" -le 220 ] || fail "a status tail line ran $longest characters past the 220-character cap"
+  [ "$longest" -le 180 ] || fail "a task line ran $longest characters past the 180-character cap"
   capped=$(printf '%s\n' "$tail_section" | grep -c ' \[truncated\]$')
-  [ "$capped" -eq 1 ] || fail "expected exactly one truncated tail line, got $capped: $tail_section"
+  [ "$capped" -eq 1 ] || fail "expected exactly one truncated task line, got $capped: $tail_section"
 
-  pass "status tail lines are capped with a truncation marker while the full log stays reachable"
+  pass "task lines are capped with a truncation marker while the full log stays reachable"
 }
 
 test_orphan_status_logs_are_printed() {
@@ -1170,17 +1178,15 @@ EOF
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
 
   assert_contains "$out" "Orphan status logs (state/*.status without matching .meta)" "digest did not label orphan status logs"
-  assert_contains "$out" "--- task-orphan ---" "digest did not print the orphan status id"
-  assert_contains "$out" "orphan: step 6" "orphan status tail missing the newest line"
-  assert_not_contains "$out" "orphan: step 1" "orphan status tail was not bounded"
-  assert_contains "$out" "$home/state/task-orphan.status" "orphan status tail did not print the full log path"
+  assert_contains "$out" "task-orphan [no task record] -- last: orphan: step 6" "digest did not print the orphan's id with its newest event"
+  assert_not_contains "$out" "orphan: step 5" "orphan status events were not bounded"
 
   matched_count=$(printf '%s\n' "$out" | grep -F -c 'matched: surfaced once')
   orphan_count=$(printf '%s\n' "$out" | grep -F -c 'orphan: step 6')
   [ "$matched_count" -eq 1 ] || fail "matched status log was printed $matched_count times: $out"
   [ "$orphan_count" -eq 1 ] || fail "orphan status log was printed $orphan_count times: $out"
 
-  pass "orphan status logs are printed once with bounded tails"
+  pass "orphan status logs are printed once, one line each"
 }
 
 # --- session-start secondmate recovery boundary -----------------------------
@@ -1259,7 +1265,8 @@ EOF
     "SECONDMATE_LIVENESS: secondmate $SESSION_START_SECOND_MATE_ID: skipped: existing endpoint has ambiguous agent process (backend=tmux)" \
     "session start did not distinguish an existing Pi-shaped process from a missing window"
   [ ! -s "$log" ] || fail "session start touched an ambiguous existing Pi process: $(cat "$log")"
-  assert_contains "$out" "endpoint: alive (backend=tmux window=firstmate:fm-$SESSION_START_SECOND_MATE_ID)" \
+  assert_contains "$out" "$SESSION_START_SECOND_MATE_ID [" "the later fleet read lost the secondmate's line"
+  assert_not_contains "$out" "endpoint dead (tmux firstmate:fm-$SESSION_START_SECOND_MATE_ID)" \
     "the later fleet read should still see the ambiguous endpoint"
   pass "session start: an existing ambiguous Pi process prevents duplicate recovery"
 }
@@ -1278,7 +1285,7 @@ EOF
     "SECONDMATE_LIVENESS: secondmate $SESSION_START_SECOND_MATE_ID: skipped: endpoint probe unreadable (backend=tmux)" \
     "session start did not distinguish transient unreadability from absence"
   [ ! -s "$log" ] || fail "session start touched a transiently unreadable target: $(cat "$log")"
-  assert_contains "$out" "endpoint: dead (backend=tmux window=firstmate:fm-$SESSION_START_SECOND_MATE_ID)" \
+  assert_contains "$out" "endpoint dead (tmux firstmate:fm-$SESSION_START_SECOND_MATE_ID)" \
     "the later cheap presence read should preserve the visible offline symptom"
   pass "session start: transient tmux unreadability never licenses a relaunch"
 }
@@ -1336,8 +1343,8 @@ EOF
   printf 'window=fm-sess:dead-window\nkind=ship\n' > "$home/state/task-dead.meta"
 
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
-  assert_contains "$out" "endpoint: alive (backend=tmux window=fm-sess:live-window)" "live tmux endpoint not reported alive"
-  assert_contains "$out" "endpoint: dead (backend=tmux window=fm-sess:dead-window)" "dead tmux endpoint not reported dead"
+  assert_contains "$out" "task-live [ship ?] -- last:" "live tmux endpoint not reported alive (named only when not alive)"
+  assert_contains "$out" "task-dead [ship ?, endpoint dead (tmux fm-sess:dead-window)]" "dead tmux endpoint not reported dead"
 
   pass "tmux endpoint liveness is reported per task: alive for a live window, dead for a gone one"
 }
@@ -1356,8 +1363,8 @@ EOF
   printf 'window=sess:p-dead\nkind=ship\nbackend=herdr\n' > "$home/state/task-dead.meta"
 
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
-  assert_contains "$out" "endpoint: alive (backend=herdr window=sess:p-live)" "live herdr endpoint not reported alive"
-  assert_contains "$out" "endpoint: dead (backend=herdr window=sess:p-dead)" "dead herdr endpoint not reported dead"
+  assert_contains "$out" "task-live [ship ?] -- last:" "live herdr endpoint not reported alive (named only when not alive)"
+  assert_contains "$out" "task-dead [ship ?, endpoint dead (herdr sess:p-dead)]" "dead herdr endpoint not reported dead"
 
   pass "herdr endpoint liveness is reported per task: alive for a live pane, dead for a gone one"
 }
@@ -1736,7 +1743,7 @@ EOF
   out=$(FM_FAKE_TASKS_AXI_LOG="$log" FM_FAKE_TASKS_AXI_READY=3 \
     run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
 
-  assert_contains "$out" "compact backlog listing (tasks-axi; done rows omitted; every in-flight, held, and blocked row shown in full; ready queued bounded to 20; task bodies omitted)" \
+  assert_contains "$out" "compact backlog listing (tasks-axi; done rows omitted; every in-flight, held, and blocked row shown, one capped line each; ready queued bounded to 10; task bodies omitted)" \
     "compatible tasks-axi backend did not render the compact backlog listing"
   assert_contains "$out" "tasks[1]{id,state,kind,repo,title,blocked_by,hold_kind,hold_reason}:" \
     "tasks-axi compact listing omitted the expected structured field header"
@@ -1751,8 +1758,9 @@ EOF
   assert_not_contains "$out" "OVERSIZED-BODY-LINE" "tasks-axi compact digest leaked an in-flight task body"
   assert_not_contains "$out" "QUEUED-BODY-LINE" "tasks-axi compact digest leaked a queued task body"
   assert_not_contains "$out" "DONE-ROW-LINE" "tasks-axi compact digest listed a done row at startup"
-  assert_contains "$out" "--- compact-startup ---" "in-flight meta identity disappeared from startup recovery digest"
-  assert_contains "$out" "worktree=$home/projects/firstmate" "in-flight recovery worktree identity disappeared from startup digest"
+  assert_contains "$out" "compact-startup [ship ?] Compact startup digest -- last: (no status yet)" \
+    "in-flight task identity disappeared from startup recovery digest"
+  assert_contains "$out" "Full record state/<id>.meta" "the task section lost the pointer to each task's full record"
   assert_contains "$out" "Full task bodies remain available on demand: bin/fm-tasks-axi.sh show <id> --full" \
     "compact digest omitted the full-body lookup pointer"
   assert_contains "$out" "ready_public_followups: 0 delivery-ready obligations" \
@@ -1774,6 +1782,39 @@ EOF
     "session start did not ask tasks-axi for the dispatchable queued set"
 
   pass "compatible tasks-axi backlog rendering drops done rows and keeps every in-flight, held, and blocked row"
+}
+
+# An unheld in-flight row whose task has a live record is listed once, as that
+# task's line with its backlog title; a held one stays in the backlog group too.
+test_backlog_in_flight_row_folds_into_its_task_line() {
+  local rec root home fakebin out
+  rec=$(new_world backlog-in-flight-fold)
+  IFS='|' read -r root home fakebin <<EOF
+$rec
+EOF
+  make_fake_toolchain "$fakebin"
+  make_fake_tasks_axi_compact "$fakebin"
+  make_fake_ps_claude "$fakebin"
+  write_long_body_backlog "$home/data/backlog.md"
+  printf 'window=fm-sess:compact\nkind=ship\n' > "$home/state/compact-startup.meta"
+  printf 'window=fm-sess:plain\nkind=ship\nharness=grok\nmodel=grok-4.7\npr=https://github.com/o/r/pull/42\n' \
+    > "$home/state/plain-flight.meta"
+  printf 'working: first\ndone: PR https://github.com/o/r/pull/42\n' > "$home/state/plain-flight.status"
+
+  out=$(FM_FAKE_TASKS_AXI_INFLIGHT_PLAIN=1 run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
+
+  assert_not_contains "$out" "plain-flight,in_flight" "an unheld in-flight row with a live record was listed twice"
+  assert_contains "$out" "(1 of them have a live task record and are listed once, with title, under Work under way below)" \
+    "the in-flight group did not say where its folded rows went"
+  # Liveness is incidental here; the endpoint tests own it.
+  assert_contains "$out" "plain-flight [ship grok/grok-4.7, PR #42" \
+    "the folded task line lost its runtime or PR number"
+  assert_contains "$out" "] Plain flight work, with a comma -- last: done: PR https://github.com/o/r/pull/42" \
+    "the folded task line lost its backlog title or newest event"
+  assert_contains "$out" "compact-startup,in_flight,ship,firstmate,Compact startup digest,none,captain,captain choice pending" \
+    "a held in-flight row was folded away with its hold"
+
+  pass "an unheld in-flight row is listed once, as its task line, and a held one keeps its row"
 }
 
 # The bound may only ever cut the dispatchable-now listing, and whatever it cuts
@@ -2651,6 +2692,7 @@ test_composition_invokes_real_scripts
 test_branch_outcome_replay_respects_captain_barrier_and_lease_sweep
 test_non_pi_session_start_leaves_branch_state_untouched
 test_backlog_compact_tasks_axi_omits_bodies_and_keeps_metadata
+test_backlog_in_flight_row_folds_into_its_task_line
 test_backlog_queued_bound_discloses_its_remainder
 test_backlog_compact_manual_backend_skips_indented_bodies
 test_backlog_compact_tasks_axi_unavailable_uses_manual_fallback
