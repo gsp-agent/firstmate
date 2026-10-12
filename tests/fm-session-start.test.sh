@@ -1150,14 +1150,14 @@ EOF
   assert_contains "$out" "$lede" "the cap discarded the lede that carries the state word and decision key"
   assert_contains "$out" " [truncated]" "an over-long status line was not marked as truncated"
   assert_contains "$out" "-- last: working: short line kept whole" "the cap mangled a status line already under it"
-  assert_contains "$out" "capped at 180 characters" "the task section does not disclose its per-line cap"
+  assert_contains "$out" "capped at 150 characters" "the task section does not disclose its per-line cap"
   assert_contains "$out" "event history state/<id>.status" "a capped line lost the pointer to the full log that recovers the rest"
 
   # Nothing the task section emits may exceed the cap, and the padded line
   # really was long enough to exercise it.
   tail_section=$(printf '%s\n' "$out" | awk '/^Work under way/ { flag = 1; next } flag && /^Orphan status logs/ { flag = 0 } flag && /^task-cap |^    earlier: /')
   longest=$(printf '%s\n' "$tail_section" | awk '{ if (length($0) > max) max = length($0) } END { print max + 0 }')
-  [ "$longest" -le 180 ] || fail "a task line ran $longest characters past the 180-character cap"
+  [ "$longest" -le 150 ] || fail "a task line ran $longest characters past the 150-character cap"
   capped=$(printf '%s\n' "$tail_section" | grep -c ' \[truncated\]$')
   [ "$capped" -eq 1 ] || fail "expected exactly one truncated task line, got $capped: $tail_section"
 

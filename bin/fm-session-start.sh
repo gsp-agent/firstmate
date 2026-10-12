@@ -366,7 +366,7 @@ STATUS_TAIL=${FM_SESSION_START_STATUS_TAIL:-1}
 case "$STATUS_TAIL" in ''|*[!0-9]*|0) STATUS_TAIL=1 ;; esac
 QUEUED_LIMIT=${FM_SESSION_START_QUEUED_LIMIT:-10}
 # One task line, newest status event included; bin/fm-line-cap-lib.sh cuts it.
-TASK_LINE_CAP=180
+TASK_LINE_CAP=150
 case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=10 ;; esac
 BACKLOG_FIELDS=blocked_by,hold_kind,hold_reason
 
