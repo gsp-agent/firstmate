@@ -416,6 +416,8 @@
 #                  script published into the receiving home's operational inbox
 #     __WORKTREE__  absolute path to the task worktree
 #     __CURSORBIN__ resolved, cursor-verified executable for a cursor launch
+#     __PSTACKDIR__ pstack plugin dir for --plugin-dir (FM_PSTACK_DIR, default ~/dev/pstack/pstack)
+#     __CURSORSTREAM__ state/<task-id>.cursor-stream.jsonl, the tee target for cursor's stream-json
 #     __GEMINISETTINGS__ firstmate-owned per-task gemini settings file (busy-state hooks)
 #     __ROVOBIN__   resolved, rovo-verified executable for a rovo launch
 #     __DEVINBIN__ resolved Devin executable
@@ -2244,7 +2246,11 @@ launch_template() {
   # inherited CLAUDECODE cannot outrank cursor's own marker in a process that
   # only reads the environment. Cursor exposes no effort flag, so the shared
   # effort axis is deliberately omitted and stays in task metadata only.
-  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ --trust --yolo __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+  # -p --output-format stream-json is tee'd to state/<id>.cursor-stream.jsonl
+  # and still runs in the pane, so it stays visible; steer by relaunching with
+  # --resume of the bound session. --plugin-dir loads pstack and --approve-mcps
+  # lets its MCP servers start unattended.
+  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" | tee __CURSORSTREAM__' ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
   # command exactly as it does for claude and grok (verified: a multi-line
@@ -2467,14 +2473,20 @@ cursor)
   # missing install a loud spawn refusal instead of a pane that dies with a
   # command-not-found the supervisor would read as a wedged worker.
   CURSOR_BIN=$(fm_cursor_resolve_binary) || exit 1
+  # The model check is a hard fail: a catalog that cannot be read is a refusal,
+  # never a pass, so a worker cannot start on an unchecked model.
   if [ -n "$MODEL" ] && [ "$MODEL" != default ]; then
-    if CURSOR_MODELS=$(fm_cursor_list_models "$CURSOR_BIN"); then
-      if ! printf '%s\n' "$CURSOR_MODELS" | fm_cursor_catalog_has_model "$MODEL"; then
-        echo "error: Cursor model '$MODEL' is not available from '$CURSOR_BIN --list-models'; choose an id listed by that command or omit --model" >&2
-        exit 1
-      fi
+    if ! CURSOR_MODELS=$(fm_cursor_list_models "$CURSOR_BIN"); then
+      echo "error: could not read '$CURSOR_BIN --list-models'; refusing to launch Cursor model '$MODEL' unchecked" >&2
+      exit 1
+    fi
+    if ! printf '%s\n' "$CURSOR_MODELS" | fm_cursor_catalog_has_model "$MODEL"; then
+      echo "error: Cursor model '$MODEL' is not available from '$CURSOR_BIN --list-models'; choose an id listed by that command or omit --model" >&2
+      exit 1
     fi
   fi
+  # Re-assert Cursor's settings before every run (spawn and relaunch).
+  "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
   ;;
 omp)
   OMP_BIN=$(resolve_pi_executable omp) || {
@@ -2730,12 +2742,12 @@ effort_flag_for_harness() {
     ;;
   codex)
     # The installed codex config schema uses model_reasoning_effort. The
-    # installed model catalog supports max for gpt-5.6-luna; keep that level
-    # scoped to the model whose catalog entry advertises it.
+    # installed model catalog supports max for gpt-5.6-luna and gpt-6.1-sol;
+    # keep that level scoped to the models whose catalog entries advertise it.
     case "$effort" in
     low | medium | high | xhigh) printf -- '-c %s ' "$(shell_quote "model_reasoning_effort=\"$effort\"")" ;;
     max)
-      [ "$model" = gpt-5.6-luna ] || return 0
+      [ "$model" = gpt-5.6-luna ] || [ "$model" = gpt-6.1-sol ] || return 0
       printf -- '-c %s ' "$(shell_quote 'model_reasoning_effort="max"')"
       ;;
     esac
@@ -5416,7 +5428,11 @@ LAUNCH=${LAUNCH//__OMPWORKERCFG__/$sq_ompcfg}
 LAUNCH=${LAUNCH//__OPINPUT__/$sq_opinput}
 case "$HARNESS" in
 pi | pi-signed) LAUNCH=${LAUNCH//__PIBIN__/"$(shell_quote "$PI_BIN")"} ;;
-cursor) LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"} ;;
+cursor)
+  LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"}
+  LAUNCH=${LAUNCH//__PSTACKDIR__/"$(shell_quote "${FM_PSTACK_DIR:-$HOME/dev/pstack/pstack}")"}
+  LAUNCH=${LAUNCH//__CURSORSTREAM__/"$(shell_quote "$STATE_REAL/$ID.cursor-stream.jsonl")"}
+  ;;
 gemini) LAUNCH=${LAUNCH//__GEMINISETTINGS__/"$(shell_quote "$STATE_REAL/$ID.gemini-settings.json")"} ;;
 omp) LAUNCH=${LAUNCH//__OMPBIN__/"$(shell_quote "$OMP_BIN")"} ;;
 devin)
