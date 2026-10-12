@@ -729,6 +729,10 @@ BASE_BRANCH=
 BASE_BRANCH_SET=0
 TRACEPARENT_SET=0
 RELAUNCH=0
+# The most a fresh worker's `# Task` section (the ask: Captain's intent plus
+# Firstmate spec) may carry. Not the scaffold: Setup, Rules and Definition of done
+# are upstream's fixed contract and stay as scaffolded.
+BRIEF_TASK_MAX_BYTES=2048
 # Opt-in only: exact-resume presentation-order lock waits instead of refusing.
 # Absent/unset keeps upstream refuse-on-contention. See header.
 HERDR_RESUME_LOCK_WAIT=0
@@ -3211,6 +3215,17 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   if ADDRESS_LINE=$(fm_brief_intent_address_line "$BRIEF"); then
     echo "error: $BRIEF ## Captain's intent has an operator-address line: $ADDRESS_LINE; write the captain's actual words without a Captain label or address before spawn, since the heading already records provenance" >&2
     exit 1
+  fi
+  # A fresh worker's task is capped at BRIEF_TASK_MAX_BYTES: the brief carries
+  # the ask and a pointer to where the detail lives (bead, PR, file), never the
+  # detail itself. A relaunch re-delivers the brief its task already runs on, so
+  # a long brief written before the cap cannot strand a live worker.
+  if [ "$RELAUNCH" -eq 0 ]; then
+    TASK_BYTES=$(fm_brief_heading_body "$BRIEF" "# Task" | wc -c | tr -d '[:space:]')
+    if [ "$TASK_BYTES" -gt "$BRIEF_TASK_MAX_BYTES" ]; then
+      echo "error: $BRIEF has a # Task section of $TASK_BYTES bytes, over the $BRIEF_TASK_MAX_BYTES-byte cap; keep the ask short and link to the bead, PR or file for the detail instead of pasting it" >&2
+      exit 1
+    fi
   fi
   if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
     if fm_brief_task_heading_present "$BRIEF" "## Captain's intent"; then
