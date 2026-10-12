@@ -531,7 +531,8 @@ test_cursor_plugin_dirs_add_plugin_and_mcp_flags() {
   rec=$(make_spawn_case profile-cursor-plugins cursor "$id")
   read_case_record "$rec"
   plugin_a="$TMP_ROOT/profile-cursor-plugins/plugins/pstack"
-  plugin_b="$TMP_ROOT/profile-cursor-plugins/plugins/with space"
+  # A path holding a placeholder name must reach the launch literally.
+  plugin_b="$TMP_ROOT/profile-cursor-plugins/plugins/with space __WORKTREE__"
   mkdir -p "$plugin_a" "$plugin_b"
   printf '# Cursor plugins for pstack runs\n\n%s\n%s\n' "$plugin_a" "$plugin_b" > "$HOME_DIR/config/cursor-plugin-dirs"
 

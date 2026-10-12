@@ -4087,13 +4087,15 @@ case "$HARNESS" in
   pi|pi-signed) LAUNCH=${LAUNCH//__PIBIN__/"$(shell_quote "$PI_BIN")"} ;;
   cursor)
     LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"}
-    LAUNCH=${LAUNCH//__CURSORPLUGINS__/"$CURSOR_PLUGIN_FLAGS"}
     ;;
   gemini) LAUNCH=${LAUNCH//__GEMINISETTINGS__/"$(shell_quote "$STATE_REAL/$ID.gemini-settings.json")"} ;;
   omp) LAUNCH=${LAUNCH//__OMPBIN__/"$(shell_quote "$OMP_BIN")"} ;;
   agy) LAUNCH=${LAUNCH//__AGYBIN__/"$(shell_quote "$AGY_BIN")"} ;;
 esac
 LAUNCH=${LAUNCH//__WORKTREE__/$sq_worktree}
+# Plugin paths are configuration text, so they go in after every other
+# placeholder: a path that happens to contain a placeholder name stays literal.
+[ "$HARNESS" != cursor ] || LAUNCH=${LAUNCH//__CURSORPLUGINS__/"$CURSOR_PLUGIN_FLAGS"}
 case "$HARNESS" in
   claude|codex|opencode|pi|pi-signed|grok|kimi|gemini|muse|rovo|agy)
     LAUNCH="env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI $LAUNCH"
