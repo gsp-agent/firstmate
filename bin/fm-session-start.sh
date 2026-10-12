@@ -934,7 +934,9 @@ for meta in "$STATE"/*.meta; do
     if fm_backend_target_exists "$backend" "${target:-$window}" "fm-$id"; then
       endpoint=
     else
-      endpoint="endpoint dead ($backend $window); "
+      # The window is in the record; repeating it here (a tmux window names the
+      # task again) would spend the line's room on text the reader already has.
+      endpoint="endpoint dead ($backend); "
     fi
   else
     endpoint='endpoint unknown (no window recorded); '
