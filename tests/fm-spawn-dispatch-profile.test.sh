@@ -66,6 +66,8 @@ make_spawn_case() {
   launchlog="$case_dir/launch.log"
   fakebin=$(make_spawn_fakebin "$case_dir/fake")
   fm_test_spawn_home "$home" "$harness"
+  mkdir -p "$home/pstack/.cursor-plugin" && printf '{"version":"0.15.21"}\n' > "$home/pstack/.cursor-plugin/plugin.json"
+  mkdir -p "$home/cursor-usage" && printf 'cursor_models_pct=10\n' > "$home/cursor-usage/20261012-spending.txt"
   fm_git_worktree "$proj" "$wt" "wt-$name"
   for id in "$@"; do
     fm_test_spawn_brief "$home" "$id"
@@ -115,7 +117,7 @@ run_spawn() {
     FM_FAKE_CURSOR_MODELS="${FM_TEST_CURSOR_MODELS:-}" \
     FM_FAKE_CURSOR_LIST_STATUS="${FM_TEST_CURSOR_LIST_STATUS:-0}" \
     GROK_HOME="$home/grok-home" \
-    FM_CURSOR_CLI_CONFIG="$home/cursor-cli-config.json" FM_CURSOR_MODELS_RULE="$home/pstack-models.mdc" \
+    FM_PSTACK_DIR="$home/pstack" FM_CURSOR_USAGE_DIR="$home/cursor-usage" FM_CURSOR_CLI_CONFIG="$home/cursor-cli-config.json" FM_CURSOR_MODELS_RULE="$home/pstack-models.mdc" \
     fm_test_run_spawn "$home" "$wt" "$fakebin" "$@"
 }
 
@@ -710,6 +712,7 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
     "cursor launch did not carry model and exact workspace flags"
   assert_contains "$launch" "> >(tee '" "cursor launch did not tee its stream-json through process substitution"
   assert_contains "$launch" "$id.cursor-stream.jsonl" "cursor stream was not teed to Firstmate state"
+  assert_contains "$launch" "fm-cursor-guard.sh" "cursor launch did not run the post-run usage-limit hook"
   assert_grep 'useHttp1ForAgent": true' "$HOME_DIR/cursor-cli-config.json" "cursor config was not re-asserted before launch"
   assert_grep '"fast"' "$HOME_DIR/cursor-cli-config.json" "cursor config lost the fast tier"
   assert_not_contains "$(cat "$HOME_DIR/pstack-models.mdc")" "opus" "pstack role models must never name an Opus model in Cursor"
@@ -751,22 +754,35 @@ test_cursor_refuses_model_absent_from_live_catalog() {
   pass "cursor refuses model ids absent from its resolved binary's live catalog"
 }
 
-test_cursor_daily_cap_refuses_a_new_bead() {
+test_cursor_third_launch_and_fallback() {
   local rec id out status
-  id=profile-cursor-cap-z6f
-  rec=$(make_spawn_case profile-cursor-cap cursor "$id")
+  id=profile-cursor-guard-z6f
+  rec=$(make_spawn_case profile-cursor-guard cursor "$id")
   read_case_record "$rec"
-  mkdir -p "$HOME_DIR/config" "$HOME_DIR/state"
-  printf '{"cursor_daily_cap": 1}\n' > "$HOME_DIR/config/crew-dispatch.json"
-  printf '{"day":"%s","beads":{"other-bead":1}}\n' "$(TZ=America/Chicago date +%F)" > "$HOME_DIR/state/cursor-dispatch.json"
-
+  mkdir -p "$HOME_DIR/state"
+  printf '{"day":"%s","beads":{"%s":2}}\n' "$(TZ=America/Chicago date +%F)" "$id" > "$HOME_DIR/state/cursor-dispatch.json"
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
     --harness cursor --model cursor-grok-4.5-high)
   status=$?
-  expect_code 1 "$status" "a new cursor bead past the daily cap must be refused"
-  assert_contains "$out" "cursor cap: refused $id" "cap refusal did not name the bead"
-  [ ! -s "$LAUNCH_LOG" ] || fail "a capped cursor spawn must not launch"
-  pass "cursor spawn is refused past the daily cap"
+  expect_code 1 "$status" "a 3rd cursor launch of one bead in a day must be refused"
+  assert_contains "$out" "cursor guard: refused $id" "refusal did not name the bead"
+  [ ! -s "$LAUNCH_LOG" ] || fail "a refused cursor spawn must not launch"
+  pass "cursor spawn refuses a bead's 3rd launch in a day"
+
+  id=profile-cursor-fallback-z6g
+  rec=$(make_spawn_case profile-cursor-fallback cursor "$id")
+  read_case_record "$rec"
+  printf 'cursor_models_pct=85\n' > "$HOME_DIR/cursor-usage/20261012-spending.txt"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    --harness cursor --model grok-4.7-xhigh)
+  status=$?
+  expect_code 0 "$status" "a fallback spawn should succeed"
+  assert_contains "$out" "cursor fallback: launching $id on the grok harness" "fallback was not announced on stderr"
+  assert_contains "$(cat "$LAUNCH_LOG")" "grok " "fallback did not launch on grok"
+  assert_grep 'harness=grok' "$HOME_DIR/state/$id.meta" "fallback harness was not recorded"
+  assert_grep 'Cursor Models at 85%' "$HOME_DIR/state/$id.cursor-fallback" "fallback reason was not recorded in state"
+  printf 'cursor_models_pct=10\n' > "$HOME_DIR/cursor-usage/20261012-spending.txt"
+  pass "cursor spawn falls back to grok at the usage threshold"
 }
 
 test_cursor_failed_catalog_probe_blocks_spawn() {
@@ -2258,7 +2274,7 @@ test_grok_omits_invalid_max_reasoning_effort
 test_grok_threads_xhigh_reasoning_effort
 test_cursor_threads_model_workspace_and_omits_effort_axis
 test_cursor_refuses_model_absent_from_live_catalog
-test_cursor_daily_cap_refuses_a_new_bead
+test_cursor_third_launch_and_fallback
 test_cursor_failed_catalog_probe_blocks_spawn
 test_opencode_threads_model_and_effort_variant
 test_opencode_without_effort_keeps_launch_config_unchanged
