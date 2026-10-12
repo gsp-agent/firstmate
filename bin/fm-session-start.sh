@@ -497,10 +497,11 @@ cap_listing_rows() {
   done
 }
 
-# print_in_flight_rows: the in-flight listing, minus the unheld rows whose task
-# has a live record in state/<id>.meta. Those are listed once, with their
-# backlog title, under "Work under way". A row with no record, or one that also
-# carries a hold, is printed here, because nothing else would show it whole.
+# print_in_flight_rows: the in-flight listing, minus the rows that are neither
+# held nor blocked and whose task has a live record in state/<id>.meta. Those
+# are listed once, with their backlog title, under "Work under way". A row with
+# no record, a hold, or a blocker is printed here, because nothing else would
+# show it whole.
 print_in_flight_rows() {
   local line id covered=0
   while IFS= read -r line || [ -n "$line" ]; do
@@ -509,7 +510,7 @@ print_in_flight_rows() {
       ' '*)
         id=${line#"${line%%[! ]*}"}
         id=${id%%,*}
-        if [ -n "$id" ] && [ -f "$STATE/$id.meta" ] && [ "${line%,\"-\",\"-\"}" != "$line" ]; then
+        if [ -n "$id" ] && [ -f "$STATE/$id.meta" ] && [ "${line%,none,\"-\",\"-\"}" != "$line" ]; then
           covered=$((covered + 1))
           continue
         fi
@@ -523,8 +524,9 @@ print_in_flight_rows() {
 }
 
 # in_flight_titles: "<id><TAB><title>" for every in-flight row, read from the
-# listing's quoted CSV-style fields (id,state,kind,repo,title,...). A title
-# tasks-axi already shortened keeps only its text before the literal "\n".
+# listing's quoted CSV-style fields (id,state,kind,repo,title,...). Escapes in a
+# quoted field are decoded first, so an escaped backslash stays text; a title
+# tasks-axi already shortened then keeps only its text before the newline.
 in_flight_titles() {
   printf '%s\n' "$1" | perl -ne '
     next unless /^\s+\S/;
@@ -532,15 +534,18 @@ in_flight_titles() {
     chomp;
     my @f;
     while (length) {
-      if (s/^"((?:[^"\\]|\\.)*)"(?:,|$)//) { push @f, $1 }
+      if (s/^"((?:[^"\\]|\\.)*)"(?:,|$)//) {
+        my $v = $1;
+        $v =~ s/\\(.)/$1 eq "n" ? "\n" : $1 eq "t" ? "\t" : $1 eq "r" ? "\r" : $1/ge;
+        push @f, $v;
+      }
       elsif (s/^([^,]*)(?:,|$)//) { push @f, $1 }
       else { last }
     }
     next unless @f >= 5;
     my $t = $f[4];
-    $t =~ s/\\n.*//s;
-    $t =~ s/\\"/"/g;
-    $t =~ s/\t/ /g;
+    $t =~ s/\n.*//s;
+    $t =~ s/[\t\r]/ /g;
     print "$f[0]\t$t\n";
   '
 }
@@ -913,7 +918,7 @@ section "FLEET STATE"
 print_backlog_compact "$DATA/backlog.md" "data/backlog.md"
 
 subsection "Work under way (state/*.meta)"
-printf 'One line per task: id [kind harness/model, PR; endpoint named only when not alive] backlog title -- last: newest status event (wake history, not current state; capped at %s characters).\n' \
+printf 'One line per task: id [endpoint, named only when not alive; kind harness/model, PR] backlog title -- last: newest status event (wake history, not current state; capped at %s characters).\n' \
   "$TASK_LINE_CAP"
 printf 'Full record state/<id>.meta, event history state/<id>.status, current state bin/fm-crew-state.sh <id>.\n'
 META_FOUND=0
@@ -929,10 +934,10 @@ for meta in "$STATE"/*.meta; do
     if fm_backend_target_exists "$backend" "${target:-$window}" "fm-$id"; then
       endpoint=
     else
-      endpoint=", endpoint dead ($backend $window)"
+      endpoint="endpoint dead ($backend $window); "
     fi
   else
-    endpoint=', endpoint unknown (no window recorded)'
+    endpoint='endpoint unknown (no window recorded); '
   fi
 
   kind=$(fm_meta_get "$meta" kind)
@@ -940,7 +945,8 @@ for meta in "$STATE"/*.meta; do
   model=$(fm_meta_get "$meta" model)
   pr=$(fm_meta_get "$meta" pr)
   title=$(printf '%s\n' "$IN_FLIGHT_TITLES" | awk -F'\t' -v id="$id" '$1 == id { print $2; exit }')
-  head="$id [${kind:-?} ${harness:-?}${model:+/$model}${pr:+, PR #${pr##*/}}$endpoint]"
+  # Liveness leads the bracket so the line cap can never cut it.
+  head="$id [$endpoint${kind:-?} ${harness:-?}${model:+/$model}${pr:+, PR #${pr##*/}}]"
   [ -z "$title" ] || head="$head $(short_title "$title")"
   print_task_line "$id" "$head" "$STATE/$id.status"
 done

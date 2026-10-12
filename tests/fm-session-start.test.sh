@@ -181,13 +181,16 @@ case "${1:-}" in
         ;;
       *'--state in_flight'*)
         if [ -n "${FM_FAKE_TASKS_AXI_INFLIGHT_PLAIN:-}" ]; then
-          task_header 2
+          task_header 4
         else
           task_header 1
         fi
         printf '%s\n' '  compact-startup,in_flight,ship,firstmate,Compact startup digest,none,captain,captain choice pending'
-        [ -z "${FM_FAKE_TASKS_AXI_INFLIGHT_PLAIN:-}" ] \
-          || printf '%s\n' '  plain-flight,in_flight,ship,firstmate,"Plain flight work, with a comma",none,"-","-"'
+        if [ -n "${FM_FAKE_TASKS_AXI_INFLIGHT_PLAIN:-}" ]; then
+          printf '%s\n' '  plain-flight,in_flight,ship,firstmate,"Plain flight work, with a comma",none,"-","-"'
+          printf '%s\n' '  esc-flight,in_flight,ship,firstmate,"Review C:\\new\\file",none,"-","-"'
+          printf '%s\n' '  blocked-flight,in_flight,ship,firstmate,Blocked flight work,dep-x,"-","-"'
+        fi
         ;;
       *'--state held'*)
         task_header 1
@@ -1341,10 +1344,16 @@ EOF
 
   printf 'window=fm-sess:live-window\nkind=ship\n' > "$home/state/task-live.meta"
   printf 'window=fm-sess:dead-window\nkind=ship\n' > "$home/state/task-dead.meta"
+  # A long id and model must not push liveness past the line cap.
+  printf 'window=fm-sess:dead-long\nkind=ship\nharness=codex\nmodel=%s\n' \
+    "$(awk 'BEGIN { while (i++ < 89) printf "m" }')" \
+    > "$home/state/task-dead-with-a-deliberately-long-identifier-0123456789abcdef.meta"
 
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
   assert_contains "$out" "task-live [ship ?] -- last:" "live tmux endpoint not reported alive (named only when not alive)"
-  assert_contains "$out" "task-dead [ship ?, endpoint dead (tmux fm-sess:dead-window)]" "dead tmux endpoint not reported dead"
+  assert_contains "$out" "task-dead [endpoint dead (tmux fm-sess:dead-window); ship ?]" "dead tmux endpoint not reported dead"
+  assert_contains "$out" "task-dead-with-a-deliberately-long-identifier-0123456789abcdef [endpoint dead (tmux fm-sess:dead-long); ship codex/" \
+    "a long id and model pushed endpoint liveness off the capped line"
 
   pass "tmux endpoint liveness is reported per task: alive for a live window, dead for a gone one"
 }
@@ -1364,7 +1373,7 @@ EOF
 
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
   assert_contains "$out" "task-live [ship ?] -- last:" "live herdr endpoint not reported alive (named only when not alive)"
-  assert_contains "$out" "task-dead [ship ?, endpoint dead (herdr sess:p-dead)]" "dead herdr endpoint not reported dead"
+  assert_contains "$out" "task-dead [endpoint dead (herdr sess:p-dead); ship ?]" "dead herdr endpoint not reported dead"
 
   pass "herdr endpoint liveness is reported per task: alive for a live pane, dead for a gone one"
 }
@@ -1800,11 +1809,13 @@ EOF
   printf 'window=fm-sess:plain\nkind=ship\nharness=grok\nmodel=grok-4.7\npr=https://github.com/o/r/pull/42\n' \
     > "$home/state/plain-flight.meta"
   printf 'working: first\ndone: PR https://github.com/o/r/pull/42\n' > "$home/state/plain-flight.status"
+  printf 'window=fm-sess:esc\nkind=ship\n' > "$home/state/esc-flight.meta"
+  printf 'window=fm-sess:blocked\nkind=ship\n' > "$home/state/blocked-flight.meta"
 
   out=$(FM_FAKE_TASKS_AXI_INFLIGHT_PLAIN=1 run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
 
   assert_not_contains "$out" "plain-flight,in_flight" "an unheld in-flight row with a live record was listed twice"
-  assert_contains "$out" "(1 of them have a live task record and are listed once, with title, under Work under way below)" \
+  assert_contains "$out" "(2 of them have a live task record and are listed once, with title, under Work under way below)" \
     "the in-flight group did not say where its folded rows went"
   # Liveness is incidental here; the endpoint tests own it.
   assert_contains "$out" "plain-flight [ship grok/grok-4.7, PR #42" \
@@ -1813,8 +1824,12 @@ EOF
     "the folded task line lost its backlog title or newest event"
   assert_contains "$out" "compact-startup,in_flight,ship,firstmate,Compact startup digest,none,captain,captain choice pending" \
     "a held in-flight row was folded away with its hold"
+  assert_contains "$out" "blocked-flight,in_flight,ship,firstmate,Blocked flight work,dep-x" \
+    "a blocked in-flight row was folded away with its blocker"
+  assert_contains "$out" '] Review C:\new\file -- last:' \
+    "an escaped backslash in a quoted title was read as the truncation marker"
 
-  pass "an unheld in-flight row is listed once, as its task line, and a held one keeps its row"
+  pass "an unheld, unblocked in-flight row is listed once, as its task line; held or blocked rows keep theirs"
 }
 
 # The bound may only ever cut the dispatchable-now listing, and whatever it cuts
