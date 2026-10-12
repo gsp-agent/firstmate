@@ -174,6 +174,24 @@ delivery_budget() {
   printf '%s' "$budget"
 }
 
+# worker_lock_wait <lockdir>: the lock wait for the detached worker (cmd_run,
+# publish, await_delivery). The worker is started with nohup and outlives the
+# session that asked for it, so it must never wait forever: it gives up when its
+# state directory or its own script is gone, because a deleted tree can never
+# yield the lock, and after one stage budget of waiting. Three workers whose
+# staging trees had been deleted spun in an unbounded wait here for about 45
+# hours at 18-20% CPU each before being killed (2026-10-12). Foreground callers
+# keep fm_lock_acquire_wait: the session-start bound already covers them.
+worker_lock_wait() {
+  local lockdir=$1 deadline
+  deadline=$((SECONDS + $(stage_budget)))
+  while ! fm_lock_try_acquire "$lockdir"; do
+    [ -d "$STATE" ] && [ -e "$SCRIPT_DIR/fm-startup-network.sh" ] || return 1
+    [ "$SECONDS" -lt "$deadline" ] || return 1
+    sleep 0.1
+  done
+}
+
 # Is a `running` record a stage that is genuinely still in flight? Two
 # independent proofs are required, because either one alone can lie: a recorded
 # pid can be reused by an unrelated process, and a worker killed with its process
@@ -334,7 +352,7 @@ await_delivery() {  # <generation> <state>
   limit=$(( $(delivery_budget) * 10 ))
   while [ "$waited" -lt "$limit" ]; do
     claim_live=0
-    fm_lock_acquire_wait "$PUBLISH_LOCK"
+    worker_lock_wait "$PUBLISH_LOCK" || return 1
     if [ "$(status_get generation)" != "$generation" ]; then
       fm_lock_release "$PUBLISH_LOCK"
       return 0
@@ -369,7 +387,7 @@ EOF
     sleep 0.1
     waited=$((waited + 1))
   done
-  fm_lock_acquire_wait "$PUBLISH_LOCK"
+  worker_lock_wait "$PUBLISH_LOCK" || return 1
   if [ "$(status_get generation)" != "$generation" ] || [ -f "$DELIVERED_FILE" ]; then
     fm_lock_release "$PUBLISH_LOCK"
     return 0
@@ -384,7 +402,7 @@ EOF
 
 publish() {  # <generation> <state> <phases> <locked> <started> <rc> <output-file> <timing-file>
   local generation=$1 state=$2 phases=$3 locked=$4 started=$5 rc=$6 out=$7 timings=${8:-} report_published=1
-  fm_lock_acquire_wait "$PUBLISH_LOCK"
+  worker_lock_wait "$PUBLISH_LOCK" || return 1
   if [ "$(status_get generation)" != "$generation" ]; then
     fm_lock_release "$PUBLISH_LOCK"
     return 0
@@ -426,7 +444,7 @@ cmd_run() {  # <locked> <lock-pid> <generation>
   budget=$(stage_budget)
   phases=probe
   if [ -n "$generation" ]; then
-    fm_lock_acquire_wait "$PUBLISH_LOCK"
+    worker_lock_wait "$PUBLISH_LOCK" || return 1
     if [ "$(status_get generation)" = "$generation" ] && [ "$(status_get pid)" = "$$" ]; then
       internal=1
       started=$(status_get started)
@@ -449,7 +467,7 @@ cmd_run() {  # <locked> <lock-pid> <generation>
 
   if [ "$internal" -eq 0 ]; then
     generation="$(now).$$.manual"
-    fm_lock_acquire_wait "$PUBLISH_LOCK"
+    worker_lock_wait "$PUBLISH_LOCK" || return 1
     if [ "$(status_get state)" = running ] && worker_alive; then
       fm_lock_release "$PUBLISH_LOCK"
       return 1
@@ -477,9 +495,10 @@ EOF
   stage_started=$(fm_timing_now_ms)
   rc=0
   if [ "$sweep_locked" -eq 1 ]; then
-    fm_lock_acquire_wait "$STATE/.lock.acquire"
-    lease_held=1
-    if ! lock_unchanged "$lock_pid"; then
+    if worker_lock_wait "$STATE/.lock.acquire"; then
+      lease_held=1
+    fi
+    if [ "$lease_held" -eq 0 ] || ! lock_unchanged "$lock_pid"; then
       sweep_locked=0
       phases=probe
       downgraded=1

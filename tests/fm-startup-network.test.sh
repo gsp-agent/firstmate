@@ -473,6 +473,39 @@ EOF
   pass "fm-startup-network: an abandoned run reports as needing a rerun, never as in progress forever"
 }
 
+# The worker outlives the session that started it, so no lock wait of its own
+# may be unbounded: with the publish lock held by a live process it gives up
+# after one stage budget instead of spinning (three such workers ran ~45 hours).
+test_a_worker_never_waits_forever_for_its_publish_lock() {
+  local rec home root log holder started elapsed
+  rec=$(new_world worker-bounded-lock-wait)
+  IFS='|' read -r home root log <<EOF
+$rec
+EOF
+  FM_STATE_OVERRIDE="$home/state" FM_ROOT_OVERRIDE="$root" bash -c '
+    . "$1/bin/fm-wake-lib.sh"
+    fm_lock_try_acquire "$2" || exit 9
+    : > "$3"
+    sleep 30
+  ' _ "$root" "$home/state/.startup-network.lock" "$home/held" &
+  holder=$!
+  local waited=0
+  while [ ! -e "$home/held" ] && [ "$waited" -lt 50 ]; do sleep 0.1; waited=$((waited + 1)); done
+  [ -e "$home/held" ] || fail "the fixture could not take the publish lock"
+
+  # The holder keeps the lock for 30s, so a worker still bound to it would
+  # take at least that long; one that honors its 2s budget returns well before.
+  started=$SECONDS
+  FM_STARTUP_NETWORK_TIMEOUT=2 FM_FAKE_BOOTSTRAP_LOG="$log" run_stage "$home" "$root" run --locked 0 || true
+  elapsed=$((SECONDS - started))
+  kill "$holder" 2>/dev/null || true
+  wait "$holder" 2>/dev/null || true
+
+  [ "$elapsed" -le 10 ] || fail "a worker waited ${elapsed}s for a held publish lock past its 2s budget"
+  [ ! -s "$log" ] || fail "a worker that never got its publish lock still ran the checks: $(cat "$log")"
+  pass "fm-startup-network: a worker gives up on a held publish lock after its stage budget"
+}
+
 test_locked_start_is_not_satisfied_by_an_inflight_probe() {
   local rec home root log waited=0
   rec=$(new_world probe-then-locked)
@@ -770,6 +803,7 @@ test_deferred_invalid_secondmate_markers_queue_durable_findings
 test_mutating_sweeps_are_refused_when_the_lock_changed_hands
 test_the_stage_bound_is_reported_not_swallowed
 test_an_abandoned_run_reads_as_needing_a_rerun
+test_a_worker_never_waits_forever_for_its_publish_lock
 test_locked_start_is_not_satisfied_by_an_inflight_probe
 test_start_is_single_flight
 test_start_reserves_its_generation_before_returning
