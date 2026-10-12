@@ -161,9 +161,10 @@
 # compatible tasks-axi is available, or `data/backlog.md` when the file body is
 # truly needed.
 #
-# WORK UNDER WAY: one line per state/<id>.meta - id, kind, harness/model,
-# a cheap endpoint liveness read, the PR number, the backlog title, and the
-# task's newest status event - capped by bin/fm-line-cap-lib.sh. The full
+# WORK UNDER WAY: one line per state/<id>.meta - id, kind, harness/model, the
+# PR number, a cheap endpoint liveness read (named only when the endpoint is not
+# alive), the backlog title cut to 40 characters, and the task's newest status
+# event - capped at TASK_LINE_CAP by bin/fm-line-cap-lib.sh. The full
 # record (state/<id>.meta) and event history (state/<id>.status) are a path
 # away, and bin/fm-crew-state.sh owns current state, so a fleet of 30 tasks
 # costs about 6KB instead of 30KB.
@@ -364,6 +365,8 @@ if fm_tasks_axi_compatible; then TASKS_AXI_COMPATIBLE=1; else TASKS_AXI_COMPATIB
 STATUS_TAIL=${FM_SESSION_START_STATUS_TAIL:-1}
 case "$STATUS_TAIL" in ''|*[!0-9]*|0) STATUS_TAIL=1 ;; esac
 QUEUED_LIMIT=${FM_SESSION_START_QUEUED_LIMIT:-10}
+# One task line, newest status event included; bin/fm-line-cap-lib.sh cuts it.
+TASK_LINE_CAP=180
 case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=10 ;; esac
 BACKLOG_FIELDS=blocked_by,hold_kind,hold_reason
 
@@ -610,17 +613,17 @@ print_task_line() {
       unset 'older[${#older[@]}-1]'
     fi
   fi
-  fm_cap_line "$head -- last: $last"
+  fm_cap_line "$head -- last: $last" "$TASK_LINE_CAP"
   for line in ${older[@]+"${older[@]}"}; do
-    fm_cap_line "    earlier: $line"
+    fm_cap_line "    earlier: $line" "$TASK_LINE_CAP"
   done
 }
 
-# short_title <text>: a backlog title cut to 60 characters for a task line.
+# short_title <text>: a backlog title cut to 40 characters for a task line.
 short_title() {
   local t=$1
-  if [ "${#t}" -gt 60 ]; then
-    t="${t:0:57}..."
+  if [ "${#t}" -gt 40 ]; then
+    t="${t:0:37}..."
   fi
   printf '%s' "$t"
 }
@@ -919,8 +922,8 @@ section "FLEET STATE"
 print_backlog_compact "$DATA/backlog.md" "data/backlog.md"
 
 subsection "Work under way (state/*.meta)"
-printf 'One line per task: id [kind harness/model, endpoint liveness, PR] backlog title -- last: newest status event (wake history, not current state; each line capped at %s characters).\n' \
-  "$FM_LINE_CAP_DEFAULT"
+printf 'One line per task: id [kind harness/model, PR; endpoint named only when not alive] backlog title -- last: newest status event (wake history, not current state; capped at %s characters).\n' \
+  "$TASK_LINE_CAP"
 printf 'Full record state/<id>.meta, event history state/<id>.status, current state bin/fm-crew-state.sh <id>.\n'
 META_FOUND=0
 for meta in "$STATE"/*.meta; do
@@ -933,12 +936,12 @@ for meta in "$STATE"/*.meta; do
   if [ -n "$window" ]; then
     backend=$(fm_backend_of_meta "$meta")
     if fm_backend_target_exists "$backend" "${target:-$window}" "fm-$id"; then
-      endpoint=alive
+      endpoint=
     else
-      endpoint="dead ($backend $window)"
+      endpoint=", endpoint dead ($backend $window)"
     fi
   else
-    endpoint='unknown (no window recorded)'
+    endpoint=', endpoint unknown (no window recorded)'
   fi
 
   kind=$(fm_meta_get "$meta" kind)
@@ -946,7 +949,7 @@ for meta in "$STATE"/*.meta; do
   model=$(fm_meta_get "$meta" model)
   pr=$(fm_meta_get "$meta" pr)
   title=$(printf '%s\n' "$IN_FLIGHT_TITLES" | awk -F'\t' -v id="$id" '$1 == id { print $2; exit }')
-  head="$id [${kind:-?} ${harness:-?}${model:+/$model}, endpoint $endpoint${pr:+, PR #${pr##*/}}]"
+  head="$id [${kind:-?} ${harness:-?}${model:+/$model}${pr:+, PR #${pr##*/}}$endpoint]"
   [ -z "$title" ] || head="$head $(short_title "$title")"
   print_task_line "$id" "$head" "$STATE/$id.status"
 done
