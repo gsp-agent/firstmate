@@ -360,15 +360,6 @@ Any other value, or an unreadable file, refuses every spawn from that home, whic
 The file is a captain-wide safety preference, so it is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract; a secondmate's own Claude crewmates then launch on the same posture.
 The [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) records the verified shape of both launches and which once-per-machine dialog each one can meet.
 
-## Cursor plugin directories (config/cursor-plugin-dirs)
-
-The optional local, gitignored `config/cursor-plugin-dirs` lists Cursor plugin directories that every Cursor worker and scout launch loads, one absolute directory per line, with blank lines and `#` comments allowed.
-Each entry becomes a `--plugin-dir` flag in file order.
-A non-empty list also adds `--approve-mcps`, because Cursor approves MCP servers per workspace and every task starts in a fresh worktree, so a plugin's skills could not otherwise reach the MCP servers they rely on.
-With no file, or a file with no entries, the Cursor launch is unchanged.
-A relative entry, an entry that is not a directory, or an unreadable file refuses the Cursor spawn before any endpoint, worktree, or task record exists; other harnesses never read the file.
-`bin/fm-spawn.sh` reads it on every Cursor spawn and relaunch, and it is not inherited into secondmate homes.
-
 ## Worker launch environment (config/launch-env-allowlist)
 
 The optional local, gitignored `config/launch-env-allowlist` limits the ambient environment passed to newly launched workers, scouts, and secondmates, including relaunches.
