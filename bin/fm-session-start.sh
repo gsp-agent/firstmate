@@ -366,7 +366,7 @@ STATUS_TAIL=${FM_SESSION_START_STATUS_TAIL:-1}
 case "$STATUS_TAIL" in ''|*[!0-9]*|0) STATUS_TAIL=1 ;; esac
 QUEUED_LIMIT=${FM_SESSION_START_QUEUED_LIMIT:-10}
 # One task line, newest status event included; bin/fm-line-cap-lib.sh cuts it.
-TASK_LINE_CAP=180
+TASK_LINE_CAP=150
 case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=10 ;; esac
 BACKLOG_FIELDS=blocked_by,hold_kind,hold_reason
 
@@ -934,7 +934,9 @@ for meta in "$STATE"/*.meta; do
     if fm_backend_target_exists "$backend" "${target:-$window}" "fm-$id"; then
       endpoint=
     else
-      endpoint="endpoint dead ($backend $window); "
+      # The window is in the record; repeating it here (a tmux window names the
+      # task again) would spend the line's room on text the reader already has.
+      endpoint="endpoint dead ($backend); "
     fi
   else
     endpoint='endpoint unknown (no window recorded); '

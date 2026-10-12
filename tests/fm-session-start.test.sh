@@ -1150,14 +1150,14 @@ EOF
   assert_contains "$out" "$lede" "the cap discarded the lede that carries the state word and decision key"
   assert_contains "$out" " [truncated]" "an over-long status line was not marked as truncated"
   assert_contains "$out" "-- last: working: short line kept whole" "the cap mangled a status line already under it"
-  assert_contains "$out" "capped at 180 characters" "the task section does not disclose its per-line cap"
+  assert_contains "$out" "capped at 150 characters" "the task section does not disclose its per-line cap"
   assert_contains "$out" "event history state/<id>.status" "a capped line lost the pointer to the full log that recovers the rest"
 
   # Nothing the task section emits may exceed the cap, and the padded line
   # really was long enough to exercise it.
   tail_section=$(printf '%s\n' "$out" | awk '/^Work under way/ { flag = 1; next } flag && /^Orphan status logs/ { flag = 0 } flag && /^task-cap |^    earlier: /')
   longest=$(printf '%s\n' "$tail_section" | awk '{ if (length($0) > max) max = length($0) } END { print max + 0 }')
-  [ "$longest" -le 180 ] || fail "a task line ran $longest characters past the 180-character cap"
+  [ "$longest" -le 150 ] || fail "a task line ran $longest characters past the 150-character cap"
   capped=$(printf '%s\n' "$tail_section" | grep -c ' \[truncated\]$')
   [ "$capped" -eq 1 ] || fail "expected exactly one truncated task line, got $capped: $tail_section"
 
@@ -1269,7 +1269,7 @@ EOF
     "session start did not distinguish an existing Pi-shaped process from a missing window"
   [ ! -s "$log" ] || fail "session start touched an ambiguous existing Pi process: $(cat "$log")"
   assert_contains "$out" "$SESSION_START_SECOND_MATE_ID [" "the later fleet read lost the secondmate's line"
-  assert_not_contains "$out" "endpoint dead (tmux firstmate:fm-$SESSION_START_SECOND_MATE_ID)" \
+  assert_not_contains "$out" "$SESSION_START_SECOND_MATE_ID [endpoint dead" \
     "the later fleet read should still see the ambiguous endpoint"
   pass "session start: an existing ambiguous Pi process prevents duplicate recovery"
 }
@@ -1288,7 +1288,7 @@ EOF
     "SECONDMATE_LIVENESS: secondmate $SESSION_START_SECOND_MATE_ID: skipped: endpoint probe unreadable (backend=tmux)" \
     "session start did not distinguish transient unreadability from absence"
   [ ! -s "$log" ] || fail "session start touched a transiently unreadable target: $(cat "$log")"
-  assert_contains "$out" "endpoint dead (tmux firstmate:fm-$SESSION_START_SECOND_MATE_ID)" \
+  assert_contains "$out" "$SESSION_START_SECOND_MATE_ID [endpoint dead (tmux); " \
     "the later cheap presence read should preserve the visible offline symptom"
   pass "session start: transient tmux unreadability never licenses a relaunch"
 }
@@ -1349,10 +1349,16 @@ EOF
     "$(awk 'BEGIN { while (i++ < 89) printf "m" }')" \
     > "$home/state/task-dead-with-a-deliberately-long-identifier-0123456789abcdef.meta"
 
+  # A realistic dead task: a 48-character id whose tmux window names it again.
+  printf 'window=firstmate:fm-repair-secondmate-pending-reply-delivery-failure\nkind=ship\nharness=pi\nmodel=anthropic/claude-sonnet-5\n' \
+    > "$home/state/repair-secondmate-pending-reply-delivery-failure.meta"
+
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
+  assert_contains "$out" "repair-secondmate-pending-reply-delivery-failure [endpoint dead (tmux); ship pi/anthropic/claude-sonnet-5]" \
+    "a realistic dead task lost its runtime to the line cap"
   assert_contains "$out" "task-live [ship ?] -- last:" "live tmux endpoint not reported alive (named only when not alive)"
-  assert_contains "$out" "task-dead [endpoint dead (tmux fm-sess:dead-window); ship ?]" "dead tmux endpoint not reported dead"
-  assert_contains "$out" "task-dead-with-a-deliberately-long-identifier-0123456789abcdef [endpoint dead (tmux fm-sess:dead-long); ship codex/" \
+  assert_contains "$out" "task-dead [endpoint dead (tmux); ship ?]" "dead tmux endpoint not reported dead"
+  assert_contains "$out" "task-dead-with-a-deliberately-long-identifier-0123456789abcdef [endpoint dead (tmux); ship codex/" \
     "a long id and model pushed endpoint liveness off the capped line"
 
   pass "tmux endpoint liveness is reported per task: alive for a live window, dead for a gone one"
@@ -1373,7 +1379,7 @@ EOF
 
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
   assert_contains "$out" "task-live [ship ?] -- last:" "live herdr endpoint not reported alive (named only when not alive)"
-  assert_contains "$out" "task-dead [endpoint dead (herdr sess:p-dead); ship ?]" "dead herdr endpoint not reported dead"
+  assert_contains "$out" "task-dead [endpoint dead (herdr); ship ?]" "dead herdr endpoint not reported dead"
 
   pass "herdr endpoint liveness is reported per task: alive for a live pane, dead for a gone one"
 }
