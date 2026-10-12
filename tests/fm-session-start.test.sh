@@ -2179,8 +2179,9 @@ EOF
 
   assert_contains "$out" "repair-secondmate-pending-reply-delivery-failure [" \
     "the long-metadata task line is missing"
-  assert_contains "$out" "ship pi/anthropic/claude-sonnet-5] -- last: blocked: [key=plan-choice] captain must choose" \
-    "long metadata cut the task line's status word, decision key, or the start of its event"
+  # TASK_STATUS_ROOM is 60: exactly that much of the event survives the cut.
+  assert_contains "$out" "ship pi/anthropic/claude-sonnet-5] -- last: blocked: [key=plan-choice] captain must choose between the t [truncated]" \
+    "long metadata cut the task line's event short of its 60 kept characters"
 
   pass "a task line with long metadata keeps its newest event's status word and key"
 }

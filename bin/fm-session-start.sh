@@ -684,7 +684,7 @@ print_backlog_compact() {
 # state word and the key, and state/<id>.status reaches the rest.
 print_task_line() {  # <id> <bracket> <title> <status-file>
   local bracket=$2 title=$3 status=${4:-} last=$'(no status yet)' line older=()
-  local sep=' -- last: ' head room cap
+  local sep=' -- last: ' head room cap need
   if [ -n "$status" ] && [ -s "$status" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
       older+=("$line")
@@ -695,11 +695,18 @@ print_task_line() {  # <id> <bracket> <title> <status-file>
     fi
   fi
   # The title gives way first: it shortens, or drops when under 12 characters
-  # would remain, so the newest event keeps TASK_STATUS_ROOM characters.
+  # would remain, so the newest event shows whole when it fits in
+  # TASK_STATUS_ROOM characters and keeps that many beside the cap's own
+  # truncation suffix when it does not.
+  if [ "${#last}" -le "$TASK_STATUS_ROOM" ]; then
+    need=$(( ${#sep} + ${#last} ))
+  else
+    need=$(( ${#sep} + TASK_STATUS_ROOM + ${#FM_LINE_CAP_SUFFIX} ))
+  fi
   head=$bracket
   if [ -n "$title" ]; then
     title=$(short_title "$title")
-    room=$(( TASK_LINE_CAP - ${#bracket} - 1 - ${#sep} - TASK_STATUS_ROOM ))
+    room=$(( TASK_LINE_CAP - ${#bracket} - 1 - need ))
     if [ "$room" -ge 12 ]; then
       [ "${#title}" -le "$room" ] || title="${title:0:$((room - 3))}..."
       head="$bracket $title"
@@ -707,7 +714,7 @@ print_task_line() {  # <id> <bracket> <title> <status-file>
   fi
   # A bracket too long to leave that room lengthens the line instead.
   cap=$TASK_LINE_CAP
-  [ $(( ${#head} + ${#sep} + TASK_STATUS_ROOM )) -le "$cap" ] || cap=$(( ${#head} + ${#sep} + TASK_STATUS_ROOM ))
+  [ $(( ${#head} + need )) -le "$cap" ] || cap=$(( ${#head} + need ))
   fm_cap_line "$head$sep$last" "$cap"
   for line in ${older[@]+"${older[@]}"}; do
     fm_cap_line "    earlier: $line" "$TASK_LINE_CAP"
