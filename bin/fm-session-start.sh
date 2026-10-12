@@ -892,26 +892,17 @@ fi
 stage read-once
 section "READ-ONCE CONTRACT"
 cat <<'EOF'
-Everything below is this session start's input: a compact data/backlog.md
-listing, one line per state/*.meta task carrying its newest state/*.status
-event, data/projects.md, data/secondmates.md, data/captain.md,
-data/captain-shared.md, and data/learnings.md.
+Everything below is this session start's input: the backlog listing, one line
+per state/*.meta task with its newest state/*.status event, data/projects.md,
+data/secondmates.md, data/captain.md, data/captain-shared.md, data/learnings.md.
 Do NOT re-read any of them after reading this digest, and do NOT bulk-read
-data/backlog.md, state/*.meta, or state/*.status: re-reading everything defeats
-the entire point of this command.
-
-Go to a source directly only when:
-  - this digest flagged it ABSENT (then rebuild or create it per AGENTS.md),
-  - its contents looked unparseable or corrupt,
-  - this turn acts on one task and needs its full record (state/<id>.meta),
-    older events or the rest of a capped line (state/<id>.status), its current
-    state (bin/fm-crew-state.sh <id>), or its full body
-    (bin/fm-tasks-axi.sh show <id> --full, or data/backlog.md),
-  - the backlog listing disclosed omitted queued items and this turn needs them,
-  - the NETWORK CHECKS section reported its checks still IN PROGRESS and this
-    turn needs their verdict (bin/fm-startup-network.sh report),
-  - or a STARTUP TRUNCATED banner named the stage that would have printed it, in
-    which case that stage's sources were never emitted and must be reconciled.
+data/backlog.md, state/*.meta, or state/*.status.
+Go to a source only when it was flagged ABSENT or looked corrupt; when acting on
+one task (state/<id>.meta, state/<id>.status, bin/fm-crew-state.sh <id>,
+bin/fm-tasks-axi.sh show <id> --full); when omitted queued items matter; when
+NETWORK CHECKS is still IN PROGRESS (bin/fm-startup-network.sh report); or when
+a STARTUP TRUNCATED banner named the stage that would have printed it, whose
+sources were then never emitted.
 EOF
 
 # --- 6. fleet-state digest ---------------------------------------------
