@@ -635,6 +635,8 @@ test_grok_threads_model_and_reasoning_effort() {
   assert_contains "$launch" "grok --always-approve --model 'grok-4' --reasoning-effort 'high'" \
     "grok launch did not thread model and reasoning-effort flags"
   assert_not_contains "$launch" "--effort" "grok launch must use --reasoning-effort, not --effort"
+  assert_contains "$launch" "env GROK_DISABLE_API_KEY_AUTH=1 GROK_MEMORY=0 GROK_CLAUDE_SKILLS_ENABLED=0 GROK_CURSOR_SKILLS_ENABLED=0 GROK_CLAUDE_MCPS_ENABLED=0 GROK_CURSOR_MCPS_ENABLED=0 grok --always-approve " \
+    "grok launch did not keep the crewmate off the captain's Claude and Cursor MCP servers and skills"
   pass "grok receives --model and --reasoning-effort profile flags"
 }
 
