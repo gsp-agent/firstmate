@@ -1336,8 +1336,8 @@ test_ship_branch_prefix_defaults_to_legacy_fm() {
     FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode "$mode" >/dev/null 2>&1
     brief="$home/data/$id/brief.md"
     # shellcheck disable=SC2016  # literal backticks around the branch name must stay unexpanded
-    assert_grep "\`git checkout -b fm/$id --\`" "$brief" \
-      "$mode: omitting --branch-prefix must still create the legacy fm/<task-id> branch"
+    assert_grep "= fm/$id\`. Firstmate created and checked it out" "$brief" \
+      "$mode: omitting --branch-prefix must still name the legacy fm/<task-id> branch"
   done
   pass "fm-brief.sh: --branch-prefix omitted defaults every ship mode to fm/<task-id>"
 }
@@ -1354,8 +1354,8 @@ test_ship_branch_prefix_override_is_consistent_across_modes() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes --branch-prefix 'contrib/' >/dev/null 2>&1
   brief="$home/data/$id/brief.md"
   # shellcheck disable=SC2016
-  assert_grep "\`git checkout -b contrib/$id --\`" "$brief" \
-    "no-mistakes: branch-creation command did not use the configured override"
+  assert_grep "= contrib/$id\`. Firstmate created and checked it out" "$brief" \
+    "no-mistakes: branch check did not use the configured override"
   assert_no_grep "fm/$id" "$brief" \
     "no-mistakes: brief mixed the legacy fm/ prefix in with the configured override"
 
@@ -1363,8 +1363,8 @@ test_ship_branch_prefix_override_is_consistent_across_modes() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode direct-PR --branch-prefix 'contrib/' >/dev/null 2>&1
   brief="$home/data/$id/brief.md"
   # shellcheck disable=SC2016
-  assert_grep "\`git checkout -b contrib/$id --\`" "$brief" \
-    "direct-PR: branch-creation command did not use the configured override"
+  assert_grep "= contrib/$id\`. Firstmate created and checked it out" "$brief" \
+    "direct-PR: branch check did not use the configured override"
   # shellcheck disable=SC2016
   assert_grep "push only your \`contrib/$id\` branch" "$brief" \
     "direct-PR: never-push rule text did not use the configured override"
@@ -1375,8 +1375,8 @@ test_ship_branch_prefix_override_is_consistent_across_modes() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode local-only --branch-prefix 'contrib/' >/dev/null 2>&1
   brief="$home/data/$id/brief.md"
   # shellcheck disable=SC2016
-  assert_grep "\`git checkout -b contrib/$id --\`" "$brief" \
-    "local-only: branch-creation command did not use the configured override"
+  assert_grep "= contrib/$id\`. Firstmate created and checked it out" "$brief" \
+    "local-only: branch check did not use the configured override"
   # shellcheck disable=SC2016
   assert_grep "Work only on your \`contrib/$id\` branch" "$brief" \
     "local-only: never-push rule text did not use the configured override"
@@ -1401,9 +1401,9 @@ test_ship_branch_prefix_empty_override_yields_bare_task_id() {
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode local-only --branch-prefix '' >/dev/null 2>&1
   brief="$home/data/$id/brief.md"
   # shellcheck disable=SC2016
-  assert_grep "\`git checkout -b $id --\`" "$brief" \
+  assert_grep "= $id\`. Firstmate created and checked it out" "$brief" \
     "an empty --branch-prefix must yield a bare <task-id> branch"
-  assert_no_grep "checkout -b /$id" "$brief" \
+  assert_no_grep "= /$id" "$brief" \
     "an empty --branch-prefix produced a leading-slash branch name"
   assert_no_grep "fm/$id" "$brief" \
     "an empty --branch-prefix left the legacy fm/ prefix in place"
@@ -1429,9 +1429,9 @@ ROWS
   pass "fm-brief.sh: --branch-prefix is refused on scout and secondmate scaffolds"
 }
 
-# A branch prefix is embedded verbatim into a `git checkout -b` command in the
-# generated brief, so a space or a leading dash could corrupt or hijack that
-# command; both must be rejected loudly rather than silently accepted.
+# A branch prefix is embedded verbatim into the branch check in the generated
+# brief, so a space or a leading dash could corrupt or hijack that command; both
+# must be rejected loudly rather than silently accepted.
 test_branch_prefix_value_is_validated() {
   local home out status
   home="$TMP_ROOT/branch-prefix-validated-home"
@@ -1453,7 +1453,7 @@ test_branch_prefix_value_is_validated() {
 }
 
 test_branch_prefix_command_is_shell_safe() {
-  local home id prefix marker brief command repo branch
+  local home id prefix marker brief command repo
   home="$TMP_ROOT/branch-prefix-shell-safe-home"
   marker="$TMP_ROOT/branch-prefix-shell-safe-marker"
   id='brief-branch-safe-g3'
@@ -1463,16 +1463,18 @@ test_branch_prefix_command_is_shell_safe() {
     || fail "a ref-format-valid metacharacter prefix should scaffold safely"
   brief="$home/data/$id/brief.md"
   # shellcheck disable=SC2016 # The sed expression intentionally contains literal backticks.
-  command=$(sed -n 's/^1\. First action: create your branch: `\(.*\)`$/\1/p' "$brief")
-  [ -n "$command" ] || fail "generated brief exposed no branch-creation command"
+  command=$(sed -n 's/^1\. First action: confirm you are on your branch: `\([^`]*\)`\..*$/\1/p' "$brief")
+  [ -n "$command" ] || fail "generated brief exposed no branch check command"
   repo="$TMP_ROOT/branch-prefix-shell-safe-repo"
   git init -q "$repo" || fail "could not initialize shell-safety fixture repository"
-  ( cd "$repo" && eval "$command" ) || fail "generated branch-creation command did not run"
-  assert_absent "$marker" "generated branch command executed the prefix's command substitution"
-  branch=$(git -C "$repo" branch --show-current)
-  [ "$branch" = "$prefix$id" ] \
-    || fail "generated branch command did not create the literal configured branch (got '$branch')"
-  pass "fm-brief.sh: ref-format-valid shell metacharacters stay literal in generated branch commands"
+  ( cd "$repo" && git checkout -q -b "$prefix$id" ) || fail "could not create the literal configured branch"
+  ( cd "$repo" && eval "$command" ) || fail "generated branch check failed on the literal configured branch"
+  assert_absent "$marker" "generated branch check executed the prefix's command substitution"
+  ( cd "$repo" && git checkout -q -b other-branch ) || fail "could not leave the configured branch"
+  ( cd "$repo" && eval "$command" ) \
+    && fail "generated branch check passed while off the configured branch"
+  assert_absent "$marker" "generated branch check executed the prefix's command substitution off the branch"
+  pass "fm-brief.sh: ref-format-valid shell metacharacters stay literal in generated branch checks"
 }
 
 test_worker_role_scope
