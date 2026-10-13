@@ -1111,6 +1111,64 @@ test_stop_ends_the_home_watcher_and_publishes_downtime() {
   pass "watch-arm: --stop ends only this home's watcher, publishes downtime, and reports when none runs"
 }
 
+# A Stop arm takes over the successor that was left covering an episode main
+# has already been told about. That replacement must not mint a new downtime
+# generation or emit check: rearm-resurface while the same rows are still
+# queued. After the covered watcher dies outside that handshake, an ordinary
+# arm still surfaces the queue.
+test_repeated_take_over_preserves_an_announced_episode() {
+  local dir state fakebin armout owner generation n seed death_out status
+  dir=$(make_case repeated-take-over)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  armout="$dir/arm.out"
+  generation='already.1.ann'
+
+  start_rearm_arm "$dir" "$state" "$fakebin" "$dir/owner.out" "$$"
+  owner=$ARM_PID
+  is_live_non_zombie "$owner" || fail "fixture successor did not stay up: $(cat "$dir/owner.out")"
+  printf 'announced:downtime:%s\n' "$generation" > "$state/.watcher-down"
+  printf '10\t10\tcheck\talready\tcheck: already delivered\n' > "$state/.wake-queue"
+  printf '10\n' > "$state/.wake-queue.seq"
+
+  for n in 1 2 3; do
+    : > "$armout"
+    PATH="$fakebin:$PATH" FM_HOME="$dir" FM_STATE_OVERRIDE="$state" \
+      FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+      "$WATCH_ARM" --take-over "$owner" > "$armout" &
+    ARM_PID=$!
+    wait_for_file_text "$armout" 'watcher: started pid=' \
+      || fail "take-over $n did not start a cycle: $(cat "$armout")"
+    sleep 1
+    if grep -q '^check: rearm-resurface' "$armout"; then
+      fail "take-over $n emitted check: rearm-resurface: $(cat "$armout")"
+    fi
+    is_live_non_zombie "$ARM_PID" \
+      || fail "take-over $n ended the cycle: $(cat "$armout")"
+    [ "$(cat "$state/.watcher-down" 2>/dev/null)" = "announced:downtime:$generation" ] \
+      || fail "take-over $n replaced the announced episode: $(cat "$state/.watcher-down" 2>/dev/null)"
+    grep -q "$(printf '\tcheck\talready\tcheck: already delivered')" "$state/.wake-queue" \
+      || fail "take-over $n dropped the unacknowledged wake"
+    owner=$ARM_PID
+  done
+
+  seed=$(cat "$state/.watch.lock/pid" 2>/dev/null || true)
+  kill -TERM "$seed" 2>/dev/null || fail "could not end the covered watcher"
+  wait_for_exit "$owner" 50 >/dev/null 2>&1 || true
+  death_out="$dir/death-arm.out"
+  PATH="$fakebin:$PATH" FM_HOME="$dir" FM_STATE_OVERRIDE="$state" \
+    FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+    FM_ARM_CONFIRM_TIMEOUT="$REARM_CONFIRM_SECONDS" \
+    "$WATCH_ARM" > "$death_out" &
+  ARM_PID=$!
+  wait_for_exit "$ARM_PID" "$REARM_EXIT_POLLS"
+  status=$?
+  expect_code 0 "$status" "ordinary arm after the covered watcher died did not close cleanly: $(cat "$death_out")"
+  grep -q '^check: rearm-resurface' "$death_out" \
+    || fail "ordinary arm after watcher death did not resurface the queue: $(cat "$death_out")"
+  pass "watch-arm: repeated take-over keeps an announced episode quiet and a later death still resurfaces"
+}
+
 # --take-over stops only a watcher that the named arm itself owns. The seed
 # watcher here is this shell's child, so naming any other process leaves it
 # running and the arm attaches to it exactly as a plain arm does.
@@ -1742,5 +1800,6 @@ test_handling_delivered_accepts_already_acked_generation
 test_handling_delivered_rejects_a_superseded_generation
 test_take_over_attaches_to_a_cycle_the_named_arm_does_not_own
 test_take_over_owns_a_fresh_cycle_and_keeps_queued_work_surfacing
+test_repeated_take_over_preserves_an_announced_episode
 test_take_over_preserves_downtime_from_watcher_self_exit
 test_opencode_arm_plugin_decides_with_the_shared_predicate
