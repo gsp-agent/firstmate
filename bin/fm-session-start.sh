@@ -100,9 +100,9 @@
 # truncated tail drops must therefore be the CHEAPEST thing to lose. Curated
 # memory is stable session to session, is already governed by a captain-set
 # budget (config/startup-memory-budget), and is recoverable with one targeted
-# read; live task summaries and endpoint liveness change every session and
-# guide recovery, with full records available by targeted read. So fleet state
-# goes first and the memory files absorb the
+# read; live fleet identity - which tasks exist, their windows, worktrees,
+# backends, and endpoint liveness - changes every session and is exactly what
+# recovery depends on. So fleet state goes first and the memory files absorb the
 # truncation. The read-once contract moves ahead of both for the same reason: a
 # contract that only arrives after the payload it governs is the first thing a
 # truncated digest loses, and it carries the truncation caveat that keeps it
@@ -143,12 +143,11 @@
 #     is pure weight - 10 done rows cost 3.3KB in an observed main-home digest.
 #   - Every in-flight, held, and blocked row is listed, never bounded away:
 #     those are the rows AGENTS.md sections 7 and 10 make actionable at startup.
-#     With compatible tasks-axi, each is ONE line capped by bin/fm-line-cap-lib.sh, so a long hold_reason
+#     Each is ONE line capped by bin/fm-line-cap-lib.sh, so a long hold_reason
 #     costs one line, not a paragraph, and the full row stays one
-#     `bin/fm-tasks-axi.sh show <id> --full` away. An unheld, unblocked in-flight
-#     row whose task has a live record (state/<id>.meta) is listed once, as that
-#     task's line under "Work under way"; held or blocked rows keep their backlog
-#     entry as well.
+#     `bin/fm-tasks-axi.sh show <id> --full` away. An in-flight row whose task
+#     has a live record (state/<id>.meta) is listed once, as that task's line
+#     under "Work under way", so the two groups never repeat each other.
 #   - Only the plain queued (dispatchable-now) listing is bounded, by
 #     FM_SESSION_START_QUEUED_LIMIT, default 10. Anything it omits is disclosed
 #     with an exact remainder count and the command that shows the rest, so a

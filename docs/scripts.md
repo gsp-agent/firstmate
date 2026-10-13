@@ -55,9 +55,7 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-kimi-turnend-hook.sh` | Surgically install or remove Kimi's guarded global crew turn-end hook                |
 | `fm-arm-pretool-check.sh` | Stable PreToolUse transport for the watcher-arm command policy (docs/arm-pretool-check.md) |
 | `fm-arm-command-policy.mjs` | Semantic owner of the watcher-arm PreToolUse policy (docs/arm-pretool-check.md)   |
-| `fm-cursor-crew-guard.mjs` | Apply the session-scoped Cursor shell policy |
-| `fm-cursor-assert.sh`    | Reassert shared per-user Cursor settings before a fleet launch |
-| `fm-cursor-guard.sh`     | Apply Cursor fallback, launch-count, and post-run usage-limit policy |
+| `fm-cursor-crew-guard.mjs` | Cursor preToolUse hook for one crew session: pins unnamed working directories to the task worktree and refuses `git symbolic-ref` and `update-ref` |
 | `fm-subagent-pretool-check.sh` | Primary-home delegation-shape PreToolUse guard (docs/subagent-guard.md) |
 | `fm-supervision-instructions.sh` | Render the session-start primary-harness supervision block or the one-line repair instruction |
 | `fm-home-seed.sh`        | Transactionally provision a local secondmate home and maintain `data/secondmates.md` |

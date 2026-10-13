@@ -2,7 +2,7 @@
 
 The xAI `grok` TUI is Claude-Code-compatible.
 Verified initially on 2026-06-29 with 0.2.73, slash submission on 2026-07-03 with 0.2.82, effort on 2026-07-13 with 0.2.99, exit on 2026-07-19 with 0.2.103, and folder trust, the training opt-in, and unsent composer delivery on 2026-09-24 with 1.0.41.
-[`bin/fm-spawn.sh`](../../../../../bin/fm-spawn.sh) owns the launch shape and environment assignments; [harness restrictions and credentials](../../../../../docs/configuration.md#harness-restrictions-and-credentials) owns the resulting authentication and import limits.
+Launch shape: `env GROK_DISABLE_API_KEY_AUTH=1 GROK_MEMORY=0 GROK_CLAUDE_SKILLS_ENABLED=0 GROK_CURSOR_SKILLS_ENABLED=0 GROK_CLAUDE_MCPS_ENABLED=0 GROK_CURSOR_MCPS_ENABLED=0 grok --always-approve "$(cat <brief>)"`; the prefix keeps a crewmate off the captain's Claude and Cursor MCP servers and skills, refuses API-key auth, and turns cross-session memory off.
 
 ## Operating facts
 
