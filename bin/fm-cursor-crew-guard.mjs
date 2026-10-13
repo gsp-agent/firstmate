@@ -27,6 +27,10 @@
 //      ~/.claude/settings.json, which no per-session setting can lift, and
 //      git switch -c is the in-worktree branch command that is not refused.
 //
+// Scope: this pins implicit working-directory drift and refuses HEAD and ref
+// plumbing. It is not repository confinement: a command that names another
+// checkout explicitly (git -C /primary switch -c ...) is allowed by design.
+//
 // Output is Cursor's preToolUse decision object on stdout with exit 0, or
 // nothing for "no change". Unparseable input, a missing --worktree, and a
 // command this classifier cannot tokenize all fail open: a broken hook must
@@ -59,6 +63,11 @@ function gitSubcommand(words, from) {
   return "";
 }
 
+// shellWord re-quotes one already-unquoted word so a re-joined command lexes the same way.
+function shellWord(value) {
+  return /^[A-Za-z0-9_\/.:=@%+,-]+$/.test(value) ? value : `'${value.replace(/'/g, "'\\''")}'`;
+}
+
 function refuses(command, depth = 0) {
   if (depth > 6 || !command) return false;
   const lexed = new Lexer(command).tokenize();
@@ -77,8 +86,19 @@ function refuses(command, depth = 0) {
   for (const node of splitProgram(lexed.tokens).nodes) {
     const position = commandPosition(node);
     const { words } = position;
+    // A wrapper's embedded command (env -S '...') is a command of its own.
+    for (const payload of position.wrapperPayloads ?? []) {
+      if (refuses(payload, depth + 1)) return true;
+    }
     let index = position.index;
-    while (words[index] && KEYWORDS.has(words[index].value)) index += 1;
+    if (words[index] && KEYWORDS.has(words[index].value)) {
+      // A leading keyword (then, do, ...) hides the real command word from
+      // commandPosition's wrapper analysis, so analyze what follows the
+      // keywords as its own command, wrappers included.
+      while (words[index] && KEYWORDS.has(words[index].value)) index += 1;
+      if (words[index] && refuses(words.slice(index).map((w) => shellWord(w.value)).join(" "), depth + 1)) return true;
+      continue;
+    }
     const word = words[index];
     if (!word) continue;
     const name = basename(word.value);

@@ -118,6 +118,8 @@ echo $(git symbolic-ref --short HEAD)
 if true; then git symbolic-ref HEAD refs/heads/x; fi
 bash -c 'git symbolic-ref HEAD refs/heads/x'
 git-update-ref HEAD abc123
+env -S 'git -C /primary symbolic-ref HEAD refs/heads/main'
+if true; then env git -C /primary symbolic-ref HEAD refs/heads/main; fi
 CMDS
 while IFS= read -r cmd; do
   out=$(crew_hook "$cmd" "$SLOT")
