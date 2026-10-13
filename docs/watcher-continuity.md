@@ -237,6 +237,8 @@ That handling republication gives a successor exactly one recovery presentation 
 A watcher stopped so an arm can take its cycle over (`bin/fm-watch-arm.sh --take-over`) publishes downtime like any close, but the taking arm restores an acknowledged episode that stop reopened only when the taken-over arm's cycle-ledger row for that exact arm and watcher records the watcher ending by the take-over's TERM and no wake was appended in between.
 The taking arm waits within a short bound for that row; a missing row or any other signal leaves downtime for the fresh cycle's ordinary recovery wake, while take-over still proceeds.
 Any other episode is left for the next cycle's arm check.
+That cycle does not reopen an episode that is already announced, so rows still queued for it are not announced again.
+A pending episode, including downtime a self-exit published, still surfaces from the arm check.
 
 ### What an acknowledgement retires
 
