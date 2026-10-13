@@ -2492,7 +2492,7 @@ WATCHER_RECOVERY_PENDING=0
 if [ -n "${FM_LOCK_RECOVERED_PID:-}" ]; then
   WATCHER_RECOVERY_PENDING=1
 fi
-# Take-over continues an already-announced episode, so this start does not
+# Confirmed TERM take-over continues an announced episode, so this start does not
 # reopen it. A pending episode still reaches the arm check below.
 if [ "${FM_WATCH_HANDLING_SUCCESSOR:-0}" != 1 ] \
   && [ "${FM_WATCH_FOREGROUND_CHECKPOINT:-0}" != 1 ] \
