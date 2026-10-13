@@ -191,12 +191,13 @@ test_stale_pool_base_refreshes_before_branching() {
   [ "$(git -C "$POOL_DIR" rev-parse HEAD)" = "$current" ] \
     || fail "an idempotent repeat moved the pool away from current origin/main"
 
-  git -C "$POOL_DIR" checkout --quiet -b "fm/$id"
+  [ "$(git -C "$POOL_DIR" branch --show-current)" = "fm/$id" ] \
+    || fail "spawn did not leave the slot on its own ship branch fm/$id"
   git -C "$POOL_DIR" diff --exit-code origin/main...HEAD >/dev/null \
-    || fail "a branch created after spawn differs from current origin/main"
+    || fail "the branch spawn created differs from current origin/main"
   assert_grep 'must survive a newly spawned branch' "$POOL_DIR/advanced-main.txt" \
-    "the branch created after spawn omitted advanced-main content"
-  pass "a stale pooled worktree refreshes to current origin/main before a crew branch is created"
+    "the branch spawn created omitted advanced-main content"
+  pass "a stale pooled worktree refreshes to current origin/main before spawn creates the crew branch"
 }
 
 test_non_main_default_branch_refreshes_before_branching() {
@@ -213,6 +214,95 @@ test_non_main_default_branch_refreshes_before_branching() {
   [ "$branch_head" = "$current" ] || fail "spawn did not refresh to current origin/$DEFAULT_BRANCH"
   [ "$branch_head" != "$INITIAL_SHA" ] || fail "fixture did not prove origin/$DEFAULT_BRANCH advanced past the pool base"
   pass "a stale pooled worktree resolves and refreshes a non-main default branch"
+}
+
+# Wrap the fake terminal so every literal send (the launch line is the only one)
+# records the slot's branch at that instant. A branch read after spawn returns
+# cannot show the crew started on it; this reads it as the launch is typed.
+log_branch_at_launch() {  # <fakebin> <log>
+  local fakebin=$1 log=$2
+  mv "$fakebin/tmux" "$fakebin/tmux.real"
+  cat > "$fakebin/tmux" <<SH
+#!/usr/bin/env bash
+for a in "\$@"; do
+  if [ "\$a" = -l ]; then
+    printf '%s\n' "\$(git -C "$POOL_DIR" branch --show-current)" >> '$log'
+    break
+  fi
+done
+exec '$fakebin/tmux.real' "\$@"
+SH
+  chmod +x "$fakebin/tmux"
+}
+
+test_ship_spawn_checks_out_its_branch_before_the_crew_starts() {
+  local rec id out status current log
+  id='pool-ship-branch-r14'
+  rec=$(make_case ship-branch "$id")
+  read_case_record "$rec"
+  log="$CASE_DIR/branch-at-launch.log"
+  log_branch_at_launch "$FAKEBIN_DIR" "$log"
+  [ -z "$(git -C "$POOL_DIR" branch --show-current)" ] || fail "fixture slot should start detached"
+
+  out=$(run_spawn "$id" --mode no-mistakes --yolo off)
+  status=$?
+  expect_code 0 "$status" "a ship spawn should prepare its branch and launch"$'\n'"$out"
+  current=$(git -C "$POOL_DIR" rev-parse origin/main)
+  [ "$(git -C "$POOL_DIR" branch --show-current)" = "fm/$id" ] \
+    || fail "the slot is not on fm/$id after spawn"
+  [ "$(git -C "$POOL_DIR" rev-parse "fm/$id")" = "$current" ] \
+    || fail "fm/$id does not start at current origin/main"
+  assert_present "$log" "the fake terminal never saw the launch line"
+  [ "$(sort -u "$log")" = "fm/$id" ] \
+    || fail "the slot was not on fm/$id when the launch was typed: $(sort -u "$log" | tr '\n' ' ')"
+  if [ "${FM_TEST_EVIDENCE:-0}" = 1 ]; then
+    printf '# slot branch at launch (%s typed lines): %s\n' "$(wc -l < "$log" | tr -d ' ')" "$(sort -u "$log")"
+    printf '# slot HEAD=%s origin/main=%s\n' "$(git -C "$POOL_DIR" rev-parse HEAD)" "$current"
+  fi
+  pass "a ship spawn has fm/<task> checked out at the refreshed base before the crew's launch is typed"
+}
+
+test_ship_branch_survives_a_leftover_and_scouts_get_none() {
+  local rec id out status current extra
+  id='pool-ship-leftover-r15'
+  rec=$(make_case ship-leftover "$id")
+  read_case_record "$rec"
+  # A leftover branch already contained in the refreshed base moves to it.
+  git -C "$POOL_DIR" branch "fm/$id" "$INITIAL_SHA"
+  out=$(run_spawn "$id" --mode no-mistakes --yolo off)
+  status=$?
+  expect_code 0 "$status" "a contained leftover branch should not block the spawn"$'\n'"$out"
+  current=$(git -C "$POOL_DIR" rev-parse origin/main)
+  [ "$(git -C "$POOL_DIR" branch --show-current)" = "fm/$id" ] || fail "leftover case: slot is not on fm/$id"
+  [ "$(git -C "$POOL_DIR" rev-parse "fm/$id")" = "$current" ] \
+    || fail "a contained leftover branch was not moved to the refreshed base"
+
+  # A leftover branch carrying commits the base lacks is resumed, never reset.
+  id='pool-ship-leftover-work-r15'
+  fm_test_spawn_brief "$HOME_DIR" "$id"
+  git -C "$POOL_DIR" checkout --quiet --detach "$INITIAL_SHA"
+  git -C "$POOL_DIR" checkout --quiet -b "fm/$id"
+  printf 'unpublished work\n' > "$POOL_DIR/mine.txt"
+  git -C "$POOL_DIR" add mine.txt
+  git -C "$POOL_DIR" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm work
+  extra=$(git -C "$POOL_DIR" rev-parse HEAD)
+  git -C "$POOL_DIR" checkout --quiet --detach "$INITIAL_SHA"
+  out=$(run_spawn "$id" --mode no-mistakes --yolo off)
+  status=$?
+  expect_code 0 "$status" "a leftover branch with work should be resumed"$'\n'"$out"
+  assert_contains "$out" "already exists" "resuming a leftover branch was not announced"
+  [ "$(git -C "$POOL_DIR" rev-parse "fm/$id")" = "$extra" ] \
+    || fail "a leftover branch carrying work was reset"
+
+  # A scout ships nothing, so it gets no branch.
+  id='pool-scout-nobranch-r15'
+  rec=$(make_case scout-nobranch "$id")
+  read_case_record "$rec"
+  out=$(run_spawn "$id" --scout)
+  status=$?
+  expect_code 0 "$status" "a scout spawn should launch"$'\n'"$out"
+  [ -z "$(git -C "$POOL_DIR" branch --show-current)" ] || fail "a scout slot was put on a branch"
+  pass "a leftover ship branch is moved or resumed without losing work, and a scout slot stays detached"
 }
 
 make_originless_case() {  # <name> <id>
@@ -878,6 +968,8 @@ test_remote_seeded_home_spawns_from_treehouse_pool
 test_pool_slot_claim_follows_the_spawn_outcome
 test_linked_spawning_home_rejects_primary_before_refresh
 test_stale_pool_base_refreshes_before_branching
+test_ship_spawn_checks_out_its_branch_before_the_crew_starts
+test_ship_branch_survives_a_leftover_and_scouts_get_none
 test_named_base_branch_starts_from_that_branch
 test_base_branch_must_agree_with_the_brief
 test_prose_base_branch_line_is_ignored
