@@ -756,7 +756,11 @@ claude, codex, opencode, pi, pi-signed, grok, kimi, cursor, and omp are empirica
 ### Harness restrictions and credentials
 
 `fm-spawn.sh` refuses kimi on cmux and Orca at preflight, because answering Kimi's folder-trust dialog needs a verified viewport-only capture those backends lack; [its adapter reference](../.agents/skills/harness-adapters/references/harness/kimi.md#readiness-gated-start) owns the trust-dialog handling.
-A cursor secondmate or primary runs the tracked project-scope `.cursor/hooks.json` in its own home and must be launched with `--trust`, or no project hook loads; [`docs/supervision-protocols/cursor.md`](supervision-protocols/cursor.md) owns its supervision protocol.
+An interactive Cursor primary must be launched with `--trust` for its tracked project-scope hooks to load; [`docs/supervision-protocols/cursor.md`](supervision-protocols/cursor.md) owns its supervision protocol.
+Firstmate's current Cursor launch mode and secondmate supervision limits are owned by [the Cursor adapter reference](../.agents/skills/harness-adapters/references/harness/cursor.md).
+
+Canonical Grok fleet launches disable API-key authentication, cross-session memory, and imported Claude and Cursor skills and MCP servers.
+Project MCP servers and Grok-native plugins remain available; [`bin/fm-spawn.sh`](../bin/fm-spawn.sh)'s launch template owns the environment assignments.
 
 Cursor typed-submit confirmation is verified on tmux and Herdr only.
 On Zellij, cmux, and Orca a typed-plane Cursor send (a harness-native invocation or an explicit backend target; ordinary text steers ride the durable inbox and exit 0 at enqueue) lands, but `fm-send` reports delivery unconfirmed and exits non-zero because their shared submit core does not consult the busy footer; [runtime backend verification](verification/runtime-backends.md#cursor-agent-cli) owns the evidence and transcript-state boundary.
@@ -958,7 +962,7 @@ A home that authenticates Claude through environment credentials on purpose shou
 ### Failures, reporting, and inheritance
 
 A malformed file, a root that is not a readable directory, or a signed-out account refuses the launch and names the file to fix; Firstmate never falls back to the ambient account and never changes a global login or copies a credential.
-The spawn prints the pin as `account=` (plus `account_provider=` for Pi) and records the same fields in the task record, so the session-start digest shows which account each worker launched on.
+The spawn prints the pin as `account=` (plus `account_provider=` for Pi) and records the same fields in the task record; inspect that record for the account, which the compact session-start task line omits.
 
 Pins are not inherited into secondmate homes: a local secondmate agent launches on the launching home's pin, while the secondmate's own workers read the secondmate home's files.
 A remote secondmate is launched on its host from its own home's configuration, so create the file in that remote home.
@@ -1095,7 +1099,7 @@ Firstmate cannot see which part of a worker's life uses the resource, so the num
 
 ## Crew dispatch profiles (config/crew-dispatch.json)
 
-`config/crew-dispatch.json` is an optional local, gitignored file containing natural-language rules that firstmate reads before dispatching a crewmate or scout.
+`config/crew-dispatch.json` is an optional local, gitignored file containing dispatch rules, label routes, defaults, and Cursor launch policy.
 Firstmate chooses the best matching rule with judgment; shell scripts do not match the natural-language rules.
 Firstmate resolves the rule's profile object or array under `AGENTS.md` section 4 and `quota-array-dispatch`, then passes only concrete `--harness`, `--model`, and `--effort` flags to `fm-spawn.sh`.
 
@@ -1139,6 +1143,17 @@ This section is the single owner of the canonical schema and its per-field seman
 | `use` and optional top-level `default` | Accept one profile object or a non-empty array of profile objects; the single-object form remains fully backward-compatible. |
 | Profile `harness` | Required in every profile. |
 | Profile `model` and `effort`; rule `why` | Optional. |
+| Top-level `label_routes` | Optional object mapping each label to one profile object with a verified `harness`, well-formed optional `model` and `effort`, and effort supported by its harness and model; arrays are refused. |
+| Top-level `cursor_fallback` | Optional object requiring numeric `models_pct` from 1 through 100 and positive numeric `max_age_h`; controls the Cursor spending threshold and maximum spending-file age. |
+| Top-level `pstack_version` | Optional pin for the required Cursor pstack plugin version; the default and plugin lookup are owned by [`bin/fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh). |
+
+**Label routing**
+
+The resolver's label mode selects the first supplied label present in `label_routes`, then `default` when no label matches, without a brief, API key, model request, or quota ranking.
+An empty label list selects the default; if that default is an array, this mode takes its first profile rather than applying the profile-array intake procedure.
+No matching route and no default returns `escalate`; supplying both `docs-only` and `ep-opus` refuses routing and requires relabeling.
+Common resolver configuration validation runs first, but rule approvals, confidence thresholds, and quota floors do not govern label selection.
+[`bin/fm-dispatch-resolve.sh`](../bin/fm-dispatch-resolve.sh)'s header owns the flags and output, with regression coverage in [`tests/fm-dispatch-resolve.test.sh`](../tests/fm-dispatch-resolve.test.sh).
 
 **Fields applied only by typed resolution**
 
@@ -1180,13 +1195,24 @@ This single-provider table is separate from the frozen legacy mapping used by `f
 **Model, effort, and fallback behavior**
 
 - `ultra` is native-only: the model-aware validation contract and launch mapping are owned by `bin/fm-harness.sh validate-native-effort` and `bin/fm-spawn.sh` respectively.
-- Codex `max` is valid when the profile selects `gpt-5.6-luna` or `gpt-6.1-sol`, whose installed catalog entries support that reasoning level.
+- Codex `max` is valid when the profile selects `gpt-5.6-luna` or `gpt-6.1-sol`; Grok profiles also accept `xhigh`.
 - An omitted model or effort means the selected harness uses its own default for that axis.
 - OpenCode receives the effort as its default `build` agent's `variant`, keyed to the resolved model, inside the `OPENCODE_CONFIG_CONTENT` JSON its launch already writes (the per-model reasoning-effort field of the config schema, verified on opencode 1.18.32); with no model resolved, the effort is recorded in task metadata but omitted from the launch.
-- Every profile array is an implicit quota-aware choice resolved through `quota-array-dispatch`.
+- Firstmate's profile-array intake follows `quota-array-dispatch`; label mode has the first-default behavior described above.
 - If no dispatch rule fits, firstmate resolves `default` through the same object-or-array path before falling back to `config/crew-harness`.
 - Except for `ultra`, which refuses unsupported profiles under the native-effort contract above, an effort value the chosen harness does not accept is recorded as `effort=` in task meta for traceability but omitted from the launch flags.
 - Bootstrap reports unsupported harness/model/effort combinations as a `CREW_DISPATCH` diagnostic when they are visible in the file.
+
+**Cursor launch policy**
+
+An explicitly selected Cursor ship or scout profile, including a relaunch, is checked before launch and may be replaced with the fixed standalone Grok profile when pstack's version mismatches, spending data is missing, stale, or malformed, the Models usage threshold is reached, or a prior failed Cursor run recorded a usage limit.
+The spawn prints and records the fallback reason; secondmates skip this fallback.
+[`bin/fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh) owns the spending-file location, defaults, version pin, persistent failure marker, and two-launch limit per task per Central day, which also applies to Cursor secondmates.
+
+A remaining Cursor launch with an explicit non-default model refuses if the live catalog cannot be read or does not contain that model.
+Every Cursor launch reasserts shared per-user network, model, and pstack settings through [`bin/fm-cursor-assert.sh`](../bin/fm-cursor-assert.sh), whose header owns the files and values overwritten.
+Those settings affect other Cursor sessions, while the crew hook described in [`bin/fm-cursor-crew-guard.mjs`](../bin/fm-cursor-crew-guard.mjs) is loaded only into the launched session.
+[`tests/fm-cursor-guard.test.sh`](../tests/fm-cursor-guard.test.sh) and [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) cover the launch policy.
 
 See [`docs/examples/crew-dispatch.json`](examples/crew-dispatch.json) for a starting point to copy into local `config/crew-dispatch.json`; its Pi default declares the `claude` provider required for typed resolution of that Anthropic model.
 
@@ -1206,7 +1232,8 @@ Secondmate homes inherit this file from the primary, so a secondmate's own crewm
 ## Typed dispatch resolution (.env TYPESAFE_API_KEY)
 
 `bin/fm-dispatch-resolve.sh` resolves one concrete crewmate or scout profile from a written brief with typesafe.ai's System One model (Jev), so the rule match that firstmate otherwise reasons out in its own context becomes one short tool turn.
-It is off unless `TYPESAFE_API_KEY` is non-empty in the calling environment or the home's gitignored `.env` holds a `TYPESAFE_API_KEY=` line; the environment wins, matching the Relay and mail-plane contracts, and the Relay accessor in `bin/fm-env-lib.sh` reads the line.
+This written-brief mode is off unless `TYPESAFE_API_KEY` is non-empty in the calling environment or the home's gitignored `.env` holds a `TYPESAFE_API_KEY=` line; the environment wins, matching the Relay and mail-plane contracts, and the Relay accessor in `bin/fm-env-lib.sh` reads the line.
+The separate [label-routing mode](#crew-dispatch-profiles-configcrew-dispatchjson) needs no key.
 
 Off means one `dispatch-resolve: off` line on stderr, nothing on stdout, exit 0, and no network call, so firstmate dispatches exactly as it does without the tool.
 This section is the single owner of the tool's operator contract; the script header owns its exact flags and output lines, and "Crew dispatch profiles" above owns the declared rule and profile fields it applies.
@@ -2378,7 +2405,7 @@ FM_ZELLIJ_SESSION=firstmate  # zellij-only: named session for normal backend ops
 CMUX_SOCKET_PASSWORD=   # cmux-only: socket password fallback when config/cmux-socket-password is absent (docs/cmux-backend.md)
 FM_SESSION_START_STATUS_TAIL=1   # state/*.status events shown per task in the session-start digest: the newest on the task's line, older ones indented beneath it; each line is capped by bin/fm-line-cap-lib.sh
 FM_SESSION_START_QUEUED_LIMIT=10   # plain queued backlog rows in the session-start digest; in-flight, held, and blocked rows are never bounded (one capped line each) and done rows are never listed
-FM_SESSION_START_ENDPOINT_TIMEOUT=10   # seconds bounding each per-task endpoint liveness read in the session-start digest (bin/fm-session-start.sh); nonpositive or invalid values fall back to 10; a read that hits the bound or dies becomes that task's own `endpoint: error` line and the digest continues
+FM_SESSION_START_ENDPOINT_TIMEOUT=10   # seconds bounding each per-task endpoint liveness read in the session-start digest (bin/fm-session-start.sh); nonpositive or invalid values fall back to 10; a read that hits the bound or dies becomes that task's own `endpoint error` summary and the digest continues
 FM_BACKLOG_ROW_TIMEOUT_SECS=10   # seconds bounding each backlog row read (bin/fm-backlog-transition-lib.sh); nonpositive or invalid values fall back to 10; the first bound hit latches the sweep so later reads return immediately, each still naming its own item
 FM_BOOTSTRAP_DETECT_ONLY=0   # internal/read-only session-start mode: skip bootstrap's mutating sweeps and print advisory TANGLE wording
 FM_BOOTSTRAP_NETWORK=all   # internal session-start phase split: all, skip (local steps only), or only (network steps only); see bin/fm-bootstrap.sh

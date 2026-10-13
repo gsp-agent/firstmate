@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// fm-cursor-crew-guard.mjs - Cursor preToolUse hook for one crew (ship or scout)
+// fm-cursor-crew-guard.mjs - Cursor preToolUse hook for one Firstmate-launched
 // session. bin/fm-spawn.sh writes it into a per-task plugin directory and loads
 // that directory with --plugin-dir, so it exists for the crew's session only and
 // never for the captain's own Cursor sessions.
@@ -11,30 +11,28 @@
 //
 //   1. Pins the working directory. Cursor keeps one persistent shell per
 //      conversation, and a call that omits its working directory runs wherever
-//      the previous call left that shell, not in the workspace. A single
-//      earlier call with an explicit working directory in the primary checkout
-//      therefore sent the next empty-directory call there. The hook rewrites an
+//      the previous call left that shell, not in the workspace. The hook rewrites an
 //      empty directory to --worktree (updated_input.cwd), so a call that names
 //      no directory always runs in the task worktree. A call that names a
 //      directory is left alone.
 //
 //   2. Refuses git symbolic-ref and git update-ref. Both move HEAD or a ref
-//      with none of checkout's checks, so they are how a refused branch
-//      creation was once repeated against the primary checkout. Reads of the
+//      with none of checkout's checks. Reads of the
 //      same state have plain alternatives (git branch --show-current), which
 //      the refusal names. This is the only per-command policy here: git
-//      checkout -b is refused by permission rules Cursor imports from
-//      ~/.claude/settings.json, which no per-session setting can lift, and
-//      git switch -c is the in-worktree branch command that is not refused.
+//      checkout -b and -B are refused where permission rules Cursor imports
+//      from ~/.claude/settings.json or the repository's .claude/settings.json
+//      deny them; an imported deny beats an allow. The generated brief uses
+//      git switch -c for later branches.
 //
 // Scope: this pins implicit working-directory drift and refuses HEAD and ref
 // plumbing. It is not repository confinement: a command that names another
 // checkout explicitly (git -C /primary switch -c ...) is allowed by design.
 //
 // Output is Cursor's preToolUse decision object on stdout with exit 0, or
-// nothing for "no change". Unparseable input, a missing --worktree, and a
-// command this classifier cannot tokenize all fail open: a broken hook must
-// never refuse every shell call. The shell tokenizer is the shared owner,
+// nothing for "no change". Unparseable JSON emits no decision; a missing
+// --worktree skips directory pinning. Tokenization failure falls back to a
+// conservative literal ref-command check. The shell tokenizer is the shared owner,
 // bin/fm-arm-command-policy.mjs; nothing here evaluates the command.
 
 import { Lexer, splitProgram, commandPosition } from "./fm-arm-command-policy.mjs";

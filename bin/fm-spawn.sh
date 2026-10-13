@@ -22,6 +22,10 @@
 #   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}`
 #   placeholders, an empty Task, an incomplete pair of Task subsections, or a
 #   `## Captain's intent` line opening with a Captain label or address.
+#   A fresh ship or scout also refuses an extracted `# Task` body over 2048
+#   bytes, including its intent and spec headings; the surrounding scaffold
+#   is excluded. Relaunches are exempt so a retained pre-cap brief cannot
+#   strand an existing task. Keep the task concise and link its supporting detail.
 #   Every ship or scout spawn renders `launch-brief.md`; for a no-mistakes ship
 #   it also carries the current `--intent` contract and the extracted captain
 #   intent. A legacy mixed Task is accepted there only under bin/fm-dod-lib.sh's
@@ -474,13 +478,15 @@
 # busy turn - answering the dialog first if it renders anyway - before
 # reporting success (the rovo/kimi launch-then-confirm shape). Its busy state
 # is a screen-scrape fallback like grok and rovo, and it is crewmate/scout only.
-# cursor installs no per-task hook either: it writes state/<id>.cursor-session to
-# bind the pane to cursor's own conversation transcript (projects root, the exact
+# cursor uses its transcript rather than a turn-end hook, writing
+# state/<id>.cursor-session to bind the pane to cursor's own conversation transcript (projects root, the exact
 # workspace path cursor records in .workspace-trusted, and the conversations that
 # already existed for that workspace). It is launched through the verified binary
-# resolver because `cursor` is not the CLI name. A cursor SECONDMATE instead runs
-# the tracked project-scope .cursor/hooks.json in its own home, whose stop-hook
-# park owns that home's supervision (docs/supervision-protocols/cursor.md).
+# resolver because `cursor` is not the CLI name. Every Cursor launch also loads
+# the per-task Shell preToolUse plugin owned by bin/fm-cursor-crew-guard.mjs.
+# The print-mode launch applies to secondmates too, so their tracked project
+# stop hook does not park on supervision; the interactive primary protocol
+# remains owned by docs/supervision-protocols/cursor.md.
 # claude is the one harness whose pre-launch setup can REFUSE the spawn: before
 # any per-task state exists, and before its busy hooks are written, every
 # claude launch pre-registers the directory the pane
@@ -2237,9 +2243,8 @@ launch_template() {
   # per-task pointer), so the template is identical for ship/scout/secondmate.
   # The env prefix keeps a crewmate off the captain's interactive surface:
   # Grok scans ~/.claude.json, ~/.cursor/mcp.json and the Claude and Cursor
-  # skill directories by default, so every crewmate started those MCP servers
-  # (measured: 9 servers, 3 failing on every launch, one registered twice) and
-  # listed those skills. Project .mcp.json servers and grok-native plugins
+  # skill directories by default, starting the captain's interactive MCP
+  # servers in each fleet process. Project .mcp.json servers and grok-native plugins
   # still load. API-key auth is refused so a crewmate cannot fall through to a
   # metered key, and cross-session memory is off for unattended work. Each
   # variable is documented in Grok's config reference (compat.*, auth.*) and
@@ -2259,13 +2264,11 @@ launch_template() {
   # effort axis is deliberately omitted and stays in task metadata only.
   # -p --output-format stream-json is tee'd (through process substitution, so
   # the pane command keeps the agent's own exit status) to state/<id>.cursor-stream.jsonl
-  # and still runs in the pane, so it stays visible; steer by relaunching with
-  # --resume of the bound session. --plugin-dir loads pstack and --approve-mcps
+  # and still runs in the pane, so it stays visible; bin/fm-control.sh owns
+  # replacement and steering. --plugin-dir loads pstack and --approve-mcps
   # lets its MCP servers start unattended. The second --plugin-dir is this
   # task's crew guard (install_cursor_crew_guard, bin/fm-cursor-crew-guard.mjs):
-  # a preToolUse hook that pins shell calls naming no directory to the worktree,
-  # because Cursor otherwise runs them wherever the conversation's persistent
-  # shell last was, and refuses git symbolic-ref and update-ref.
+  # bin/fm-cursor-crew-guard.mjs owns that hook's policy and safety limits.
   cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ --plugin-dir __CURSORCREWGUARD__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?' ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
@@ -3673,9 +3676,8 @@ prepare_ship_branch() { # <worktree> <branch>
   fi
 }
 
-# Write the per-task Cursor plugin that carries bin/fm-cursor-crew-guard.mjs as a
-# preToolUse hook for this crew session alone: it pins every shell call that
-# names no directory to <worktree> and refuses git symbolic-ref and update-ref.
+# Write the per-task Cursor plugin carrying bin/fm-cursor-crew-guard.mjs's
+# Shell preToolUse policy; that script's header owns the policy and its limits.
 # The launch loads it with --plugin-dir, so the captain's own Cursor sessions
 # never see it. Rewritten on every launch; teardown removes the directory.
 install_cursor_crew_guard() { # <plugin-dir> <worktree>

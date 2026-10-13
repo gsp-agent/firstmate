@@ -292,7 +292,7 @@ Only a named non-default branch checked out in `FM_ROOT` is a worktree tangle.
 `fm-guard.sh` prints the repair command on the next mutable fleet action, while `bin/fm-session-start.sh` reports the same condition through bootstrap as a `TANGLE:` line at session start.
 If another live session holds the fleet lock, both surfaces keep the alarm but switch to read-only wording with no repair command.
 Ship briefs also tell the crewmate to verify `pwd -P` and `git rev-parse --show-toplevel` and then to confirm it is on its ship branch (`fm/<id>` by default, or the project's registered prefix), stopping with a blocked status if it landed in the primary checkout.
-A fresh ship spawn has already created and checked out that branch at the refreshed base before the crew exists, so the crewmate never runs a branch-creating command a harness might refuse.
+[`bin/fm-spawn.sh`](../bin/fm-spawn.sh)'s header owns fresh ship-branch preparation and the safety rules for retained branches.
 Placement is proven only at launch, so `bin/fm-spawn.sh` also exports the task id as `FM_TASK_ID` into every ship and scout pane, and `bin/fm-test-run.sh` refuses to execute the behavior suite from the primary checkout while that marker is set; the runner's header owns the predicate and [`tests/fm-test-run.test.sh`](../tests/fm-test-run.test.sh) pins it.
 
 ## No-mistakes gate authority boundary

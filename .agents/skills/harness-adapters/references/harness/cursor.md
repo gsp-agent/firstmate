@@ -8,7 +8,7 @@ Cross-harness provider and credential identity is owned by `references/common/mo
 | Fact | Value |
 |---|---|
 | Binary | `fm_cursor_resolve_binary` in `../../../bin/fm-cursor-lib.sh` resolves stable launcher `cursor-agent` or legacy `agent`, never `cursor`; both symlink into `~/.local/share/cursor-agent/versions/<version>/cursor-agent`, whose target auto-update replaces. |
-| Launch | Positional instructions with `--trust`, `--yolo`, optional `--model <model>`, and `--workspace <absolute-task-worktree>`, after clearing foreign primary markers. |
+| Launch | Firstmate uses print mode with captured stream output; `../../../bin/fm-spawn.sh` owns the flags and plugin wiring, and [Cursor launch policy](../../../../../docs/configuration.md#crew-dispatch-profiles-configcrew-dispatchjson) owns fallback, launch limits, and shared settings. |
 | Attribution | Cursor can append a Co-authored-by trailer after the typed message. Unless the home sets `config/keep-ai-trailers` (`../../../../../docs/configuration.md` "Commit attribution"), every fleet launch installs the pane-scoped commit-msg strip in `../../../bin/fm-git-strip-ai-trailers.sh`, which removes known AI trailers and leaves human co-authors and the author identity untouched. |
 | Models | Use current-account `cursor-agent --list-models` or legacy `agent --list-models`; the drifting observed list had only `cursor-grok-4.5-high` and `cursor-grok-4.5-high-fast` for Grok plus several `xhigh` ids, so choose a returned reasoning id and never assume low or medium Grok. |
 | Busy state | `../../../bin/fm-busy-lib.sh` folds the per-conversation transcript as `cursor-transcript`: `role:user` opens and typed `turn_ended` closes success or abort, covering manual interrupt; nothing is armed or seeded, and this backend-agnostic source was identical on tmux and Herdr. |
@@ -64,12 +64,8 @@ Refresh with `FM_HARNESS_LIVENESS_DRIFT=1 ../../../bin/fm-test-run.sh ../../../t
 Firstmate enters its acquired worktree and passes the same absolute path through `--workspace`.
 Never pass Cursor `-w` or `--worktree`, which allocates a second copy under `~/.cursor/worktrees` and breaks isolation.
 The CLI supports repeatable `--add-dir`, but the adapter adds none; positional instructions need no grant to their private directory.
-Cursor keeps one persistent shell per conversation, and a Shell call that names no working directory runs wherever the previous call left that shell, not in the workspace.
-A call that names the primary checkout therefore sends the next unnamed call there; measured 2026-10-13 on Cursor Agent CLI 2026.10.01-e373342 in print mode, where a following `git symbolic-ref HEAD` moved the primary's HEAD.
-Every crew launch loads a per-task plugin, `state/<id>.cursor-crew-guard`, whose `preToolUse` hook (`../../../bin/fm-cursor-crew-guard.mjs`) rewrites an empty working directory to the task worktree and refuses `git symbolic-ref` and `git update-ref`.
-The captain's own Cursor sessions never load it.
-Cursor also imports `permissions.deny` from `~/.claude/settings.json` and the repository's `.claude/settings.json`, and a deny beats every allow, so `git checkout -b` and `git checkout -B` are refused wherever those files deny them while `git switch -c` runs.
-Spawn therefore creates the ship branch itself, and a crew starts any later branch with `git switch -c`.
+[`bin/fm-cursor-crew-guard.mjs`](../../../../../bin/fm-cursor-crew-guard.mjs) owns the per-session working-directory and ref-command policy, its explicit-directory limits, and the imported branch-command restrictions.
+[`bin/fm-spawn.sh`](../../../../../bin/fm-spawn.sh) owns ship-branch preparation; follow the generated brief's branch check.
 Example: `../../../bin/fm-spawn.sh <task-id> <project> --scout --harness cursor --model cursor-grok-4.5-high`.
 
 ## Primary integration
@@ -81,4 +77,5 @@ Tracked hooks register `stop`, `sessionStart`, and two `preToolUse` seatbelts th
 
 `stop` cannot block because exit 2 is a silent no-op, so `../../../bin/fm-turnend-guard-cursor.sh` parks on supervision and returns one bounded `followup_message`.
 It does not fire in headless `cursor-agent -p`.
+Firstmate's current Cursor launch template uses that mode for secondmates too, so their printed session has no stop-hook park.
 `preCompact` is unregistered because it cannot inject context, so digest re-emission after Cursor compaction remains deferred.

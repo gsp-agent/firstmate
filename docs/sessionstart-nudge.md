@@ -145,7 +145,7 @@ Some digest work remains local but unbounded:
 So the whole digest still runs as one bounded child, default 120s via `FM_SESSION_START_TIMEOUT`.
 
 Each per-task endpoint liveness read runs serially in its own crash-isolated child, bounded by `FM_SESSION_START_ENDPOINT_TIMEOUT` (default 10s; a non-numeric or zero value falls back to the default).
-So a read that hangs or dies becomes that task's own `endpoint: error` line and the digest continues.
+[`bin/fm-session-start.sh`](../bin/fm-session-start.sh)'s header owns how the digest presents a per-task read failure and continues.
 With a wedged backend the stage's ceiling is tasks times that per-read bound and can itself reach the digest bound.
 
 The per-item backlog row reads inside bootstrap's reconcile and close-replay sweeps are the exception.

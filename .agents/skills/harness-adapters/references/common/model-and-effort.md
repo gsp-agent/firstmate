@@ -9,7 +9,7 @@ Add `references/common/dispatch.md` for configured profile precedence.
 The tool reference records verified flags, accepted values, omission behavior, and discovery.
 
 Effort precedence is a per-task captain instruction, then applicable dispatch profile or secondmate pin, then the fallback below.
-Never replace either higher-precedence value.
+Preserve either higher-precedence value subject to the [Cursor launch policy](../../../../../docs/configuration.md#crew-dispatch-profiles-configcrew-dispatchjson).
 Use the fallback only when neither specifies effort.
 
 Use `low` for well-understood work with an explicit bounded path and `xhigh` for ambiguous investigation or design.
