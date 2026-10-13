@@ -727,6 +727,89 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
   pass "cursor receives its model-qualified reasoning class and exact task workspace"
 }
 
+# Stand-in for Cursor's shell tool. Cursor asks each preToolUse hook first, then
+# runs a call that names no directory wherever the conversation's previous call
+# left its persistent shell, and an explicit directory moves that shell. This
+# applies those rules to the hook command a spawn really generated, against
+# scratch repositories only. REPLAY_CWD is the persistent shell's directory.
+REPLAY_CWD=
+REPLAY_RAN=
+REPLAY_OUT=
+cursor_shell_call() {  # <hook-command> <command> [working-directory]
+  local hook=$1 command=$2 dir=${3-} decision
+  decision=$(jq -nc --arg c "$command" --arg d "$dir" '{tool_name:"Shell",tool_input:{command:$c,cwd:$d}}' | sh -c "$hook")
+  REPLAY_RAN=0
+  REPLAY_OUT=$(printf '%s' "$decision" | jq -r '.agent_message // empty')
+  [ "$(printf '%s' "$decision" | jq -r '.permission // empty')" != deny ] || return 0
+  [ -n "$dir" ] || dir=$(printf '%s' "$decision" | jq -r '.updated_input.cwd // empty')
+  [ -n "$dir" ] || dir=$REPLAY_CWD
+  REPLAY_CWD=$dir
+  REPLAY_RAN=1
+  REPLAY_OUT=$(cd "$dir" && sh -c "$command" 2>&1)
+}
+
+test_cursor_crew_guard_pins_cwd_and_refuses_ref_plumbing() {
+  local rec id out status launch guard_dir hook_cmd primary baseline head_before head_after
+  id=profile-cursor-crewguard-z6g
+  rec=$(make_spawn_case profile-cursor-crewguard cursor "$id")
+  read_case_record "$rec"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model cursor-grok-4.5-high)
+  status=$?
+  expect_code 0 "$status" "cursor spawn should write its crew guard plugin"$'\n'"$out"
+  launch=$(cat "$LAUNCH_LOG")
+  guard_dir="$(cd "$HOME_DIR/state" && pwd -P)/$id.cursor-crew-guard"
+  assert_contains "$launch" "--plugin-dir '$guard_dir' --model" \
+    "cursor launch did not load the per-task crew guard plugin"
+  [ "$(jq -r '.hooks' "$guard_dir/.cursor-plugin/plugin.json")" = ./hooks/hooks.json ] \
+    || fail "the crew guard plugin does not point at its hooks file"
+  [ "$(jq -c '.hooks.preToolUse | map({matcher, type})' "$guard_dir/hooks/hooks.json")" = '[{"matcher":"Shell","type":"command"}]' ] \
+    || fail "the crew guard hook is not a single Shell preToolUse command: $(cat "$guard_dir/hooks/hooks.json")"
+  hook_cmd=$(jq -r '.hooks.preToolUse[0].command' "$guard_dir/hooks/hooks.json")
+  [ "$hook_cmd" = "'$ROOT/bin/fm-cursor-crew-guard.mjs' --worktree '$WT_DIR'" ] \
+    || fail "the crew guard hook command does not pin this task's worktree: $hook_cmd"
+  if [ "${FM_TEST_EVIDENCE:-0}" = 1 ]; then
+    printf '# crew guard plugin bytes (%s)\n' "$guard_dir"
+    cat "$guard_dir/.cursor-plugin/plugin.json" "$guard_dir/hooks/hooks.json"
+  fi
+
+  # Replay of the 2026-10-13 incident: a call names the primary checkout as its
+  # directory, then a call names none and tries to move HEAD with plumbing.
+  primary="$CASE_DIR/scratch-primary"
+  baseline="$CASE_DIR/scratch-primary-unguarded"
+  fm_git_init_commit "$primary"
+  fm_git_init_commit "$baseline"
+
+  REPLAY_CWD=$WT_DIR
+  cursor_shell_call ':' 'git rev-parse --show-toplevel' "$baseline"
+  cursor_shell_call ':' 'pwd'
+  [ "$(cd "$REPLAY_CWD" && pwd -P)" = "$(cd "$baseline" && pwd -P)" ] \
+    || fail "stand-in shell did not model the persistent directory (ran in $REPLAY_CWD)"
+  cursor_shell_call ':' 'git branch fm/replay && git symbolic-ref HEAD refs/heads/fm/replay'
+  [ "$(git -C "$baseline" symbolic-ref HEAD)" = refs/heads/fm/replay ] \
+    || fail "unguarded replay did not reproduce the HEAD flip"
+
+  head_before=$(git -C "$primary" symbolic-ref HEAD)
+  REPLAY_CWD=$WT_DIR
+  cursor_shell_call "$hook_cmd" 'git rev-parse --show-toplevel' "$primary"
+  cursor_shell_call "$hook_cmd" 'pwd'
+  [ "$REPLAY_RAN" = 1 ] || fail "a pinned empty-directory call did not run"
+  [ "$(cd "$REPLAY_OUT" && pwd -P)" = "$(cd "$WT_DIR" && pwd -P)" ] \
+    || fail "an empty-directory call ran in '$REPLAY_OUT', not the task worktree"
+  cursor_shell_call "$hook_cmd" 'git branch fm/replay && git symbolic-ref HEAD refs/heads/fm/replay'
+  [ "$REPLAY_RAN" = 0 ] || fail "the symbolic-ref call was not refused"
+  assert_contains "$REPLAY_OUT" "git symbolic-ref" "the refusal did not name the refused command"
+  head_after=$(git -C "$primary" symbolic-ref HEAD)
+  [ "$head_after" = "$head_before" ] || fail "scratch primary HEAD moved: $head_before -> $head_after"
+  [ -z "$(git -C "$primary" branch --list fm/replay)" ] || fail "the refused call still created a branch in the scratch primary"
+  [ -z "$(git -C "$WT_DIR" branch --list fm/replay)" ] || fail "the refused call still created a branch in the slot"
+  if [ "${FM_TEST_EVIDENCE:-0}" = 1 ]; then
+    printf '# replay, unguarded: scratch primary HEAD main -> %s\n' "$(git -C "$baseline" symbolic-ref HEAD)"
+    printf '# replay, guarded: scratch primary HEAD before=%s after=%s\n' "$head_before" "$head_after"
+  fi
+  pass "the cursor crew guard pins empty-directory calls to the worktree and a replayed symbolic-ref leaves a scratch primary's HEAD alone"
+}
+
 test_cursor_refuses_model_absent_from_live_catalog() {
   local rec id out status
   id=profile-cursor-unsupported-z6d
@@ -2269,6 +2352,7 @@ test_grok_threads_model_and_reasoning_effort
 test_grok_omits_invalid_max_reasoning_effort
 test_grok_threads_xhigh_reasoning_effort
 test_cursor_threads_model_workspace_and_omits_effort_axis
+test_cursor_crew_guard_pins_cwd_and_refuses_ref_plumbing
 test_cursor_refuses_model_absent_from_live_catalog
 test_cursor_fallback
 test_cursor_failed_catalog_probe_blocks_spawn

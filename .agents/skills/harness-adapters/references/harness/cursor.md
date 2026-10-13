@@ -64,6 +64,12 @@ Refresh with `FM_HARNESS_LIVENESS_DRIFT=1 ../../../bin/fm-test-run.sh ../../../t
 Firstmate enters its acquired worktree and passes the same absolute path through `--workspace`.
 Never pass Cursor `-w` or `--worktree`, which allocates a second copy under `~/.cursor/worktrees` and breaks isolation.
 The CLI supports repeatable `--add-dir`, but the adapter adds none; positional instructions need no grant to their private directory.
+Cursor keeps one persistent shell per conversation, and a Shell call that names no working directory runs wherever the previous call left that shell, not in the workspace.
+A call that names the primary checkout therefore sends the next unnamed call there; measured 2026-10-13 on Cursor Agent CLI 2026.10.01-e373342 in print mode, where a following `git symbolic-ref HEAD` moved the primary's HEAD.
+Every crew launch loads a per-task plugin, `state/<id>.cursor-crew-guard`, whose `preToolUse` hook (`../../../bin/fm-cursor-crew-guard.mjs`) rewrites an empty working directory to the task worktree and refuses `git symbolic-ref` and `git update-ref`.
+The captain's own Cursor sessions never load it.
+Cursor also imports `permissions.deny` from `~/.claude/settings.json` and the repository's `.claude/settings.json`, and a deny beats every allow, so `git checkout -b` and `git checkout -B` are refused wherever those files deny them while `git switch -c` runs.
+Spawn therefore creates the ship branch itself, and a crew starts any later branch with `git switch -c`.
 Example: `../../../bin/fm-spawn.sh <task-id> <project> --scout --harness cursor --model cursor-grok-4.5-high`.
 
 ## Primary integration

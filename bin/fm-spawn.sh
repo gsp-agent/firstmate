@@ -44,7 +44,11 @@
 #   selected branch does not match the project's registered prefix, the spawn
 #   prints a one-line deviation notice and continues, because the registered
 #   prefix is the captain's standing preference and the brief agreement above
-#   already guarantees the worker's instructions match the branch.
+#   already guarantees the worker's instructions match the branch. A fresh
+#   (non-relaunch) ship spawn creates and checks out that branch in the
+#   refreshed slot before the worker launches (prepare_ship_branch), so the
+#   worker only verifies it; a leftover branch of that name is moved only when
+#   its commits are already in the slot's HEAD and is otherwise resumed as it is.
 #   --base-branch is the optional branch selected at intake for a ship or scout
 #   to start from and target instead of origin's default branch. A fresh launch
 #   resets its pooled copy to origin/<branch>, refusing when the project has no
@@ -425,6 +429,7 @@
 #                  script published into the receiving home's operational inbox
 #     __WORKTREE__  absolute path to the task worktree
 #     __CURSORBIN__ resolved, cursor-verified executable for a cursor launch
+#     __CURSORCREWGUARD__ state/<task-id>.cursor-crew-guard, the per-task plugin dir carrying bin/fm-cursor-crew-guard.mjs
 #     __GEMINISETTINGS__ firstmate-owned per-task gemini settings file (busy-state hooks)
 #     __ROVOBIN__   resolved, rovo-verified executable for a rovo launch
 #     __DEVINBIN__ resolved Devin executable
@@ -2292,7 +2297,12 @@ launch_template() {
   # inherited CLAUDECODE cannot outrank cursor's own marker in a process that
   # only reads the environment. Cursor exposes no effort flag, so the shared
   # effort axis is deliberately omitted and stays in task metadata only.
-  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ --trust --yolo __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+  # --plugin-dir is this task's crew guard (install_cursor_crew_guard,
+  # bin/fm-cursor-crew-guard.mjs): a preToolUse hook that pins shell calls
+  # naming no directory to the worktree, because Cursor otherwise runs them
+  # wherever the conversation's persistent shell last was, and refuses git
+  # symbolic-ref and update-ref.
+  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ --trust --yolo --plugin-dir __CURSORCREWGUARD__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
   # command exactly as it does for claude and grok (verified: a multi-line
@@ -3680,6 +3690,53 @@ freshen_spawn_worktree_base() { # <worktree> [<base-branch>]
   fi
 }
 
+# A fresh ship slot starts on its own branch. Spawn creates and checks out
+# <branch> at the refreshed base before any crew exists, so the crew's first
+# action only verifies it (bin/fm-brief.sh) and never needs a branch-creating
+# command that a harness may refuse. A leftover branch of the same name whose
+# commits are already in HEAD is moved to HEAD (nothing is lost); one that
+# carries commits HEAD lacks is checked out as it is, never reset.
+prepare_ship_branch() { # <worktree> <branch>
+  local worktree=$1 branch=$2 head tip
+  head=$(git -C "$worktree" rev-parse --verify --quiet 'HEAD^{commit}' 2>/dev/null) || {
+    echo "error: pooled worktree '$worktree' has no commit to start branch '$branch' from; refusing to launch" >&2
+    return 1
+  }
+  if tip=$(git -C "$worktree" rev-parse --verify --quiet "refs/heads/$branch^{commit}" 2>/dev/null); then
+    if git -C "$worktree" merge-base --is-ancestor "$tip" "$head" 2>/dev/null; then
+      git -C "$worktree" checkout --quiet -B "$branch" "$head" -- >/dev/null
+    else
+      echo "notice: branch $branch already exists in $worktree with commits the refreshed base lacks; launching on it as it is" >&2
+      git -C "$worktree" checkout --quiet "$branch" -- >/dev/null
+    fi
+  else
+    git -C "$worktree" checkout --quiet -b "$branch" "$head" -- >/dev/null
+  fi || {
+    echo "error: could not check out ship branch '$branch' in '$worktree'; refusing to launch" >&2
+    return 1
+  }
+  if [ "$(git -C "$worktree" branch --show-current 2>/dev/null)" != "$branch" ]; then
+    echo "error: '$worktree' is not on ship branch '$branch' after preparing it; refusing to launch" >&2
+    return 1
+  fi
+}
+
+# Write the per-task Cursor plugin that carries bin/fm-cursor-crew-guard.mjs as a
+# preToolUse hook for this crew session alone: it pins every shell call that
+# names no directory to <worktree> and refuses git symbolic-ref and update-ref.
+# The launch loads it with --plugin-dir, so the captain's own Cursor sessions
+# never see it. Rewritten on every launch; teardown removes the directory.
+install_cursor_crew_guard() { # <plugin-dir> <worktree>
+  local dir=$1 worktree=$2 command
+  command="$(shell_quote "$SCRIPT_DIR/fm-cursor-crew-guard.mjs") --worktree $(shell_quote "$worktree")"
+  mkdir -p "$dir/.cursor-plugin" "$dir/hooks" || return 1
+  jq -n '{name: "fm-crew-guard", displayName: "Firstmate crew guard", version: "1.0.0",
+    description: "Pins crew shell calls to the task worktree and refuses git symbolic-ref and update-ref.",
+    hooks: "./hooks/hooks.json"}' >"$dir/.cursor-plugin/plugin.json" || return 1
+  jq -n --arg command "$command" '{version: 1, hooks: {preToolUse: [
+    {matcher: "Shell", type: "command", command: $command, timeout: 10}]}}' >"$dir/hooks/hooks.json"
+}
+
 herdr_projection_meta_field_exact() { # <meta> <key>
   local meta=$1 key=$2 count
   [ -f "$meta" ] && [ ! -L "$meta" ] || return 1
@@ -4632,6 +4689,9 @@ fi
 if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
   freshen_spawn_worktree_base "$WT" "$BASE_BRANCH" || exit 1
 fi
+if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" = ship ] && [ -n "${BRANCH:-}" ]; then
+  prepare_ship_branch "$WT" "$BRANCH" || exit 1
+fi
 
 # Re-assert the durable task copy after either treehouse acquisition or endpoint
 # adoption. This also updates Herdr's restored pane shell before any harness is
@@ -5499,7 +5559,15 @@ LAUNCH=${LAUNCH//__OMPWORKERCFG__/$sq_ompcfg}
 LAUNCH=${LAUNCH//__OPINPUT__/$sq_opinput}
 case "$HARNESS" in
 pi | pi-signed) LAUNCH=${LAUNCH//__PIBIN__/"$(shell_quote "$PI_BIN")"} ;;
-cursor) LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"} ;;
+cursor)
+  LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"}
+  CURSOR_CREW_GUARD_DIR="$STATE_REAL/$ID.cursor-crew-guard"
+  install_cursor_crew_guard "$CURSOR_CREW_GUARD_DIR" "$WT" || {
+    echo "error: could not write the Cursor crew guard plugin for $ID at $CURSOR_CREW_GUARD_DIR; refusing to launch a crew without it" >&2
+    exit 1
+  }
+  LAUNCH=${LAUNCH//__CURSORCREWGUARD__/"$(shell_quote "$CURSOR_CREW_GUARD_DIR")"}
+  ;;
 gemini) LAUNCH=${LAUNCH//__GEMINISETTINGS__/"$(shell_quote "$STATE_REAL/$ID.gemini-settings.json")"} ;;
 omp) LAUNCH=${LAUNCH//__OMPBIN__/"$(shell_quote "$OMP_BIN")"} ;;
 devin)
