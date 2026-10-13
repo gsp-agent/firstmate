@@ -2493,8 +2493,8 @@ SH
   printf '%s\n' "$arm (bash) S 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 777 20 21 22" > "$proc/$arm/stat"
   printf 'bash\0%s/bin/fm-watch-arm.sh\0park\0' "$ROOT" > "$proc/$arm/cmdline"
   : > "$home/proc-ready"
-  identity_key=proc-starttime
-  [ "$(uname)" != Linux ] || identity_key=linux-starttime
+  identity_key="proc-starttime"
+  [ "$(uname)" != Linux ] || identity_key="linux-starttime"
   expected_hex=$(/usr/bin/od -An -v -tx1 "$proc/$arm/cmdline" | tr -d '[:space:]')
   needle="${identity_key}=777 cmdline-hex=${expected_hex}"
   wait_until 80 grep -F -q "$needle" "$home/state/.supervision-host" \
