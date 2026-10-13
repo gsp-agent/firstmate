@@ -1258,8 +1258,9 @@ test_take_over_owns_a_fresh_cycle_and_keeps_queued_work_surfacing() {
 # watcher's secondmate tick write so it exits through cleanup before TERM lands.
 # The ledger and recovery wake are public output contracts, not source probes.
 test_take_over_preserves_downtime_from_watcher_self_exit() {
-  local dir home state fakebin owner watcher armout acknowledged real_rm real_touch status i
-  dir=$(make_case take-over-self-exit)
+  local initial_marker=${1:-acked} recovery_token queued_wakes
+  local dir home state fakebin owner watcher armout real_rm real_touch status i
+  dir=$(make_case "take-over-self-exit-$initial_marker")
   home="$dir/home"
   mkdir -p "$home"
   state="$dir/state"
@@ -1272,9 +1273,15 @@ test_take_over_preserves_downtime_from_watcher_self_exit() {
   FM_SECONDMATE_LIVENESS_SECS=1 start_rearm_arm "$home" "$state" "$fakebin" "$dir/owner.out" "$$"
   owner=$ARM_PID
   watcher=$(cat "$state/.watch.lock/pid")
-  append_wake "$state" signal take-over "signal: fixture handled by main"
-  ack_wakes "$state" >/dev/null || fail "fixture: could not acknowledge wake"
-  acknowledged=$(cat "$state/.watcher-down")
+  if [ "$initial_marker" = announced ]; then
+    append_wake "$state" check take-over "check: fixture already delivered"
+    printf 'announced:downtime:already.1.ann\n' > "$state/.watcher-down"
+  else
+    append_wake "$state" signal take-over "signal: fixture handled by main"
+    ack_wakes "$state" >/dev/null || fail "fixture: could not acknowledge wake"
+  fi
+  recovery_token=$(cat "$state/.watcher-down")
+  queued_wakes=$(cat "$state/.wake-queue")
   real_rm=$(command -v rm)
   # Only the taking arm gets this shim. Release the real queue lock before
   # exposing the barrier: the self-exiting watcher needs it for cleanup.
@@ -1301,10 +1308,15 @@ test_take_over_preserves_downtime_from_watcher_self_exit() {
   ! is_live_non_zombie "$watcher" || fail "old watcher did not self-exit"
   grep -q "arm_pid=$owner	watcher_pid=$watcher.*exit_code=1	signal=none" "$state/.watch-cycle-exits.log" \
     || fail "owner did not record its watcher's non-signal failure"
-  [ ! -s "$state/.wake-queue" ] || fail "self-exit unexpectedly queued a wake"
+  [ "$(cat "$state/.wake-queue")" = "$queued_wakes" ] || fail "self-exit changed queued work"
   ! grep -q "^$watcher	" "$state/.watch-deliveries.log" 2>/dev/null \
     || fail "self-exit unexpectedly delivered a wake"
-  case "$(cat "$state/.watcher-down")" in pending:downtime:*) ;; *) fail "self-exit did not publish downtime" ;; esac
+  if [ "$initial_marker" = announced ]; then
+    [ "$(cat "$state/.watcher-down")" = "$recovery_token" ] \
+      || fail "self-exit did not preserve the announced episode"
+  else
+    case "$(cat "$state/.watcher-down")" in pending:downtime:*) ;; *) fail "self-exit did not publish downtime" ;; esac
+  fi
   rm -f "$dir/fail-tick"
   touch "$dir/release"
   i=0
@@ -1314,12 +1326,18 @@ test_take_over_preserves_downtime_from_watcher_self_exit() {
     sleep 0.05
     i=$((i + 1))
   done
-  [ "$(cat "$state/.watcher-down")" != "$acknowledged" ] || fail "takeover restored the old acknowledgement"
+  [ "$(cat "$state/.watcher-down")" != "$recovery_token" ] \
+    || fail "unconfirmed takeover kept the old recovery token"
   wait_for_exit "$ARM_PID" "$REARM_EXIT_POLLS"
   status=$?
   expect_code 0 "$status" "fresh takeover must surface recovery cleanly"
   assert_contains "$(cat "$armout")" 'check: rearm-resurface' "self-exit downtime must surface as recovery"
-  pass "watch-arm: takeover preserves self-exit downtime and surfaces a recovery wake"
+  [ "$(grep -c '^check: rearm-resurface' "$armout")" -eq 1 ] \
+    || fail "self-exit downtime did not surface exactly one recovery wake"
+  [ "$(cat "$state/.wake-queue")" = "$queued_wakes" ] || fail "takeover changed queued work"
+  grep -q 'reason=taken-over-unconfirmed-stop' "$state/.watch-cycle-exits.log" \
+    || fail "self-exit takeover was not classified as an unconfirmed stop"
+  pass "watch-arm: takeover preserves $initial_marker self-exit downtime and surfaces one recovery wake"
 }
 
 test_downtime_marker_does_not_follow_symlink() {
@@ -1802,4 +1820,5 @@ test_take_over_attaches_to_a_cycle_the_named_arm_does_not_own
 test_take_over_owns_a_fresh_cycle_and_keeps_queued_work_surfacing
 test_repeated_take_over_preserves_an_announced_episode
 test_take_over_preserves_downtime_from_watcher_self_exit
+test_take_over_preserves_downtime_from_watcher_self_exit announced
 test_opencode_arm_plugin_decides_with_the_shared_predicate
