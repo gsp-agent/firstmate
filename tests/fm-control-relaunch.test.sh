@@ -2632,6 +2632,33 @@ test_cleanup_reaps_its_process_group() {
   pass "fm-control relaunch cleanup stops its process group"
 }
 
+# reap ignores termination while it signals its own group. A signal that had
+# no trap is at its default, and trap -p prints nothing for that default, so
+# replaying the saved output leaves the ignore in place for the rest of the run.
+test_reap_restores_a_signal_that_had_no_trap() {
+  local pgid suite_term suite_int suite_hup before_int after_int after_term after_hup
+  pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+  [ "$pgid" = "$$" ] || fail "reap must be the process group leader to change signal dispositions"
+  suite_term=$(trap -p TERM)
+  suite_int=$(trap -p INT)
+  suite_hup=$(trap -p HUP)
+  trap - TERM INT HUP
+  trap 'true' INT
+  before_int=$(trap -p INT)
+  relaunch_reap_group
+  after_int=$(trap -p INT)
+  after_term=$(trap -p TERM)
+  after_hup=$(trap -p HUP)
+  if [ -n "$suite_term" ]; then eval "$suite_term"; else trap - TERM; fi
+  if [ -n "$suite_int" ]; then eval "$suite_int"; else trap - INT; fi
+  if [ -n "$suite_hup" ]; then eval "$suite_hup"; else trap - HUP; fi
+  [ -n "$before_int" ] || fail "the saved INT trap was not installed"
+  [ "$after_int" = "$before_int" ] || fail "reap dropped the saved INT trap: ${after_int:-<default>}"
+  [ -z "$after_term" ] || fail "reap left TERM ignored: $after_term"
+  [ -z "$after_hup" ] || fail "reap left HUP ignored: $after_hup"
+  pass "reap restores default termination and keeps a signal that already had a trap"
+}
+
 # The per-script bound signals the group the runner started. This file's
 # private group has to die with that signal, including a sleeper it forked.
 test_runner_bound_reaches_the_private_group() {
@@ -2671,6 +2698,7 @@ test_runner_bound_reaches_the_private_group() {
 
 test_runner_bound_reaches_the_private_group
 test_cleanup_reaps_its_process_group
+test_reap_restores_a_signal_that_had_no_trap
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
