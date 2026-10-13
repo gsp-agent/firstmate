@@ -89,10 +89,14 @@ TASK_TMPS=()
 # Deleting the temp dir leaves those loops running, because they wait for a
 # release file that cleanup has already removed.
 relaunch_reap_group() {
-  local pgid saved i survivors pid
+  local pgid saved_term saved_int saved_hup i survivors pid
   pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
   [ -n "$pgid" ] && [ "$pgid" = "$$" ] || return 0
-  saved=$(trap -p TERM INT HUP)
+  # trap -p prints nothing for a signal still at its default, so replaying
+  # that empty output would leave the ignore installed below.
+  saved_term=$(trap -p TERM)
+  saved_int=$(trap -p INT)
+  saved_hup=$(trap -p HUP)
   trap '' TERM INT HUP
   kill -TERM -"$pgid" 2>/dev/null || true
   i=0
@@ -107,7 +111,9 @@ relaunch_reap_group() {
     kill -KILL "$pid" 2>/dev/null || true
   done
   wait 2>/dev/null || true
-  [ -z "$saved" ] || eval "$saved"
+  if [ -n "$saved_term" ]; then eval "$saved_term"; else trap - TERM; fi
+  if [ -n "$saved_int" ]; then eval "$saved_int"; else trap - INT; fi
+  if [ -n "$saved_hup" ]; then eval "$saved_hup"; else trap - HUP; fi
 }
 
 relaunch_cleanup() {
@@ -2668,6 +2674,7 @@ test_runner_bound_reaches_the_private_group() {
   # shellcheck source=/dev/null
   . "$ROOT/bin/fm-timeout-lib.sh"
   sleep 30 &
+  # shellcheck disable=SC2031 # Background $! is this shell's job, not a subshell copy.
   canary=$!
   fm_run_timed 4 env FM_RELAUNCH_TIMEOUT_PROBE=1 FM_RELAUNCH_TIMEOUT_PROBE_PIDFILE="$pidfile" \
     bash "${BASH_SOURCE[0]}"
