@@ -170,6 +170,8 @@
 # sleeps within the unchanged POLL-cadence maintenance and boundary checks;
 # close observation and a shell-only caught signal may wait that interval plus
 # work/scheduling time. No stop-signal disposition or cleanup bound changes.
+# The arm's identity is refreshed only until two consecutive reads name the
+# arm script. That unreaped child's command line no longer changes after exec.
 # FM_TEST_SUPERVISION_HOST_CLOCK names a file holding the park's elapsed
 # seconds, which the park and turn boundary checks read in place of SECONDS
 # only when FM_TEST_SEAM=1; tests/lib.sh arms the marker for isolated suites.
@@ -529,16 +531,41 @@ stream_ready_line() {
   READY_PENDING=0
 }
 
+# Re-read the arm until its command line has settled on the arm script.
+# The first read can land between fork and exec. After exec the unreaped
+# child's pid cannot be recycled and the command line stops changing, so
+# later polls skip the identity tools.
+settle_arm_identity() {  # <pid>
+  local pid=$1 current
+  [ -n "$pid" ] || return 0
+  if [ "${ARM_IDENTITY_TRACKED:-}" != "$pid" ]; then
+    ARM_IDENTITY_TRACKED=$pid
+    ARM_IDENTITY_FRESH_PID=
+    ARM_IDENTITY_FRESH_SEEN=
+  fi
+  [ "${ARM_IDENTITY_FRESH_PID:-}" = "$pid" ] && return 0
+  current=$(identity_of "$pid" 2>/dev/null || true)
+  refresh_process "$pid"
+  case "$current" in
+    *fm-watch-arm.sh*)
+      if [ -n "$current" ] && [ "$current" = "${ARM_IDENTITY_FRESH_SEEN:-}" ]; then
+        ARM_IDENTITY_FRESH_PID=$pid
+      fi
+      ;;
+  esac
+  ARM_IDENTITY_FRESH_SEEN=$current
+}
+
 # Wait for the current arm to close. Returns 0 with ARM_TEXT set,
 # or 1 when the park boundary arrives first.
 await_close() {
   local i
   while fm_pid_alive "$ARM_PID"; do
-    refresh_process "$ARM_PID"
+    settle_arm_identity "$ARM_PID"
     [ "$READY_PENDING" -eq 0 ] || stream_ready_line
     boundary_reached && return 1
-    # Probe the arm's exit twice a second between POLL-cadence checks, without
-    # changing the outer identity refresh, readiness, or boundary cadence.
+    # Probe the arm's exit twice a second between POLL-cadence checks.
+    # Readiness and the boundary stay on that cadence.
     i=$((POLL * 2))
     while [ "$i" -gt 0 ] && fm_pid_alive "$ARM_PID"; do
       sleep 0.5

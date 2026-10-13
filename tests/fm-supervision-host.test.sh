@@ -2395,6 +2395,52 @@ SH
   pass "host: parked child-exit sampling uses ordinary half-second sleeps"
 }
 
+test_park_stops_refreshing_a_settled_arm() {
+  local home before later i seen
+  home=$(make_home park-identity attended)
+  mkdir -p "$home/empty-proc"
+  cat > "$home/fakebin/ps" <<'SH'
+#!/bin/bash
+host_cmd=$(/bin/ps -o command= -p "$PPID" 2>/dev/null || true)
+case "$host_cmd" in
+  *fm-supervision-host.sh*) printf '%s\n' "$*" >> "$FM_HOME/park-ps" ;;
+  *)
+    gparent=$(/bin/ps -o ppid= -p "$PPID" 2>/dev/null | tr -d '[:space:]')
+    host_cmd=$(/bin/ps -o command= -p "$gparent" 2>/dev/null || true)
+    case "$host_cmd" in
+      *fm-supervision-host.sh*) printf '%s\n' "$*" >> "$FM_HOME/park-ps" ;;
+    esac
+    ;;
+esac
+exec /bin/ps "$@"
+SH
+  chmod +x "$home/fakebin/ps"
+  FM_PROC_ROOT_OVERRIDE="$home/empty-proc" start_host "$home"
+  wait_until 150 watcher_live "$home" || fail "park-identity: no watcher started"
+  i=0
+  seen=0
+  while [ "$i" -lt 30 ]; do
+    before=$(grep -c 'lstart=' "$home/park-ps" 2>/dev/null || true)
+    if [ "${before:-0}" -ge 1 ]; then
+      seen=1
+      sleep 2
+      later=$(grep -c 'lstart=' "$home/park-ps" 2>/dev/null || true)
+      [ "${later:-0}" = "${before:-0}" ] && break
+    else
+      sleep 0.5
+    fi
+    i=$((i + 1))
+  done
+  [ "$seen" = 1 ] || fail "park-identity: the probe never saw an identity read"
+  : > "$home/park-ps"
+  sleep 3
+  if grep -q 'lstart=' "$home/park-ps" 2>/dev/null; then
+    fail "park-identity: the park kept reading the arm identity after it settled"$'\n'"$(cat "$home/park-ps")"
+  fi
+  stop_home_processes "$home"
+  pass "host: a parked arm is not re-identified once its command line has settled"
+}
+
 test_park_boundary_ends_the_park_before_the_hook_timeout() {
   local home token
   home=$(make_home boundary attended)
@@ -2958,6 +3004,7 @@ test_claude_stop_hook_restores_handoff_when_successor_closed_mid_engine_turn
 test_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails
 test_claude_stop_hook_notifies_when_closed_announced_successor_downtime_restore_fails
 test_park_exit_probe_uses_half_second_child_sleeps
+test_park_stops_refreshing_a_settled_arm
 test_report_surface_enforces_actor_turn_and_scope
 test_report_after_the_return_is_queued_for_main
 test_dispatch_entry_scopes_rows_and_renders_the_away_tail
