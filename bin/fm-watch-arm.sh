@@ -589,21 +589,22 @@ take_over_cycle() {  # <watcher-pid> <identity>
   if [ "$owner_signal" = TERM ]; then
     fm_recovery_marker_handover_restore "$STATE/.watcher-down" \
       "$FM_RECOVERY_HANDOVER_TOKEN" "$FM_RECOVERY_HANDOVER_SEQ" || true
+    TAKEN_OVER=confirmed
     cycle_log_append unknown unknown taken-over none
   else
+    TAKEN_OVER=unconfirmed
     cycle_log_append unknown unknown taken-over-unconfirmed-stop none
   fi
   return 0
 }
 
-TAKEN_OVER=0
+TAKEN_OVER=none
 if [ "$mode" = take-over ]; then
   mode=arm
   if healthy_watcher \
     && [ "$(ps -o ppid= -p "$HEALTHY_PID" 2>/dev/null | tr -d ' ')" = "$take_over_arm_pid" ]; then
     take_over_cycle "$HEALTHY_PID" "$HEALTHY_IDENTITY"
     case $? in
-      0) TAKEN_OVER=1 ;;
       3) exit 0 ;;
     esac
   fi
@@ -674,6 +675,8 @@ child_out=$(mktemp "$STATE/.watch-arm-output.XXXXXX") || {
 deadline=$(( $(date +%s) + CONFIRM_TIMEOUT + 1 ))
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
   FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" &
+elif [ "$TAKEN_OVER" = confirmed ]; then
+  FM_WATCH_TAKEOVER_CONTINUITY=1 "$WATCH" >"$child_out" &
 else
   "$WATCH" >"$child_out" &
 fi
@@ -757,7 +760,7 @@ while :; do
         exit 1
       fi
       cycle_mark_predecessor_successor "started:$child"
-      [ "$TAKEN_OVER" -eq 0 ] || cycle_mark_predecessor_successor "started:$child" "$ARM_PID"
+      [ "$TAKEN_OVER" = none ] || cycle_mark_predecessor_successor "started:$child" "$ARM_PID"
       if [ -n "$handling_generation" ]; then
         echo "watcher: started pid=$child (beacon fresh) recovery-generation=$handling_generation"
       else

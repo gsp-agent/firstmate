@@ -219,11 +219,12 @@ The away return brief treats a still-open handling episode as a wake in progress
 
 An unacknowledged downtime generation is announced at most once.
 The first recovery marks that generation announced, and later empty-queue arms leave it announced until durable work or interrupted handling makes recovery pending again.
-A non-successor watcher start checks the durable queue and recovery marker under their locks.
+An ordinary watcher start checks the durable queue and recovery marker under their locks.
 If an announced-but-unacknowledged episode has an empty queue, the arm leaves that generation announced, making repeated empty-queue arms idempotent while a long-poll source is merely alive.
 If a durable row arrived after the announcement, the arm opens a fresh pending downtime generation so buried work still resurfaces once.
-A Codex foreground checkpoint skips the announced-episode reopen transition, so an already-announced generation stays announced while the checkpoint continues its bounded supervision.
-Its ordinary arm check still announces a never-announced generation, including one made pending by a durable queue append during the checkpoint.
+A Codex foreground checkpoint or a watcher launched after a confirmed TERM take-over skips the announced-episode reopen transition.
+The already-announced generation and its queued rows stay quiet through those replacements.
+Their ordinary arm check still announces a pending generation, including downtime published by a self-exit or a new durable queue append.
 
 ### Generation reuse
 
@@ -235,7 +236,9 @@ A watcher close leaves an announced downtime episode announced, while a successf
 An announced handling episode becomes pending downtime on the same generation because its handling turn may have been interrupted.
 That handling republication gives a successor exactly one recovery presentation without orphaning the acknowledgement already printed for that generation.
 A watcher stopped so an arm can take its cycle over (`bin/fm-watch-arm.sh --take-over`) publishes downtime like any close, but the taking arm restores an acknowledged episode that stop reopened only when the taken-over arm's cycle-ledger row for that exact arm and watcher records the watcher ending by the take-over's TERM and no wake was appended in between.
-The taking arm waits within a short bound for that row; a missing row or any other signal leaves downtime for the fresh cycle's ordinary recovery wake, while take-over still proceeds.
+The taking arm waits within a short bound for that row.
+A missing row or any other signal leaves the downtime marker in place.
+The fresh watcher then follows ordinary recovery, including reopening an announced episode with queued work.
 Any other episode is left for the next cycle's arm check.
 
 ### What an acknowledgement retires
@@ -457,7 +460,8 @@ They also prove that a legacy or handoff-phase watcher marker from an absent rep
 - The self-healing moved-generation acknowledgement that consumes its handled rows and names its remedy.
 - The already-acknowledged confirmation no-op for a matching generation, with its mismatched-generation, dead-pid, and lock-mismatch rejections preserved.
 - The manual-restart generation churn that makes a confirmation for the churned generation report a mismatch, which an arm check without a reopen leaves in place.
-- A take-over that stays quiet after a confirmed TERM, still surfaces queued work and self-exit downtime, and attaches without stopping a cycle the named arm does not own.
+- A take-over that stays quiet after a confirmed TERM, still surfaces queued work and self-exit downtime from acknowledged and announced episodes, and attaches without stopping a cycle the named arm does not own.
+- Three successive take-overs preserving one announced generation and its unacknowledged queue, followed by an ordinary arm resurfacing recovery after the watcher stops.
 - The disposable-checkout arm refusal.
 - The home-gone and state-gone watcher exits.
 - The test reaper that stops a watcher armed for a temporary home.
