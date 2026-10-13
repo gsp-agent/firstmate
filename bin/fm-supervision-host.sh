@@ -546,13 +546,10 @@ settle_arm_identity() {  # <pid>
   [ "${ARM_IDENTITY_FRESH_PID:-}" = "$pid" ] && return 0
   current=$(identity_of "$pid" 2>/dev/null || true)
   refresh_process "$pid"
-  case "$current" in
-    *fm-watch-arm.sh*)
-      if [ -n "$current" ] && [ "$current" = "${ARM_IDENTITY_FRESH_SEEN:-}" ]; then
-        ARM_IDENTITY_FRESH_PID=$pid
-      fi
-      ;;
-  esac
+  if fm_pid_identity_names_command "$current" "fm-watch-arm.sh" \
+    && [ "$current" = "${ARM_IDENTITY_FRESH_SEEN:-}" ]; then
+    ARM_IDENTITY_FRESH_PID=$pid
+  fi
   ARM_IDENTITY_FRESH_SEEN=$current
 }
 
