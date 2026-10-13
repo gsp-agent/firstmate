@@ -19,6 +19,14 @@
 #      agent exited.
 set -u
 
+# Background jobs inherit this shell's process group. Lead that group before
+# any of them start, so cleanup can signal it without reaching the runner.
+_fm_relaunch_pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+if [ "$_fm_relaunch_pgid" != "$$" ] && command -v perl >/dev/null 2>&1; then
+  exec perl -e 'setpgrp(0, 0); exec @ARGV or die $!' -- bash "$0" "$@"
+fi
+unset _fm_relaunch_pgid
+
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # shellcheck source=/dev/null
@@ -40,8 +48,35 @@ mkdir -p "$TMP_ROOT"
 TMP_ROOT=$(cd "$TMP_ROOT" && pwd)
 TASK_TMPS=()
 
+# Stop every other member of this shell's process group. The metadata-race
+# case backgrounds fm-control, fm-spawn, and the fake tmux and mv loops.
+# Deleting the temp dir leaves those loops running, because they wait for a
+# release file that cleanup has already removed.
+relaunch_reap_group() {
+  local pgid saved i survivors pid
+  pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+  [ -n "$pgid" ] && [ "$pgid" = "$$" ] || return 0
+  saved=$(trap -p TERM INT HUP)
+  trap '' TERM INT HUP
+  kill -TERM -"$pgid" 2>/dev/null || true
+  i=0
+  survivors=
+  while [ "$i" -lt 20 ]; do
+    survivors=$(ps -ax -o pid=,pgid= | awk -v g="$pgid" -v self="$$" '$2 == g && $1 != self { print $1 }')
+    [ -n "$survivors" ] || break
+    sleep 0.05
+    i=$((i + 1))
+  done
+  for pid in $survivors; do
+    kill -KILL "$pid" 2>/dev/null || true
+  done
+  wait 2>/dev/null || true
+  [ -z "$saved" ] || eval "$saved"
+}
+
 relaunch_cleanup() {
   local d
+  relaunch_reap_group
   for d in "${TASK_TMPS[@]:-}"; do
     [ -n "$d" ] && rm -rf "$d"
   done
@@ -2548,6 +2583,20 @@ SH
   pass "fm-control exit removes the dialog file before it releases the control lock"
 }
 
+test_cleanup_reaps_its_process_group() {
+  local sleeper
+  sleep 30 &
+  # shellcheck disable=SC2031 # Background $! is this shell's job, not a subshell copy.
+  sleeper=$!
+  relaunch_reap_group
+  if kill -0 "$sleeper" 2>/dev/null; then
+    kill -KILL "$sleeper" 2>/dev/null || true
+    fail "cleanup left process $sleeper in the test process group"
+  fi
+  pass "fm-control relaunch cleanup stops its process group"
+}
+
+test_cleanup_reaps_its_process_group
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
