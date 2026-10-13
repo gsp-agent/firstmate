@@ -19,11 +19,36 @@
 #      agent exited.
 set -u
 
-# Background jobs inherit this shell's process group. Lead that group before
-# any of them start, so cleanup can signal it without reaching the runner.
+# Background jobs inherit this shell's process group. A child leads a private
+# group so cleanup can signal those jobs without reaching the runner. This
+# process stays in the caller's group: the runner's per-script bound signals
+# only that group, and the signal is forwarded into the private one.
 _fm_relaunch_pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
 if [ "$_fm_relaunch_pgid" != "$$" ] && command -v perl >/dev/null 2>&1; then
-  exec perl -e 'setpgrp(0, 0); exec @ARGV or die $!' -- bash "$0" "$@"
+  exec perl -e '
+    use Errno qw(EINTR);
+    my $pid = fork();
+    die "fork failed\n" unless defined $pid;
+    if ($pid == 0) {
+      setpgrp(0, 0);
+      exec @ARGV or die $!;
+    }
+    $SIG{PIPE} = "IGNORE";
+    $SIG{TERM} = $SIG{INT} = $SIG{HUP} = sub {
+      kill "TERM", -$pid;
+      kill "KILL", -$pid;
+    };
+    my $kid = -1;
+    while ($kid != $pid) {
+      $kid = waitpid($pid, 0);
+      if ($kid < 0) {
+        exit 1 if $! != EINTR;
+      }
+    }
+    my $status = $?;
+    exit(128 + ($status & 127)) if $status & 127;
+    exit($status >> 8);
+  ' -- bash "$0" "$@"
 fi
 unset _fm_relaunch_pgid
 
