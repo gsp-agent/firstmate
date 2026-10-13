@@ -27,6 +27,17 @@ if [ "$_fm_relaunch_pgid" != "$$" ] && command -v perl >/dev/null 2>&1; then
 fi
 unset _fm_relaunch_pgid
 
+# Re-exec probe for test_runner_bound_reaches_the_private_group. The sleeper
+# is in the private group. The runner bound has to stop it anyway.
+if [ "${FM_RELAUNCH_TIMEOUT_PROBE:-}" = 1 ]; then
+  sleep 60 &
+  _fm_probe_sleeper=$!
+  _fm_probe_pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+  printf '%s %s\n' "$_fm_probe_sleeper" "$_fm_probe_pgid" > "${FM_RELAUNCH_TIMEOUT_PROBE_PIDFILE:?}"
+  wait
+  exit 0
+fi
+
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # shellcheck source=/dev/null
@@ -2596,6 +2607,44 @@ test_cleanup_reaps_its_process_group() {
   pass "fm-control relaunch cleanup stops its process group"
 }
 
+# The per-script bound signals the group the runner started. This file's
+# private group has to die with that signal, including a sleeper it forked.
+test_runner_bound_reaches_the_private_group() {
+  local pidfile sleeper pgid outer rc canary alive survivors
+  pidfile="$TMP_ROOT/timeout-probe.pid"
+  rm -f "$pidfile"
+  # shellcheck source=/dev/null
+  . "$ROOT/bin/fm-timeout-lib.sh"
+  sleep 30 &
+  canary=$!
+  fm_run_timed 4 env FM_RELAUNCH_TIMEOUT_PROBE=1 FM_RELAUNCH_TIMEOUT_PROBE_PIDFILE="$pidfile" \
+    bash "${BASH_SOURCE[0]}"
+  rc=$?
+  if kill -0 "$canary" 2>/dev/null; then
+    kill "$canary" 2>/dev/null || true
+    wait "$canary" 2>/dev/null || true
+  else
+    fail "the per-script bound stopped a process outside the probed group"
+  fi
+  [ "$rc" -eq 124 ] || fail "the per-script bound should report 124, got $rc"
+  [ -s "$pidfile" ] || fail "the probed group never recorded its sleeper"
+  read -r sleeper pgid < "$pidfile"
+  outer=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+  [ -n "$pgid" ] && [ "$pgid" != "$outer" ] || fail "the probe stayed in this shell's process group ($outer)"
+  alive=$(ps -o state= -p "$sleeper" 2>/dev/null | tr -d '[:space:]' || true)
+  case "$alive" in
+    ''|Z*) alive=0 ;;
+    *) alive=1 ;;
+  esac
+  survivors=$(ps -ax -o pid=,state=,pgid= | awk -v g="$pgid" '$3 == g && $2 !~ /^Z/ { print $1 }')
+  if [ "$alive" -eq 1 ] || [ -n "$survivors" ]; then
+    kill -KILL -- "-$pgid" 2>/dev/null || true
+    fail "the per-script bound left the probed group running: ${survivors:-$sleeper}"
+  fi
+  pass "the runner bound stops the relaunch test's private process group"
+}
+
+test_runner_bound_reaches_the_private_group
 test_cleanup_reaps_its_process_group
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
