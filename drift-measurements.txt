@@ -31,8 +31,8 @@ ece80a3543c804bd10e8f13ad28775abef9a4e94 refs/heads/archive/ece80a3543c804bd10e8
 592992342dfbfd681ce66a08a6aeb38177c53a79 refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
 8bd577837677140faf740ac6c51dd1954bba675a refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
 The bundle requires these 2 refs:
-20dcbf91520b1816663b81873ad67d0b93b3e4d6 
-7df545bf74ff729ed1733f77b0aea02a9b164ac1 
+20dcbf91520b1816663b81873ad67d0b93b3e4d6
+7df545bf74ff729ed1733f77b0aea02a9b164ac1
 The bundle uses this hash algorithm: sha1
 stderr:
 archives/fork-cuts.bundle is okay

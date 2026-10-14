@@ -10,7 +10,7 @@
 # archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
 # archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
 # Measured proof for the required nightly guard: [drift-measurements.txt](drift-measurements.txt).
-# The acceptance owner must record the final measured commit SHAs in the home-local proof file or --proof input before installation.
+# Before installation, the acceptance owner must record the final measured commit SHAs in the installed repository's local drift-proof.txt; alternate --proof inputs apply only to manual checks (bin/fm-drift-nightly.sh owns selection).
 # This source manifest cannot name its own future commit; guard and proof files have no automatic exemption.
 # Cutover on the PM's word: migrate the main home's crew-dispatch.json to the upstream schema, fast-forward /Users/dalecarman/dev/firstmate-upstream to the merged result, accept the measured patches, then install the nightly check.
 # Check back 2026-10-15: measure the main home's effective diff and run the installed check against its accepted proof.

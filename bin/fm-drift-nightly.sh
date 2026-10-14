@@ -7,15 +7,21 @@
 #   fm-drift-nightly.sh uninstall [--dry-run]
 #   fm-drift-nightly.sh --help
 #
-# check prints behind and ahead counts, then one line per changed or missing
-# proven path, then one line per commit reachable from the fork ref and not
-# from the upstream ref.
+# check defaults to fork HEAD and upstream kunchenguid/main. After the optional
+# fetch, both refs resolve to fixed commit SHAs used for the entire check and
+# report; later ref changes belong to the next run. Only committed trees are
+# compared, not working-tree or staged changes.
+# check prints behind and ahead counts, path-ok for changed paths that match
+# the accepted tree, path-drift for every mismatch with that tree, then one
+# line per commit reachable from the captured fork and not captured upstream.
 # Proof patches are replayed from the merge-base in ancestry order using
 # git merge-tree with each proof commit's parent as its patch base. A path is
 # path-ok only when its fork content and mode match the resulting tree.
-# Missing proven changes and extra changes are path-drift.
-# A commit is keep when its full sha is in the proof file, merge when it has
-# two parents, and unproven otherwise.
+# Missing proven changes and extra changes are path-drift. Rename detection
+# is disabled so a deletion cannot disappear into a rename onto a proven file.
+# No file is exempt, including the guard and proof files.
+# A commit is merge when it has multiple parents, keep when its full sha is
+# in the proof file and it is not a merge, and unproven otherwise.
 # Exit 0 when no path-drift line is printed, 1 when one is, and 2 on usage or
 # git failure. behind is reported and does not change the exit code.
 #
@@ -30,7 +36,10 @@
 # with fetch left on is an error.
 #
 # install writes ~/Library/LaunchAgents/dev.firstmate.drift-nightly.plist and
-# bootstraps the job for the current user. The job runs check once a night.
+# bootstraps the job for the current user. The job runs check once a night,
+# defaulting to 03:17 in the machine's local time. It passes only --repo, so
+# the installed job uses the default refs, fetch, and repository proof file;
+# alternate check options are not persisted by install.
 # uninstall bootstraps nothing, removes that job, and deletes the plist.
 # A second uninstall, when the plist is already gone, exits 0.
 # --dry-run prints the action and does not write a file or call launchctl.
