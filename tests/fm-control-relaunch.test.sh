@@ -1398,6 +1398,36 @@ test_cursor_relaunch_at_the_daily_cap_logs_the_reason() {
   pass "a cursor relaunch at the daily cap launches grok and records the reason"
 }
 
+# fm-control already committed the target harness. A healthy pool must not
+# launch Cursor while the transaction and the outcome line say grok.
+test_control_relaunch_honors_an_explicit_grok_harness() {
+  local dir out rc launch
+  dir=$(new_case ctrlgrok rl81)
+  add_ship_task "$dir" rl81 cursor
+  seed_cursor_pool "$dir" rl81
+  printf 'grok' > "$dir/fake/becomes"
+  out=$(FM_PSTACK_DIR="$dir/pstack" FM_CURSOR_USAGE_DIR="$dir/usage" \
+    run_control "$dir" rl81 relaunch --harness grok --note "switch to grok")
+  rc=$?
+  expect_code 0 "$rc" "an explicit grok relaunch should succeed"$'\n'"$out"
+  assert_contains "$out" "relaunched rl81 harness=grok from=cursor model=default" \
+    "the outcome should name the harness the transaction chose: $out"
+  [ "$(journal_field "$dir" rl81 to_harness)" = grok ] \
+    || fail "the transaction should record grok, got $(journal_field "$dir" rl81 to_harness)"
+  [ "$(journal_field "$dir" rl81 to_model)" = default ] \
+    || fail "an unnamed model on a harness switch should stay default, got $(journal_field "$dir" rl81 to_model)"
+  [ "$(meta_field "$dir" rl81 harness)" = grok ] \
+    || fail "the published record should match the transaction, got harness=$(meta_field "$dir" rl81 harness) model=$(meta_field "$dir" rl81 model)"
+  [ "$(meta_field "$dir" rl81 model)" = default ] \
+    || fail "the published model should match the transaction, got $(meta_field "$dir" rl81 model)"
+  launch=$(cat "$dir/fake/literal")
+  assert_contains "$launch" "grok --always-approve" "the replacement must launch grok: $launch"
+  assert_not_contains "$launch" "cursor-agent" "the replacement must not launch cursor: $launch"
+  [ ! -e "$dir/home/state/rl81.cursor-limit" ] || fail "an explicit grok choice must not write a limit record"
+  [ ! -e "$dir/home/state/rl81.cursor-fallback" ] || fail "an explicit grok choice is not a fallback"
+  pass "fm-control relaunch --harness grok launches grok when the cursor pool is healthy"
+}
+
 test_cursor_session_binding_is_retired_on_a_harness_switch() {
   local dir
   dir=$(new_case cursorwiring rl35)
@@ -2667,6 +2697,7 @@ test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_relaunch_stays_on_cursor_when_the_pool_is_healthy
 test_cursor_relaunch_at_the_daily_cap_logs_the_reason
+test_control_relaunch_honors_an_explicit_grok_harness
 test_cursor_session_binding_is_retired_on_a_harness_switch
 test_missing_worktree_refuses_before_stopping_anything
 test_missing_instructions_refuse_before_stopping_anything
