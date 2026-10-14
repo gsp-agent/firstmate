@@ -77,10 +77,12 @@
 #   validated state/<id>.meta, so --backend, --scout, --secondmate, a project
 #   positional, and batch pairs are all refused alongside it; only harness,
 #   model, and effort may change, which is what makes a harness switch one
-#   ordinary relaunch. A relaunch whose recorded harness is cursor resolves
-#   cursor versus grok through bin/fm-cursor-guard.sh; --harness grok does not
-#   bypass that decision. The guard stays on cursor, or it returns a grok
-#   reason and that reason is written before grok launches.
+#   ordinary relaunch. A direct relaunch whose recorded harness is cursor
+#   resolves cursor versus grok through bin/fm-cursor-guard.sh; --harness grok
+#   on that direct call does not bypass the decision. fm-control's explicit
+#   --harness is already the transaction's target and is not re-resolved. The
+#   guard stays on cursor, or it returns a grok reason and that reason is
+#   written before grok launches.
 #   It refuses unless the recorded endpoint is positively
 #   agent-free on a backend with a recovery-grade agent-state classifier (tmux
 #   or herdr), and clears the previous harness's per-task wiring before arming
@@ -2449,11 +2451,12 @@ launch_template() {
   esac
 }
 
-# A recorded cursor task cannot be relaunched onto grok by naming the harness.
-# The guard decides, and a grok model passed with that bypass does not replace
-# the cursor profile when the guard stays on cursor.
+# A direct fm-spawn --relaunch --harness grok of a recorded cursor task does
+# not bypass the guard. fm-control already committed that harness in its
+# transaction, so an explicit harness from that parent is the decision.
 if [ "$RELAUNCH" -eq 1 ] && [ "$KIND" != secondmate ] \
-  && [ "$RELAUNCH_PRIOR_HARNESS" = cursor ] && [ "$ARG3" = grok ]; then
+  && [ "$RELAUNCH_PRIOR_HARNESS" = cursor ] && [ "$ARG3" = grok ] \
+  && [ "$SPAWN_CONTROL_PARENT" != 1 ]; then
   ARG3=cursor
   recorded_model=$(fm_meta_get "$RELAUNCH_META" model)
   recorded_effort=$(fm_meta_get "$RELAUNCH_META" effort)

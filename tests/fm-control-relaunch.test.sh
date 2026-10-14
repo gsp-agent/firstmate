@@ -1319,9 +1319,9 @@ test_muse_session_binding_is_retired_on_a_harness_switch() {
   pass "fm-spawn --relaunch: switching away from muse retires its session binding"
 }
 
-# A cursor relaunch resolves through the guard. Healthy pool (12%, pinned
-# pstack) stays on cursor even when the caller passes --harness grok. The
-# daily cap is a grok reason written to the limit file, not a silent switch.
+# A direct fm-spawn relaunch resolves through the guard. Healthy pool (12%,
+# pinned pstack) stays on cursor even when that caller passes --harness grok.
+# The daily cap is a grok reason written to the limit file, not a silent switch.
 seed_cursor_pool() { # <case-dir> <id>
   local dir=$1 id=$2 meta
   mkdir -p "$dir/pstack/.cursor-plugin" "$dir/usage"
