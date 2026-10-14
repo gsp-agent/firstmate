@@ -2592,7 +2592,7 @@ cursor)
   fi
   # Re-assert Cursor's settings before every run (spawn and relaunch).
   "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
-  # A bead's 3rd Cursor launch in one day is refused; given back below if the spawn fails.
+  # Reserve a launch under fm-cursor-guard.sh's daily accounting; return it if spawn fails.
   FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
   CURSOR_CAP_TAKEN=1
   ;;

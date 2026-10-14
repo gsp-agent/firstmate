@@ -18,11 +18,17 @@ g() { local day=$1; shift; FM_CURSOR_DAY=$day "$TOOL" "$@" 2> "$TMP_ROOT/err"; }
 
 # No distinct-bead cap: many beads launch.
 for i in 1 2 3 4 5 6 7 8; do g 2030-01-01 take "b$i"; expect_code 0 $? "bead b$i launches (no daily cap)"; done
-g 2030-01-01 take b1; expect_code 0 $? "a relaunch is allowed"
-g 2030-01-01 take b1; expect_code 1 $? "the 3rd launch of one bead in a day is refused"
+# b1 already has its first launch from the distinct-bead loop above.
+for launch in 2 3 4 5 6; do
+  g 2030-01-01 take b1
+  expect_code 0 $? "launch $launch of one bead in a day is allowed"
+done
+g 2030-01-01 take b1
+expect_code 1 $? "the 7th launch of one bead in a day is refused"
 assert_contains "$(cat "$TMP_ROOT/err")" "refused b1" "refusal names the bead"
+assert_contains "$(cat "$TMP_ROOT/err")" "already launched 6 times today (2030-01-01); write blocked: instead of a run past the daily cap of 6" "refusal states the daily cap"
 [ "$(wc -l < "$TMP_ROOT/err" | tr -d ' ')" = 1 ] || fail "refusal must be one line"
-pass "no distinct-bead cap; a bead's 3rd launch in a day is refused"
+pass "no distinct-bead cap; a bead's 6th launch in a day is allowed and the 7th is refused"
 
 g 2030-01-01 give b2; g 2030-01-01 take b2
 [ "$(jq -r '.beads.b2' "$STATEFILE")" = 1 ] || fail "give then take should leave one launch"
