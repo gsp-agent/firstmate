@@ -18,11 +18,17 @@ g() { local day=$1; shift; FM_CURSOR_DAY=$day "$TOOL" "$@" 2> "$TMP_ROOT/err"; }
 
 # No distinct-bead cap: many beads launch.
 for i in 1 2 3 4 5 6 7 8; do g 2030-01-01 take "b$i"; expect_code 0 $? "bead b$i launches (no daily cap)"; done
-g 2030-01-01 take b1; expect_code 0 $? "a relaunch is allowed"
-g 2030-01-01 take b1; expect_code 1 $? "the 3rd launch of one bead in a day is refused"
+# b1 already has its first launch from the distinct-bead loop above.
+for launch in 2 3 4 5 6; do
+  g 2030-01-01 take b1
+  expect_code 0 $? "launch $launch of one bead in a day is allowed"
+done
+g 2030-01-01 take b1
+expect_code 1 $? "the 7th launch of one bead in a day is refused"
 assert_contains "$(cat "$TMP_ROOT/err")" "refused b1" "refusal names the bead"
+assert_contains "$(cat "$TMP_ROOT/err")" "already launched 6 times today (2030-01-01); write blocked: instead of a run past the daily cap of 6" "refusal states the daily cap"
 [ "$(wc -l < "$TMP_ROOT/err" | tr -d ' ')" = 1 ] || fail "refusal must be one line"
-pass "no distinct-bead cap; a bead's 3rd launch in a day is refused"
+pass "no distinct-bead cap; a bead's 6th launch in a day is allowed and the 7th is refused"
 
 g 2030-01-01 give b2; g 2030-01-01 take b2
 [ "$(jq -r '.beads.b2' "$STATEFILE")" = 1 ] || fail "give then take should leave one launch"
@@ -111,24 +117,29 @@ printf '%s\n' '{"type":"error","message":"You have exceeded your usage quota"}' 
 case "$(fb u5)" in grok*) ;; *) fail "an exceeded-quota line must route the next launch to grok: $(fb u5)" ;; esac
 pass "exceededLimit false is not a usage limit; an exceeded-quota line is"
 
-# A relaunch asks the guard. Two launches already today is a grok reason for
-# that Chicago day only. A fresh fallback leaves the 3rd-launch refusal to take.
-printf '{"day":"2030-06-01","beads":{"cap1":2}}\n' > "$STATEFILE"
+# A relaunch asks the guard. bead_daily_cap recorded launches make the next
+# one grok for that Chicago day only. Five recorded launches still get Cursor
+# (the 6th). A fresh fallback leaves the cap refusal to take.
 printf 'cursor_models_pct=12\n' > "$FM_CURSOR_USAGE_DIR/20300601-spending.txt"
+printf '{"day":"2030-06-01","beads":{"cap6":5}}\n' > "$STATEFILE"
+out=$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap6 relaunch)
+[ "$out" = cursor ] || fail "a 6th relaunch must stay on cursor: $out"
+[ ! -e "$FM_STATE_OVERRIDE/cap6.cursor-limit" ] || fail "a 6th relaunch must not record a cap reason"
+printf '{"day":"2030-06-01","beads":{"cap1":6}}\n' > "$STATEFILE"
 [ "$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1)" = cursor ] \
   || fail "a fresh fallback must stay on cursor when the only signal is the daily cap: $(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1)"
 out=$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1 relaunch)
-[ "$out" = "grok cursor guard: refused cap1, already launched 2 times today (2030-06-01); write blocked: instead of a 3rd run" ] \
-  || fail "a relaunch at the daily cap must name the reason: $out"
-[ "$(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit")" = "cursor guard: refused cap1, already launched 2 times today (2030-06-01); write blocked: instead of a 3rd run" ] \
+[ "$out" = "grok cursor guard: refused cap1, already launched 6 times today (2030-06-01); write blocked: instead of a run past the daily cap of 6" ] \
+  || fail "a 7th relaunch must name the reason: $out"
+[ "$(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit")" = "cursor guard: refused cap1, already launched 6 times today (2030-06-01); write blocked: instead of a run past the daily cap of 6" ] \
   || fail "the cap reason was not recorded: $(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit" 2>/dev/null || echo absent)"
 out=$(FM_CURSOR_DAY=2030-06-02 "$TOOL" fallback cap1)
 [ "$out" = cursor ] || fail "a cap record from another Chicago day must not force grok: $out"
-[ "$(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit")" = "cursor guard: refused cap1, already launched 2 times today (2030-06-01); write blocked: instead of a 3rd run" ] \
+[ "$(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit")" = "cursor guard: refused cap1, already launched 6 times today (2030-06-01); write blocked: instead of a run past the daily cap of 6" ] \
   || fail "guard preflight must preserve the previous day's cap provenance"
-pass "a relaunch at the daily cap records the reason for that Chicago day"
+pass "a 6th relaunch stays on cursor and a 7th records the daily-cap reason"
 
-printf '{"day":"2030-06-01","beads":{"capwrite":2}}\n' > "$STATEFILE"
+printf '{"day":"2030-06-01","beads":{"capwrite":6}}\n' > "$STATEFILE"
 ln -s "$TMP_ROOT/missing/limit" "$FM_STATE_OVERRIDE/capwrite.cursor-limit"
 out=$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback capwrite relaunch 2> "$TMP_ROOT/err")
 expect_code 1 $? "a daily-cap reason that cannot be written must refuse the decision"

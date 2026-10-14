@@ -1405,7 +1405,12 @@ test_explicit_relaunch_harness_keeps_the_requested_profile() {
       [ "$(cat "$dir/fake/command")" = "$command" ] || fail "the replacement agent must match the explicit harness"
       assert_contains "$(cat "$dir/fake/literal")" "$command" "the delivered launch must use the explicit harness"
       assert_absent "$dir/home/state/$id.cursor-limit" "an explicit choice must not invent a limit reason"
-      assert_absent "$dir/home/state/$id.cursor-fallback" "an explicit choice must not invent a fallback reason"
+      if [ "$harness" = grok ]; then
+        [ "$(cat "$dir/home/state/$id.cursor-fallback")" = "explicit --harness grok override of a recorded cursor task" ] \
+          || fail "an explicit grok override of a recorded cursor task must name that override"
+      else
+        assert_absent "$dir/home/state/$id.cursor-fallback" "an explicit cursor choice must not invent a fallback reason"
+      fi
     done
   done
   pass "direct and control relaunches preserve explicit harness choices and profile axes"
@@ -1414,11 +1419,21 @@ test_explicit_relaunch_harness_keeps_the_requested_profile() {
 test_cursor_relaunch_at_the_daily_cap_logs_the_reason() {
   local dir out day reason launch
   day=$(TZ=America/Chicago date +%F)
-  reason="cursor guard: refused rl71, already launched 2 times today ($day); write blocked: instead of a 3rd run"
+  dir=$(new_case cursorsixth rl71a)
+  add_ship_task "$dir" rl71a cursor
+  seed_cursor_pool "$dir" rl71a
+  printf '{"day":"%s","beads":{"rl71a":5}}\n' "$day" > "$dir/home/state/cursor-dispatch.json"
+  printf 'cursor-agent' > "$dir/fake/becomes"
+  out=$(run_cursor_relaunch "$dir" rl71a --relaunch)
+  assert_contains "$out" "spawned rl71a harness=cursor" \
+    "a 6th relaunch must stay on cursor: $out"
+  [ ! -e "$dir/home/state/rl71a.cursor-limit" ] || fail "a 6th relaunch must not record a cap reason"
+
+  reason="cursor guard: refused rl71, already launched 6 times today ($day); write blocked: instead of a run past the daily cap of 6"
   dir=$(new_case cursorcap rl71)
   add_ship_task "$dir" rl71 cursor
   seed_cursor_pool "$dir" rl71
-  printf '{"day":"%s","beads":{"rl71":2}}\n' "$day" > "$dir/home/state/cursor-dispatch.json"
+  printf '{"day":"%s","beads":{"rl71":6}}\n' "$day" > "$dir/home/state/cursor-dispatch.json"
   out=$(run_cursor_relaunch "$dir" rl71 --relaunch)
   assert_contains "$out" "spawned rl71 harness=grok" \
     "a relaunch at the daily cap must launch grok with the reason recorded: $out"
@@ -1438,8 +1453,8 @@ test_cursor_relaunch_at_the_daily_cap_logs_the_reason() {
   dir=$(new_case cursorcap2 rl72)
   add_ship_task "$dir" rl72 cursor
   seed_cursor_pool "$dir" rl72
-  reason="cursor guard: refused rl72, already launched 2 times today ($day); write blocked: instead of a 3rd run"
-  printf '{"day":"%s","beads":{"rl72":2}}\n' "$day" > "$dir/home/state/cursor-dispatch.json"
+  reason="cursor guard: refused rl72, already launched 6 times today ($day); write blocked: instead of a run past the daily cap of 6"
+  printf '{"day":"%s","beads":{"rl72":6}}\n' "$day" > "$dir/home/state/cursor-dispatch.json"
   out=$(run_cursor_relaunch "$dir" rl72 --relaunch)
   assert_contains "$out" "spawned rl72 harness=grok" \
     "a recorded-cursor relaunch at the cap must fall back through the guard: $out"
@@ -1457,7 +1472,7 @@ test_control_cursor_relaunch_records_the_guarded_profile() {
     seed_cursor_pool "$dir" "$id"
     harness=cursor model=cursor-grok-4.5-high effort=default command=cursor-agent
     if [ "$scenario" = cap ]; then
-      printf '{"day":"2030-06-01","beads":{"%s":2}}\n' "$id" > "$dir/home/state/cursor-dispatch.json"
+      printf '{"day":"2030-06-01","beads":{"%s":6}}\n' "$id" > "$dir/home/state/cursor-dispatch.json"
       harness=grok model=grok-4.7 effort=xhigh command=grok
     fi
     printf '%s' "$command" > "$dir/fake/becomes"
@@ -1482,7 +1497,7 @@ test_control_cursor_relaunch_records_the_guarded_profile() {
     else
       assert_contains "$(cat "$dir/fake/literal")" "grok --always-approve --model 'grok-4.7' --reasoning-effort 'xhigh'" \
         "the cap relaunch must launch the recorded Grok profile"
-      [ "$(cat "$dir/home/state/$id.cursor-limit")" = "cursor guard: refused $id, already launched 2 times today (2030-06-01); write blocked: instead of a 3rd run" ] \
+      [ "$(cat "$dir/home/state/$id.cursor-limit")" = "cursor guard: refused $id, already launched 6 times today (2030-06-01); write blocked: instead of a run past the daily cap of 6" ] \
         || fail "the control relaunch did not record the daily-cap reason"
       prior_meta=$(cat "$dir/home/state/$id.meta")
       reason=$(cat "$dir/home/state/$id.cursor-limit")
@@ -1558,8 +1573,8 @@ test_usage_fallback_relaunch_returns_to_a_healthy_cursor_pool() {
   pass "direct and control relaunches recheck tasks with a Cursor fallback record"
 }
 
-test_unrecorded_grok_relaunch_obeys_the_cursor_guard() {
-  local dir id entry scenario out harness model effort command
+test_intake_grok_relaunch_stays_on_grok_without_cursor_provenance() {
+  local dir id entry scenario out
   for entry in spawn control; do
     for scenario in healthy limited; do
       id="rl84-$entry-$scenario"
@@ -1571,46 +1586,39 @@ test_unrecorded_grok_relaunch_obeys_the_cursor_guard() {
       mv "$dir/home/state/$id.meta.next" "$dir/home/state/$id.meta"
       assert_absent "$dir/home/state/$id.cursor-limit" "the prior Grok task must have no limit record"
       assert_absent "$dir/home/state/$id.cursor-fallback" "the prior Grok task must have no fallback record"
-      harness=cursor model=default effort=default command=cursor-agent
       if [ "$scenario" = limited ]; then
         printf 'cursor_models_pct=85\n' > "$dir/usage/20261013-spending.txt"
-        harness=grok model=grok-4.7 effort=xhigh command=grok
       fi
-      printf '%s' "$command" > "$dir/fake/becomes"
+      printf 'grok' > "$dir/fake/becomes"
       if [ "$entry" = spawn ]; then
         out=$(run_cursor_relaunch "$dir" "$id" --relaunch)
-        expect_code 0 $? "an unrecorded Grok fallback must relaunch through the guard: $out"
-        assert_contains "$out" "spawned $id harness=$harness" \
-          "the direct relaunch must report the guarded profile"
+        expect_code 0 $? "an intake Grok relaunch must succeed: $out"
+        assert_contains "$out" "spawned $id harness=grok" \
+          "an intake Grok task must stay on Grok: $out"
       else
         printf 'grok' > "$dir/fake/command"
         out=$(FM_PSTACK_DIR="$dir/pstack" FM_CURSOR_USAGE_DIR="$dir/usage" \
-          run_control "$dir" "$id" relaunch --note "recover an unrecorded Grok fallback")
-        expect_code 0 $? "an unrecorded Grok fallback must relaunch through control: $out"
-        assert_contains "$out" "relaunched $id harness=$harness from=grok model=$model effort=$effort" \
-          "the control relaunch must report the guarded profile"
+          run_control "$dir" "$id" relaunch --note "recover an intake Grok task")
+        expect_code 0 $? "an intake Grok relaunch must succeed through control: $out"
+        assert_contains "$out" "relaunched $id harness=grok from=grok model=grok-4.7 effort=xhigh" \
+          "the control relaunch must keep the intake Grok profile: $out"
         [ "$(journal_field "$dir" "$id" phase)" = complete ] || fail "the recovery transaction must complete"
-        [ "$(journal_field "$dir" "$id" to_harness)" = "$harness" ] || fail "the recovery journal must record the guarded harness"
-        [ "$(journal_field "$dir" "$id" to_model)" = "$model" ] || fail "the recovery journal must record the guarded model"
-        [ "$(journal_field "$dir" "$id" to_effort)" = "$effort" ] || fail "the recovery journal must record the guarded effort"
+        [ "$(journal_field "$dir" "$id" to_harness)" = grok ] || fail "the recovery journal must keep Grok"
+        [ "$(journal_field "$dir" "$id" to_model)" = grok-4.7 ] || fail "the recovery journal must keep Grok's model"
+        [ "$(journal_field "$dir" "$id" to_effort)" = xhigh ] || fail "the recovery journal must keep Grok's effort"
       fi
-      [ "$(meta_field "$dir" "$id" harness)" = "$harness" ] || fail "the recovered task must record the guarded harness"
-      [ "$(meta_field "$dir" "$id" model)" = "$model" ] || fail "the recovered task must record the guarded model"
-      [ "$(meta_field "$dir" "$id" effort)" = "$effort" ] || fail "the recovered task must record the guarded effort"
-      [ "$(cat "$dir/fake/command")" = "$command" ] || fail "the replacement agent must match the guarded harness"
-      if [ "$scenario" = healthy ]; then
-        assert_contains "$(cat "$dir/fake/literal")" "cursor-agent" "a healthy unrecorded fallback must launch Cursor"
-        assert_absent "$dir/home/state/$id.cursor-limit" "a healthy recovery must not record a limit"
-        assert_absent "$dir/home/state/$id.cursor-fallback" "a healthy recovery must not record a fallback"
-      else
-        assert_contains "$(cat "$dir/fake/literal")" "grok --always-approve --model 'grok-4.7' --reasoning-effort 'xhigh'" \
-          "a limited recovery must launch the guarded Grok profile"
-        [ "$(cat "$dir/home/state/$id.cursor-fallback")" = 'Cursor Models at 85% (limit 85%)' ] \
-          || fail "a continued Grok fallback must record the guard's reason"
-      fi
+      [ "$(meta_field "$dir" "$id" harness)" = grok ] || fail "the task must stay recorded as Grok"
+      [ "$(meta_field "$dir" "$id" model)" = grok-4.7 ] || fail "the task must keep Grok's model"
+      [ "$(meta_field "$dir" "$id" effort)" = xhigh ] || fail "the task must keep Grok's effort"
+      [ "$(cat "$dir/fake/command")" = grok ] || fail "the replacement agent must stay Grok"
+      assert_contains "$(cat "$dir/fake/literal")" "grok --always-approve --model 'grok-4.7' --reasoning-effort 'xhigh'" \
+        "an intake Grok relaunch must launch Grok"
+      assert_not_contains "$(cat "$dir/fake/literal")" "cursor-agent" "an intake Grok relaunch must not launch Cursor"
+      assert_absent "$dir/home/state/$id.cursor-limit" "an intake Grok relaunch must not invent a limit record"
+      assert_absent "$dir/home/state/$id.cursor-fallback" "an intake Grok relaunch must not invent a fallback record"
     done
   done
-  pass "direct and control relaunches recover unrecorded Grok fallbacks or record the guard's reason"
+  pass "an ordinary Grok relaunch without Cursor provenance stays on Grok"
 }
 
 test_control_cursor_guard_change_refuses_before_replacement() {
@@ -2908,7 +2916,7 @@ test_explicit_relaunch_harness_keeps_the_requested_profile
 test_cursor_relaunch_at_the_daily_cap_logs_the_reason
 test_control_cursor_relaunch_records_the_guarded_profile
 test_usage_fallback_relaunch_returns_to_a_healthy_cursor_pool
-test_unrecorded_grok_relaunch_obeys_the_cursor_guard
+test_intake_grok_relaunch_stays_on_grok_without_cursor_provenance
 test_control_cursor_guard_change_refuses_before_replacement
 test_cursor_session_binding_is_retired_on_a_harness_switch
 test_missing_worktree_refuses_before_stopping_anything

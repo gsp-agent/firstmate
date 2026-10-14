@@ -845,14 +845,15 @@ test_cursor_third_launch_and_fallback() {
   rec=$(make_spawn_case profile-cursor-guard cursor "$id")
   read_case_record "$rec"
   mkdir -p "$HOME_DIR/state"
-  printf '{"day":"%s","beads":{"%s":2}}\n' "$(TZ=America/Chicago date +%F)" "$id" > "$HOME_DIR/state/cursor-dispatch.json"
+  printf '{"day":"%s","beads":{"%s":6}}\n' "$(TZ=America/Chicago date +%F)" "$id" > "$HOME_DIR/state/cursor-dispatch.json"
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
     --harness cursor --model cursor-grok-4.5-high)
   status=$?
-  expect_code 1 "$status" "a 3rd cursor launch of one bead in a day must be refused"
+  expect_code 1 "$status" "a 7th cursor launch of one bead in a day must be refused"
   assert_contains "$out" "cursor guard: refused $id" "refusal did not name the bead"
+  assert_contains "$out" "daily cap of 6" "refusal did not state the daily cap"
   [ ! -s "$LAUNCH_LOG" ] || fail "a refused cursor spawn must not launch"
-  pass "cursor spawn refuses a bead's 3rd launch in a day"
+  pass "cursor spawn refuses a bead's 7th launch in a day"
 
   id=profile-cursor-fallback-z6g
   rec=$(make_spawn_case profile-cursor-fallback cursor "$id")
