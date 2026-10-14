@@ -79,8 +79,11 @@ printf 'cursor_models_pct=26\nother_models_pct=45\non_demand=disabled\ncycle_res
 [ "$(fb e1)" = cursor ] || fail "the real spending file shape at 26% must keep cursor: $(fb e1)"
 printf '{"name":"pstack","version":"0.15.22"}\n' > "$FM_PSTACK_DIR/.cursor-plugin/plugin.json"
 case "$(fb e1)" in "grok pstack plugin version is '0.15.22', not the pinned 0.15.21") ;; *) fail "a different pstack version must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=89\n' > "$FM_CURSOR_USAGE_DIR/20261015-spending.txt"
+[ "$(fb e1)" = "codex Cursor Models at 89% (limit 85%)" ] || fail "an off-pin pstack with a short pool must go to codex, not grok: $(fb e1)"
+rm -f "$FM_CURSOR_USAGE_DIR/20261015-spending.txt"
 printf '{"name":"pstack","version":"0.15.21"}\n' > "$FM_PSTACK_DIR/.cursor-plugin/plugin.json"
-pass "a pstack plugin version other than the pin falls back to grok"
+pass "an off-pin pstack falls back to grok only while the pool is fine; a short pool still goes to codex"
 
 # ---- a usage-limit error is recorded, then the bead routes to codex ----
 printf '{"type":"error","message":"429 usage limit reached"}\n' > "$FM_STATE_OVERRIDE/u1.cursor-stream.jsonl"

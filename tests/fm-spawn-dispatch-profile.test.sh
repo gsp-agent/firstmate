@@ -865,8 +865,25 @@ test_cursor_third_launch_and_fallback() {
   assert_not_contains "$(cat "$LAUNCH_LOG")" "grok-4.7-xhigh" "fallback must not carry the cursor model to codex"
   assert_grep 'harness=codex' "$HOME_DIR/state/$id.meta" "fallback harness was not recorded"
   assert_grep 'Cursor Models at 85%' "$HOME_DIR/state/$id.cursor-fallback" "fallback reason was not recorded in state"
-  printf 'cursor_models_pct=10\n' > "$HOME_DIR/cursor-usage/20261012-spending.txt"
   pass "cursor spawn falls back to codex at the usage threshold"
+
+  id=profile-cursor-fallback-claude-z6h
+  rec=$(make_spawn_case profile-cursor-fallback-claude cursor "$id")
+  read_case_record "$rec"
+  printf 'cursor_models_pct=89\n' > "$HOME_DIR/cursor-usage/20261012-spending.txt"
+  mkdir -p "$HOME_DIR/state"
+  printf 'codex run for %s hit its usage limit\n' "$id" > "$HOME_DIR/state/$id.codex-limit"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    --harness cursor --model grok-4.7-xhigh)
+  status=$?
+  expect_code 0 "$status" "a claude fallback spawn should succeed"
+  assert_contains "$out" "cursor fallback: launching $id on the claude harness" "claude fallback was not announced on stderr"
+  assert_contains "$(cat "$LAUNCH_LOG")" "claude " "codex-limit fallback did not launch on claude"
+  assert_contains "$(cat "$LAUNCH_LOG")" "--effort 'xhigh'" "claude fallback did not carry --effort xhigh"
+  assert_not_contains "$(cat "$LAUNCH_LOG")" "grok-4.7" "claude fallback must not carry a grok model"
+  assert_grep 'harness=claude' "$HOME_DIR/state/$id.meta" "claude fallback harness was not recorded"
+  printf 'cursor_models_pct=10\n' > "$HOME_DIR/cursor-usage/20261012-spending.txt"
+  pass "cursor spawn falls back to claude when the bead's codex run hit its limit"
 }
 
 test_cursor_failed_catalog_probe_blocks_spawn() {
