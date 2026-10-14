@@ -18,11 +18,17 @@ g() { local day=$1; shift; FM_CURSOR_DAY=$day "$TOOL" "$@" 2> "$TMP_ROOT/err"; }
 
 # No distinct-bead cap: many beads launch.
 for i in 1 2 3 4 5 6 7 8; do g 2030-01-01 take "b$i"; expect_code 0 $? "bead b$i launches (no daily cap)"; done
-g 2030-01-01 take b1; expect_code 0 $? "a relaunch is allowed"
-g 2030-01-01 take b1; expect_code 1 $? "the 3rd launch of one bead in a day is refused"
+# b1 already has its first launch from the distinct-bead loop above.
+for launch in 2 3 4 5 6; do
+  g 2030-01-01 take b1
+  expect_code 0 $? "launch $launch of one bead in a day is allowed"
+done
+g 2030-01-01 take b1
+expect_code 1 $? "the 7th launch of one bead in a day is refused"
 assert_contains "$(cat "$TMP_ROOT/err")" "refused b1" "refusal names the bead"
+assert_contains "$(cat "$TMP_ROOT/err")" "already launched 6 times today (2030-01-01); write blocked: instead of a run past the daily cap of 6" "refusal states the daily cap"
 [ "$(wc -l < "$TMP_ROOT/err" | tr -d ' ')" = 1 ] || fail "refusal must be one line"
-pass "no distinct-bead cap; a bead's 3rd launch in a day is refused"
+pass "no distinct-bead cap; a bead's 6th launch in a day is allowed and the 7th is refused"
 
 g 2030-01-01 give b2; g 2030-01-01 take b2
 [ "$(jq -r '.beads.b2' "$STATEFILE")" = 1 ] || fail "give then take should leave one launch"
@@ -62,6 +68,21 @@ printf 'cursor_models_pct=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "the newest fresh low file must keep cursor"
 printf '{"cursor_fallback":{"models_pct":10,"max_age_h":26}}\n' > "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
 case "$(fb e1)" in "grok Cursor Models at 10% (limit 10%)") ;; *) fail "threshold must come from crew-dispatch.json: $(fb e1)" ;; esac
+printf 'cursor_models_pct=85\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+printf '{"cursor_fallback":{"models_pct":84.5,"max_age_h":26.5}}\n' > "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
+[ "$(fb e1)" = 'grok Cursor Models at 85% (limit 84.5%)' ] \
+  || fail "a fractional threshold must enforce the limit: $(fb e1)"
+printf 'cursor_models_pct=84\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+[ "$(fb e1)" = cursor ] || fail "usage below a fractional threshold must keep Cursor: $(fb e1)"
+printf '{"cursor_fallback":{"models_pct":84.5,"max_age_h":0.5}}\n' > "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
+python3 - "$FM_CURSOR_USAGE_DIR/20261013-spending.txt" <<'PY'
+import os, sys, time
+mtime = time.time() - 2700
+os.utime(sys.argv[1], (mtime, mtime))
+PY
+case "$(fb e1)" in "grok newest Cursor spending file is"*"(limit 0.5 h)") ;; *) fail "a fractional age must expire stale usage: $(fb e1)" ;; esac
+touch "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+[ "$(fb e1)" = cursor ] || fail "fresh usage under a fractional age must keep Cursor: $(fb e1)"
 rm -f "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
 pass "fallback at 84/85, missing file, stale file, bad value"
 
@@ -96,15 +117,85 @@ printf '%s\n' '{"type":"error","message":"You have exceeded your usage quota"}' 
 case "$(fb u5)" in grok*) ;; *) fail "an exceeded-quota line must route the next launch to grok: $(fb u5)" ;; esac
 pass "exceededLimit false is not a usage limit; an exceeded-quota line is"
 
+# A relaunch asks the guard. bead_daily_cap recorded launches make the next
+# one grok for that Chicago day only. Five recorded launches still get Cursor
+# (the 6th). A fresh fallback leaves the cap refusal to take.
+printf 'cursor_models_pct=12\n' > "$FM_CURSOR_USAGE_DIR/20300601-spending.txt"
+printf '{"day":"2030-06-01","beads":{"cap6":5}}\n' > "$STATEFILE"
+out=$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap6 relaunch)
+[ "$out" = cursor ] || fail "a 6th relaunch must stay on cursor: $out"
+[ ! -e "$FM_STATE_OVERRIDE/cap6.cursor-limit" ] || fail "a 6th relaunch must not record a cap reason"
+printf '{"day":"2030-06-01","beads":{"cap1":6}}\n' > "$STATEFILE"
+[ "$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1)" = cursor ] \
+  || fail "a fresh fallback must stay on cursor when the only signal is the daily cap: $(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1)"
+out=$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1 relaunch)
+[ "$out" = "grok cursor guard: refused cap1, already launched 6 times today (2030-06-01); write blocked: instead of a run past the daily cap of 6" ] \
+  || fail "a 7th relaunch must name the reason: $out"
+[ "$(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit")" = "cursor guard: refused cap1, already launched 6 times today (2030-06-01); write blocked: instead of a run past the daily cap of 6" ] \
+  || fail "the cap reason was not recorded: $(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit" 2>/dev/null || echo absent)"
+out=$(FM_CURSOR_DAY=2030-06-02 "$TOOL" fallback cap1)
+[ "$out" = cursor ] || fail "a cap record from another Chicago day must not force grok: $out"
+[ "$(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit")" = "cursor guard: refused cap1, already launched 6 times today (2030-06-01); write blocked: instead of a run past the daily cap of 6" ] \
+  || fail "guard preflight must preserve the previous day's cap provenance"
+pass "a 6th relaunch stays on cursor and a 7th records the daily-cap reason"
+
+printf '{"day":"2030-06-01","beads":{"capwrite":6}}\n' > "$STATEFILE"
+ln -s "$TMP_ROOT/missing/limit" "$FM_STATE_OVERRIDE/capwrite.cursor-limit"
+out=$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback capwrite relaunch 2> "$TMP_ROOT/err")
+expect_code 1 $? "a daily-cap reason that cannot be written must refuse the decision"
+[ -z "$out" ] || fail "a failed daily-cap write must not publish a Grok decision: $out"
+pass "a daily-cap fallback refuses when its reason cannot be recorded"
+
 # The pane command keeps the agent's exit status past the tee, in bash and zsh.
-tpl=$(grep -o '> >(tee __CURSORSTREAM__)' "$ROOT/bin/fm-spawn.sh" | head -1)
-[ -n "$tpl" ] || fail "cursor template no longer tees through process substitution"
-for sh in bash zsh; do
-  command -v "$sh" >/dev/null 2>&1 || continue
-  "$sh" -c "(echo out; exit 7) ${tpl//__CURSORSTREAM__/\"$TMP_ROOT/stream.jsonl\"}"
-  expect_code 7 $? "$sh: pane command exits with the agent's status, not tee's"
+. "$ROOT/tests/fixtures.sh"
+for setting in absent enabled empty; do
+  launch_home="$TMP_ROOT/launch-$setting-home"
+  launch_wt="$TMP_ROOT/launch-$setting-wt"
+  launch_log="$TMP_ROOT/launch-$setting.log"
+  launch_id="cursor-exit-status-$setting"
+  launch_stream="$launch_home/state/$launch_id.cursor-stream.jsonl"
+  fm_test_spawn_home "$launch_home" cursor
+  fm_test_spawn_brief "$launch_home" "$launch_id"
+  expected_allowed=synthetic-provider expected_ambient=synthetic-unrelated
+  case "$setting" in
+    enabled)
+      printf 'FM_TEST_ALLOWED\n' > "$launch_home/config/launch-env-allowlist"
+      expected_ambient="unset"
+      ;;
+    empty)
+      : > "$launch_home/config/launch-env-allowlist"
+      expected_allowed=unset expected_ambient=unset
+      ;;
+  esac
+  fm_git_worktree "$TMP_ROOT/launch-$setting-project" "$launch_wt" "$launch_id"
+  fakebin=$(fm_test_make_spawn_fakebin "$TMP_ROOT/launch-$setting-tools")
+  cat > "$fakebin/cursor-agent" <<'SH'
+#!/usr/bin/env bash
+printf '{"type":"error","message":"unrelated failure","allowed":"%s","ambient":"%s"}\n' \
+  "${FM_TEST_ALLOWED-unset}" "${FM_TEST_AMBIENT_SENTINEL-unset}"
+exit 7
+SH
+  chmod +x "$fakebin/cursor-agent"
+  out=$(FM_FAKE_LAUNCH_LOG="$launch_log" \
+    FM_CURSOR_CLI_CONFIG="$launch_home/cli-config.json" FM_CURSOR_MODELS_RULE="$launch_home/models.mdc" \
+    fm_test_run_spawn "$launch_home" "$launch_wt" "$fakebin" "$launch_id" "$TMP_ROOT/launch-$setting-project" --mode no-mistakes --yolo off)
+  expect_code 0 $? "Cursor exit-status fixture must generate a launch command: $out"
+  [ -s "$launch_log" ] || fail "Cursor spawn did not deliver a launch command"
+  cp "$launch_log" "$TMP_ROOT/launch-$setting.sh"
+  for sh in bash zsh /bin/sh dash; do
+    case "$setting:$sh" in absent:/bin/sh|absent:dash) continue ;; esac
+    command -v "$sh" >/dev/null 2>&1 || continue
+    : > "$launch_stream"
+    HOME="$launch_home/user-home" FM_TEST_ALLOWED=synthetic-provider FM_TEST_AMBIENT_SENTINEL=synthetic-unrelated \
+      "$sh" "$TMP_ROOT/launch-$setting.sh"
+    expect_code 7 $? "allowlist=$setting $sh: pane command exits with the agent's status, not tee's"
+    jq -e --arg allowed "$expected_allowed" --arg ambient "$expected_ambient" \
+      '.type == "error" and .message == "unrelated failure" and .allowed == $allowed and .ambient == $ambient' \
+      "$launch_stream" >/dev/null \
+      || fail "allowlist=$setting $sh: the captured Cursor output must reflect the worker environment"
+  done
+  pass "cursor exit code and environment survive the tee (allowlist=$setting)"
 done
-pass "cursor exit code survives the tee"
 
 # ---- crew guard: the preToolUse hook a crew session loads ----
 CREW_GUARD="$ROOT/bin/fm-cursor-crew-guard.mjs"

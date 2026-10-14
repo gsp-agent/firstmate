@@ -77,7 +77,15 @@
 #   validated state/<id>.meta, so --backend, --scout, --secondmate, a project
 #   positional, and batch pairs are all refused alongside it; only harness,
 #   model, and effort may change, which is what makes a harness switch one
-#   ordinary relaunch. It refuses unless the recorded endpoint is positively
+#   ordinary relaunch. Cursor routing and explicit relaunch overrides follow
+#   docs/agent-control.md "Transactional relaunch". Automatic fallbacks print
+#   their reason and record it before Grok launches in state/<id>.cursor-fallback,
+#   or state/<id>.cursor-limit for usage failures and the daily cap, whose
+#   marker is owned by bin/fm-cursor-guard.sh. An explicit grok relaunch of a
+#   ship or scout recorded as cursor keeps grok and writes state/<id>.cursor-fallback
+#   naming the override. That file is Cursor provenance, the same as any other
+#   fallback reason.
+#   It refuses unless the recorded endpoint is positively
 #   agent-free on a backend with a recovery-grade agent-state classifier (tmux
 #   or herdr), and clears the previous harness's per-task wiring before arming
 #   the new incarnation. Two verdicts are agent-free: a `dead` endpoint is
@@ -336,7 +344,7 @@
 # Launch environment (config/launch-env-allowlist):
 #   Absent means unchanged ambient inheritance. A present readable regular file
 #   opts every launch (ship, scout, secondmate, raw command, and relaunch) into
-#   /usr/bin/env -i followed by /bin/sh -c of the existing launch command.
+#   /usr/bin/env -i followed by /bin/bash -c of the existing launch command.
 #   Each line is one POSIX environment name, never a value or shell expression;
 #   blank lines and lines beginning with # are ignored. Invalid input refuses
 #   before launch, as do path inspection errors such as inaccessible config
@@ -357,7 +365,7 @@
 #   assignments still apply inside the filtered environment, including the
 #   FM_TASK_INBOX export every launch carries (the absolute state/<id>.inbox
 #   path the steering doorbell names). Raw commands must
-#   be POSIX sh compatible under this opt-in; the absent-file path is unchanged.
+#   be Bash compatible under this opt-in; the absent-file path is unchanged.
 #   This is an exec environment boundary, not a sandbox for the pane's startup
 #   shell, credential files, same-user processes, or later shell initialization.
 #   See docs/configuration.md for provider/Git setup and supported limits.
@@ -2445,19 +2453,6 @@ launch_template() {
   esac
 }
 
-# Deterministic Cursor fallback (no model judgment): usage at the threshold, no or
-# stale usage file, or this bead's last Cursor run hit a usage limit => bare Grok.
-if [ "$ARG3" = cursor ] && [ "$KIND" != secondmate ]; then
-  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="grok fallback check failed"
-  case "$CURSOR_FALLBACK" in
-  grok*)
-    echo "cursor fallback: launching $ID on the grok harness (grok-4.7 xhigh): ${CURSOR_FALLBACK#grok }" >&2
-    ARG3=grok MODEL=grok-4.7 EFFORT=xhigh
-    printf '%s\n' "${CURSOR_FALLBACK#grok }" > "$STATE/$ID.cursor-fallback"
-    ;;
-  esac
-fi
-
 case "$ARG3" in
 *' '*) # raw launch command (unverified-adapter escape hatch)
   RAW_LAUNCH=1
@@ -2504,6 +2499,34 @@ case "$ARG3" in
   }
   ;;
 esac
+
+# Explicit grok still resolves, so an override of a recorded cursor task is
+# recorded. Explicit cursor is not re-resolved. A control recheck of a grok
+# target the operator did not name is not itself an explicit override.
+cursor_explicit=0
+if [ "$HARNESS_SET" = 1 ] && [ "${FM_CONTROL_RELAUNCH_HARNESS_SET:-1}" = 1 ]; then
+  cursor_explicit=1
+fi
+if [ "$RELAUNCH" != 1 ] || [ "$HARNESS_SET" = 0 ] ||
+  { [ "$SPAWN_CONTROL_PARENT" = 1 ] && [ "${FM_CONTROL_RELAUNCH_HARNESS_SET:-1}" = 0 ]; } ||
+  { [ "$RELAUNCH" = 1 ] && [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ] && [ "$cursor_explicit" = 1 ]; }; then
+  CURSOR_PROFILE=$(fm_cursor_resolve_profile "$STATE" "$CONFIG" "$ID" "$RELAUNCH" "$KIND" "$HARNESS" "$MODEL" "$EFFORT" "$cursor_explicit") || exit 1
+  IFS=$'\t' read -r RESOLVED_HARNESS RESOLVED_MODEL RESOLVED_EFFORT <<< "$CURSOR_PROFILE"
+  if [ "$SPAWN_CONTROL_PARENT" = 1 ] &&
+    { [ "$RESOLVED_HARNESS" != "$HARNESS" ] ||
+      [ "$RESOLVED_MODEL" != "${MODEL:-default}" ] ||
+      [ "$RESOLVED_EFFORT" != "${EFFORT:-default}" ]; }; then
+    echo "error: Cursor guard decision changed for $ID after the relaunch target was recorded; refusing replacement launch" >&2
+    exit 1
+  fi
+  if [ "$RESOLVED_HARNESS" != "$HARNESS" ]; then
+    HARNESS=$RESOLVED_HARNESS
+    RAW_LAUNCH=0
+    LAUNCH=$(launch_template "$HARNESS" "$KIND") || exit 1
+  fi
+  MODEL=$RESOLVED_MODEL
+  EFFORT=$RESOLVED_EFFORT
+fi
 
 # muse, gemini, agy, and devin are verified as CREWMATE/SCOUT adapters only. A secondmate is
 # a firstmate instance, so it needs a primary supervision protocol.
@@ -2592,7 +2615,7 @@ cursor)
   fi
   # Re-assert Cursor's settings before every run (spawn and relaunch).
   "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
-  # A bead's 3rd Cursor launch in one day is refused; given back below if the spawn fails.
+  # Reserve one launch under the guard's daily cap; give it back if the spawn fails.
   FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
   CURSOR_CAP_TAKEN=1
   ;;
@@ -5534,6 +5557,14 @@ if [ "$RELAUNCH" -eq 1 ]; then
   SPAWN_META_PUBLISH_STARTED=0
   SPAWN_META_TMP=
 fi
+if [ "$HARNESS" = cursor ] && [ "$KIND" != secondmate ] && [ -s "$STATE/$ID.cursor-limit" ]; then
+  cursor_limit=$(head -1 "$STATE/$ID.cursor-limit")
+  cursor_day=${FM_CURSOR_DAY:-$(TZ=America/Chicago date +%F)}
+  case "$cursor_limit" in
+    "cursor guard: refused "*" today ($cursor_day)"*) ;;
+    "cursor guard: refused "*" today ("*) rm -f "$STATE/$ID.cursor-limit" ;;
+  esac
+fi
 # A dispatch or relaunch keeps the per-task meta lock through launch delivery.
 # The backlog mutation is deliberately the final fallible commit below, so
 # teardown cannot remove a relaunched record while its replacement worker is
@@ -5836,14 +5867,14 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
   # it still delivers the switch on a pane whose export never landed. Unlike the
   # trace carrier below it carries no gate, so it is appended unconditionally.
   # Setting it here rather than relying on the assignment already carried by
-  # $LAUNCH is what gives the wrapping `/bin/sh` itself the switch, not only the
+  # $LAUNCH is what gives the wrapping `/bin/bash` itself the switch, not only the
   # agent command it runs.
   LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX COMPACT_ADVISER_DISABLE=1"
   if [ -n "$SPAWN_TRACEPARENT" ]; then
     # shellcheck disable=SC2016
     LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX "'${TRACEPARENT+"TRACEPARENT=$TRACEPARENT"}'
   fi
-  LAUNCH="$LAUNCH_ENV_PREFIX /bin/sh -c $(shell_quote "$LAUNCH")"
+  LAUNCH="$LAUNCH_ENV_PREFIX /bin/bash -c $(shell_quote "$LAUNCH")"
 fi
 # Implement the launch-delivery contract in this script's header. The full
 # home-identity hash isolates equal task ids across homes, and the spawn token in

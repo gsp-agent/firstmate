@@ -1073,7 +1073,7 @@ Choose the minimum additions for the authentication method actually in use:
 ### Validation and security limits
 
 Verify the selected provider login and Git transport after opting in; Firstmate does not infer credentials from model names or install a secret manager.
-Raw launch commands run under noninteractive POSIX `sh` with this option and must use compatible syntax.
+Raw launch commands run under noninteractive Bash with this option and must use compatible syntax.
 
 The filter runs at the worker command boundary, after the terminal daemon and pane shell have started; it does not scrub either of those processes.
 This is not a sandbox: it cannot revoke same-user access to credential files, prevent tools or later shells from loading credentials again, or isolate processes from the same user's other processes.
@@ -1246,7 +1246,8 @@ The combination `docs-only` and `ep-opus` is refused so the bead can be relabele
 ### Cursor launch controls
 
 `cursor_fallback` and `pstack_version` configure [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh), whose header owns spending-file freshness, plugin compatibility, usage-limit markers, and daily launch accounting.
-An explicit Cursor ship or scout selection can fall back to Grok before launch; the reason is printed and recorded with the task.
+A fresh Cursor ship or scout selection, explicit or implicit, can fall back to Grok before launch; the reason is printed and recorded with the task.
+For relaunch profile selection and explicit overrides, see [Transactional relaunch](agent-control.md#transactional-relaunch).
 Cursor launches that proceed invoke [`fm-cursor-assert.sh`](../bin/fm-cursor-assert.sh), whose header owns the per-user Cursor settings and pstack role rules reasserted on each launch.
 The [Cursor adapter reference](../.agents/skills/harness-adapters/references/harness/cursor.md) owns harness-specific operating guidance.
 

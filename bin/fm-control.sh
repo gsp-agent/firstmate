@@ -68,8 +68,8 @@
 #              axis for the replacement. With no explicit axis, a secondmate
 #              re-resolves its durable config/secondmate-harness pin (harness
 #              plus its optional model and effort tokens) exactly as any other
-#              respawn does, while a ship or scout keeps the exact adapter
-#              already recorded for it.
+#              respawn does, while ship and scout profile resolution follows
+#              docs/agent-control.md "Transactional relaunch".
 #              A prefixed raw-command basename cannot reconstruct its launch
 #              command, so relaunch requires an explicit --harness for it.
 #              A replacement Claude or Pi profile must also pass this home's
@@ -173,6 +173,8 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 . "$SCRIPT_DIR/fm-busy-lib.sh"
 # shellcheck source=bin/fm-control-lib.sh
 . "$SCRIPT_DIR/fm-control-lib.sh"
+# shellcheck source=bin/fm-cursor-lib.sh
+. "$SCRIPT_DIR/fm-cursor-lib.sh"
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 # shellcheck source=bin/fm-wake-lib.sh
@@ -951,6 +953,15 @@ resolve_relaunch_profile() {
   else
     TARGET_EFFORT=default
   fi
+  # Inherited profiles resolve here. Explicit grok does too, so a recorded
+  # cursor task keeps grok and records the override. Explicit cursor is not
+  # re-resolved.
+  if [ "$HARNESS_SET" = 0 ] || [ "$TARGET_HARNESS" = grok ]; then
+    local cursor_profile
+    cursor_profile=$(fm_cursor_resolve_profile "$STATE" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" "$ID" 1 "$KIND" \
+      "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" "$HARNESS_SET") || return 1
+    IFS=$'\t' read -r TARGET_HARNESS TARGET_MODEL TARGET_EFFORT <<< "$cursor_profile"
+  fi
   if [ "$TARGET_EFFORT" = ultra ]; then
     "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1
   fi
@@ -1117,7 +1128,7 @@ do_relaunch() {
   spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS")
   [ "$TARGET_MODEL" = default ] || spawn_args+=(--model "$TARGET_MODEL")
   [ "$TARGET_EFFORT" = default ] || spawn_args+=(--effort "$TARGET_EFFORT")
-  if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
+  if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" FM_CONTROL_RELAUNCH_HARNESS_SET="$HARNESS_SET" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then
     RELAUNCH_META_PUBLISHED=1
     # $T was resolved from the record before the launch. When the recorded
