@@ -1685,6 +1685,16 @@ assert_attribution_policy_absent() {  # <launch-command> <what>
     || fail "$what launch settings JSON still disables Claude attribution: $settings"
 }
 
+# Claude Code treats a missing autoMemoryEnabled as on. Both the inline crew
+# settings and the secondmate settings file must set it false, including when
+# keep-ai-trailers omits attribution.
+assert_auto_memory_disabled() {  # <launch-command> <what>
+  local launch=$1 what=$2 settings
+  settings=$(claude_settings_json_arg "$launch")
+  printf '%s' "$settings" | jq -e '.autoMemoryEnabled == false' >/dev/null \
+    || fail "$what launch settings JSON does not disable Claude auto-memory: $settings"
+}
+
 test_claude_task_launch_carries_control_channel_authority() {
   local rec id out status launch
   id=profile-claude-control-channel-z21
@@ -1757,6 +1767,7 @@ test_claude_crewmate_launch_carries_the_attribution_policy() {
   expect_code 0 "$status" "claude crewmate spawn should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
   assert_attribution_policy "$launch" "claude crewmate"
+  assert_auto_memory_disabled "$launch" "claude crewmate"
   [ -d "$HOME_DIR/state/$id.git-hooks" ] || fail "default config did not install the AI trailer hooks"
   pass "a claude crewmate launch carries the attribution-off policy in its own settings"
 }
@@ -1773,6 +1784,7 @@ test_keep_ai_trailers_omits_attribution_settings_and_strip_hooks() {
   expect_code 0 "$status" "claude spawn with keep-ai-trailers should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
   assert_attribution_policy_absent "$launch" "opted-in claude"
+  assert_auto_memory_disabled "$launch" "opted-in claude"
   assert_not_contains "$launch" 'GIT_CONFIG_KEY_0=core.hooksPath' \
     "opted-in launch still overrides the repository hooksPath"
   [ ! -e "$HOME_DIR/state/$id.git-hooks" ] \
@@ -1796,6 +1808,8 @@ test_keep_ai_trailers_reaches_secondmate_crew_launches() {
   status=$?
   expect_code 0 "$status" "secondmate spawn with keep-ai-trailers should succeed"$'\n'"$out"
   [ -e "$sm/config/keep-ai-trailers" ] || fail "secondmate home did not inherit config/keep-ai-trailers"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_auto_memory_disabled "$launch" "keep-ai-trailers claude secondmate"
 
   read_case_record "$sm_rec"
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$crew_id" "$PROJ_DIR")
@@ -1803,6 +1817,7 @@ test_keep_ai_trailers_reaches_secondmate_crew_launches() {
   expect_code 0 "$status" "secondmate crew spawn should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
   assert_attribution_policy_absent "$launch" "secondmate crew claude"
+  assert_auto_memory_disabled "$launch" "secondmate crew claude"
   assert_not_contains "$launch" 'GIT_CONFIG_KEY_0=core.hooksPath' \
     "secondmate crew launch still overrides the repository hooksPath"
   [ ! -e "$HOME_DIR/state/$crew_id.git-hooks" ] \
@@ -1824,6 +1839,7 @@ test_claude_secondmate_launch_carries_the_attribution_policy() {
   expect_code 0 "$status" "secondmate claude spawn should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
   assert_attribution_policy "$launch" "claude secondmate"
+  assert_auto_memory_disabled "$launch" "claude secondmate"
   pass "a claude secondmate launch carries the attribution-off policy too"
 }
 
