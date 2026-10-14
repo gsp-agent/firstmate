@@ -54,7 +54,6 @@ if [ "$op" = fallback ]; then
   pool() {
     if [ -s "$STATE/$id.codex-limit" ]; then echo "claude $1; $(head -1 "$STATE/$id.codex-limit")"; else echo "codex $1"; fi
   }
-  if [ "$have" != "$want" ]; then echo "grok pstack plugin version is '${have:-unreadable}', not the pinned $want"; exit 0; fi
   if [ -s "$STATE/$id.cursor-limit" ]; then pool "$(head -1 "$STATE/$id.cursor-limit")"; exit 0; fi
   # Newest-by-mtime needs ls -t; find has no portable equivalent on macOS.
   # shellcheck disable=SC2012
@@ -65,6 +64,8 @@ if [ "$op" = fallback ]; then
   pct=$(sed -n 's/^cursor_models_pct=//p' "$f" | tail -1)
   case "$pct" in '' | *[!0-9]*) pool "cursor_models_pct missing or not an integer in $(basename "$f")"; exit 0 ;; esac
   if [ "$pct" -ge "$pct_max" ]; then pool "Cursor Models at ${pct}% (limit ${pct_max}%)"; exit 0; fi
+  # Only once the pool is fine: an off-pin pstack is a Cursor-only problem.
+  if [ "$have" != "$want" ]; then echo "grok pstack plugin version is '${have:-unreadable}', not the pinned $want"; exit 0; fi
   echo cursor; exit 0
 fi
 
