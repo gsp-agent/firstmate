@@ -2,13 +2,11 @@
 # Tests for bin/fm-teardown.sh's landed-work safety and stale-lock recovery.
 #
 # The check refuses to tear down a worktree whose work has not LANDED, because
-# treehouse return hard-resets the worktree. "Landed" means reachable from a remote
+# treehouse return hard-resets the worktree. "Landed" means reachable from a remote,
+# unless meta records a still-open or unreadable pull request or merge request,
 # OR - for a normal ship task whose commits are not so reachable - its PR is merged
 # and GitHub reports a PR head that contains the current local work, or its content
 # is already in the up-to-date default branch.
-# A recorded pull request or merge request that is still open is not landed,
-# even when the branch is already on a remote. Merged and closed keep the rule
-# above. An unreadable forge state refuses.
 #
 # Covers three fixes:
 #   - local-only fork-remote: a fork IS a remote, so fork-pushed upstream-
@@ -421,9 +419,6 @@ land_equivalent_patch_on_origin_branch() {
   git -C "$case_dir/project" rev-parse "refs/remotes/origin/$branch"
 }
 
-# gh-axi answers `pr view` with one state word and logs the invocation.
-# A pushed branch does not ask the forge on its own, so the log is the proof
-# that teardown read the recorded request.
 add_gh_axi_pr_state() {
   local case_dir=$1 state=$2
   cat > "$case_dir/fakebin/gh-axi" <<SH
@@ -755,6 +750,7 @@ test_teardown_closes_the_backlog_item_itself() {
   case_dir=$(make_case tasks-axi-close)
   write_meta "$case_dir" no-mistakes ship
   printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  add_gh_axi_pr_state "$case_dir" merged
   seed_backlog_in_flight "$case_dir"
 
   out=$(run_teardown "$case_dir") || fail "teardown failed with a real backlog"
@@ -809,6 +805,7 @@ SH
   case_dir=$(make_case tasks-axi-close-github-under-refusal)
   write_meta "$case_dir" no-mistakes ship
   printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  add_gh_axi_pr_state "$case_dir" merged
   seed_backlog_in_flight "$case_dir"
   cp "$TMP_ROOT/tasks-axi-close-gerrit/fakebin/tasks-axi" "$case_dir/fakebin/tasks-axi"
   out=$(run_teardown "$case_dir" 2>&1) || fail "teardown of a landed GitHub task failed: $out"
@@ -823,6 +820,7 @@ test_teardown_manual_backend_leaves_the_backlog_to_the_operator() {
   case_dir=$(make_case tasks-axi-manual-optout)
   write_meta "$case_dir" no-mistakes ship
   printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  add_gh_axi_pr_state "$case_dir" merged
   printf '%s\n' manual > "$case_dir/config/backlog-backend"
   seed_backlog_in_flight "$case_dir"
 
@@ -5058,11 +5056,7 @@ test_retained_sources_still_reach_the_ordinary_refusal() {
   pass "present required sources still reach the ordinary teardown refusal"
 }
 
-# A branch already on origin is not finished while its recorded pull request
-# or merge request is still open. The task record is what a later merge needs.
-# Merged and closed keep today's cleanup. An unreadable forge state refuses.
-# --force still discards.
-test_recorded_open_request_keeps_the_task_record() {
+test_recorded_request_state_decides_pushed_teardown() {
   local state case_dir rc head
   for state in open merged closed; do
     case_dir=$(make_case "recorded-pr-$state")
@@ -5237,7 +5231,7 @@ test_forced_secondmate_dirty_child_return_warns_and_completes
 test_return_that_removes_copy_warns_cannot_verify
 test_scout_ignored_files_survive_scratch_clean
 test_gh_error_and_content_absent_refuses
-test_recorded_open_request_keeps_the_task_record
+test_recorded_request_state_decides_pushed_teardown
 test_legacy_record_without_the_flag_refuses
 test_windowless_legacy_record_with_gone_worktree_tears_down
 test_windowless_legacy_record_tears_down_with_the_legacy_flag
