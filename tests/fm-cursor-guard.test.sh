@@ -124,7 +124,8 @@ out=$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1 relaunch)
   || fail "the cap reason was not recorded: $(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit" 2>/dev/null || echo absent)"
 out=$(FM_CURSOR_DAY=2030-06-02 "$TOOL" fallback cap1)
 [ "$out" = cursor ] || fail "a cap record from another Chicago day must not force grok: $out"
-[ ! -e "$FM_STATE_OVERRIDE/cap1.cursor-limit" ] || fail "a previous day's cap record must be cleared"
+[ "$(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit")" = "cursor guard: refused cap1, already launched 2 times today (2030-06-01); write blocked: instead of a 3rd run" ] \
+  || fail "guard preflight must preserve the previous day's cap provenance"
 pass "a relaunch at the daily cap records the reason for that Chicago day"
 
 printf '{"day":"2030-06-01","beads":{"capwrite":2}}\n' > "$STATEFILE"

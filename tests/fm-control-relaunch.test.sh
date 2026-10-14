@@ -1409,7 +1409,7 @@ test_cursor_relaunch_at_the_daily_cap_logs_the_reason() {
 }
 
 test_control_cursor_relaunch_records_the_guarded_profile() {
-  local dir id out rc scenario harness model effort command
+  local dir id out rc scenario harness model effort command prior_meta reason real_mv
   for scenario in healthy cap; do
     id="rl81-$scenario"
     dir=$(new_case "ctrl-cursor-$scenario" "$id")
@@ -1444,8 +1444,28 @@ test_control_cursor_relaunch_records_the_guarded_profile() {
         "the cap relaunch must launch the recorded Grok profile"
       [ "$(cat "$dir/home/state/$id.cursor-limit")" = "cursor guard: refused $id, already launched 2 times today (2030-06-01); write blocked: instead of a 3rd run" ] \
         || fail "the control relaunch did not record the daily-cap reason"
+      prior_meta=$(cat "$dir/home/state/$id.meta")
+      reason=$(cat "$dir/home/state/$id.cursor-limit")
       printf 'cursor-agent' > "$dir/fake/becomes"
+      printf 'pending draft' > "$dir/fake/composer"
       out=$(FM_CURSOR_DAY=2030-06-02 FM_PSTACK_DIR="$dir/pstack" FM_CURSOR_USAGE_DIR="$dir/usage" \
+        run_control "$dir" "$id" relaunch --note "preserve the pending draft")
+      expect_code 1 $? "a pending composer must refuse the Cursor recovery: $out"
+      assert_contains "$out" "Clear the composer" "the recovery refusal must identify the composer"
+      [ "$(cat "$dir/home/state/$id.meta")" = "$prior_meta" ] || fail "a refused recovery must retain its Grok metadata"
+      [ "$(cat "$dir/home/state/$id.cursor-limit")" = "$reason" ] || fail "a refused recovery must retain its Cursor provenance"
+      [ "$(cat "$dir/fake/command")" = grok ] || fail "a pending composer must leave the Grok agent running"
+      : > "$dir/fake/composer"
+      real_mv=$(command -v mv)
+      make_mv_failure_stub "$dir"
+      out=$(FM_REAL_MV="$real_mv" FM_FAKE_META_PUBLISH_MV_FAIL="$dir/home/state/$id.meta" \
+        FM_CURSOR_DAY=2030-06-02 FM_PSTACK_DIR="$dir/pstack" FM_CURSOR_USAGE_DIR="$dir/usage" \
+        run_control "$dir" "$id" relaunch --note "retry before publication")
+      expect_code 1 $? "a failed Cursor metadata publication must refuse recovery: $out"
+      assert_contains "$out" "replacement task record" "the recovery must reach the metadata publication failure"
+      [ "$(cat "$dir/home/state/$id.meta")" = "$prior_meta" ] || fail "a failed publication must retain its Grok metadata"
+      [ "$(cat "$dir/home/state/$id.cursor-limit")" = "$reason" ] || fail "a failed publication must retain its Cursor provenance"
+      out=$(FM_REAL_MV="$real_mv" FM_CURSOR_DAY=2030-06-02 FM_PSTACK_DIR="$dir/pstack" FM_CURSOR_USAGE_DIR="$dir/usage" \
         run_control "$dir" "$id" relaunch --note "retry on the next Chicago day")
       expect_code 0 $? "a control relaunch after the cap expires must succeed: $out"
       [ "$(journal_field "$dir" "$id" to_harness)" = cursor ] || fail "the next day's journal must choose Cursor"
@@ -1455,7 +1475,7 @@ test_control_cursor_relaunch_records_the_guarded_profile() {
       assert_absent "$dir/home/state/$id.cursor-limit" "the expired daily-cap reason must be cleared"
     fi
   done
-  pass "fm-control records the guarded profile and returns to Cursor after the daily cap expires"
+  pass "fm-control preserves Cursor provenance through refused recovery and failed publication until a successful retry"
 }
 
 test_usage_fallback_relaunch_returns_to_a_healthy_cursor_pool() {

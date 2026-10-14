@@ -9,7 +9,7 @@
 #                      pstack plugin dir's plugin.json version is not pstack_version (0.15.21).
 #                      With relaunch, a bead that already launched twice today (America/Chicago)
 #                      is also grok. That reason is written to state/<id>.cursor-limit and forces
-#                      grok only on that Chicago day; a later day drops the record. A fresh
+#                      grok only on that Chicago day; a later day ignores the record. A fresh
 #                      fallback does not apply the daily cap, so take still refuses the 3rd launch.
 #   take <id>          before a cursor launch; a bead's 3rd launch in one America/Chicago day is
 #                      refused (exit 1, one stderr line). Counts in state/cursor-dispatch.json.
@@ -62,7 +62,7 @@ if [ "$op" = fallback ]; then
         ;;
       # The daily cap is one Chicago day. A usage-limit line has no "today (date)" and stays.
       "cursor guard: refused "*" today ("*)
-        rm -f "$STATE/$id.cursor-limit"
+        :
         ;;
       *)
         echo "grok $line"

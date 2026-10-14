@@ -5542,6 +5542,14 @@ if [ "$RELAUNCH" -eq 1 ]; then
   SPAWN_META_PUBLISH_STARTED=0
   SPAWN_META_TMP=
 fi
+if [ "$HARNESS" = cursor ] && [ "$KIND" != secondmate ] && [ -s "$STATE/$ID.cursor-limit" ]; then
+  cursor_limit=$(head -1 "$STATE/$ID.cursor-limit")
+  cursor_day=${FM_CURSOR_DAY:-$(TZ=America/Chicago date +%F)}
+  case "$cursor_limit" in
+    "cursor guard: refused "*" today ($cursor_day)"*) ;;
+    "cursor guard: refused "*" today ("*) rm -f "$STATE/$ID.cursor-limit" ;;
+  esac
+fi
 # A dispatch or relaunch keeps the per-task meta lock through launch delivery.
 # The backlog mutation is deliberately the final fallible commit below, so
 # teardown cannot remove a relaunched record while its replacement worker is
