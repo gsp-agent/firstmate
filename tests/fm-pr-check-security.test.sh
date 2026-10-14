@@ -3722,6 +3722,7 @@ SH
   add_stop_custom_check "$dir"
   for round in 1 2; do
     rm -f "${state:?}/.last-check"
+    # shellcheck disable=SC2016 # $event and $reason are jq variables.
     "$REAL_JQ" -n --arg event "drop-a-$round" '
       def pull($event; $reason):
         {data:{repository:{pullRequest:{state:"OPEN",merged:false,isInMergeQueue:false,
@@ -3780,6 +3781,7 @@ test_queue_drop_reason_is_preserved() {
   esac
   escaped_reason=${out#"dequeued $url reason="}
   escaped_reason=${escaped_reason%" event=$FM_TEST_GH_POLL_EVENT"}
+  # shellcheck disable=SC2016 # $expected is a jq variable.
   printf '"%s"\n' "$escaped_reason" \
     | "$REAL_JQ" -e --arg expected "$raw_reason" '. == $expected' >/dev/null \
     || fail "the poll's JSON-escaped removal reason did not preserve GitHub's text"
