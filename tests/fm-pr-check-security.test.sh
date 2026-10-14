@@ -141,6 +141,30 @@ SH
 printf '%s\n' "$*" >> "$FM_TEST_GH_LOG"
 case "${1:-} ${2:-}" in
   "api graphql")
+    # The merge script's four-line outcome query stays on the branch below.
+    # A poll query names the removal event, so this branch can dequeue a
+    # pull request the outcome query has never described.
+    case " $* " in
+      *REMOVED_FROM_MERGE_QUEUE_EVENT*)
+        [ "${FM_TEST_GH_FAIL:-0}" = 0 ] || exit 1
+        [ -z "${FM_TEST_GH_STATE_STARTED:-}" ] || : > "$FM_TEST_GH_STATE_STARTED"
+        [ "${FM_TEST_GH_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GH_SLEEP"
+        state=${FM_TEST_GH_STATE-OPEN}
+        if [ -n "${FM_TEST_GH_POLL_MERGED+x}" ]; then
+          merged=$FM_TEST_GH_POLL_MERGED
+        elif [ "$state" = MERGED ]; then
+          merged=true
+        else
+          merged=false
+        fi
+        printf '%s\n' \
+          "state=$state" \
+          "merged=$merged" \
+          "queued=${FM_TEST_GH_POLL_QUEUED:-false}" \
+          "reason=${FM_TEST_GH_POLL_REASON-}"
+        exit 0
+        ;;
+    esac
     printf '%s\n' \
       "state=${FM_TEST_GH_GRAPHQL_STATE:-MERGED}" \
       "merged=${FM_TEST_GH_GRAPHQL_MERGED:-true}" \
@@ -3602,6 +3626,136 @@ SH
   pass "device re-record publication waits without rewriting its registration"
 }
 
+# A pull request fm-pr-merge.sh verified into the queue, and that later leaves
+# it unmerged, must wake once with GitHub's removal reason. A merge still wakes
+# as merged alone. An unreadable read, and a poll that was never verified into
+# the queue, stay silent.
+test_verified_queue_drop_wakes_once() {
+  local dir state url rc
+  url=https://github.com/o/r/pull/1
+
+  dir=$(make_case queue-drop-once)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "queue drop: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "queue drop watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "verified queue drop did not wake once: $(cat "$dir/watch.out")"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch2.out" 2> "$dir/watch2.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "second queue drop watcher failed: $(cat "$dir/watch2.err")"
+  [ "$(grep -c 'dequeued ' "$dir/watch2.out")" -eq 0 ] \
+    || fail "verified queue drop woke again: $(cat "$dir/watch2.out")"
+
+  dir=$(make_case queue-then-merged)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "queued merge: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  run_merged_poll_cycle "$dir"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: merged$' "$dir/watch.out")" -eq 1 ] \
+    || fail "queued merge did not wake as merged: $(cat "$dir/watch.out")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
+    || fail "queued merge also woke as dequeued: $(cat "$dir/watch.out")"
+
+  dir=$(make_case queue-drop-unreadable)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "unreadable drop: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_FAIL=1 \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "unreadable drop watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
+    || fail "unreadable drop woke: $(cat "$dir/watch.out")"
+  [ "$(grep -c ': merged$' "$dir/watch.out")" -eq 0 ] \
+    || fail "unreadable drop woke as merged: $(cat "$dir/watch.out")"
+
+  dir=$(make_case open-poll-not-queued)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "unqueued poll: could not arm the merge poll"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "unqueued poll watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
+    || fail "poll that was never queued woke as dequeued: $(cat "$dir/watch.out")"
+
+  dir=$(make_case queue-observed-then-dropped)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "observed queue: could not arm the merge poll"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/queued.out" 2> "$dir/queued.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "observed queue watcher failed: $(cat "$dir/queued.err")"
+  [ "$(grep -c 'dequeued ' "$dir/queued.out")" -eq 0 ] \
+    || fail "a pull request still in the queue woke as dequeued: $(cat "$dir/queued.out")"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON='failed checks' \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "observed drop watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=unreadable$' "$dir/watch.out")" -eq 1 ] \
+    || fail "observed queue drop did not wake with an unreadable reason: $(cat "$dir/watch.out")"
+
+  dir=$(make_case queue-drop-contradiction)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "contradiction: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_MERGED=true FM_TEST_GH_POLL_QUEUED=false \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "contradiction watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
+    || fail "contradictory read woke as dequeued: $(cat "$dir/watch.out")"
+  [ "$(grep -c ': merged$' "$dir/watch.out")" -eq 0 ] \
+    || fail "contradictory read woke as merged: $(cat "$dir/watch.out")"
+
+  pass "a verified queue drop wakes once, a merge stays a merge, and a bad read stays silent"
+}
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -3636,6 +3790,7 @@ test_direct_pr_unpushed_commit_refuses_registration
 test_valid_recording_and_merge_derivation
 test_rejected_metacharacter_bytes_are_inert
 test_static_poll_contract
+test_verified_queue_drop_wakes_once
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations
