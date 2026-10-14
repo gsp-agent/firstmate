@@ -6,6 +6,8 @@
 # concurrent proof run, and its isolation checks. Production portable CI shards,
 # bounded local fm-test-run.sh --jobs admission, and family worker caps are owned
 # by bin/fm-test-run.sh (docs/fm-test-portable-shards.md).
+# bin/fm-test-machine-line-lib.sh owns shared suite admission and timing across
+# admission waits for both entry points.
 #
 # It does NOT compose production CI shard membership; fm-test-run.sh owns that
 # partition. The default portable pool excludes real Herdr, real default-server

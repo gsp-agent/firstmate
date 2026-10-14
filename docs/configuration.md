@@ -786,7 +786,8 @@ claude, codex, opencode, pi, pi-signed, grok, kimi, cursor, and omp are empirica
 ### Harness restrictions and credentials
 
 `fm-spawn.sh` refuses kimi on cmux and Orca at preflight, because answering Kimi's folder-trust dialog needs a verified viewport-only capture those backends lack; [its adapter reference](../.agents/skills/harness-adapters/references/harness/kimi.md#readiness-gated-start) owns the trust-dialog handling.
-A cursor secondmate or primary runs the tracked project-scope `.cursor/hooks.json` in its own home and must be launched with `--trust`, or no project hook loads; [`docs/supervision-protocols/cursor.md`](supervision-protocols/cursor.md) owns its supervision protocol.
+An interactive Cursor primary runs the tracked project-scope `.cursor/hooks.json` in its home and must be launched with `--trust`, or no project hook loads; [`docs/supervision-protocols/cursor.md`](supervision-protocols/cursor.md) owns its supervision protocol.
+For Firstmate-launched Cursor sessions, including secondmates, [`fm-spawn.sh`](../bin/fm-spawn.sh) owns the launch command and the [Cursor adapter reference](../.agents/skills/harness-adapters/references/harness/cursor.md#primary-integration) records the headless hook limits.
 
 Cursor typed-submit confirmation is verified on tmux and Herdr only.
 On Zellij, cmux, and Orca a typed-plane Cursor send (a harness-native invocation or an explicit backend target; ordinary text steers ride the durable inbox and exit 0 at enqueue) lands, but `fm-send` reports delivery unconfirmed and exits non-zero because their shared submit core does not consult the busy footer; [runtime backend verification](verification/runtime-backends.md#cursor-agent-cli) owns the evidence and transcript-state boundary.
@@ -988,7 +989,7 @@ A home that authenticates Claude through environment credentials on purpose shou
 ### Failures, reporting, and inheritance
 
 A malformed file, a root that is not a readable directory, or a signed-out account refuses the launch and names the file to fix; Firstmate never falls back to the ambient account and never changes a global login or copies a credential.
-The spawn prints the pin as `account=` (plus `account_provider=` for Pi) and records the same fields in the task record, so the session-start digest shows which account each worker launched on.
+The spawn prints the pin as `account=` (plus `account_provider=` for Pi) and records the same fields in `state/<id>.meta` for targeted inspection.
 
 Pins are not inherited into secondmate homes: a local secondmate agent launches on the launching home's pin, while the secondmate's own workers read the secondmate home's files.
 A remote secondmate is launched on its host from its own home's configuration, so create the file in that remote home.
@@ -1169,7 +1170,7 @@ This section is the single owner of the canonical schema and its per-field seman
 | `use` and optional top-level `default` | Accept one profile object or a non-empty array of profile objects; the single-object form remains fully backward-compatible. |
 | Profile `harness` | Required in every profile. |
 | Profile `model` and `effort`; rule `why` | Optional. |
-| `label_routes` | Optional label-to-profile map used by [label-based worker routing](#label-based-worker-routing). |
+| `label_routes` | Optional map from each label to one profile object used by [label-based worker routing](#label-based-worker-routing). |
 | `cursor_fallback` and `pstack_version` | Optional [Cursor launch controls](#cursor-launch-controls); the guard's header owns their defaults and interpretation. |
 
 **Fields applied only by typed resolution**
@@ -1215,7 +1216,7 @@ This single-provider table is separate from the frozen legacy mapping used by `f
 - Codex `max` is valid when the profile selects `gpt-5.6-luna` or `gpt-6.1-sol`, whose installed catalog entries support that reasoning level.
 - An omitted model or effort means the selected harness uses its own default for that axis.
 - OpenCode receives the effort as its default `build` agent's `variant`, keyed to the resolved model, inside the `OPENCODE_CONFIG_CONTENT` JSON its launch already writes (the per-model reasoning-effort field of the config schema, verified on opencode 1.18.32); with no model resolved, the effort is recorded in task metadata but omitted from the launch.
-- Every profile array is an implicit quota-aware choice resolved through `quota-array-dispatch`.
+- In brief-based dispatch, every profile array is an implicit quota-aware choice resolved through `quota-array-dispatch`; [label-based worker routing](#label-based-worker-routing) has its own selection rule.
 - If no dispatch rule fits, firstmate resolves `default` through the same object-or-array path before falling back to `config/crew-harness`.
 - Except for `ultra`, which refuses unsupported profiles under the native-effort contract above, an effort value the chosen harness does not accept is recorded as `effort=` in task meta for traceability but omitted from the launch flags.
 - Bootstrap reports unsupported harness/model/effort combinations as a `CREW_DISPATCH` diagnostic when they are visible in the file.
@@ -1238,7 +1239,7 @@ Secondmate homes inherit this file from the primary, so a secondmate's own crewm
 ### Label-based worker routing
 
 The resolver also provides deterministic worker routing from bead labels without a brief, API key, model request, or quota request.
-It considers labels in the supplied order, uses the first entry found in `label_routes`, and otherwise uses `default`; with neither, it returns escalation.
+It considers labels in the supplied order, uses the first entry found in `label_routes`, and otherwise uses `default` (its first profile when it is an array); with neither, it returns escalation.
 The combination `docs-only` and `ep-opus` is refused so the bead can be relabeled.
 [`fm-dispatch-resolve.sh`'s header and help](../bin/fm-dispatch-resolve.sh) own the invocation, validation, and output contract for this separate path.
 

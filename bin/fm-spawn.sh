@@ -2316,15 +2316,11 @@ launch_template() {
   # --dangerously-skip-permissions. grok's turn-end signal does NOT ride the
   # launch command - it is a Stop-event hook installed below (global hook +
   # per-task pointer), so the template is identical for ship/scout/secondmate.
-  # The env prefix keeps a crewmate off the captain's interactive surface:
-  # Grok scans ~/.claude.json, ~/.cursor/mcp.json and the Claude and Cursor
-  # skill directories by default, so every crewmate started those MCP servers
-  # (measured: 9 servers, 3 failing on every launch, one registered twice) and
-  # listed those skills. Project .mcp.json servers and grok-native plugins
-  # still load. API-key auth is refused so a crewmate cannot fall through to a
-  # metered key, and cross-session memory is off for unattended work. Each
-  # variable is documented in Grok's config reference (compat.*, auth.*) and
-  # memory guide (GROK_MEMORY).
+  # Keep unattended sessions off imported Claude/Cursor MCP servers and skills;
+  # project .mcp.json servers and Grok-native plugins still load. Disable API-key
+  # auth to prevent fallback to a metered key, and disable cross-session memory.
+  # Grok's config reference (compat.*, auth.*) and memory guide (GROK_MEMORY)
+  # document these variables.
   grok) printf '%s' 'env GROK_DISABLE_API_KEY_AUTH=1 GROK_MEMORY=0 GROK_CLAUDE_SKILLS_ENABLED=0 GROK_CURSOR_SKILLS_ENABLED=0 GROK_CLAUDE_MCPS_ENABLED=0 GROK_CURSOR_MCPS_ENABLED=0 grok --always-approve __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
   # Cursor Agent CLI. --trust suppresses the workspace-trust prompt, which
   # --yolo does NOT cover and which would otherwise block every spawn, since

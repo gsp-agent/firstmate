@@ -105,14 +105,8 @@
 #   no FM_TASK_ID set is unchanged.
 #
 # Machine line:
-#   An executing run waits for and holds ~/.agent-state/machine-gate.sh for
-#   the whole suite when that file is executable. The call is that gate's run
-#   command, the same one gj and the PM starter use, with a 180 minute cap.
-#   A refused turn exits 75 and this runner retries every 15 seconds.
-#   Inspection modes do not take the turn. A missing gate, or an empty
-#   FM_TEST_MACHINE_GATE, leaves the run unchanged. FM_TEST_MACHINE_LINE_HELD
-#   set means this process is already the admitted run and must not take the
-#   turn again.
+#   bin/fm-test-machine-line-lib.sh owns suite admission, gate overrides,
+#   retry behavior, nested runs, and timing across admission waits.
 #
 # Exit status is non-zero if any selected script exits non-zero, a configured
 # --fail-on-gate-skip token appears, the measured duration exceeds
