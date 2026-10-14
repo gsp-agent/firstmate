@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Spawn a direct report: a crewmate in a treehouse or Orca worktree, or a
 # secondmate in its isolated firstmate home.
-# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
+# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--upstream-consent <host>/<owner>/<repo>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
@@ -22,6 +22,9 @@
 #   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}`
 #   placeholders, an empty Task, an incomplete pair of Task subsections, or a
 #   `## Captain's intent` line opening with a Captain label or address.
+#   A fresh ship or scout additionally refuses a # Task body over 2048 bytes;
+#   link to the bead, PR, or file for detail instead of pasting it. Relaunches
+#   preserve existing briefs and do not apply this cap.
 #   Every ship or scout spawn renders `launch-brief.md`; for a no-mistakes ship
 #   it also carries the current `--intent` contract and the extracted captain
 #   intent. A legacy mixed Task is accepted there only under bin/fm-dod-lib.sh's
@@ -52,6 +55,12 @@
 #   base_branch= in state/<id>.meta, which a relaunch reuses and later review and
 #   cleanup read; it is refused on secondmates and relaunches, and without it
 #   nothing changes.
+#   --upstream-consent records one task's captain-approved publication scope
+#   for firstmate's own repository under bin/fm-role-lib.sh's gate. It must
+#   match the brief's upstream-consent= token, is recorded in task metadata,
+#   and is reused on relaunch rather than overridden. It is refused on scouts,
+#   secondmates, and local-only; docs/configuration.md "Firstmate role" owns
+#   the authority policy.
 #   Ship/scout launches always put fm-dod-lib.sh's current worker role scope
 #   first in the private launch-brief overlay, including the exact task-owned
 #   steering inbox. This never rewrites a project's instruction files or a
@@ -2331,9 +2340,8 @@ launch_template() {
   # effort axis is deliberately omitted and stays in task metadata only.
   # -p --output-format stream-json is tee'd (through process substitution, so
   # the pane command keeps the agent's own exit status) to state/<id>.cursor-stream.jsonl
-  # and still runs in the pane, so it stays visible; steer by relaunching with
-  # --resume of the bound session. --plugin-dir loads pstack and --approve-mcps
-  # lets its MCP servers start unattended. The second --plugin-dir is this
+  # and still runs in the pane, so it stays visible. --plugin-dir loads pstack
+  # and --approve-mcps lets its MCP servers start unattended. The second --plugin-dir is this
   # task's crew guard (install_cursor_crew_guard, bin/fm-cursor-crew-guard.mjs):
   # a preToolUse hook that pins shell calls naming no directory to the worktree,
   # because Cursor otherwise runs them wherever the conversation's persistent
