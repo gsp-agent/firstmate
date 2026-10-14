@@ -61,9 +61,13 @@ if [ "$op" = fallback ]; then
     if [ -s "$STATE/$id.codex-limit" ]; then echo "claude $1; $(head -1 "$STATE/$id.codex-limit")"; else echo "codex $1"; fi
   }
   if [ -s "$STATE/$id.cursor-limit" ]; then pool "$(head -1 "$STATE/$id.cursor-limit")"; exit 0; fi
-  # Newest-by-mtime needs ls -t; find has no portable equivalent on macOS.
-  # shellcheck disable=SC2012
-  f=$(ls -t "$USAGE"/*-spending.txt 2>/dev/null | head -1)
+  f=
+  for spending_file in "$USAGE"/*-spending.txt; do
+    [ -e "$spending_file" ] || continue
+    if [ -z "$f" ] || [ "$spending_file" -nt "$f" ]; then
+      f=$spending_file
+    fi
+  done
   if [ -z "$f" ] || [ ! -r "$f" ]; then pool "no Cursor spending file in $USAGE"; exit 0; fi
   age=$(( $(date +%s) - $(mtime "$f") ))
   if [ "$age" -gt $(( age_max * 3600 )) ]; then pool "newest Cursor spending file is $((age / 3600)) h old (limit $age_max h)"; exit 0; fi
