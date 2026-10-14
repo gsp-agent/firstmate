@@ -177,13 +177,15 @@
 # WORK UNDER WAY: one line per state/<id>.meta - id, kind, harness/model, the
 # PR number, a cheap endpoint liveness read (named only when the endpoint is not
 # alive), the backlog title cut to 40 characters, and the task's newest status
-# event - capped at TASK_LINE_CAP by bin/fm-line-cap-lib.sh. The full
+# event - normally capped at TASK_LINE_CAP by bin/fm-line-cap-lib.sh. The
+# title shortens first; a long bracket extends the cap to preserve the newest
+# event's TASK_STATUS_ROOM-character prefix (or the whole shorter event). The full
 # record (state/<id>.meta) and event history (state/<id>.status) are a path
 # away, and bin/fm-crew-state.sh owns current state, so a fleet of 30 tasks
 # costs about 6KB instead of 30KB.
 # STATUS TAILS: FM_SESSION_START_STATUS_TAIL (default 1) is how many status
 # lines each task shows: the newest on the task line, any older ones indented
-# beneath it, each capped the same way. Both bounds are safe because AGENTS.md
+# beneath it and capped at TASK_LINE_CAP. Both bounds are safe because AGENTS.md
 # section 8 treats a status line as a wake EVENT rather than current state.
 #
 # RUNTIME BOUND: the digest is now executed through a native session-open
