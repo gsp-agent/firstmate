@@ -1,0 +1,19 @@
+{
+  "network": {
+    "useHttp1ForAgent": true
+  },
+  "grok47": [
+    {
+      "id": "context",
+      "value": "256k"
+    },
+    {
+      "id": "reasoning_effort",
+      "value": "xhigh"
+    },
+    {
+      "id": "fast",
+      "value": "false"
+    }
+  ]
+}

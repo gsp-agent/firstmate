@@ -1,0 +1,22 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching lab-implicit on the grok harness (grok-4.7 xhigh): Cursor Models at 85% (limit 85%)
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/data/lab-implicit/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-implicit
+notice: lab-implicit ships mode=local-only while the standing posture for project-lab-explicit-normal is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+Terminated: 15             env FM_ROOT_OVERRIDE="$FM_ROOT" FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_DATA_OVERRIDE="$DATA" FM_CONFIG_OVERRIDE="$CONFIG" FM_PROJECTS_OVERRIDE="$PROJECTS" "$SCRIPT_DIR/fm-fleet-snapshot.sh" --secondmate-home-summary > "$HOME_SUMMARY_TMP" 2> "$HOME_SUMMARY_ERR_TMP"
+spawned lab-implicit harness=grok kind=ship mode=local-only yolo=off window=primary:fm-lab-implicit worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/treehouse/.treehouse/project-lab-explicit-normal-a65395/1/project-lab-explicit-normal
+Implicit spawn exit=0
+window=primary:fm-lab-implicit
+endpoint_task_id=lab-implicit
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/treehouse/.treehouse/project-lab-explicit-normal-a65395/1/project-lab-explicit-normal
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-explicit-normal
+harness=grok
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-implicit
+tasktmp=/tmp/fm-lab-implicit
+model=grok-4.7
+effort=xhigh
+spawn_gen=s1791986536.68126.9537
+Cursor Models at 85% (limit 85%)

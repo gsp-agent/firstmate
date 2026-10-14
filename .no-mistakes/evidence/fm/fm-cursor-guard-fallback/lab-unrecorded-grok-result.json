@@ -1,0 +1,13 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "model": "Grok 4.7 256K Extra High"
+  },
+  {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "result": "LIVE_REPLAY_lab-unrecorded-grok"
+  }
+]

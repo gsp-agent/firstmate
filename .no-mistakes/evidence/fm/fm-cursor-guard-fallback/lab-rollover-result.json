@@ -1,0 +1,7 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "model": "Grok 4.7 256K Extra High"
+  }
+]

@@ -1,0 +1,134 @@
+[
+  {
+    "pid": 1203,
+    "ppid": 99695,
+    "start": "Wed Oct 14 08:46:04 2026",
+    "command": "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Applications/ResolvePython"
+  },
+  {
+    "pid": 65997,
+    "ppid": 64825,
+    "start": "Wed Oct 14 08:45:42 2026",
+    "command": "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Applications/ResolvePython"
+  },
+  {
+    "pid": 90509,
+    "ppid": 88783,
+    "start": "Wed Oct 14 08:45:58 2026",
+    "command": "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Applications/ResolvePython"
+  },
+  {
+    "pid": 91950,
+    "ppid": 88707,
+    "start": "Wed Oct 14 09:05:34 2026",
+    "command": "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Applications/ResolvePython"
+  },
+  {
+    "pid": 84700,
+    "ppid": 84678,
+    "start": "Wed Oct 14 08:40:26 2026",
+    "command": "/Users/dalecarman/.local/bin/cursor-agent"
+  },
+  {
+    "pid": 4595,
+    "ppid": 84678,
+    "start": "Wed Oct 14 08:57:56 2026",
+    "command": "-bash"
+  },
+  {
+    "pid": 7327,
+    "ppid": 4595,
+    "start": "Wed Oct 14 08:58:22 2026",
+    "command": "treehouse"
+  },
+  {
+    "pid": 14480,
+    "ppid": 7327,
+    "start": "Wed Oct 14 08:58:49 2026",
+    "command": "/bin/bash"
+  },
+  {
+    "pid": 88502,
+    "ppid": 14480,
+    "start": "Wed Oct 14 09:05:29 2026",
+    "command": "/bin/bash"
+  },
+  {
+    "pid": 88707,
+    "ppid": 88502,
+    "start": "Wed Oct 14 09:05:29 2026",
+    "command": "grok"
+  },
+  {
+    "pid": 89538,
+    "ppid": 84678,
+    "start": "Wed Oct 14 08:40:30 2026",
+    "command": "/bin/dash"
+  },
+  {
+    "pid": 41896,
+    "ppid": 84678,
+    "start": "Wed Oct 14 08:41:29 2026",
+    "command": "/bin/dash"
+  },
+  {
+    "pid": 40182,
+    "ppid": 84678,
+    "start": "Wed Oct 14 08:45:23 2026",
+    "command": "/bin/dash"
+  },
+  {
+    "pid": 64705,
+    "ppid": 40182,
+    "start": "Wed Oct 14 08:45:41 2026",
+    "command": "/bin/bash"
+  },
+  {
+    "pid": 64825,
+    "ppid": 64705,
+    "start": "Wed Oct 14 08:45:41 2026",
+    "command": "grok"
+  },
+  {
+    "pid": 65416,
+    "ppid": 84678,
+    "start": "Wed Oct 14 08:45:42 2026",
+    "command": "/bin/dash"
+  },
+  {
+    "pid": 88592,
+    "ppid": 65416,
+    "start": "Wed Oct 14 08:45:57 2026",
+    "command": "/bin/bash"
+  },
+  {
+    "pid": 88783,
+    "ppid": 88592,
+    "start": "Wed Oct 14 08:45:57 2026",
+    "command": "grok"
+  },
+  {
+    "pid": 89899,
+    "ppid": 84678,
+    "start": "Wed Oct 14 08:45:57 2026",
+    "command": "/bin/dash"
+  },
+  {
+    "pid": 99647,
+    "ppid": 89899,
+    "start": "Wed Oct 14 08:46:03 2026",
+    "command": "/bin/bash"
+  },
+  {
+    "pid": 99695,
+    "ppid": 99647,
+    "start": "Wed Oct 14 08:46:03 2026",
+    "command": "grok"
+  },
+  {
+    "pid": 247,
+    "ppid": 84678,
+    "start": "Wed Oct 14 08:46:04 2026",
+    "command": "/bin/dash"
+  }
+]

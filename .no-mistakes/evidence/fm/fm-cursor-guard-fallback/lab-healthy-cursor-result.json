@@ -1,0 +1,13 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "model": "Grok 4.7 256K Extra High"
+  },
+  {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "result": "LIVE_REPLAY_lab-healthy-cursorThe wake says a steer is waiting. I'll read the inbox in order and handle each message.The steering inbox at `lab-healthy-cursor.inbox` is not there, so there are no messages to handle. The verification token is `LIVE_REPLAY_lab-healthy-cursor`."
+  }
+]

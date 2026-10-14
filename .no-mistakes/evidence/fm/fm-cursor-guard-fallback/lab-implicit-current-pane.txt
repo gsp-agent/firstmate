@@ -1,0 +1,40 @@
+
+  fm/lab-implicit worktree ~/.n/w/a/0/.f/t/.t/p/1/project-lab-explicit-normal                 27K / 256K │ [Dashboard]
+
+
+     ❯ FIRSTMATE_OP: v1 launch-brief: # Current worker role contract                                         9:05 AM
+       You are a crewmate: an autonomous worker agent managed by firstmate.
+       This section establishes your current identity before every project or task instruction below and …
+
+
+     LIVE_REPLAY_implicit                                                                                    9:05 AM
+
+     Worked for 8.1s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  Help improve Grok                                                                                 [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  for training and debugging purposes. Change anytime via settings.
+  Read Terms and Privacy Policy.
+
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                │
+  ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+
+  Shift+Tab:mode  │  Ctrl+x:shortcuts
+

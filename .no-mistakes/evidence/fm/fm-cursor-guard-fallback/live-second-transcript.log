@@ -1,0 +1,171 @@
+
+Scenario: daily-cap-normal-login
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+cursor fallback: launching lab-cap-normal on the grok harness (grok-4.7 xhigh): cursor guard: refused lab-cap-normal, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching lab-cap-normal on the grok harness (grok-4.7 xhigh): cursor guard: refused lab-cap-normal, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/data/lab-cap-normal/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-cap-normal
+notice: lab-cap-normal ships mode=local-only while the standing posture for project-lab-cap-normal is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+relaunched lab-cap-normal harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=primary:fm-lab-cap-normal worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-cap-normal
+Control exit=0
+window=primary:fm-lab-cap-normal
+endpoint_task_id=lab-cap-normal
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-cap-normal
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-cap-normal
+harness=grok
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-cap-normal
+tasktmp=/tmp/fm-lab-cap-normal
+model=grok-4.7
+effort=xhigh
+spawn_gen=s1791985536.47061.27045
+control_relaunch_tx=40374.20261014T134527Z.24385
+v1
+task=lab-cap-normal
+phase=complete
+ts=2026-10-14T13:45:41Z
+backend=tmux
+endpoint=primary:fm-lab-cap-normal
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-cap-normal
+kind=ship
+from_harness=cursor
+from_model=default
+from_effort=default
+to_harness=grok
+to_model=grok-4.7
+to_effort=xhigh
+worktree_head=8d727c2265a008983640f4733833e097a0c4c34a
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-cap-normal.control-relaunch.note
+exit_result=already-stopped
+lab-cap-normal.cursor-limit: cursor guard: refused lab-cap-normal, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+
+Scenario: explicit-grok-normal-login
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/data/lab-explicit-normal/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-explicit-normal
+notice: lab-explicit-normal ships mode=local-only while the standing posture for project-lab-explicit-normal is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+relaunched lab-explicit-normal harness=grok from=cursor model=default effort=default backend=tmux endpoint=primary:fm-lab-explicit-normal worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-explicit-normal
+Control exit=0
+window=primary:fm-lab-explicit-normal
+endpoint_task_id=lab-explicit-normal
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-explicit-normal
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-explicit-normal
+harness=grok
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-explicit-normal
+tasktmp=/tmp/fm-lab-explicit-normal
+model=default
+effort=default
+spawn_gen=s1791985548.67503.18207
+control_relaunch_tx=65423.20261014T134543Z.5784
+v1
+task=lab-explicit-normal
+phase=complete
+ts=2026-10-14T13:45:57Z
+backend=tmux
+endpoint=primary:fm-lab-explicit-normal
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-explicit-normal
+kind=ship
+from_harness=cursor
+from_model=default
+from_effort=default
+to_harness=grok
+to_model=default
+to_effort=default
+worktree_head=5b5fd29f28ae954dd4be0dfeac55936e12091f3e
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-explicit-normal.control-relaunch.note
+exit_result=already-stopped
+
+Scenario: usage-threshold-reason
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+cursor fallback: launching lab-high-usage on the grok harness (grok-4.7 xhigh): Cursor Models at 85% (limit 85%)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching lab-high-usage on the grok harness (grok-4.7 xhigh): Cursor Models at 85% (limit 85%)
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/data/lab-high-usage/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-high-usage
+notice: lab-high-usage ships mode=local-only while the standing posture for project-lab-high-usage is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+relaunched lab-high-usage harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=primary:fm-lab-high-usage worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-high-usage
+Control exit=0
+window=primary:fm-lab-high-usage
+endpoint_task_id=lab-high-usage
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-high-usage
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-high-usage
+harness=grok
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-high-usage
+tasktmp=/tmp/fm-lab-high-usage
+model=grok-4.7
+effort=xhigh
+spawn_gen=s1791985560.91202.3779
+control_relaunch_tx=89948.20261014T134558Z.12069
+v1
+task=lab-high-usage
+phase=complete
+ts=2026-10-14T13:46:03Z
+backend=tmux
+endpoint=primary:fm-lab-high-usage
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-high-usage
+kind=ship
+from_harness=cursor
+from_model=default
+from_effort=default
+to_harness=grok
+to_model=grok-4.7
+to_effort=xhigh
+worktree_head=acce10ed57db9b0909b06f8d9765191a8ea65e1b
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-high-usage.control-relaunch.note
+exit_result=already-stopped
+lab-high-usage.cursor-fallback: Cursor Models at 85% (limit 85%)
+
+Scenario: day-rollover
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/data/lab-rollover/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-rollover
+notice: lab-rollover ships mode=local-only while the standing posture for project-lab-rollover is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+relaunched lab-rollover harness=cursor from=grok model=default effort=default backend=tmux endpoint=primary:fm-lab-rollover worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-rollover
+Control exit=0
+window=primary:fm-lab-rollover
+endpoint_task_id=lab-rollover
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-rollover
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-rollover
+harness=cursor
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-rollover
+tasktmp=/tmp/fm-lab-rollover
+model=default
+effort=default
+spawn_gen=s1791985566.2237.20120
+control_relaunch_tx=265.20261014T134604Z.13303
+v1
+task=lab-rollover
+phase=complete
+ts=2026-10-14T13:46:09Z
+backend=tmux
+endpoint=primary:fm-lab-rollover
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-rollover
+kind=ship
+from_harness=grok
+from_model=default
+from_effort=default
+to_harness=cursor
+to_model=default
+to_effort=default
+worktree_head=9786d7e3f70428565d9895d455905c839d58ba3a
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-rollover.control-relaunch.note
+exit_result=already-stopped
+Expired cursor-limit retired after Cursor publication

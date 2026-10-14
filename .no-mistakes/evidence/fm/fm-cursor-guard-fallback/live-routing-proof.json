@@ -1,0 +1,302 @@
+[
+  {
+    "id": "lab-healthy-cursor",
+    "metadata": {
+      "window": "primary:fm-lab-healthy-cursor",
+      "endpoint_task_id": "lab-healthy-cursor",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-healthy-cursor",
+      "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-healthy-cursor",
+      "harness": "cursor",
+      "kind": "ship",
+      "mode": "local-only",
+      "yolo": "off",
+      "branch": "fm/lab-healthy-cursor",
+      "tasktmp": "/tmp/fm-lab-healthy-cursor",
+      "model": "default",
+      "effort": "default",
+      "spawn_gen": "s1791985258.1987.24368",
+      "control_relaunch_tx": "89559.20261014T134041Z.31133"
+    },
+    "journal": {
+      "task": "lab-healthy-cursor",
+      "phase": "complete",
+      "ts": "2026-10-14T13:41:17Z",
+      "backend": "tmux",
+      "endpoint": "primary:fm-lab-healthy-cursor",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-healthy-cursor",
+      "kind": "ship",
+      "from_harness": "cursor",
+      "from_model": "default",
+      "from_effort": "default",
+      "to_harness": "cursor",
+      "to_model": "default",
+      "to_effort": "default",
+      "worktree_head": "f937cbf899a5fbd265f55663f8e505126bb5c1c4",
+      "worktree_dirty": "no",
+      "note_file": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-healthy-cursor.control-relaunch.note",
+      "exit_result": "already-stopped"
+    },
+    "reasons": {},
+    "cursor_events": [
+      {
+        "type": "system",
+        "subtype": "init",
+        "model": "Grok 4.7 256K Extra High"
+      },
+      {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "LIVE_REPLAY_lab-healthy-cursorThe wake says a steer is waiting. I'll read the inbox in order and handle each message.The steering inbox at `lab-healthy-cursor.inbox` is not there, so there are no messages to handle. The verification token is `LIVE_REPLAY_lab-healthy-cursor`."
+      }
+    ]
+  },
+  {
+    "id": "lab-unrecorded-grok",
+    "metadata": {
+      "window": "primary:fm-lab-unrecorded-grok",
+      "endpoint_task_id": "lab-unrecorded-grok",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-unrecorded-grok",
+      "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-unrecorded-grok",
+      "harness": "cursor",
+      "kind": "ship",
+      "mode": "local-only",
+      "yolo": "off",
+      "branch": "fm/lab-unrecorded-grok",
+      "tasktmp": "/tmp/fm-lab-unrecorded-grok",
+      "model": "default",
+      "effort": "default",
+      "spawn_gen": "s1791985307.48225.24446",
+      "control_relaunch_tx": "42281.20261014T134141Z.16198"
+    },
+    "journal": {
+      "task": "lab-unrecorded-grok",
+      "phase": "complete",
+      "ts": "2026-10-14T13:41:57Z",
+      "backend": "tmux",
+      "endpoint": "primary:fm-lab-unrecorded-grok",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-unrecorded-grok",
+      "kind": "ship",
+      "from_harness": "grok",
+      "from_model": "default",
+      "from_effort": "default",
+      "to_harness": "cursor",
+      "to_model": "default",
+      "to_effort": "default",
+      "worktree_head": "8691cab10feb2d694252d4006b6254a25c1a6245",
+      "worktree_dirty": "no",
+      "note_file": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-unrecorded-grok.control-relaunch.note",
+      "exit_result": "already-stopped"
+    },
+    "reasons": {},
+    "cursor_events": [
+      {
+        "type": "system",
+        "subtype": "init",
+        "model": "Grok 4.7 256K Extra High"
+      },
+      {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "LIVE_REPLAY_lab-unrecorded-grok"
+      }
+    ]
+  },
+  {
+    "id": "lab-cap-normal",
+    "metadata": {
+      "window": "primary:fm-lab-cap-normal",
+      "endpoint_task_id": "lab-cap-normal",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-cap-normal",
+      "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-cap-normal",
+      "harness": "grok",
+      "kind": "ship",
+      "mode": "local-only",
+      "yolo": "off",
+      "branch": "fm/lab-cap-normal",
+      "tasktmp": "/tmp/fm-lab-cap-normal",
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "spawn_gen": "s1791985536.47061.27045",
+      "control_relaunch_tx": "40374.20261014T134527Z.24385"
+    },
+    "journal": {
+      "task": "lab-cap-normal",
+      "phase": "failed:stopping",
+      "ts": "2026-10-14T13:52:44Z",
+      "backend": "tmux",
+      "endpoint": "primary:fm-lab-cap-normal",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-cap-normal",
+      "kind": "ship",
+      "from_harness": "grok",
+      "from_model": "grok-4.7",
+      "from_effort": "xhigh",
+      "to_harness": "cursor",
+      "to_model": "default",
+      "to_effort": "default",
+      "rollback": "instructions-restored-agent-alive"
+    },
+    "reasons": {
+      "cursor-limit": "cursor guard: refused lab-cap-normal, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run"
+    },
+    "cursor_events": []
+  },
+  {
+    "id": "lab-explicit-normal",
+    "metadata": {
+      "window": "primary:fm-lab-explicit-normal",
+      "endpoint_task_id": "lab-explicit-normal",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-explicit-normal",
+      "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-explicit-normal",
+      "harness": "grok",
+      "kind": "ship",
+      "mode": "local-only",
+      "yolo": "off",
+      "branch": "fm/lab-explicit-normal",
+      "tasktmp": "/tmp/fm-lab-explicit-normal",
+      "model": "default",
+      "effort": "default",
+      "spawn_gen": "s1791985548.67503.18207",
+      "control_relaunch_tx": "65423.20261014T134543Z.5784"
+    },
+    "journal": {
+      "task": "lab-explicit-normal",
+      "phase": "complete",
+      "ts": "2026-10-14T13:45:57Z",
+      "backend": "tmux",
+      "endpoint": "primary:fm-lab-explicit-normal",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-explicit-normal",
+      "kind": "ship",
+      "from_harness": "cursor",
+      "from_model": "default",
+      "from_effort": "default",
+      "to_harness": "grok",
+      "to_model": "default",
+      "to_effort": "default",
+      "worktree_head": "5b5fd29f28ae954dd4be0dfeac55936e12091f3e",
+      "worktree_dirty": "no",
+      "note_file": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-explicit-normal.control-relaunch.note",
+      "exit_result": "already-stopped"
+    },
+    "reasons": {},
+    "cursor_events": []
+  },
+  {
+    "id": "lab-high-usage",
+    "metadata": {
+      "window": "primary:fm-lab-high-usage",
+      "endpoint_task_id": "lab-high-usage",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-high-usage",
+      "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-high-usage",
+      "harness": "grok",
+      "kind": "ship",
+      "mode": "local-only",
+      "yolo": "off",
+      "branch": "fm/lab-high-usage",
+      "tasktmp": "/tmp/fm-lab-high-usage",
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "spawn_gen": "s1791985560.91202.3779",
+      "control_relaunch_tx": "89948.20261014T134558Z.12069"
+    },
+    "journal": {
+      "task": "lab-high-usage",
+      "phase": "complete",
+      "ts": "2026-10-14T13:46:03Z",
+      "backend": "tmux",
+      "endpoint": "primary:fm-lab-high-usage",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-high-usage",
+      "kind": "ship",
+      "from_harness": "cursor",
+      "from_model": "default",
+      "from_effort": "default",
+      "to_harness": "grok",
+      "to_model": "grok-4.7",
+      "to_effort": "xhigh",
+      "worktree_head": "acce10ed57db9b0909b06f8d9765191a8ea65e1b",
+      "worktree_dirty": "no",
+      "note_file": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-high-usage.control-relaunch.note",
+      "exit_result": "already-stopped"
+    },
+    "reasons": {
+      "cursor-fallback": "Cursor Models at 85% (limit 85%)"
+    },
+    "cursor_events": []
+  },
+  {
+    "id": "lab-rollover",
+    "metadata": {
+      "window": "primary:fm-lab-rollover",
+      "endpoint_task_id": "lab-rollover",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-rollover",
+      "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-rollover",
+      "harness": "cursor",
+      "kind": "ship",
+      "mode": "local-only",
+      "yolo": "off",
+      "branch": "fm/lab-rollover",
+      "tasktmp": "/tmp/fm-lab-rollover",
+      "model": "default",
+      "effort": "default",
+      "spawn_gen": "s1791985566.2237.20120",
+      "control_relaunch_tx": "265.20261014T134604Z.13303"
+    },
+    "journal": {
+      "task": "lab-rollover",
+      "phase": "complete",
+      "ts": "2026-10-14T13:46:09Z",
+      "backend": "tmux",
+      "endpoint": "primary:fm-lab-rollover",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-rollover",
+      "kind": "ship",
+      "from_harness": "grok",
+      "from_model": "default",
+      "from_effort": "default",
+      "to_harness": "cursor",
+      "to_model": "default",
+      "to_effort": "default",
+      "worktree_head": "9786d7e3f70428565d9895d455905c839d58ba3a",
+      "worktree_dirty": "no",
+      "note_file": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-rollover.control-relaunch.note",
+      "exit_result": "already-stopped"
+    },
+    "reasons": {},
+    "cursor_events": [
+      {
+        "type": "system",
+        "subtype": "init",
+        "model": "Grok 4.7 256K Extra High"
+      },
+      {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "The relaunch note says a steer may still be in the instruction inbox, so I\u2019ll check that before replying.LIVE_REPLAY_lab-rollover"
+      }
+    ]
+  },
+  {
+    "id": "lab-implicit",
+    "metadata": {
+      "window": "primary:fm-lab-implicit",
+      "endpoint_task_id": "lab-implicit",
+      "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/treehouse/.treehouse/project-lab-explicit-normal-a65395/1/project-lab-explicit-normal",
+      "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-explicit-normal",
+      "harness": "grok",
+      "kind": "ship",
+      "mode": "local-only",
+      "yolo": "off",
+      "branch": "fm/lab-implicit",
+      "tasktmp": "/tmp/fm-lab-implicit",
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "spawn_gen": "s1791986536.68126.9537"
+    },
+    "journal": {},
+    "reasons": {
+      "cursor-fallback": "Cursor Models at 85% (limit 85%)"
+    },
+    "cursor_events": []
+  }
+]

@@ -1,0 +1,343 @@
+Real Cursor primary: bash
+Cursor guard at fresh 12%: cursor
+Grok availability with isolated runtime home:
+You are not authenticated.
+
+Default model: grok-4.6
+
+Available models:
+  * grok-4.6 (default)
+  - grok-4.5
+
+Scenario: healthy-cursor
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/data/lab-healthy-cursor/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-healthy-cursor
+notice: lab-healthy-cursor ships mode=local-only while the standing posture for project-lab-healthy-cursor is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+relaunched lab-healthy-cursor harness=cursor from=cursor model=default effort=default backend=tmux endpoint=primary:fm-lab-healthy-cursor worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-healthy-cursor
+Control exit=0
+window=primary:fm-lab-healthy-cursor
+endpoint_task_id=lab-healthy-cursor
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-healthy-cursor
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-healthy-cursor
+harness=cursor
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-healthy-cursor
+tasktmp=/tmp/fm-lab-healthy-cursor
+model=default
+effort=default
+spawn_gen=s1791985258.1987.24368
+control_relaunch_tx=89559.20261014T134041Z.31133
+v1
+task=lab-healthy-cursor
+phase=complete
+ts=2026-10-14T13:41:17Z
+backend=tmux
+endpoint=primary:fm-lab-healthy-cursor
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-healthy-cursor
+kind=ship
+from_harness=cursor
+from_model=default
+from_effort=default
+to_harness=cursor
+to_model=default
+to_effort=default
+worktree_head=f937cbf899a5fbd265f55663f8e505126bb5c1c4
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-healthy-cursor.control-relaunch.note
+exit_result=already-stopped
+$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-health
+y-cursor'
+$ export GOTMPDIR=/tmp/fm-lab-healthy-cursor/gotmp
+$ export COMPACT_ADVISER_DISABLE=1
+$ export FM_TASK_ID=lab-healthy-cursor
+$ . '/tmp/fm-lab-healthy-cursor+8b12f9339fb7442950a195a3d25a28638b38b86287720fff50df735720274d0f/launch.s1791985258.1987
+.24368.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Scenario: unrecorded-grok
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/data/lab-unrecorded-grok/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-unrecorded-grok
+notice: lab-unrecorded-grok ships mode=local-only while the standing posture for project-lab-unrecorded-grok is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+relaunched lab-unrecorded-grok harness=cursor from=grok model=default effort=default backend=tmux endpoint=primary:fm-lab-unrecorded-grok worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-unrecorded-grok
+Control exit=0
+window=primary:fm-lab-unrecorded-grok
+endpoint_task_id=lab-unrecorded-grok
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-unrecorded-grok
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-unrecorded-grok
+harness=cursor
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-unrecorded-grok
+tasktmp=/tmp/fm-lab-unrecorded-grok
+model=default
+effort=default
+spawn_gen=s1791985307.48225.24446
+control_relaunch_tx=42281.20261014T134141Z.16198
+v1
+task=lab-unrecorded-grok
+phase=complete
+ts=2026-10-14T13:41:57Z
+backend=tmux
+endpoint=primary:fm-lab-unrecorded-grok
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-unrecorded-grok
+kind=ship
+from_harness=grok
+from_model=default
+from_effort=default
+to_harness=cursor
+to_model=default
+to_effort=default
+worktree_head=8691cab10feb2d694252d4006b6254a25c1a6245
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-unrecorded-grok.control-relaunch.note
+exit_result=already-stopped
+$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-unreco
+rded-grok'
+$ export GOTMPDIR=/tmp/fm-lab-unrecorded-grok/gotmp
+$ export COMPACT_ADVISER_DISABLE=1
+$ export FM_TASK_ID=lab-unrecorded-grok
+$ . '/tmp/fm-lab-unrecorded-grok+8b12f9339fb7442950a195a3d25a28638b38b86287720fff50df735720274d0f/launch.s1791985307.482
+25.24446.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Scenario: daily-cap
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+cursor fallback: launching lab-daily-cap on the grok harness (grok-4.7 xhigh): cursor guard: refused lab-daily-cap, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching lab-daily-cap on the grok harness (grok-4.7 xhigh): cursor guard: refused lab-daily-cap, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/data/lab-daily-cap/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-daily-cap
+notice: lab-daily-cap ships mode=local-only while the standing posture for project-lab-daily-cap is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+relaunched lab-daily-cap harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=primary:fm-lab-daily-cap worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-daily-cap
+Control exit=0
+window=primary:fm-lab-daily-cap
+endpoint_task_id=lab-daily-cap
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-daily-cap
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-daily-cap
+harness=grok
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-daily-cap
+tasktmp=/tmp/fm-lab-daily-cap
+model=grok-4.7
+effort=xhigh
+spawn_gen=s1791985331.66969.21060
+control_relaunch_tx=65059.20261014T134200Z.171
+v1
+task=lab-daily-cap
+phase=complete
+ts=2026-10-14T13:42:18Z
+backend=tmux
+endpoint=primary:fm-lab-daily-cap
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-daily-cap
+kind=ship
+from_harness=cursor
+from_model=default
+from_effort=default
+to_harness=grok
+to_model=grok-4.7
+to_effort=xhigh
+worktree_head=b583202d76cc62f100253aa6e32579f04c249822
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-daily-cap.control-relaunch.note
+exit_result=already-stopped
+lab-daily-cap.cursor-limit: cursor guard: refused lab-daily-cap, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Scenario: explicit-grok
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/data/lab-explicit-grok/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-explicit-grok
+notice: lab-explicit-grok ships mode=local-only while the standing posture for project-lab-explicit-grok is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+relaunched lab-explicit-grok harness=grok from=cursor model=default effort=default backend=tmux endpoint=primary:fm-lab-explicit-grok worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-explicit-grok
+Control exit=0
+window=primary:fm-lab-explicit-grok
+endpoint_task_id=lab-explicit-grok
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-explicit-grok
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-explicit-grok
+harness=grok
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-explicit-grok
+tasktmp=/tmp/fm-lab-explicit-grok
+model=default
+effort=default
+spawn_gen=s1791985349.90487.30565
+control_relaunch_tx=89694.20261014T134219Z.101
+v1
+task=lab-explicit-grok
+phase=complete
+ts=2026-10-14T13:43:12Z
+backend=tmux
+endpoint=primary:fm-lab-explicit-grok
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-explicit-grok
+kind=ship
+from_harness=cursor
+from_model=default
+from_effort=default
+to_harness=grok
+to_model=default
+to_effort=default
+worktree_head=0c8260577b4bb4f83b23ee0ebe76ef90740120b6
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/state/lab-explicit-grok.control-relaunch.note
+exit_result=already-stopped
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

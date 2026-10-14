@@ -1,0 +1,4 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+error: task lab-cap-normal's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+error: relaunch of lab-cap-normal failed while stopping the old agent, which is still running; its original instructions were restored
+Explicit Grok (guard bypass) relaunch exit=1

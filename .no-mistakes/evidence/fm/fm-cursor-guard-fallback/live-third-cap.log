@@ -1,0 +1,5 @@
+Take 1 exit=0
+Take 2 exit=0
+cursor guard: refused lab-third-cap, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+Take 3 exit=1
+{"day":"2026-10-14","beads":{"lab-third-cap":2}}

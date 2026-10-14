@@ -1,0 +1,40 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+error: task lab-cap-normal's composer state is 'pending-unproven', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+error: relaunch of lab-cap-normal failed while stopping the old agent, which is still running; its original instructions were restored
+Pending relaunch exit=1; expected refusal
+cursor guard: refused lab-cap-normal, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+Recorded harness: grok
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi
+error: task lab-cap-normal's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+error: relaunch of lab-cap-normal failed while stopping the old agent, which is still running; its original instructions were restored
+Retry exit=1
+window=primary:fm-lab-cap-normal
+endpoint_task_id=lab-cap-normal
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-cap-normal
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/project-lab-cap-normal
+harness=grok
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-cap-normal
+tasktmp=/tmp/fm-lab-cap-normal
+model=grok-4.7
+effort=xhigh
+spawn_gen=s1791985536.47061.27045
+control_relaunch_tx=40374.20261014T134527Z.24385
+v1
+task=lab-cap-normal
+phase=failed:stopping
+ts=2026-10-14T13:52:44Z
+backend=tmux
+endpoint=primary:fm-lab-cap-normal
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4X1BTKBTAA2TSWVPH5VM2TK/.fm-lab.hq4bIi/work-lab-cap-normal
+kind=ship
+from_harness=grok
+from_model=grok-4.7
+from_effort=xhigh
+to_harness=cursor
+to_model=default
+to_effort=default
+rollback=instructions-restored-agent-alive
+cursor guard: refused lab-cap-normal, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
