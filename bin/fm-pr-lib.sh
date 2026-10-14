@@ -1408,8 +1408,9 @@ fm_pr_poll_dequeue_marker_remove() {  # <state> <id>
   rm -f -- "$path"
 }
 
-# Format owner: bin/fm-pr-poll.sh. Records a published departure identified
-# by its removal event.
+# Format owner: bin/fm-pr-poll.sh. Call only after the departure's wake is
+# durably queued; otherwise an interrupted poll could consume an undelivered
+# event. The marker identifies the published removal, not a poll attempt.
 fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
   local state=$1 id=$2 url=$3 event=$4 marker tmp state_device
   fm_pr_task_id_valid "$id" || return 1

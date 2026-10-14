@@ -82,6 +82,10 @@
 #                          steering-inbox recovery; bin/fm-task-inbox-lib.sh owns
 #                          delivery-attempt, busy-deferral, and unavailable-endpoint policy
 #   check: <script>: <out> authenticated check output, always actionable
+#                          The sweep runs every registered check before
+#                          stamping .last-check and delivering its collected
+#                          reasons in one watcher close, so an earlier result
+#                          cannot hide a later PR result.
 #   check: process-event result captured: <keys>
 #                          a durably captured process-to-event result is queued
 #                          and has not been surfaced yet; reported once per
