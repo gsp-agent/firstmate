@@ -44,8 +44,15 @@
 # REFUSES if the worktree holds work that has not LANDED, because cleanup
 # hard-resets/removes the worktree and kills its processes. Work has landed when it is
 # reachable from any remote-tracking branch (a fork counts as a remote, so
-# upstream-contribution PRs pushed to a fork satisfy this in any mode), OR - for a
-# normal ship task whose commits are not so reachable - when its PR is merged and
+# upstream-contribution PRs pushed to a fork satisfy this in any mode), unless
+# meta records a still-open or unreadable GitHub pull request, GitLab merge
+# request, or Forgejo pull request. That refusal does not need the local copy.
+# A task that is not a scout or a secondmate keeps its record when that request
+# is still open, or when its forge state cannot be read, including when the
+# copy is already gone and when the slot was reassigned to another task. A
+# merged or closed request still proceeds, and --force remains the explicit
+# discard. Work has also landed, for a normal ship task
+# whose commits are not so reachable, when its PR is merged and
 # GitHub reports a PR head that contains the current local work, or its content is
 # already present in the up-to-date default branch. This recognizes the common
 # squash-merge-then-delete-branch flow, where the branch's own commits live nowhere
@@ -133,10 +140,10 @@
 # owns the claim, its location, and its states. A claim naming another task is
 # proof of reassignment: the slot is no longer this task's, so teardown warns,
 # names the claimant, and then finishes only this task's own cleanup - endpoint,
-# status, records, checks, backlog - while every step that would read or touch
-# that slot is skipped: no process kill under it, no dirty or landed-work
-# inspection of it, no branch or hook removal in it, no Treehouse return, and
-# never the other task's claim. Skipping the inspection discards nothing of this
+# status, records, checks, backlog - once its recorded request allows it, while
+# every step that would read or touch that slot is skipped: no process kill
+# under it, no dirty or landed-work inspection of it, no branch or hook
+# removal in it, no Treehouse return, and never the other task's claim. Skipping the inspection discards nothing of this
 # task's: whatever unlanded work it had in that slot was already destroyed when
 # the pool handed the slot on. Refusing instead would strand the record, because
 # bin/fm-backend.sh's endpoint validation refuses an empty or missing worktree=
@@ -1962,6 +1969,63 @@ teardown_note_dirty_return() {
   printf '%s\n' "$residue" | sed 's/^/  /' >&2
 }
 
+recorded_pr_refuse_unreadable() {
+  echo "REFUSED: task $ID records $PR_URL but its forge state could not be read." >&2
+  echo "The task record stays. Teardown will not treat a push as proof the request is finished." >&2
+  echo "Retry when the forge can be read, or get the captain's explicit OK to discard, then --force." >&2
+}
+
+recorded_pr_allows_teardown() {
+  local state_lc
+  [ -n "$PR_URL" ] || return 0
+  fm_pr_url_parse "$PR_URL" || return 0
+  case "$FM_PR_PROVIDER" in
+    github)
+      fm_pr_github_read_record "$FM_PR_OWNER" "$FM_PR_REPO" "$FM_PR_NUMBER" || {
+        recorded_pr_refuse_unreadable
+        return 1
+      }
+      ;;
+    gitlab)
+      fm_pr_gitlab_read_record "$FM_PR_HOST" "$FM_PR_PATH" "$FM_PR_NUMBER" || {
+        recorded_pr_refuse_unreadable
+        return 1
+      }
+      ;;
+    forgejo)
+      fm_pr_forgejo_read_record "$FM_PR_HOST" "$FM_PR_PATH" "$FM_PR_NUMBER" || {
+        recorded_pr_refuse_unreadable
+        return 1
+      }
+      ;;
+    gerrit)
+      return 0
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+  if [ "$FM_PR_RECORD_MERGED" = true ]; then
+    return 0
+  fi
+  state_lc=$(printf '%s' "$FM_PR_RECORD_STATE" | tr '[:upper:]' '[:lower:]')
+  case "$state_lc" in
+    open|opened)
+      echo "REFUSED: task $ID records $PR_URL and that pull request or merge request is still open." >&2
+      echo "The task record stays so the request can still be merged." >&2
+      echo "Merge or close it, or get the captain's explicit OK to discard, then --force." >&2
+      return 1
+      ;;
+    closed)
+      return 0
+      ;;
+    *)
+      recorded_pr_refuse_unreadable
+      return 1
+      ;;
+  esac
+}
+
 validate_worktree_teardown_safety() {
   local dirty_raw dirty unpushed_raw unpushed DEFAULT unmerged_raw unmerged branch
   [ -d "$WT" ] || return 0
@@ -3508,6 +3572,11 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ] &&
   fi
   require_orca_worktree_path_match "$ORCA_WORKTREE_ID" "$WT" || exit 1
   ORCA_PATH_MATCH_VERIFIED=1
+fi
+
+# The recorded request is on the task record, not in the slot inspected below.
+if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ]; then
+  recorded_pr_allows_teardown || exit 1
 fi
 
 if teardown_owns_worktree && [ -d "$WT" ] && [ "$FORCE" != "--force" ]; then

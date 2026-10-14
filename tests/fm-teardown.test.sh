@@ -2,10 +2,14 @@
 # Tests for bin/fm-teardown.sh's landed-work safety and stale-lock recovery.
 #
 # The check refuses to tear down a worktree whose work has not LANDED, because
-# treehouse return hard-resets the worktree. "Landed" means reachable from a remote
+# treehouse return hard-resets the worktree. "Landed" means reachable from a remote,
+# unless meta records a still-open or unreadable pull request or merge request,
 # OR - for a normal ship task whose commits are not so reachable - its PR is merged
 # and GitHub reports a PR head that contains the current local work, or its content
 # is already in the up-to-date default branch.
+# An open or unreadable recorded request also refuses when that copy is already
+# gone or another task owns the slot. Merged and closed requests still proceed,
+# and --force still discards.
 #
 # Covers three fixes:
 #   - local-only fork-remote: a fork IS a remote, so fork-pushed upstream-
@@ -42,6 +46,19 @@
 #   (q3) no-mistakes + squash-merged, same file, different content   -> REFUSE
 #   (q4) no-mistakes + squash-merged rebased local plus extra commit -> REFUSE
 #   (q5) gh down + squash-merged stale local, content not in default -> REFUSE
+#   (q6) recorded pr= still open, branch already on origin     -> REFUSE (record stays)
+#   (q7) recorded pr= merged, branch already on origin         -> ALLOW
+#   (q8) recorded pr= closed, branch already on origin         -> ALLOW
+#   (q9) recorded pr= forge unreadable, branch already on origin -> REFUSE
+#   (q10) recorded pr= still open + --force                    -> ALLOW
+#   (q11) recorded GitLab MR still open, branch on origin      -> REFUSE
+#   (q12) recorded Forgejo PR still open, branch on origin     -> REFUSE
+#   (q13) recorded pr= still open, recorded copy already gone   -> REFUSE
+#   (q14) recorded pr= merged or closed, recorded copy gone     -> ALLOW
+#   (q15) recorded pr= unreadable, recorded copy gone           -> REFUSE
+#   (q16) recorded pr= still open, copy gone, --force           -> ALLOW
+#   (q17) recorded pr= still open, slot reassigned              -> REFUSE, slot stays
+#   (q18) recorded pr= still open, slot reassigned, --force     -> ALLOW, slot stays
 #
 # Also covers backlog teardown-lock-race: a git index.lock left in the worktree by a
 # killed crew process (bin/fm-teardown.sh's teardown_treehouse_return).
@@ -411,6 +428,23 @@ land_equivalent_patch_on_origin_branch() {
   git -C "$case_dir/project" rev-parse "refs/remotes/origin/$branch"
 }
 
+add_gh_axi_pr_state() {
+  local case_dir=$1 state=$2
+  cat > "$case_dir/fakebin/gh-axi" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$case_dir/gh-axi.log"
+case "\${1:-} \${2:-}" in
+  "pr view")
+    printf '%s\n' "pull_request:" "  number: 7" "  state: $state"
+    exit 0
+    ;;
+esac
+echo "error: unexpected gh-axi \$*" >&2
+exit 1
+SH
+  chmod +x "$case_dir/fakebin/gh-axi"
+}
+
 # Override gh-axi so every call fails, simulating an API/network error.
 add_gh_axi_error() {
   local case_dir=$1
@@ -725,6 +759,7 @@ test_teardown_closes_the_backlog_item_itself() {
   case_dir=$(make_case tasks-axi-close)
   write_meta "$case_dir" no-mistakes ship
   printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  add_gh_axi_pr_state "$case_dir" merged
   seed_backlog_in_flight "$case_dir"
 
   out=$(run_teardown "$case_dir") || fail "teardown failed with a real backlog"
@@ -779,6 +814,7 @@ SH
   case_dir=$(make_case tasks-axi-close-github-under-refusal)
   write_meta "$case_dir" no-mistakes ship
   printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  add_gh_axi_pr_state "$case_dir" merged
   seed_backlog_in_flight "$case_dir"
   cp "$TMP_ROOT/tasks-axi-close-gerrit/fakebin/tasks-axi" "$case_dir/fakebin/tasks-axi"
   out=$(run_teardown "$case_dir" 2>&1) || fail "teardown of a landed GitHub task failed: $out"
@@ -836,6 +872,7 @@ test_teardown_manual_backend_leaves_the_backlog_to_the_operator() {
   case_dir=$(make_case tasks-axi-manual-optout)
   write_meta "$case_dir" no-mistakes ship
   printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  add_gh_axi_pr_state "$case_dir" merged
   printf '%s\n' manual > "$case_dir/config/backlog-backend"
   seed_backlog_in_flight "$case_dir"
 
@@ -5071,6 +5108,274 @@ test_retained_sources_still_reach_the_ordinary_refusal() {
   pass "present required sources still reach the ordinary teardown refusal"
 }
 
+# A pool slot another task has claimed. The copy stays on disk. This task no
+# longer owns it, and the project lock resolves inside the case home.
+stage_reassigned_open_request() {  # <case-dir>
+  local case_dir=$1 slot
+  slot=$case_dir/pool/1/project
+  mkdir -p "$case_dir/pool/1"
+  git -C "$case_dir/project" worktree add -q --detach "$slot" main
+  printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' "$slot" \
+    > "$case_dir/pool/treehouse-state.json"
+  printf 'task=%s\nhome=%s\n' other-task "$case_dir/other-home" \
+    > "$case_dir/pool/1/.fm-slot-owner"
+  printf 'kept\n' > "$slot/kept.txt"
+  cat > "$case_dir/fakebin/treehouse" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$case_dir/treehouse.log"
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/treehouse"
+  : > "$case_dir/treehouse.log"
+  write_meta "$case_dir" no-mistakes ship "$slot"
+  append_pr_meta_url "$case_dir"
+  add_gh_axi_pr_state "$case_dir" open
+}
+
+run_teardown_in_case_home() {  # <case-dir> [args...]
+  local case_dir=$1
+  shift
+  FM_HOME="$case_dir" \
+  FM_ROOT_OVERRIDE="$ROOT" \
+  FM_STATE_OVERRIDE="$case_dir/state" \
+  FM_DATA_OVERRIDE="$case_dir/data" \
+  FM_CONFIG_OVERRIDE="$case_dir/config" \
+  PATH="$case_dir/fakebin:${FM_TEARDOWN_TEST_PATH:-$PATH}" \
+    "$TEARDOWN" task-x1 "$@"
+}
+
+assert_reassigned_slot_untouched() {  # <case-dir> <label>
+  local case_dir=$1 label=$2 slot
+  slot=$case_dir/pool/1/project
+  assert_present "$slot/kept.txt" "$label: the other task's copy was removed"
+  assert_grep "task=other-task" "$case_dir/pool/1/.fm-slot-owner" \
+    "$label: the other task's slot claim was rewritten"
+  if grep -q return "$case_dir/treehouse.log"; then
+    fail "$label: teardown returned the other task's slot: $(cat "$case_dir/treehouse.log")"
+  fi
+}
+
+test_recorded_request_refuses_when_the_copy_is_gone_or_reassigned() {
+  local state case_dir rc meta_state forge_read
+  for state in open merged closed; do
+    case_dir=$(make_case "recorded-pr-$state-gone")
+    write_meta "$case_dir" no-mistakes ship "$case_dir/missing-wt"
+    append_pr_meta_url "$case_dir"
+    add_gh_axi_pr_state "$case_dir" "$state"
+    assert_absent "$case_dir/missing-wt" \
+      "recorded-pr-$state-gone: the fixture created the recorded copy"
+
+    set +e
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+    rc=$?
+    set -e
+
+    if [ -e "$case_dir/state/task-x1.meta" ]; then
+      meta_state=present
+    else
+      meta_state=absent
+    fi
+    if [ -f "$case_dir/gh-axi.log" ]; then
+      forge_read=$(cat "$case_dir/gh-axi.log")
+    else
+      forge_read=none
+    fi
+    if [ "$state" = open ]; then
+      expect_code 1 "$rc" "recorded-pr-open-gone: an open pull request must refuse when the recorded copy is gone (meta=$meta_state forge=$forge_read)"$'\n'"$(cat "$case_dir/stderr")"
+      assert_grep "still open" "$case_dir/stderr" \
+        "recorded-pr-open-gone: refusal did not say the request is still open"
+      assert_present "$case_dir/state/task-x1.meta" \
+        "recorded-pr-open-gone: the refusal erased the task record"
+      assert_grep "pr view 7 --repo example/repo" "$case_dir/gh-axi.log" \
+        "recorded-pr-open-gone: teardown did not read the recorded pull request"
+      assert_no_grep "teardown task-x1 complete" "$case_dir/stdout" \
+        "recorded-pr-open-gone: the refusal reported cleanup complete"
+    else
+      expect_code 0 "$rc" "recorded-pr-$state-gone: a $state pull request should tear down when the copy is gone (meta=$meta_state forge=$forge_read)"$'\n'"$(cat "$case_dir/stderr")"
+      assert_no_grep "REFUSED" "$case_dir/stderr" \
+        "recorded-pr-$state-gone: teardown printed a REFUSED line"
+      assert_absent "$case_dir/state/task-x1.meta" \
+        "recorded-pr-$state-gone: teardown left the task record"
+      assert_grep "pr view 7 --repo example/repo" "$case_dir/gh-axi.log" \
+        "recorded-pr-$state-gone: teardown did not read the recorded pull request"
+    fi
+  done
+
+  case_dir=$(make_case recorded-pr-unreadable-gone)
+  write_meta "$case_dir" no-mistakes ship "$case_dir/missing-wt"
+  append_pr_meta_url "$case_dir"
+  add_gh_axi_error "$case_dir"
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "recorded-pr-unreadable-gone: an unreadable forge state must refuse when the copy is gone"$'\n'"$(cat "$case_dir/stderr")"
+  assert_grep "could not be read" "$case_dir/stderr" \
+    "recorded-pr-unreadable-gone: refusal did not say the forge state could not be read"
+  assert_present "$case_dir/state/task-x1.meta" \
+    "recorded-pr-unreadable-gone: the refusal erased the task record"
+
+  case_dir=$(make_case recorded-pr-open-gone-force)
+  write_meta "$case_dir" no-mistakes ship "$case_dir/missing-wt"
+  append_pr_meta_url "$case_dir"
+  add_gh_axi_pr_state "$case_dir" open
+  set +e
+  run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "recorded-pr-open-gone-force: --force should still discard an open pull request when the copy is gone"$'\n'"$(cat "$case_dir/stderr")"
+  assert_no_grep "REFUSED" "$case_dir/stderr" \
+    "recorded-pr-open-gone-force: --force printed a REFUSED line"
+  assert_absent "$case_dir/state/task-x1.meta" \
+    "recorded-pr-open-gone-force: --force left the task record"
+
+  case_dir=$(make_case recorded-pr-open-reassigned)
+  stage_reassigned_open_request "$case_dir"
+  set +e
+  run_teardown_in_case_home "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "recorded-pr-open-reassigned: an open pull request must refuse when another task owns the slot"$'\n'"$(cat "$case_dir/stderr")"
+  assert_grep "still open" "$case_dir/stderr" \
+    "recorded-pr-open-reassigned: refusal did not say the request is still open"
+  assert_grep "reassigned" "$case_dir/stderr" \
+    "recorded-pr-open-reassigned: teardown did not recognize the slot was reassigned"
+  assert_grep "pr view 7 --repo example/repo" "$case_dir/gh-axi.log" \
+    "recorded-pr-open-reassigned: teardown did not read the recorded pull request"
+  assert_present "$case_dir/state/task-x1.meta" \
+    "recorded-pr-open-reassigned: the refusal erased the task record"
+  assert_reassigned_slot_untouched "$case_dir" recorded-pr-open-reassigned
+  assert_no_grep "teardown task-x1 complete" "$case_dir/stdout" \
+    "recorded-pr-open-reassigned: the refusal reported cleanup complete"
+
+  case_dir=$(make_case recorded-pr-open-reassigned-force)
+  stage_reassigned_open_request "$case_dir"
+  set +e
+  run_teardown_in_case_home "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "recorded-pr-open-reassigned-force: --force should still discard an open pull request when the slot was reassigned"$'\n'"$(cat "$case_dir/stderr")"
+  assert_no_grep "REFUSED" "$case_dir/stderr" \
+    "recorded-pr-open-reassigned-force: --force printed a REFUSED line"
+  assert_absent "$case_dir/state/task-x1.meta" \
+    "recorded-pr-open-reassigned-force: --force left the task record"
+  assert_reassigned_slot_untouched "$case_dir" recorded-pr-open-reassigned-force
+
+  pass "an open or unreadable recorded request keeps the task record when the copy is gone or reassigned"
+}
+
+test_recorded_request_state_decides_pushed_teardown() {
+  local state case_dir rc head
+  for state in open merged closed; do
+    case_dir=$(make_case "recorded-pr-$state")
+    write_meta "$case_dir" no-mistakes ship
+    wt_commit_file "$case_dir" feature.txt "$state" "ship $state"
+    append_pr_meta_url "$case_dir"
+    git -C "$case_dir/wt" push -q origin fm/task-x1
+    git -C "$case_dir/project" fetch -q origin
+    add_gh_axi_pr_state "$case_dir" "$state"
+    head=$(git -C "$case_dir/wt" rev-parse HEAD)
+
+    set +e
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+    rc=$?
+    set -e
+
+    if [ "$state" = open ]; then
+      expect_code 1 "$rc" "recorded-pr-open: an open pull request must refuse even when the branch is on origin"$'\n'"$(cat "$case_dir/stderr")"
+      grep -q 'still open' "$case_dir/stderr" || fail "recorded-pr-open: refusal did not say the request is still open"
+      assert_refusal_retained_task_state "$case_dir" recorded-pr-open "$head"
+    else
+      expect_code 0 "$rc" "recorded-pr-$state: a $state pull request whose branch is on origin should tear down"$'\n'"$(cat "$case_dir/stderr")"
+      ! grep -q REFUSED "$case_dir/stderr" || fail "recorded-pr-$state: teardown printed a REFUSED line"
+      assert_absent "$case_dir/state/task-x1.meta" "recorded-pr-$state: teardown left the task record"
+    fi
+    grep -q 'pr view 7 --repo example/repo' "$case_dir/gh-axi.log" \
+      || fail "recorded-pr-$state: teardown did not read the recorded pull request"
+  done
+
+  case_dir=$(make_case recorded-pr-unreadable)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit_file "$case_dir" feature.txt unread "ship unread"
+  append_pr_meta_url "$case_dir"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+  add_gh_axi_error "$case_dir"
+  head=$(git -C "$case_dir/wt" rev-parse HEAD)
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "recorded-pr-unreadable: an unreadable forge state must refuse"$'\n'"$(cat "$case_dir/stderr")"
+  grep -q 'could not be read' "$case_dir/stderr" \
+    || fail "recorded-pr-unreadable: refusal did not say the forge state could not be read"
+  assert_refusal_retained_task_state "$case_dir" recorded-pr-unreadable "$head"
+
+  case_dir=$(make_case recorded-pr-open-force)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit_file "$case_dir" feature.txt forced "ship forced"
+  append_pr_meta_url "$case_dir"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+  add_gh_axi_pr_state "$case_dir" open
+  set +e
+  run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "recorded-pr-open-force: --force should still discard an open pull request"$'\n'"$(cat "$case_dir/stderr")"
+  ! grep -q REFUSED "$case_dir/stderr" || fail "recorded-pr-open-force: --force printed a REFUSED line"
+  assert_absent "$case_dir/state/task-x1.meta" "recorded-pr-open-force: --force left the task record"
+
+  case_dir=$(make_case recorded-mr-open)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit_file "$case_dir" feature.txt mr "ship mr"
+  printf '%s\n' 'pr=https://gitlab.example.com/group/repo/-/merge_requests/7' \
+    >> "$case_dir/state/task-x1.meta"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+  cat > "$case_dir/fakebin/glab" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' '{"state":"opened"}'
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/glab"
+  head=$(git -C "$case_dir/wt" rev-parse HEAD)
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "recorded-mr-open: an open merge request must refuse even when the branch is on origin"$'\n'"$(cat "$case_dir/stderr")"
+  grep -q 'still open' "$case_dir/stderr" || fail "recorded-mr-open: refusal did not say the request is still open"
+  assert_refusal_retained_task_state "$case_dir" recorded-mr-open "$head"
+
+  case_dir=$(make_case recorded-forgejo-open)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit_file "$case_dir" feature.txt fj "ship fj"
+  head=$(git -C "$case_dir/wt" rev-parse HEAD)
+  printf '%s\n' 'pr=https://git.example.org/team/repo/pulls/7' >> "$case_dir/state/task-x1.meta"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+  cat > "$case_dir/fakebin/tea" <<SH
+#!/usr/bin/env bash
+if [ "\${1:-} \${2:-}" = "login list" ]; then
+  printf '[\n  {\n    "name": "fj",\n    "url": "https://git.example.org"\n  }\n]\n'
+  exit 0
+fi
+[ "\${1:-}" = api ] || exit 1
+printf '{"state":"open","merged":false,"head":{"sha":"%s"}}\n' '$head'
+SH
+  chmod +x "$case_dir/fakebin/tea"
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "recorded-forgejo-open: an open Forgejo pull request must refuse even when the branch is on origin"$'\n'"$(cat "$case_dir/stderr")"
+  grep -q 'still open' "$case_dir/stderr" || fail "recorded-forgejo-open: refusal did not say the request is still open"
+  assert_refusal_retained_task_state "$case_dir" recorded-forgejo-open "$head"
+
+  pass "a recorded open pull request or merge request keeps the task record until it is merged or closed"
+}
+
 test_missing_startup_source_refuses_before_cleanup
 test_unreadable_startup_source_refuses_before_cleanup
 test_missing_adapter_sibling_refuses_before_cleanup
@@ -5135,6 +5440,8 @@ test_forced_secondmate_dirty_child_return_warns_and_completes
 test_return_that_removes_copy_warns_cannot_verify
 test_scout_ignored_files_survive_scratch_clean
 test_gh_error_and_content_absent_refuses
+test_recorded_request_state_decides_pushed_teardown
+test_recorded_request_refuses_when_the_copy_is_gone_or_reassigned
 test_legacy_record_without_the_flag_refuses
 test_windowless_legacy_record_with_gone_worktree_tears_down
 test_windowless_legacy_record_tears_down_with_the_legacy_flag
