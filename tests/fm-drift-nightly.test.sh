@@ -122,6 +122,111 @@ keep: $kept proven notes" "$CHECK_OUT" "the later edit cannot borrow the earlier
   pass "an unproven edit to an already-proven file fails"
 }
 
+test_unproven_deletion_cannot_rename_into_proven_file() {
+  local repo kept later
+  repo=$(fm_test_tmproot drift-rename)
+  fm_git_init_commit "$repo"
+  printf 'identical contents\n' > "$repo/original.txt"
+  git -C "$repo" add original.txt
+  fixture_commit "$repo" "upstream original"
+  git -C "$repo" branch upstream
+  git -C "$repo" config diff.renames true
+  cp "$repo/original.txt" "$repo/copy.txt"
+  git -C "$repo" add copy.txt
+  fixture_commit "$repo" "proven copy"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$kept" > "$repo/proof.txt"
+  git -C "$repo" rm -q original.txt
+  fixture_commit "$repo" "unproven deletion"
+  later=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 1 "$CHECK_RC" "a deletion cannot be hidden by rename detection"
+  assert_contains "$CHECK_OUT" 'path-ok: copy.txt' "the proven copy remains accepted"
+  assert_contains "$CHECK_OUT" 'path-drift: original.txt' "the unproven deletion is reported"
+  assert_contains "$CHECK_OUT" "unproven: $later unproven deletion" "the deletion commit remains unproven"
+  pass "an unproven deletion cannot collapse into a rename onto a proven file"
+}
+
+test_moving_ref_keeps_one_snapshot() {
+  local name=$1 ref=$2 repo kept future shim real_git marker
+  repo=$(fm_test_tmproot "drift-moving-$name")
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'proven\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "proven notes"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$kept" > "$repo/proof.txt"
+  git -C "$repo" switch -q -c future
+  printf 'unproven\n' > "$repo/later.txt"
+  git -C "$repo" add later.txt
+  fixture_commit "$repo" "later commit"
+  future=$(git -C "$repo" rev-parse HEAD)
+  git -C "$repo" switch -q main
+  shim=$(fm_test_tmproot drift-ref-git)
+  real_git=$(command -v git)
+  marker=$shim/advanced
+  cat > "$shim/git" <<'EOF'
+#!/usr/bin/env bash
+"$FM_DRIFT_REF_GIT" "$@"
+rc=$?
+[ "$rc" -eq 0 ] || exit "$rc"
+seen_diff=0
+list_paths=0
+for arg in "$@"; do
+  case $arg in
+    diff) seen_diff=1 ;;
+    --name-only) list_paths=1 ;;
+  esac
+done
+if [ "$seen_diff" -eq 1 ] && [ "$list_paths" -eq 1 ] && [ ! -e "$FM_DRIFT_REF_MARKER" ]; then
+  "$FM_DRIFT_REF_GIT" -C "$FM_DRIFT_REF_REPO" update-ref "$FM_DRIFT_REF_NAME" "$FM_DRIFT_REF_NEW_SHA" || exit 1
+  : > "$FM_DRIFT_REF_MARKER"
+fi
+exit 0
+EOF
+  chmod +x "$shim/git"
+  PATH="$shim:$PATH" FM_DRIFT_REF_GIT="$real_git" FM_DRIFT_REF_REPO="$repo" \
+    FM_DRIFT_REF_NAME="$ref" FM_DRIFT_REF_NEW_SHA="$future" FM_DRIFT_REF_MARKER="$marker" \
+    run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  assert_present "$marker" "the $name ref was advanced while the check ran"
+  assert_equals "$future" "$(git -C "$repo" rev-parse "$ref")" "the $name ref actually reached the later commit"
+  expect_code 0 "$CHECK_RC" "the original $name snapshot has no drift: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: $kept proven notes" "$CHECK_OUT" "counts, paths, and commit reporting use the captured $name snapshot"
+  pass "a moving $name ref cannot change the captured check or its report"
+}
+
+test_snapshot_includes_fetched_upstream() {
+  local upstream_repo repo kept
+  upstream_repo=$(fm_test_tmproot drift-fetch-source)
+  fm_git_init_commit "$upstream_repo"
+  repo=$(fm_test_tmproot drift-fetch-fork)/repo
+  git clone -q "$upstream_repo" "$repo" || fail "cannot clone the fetch fixture"
+  assert_equals "$repo" "$(git -C "$repo" rev-parse --show-toplevel)" "fetch commands must run in the fixture repository"
+  git -C "$repo" remote rename origin kunchenguid || fail "cannot configure the fetch fixture remote"
+  printf 'proven\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "proven notes"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'upstream\n' > "$upstream_repo/upstream.txt"
+  git -C "$upstream_repo" add upstream.txt
+  fixture_commit "$upstream_repo" "new upstream commit"
+  CHECK_RC=0
+  CHECK_OUT=$("$SCRIPT" check --repo "$repo" --proof "$repo/proof.txt" 2>"$repo.err") || CHECK_RC=$?
+  CHECK_ERR=$(cat "$repo.err")
+  expect_code 0 "$CHECK_RC" "the fetched upstream snapshot preserves the proven patch: $CHECK_ERR"
+  assert_equals "behind: 1
+ahead: 1
+path-ok: notes.txt
+keep: $kept proven notes" "$CHECK_OUT" "upstream is captured after the real fetch updates it"
+  assert_equals "$(git -C "$upstream_repo" rev-parse HEAD)" "$(git -C "$repo" rev-parse kunchenguid/main)" "the real fetch advanced the upstream ref"
+  pass "the captured upstream includes updates from the completed fetch"
+}
+
 test_proven_patches_are_replayed_in_ancestry_order() {
   local repo first second
   repo=$(fm_test_tmproot drift-ordered-proof)
@@ -377,6 +482,10 @@ test_unproven_file_is_path_drift_and_exits_1
 test_proof_sha_makes_that_path_ok_and_exits_0
 test_guard_files_have_no_exemptions
 test_unproven_edit_to_proven_file_exits_1
+test_unproven_deletion_cannot_rename_into_proven_file
+test_moving_ref_keeps_one_snapshot fork refs/heads/main
+test_moving_ref_keeps_one_snapshot upstream refs/heads/upstream
+test_snapshot_includes_fetched_upstream
 test_proven_patches_are_replayed_in_ancestry_order
 test_proven_commit_does_not_accept_earlier_unproven_content
 test_cut_unproven_changes_do_not_fail_after_restoration

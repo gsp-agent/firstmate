@@ -109,3 +109,178 @@ exit: 0
 
 Elapsed seconds: 5.581
 The eight prior keeps have no retained effective changes; the required guard supplies detection absent upstream and closes the measured original exemptions.
+
+Rename and ref-snapshot regressions measured on this machine
+Measured: 2026-10-14T13:39:19.643373-05:00
+Starting head: 9f1504c961e14d45dcbadbcbaede630dc30bb94e
+Revised guard blob: b4c91bae3fb94e246a8534f51367ec628547535a
+rename counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-5o8fg7uc --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-5o8fg7uc/proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+unproven: e0583b2dbc3981f46423b12801d58c1681161167 unproven deletion
+keep: 776b4b2261255e6c96ae508ebf743635ca0851d5 proven change
+exit: 0
+
+rename counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-6q60uge8 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-6q60uge8/proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+path-drift: original.txt
+unproven: d9c7d18b5b2aa34071b0d74d7f6b6f6d4d18ebfc unproven deletion
+keep: cebaf6694c3e196221811044d945378cdea61a3a proven change
+exit: 1
+
+The fixture advances refs/heads/main to 9bd11e1fa806cb002f0d61d1fdae7f18462cbde4 after the first path enumeration.
+fork counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-8glvn5va --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-8glvn5va/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+unproven: 9bd11e1fa806cb002f0d61d1fdae7f18462cbde4 later commit
+keep: b55f22d245140fa133b18e515d7fe6448081136e proven change
+exit: 0
+
+The fixture advances refs/heads/main to f83ec887688c9bc3423f4c5aa7e3c5d2adaf869c after the first path enumeration.
+fork counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-dlvo49r8 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-dlvo49r8/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: c4b99a69f69ba9a9377130864b6623f0f2fa2fa9 proven change
+exit: 0
+
+The fixture advances refs/heads/upstream to 563569f5208accac23cffcd6e56728e455016cef after the first path enumeration.
+upstream counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-534w1xh2 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-534w1xh2/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+exit: 0
+
+The fixture advances refs/heads/upstream to 2117800a0691cb43660cc36b3b59ab05587205a9 after the first path enumeration.
+upstream counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-490jl9kb --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-490jl9kb/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: 1f72d5816e50dd21d1b63b2491cba5b08cac13c2 proven change
+exit: 0
+
+Focused behavioral verification, including a real local Git fetch:
+$ bash tests/fm-drift-nightly.test.sh
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+ok - a moving fork ref cannot change the captured check or its report
+ok - a moving upstream ref cannot change the captured check or its report
+Not currently on any branch.
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   ../../../bin/fm-drift-nightly.sh
+	modified:   ../../../drift-measurements.txt
+	modified:   ../../../tests/fm-drift-nightly.test.sh
+
+no changes added to commit (use "git add" and/or "git commit -a")
+stderr:
+fatal: destination path '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/drift-fetch-fork.ygvsTO' already exists and is not an empty directory.
+The following paths are ignored by one of your .gitignore files:
+.agent-state/verification-round-3
+hint: Use -f if you really want to add them.
+hint: Disable this message with "git config set advice.addIgnoredFile false"
+not ok - the fetched upstream snapshot preserves the proven patch: From https://github.com/gsp-agent/firstmate
+ * branch              main       -> FETCH_HEAD
+error: proof patch conflicts without unproven changes: 9f1504c961e14d45dcbadbcbaede630dc30bb94e: expected exit 0, got 2
+exit: 1
+
+
+Rename and ref-snapshot regressions measured on this machine
+Measured: 2026-10-14T13:47:35.088722-05:00
+Starting head: 9f1504c961e14d45dcbadbcbaede630dc30bb94e
+Revised guard blob: b4c91bae3fb94e246a8534f51367ec628547535a
+rename counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-ntl0qo1_ --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-ntl0qo1_/proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+unproven: 07199e2b825de968c9ee17987c8dc212fe609005 unproven deletion
+keep: bdf27d4c9e3dcfb174d4b2697067c32a5745ef06 proven change
+exit: 0
+
+rename counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-50kgswjp --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-50kgswjp/proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+path-drift: original.txt
+unproven: 07199e2b825de968c9ee17987c8dc212fe609005 unproven deletion
+keep: bdf27d4c9e3dcfb174d4b2697067c32a5745ef06 proven change
+exit: 1
+
+The fixture advances refs/heads/main to d72621897d5a42caef19dfa628d4feff72a06e13 after the first path enumeration.
+fork counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-0mb3h5d9 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-0mb3h5d9/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+unproven: d72621897d5a42caef19dfa628d4feff72a06e13 later commit
+keep: ea6c544b50c1d5ee84019bc522949d9b604b8589 proven change
+exit: 0
+
+The fixture advances refs/heads/main to 6d53afb46c0a851b13f4cf67c1c3a52a1bdd0531 after the first path enumeration.
+fork counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-ugfur6qe --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-ugfur6qe/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: 39967fdd76bd5fc6b5d0ea514494634b29914b20 proven change
+exit: 0
+
+The fixture advances refs/heads/upstream to ac48f4c3a6a19575e3702088ab16728b470fa9c0 after the first path enumeration.
+upstream counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-lhtkojs5 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-lhtkojs5/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+exit: 0
+
+The fixture advances refs/heads/upstream to ac48f4c3a6a19575e3702088ab16728b470fa9c0 after the first path enumeration.
+upstream counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-1ou1xmom --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-1ou1xmom/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: b9efab1d450125efc48add4a9c97006a044bbf39 proven change
+exit: 0
+
+Focused behavioral verification, including a real local Git fetch:
+$ bash tests/fm-drift-nightly.test.sh
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+ok - a moving fork ref cannot change the captured check or its report
+ok - a moving upstream ref cannot change the captured check or its report
+ok - the captured upstream includes updates from the completed fetch
+ok - dependent proven patches are accepted regardless of proof-file order
+ok - proof approves a patch rather than the commit's entire file snapshot
+ok - cut unproven changes pass once their effective changes are gone
+ok - a proven change can cut unrelated unproven changes in the same commit
+ok - missing accepted patches are reported as drift
+ok - unproven file modes cannot borrow content proof
+ok - unknown proof commits cannot silently authorize changes
+ok - behind is reported and does not fail the check by itself
+ok - a merge commit is labeled merge and adds no path-drift when its tree matches upstream
+ok - install --dry-run prints the job and writes nothing
+ok - install writes the nightly agent and uninstall removes it, including a second call
+ok - install rejects hour 24
+exit: 0
+
+Elapsed seconds: 11.612
+The revised guard rejects the previously hidden deletion and reports a consistent captured revision when either ref advances.

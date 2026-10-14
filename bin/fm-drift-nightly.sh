@@ -164,8 +164,11 @@ cmd_check() {
     git -C "$REPO" remote get-url kunchenguid >/dev/null 2>&1 || die "kunchenguid remote is missing"
     git -C "$REPO" fetch --no-tags kunchenguid main || die "git fetch kunchenguid main failed"
   fi
-  git -C "$REPO" rev-parse --verify "${fork}^{commit}" >/dev/null 2>&1 || die "fork ref not found: $fork"
-  git -C "$REPO" rev-parse --verify "${upstream}^{commit}" >/dev/null 2>&1 || die "upstream ref not found: $upstream"
+  local fork_sha upstream_sha
+  fork_sha=$(git -C "$REPO" rev-parse --verify "${fork}^{commit}" 2>/dev/null) || die "fork ref not found: $fork"
+  upstream_sha=$(git -C "$REPO" rev-parse --verify "${upstream}^{commit}" 2>/dev/null) || die "upstream ref not found: $upstream"
+  fork=$fork_sha
+  upstream=$upstream_sha
   if [ -z "$PROOF" ] && [ -f "$REPO/drift-proof.txt" ]; then
     PROOF=$REPO/drift-proof.txt
   fi
@@ -177,23 +180,18 @@ cmd_check() {
   CHECK_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-drift.XXXXXX") || die "cannot create a temporary directory"
   trap 'rm -f -- "$CHECK_TMP/paths" "$CHECK_TMP/commits"; rmdir -- "$CHECK_TMP"' EXIT
   replay_proof
-  git -C "$REPO" diff --name-only -z "$base" "$fork" > "$CHECK_TMP/paths" || die "cannot read fork paths"
+  git -C "$REPO" diff --no-renames --name-only -z "$base" "$fork" > "$CHECK_TMP/paths" || die "cannot read fork paths"
   printf 'behind: %s\n' "$behind"
   printf 'ahead: %s\n' "$ahead"
   while IFS= read -r -d '' path; do
-    if git --literal-pathspecs -C "$REPO" diff --quiet "$EXPECTED_TREE" "$fork" -- "$path"; then
+    if git --literal-pathspecs -C "$REPO" diff --no-renames --quiet "$EXPECTED_TREE" "$fork" -- "$path"; then
       printf 'path-ok: %s\n' "$path"
-    else
-      printf 'path-drift: %s\n' "$path"
-      drift=1
     fi
   done < "$CHECK_TMP/paths"
-  git -C "$REPO" diff --name-only -z "$EXPECTED_TREE" "$fork" > "$CHECK_TMP/paths" || die "cannot read drift paths"
+  git -C "$REPO" diff --no-renames --name-only -z "$EXPECTED_TREE" "$fork" > "$CHECK_TMP/paths" || die "cannot read drift paths"
+  [ ! -s "$CHECK_TMP/paths" ] || drift=1
   while IFS= read -r -d '' path; do
-    if git --literal-pathspecs -C "$REPO" diff --quiet "$base" "$fork" -- "$path"; then
-      printf 'path-drift: %s\n' "$path"
-      drift=1
-    fi
+    printf 'path-drift: %s\n' "$path"
   done < "$CHECK_TMP/paths"
   while IFS= read -r sha; do
     [ -n "$sha" ] || continue
