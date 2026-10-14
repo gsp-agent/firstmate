@@ -1,0 +1,18 @@
+# Kept because the live routing file depends on them.
+# Measured 2026-10-14. Upstream kunchenguid/main bin/fm-dispatch-resolve.sh exits 2 on that file.
+# The error is: malformed rules file - each use profile effort must be supported by its harness and model.
+# The upstream run set TYPESAFE_API_KEY, passed a readable brief, and did not invoke curl.
+# This tree's bin/fm-dispatch-resolve.sh --labels with an empty value exits 0.
+# It prints profile: --harness 'cursor' --model 'grok-4.7-xhigh'.
+# Nine label sets matched upstream-lean 8287d35f4152c050bdb77fb26a8262ea42406575, exit codes included.
+# The sets were empty, docs-only, ep-opus, bug plus ep-opus, both conflict orders, bug, a spaced docs-only, and unknown plus docs-only.
+# Follow-up: move config/crew-dispatch.json onto upstream's dispatch-profile schema so these six can be cut later.
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48
+ada14efcab836915609ea325e537fef0e9c45edc
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d
+745991e8e70fab9fb35bb63e5d2c1491c42124da
+ece80a3543c804bd10e8f13ad28775abef9a4e94
+8193b2365719da824fe563f01645fe1eb1ccffa0
+# Schema notes for those fields. These commits own docs/configuration.md.
+592992342dfbfd681ce66a08a6aeb38177c53a79
+8bd577837677140faf740ac6c51dd1954bba675a
