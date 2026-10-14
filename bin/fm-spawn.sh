@@ -495,6 +495,9 @@
 # never writes a Co-Authored-By trailer, Claude-Session link, or generated-with
 # line into a commit or PR body; launch_template() below owns the reason it
 # cannot come from the captain's own settings.
+# claude_session_settings_keys() also sets autoMemoryEnabled false in that
+# JSON, so a launched Claude session does not load an auto-memory directory
+# or MEMORY.md.
 # Cursor and the other non-Claude runtimes have no equivalent per-launch
 # settings overlay: Cursor injects a Co-Authored-By trailer at the tooling
 # layer after the worker types a clean message, and a per-machine
@@ -1988,6 +1991,20 @@ shell_quote() {
   printf "'"
 }
 
+# Interior of the per-launch Claude session-settings object, without braces.
+# autoMemoryEnabled is false on every launch. Claude Code treats a missing
+# key as on, so a worker would otherwise load an auto-memory directory and
+# MEMORY.md. Attribution stays in the object unless config/keep-ai-trailers
+# is present. The inline --settings value and the secondmate settings file
+# both use this string.
+claude_session_settings_keys() {
+  if [ "$KEEP_AI_TRAILERS" = 1 ]; then
+    printf '%s' '"feedbackDrafts":"off","autoMemoryEnabled":false'
+  else
+    printf '%s' '"feedbackDrafts":"off","autoMemoryEnabled":false,"attribution":{"commit":"","pr":"","sessionUrl":false}'
+  fi
+}
+
 resolve_pi_executable() {
   local candidate dir
   candidate=$(type -P -- "$1" 2>/dev/null) || return 1
@@ -2114,11 +2131,12 @@ launch_template() {
   # sources are not guaranteed to load that scope, so a worker would
   # otherwise run with attribution back on; carrying it per launch keeps the
   # policy in force regardless of which settings scopes end up loaded.
+  # claude_session_settings_keys() owns those session-key bytes, including
+  # autoMemoryEnabled false, for the inline value and the secondmate file.
   # Claude Code's --settings flag takes one value, a file path or an inline
   # JSON string (https://code.claude.com/docs/en/cli-reference). A secondmate's
   # busy hooks share that value, in state/<id>.claude-settings.json, and the
-  # file also carries feedbackDrafts and attribution so those session keys
-  # stay in force.
+  # file also carries the session keys so they stay in force.
   # __CLAUDEPERMFLAG__ is the permission flag config/claude-permission-mode
   # selects (header above): --dangerously-skip-permissions by default, or
   # --permission-mode auto for a captain who refuses bypass mode.
@@ -4881,11 +4899,7 @@ BUSY_GEN=
     fi
     hooks_json="\"hooks\":{\"UserPromptSubmit\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"$j_submit\"}]}],${stop_entry}\"StopFailure\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"$j_stopfail\"}]}],\"SessionEnd\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"$j_sessionend\"}]}]}"
     if [ "$KIND" = secondmate ]; then
-      session_keys='"feedbackDrafts":"off",'
-      if [ "$KEEP_AI_TRAILERS" != 1 ]; then
-        session_keys='"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false},'
-      fi
-      printf '{%s%s}\n' "$session_keys" "$hooks_json" >"$STATE_REAL/$ID.claude-settings.json"
+      printf '{%s,%s}\n' "$(claude_session_settings_keys)" "$hooks_json" >"$STATE_REAL/$ID.claude-settings.json"
     else
       mkdir -p "$WT/.claude"
       printf '{%s}\n' "$hooks_json" >"$WT/.claude/settings.local.json"
@@ -5483,16 +5497,11 @@ case "$LAUNCH" in
   if [ "$KIND" = secondmate ]; then
     LAUNCH=${LAUNCH//__CLAUDESETTINGS__/$(shell_quote "$STATE_REAL/$ID.claude-settings.json")}
   else
-    claude_settings="'{\"feedbackDrafts\":\"off\"__CLAUDEATTRIBUTION__}'"
+    claude_settings=$(shell_quote "{$(claude_session_settings_keys)}")
     LAUNCH=${LAUNCH//__CLAUDESETTINGS__/$claude_settings}
   fi
   ;;
 esac
-if [ "$KEEP_AI_TRAILERS" = 1 ]; then
-  LAUNCH=${LAUNCH//__CLAUDEATTRIBUTION__/}
-else
-  LAUNCH=${LAUNCH//__CLAUDEATTRIBUTION__/,'"attribution":{"commit":"","pr":"","sessionUrl":false}'}
-fi
 if [ "$HARNESS" = rovo ]; then
   ROVOCONFIGOVERRIDE=$(rovo_config_override_flag "$EFFORT" "$DATA" "$STATE" "$ID") || {
     echo "error: could not resolve this task's home paths for rovo's allowedExternalPaths grant" >&2
