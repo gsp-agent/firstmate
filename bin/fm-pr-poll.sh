@@ -3,9 +3,9 @@
 # change poll sidecar.
 # It emits exactly one merged line for a merged change. An unmerged GitHub
 # pull request outside the merge queue emits
-# a `dequeued <url> reason=<token> event=<id>` line for its latest unreported
-# removal. The token is GitHub's removal reason, or `unreadable` when that
-# reason is not a short token. Every other reading, including every error,
+# a `dequeued <url> reason=<escaped-text> event=<id>` line for its latest
+# unreported removal. The reason is GitHub's text with JSON string escaping
+# and no surrounding quotes. Every other reading, including every error,
 # stays silent, so a failed lookup can never be read as a merge. The
 # provider-tagged identity is data in the sidecar and is never
 # interpolated into this source: these bytes are identical for every task.
@@ -127,7 +127,7 @@ github_read_poll() {
   fields=$(gh api graphql --hostname "$host" \
     -f query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}' \
     -F "owner=$owner" -F "repo=$repo" -F "number=$number" \
-    --jq '.data.repository.pullRequest | ((.timelineItems.nodes // []) | last // {}) as $event | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "reason=" + (($event.reason // "") | if test("^[A-Za-z0-9_-]{0,64}$") then . else "unreadable" end), "event=" + (($event.id // "") | if test("^[A-Za-z0-9_+/=-]{0,256}$") then . else "" end)' \
+    --jq '.data.repository.pullRequest | ((.timelineItems.nodes // []) | last // {}) as $event | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "reason=" + (($event.reason // "") | tojson | .[1:-1]), "event=" + (($event.id // "") | if test("^[A-Za-z0-9_+/=-]{0,256}$") then . else "" end)' \
     2>/dev/null) || return 1
   [ -n "$fields" ] || return 1
   while IFS= read -r line; do
@@ -158,10 +158,6 @@ EOF
   if [ "$state" = MERGED ] && [ "$merged" != true ]; then
     return 1
   fi
-  case "$reason" in
-    *[!A-Za-z0-9_-]*) reason=unreadable ;;
-  esac
-  [ "${#reason}" -le 64 ] || reason=unreadable
   case "$event" in
     *[!A-Za-z0-9_+/=-]*) return 1 ;;
   esac

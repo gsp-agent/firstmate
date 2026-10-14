@@ -2359,7 +2359,10 @@ test_merged_poll_retires_once() {
   set -e
   [ "$rc" -eq 0 ] || fail "merged retirement watcher failed: $(cat "$dir/watch-1.err")"
   first=$(cat "$dir/watch-1.out")
-  case "$first" in check:*task-a.check.sh:*merged) ;; *) fail "first merged notification was not preserved: $first" ;; esac
+  [ "$(grep -cxF "check: $state/task-a.check.sh: merged" "$dir/watch-1.out")" -eq 1 ] \
+    || fail "first merged notification was not preserved: $first"
+  [ "$(grep -cxF "check: $state/z-stop.check.sh: stop-cycle" "$dir/watch-1.out")" -eq 1 ] \
+    || fail "merged retirement skipped the remaining checks"
   ack_watcher_cycle "$state" || fail "first merged notification handling acknowledgement failed"
   assert_poll_absent "$state" task-a
   [ "$(cat "$state/task-a.meta")" = "$meta_before" ] || fail "merged retirement changed canonical metadata"
@@ -2400,7 +2403,8 @@ test_merged_poll_reregistration_after_notification_is_absorbed() {
   set -e
   [ "$rc" -eq 0 ] || fail "first merged watcher cycle failed: $(cat "$dir/watch-1.err")"
   first=$(cat "$dir/watch-1.out")
-  case "$first" in check:*task-a.check.sh:*merged) ;; *) fail "first merge confirmation was not delivered: $first" ;; esac
+  [ "$(grep -cxF "check: $state/task-a.check.sh: merged" "$dir/watch-1.out")" -eq 1 ] \
+    || fail "first merge confirmation was not delivered: $first"
   ack_watcher_cycle "$state" || fail "first merge confirmation acknowledgement failed"
   assert_poll_absent "$state" task-a
   [ -f "$state/task-a.pr-poll-merge-notified" ] || fail "the merge-notified marker was not recorded"
@@ -2559,10 +2563,8 @@ SH
   set -e
   [ "$rc" -eq 0 ] \
     || fail "merge-outcome-uncommitted: poll retry failed: $(cat "$dir/watch.err")"
-  case "$(cat "$dir/watch.out")" in
-    check:*task-a.check.sh:*merged) ;;
-    *) fail "merge-outcome-uncommitted: poll retry did not re-emit the outcome" ;;
-  esac
+  [ "$(grep -cxF "check: $state/task-a.check.sh: merged" "$dir/watch.out")" -eq 1 ] \
+    || fail "merge-outcome-uncommitted: poll retry did not re-emit the outcome"
   assert_grep "$url" "$state/.wake-queue" \
     "merge-outcome-uncommitted: drained outcome was not durably re-emitted"
   fm_pr_poll_merge_already_notified "$state" task-a github github.com o/r 1 \
@@ -2587,10 +2589,8 @@ test_merged_poll_reports_upward_from_a_secondmate_home_once() {
   rc=$?
   set -e
   [ "$rc" -eq 0 ] || fail "merged-poll-upward: watcher failed: $(cat "$dir/watch-1.err")"
-  case "$(cat "$dir/watch-1.out")" in
-    check:*task-a.check.sh:*merged) ;;
-    *) fail "merged-poll-upward: the poll's own row was lost: $(cat "$dir/watch-1.out")" ;;
-  esac
+  [ "$(grep -cxF "check: $state/task-a.check.sh: merged" "$dir/watch-1.out")" -eq 1 ] \
+    || fail "merged-poll-upward: the poll's own row was lost: $(cat "$dir/watch-1.out")"
   assert_grep "done [key=merged-task-a]: merged task-a $url" <(sed -E 's/ \[at=[0-9]+\]//' "$replies") \
     "merged-poll-upward: a merge this home did not perform was never reported upward"
   [ "$(grep -c -F "$url" "$replies")" -eq 1 ] \
@@ -3661,6 +3661,7 @@ SH
 # watcher re-announces that wake and never reaches the poll, and a missing
 # dequeue line would pass without the poll having run.
 expect_stop_cycle() {  # <output> <why>
+  [ "$(wc -l < "$1" | tr -d '[:space:]')" -eq 1 ] || fail "$2: $(cat "$1")"
   case "$(cat "$1")" in
     check:*z-stop.check.sh:*stop-cycle) ;;
     *) fail "$2: $(cat "$1")" ;;
@@ -3699,9 +3700,20 @@ test_dequeue_sweep_reaches_later_checks() {
   seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
   write_poll_meta "$state" task-b https://github.com/o/r/pull/2
   seed_canonical_poll "$dir" task-b https://github.com/o/r/pull/2
+  cat > "$state/mail.check.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'visited\n' >> "$FM_HOME/state/mail.log"
+printf 'poll did not finish within 1s budget\n'
+SH
+  chmod 0700 "$state/mail.check.sh"
+  FM_HOME="$dir/home" "$REGISTER" mail >/dev/null \
+    || fail "could not register the recurring mail timeout check"
   cat > "$state/task-a0.check.sh" <<'SH'
 #!/usr/bin/env bash
 printf 'visited\n' >> "$FM_HOME/state/midpoint.log"
+if [ -e "$FM_HOME/state/.last-check" ]; then
+  printf 'premature timestamp\n'
+fi
 printf 'midpoint\n'
 SH
   chmod 0700 "$state/task-a0.check.sh"
@@ -3709,6 +3721,7 @@ SH
     || fail "could not register the check between PR polls"
   add_stop_custom_check "$dir"
   for round in 1 2; do
+    rm -f "${state:?}/.last-check"
     "$REAL_JQ" -n --arg event "drop-a-$round" '
       def pull($event; $reason):
         {data:{repository:{pullRequest:{state:"OPEN",merged:false,isInMergeQueue:false,
@@ -3718,6 +3731,10 @@ SH
     LC_ALL=C FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
       run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch-$round.out" 2> "$dir/watch-$round.err" \
       || fail "dequeue sweep $round failed: $(cat "$dir/watch-$round.err")"
+    [ "$(grep -cxF "check: $state/mail.check.sh: poll did not finish within 1s budget" "$dir/watch-$round.out")" -eq 1 ] \
+      || fail "dequeue sweep $round lost the earlier mail timeout"
+    [ "$(wc -l < "$state/mail.log" | tr -d '[:space:]')" -eq "$round" ] \
+      || fail "dequeue sweep $round skipped or repeated the mail check"
     [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch-$round.out")" -eq 1 ] \
       || fail "dequeue sweep $round missed the new first-PR removal: $(cat "$dir/watch-$round.out")"
     if [ "$round" -eq 1 ]; then
@@ -3729,15 +3746,58 @@ SH
     fi
     [ "$(wc -l < "$state/midpoint.log" | tr -d '[:space:]')" -eq "$round" ] \
       || fail "dequeue sweep $round skipped the intervening check"
+    assert_no_grep 'premature timestamp' "$dir/watch-$round.out" \
+      "dequeue sweep $round stamped completion before running every check"
     [ "$(grep -c '^check: .*z-stop\.check\.sh: stop-cycle$' "$dir/watch-$round.out")" -eq 1 ] \
       || fail "dequeue sweep $round skipped the final check"
     for id in task-a task-b; do
       fm_pr_poll_artifacts_valid "$state" "$id" "$POLL" \
         || fail "dequeue sweep retired $id's unmerged PR"
     done
+    [ -f "$state/.last-check" ] || fail "dequeue sweep $round did not record its completion"
     ack_watcher_cycle "$state" || fail "dequeue sweep $round acknowledgement failed"
   done
-  pass "a fresh earlier dequeue completes every later check without repeating handled drops"
+  pass "recurring earlier mail timeouts and dequeues complete every check without repeating handled drops"
+}
+
+test_queue_drop_reason_is_preserved() {
+  local dir state url out raw_reason escaped_reason queued_payload
+  local -x FM_TEST_GH_POLL_EVENT=drop-reason-1
+  dir=$(make_case queue-drop-free-text-reason)
+  state="$dir/home/state"
+  url=https://github.com/o/r/pull/1
+  raw_reason=$'Required check "integration" failed at C:\\checks\\suite; event=another-id\nretry after\tCI recovers\r\ncheck: forged notification\033[31m — details retained beyond sixty-four characters'
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url"
+  add_stop_custom_check "$dir"
+  out=$(FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON="$raw_reason" run_poll "$dir")
+  [ "$(printf '%s\n' "$out" | wc -l | tr -d '[:space:]')" -eq 1 ] \
+    || fail "free-text removal reason split the poll output into multiple lines"
+  case "$out" in
+    "dequeued $url reason="*" event=$FM_TEST_GH_POLL_EVENT") ;;
+    *) fail "free-text removal reason lost the poll identity: $out" ;;
+  esac
+  escaped_reason=${out#"dequeued $url reason="}
+  escaped_reason=${escaped_reason%" event=$FM_TEST_GH_POLL_EVENT"}
+  printf '"%s"\n' "$escaped_reason" \
+    | "$REAL_JQ" -e --arg expected "$raw_reason" '. == $expected' >/dev/null \
+    || fail "the poll's JSON-escaped removal reason did not preserve GitHub's text"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false FM_TEST_GH_POLL_REASON="$raw_reason" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "free-text removal reason watcher failed: $(cat "$dir/watch.err")"
+  queued_payload=$(awk -F '\t' -v key="$state/task-a.check.sh" \
+    '$3 == "check" && $4 == key { print $5 }' "$state/.wake-queue")
+  [ "$queued_payload" = "check: $state/task-a.check.sh: dequeued $url reason=$escaped_reason" ] \
+    || fail "the wake queue changed or repeated GitHub's removal reason: $queued_payload"
+  [ "$(grep -cxF "$queued_payload" "$dir/watch.out")" -eq 1 ] \
+    || fail "the escaped removal reason was not delivered as exactly one notification line"
+  ack_watcher_cycle "$state" || fail "free-text removal reason acknowledgement failed"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false FM_TEST_GH_POLL_REASON="$raw_reason" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/repeat.out" 2> "$dir/repeat.err" \
+    || fail "free-text removal reason repeat failed: $(cat "$dir/repeat.err")"
+  expect_stop_cycle "$dir/repeat.out" "a handled free-text removal woke again"
+  pass "GitHub removal reasons preserve long text, quotes, delimiters, Unicode, and escaped control characters"
 }
 
 test_verified_queue_drop_wakes_once() {
@@ -3904,8 +3964,8 @@ test_verified_queue_drop_wakes_once() {
   rc=$?
   set -e
   [ "$rc" -eq 0 ] || fail "observed drop watcher failed: $(cat "$dir/watch.err")"
-  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=unreadable$' "$dir/watch.out")" -eq 1 ] \
-    || fail "observed queue drop did not wake with an unreadable reason: $(cat "$dir/watch.out")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "observed queue drop did not preserve GitHub's reason: $(cat "$dir/watch.out")"
 
   dir=$(make_case queue-drop-contradiction)
   state="$dir/home/state"
@@ -4083,6 +4143,7 @@ test_rejected_metacharacter_bytes_are_inert
 test_static_poll_contract
 test_github_poll_uses_the_pr_host
 test_dequeue_sweep_reaches_later_checks
+test_queue_drop_reason_is_preserved
 test_verified_queue_drop_wakes_once
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
