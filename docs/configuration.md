@@ -1125,7 +1125,7 @@ Firstmate cannot see which part of a worker's life uses the resource, so the num
 
 ## Crew dispatch profiles (config/crew-dispatch.json)
 
-`config/crew-dispatch.json` is an optional local, gitignored file containing natural-language rules that firstmate reads before dispatching a crewmate or scout.
+`config/crew-dispatch.json` is an optional local, gitignored file containing natural-language rules and optional label-routing and Cursor launch settings.
 Firstmate chooses the best matching rule with judgment; shell scripts do not match the natural-language rules.
 Firstmate resolves the rule's profile object or array under `AGENTS.md` section 4 and `quota-array-dispatch`, then passes only concrete `--harness`, `--model`, and `--effort` flags to `fm-spawn.sh`.
 
@@ -1169,6 +1169,8 @@ This section is the single owner of the canonical schema and its per-field seman
 | `use` and optional top-level `default` | Accept one profile object or a non-empty array of profile objects; the single-object form remains fully backward-compatible. |
 | Profile `harness` | Required in every profile. |
 | Profile `model` and `effort`; rule `why` | Optional. |
+| `label_routes` | Optional label-to-profile map used by [label-based worker routing](#label-based-worker-routing). |
+| `cursor_fallback` and `pstack_version` | Optional [Cursor launch controls](#cursor-launch-controls); the guard's header owns their defaults and interpretation. |
 
 **Fields applied only by typed resolution**
 
@@ -1233,10 +1235,24 @@ See [`docs/examples/crew-dispatch.json`](examples/crew-dispatch.json) for a star
 
 Secondmate homes inherit this file from the primary, so a secondmate's own crewmates apply the same dispatch profile behavior.
 
+### Label-based worker routing
+
+The resolver also provides deterministic worker routing from bead labels without a brief, API key, model request, or quota request.
+It considers labels in the supplied order, uses the first entry found in `label_routes`, and otherwise uses `default`; with neither, it returns escalation.
+The combination `docs-only` and `ep-opus` is refused so the bead can be relabeled.
+[`fm-dispatch-resolve.sh`'s header and help](../bin/fm-dispatch-resolve.sh) own the invocation, validation, and output contract for this separate path.
+
+### Cursor launch controls
+
+`cursor_fallback` and `pstack_version` configure [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh), whose header owns spending-file freshness, plugin compatibility, usage-limit markers, and daily launch accounting.
+An explicit Cursor ship or scout selection can fall back to Grok before launch; the reason is printed and recorded with the task.
+Cursor launches that proceed invoke [`fm-cursor-assert.sh`](../bin/fm-cursor-assert.sh), whose header owns the per-user Cursor settings and pstack role rules reasserted on each launch.
+The [Cursor adapter reference](../.agents/skills/harness-adapters/references/harness/cursor.md) owns harness-specific operating guidance.
+
 ## Typed dispatch resolution (.env TYPESAFE_API_KEY)
 
-`bin/fm-dispatch-resolve.sh` resolves one concrete crewmate or scout profile from a written brief with typesafe.ai's System One model (Jev), so the rule match that firstmate otherwise reasons out in its own context becomes one short tool turn.
-It is off unless `TYPESAFE_API_KEY` is non-empty in the calling environment or the home's gitignored `.env` holds a `TYPESAFE_API_KEY=` line; the environment wins, matching the Relay and mail-plane contracts, and the Relay accessor in `bin/fm-env-lib.sh` reads the line.
+`bin/fm-dispatch-resolve.sh`'s brief-based path resolves one concrete crewmate or scout profile with typesafe.ai's System One model (Jev), so the rule match that firstmate otherwise reasons out in its own context becomes one short tool turn.
+This brief-based path is off unless `TYPESAFE_API_KEY` is non-empty in the calling environment or the home's gitignored `.env` holds a `TYPESAFE_API_KEY=` line; the environment wins, matching the Relay and mail-plane contracts, and the Relay accessor in `bin/fm-env-lib.sh` reads the line.
 
 Off means one `dispatch-resolve: off` line on stderr, nothing on stdout, exit 0, and no network call, so firstmate dispatches exactly as it does without the tool.
 This section is the single owner of the tool's operator contract; the script header owns its exact flags and output lines, and "Crew dispatch profiles" above owns the declared rule and profile fields it applies.

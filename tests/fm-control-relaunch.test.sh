@@ -1262,7 +1262,7 @@ test_promoted_scout_relaunch_receives_the_current_delivery_contract() {
     esac
     assert_grep "$rule" "$launch" \
       "$mode: the replacement launch did not receive the current ship push and merge safety rule"
-    assert_grep "git checkout -b fm/$id" "$launch" \
+    assert_grep "git switch -c fm/$id" "$launch" \
       "$mode: the replacement launch did not receive its promoted branch name"
     assert_grep 'Inventory this worktree' "$launch" \
       "$mode: the replacement launch did not receive the scratch-state inventory step"
