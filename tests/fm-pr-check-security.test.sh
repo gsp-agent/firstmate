@@ -150,21 +150,36 @@ case "${1:-} ${2:-}" in
         [ "${FM_TEST_GH_FAIL:-0}" = 0 ] || exit 1
         [ -z "${FM_TEST_GH_STATE_STARTED:-}" ] || : > "$FM_TEST_GH_STATE_STARTED"
         [ "${FM_TEST_GH_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GH_SLEEP"
+        request_host=${GH_HOST:-github.com}
+        poll_number=
+        jq_filter=
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            --jq) shift; jq_filter=${1-} ;;
+            --hostname) shift; request_host=${1-} ;;
+            -F)
+              shift
+              case "${1-}" in number=*) poll_number=${1#number=} ;; esac
+              ;;
+          esac
+          shift
+        done
+        if [ -n "${FM_TEST_GH_POLL_RESPONSES:-}" ]; then
+          "$FM_TEST_REAL_JQ" --arg number "$poll_number" '.[$number]' "$FM_TEST_GH_POLL_RESPONSES" \
+            | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+          exit $?
+        fi
         state=${FM_TEST_GH_STATE-OPEN}
-        if [ -n "${FM_TEST_GH_POLL_MERGED+x}" ]; then
+        if [ "$request_host" != github.com ]; then
+          state=MERGED
+          merged=true
+        elif [ -n "${FM_TEST_GH_POLL_MERGED+x}" ]; then
           merged=$FM_TEST_GH_POLL_MERGED
         elif [ "$state" = MERGED ]; then
           merged=true
         else
           merged=false
         fi
-        jq_filter=
-        while [ "$#" -gt 0 ]; do
-          case "$1" in
-            --jq) shift; jq_filter=${1-} ;;
-          esac
-          shift
-        done
         "$FM_TEST_REAL_JQ" -n --arg state "$state" --argjson merged "$merged" \
           --argjson queued "${FM_TEST_GH_POLL_QUEUED:-false}" \
           --arg reason "${FM_TEST_GH_POLL_REASON-}" \
@@ -3652,6 +3667,79 @@ expect_stop_cycle() {  # <output> <why>
   esac
 }
 
+test_github_poll_uses_the_pr_host() {
+  local dir state url out
+  dir=$(make_case github-poll-host)
+  state="$dir/home/state"
+  url=https://github.com/o/r/pull/1
+  make_poll_fixture "$dir"
+  out=$(GH_HOST=ghe.example FM_TEST_GH_STATE=OPEN run_poll "$dir")
+  [ -z "$out" ] || fail "enterprise host falsely reported a merge for the GitHub PR: $out"
+  out=$(GH_HOST=ghe.example FM_TEST_GH_STATE=MERGED run_poll "$dir")
+  [ "$out" = merged ] || fail "explicit GitHub host did not report its real merged state: $out"
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url"
+  add_stop_custom_check "$dir"
+  GH_HOST=ghe.example FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_REASON=failed_checks \
+    FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ== \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "GitHub host watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "GitHub host watcher did not report its removal: $(cat "$dir/watch.out")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "enterprise host retired the GitHub PR watch"
+  pass "a GitHub PR stays bound to github.com despite an enterprise GH_HOST"
+}
+
+test_dequeue_sweep_reaches_later_checks() {
+  local dir state round id
+  dir=$(make_case dequeue-sweep)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_poll_meta "$state" task-b https://github.com/o/r/pull/2
+  seed_canonical_poll "$dir" task-b https://github.com/o/r/pull/2
+  cat > "$state/task-a0.check.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'visited\n' >> "$FM_HOME/state/midpoint.log"
+printf 'midpoint\n'
+SH
+  chmod 0700 "$state/task-a0.check.sh"
+  FM_HOME="$dir/home" "$REGISTER" task-a0 >/dev/null \
+    || fail "could not register the check between PR polls"
+  add_stop_custom_check "$dir"
+  for round in 1 2; do
+    "$REAL_JQ" -n --arg event "drop-a-$round" '
+      def pull($event; $reason):
+        {data:{repository:{pullRequest:{state:"OPEN",merged:false,isInMergeQueue:false,
+          timelineItems:{nodes:[{id:$event,reason:$reason}]}}}}};
+      {"1":pull($event; "failed_checks"), "2":pull("drop-b-1"; "ci_failure")}
+    ' > "$dir/poll-responses.json"
+    LC_ALL=C FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch-$round.out" 2> "$dir/watch-$round.err" \
+      || fail "dequeue sweep $round failed: $(cat "$dir/watch-$round.err")"
+    [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch-$round.out")" -eq 1 ] \
+      || fail "dequeue sweep $round missed the new first-PR removal: $(cat "$dir/watch-$round.out")"
+    if [ "$round" -eq 1 ]; then
+      [ "$(grep -c '^check: .*task-b\.check\.sh: dequeued https://github.com/o/r/pull/2 reason=ci_failure$' "$dir/watch-$round.out")" -eq 1 ] \
+        || fail "the first PR's removal starved the later PR: $(cat "$dir/watch-$round.out")"
+    else
+      [ "$(grep -c 'task-b\.check\.sh: dequeued ' "$dir/watch-$round.out" || true)" -eq 0 ] \
+        || fail "the later PR's handled removal woke again"
+    fi
+    [ "$(wc -l < "$state/midpoint.log" | tr -d '[:space:]')" -eq "$round" ] \
+      || fail "dequeue sweep $round skipped the intervening check"
+    [ "$(grep -c '^check: .*z-stop\.check\.sh: stop-cycle$' "$dir/watch-$round.out")" -eq 1 ] \
+      || fail "dequeue sweep $round skipped the final check"
+    for id in task-a task-b; do
+      fm_pr_poll_artifacts_valid "$state" "$id" "$POLL" \
+        || fail "dequeue sweep retired $id's unmerged PR"
+    done
+    ack_watcher_cycle "$state" || fail "dequeue sweep $round acknowledgement failed"
+  done
+  pass "a fresh earlier dequeue completes every later check without repeating handled drops"
+}
+
 test_verified_queue_drop_wakes_once() {
   local dir state url rc out
   local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
@@ -3959,13 +4047,6 @@ test_verified_queue_drop_wakes_once() {
   pass "a verified queue drop wakes once, a merge stays a merge, and a bad read stays silent"
 }
 
-if [ "${1:-}" = queue-drop ]; then
-  test_static_poll_contract
-  test_verified_queue_drop_wakes_once
-  test_teardown_removes_poll_artifacts
-  exit 0
-fi
-
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -4000,6 +4081,8 @@ test_direct_pr_unpushed_commit_refuses_registration
 test_valid_recording_and_merge_derivation
 test_rejected_metacharacter_bytes_are_inert
 test_static_poll_contract
+test_github_poll_uses_the_pr_host
+test_dequeue_sweep_reaches_later_checks
 test_verified_queue_drop_wakes_once
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication

@@ -2796,6 +2796,7 @@ while :; do
   if [ "$(age_of "$STATE/.last-check")" -ge "$CHECK_INTERVAL" ]; then
     rejected_checks=
     contribution_check_output=
+    check_sweep_output=
     for c in "$STATE"/*.check.sh; do
       [ -e "$c" ] || continue
       is_pr_poll=0
@@ -2881,7 +2882,7 @@ EOF
             # outcome and no wake; bin/fm-pr-check.sh refuses to arm another.
             retire_merged_pr_poll "$id"
             pr_poll_control_release || exit 1
-            touch "$STATE/.last-check"
+            [ -n "$check_sweep_output" ] || touch "$STATE/.last-check"
             triage_log "retired a merge poll armed on secondmate $id without reporting an outcome"
             continue
           fi
@@ -2907,9 +2908,13 @@ EOF
           fi
           retire_merged_pr_poll "$id"
           pr_poll_control_release || exit 1
-          touch "$STATE/.last-check"
+          [ -n "$check_sweep_output" ] || touch "$STATE/.last-check"
           if [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = true ]; then
             triage_log "absorbed duplicate merged PR poll result for $id"
+            continue
+          fi
+          if [ -n "$check_sweep_output" ]; then
+            check_sweep_output="${check_sweep_output}${reason}"$'\n'
             continue
           fi
           wake "$reason"
@@ -2919,6 +2924,10 @@ EOF
           fm_pr_poll_dequeue_record "$STATE" "$id" "$url" "$dequeue_event" || exit 1
         fi
         pr_poll_control_release || exit 1
+        if [ -n "$dequeue_event" ] || [ -n "$check_sweep_output" ]; then
+          check_sweep_output="${check_sweep_output}${reason}"$'\n'
+          continue
+        fi
         touch "$STATE/.last-check"
         wake "$reason"
       fi
@@ -2927,10 +2936,18 @@ EOF
     if [ -n "$rejected_checks" ]; then
       reason="check: rejected unauthenticated state checks:$rejected_checks"
       fm_wake_append check unauthenticated-state-checks "$reason" || exit 1
-      touch "$STATE/.last-check"
-      wake "$reason"
+      if [ -n "$check_sweep_output" ]; then
+        check_sweep_output="${check_sweep_output}${reason}"$'\n'
+      else
+        touch "$STATE/.last-check"
+        wake "$reason"
+      fi
     fi
     touch "$STATE/.last-check"
+    if [ -n "$check_sweep_output" ]; then
+      check_sweep_output="${check_sweep_output}${contribution_check_output}"
+      wake "${check_sweep_output%$'\n'}"
+    fi
     if [ -n "$contribution_check_output" ]; then
       wake "$contribution_check_output"
     fi

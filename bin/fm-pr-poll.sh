@@ -124,7 +124,7 @@ github_read_poll() {
   local state='' merged='' queued='' reason='' event=''
   local saw_state=0 saw_merged=0 saw_queued=0 saw_reason=0 saw_event=0
   # shellcheck disable=SC2016  # GraphQL and jq text are literal.
-  fields=$(gh api graphql \
+  fields=$(gh api graphql --hostname "$host" \
     -f query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}' \
     -F "owner=$owner" -F "repo=$repo" -F "number=$number" \
     --jq '.data.repository.pullRequest | ((.timelineItems.nodes // []) | last // {}) as $event | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "reason=" + (($event.reason // "") | if test("^[A-Za-z0-9_-]{0,64}$") then . else "unreadable" end), "event=" + (($event.id // "") | if test("^[A-Za-z0-9_+/=-]{0,256}$") then . else "" end)' \
