@@ -2451,9 +2451,6 @@ launch_template() {
   esac
 }
 
-# A direct fm-spawn --relaunch --harness grok of a recorded cursor task does
-# not bypass the guard. fm-control already committed that harness in its
-# transaction, so an explicit harness from that parent is the decision.
 if [ "$RELAUNCH" -eq 1 ] && [ "$KIND" != secondmate ] \
   && [ "$RELAUNCH_PRIOR_HARNESS" = cursor ] && [ "$ARG3" = grok ] \
   && [ "$SPAWN_CONTROL_PARENT" != 1 ]; then

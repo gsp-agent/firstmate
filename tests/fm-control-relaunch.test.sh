@@ -1398,8 +1398,6 @@ test_cursor_relaunch_at_the_daily_cap_logs_the_reason() {
   pass "a cursor relaunch at the daily cap launches grok and records the reason"
 }
 
-# fm-control already committed the target harness. A healthy pool must not
-# launch Cursor while the transaction and the outcome line say grok.
 test_control_relaunch_honors_an_explicit_grok_harness() {
   local dir out rc launch
   dir=$(new_case ctrlgrok rl81)
