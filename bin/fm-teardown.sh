@@ -46,7 +46,12 @@
 # reachable from any remote-tracking branch (a fork counts as a remote, so
 # upstream-contribution PRs pushed to a fork satisfy this in any mode), unless
 # meta records a still-open or unreadable GitHub pull request, GitLab merge
-# request, or Forgejo pull request. It has also landed, for a normal ship task
+# request, or Forgejo pull request. That refusal does not need the local copy.
+# A task that is not a scout or a secondmate keeps its record when that request
+# is still open, or when its forge state cannot be read, including when the
+# copy is already gone and when the slot was reassigned to another task. A
+# merged or closed request still proceeds, and --force remains the explicit
+# discard. Work has also landed, for a normal ship task
 # whose commits are not so reachable, when its PR is merged and
 # GitHub reports a PR head that contains the current local work, or its content is
 # already present in the up-to-date default branch. This recognizes the common
@@ -135,10 +140,10 @@
 # owns the claim, its location, and its states. A claim naming another task is
 # proof of reassignment: the slot is no longer this task's, so teardown warns,
 # names the claimant, and then finishes only this task's own cleanup - endpoint,
-# status, records, checks, backlog - while every step that would read or touch
-# that slot is skipped: no process kill under it, no dirty or landed-work
-# inspection of it, no branch or hook removal in it, no Treehouse return, and
-# never the other task's claim. Skipping the inspection discards nothing of this
+# status, records, checks, backlog - once its recorded request allows it, while
+# every step that would read or touch that slot is skipped: no process kill
+# under it, no dirty or landed-work inspection of it, no branch or hook
+# removal in it, no Treehouse return, and never the other task's claim. Skipping the inspection discards nothing of this
 # task's: whatever unlanded work it had in that slot was already destroyed when
 # the pool handed the slot on. Refusing instead would strand the record, because
 # bin/fm-backend.sh's endpoint validation refuses an empty or missing worktree=
@@ -2028,7 +2033,6 @@ validate_worktree_teardown_safety() {
   case "$KIND" in
     secondmate|scout) return 0 ;;
   esac
-  recorded_pr_allows_teardown || return 1
 
   if ! dirty_raw=$(git -C "$WT" status --porcelain 2>/dev/null); then
     if worktree_safety_blocked_by_lock "uncommitted changes"; then
@@ -3568,6 +3572,11 @@ if [ "$BACKEND" = orca ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ] &&
   fi
   require_orca_worktree_path_match "$ORCA_WORKTREE_ID" "$WT" || exit 1
   ORCA_PATH_MATCH_VERIFIED=1
+fi
+
+# The recorded request is on the task record, not in the slot inspected below.
+if [ "$FORCE" != "--force" ] && [ "$KIND" != scout ] && [ "$KIND" != secondmate ]; then
+  recorded_pr_allows_teardown || exit 1
 fi
 
 if teardown_owns_worktree && [ -d "$WT" ] && [ "$FORCE" != "--force" ]; then
