@@ -6,6 +6,9 @@
 # OR - for a normal ship task whose commits are not so reachable - its PR is merged
 # and GitHub reports a PR head that contains the current local work, or its content
 # is already in the up-to-date default branch.
+# A recorded pull request or merge request that is still open is not landed,
+# even when the branch is already on a remote. Merged and closed keep the rule
+# above. An unreadable forge state refuses.
 #
 # Covers three fixes:
 #   - local-only fork-remote: a fork IS a remote, so fork-pushed upstream-
@@ -42,6 +45,13 @@
 #   (q3) no-mistakes + squash-merged, same file, different content   -> REFUSE
 #   (q4) no-mistakes + squash-merged rebased local plus extra commit -> REFUSE
 #   (q5) gh down + squash-merged stale local, content not in default -> REFUSE
+#   (q6) recorded pr= still open, branch already on origin     -> REFUSE (record stays)
+#   (q7) recorded pr= merged, branch already on origin         -> ALLOW
+#   (q8) recorded pr= closed, branch already on origin         -> ALLOW
+#   (q9) recorded pr= forge unreadable, branch already on origin -> REFUSE
+#   (q10) recorded pr= still open + --force                    -> ALLOW
+#   (q11) recorded GitLab MR still open, branch on origin      -> REFUSE
+#   (q12) recorded Forgejo PR still open, branch on origin     -> REFUSE
 #
 # Also covers backlog teardown-lock-race: a git index.lock left in the worktree by a
 # killed crew process (bin/fm-teardown.sh's teardown_treehouse_return).
@@ -409,6 +419,26 @@ land_equivalent_patch_on_origin_branch() {
   git -C "$case_dir/project" fetch -q origin "$branch"
   rm -rf "$tmp"
   git -C "$case_dir/project" rev-parse "refs/remotes/origin/$branch"
+}
+
+# gh-axi answers `pr view` with one state word and logs the invocation.
+# A pushed branch does not ask the forge on its own, so the log is the proof
+# that teardown read the recorded request.
+add_gh_axi_pr_state() {
+  local case_dir=$1 state=$2
+  cat > "$case_dir/fakebin/gh-axi" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$case_dir/gh-axi.log"
+case "\${1:-} \${2:-}" in
+  "pr view")
+    printf '%s\n' "pull_request:" "  number: 7" "  state: $state"
+    exit 0
+    ;;
+esac
+echo "error: unexpected gh-axi \$*" >&2
+exit 1
+SH
+  chmod +x "$case_dir/fakebin/gh-axi"
 }
 
 # Override gh-axi so every call fails, simulating an API/network error.
@@ -5028,6 +5058,122 @@ test_retained_sources_still_reach_the_ordinary_refusal() {
   pass "present required sources still reach the ordinary teardown refusal"
 }
 
+# A branch already on origin is not finished while its recorded pull request
+# or merge request is still open. The task record is what a later merge needs.
+# Merged and closed keep today's cleanup. An unreadable forge state refuses.
+# --force still discards.
+test_recorded_open_request_keeps_the_task_record() {
+  local state case_dir rc head
+  for state in open merged closed; do
+    case_dir=$(make_case "recorded-pr-$state")
+    write_meta "$case_dir" no-mistakes ship
+    wt_commit_file "$case_dir" feature.txt "$state" "ship $state"
+    append_pr_meta_url "$case_dir"
+    git -C "$case_dir/wt" push -q origin fm/task-x1
+    git -C "$case_dir/project" fetch -q origin
+    add_gh_axi_pr_state "$case_dir" "$state"
+    head=$(git -C "$case_dir/wt" rev-parse HEAD)
+
+    set +e
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+    rc=$?
+    set -e
+
+    if [ "$state" = open ]; then
+      expect_code 1 "$rc" "recorded-pr-open: an open pull request must refuse even when the branch is on origin"$'\n'"$(cat "$case_dir/stderr")"
+      grep -q 'still open' "$case_dir/stderr" || fail "recorded-pr-open: refusal did not say the request is still open"
+      assert_refusal_retained_task_state "$case_dir" recorded-pr-open "$head"
+    else
+      expect_code 0 "$rc" "recorded-pr-$state: a $state pull request whose branch is on origin should tear down"$'\n'"$(cat "$case_dir/stderr")"
+      ! grep -q REFUSED "$case_dir/stderr" || fail "recorded-pr-$state: teardown printed a REFUSED line"
+      assert_absent "$case_dir/state/task-x1.meta" "recorded-pr-$state: teardown left the task record"
+    fi
+    grep -q 'pr view 7 --repo example/repo' "$case_dir/gh-axi.log" \
+      || fail "recorded-pr-$state: teardown did not read the recorded pull request"
+  done
+
+  case_dir=$(make_case recorded-pr-unreadable)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit_file "$case_dir" feature.txt unread "ship unread"
+  append_pr_meta_url "$case_dir"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+  add_gh_axi_error "$case_dir"
+  head=$(git -C "$case_dir/wt" rev-parse HEAD)
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "recorded-pr-unreadable: an unreadable forge state must refuse"$'\n'"$(cat "$case_dir/stderr")"
+  grep -q 'could not be read' "$case_dir/stderr" \
+    || fail "recorded-pr-unreadable: refusal did not say the forge state could not be read"
+  assert_refusal_retained_task_state "$case_dir" recorded-pr-unreadable "$head"
+
+  case_dir=$(make_case recorded-pr-open-force)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit_file "$case_dir" feature.txt forced "ship forced"
+  append_pr_meta_url "$case_dir"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+  add_gh_axi_pr_state "$case_dir" open
+  set +e
+  run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "recorded-pr-open-force: --force should still discard an open pull request"$'\n'"$(cat "$case_dir/stderr")"
+  ! grep -q REFUSED "$case_dir/stderr" || fail "recorded-pr-open-force: --force printed a REFUSED line"
+  assert_absent "$case_dir/state/task-x1.meta" "recorded-pr-open-force: --force left the task record"
+
+  case_dir=$(make_case recorded-mr-open)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit_file "$case_dir" feature.txt mr "ship mr"
+  printf '%s\n' 'pr=https://gitlab.example.com/group/repo/-/merge_requests/7' \
+    >> "$case_dir/state/task-x1.meta"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+  cat > "$case_dir/fakebin/glab" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' '{"state":"opened"}'
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/glab"
+  head=$(git -C "$case_dir/wt" rev-parse HEAD)
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "recorded-mr-open: an open merge request must refuse even when the branch is on origin"$'\n'"$(cat "$case_dir/stderr")"
+  grep -q 'still open' "$case_dir/stderr" || fail "recorded-mr-open: refusal did not say the request is still open"
+  assert_refusal_retained_task_state "$case_dir" recorded-mr-open "$head"
+
+  case_dir=$(make_case recorded-forgejo-open)
+  write_meta "$case_dir" no-mistakes ship
+  wt_commit_file "$case_dir" feature.txt fj "ship fj"
+  head=$(git -C "$case_dir/wt" rev-parse HEAD)
+  printf '%s\n' 'pr=https://git.example.org/team/repo/pulls/7' >> "$case_dir/state/task-x1.meta"
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  git -C "$case_dir/project" fetch -q origin
+  cat > "$case_dir/fakebin/tea" <<SH
+#!/usr/bin/env bash
+if [ "\${1:-} \${2:-}" = "login list" ]; then
+  printf '[\n  {\n    "name": "fj",\n    "url": "https://git.example.org"\n  }\n]\n'
+  exit 0
+fi
+[ "\${1:-}" = api ] || exit 1
+printf '{"state":"open","merged":false,"head":{"sha":"%s"}}\n' '$head'
+SH
+  chmod +x "$case_dir/fakebin/tea"
+  set +e
+  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "recorded-forgejo-open: an open Forgejo pull request must refuse even when the branch is on origin"$'\n'"$(cat "$case_dir/stderr")"
+  grep -q 'still open' "$case_dir/stderr" || fail "recorded-forgejo-open: refusal did not say the request is still open"
+  assert_refusal_retained_task_state "$case_dir" recorded-forgejo-open "$head"
+
+  pass "a recorded open pull request or merge request keeps the task record until it is merged or closed"
+}
+
 test_missing_startup_source_refuses_before_cleanup
 test_unreadable_startup_source_refuses_before_cleanup
 test_missing_adapter_sibling_refuses_before_cleanup
@@ -5091,6 +5237,7 @@ test_forced_secondmate_dirty_child_return_warns_and_completes
 test_return_that_removes_copy_warns_cannot_verify
 test_scout_ignored_files_survive_scratch_clean
 test_gh_error_and_content_absent_refuses
+test_recorded_open_request_keeps_the_task_record
 test_legacy_record_without_the_flag_refuses
 test_windowless_legacy_record_with_gone_worktree_tears_down
 test_windowless_legacy_record_tears_down_with_the_legacy_flag
