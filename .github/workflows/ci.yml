@@ -13,7 +13,7 @@ permissions:
 # CI instead of letting superseded heads keep the full hosted-runner fan-out.
 # The group uses the PR number for pull_request events, so every run of one PR
 # shares a group, and falls back to the unique run id for push events, so each
-# main push gets its own group and is never cancelled. Cancellation is likewise
+# branch push gets its own group and is never cancelled. Cancellation is likewise
 # limited to pull_request events. Evidence and rationale: the September 12
 # Actions starvation report, section 3 "Workflow mechanics to ship first".
 # The compliance workflow deliberately keeps its own event-specific groups; do
