@@ -340,7 +340,7 @@
 # Launch environment (config/launch-env-allowlist):
 #   Absent means unchanged ambient inheritance. A present readable regular file
 #   opts every launch (ship, scout, secondmate, raw command, and relaunch) into
-#   /usr/bin/env -i followed by /bin/sh -c of the existing launch command.
+#   /usr/bin/env -i followed by /bin/bash -c of the existing launch command.
 #   Each line is one POSIX environment name, never a value or shell expression;
 #   blank lines and lines beginning with # are ignored. Invalid input refuses
 #   before launch, as do path inspection errors such as inaccessible config
@@ -361,7 +361,7 @@
 #   assignments still apply inside the filtered environment, including the
 #   FM_TASK_INBOX export every launch carries (the absolute state/<id>.inbox
 #   path the steering doorbell names). Raw commands must
-#   be POSIX sh compatible under this opt-in; the absent-file path is unchanged.
+#   be Bash compatible under this opt-in; the absent-file path is unchanged.
 #   This is an exec environment boundary, not a sandbox for the pane's startup
 #   shell, credential files, same-user processes, or later shell initialization.
 #   See docs/configuration.md for provider/Git setup and supported limits.
@@ -5855,14 +5855,14 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
   # it still delivers the switch on a pane whose export never landed. Unlike the
   # trace carrier below it carries no gate, so it is appended unconditionally.
   # Setting it here rather than relying on the assignment already carried by
-  # $LAUNCH is what gives the wrapping `/bin/sh` itself the switch, not only the
+  # $LAUNCH is what gives the wrapping `/bin/bash` itself the switch, not only the
   # agent command it runs.
   LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX COMPACT_ADVISER_DISABLE=1"
   if [ -n "$SPAWN_TRACEPARENT" ]; then
     # shellcheck disable=SC2016
     LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX "'${TRACEPARENT+"TRACEPARENT=$TRACEPARENT"}'
   fi
-  LAUNCH="$LAUNCH_ENV_PREFIX /bin/sh -c $(shell_quote "$LAUNCH")"
+  LAUNCH="$LAUNCH_ENV_PREFIX /bin/bash -c $(shell_quote "$LAUNCH")"
 fi
 # Implement the launch-delivery contract in this script's header. The full
 # home-identity hash isolates equal task ids across homes, and the spawn token in

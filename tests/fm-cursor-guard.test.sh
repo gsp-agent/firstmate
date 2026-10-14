@@ -137,34 +137,54 @@ pass "a daily-cap fallback refuses when its reason cannot be recorded"
 
 # The pane command keeps the agent's exit status past the tee, in bash and zsh.
 . "$ROOT/tests/fixtures.sh"
-launch_home="$TMP_ROOT/launch-home"
-launch_wt="$TMP_ROOT/launch-wt"
-launch_log="$TMP_ROOT/launch.log"
-launch_id=cursor-exit-status
-fm_test_spawn_home "$launch_home" cursor
-fm_test_spawn_brief "$launch_home" "$launch_id"
-fm_git_worktree "$TMP_ROOT/launch-project" "$launch_wt" cursor-exit-status
-fakebin=$(fm_test_make_spawn_fakebin "$TMP_ROOT/launch-tools")
-cat > "$fakebin/cursor-agent" <<'SH'
+for setting in absent enabled empty; do
+  launch_home="$TMP_ROOT/launch-$setting-home"
+  launch_wt="$TMP_ROOT/launch-$setting-wt"
+  launch_log="$TMP_ROOT/launch-$setting.log"
+  launch_id="cursor-exit-status-$setting"
+  launch_stream="$launch_home/state/$launch_id.cursor-stream.jsonl"
+  fm_test_spawn_home "$launch_home" cursor
+  fm_test_spawn_brief "$launch_home" "$launch_id"
+  expected_allowed=synthetic-provider expected_ambient=synthetic-unrelated
+  case "$setting" in
+    enabled)
+      printf 'FM_TEST_ALLOWED\n' > "$launch_home/config/launch-env-allowlist"
+      expected_ambient=unset
+      ;;
+    empty)
+      : > "$launch_home/config/launch-env-allowlist"
+      expected_allowed=unset expected_ambient=unset
+      ;;
+  esac
+  fm_git_worktree "$TMP_ROOT/launch-$setting-project" "$launch_wt" "$launch_id"
+  fakebin=$(fm_test_make_spawn_fakebin "$TMP_ROOT/launch-$setting-tools")
+  cat > "$fakebin/cursor-agent" <<'SH'
 #!/usr/bin/env bash
-printf '{"type":"error","message":"unrelated failure"}\n'
+printf '{"type":"error","message":"unrelated failure","allowed":"%s","ambient":"%s"}\n' \
+  "${FM_TEST_ALLOWED-unset}" "${FM_TEST_AMBIENT_SENTINEL-unset}"
 exit 7
 SH
-chmod +x "$fakebin/cursor-agent"
-out=$(FM_FAKE_LAUNCH_LOG="$launch_log" \
-  FM_CURSOR_CLI_CONFIG="$launch_home/cli-config.json" FM_CURSOR_MODELS_RULE="$launch_home/models.mdc" \
-  fm_test_run_spawn "$launch_home" "$launch_wt" "$fakebin" "$launch_id" "$TMP_ROOT/launch-project" --mode no-mistakes --yolo off)
-expect_code 0 $? "Cursor exit-status fixture must generate a launch command: $out"
-[ -s "$launch_log" ] || fail "Cursor spawn did not deliver a launch command"
-cp "$launch_log" "$TMP_ROOT/launch.sh"
-for sh in bash zsh; do
-  command -v "$sh" >/dev/null 2>&1 || continue
-  HOME="$launch_home/user-home" "$sh" "$TMP_ROOT/launch.sh"
-  expect_code 7 $? "$sh: pane command exits with the agent's status, not tee's"
-  [ "$(cat "$launch_home/state/$launch_id.cursor-stream.jsonl")" = '{"type":"error","message":"unrelated failure"}' ] \
-    || fail "$sh: the generated launch did not capture Cursor output"
+  chmod +x "$fakebin/cursor-agent"
+  out=$(FM_FAKE_LAUNCH_LOG="$launch_log" \
+    FM_CURSOR_CLI_CONFIG="$launch_home/cli-config.json" FM_CURSOR_MODELS_RULE="$launch_home/models.mdc" \
+    fm_test_run_spawn "$launch_home" "$launch_wt" "$fakebin" "$launch_id" "$TMP_ROOT/launch-$setting-project" --mode no-mistakes --yolo off)
+  expect_code 0 $? "Cursor exit-status fixture must generate a launch command: $out"
+  [ -s "$launch_log" ] || fail "Cursor spawn did not deliver a launch command"
+  cp "$launch_log" "$TMP_ROOT/launch-$setting.sh"
+  for sh in bash zsh /bin/sh dash; do
+    case "$setting:$sh" in absent:/bin/sh|absent:dash) continue ;; esac
+    command -v "$sh" >/dev/null 2>&1 || continue
+    : > "$launch_stream"
+    HOME="$launch_home/user-home" FM_TEST_ALLOWED=synthetic-provider FM_TEST_AMBIENT_SENTINEL=synthetic-unrelated \
+      "$sh" "$TMP_ROOT/launch-$setting.sh"
+    expect_code 7 $? "allowlist=$setting $sh: pane command exits with the agent's status, not tee's"
+    jq -e --arg allowed "$expected_allowed" --arg ambient "$expected_ambient" \
+      '.type == "error" and .message == "unrelated failure" and .allowed == $allowed and .ambient == $ambient' \
+      "$launch_stream" >/dev/null \
+      || fail "allowlist=$setting $sh: the captured Cursor output must reflect the worker environment"
+  done
+  pass "cursor exit code and environment survive the tee (allowlist=$setting)"
 done
-pass "cursor exit code survives the tee"
 
 # ---- crew guard: the preToolUse hook a crew session loads ----
 CREW_GUARD="$ROOT/bin/fm-cursor-crew-guard.mjs"
