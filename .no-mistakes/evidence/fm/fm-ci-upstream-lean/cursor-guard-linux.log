@@ -1,0 +1,31 @@
+Real GNU/Linux execution in an ephemeral container; public guard and test inputs copied unchanged.
+stat (GNU coreutils) 9.11
+jq-1.8.1
+Platform: Linux
+
+No spending file:
+$ bin/fm-cursor-guard.sh fallback timestamp-check
+grok no Cursor spending file in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XBPZC625PKQXG2GSMZRYT1/.nm-ci-test/linux-input-target/usage
+
+Newest by mtime is low usage, despite the older high report:
+$ bin/fm-cursor-guard.sh fallback timestamp-check
+cursor
+
+Newest by mtime now reaches the configured threshold:
+$ bin/fm-cursor-guard.sh fallback timestamp-check
+grok Cursor Models at 90% (limit 85%)
+
+All reports are stale:
+$ bin/fm-cursor-guard.sh fallback timestamp-check
+grok newest Cursor spending file is 234806 h old (limit 26 h)
+
+Newest report has a newline in its filename:
+$ bin/fm-cursor-guard.sh fallback timestamp-check
+cursor
+
+$ bin/fm-cursor-guard.sh take stale-lock-check
+cursor guard: removed a stale lock older than 60 s at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XBPZC625PKQXG2GSMZRYT1/.nm-ci-test/linux-input-target/state/cursor-dispatch.lock
+Persisted dispatch record:
+{"day":"2026-10-14","beads":{"stale-lock-check":1}}
+
+Driver exit=0

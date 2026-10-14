@@ -1,0 +1,15 @@
+Command: bash tests/.nm-ci-pi-diagnostic-target.sh
+Expected: success
+not ok - requested and unsolicited healthy outcomes must follow their distinct public delivery paths: Settlement duration: 18677.716209 ms
+DIAGNOSTIC {"fleetOperations":[{"command":"readonly FM_SUPERVISION_ACTOR FM_LEASE_HOLDER_PID\n(\nbin/fm-wake-drain.sh\n)","actor":"branch","status":0},{"command":"readonly FM_SUPERVISION_ACTOR FM_LEASE_HOLDER_PID\n(\nbin/fm-wake-drain.sh --ack-through 1 --recovery-generation 51470.1791988575.mKVppo\n)","actor":"branch","status":0}],"sentToMain":[{"message":{"customType":"fm-branch-merge","content":"⛵ branch-driver: healthy resource report: CPU 12%, memory 41%","display":true},"options":{"deliverAs":"nextTurn"}}]}
+<anonymous_script>:221
+  throw new Error(`timed out waiting for ${label}`);
+        ^
+
+Error: timed out waiting for requested result 0 acknowledgement
+    at settle (eval at <anonymous> (file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XBPZC625PKQXG2GSMZRYT1/[eval1]:2:7), <anonymous>:221:9)
+    at async file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XBPZC625PKQXG2GSMZRYT1/[eval1]:146:3
+
+Node.js v26.10.0: expected exit 0, got 1
+
+Exit: 1

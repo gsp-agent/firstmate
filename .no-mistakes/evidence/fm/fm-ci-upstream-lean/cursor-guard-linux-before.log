@@ -1,0 +1,9 @@
+Real GNU/Linux execution in an ephemeral container; public guard and test inputs copied unchanged.
+stat (GNU coreutils) 9.11
+jq-1.8.1
+Platform: Linux
+$ previous fm-cursor-guard.sh fallback portability-baseline
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XBPZC625PKQXG2GSMZRYT1/.nm-ci-test/guard-before.sh: line 55: File: unbound variable
+exit=1
+
+Driver exit=0

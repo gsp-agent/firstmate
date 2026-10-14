@@ -1,0 +1,5 @@
+Command: bash tests/.nm-ci-backlog-target.sh
+Expected: success
+ok - dispatch and completion transition structurally with evidence
+
+Exit: 0

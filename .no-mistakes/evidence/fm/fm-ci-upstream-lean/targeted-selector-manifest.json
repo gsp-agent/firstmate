@@ -1,0 +1,85 @@
+[
+  {
+    "suite": "fm-pi-branch-extension.test.sh",
+    "version": "before",
+    "selectors": [
+      "test_requested_healthy_outcome_and_unsolicited_routine_outcome_delivery",
+      "test_away_record_parks_main_and_presents_after_archive"
+    ],
+    "driver": "tests/.nm-ci-pi-branch-before.sh"
+  },
+  {
+    "suite": "fm-pi-branch-extension.test.sh",
+    "version": "target",
+    "selectors": [
+      "test_requested_healthy_outcome_and_unsolicited_routine_outcome_delivery",
+      "test_away_record_parks_main_and_presents_after_archive"
+    ],
+    "driver": "tests/.nm-ci-pi-branch-target.sh"
+  },
+  {
+    "suite": "fm-pi-watch-extension.test.sh",
+    "version": "before",
+    "selectors": [
+      "test_pi_streaming_followup_is_replayed_after_replacement",
+      "test_pi_streaming_time_delivery_keeps_the_successor_chain",
+      "test_pi_replacement_persistence_failure_keeps_predecessor_until_successor"
+    ],
+    "driver": "tests/.nm-ci-pi-watch-before.sh"
+  },
+  {
+    "suite": "fm-pi-watch-extension.test.sh",
+    "version": "target",
+    "selectors": [
+      "test_pi_streaming_followup_is_replayed_after_replacement",
+      "test_pi_streaming_time_delivery_keeps_the_successor_chain",
+      "test_pi_replacement_persistence_failure_keeps_predecessor_until_successor"
+    ],
+    "driver": "tests/.nm-ci-pi-watch-target.sh"
+  },
+  {
+    "suite": "fm-spawn-pool-base-freshen.test.sh",
+    "version": "target",
+    "selectors": [
+      "test_ship_spawn_checks_out_its_branch_before_the_crew_starts",
+      "test_ship_branch_moves_off_a_sibling_worktree",
+      "test_ship_branch_survives_a_leftover_and_scouts_get_none",
+      "test_dirty_pool_refuses_without_discarding_work"
+    ],
+    "driver": "tests/.nm-ci-ship-target.sh"
+  },
+  {
+    "suite": "fm-teardown.test.sh",
+    "version": "target",
+    "selectors": [
+      "test_teardown_closes_a_gitlab_task_with_its_merge_request_url_as_a_note"
+    ],
+    "driver": "tests/.nm-ci-teardown-target.sh"
+  },
+  {
+    "suite": "fm-captain-hold-lifecycle.test.sh",
+    "version": "target",
+    "selectors": [
+      "test_teardown_retains_a_gitlab_captain_call_with_its_merge_request_url"
+    ],
+    "driver": "tests/.nm-ci-hold-target.sh"
+  },
+  {
+    "suite": "fm-backlog-atomicity.test.sh",
+    "version": "target",
+    "selectors": [
+      "test_dispatch_and_completion_are_structural"
+    ],
+    "driver": "tests/.nm-ci-backlog-target.sh"
+  },
+  {
+    "suite": "fm-spawn-pool-base-freshen.test.sh",
+    "version": "target",
+    "selectors": [
+      "test_ship_branch_survives_a_leftover_and_scouts_get_none",
+      "test_dirty_pool_refuses_without_discarding_work"
+    ],
+    "driver": "tests/.nm-ci-ship-continuation-target.sh",
+    "note": "Continuation after the initial driver reached its 150-second deadline; both earlier branch cases passed."
+  }
+]

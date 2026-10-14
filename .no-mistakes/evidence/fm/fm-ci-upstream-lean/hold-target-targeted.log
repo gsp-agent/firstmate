@@ -1,0 +1,5 @@
+Command: bash tests/.nm-ci-hold-target.sh
+Expected: success
+ok - cleanup keeps a captain-held GitLab task open and records its merge request URL
+
+Exit: 0

@@ -1,0 +1,5 @@
+Command: bash tests/.nm-ci-teardown-target.sh
+Expected: success
+ok - teardown closes a landed GitLab task with its merge request URL as a note and a GitHub task with --pr
+
+Exit: 0

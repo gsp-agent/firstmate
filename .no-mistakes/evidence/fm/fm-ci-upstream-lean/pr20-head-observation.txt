@@ -1,0 +1,7 @@
+base: upstream-lean
+head: f546c1e44a07a5d8b859b5f9e0947e468b685b12
+mergeable: false
+mergeable_state: dirty
+merged: false
+state: open
+url: "https://github.com/gsp-agent/firstmate/pull/20"

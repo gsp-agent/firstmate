@@ -1,0 +1,42 @@
+{
+  "workflow": "CI",
+  "event_matrix": [
+    {
+      "event": "push",
+      "branch": "main",
+      "baseline_enabled": true,
+      "target_enabled": true
+    },
+    {
+      "event": "push",
+      "branch": "upstream-lean",
+      "baseline_enabled": false,
+      "target_enabled": true
+    },
+    {
+      "event": "push",
+      "branch": "unrelated-branch",
+      "baseline_enabled": false,
+      "target_enabled": false
+    },
+    {
+      "event": "pull_request",
+      "branch": "main",
+      "baseline_enabled": true,
+      "target_enabled": true
+    },
+    {
+      "event": "pull_request",
+      "branch": "upstream-lean",
+      "baseline_enabled": false,
+      "target_enabled": true
+    },
+    {
+      "event": "pull_request",
+      "branch": "unrelated-branch",
+      "baseline_enabled": false,
+      "target_enabled": false
+    }
+  ],
+  "note": "Parsed declarative contract; GitHub Actions was not triggered by this test."
+}

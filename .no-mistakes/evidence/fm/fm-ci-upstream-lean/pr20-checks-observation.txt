@@ -1,0 +1,23 @@
+summary: "13 passed, 5 failed, 18 total"
+checks[18]{name,conclusion}:
+  Lint 1,pass
+  Lint 2,pass
+  Test coverage guard,pass
+  Behavior portable parallel 1,fail
+  Behavior portable parallel 2,fail
+  Behavior portable serial 1,pass
+  Behavior portable serial 2,fail
+  Behavior portable serial 3,pass
+  Behavior portable serial 4,pass
+  Behavior portable serial 5,pass
+  Behavior portable serial 6,pass
+  Behavior portable serial 7,pass
+  Behavior portable serial 8,fail
+  Behavior portable serial 9,pass
+  Behavior tests (Herdr),fail
+  Stock macOS Bash snapshot compatibility,pass
+  Repo invariants,pass
+  Behavior timing aggregate,pass
+help[2]:
+  Run `gh-axi pr view 20 -R gsp-agent/firstmate` to see PR details
+  Run `gh-axi pr merge 20 -R gsp-agent/firstmate` to merge when ready

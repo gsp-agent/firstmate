@@ -1,0 +1,14 @@
+Command: bash tests/.nm-ci-pi-branch-before.sh
+Expected: prior fixture failure
+ok - requested and unsolicited healthy outcomes keep distinct delivery and event ownership
+not ok - the away posture must park main and present after archive: file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XBPZC625PKQXG2GSMZRYT1/[eval1]:117
+if (!aborted) throw new Error("a dedicated processing turn with history was not aborted under the record");
+                    ^
+
+Error: a dedicated processing turn with history was not aborted under the record
+    at file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XBPZC625PKQXG2GSMZRYT1/[eval1]:117:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v26.10.0: expected exit 0, got 1
+
+Exit: 1

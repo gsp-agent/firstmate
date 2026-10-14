@@ -1,0 +1,7 @@
+Command: bash tests/.nm-ci-pi-watch-target.sh
+Expected: success
+ok - Pi replacement replays a streaming follow-up before consumption
+ok - Pi streaming-time wake delivery keeps the successor chain and replays only unconsumed wakes
+ok - Pi replacement persistence failure keeps its predecessor until a successor commits
+
+Exit: 0

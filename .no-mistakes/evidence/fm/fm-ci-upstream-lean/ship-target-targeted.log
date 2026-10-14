@@ -1,0 +1,10 @@
+Command: bash tests/.nm-ci-ship-target.sh
+Expected: success
+# slot branch at launch (1 typed lines): fm/pool-ship-branch-r14
+# slot HEAD=b03537add30a9b992017baa5aad77ef4dcabade9 origin/main=b03537add30a9b992017baa5aad77ef4dcabade9
+ok - a ship spawn has fm/<task> checked out at the refreshed base before the crew's launch is typed
+ok - a ship spawn detaches a sibling worktree that already has its branch and checks the branch out on the new slot
+
+Driver reached its 150-second deadline.
+
+Exit: 124

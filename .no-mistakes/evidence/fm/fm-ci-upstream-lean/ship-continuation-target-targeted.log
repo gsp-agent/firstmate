@@ -1,0 +1,7 @@
+Command: bash tests/.nm-ci-ship-continuation-target.sh
+Expected: success
+ok - a leftover ship branch is moved or resumed without losing work, and a scout slot stays detached
+# observed dirty refusal: error: pooled worktree '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XBPZC625PKQXG2GSMZRYT1/.nm-ci-test/tmp/fm-spawn-pool-base-freshen.e62uUl/dirty-refusal/pool' is not clean; refusing to discard uncommitted work while refreshing its base; preserved=keep this local work
+ok - a dirty pooled worktree is refused without discarding its local work
+
+Exit: 0

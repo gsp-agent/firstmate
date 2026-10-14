@@ -1,0 +1,6 @@
+Command: bash tests/.nm-ci-pi-watch-before.sh
+Expected: prior fixture failure
+ok - Pi replacement replays a streaming follow-up before consumption
+not ok - Pi streaming-time wake delivery must keep the successor chain and replay only unconsumed wakes: expected exit 0, got 1
+
+Exit: 1
