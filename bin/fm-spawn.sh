@@ -2496,22 +2496,25 @@ case "$ARG3" in
   ;;
 esac
 
-CURSOR_PROFILE=$(fm_cursor_resolve_profile "$STATE" "$CONFIG" "$ID" "$RELAUNCH" "$KIND" "$HARNESS" "$MODEL" "$EFFORT") || exit 1
-IFS=$'\t' read -r RESOLVED_HARNESS RESOLVED_MODEL RESOLVED_EFFORT <<< "$CURSOR_PROFILE"
-if [ "$SPAWN_CONTROL_PARENT" = 1 ] &&
-  { [ "$RESOLVED_HARNESS" != "$HARNESS" ] ||
-    [ "$RESOLVED_MODEL" != "${MODEL:-default}" ] ||
-    [ "$RESOLVED_EFFORT" != "${EFFORT:-default}" ]; }; then
-  echo "error: Cursor guard decision changed for $ID after the relaunch target was recorded; refusing replacement launch" >&2
-  exit 1
+if [ "$RELAUNCH" != 1 ] || [ "$HARNESS_SET" = 0 ] ||
+  { [ "$SPAWN_CONTROL_PARENT" = 1 ] && [ "${FM_CONTROL_RELAUNCH_HARNESS_SET:-1}" = 0 ]; }; then
+  CURSOR_PROFILE=$(fm_cursor_resolve_profile "$STATE" "$CONFIG" "$ID" "$RELAUNCH" "$KIND" "$HARNESS" "$MODEL" "$EFFORT") || exit 1
+  IFS=$'\t' read -r RESOLVED_HARNESS RESOLVED_MODEL RESOLVED_EFFORT <<< "$CURSOR_PROFILE"
+  if [ "$SPAWN_CONTROL_PARENT" = 1 ] &&
+    { [ "$RESOLVED_HARNESS" != "$HARNESS" ] ||
+      [ "$RESOLVED_MODEL" != "${MODEL:-default}" ] ||
+      [ "$RESOLVED_EFFORT" != "${EFFORT:-default}" ]; }; then
+    echo "error: Cursor guard decision changed for $ID after the relaunch target was recorded; refusing replacement launch" >&2
+    exit 1
+  fi
+  if [ "$RESOLVED_HARNESS" != "$HARNESS" ]; then
+    HARNESS=$RESOLVED_HARNESS
+    RAW_LAUNCH=0
+    LAUNCH=$(launch_template "$HARNESS" "$KIND") || exit 1
+  fi
+  MODEL=$RESOLVED_MODEL
+  EFFORT=$RESOLVED_EFFORT
 fi
-if [ "$RESOLVED_HARNESS" != "$HARNESS" ]; then
-  HARNESS=$RESOLVED_HARNESS
-  RAW_LAUNCH=0
-  LAUNCH=$(launch_template "$HARNESS" "$KIND") || exit 1
-fi
-MODEL=$RESOLVED_MODEL
-EFFORT=$RESOLVED_EFFORT
 
 # muse, gemini, agy, and devin are verified as CREWMATE/SCOUT adapters only. A secondmate is
 # a firstmate instance, so it needs a primary supervision protocol.

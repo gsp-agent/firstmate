@@ -1322,9 +1322,6 @@ test_muse_session_binding_is_retired_on_a_harness_switch() {
   pass "fm-spawn --relaunch: switching away from muse retires its session binding"
 }
 
-# A direct fm-spawn relaunch resolves through the guard. Healthy pool (12%,
-# pinned pstack) stays on cursor even when that caller passes --harness grok.
-# The daily cap is a grok reason written to the limit file, not a silent switch.
 seed_cursor_pool() { # <case-dir> <id>
   local dir=$1 id=$2 meta
   mkdir -p "$dir/pstack/.cursor-plugin" "$dir/usage"
@@ -1357,9 +1354,10 @@ test_cursor_relaunch_stays_on_cursor_when_the_pool_is_healthy() {
   dir=$(new_case cursorstay rl70)
   add_ship_task "$dir" rl70 cursor
   seed_cursor_pool "$dir" rl70
-  out=$(run_cursor_relaunch "$dir" rl70 --relaunch --harness grok)
+  printf 'cursor-agent' > "$dir/fake/becomes"
+  out=$(run_cursor_relaunch "$dir" rl70 --relaunch --model cursor-grok-4.5-high)
   assert_contains "$out" "spawned rl70 harness=cursor" \
-    "a healthy pool must stay on cursor when relaunch is asked for grok: $out"
+    "an inherited Cursor relaunch must stay on cursor with a healthy pool: $out"
   [ "$(meta_field "$dir" rl70 harness)" = cursor ] || fail "meta harness must stay cursor"
   [ "$(meta_field "$dir" rl70 model)" = cursor-grok-4.5-high ] \
     || fail "staying on cursor must keep the recorded model, got $(meta_field "$dir" rl70 model)"
@@ -1368,7 +1366,49 @@ test_cursor_relaunch_stays_on_cursor_when_the_pool_is_healthy() {
   launch=$(cat "$dir/fake/literal")
   assert_contains "$launch" "cursor-agent" "the relaunch must launch cursor"
   assert_not_contains "$launch" "grok --always-approve" "the relaunch must not launch grok"
-  pass "a cursor relaunch at 12% stays on cursor when asked for grok"
+  pass "an inherited cursor relaunch at 12% stays on cursor"
+}
+
+test_explicit_relaunch_harness_keeps_the_requested_profile() {
+  local dir id entry harness out model command
+  for entry in spawn control; do
+    for harness in grok cursor; do
+      id="rl85-$entry-$harness"
+      dir=$(new_case "explicit-cursor-$entry-$harness" "$id")
+      add_ship_task "$dir" "$id" cursor
+      seed_cursor_pool "$dir" "$id"
+      model=default command=grok
+      if [ "$harness" = cursor ]; then
+        model=cursor-grok-4.5-high command=cursor-agent
+        printf 'cursor_models_pct=85\n' > "$dir/usage/20261013-spending.txt"
+      fi
+      printf '%s' "$command" > "$dir/fake/becomes"
+      if [ "$entry" = spawn ]; then
+        out=$(run_cursor_relaunch "$dir" "$id" --relaunch --harness "$harness" --model "$model")
+        expect_code 0 $? "an explicit direct relaunch must succeed: $out"
+        assert_contains "$out" "spawned $id harness=$harness" "the direct relaunch must honor the explicit harness"
+      else
+        printf 'cursor-agent' > "$dir/fake/command"
+        out=$(FM_PSTACK_DIR="$dir/pstack" FM_CURSOR_USAGE_DIR="$dir/usage" \
+          run_control "$dir" "$id" relaunch --harness "$harness" --note "keep the explicit worker choice")
+        expect_code 0 $? "an explicit control relaunch must succeed: $out"
+        assert_contains "$out" "relaunched $id harness=$harness from=cursor model=$model effort=default" \
+          "the control relaunch must report the explicit profile"
+        [ "$(journal_field "$dir" "$id" phase)" = complete ] || fail "the explicit relaunch must complete"
+        [ "$(journal_field "$dir" "$id" to_harness)" = "$harness" ] || fail "the journal must retain the explicit harness"
+        [ "$(journal_field "$dir" "$id" to_model)" = "$model" ] || fail "the journal must retain the requested model"
+        [ "$(journal_field "$dir" "$id" to_effort)" = default ] || fail "the journal must retain the requested effort"
+      fi
+      [ "$(meta_field "$dir" "$id" harness)" = "$harness" ] || fail "the task must record the explicit harness"
+      [ "$(meta_field "$dir" "$id" model)" = "$model" ] || fail "the task must record the requested model"
+      [ "$(meta_field "$dir" "$id" effort)" = default ] || fail "the task must record the requested effort"
+      [ "$(cat "$dir/fake/command")" = "$command" ] || fail "the replacement agent must match the explicit harness"
+      assert_contains "$(cat "$dir/fake/literal")" "$command" "the delivered launch must use the explicit harness"
+      assert_absent "$dir/home/state/$id.cursor-limit" "an explicit choice must not invent a limit reason"
+      assert_absent "$dir/home/state/$id.cursor-fallback" "an explicit choice must not invent a fallback reason"
+    done
+  done
+  pass "direct and control relaunches preserve explicit harness choices and profile axes"
 }
 
 test_cursor_relaunch_at_the_daily_cap_logs_the_reason() {
@@ -1379,7 +1419,7 @@ test_cursor_relaunch_at_the_daily_cap_logs_the_reason() {
   add_ship_task "$dir" rl71 cursor
   seed_cursor_pool "$dir" rl71
   printf '{"day":"%s","beads":{"rl71":2}}\n' "$day" > "$dir/home/state/cursor-dispatch.json"
-  out=$(run_cursor_relaunch "$dir" rl71 --relaunch --harness grok)
+  out=$(run_cursor_relaunch "$dir" rl71 --relaunch)
   assert_contains "$out" "spawned rl71 harness=grok" \
     "a relaunch at the daily cap must launch grok with the reason recorded: $out"
   [ "$(cat "$dir/home/state/rl71.cursor-limit" 2>/dev/null || echo absent)" = "$reason" ] \
@@ -1422,7 +1462,7 @@ test_control_cursor_relaunch_records_the_guarded_profile() {
     fi
     printf '%s' "$command" > "$dir/fake/becomes"
     out=$(FM_CURSOR_DAY=2030-06-01 FM_PSTACK_DIR="$dir/pstack" FM_CURSOR_USAGE_DIR="$dir/usage" \
-      run_control "$dir" "$id" relaunch --harness grok --note "continue through the guard")
+      run_control "$dir" "$id" relaunch --note "continue through the guard")
     rc=$?
     expect_code 0 "$rc" "a guarded control relaunch must succeed: $out"
     assert_contains "$out" "relaunched $id harness=$harness from=cursor model=$model effort=$effort" \
@@ -2864,6 +2904,7 @@ test_promoted_scout_relaunch_receives_the_current_delivery_contract
 test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_relaunch_stays_on_cursor_when_the_pool_is_healthy
+test_explicit_relaunch_harness_keeps_the_requested_profile
 test_cursor_relaunch_at_the_daily_cap_logs_the_reason
 test_control_cursor_relaunch_records_the_guarded_profile
 test_usage_fallback_relaunch_returns_to_a_healthy_cursor_pool

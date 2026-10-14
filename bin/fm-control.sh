@@ -953,10 +953,12 @@ resolve_relaunch_profile() {
   else
     TARGET_EFFORT=default
   fi
-  local cursor_profile
-  cursor_profile=$(fm_cursor_resolve_profile "$STATE" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" "$ID" 1 "$KIND" \
-    "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT") || return 1
-  IFS=$'\t' read -r TARGET_HARNESS TARGET_MODEL TARGET_EFFORT <<< "$cursor_profile"
+  if [ "$HARNESS_SET" = 0 ]; then
+    local cursor_profile
+    cursor_profile=$(fm_cursor_resolve_profile "$STATE" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" "$ID" 1 "$KIND" \
+      "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT") || return 1
+    IFS=$'\t' read -r TARGET_HARNESS TARGET_MODEL TARGET_EFFORT <<< "$cursor_profile"
+  fi
   if [ "$TARGET_EFFORT" = ultra ]; then
     "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1
   fi
@@ -1123,7 +1125,7 @@ do_relaunch() {
   spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS")
   [ "$TARGET_MODEL" = default ] || spawn_args+=(--model "$TARGET_MODEL")
   [ "$TARGET_EFFORT" = default ] || spawn_args+=(--effort "$TARGET_EFFORT")
-  if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
+  if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" FM_CONTROL_RELAUNCH_HARNESS_SET="$HARNESS_SET" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then
     RELAUNCH_META_PUBLISHED=1
     # $T was resolved from the record before the launch. When the recorded
