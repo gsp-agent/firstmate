@@ -262,6 +262,29 @@ test_ship_spawn_checks_out_its_branch_before_the_crew_starts() {
   pass "a ship spawn has fm/<task> checked out at the refreshed base before the crew's launch is typed"
 }
 
+test_ship_branch_moves_off_a_sibling_worktree() {
+  local rec id out status sibling current
+  id='pool-ship-sibling-r16'
+  rec=$(make_case ship-sibling "$id")
+  read_case_record "$rec"
+  sibling="$CASE_DIR/sibling"
+  git -C "$PROJECT_DIR" worktree add --quiet -b "fm/$id" "$sibling" "$INITIAL_SHA"
+  [ "$(git -C "$sibling" branch --show-current)" = "fm/$id" ] \
+    || fail "fixture sibling is not on fm/$id"
+
+  out=$(run_spawn "$id" --mode no-mistakes --yolo off)
+  status=$?
+  expect_code 0 "$status" "a ship spawn should take its branch off a sibling worktree"$'\n'"$out"
+  current=$(git -C "$POOL_DIR" rev-parse origin/main)
+  [ "$(git -C "$POOL_DIR" branch --show-current)" = "fm/$id" ] \
+    || fail "the pool slot is not on fm/$id after the sibling released it"
+  [ "$(git -C "$POOL_DIR" rev-parse "fm/$id")" = "$current" ] \
+    || fail "fm/$id did not move to the refreshed base"
+  [ -z "$(git -C "$sibling" branch --show-current)" ] \
+    || fail "the sibling worktree still holds fm/$id"
+  pass "a ship spawn detaches a sibling worktree that already has its branch and checks the branch out on the new slot"
+}
+
 test_ship_branch_survives_a_leftover_and_scouts_get_none() {
   local rec id out status current extra
   id='pool-ship-leftover-r15'
@@ -969,6 +992,7 @@ test_pool_slot_claim_follows_the_spawn_outcome
 test_linked_spawning_home_rejects_primary_before_refresh
 test_stale_pool_base_refreshes_before_branching
 test_ship_spawn_checks_out_its_branch_before_the_crew_starts
+test_ship_branch_moves_off_a_sibling_worktree
 test_ship_branch_survives_a_leftover_and_scouts_get_none
 test_named_base_branch_starts_from_that_branch
 test_base_branch_must_agree_with_the_brief

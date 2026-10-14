@@ -32,6 +32,17 @@ make_home() {  # <name>
 EOF
   fakebin=$(fm_fakebin "$home")
   fm_fake_exit0 "$fakebin" tmux treehouse no-mistakes gh gh-axi
+  # Teardown reads a recorded GitHub pull request and refuses an empty answer.
+  cat > "$fakebin/gh" <<'SH'
+#!/usr/bin/env bash
+case " $* " in
+  *" api graphql "*)
+    printf '%s\n' 'state=MERGED' 'merged=true'
+    ;;
+esac
+exit 0
+SH
+  chmod +x "$fakebin/gh"
   printf '%s\n' "$home"
 }
 

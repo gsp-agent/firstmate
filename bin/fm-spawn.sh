@@ -3757,12 +3757,32 @@ freshen_spawn_worktree_base() { # <worktree> [<base-branch>]
 # command that a harness may refuse. A leftover branch of the same name whose
 # commits are already in HEAD is moved to HEAD (nothing is lost); one that
 # carries commits HEAD lacks is checked out as it is, never reset.
+# Git allows a branch to be checked out in only one worktree. A recovery
+# launch into a new pool slot finds the previous slot still on this task's
+# branch, so that slot detaches and this slot takes the branch.
+detach_ship_branch_checked_out_elsewhere() { # <worktree> <branch>
+  local worktree=$1 branch=$2 line other="" here there
+  here=$(cd "$worktree" && pwd -P) || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      "worktree "*) other=${line#worktree } ;;
+      "branch refs/heads/$branch")
+        [ -n "$other" ] || continue
+        there=$(cd "$other" && pwd -P) || continue
+        [ "$there" = "$here" ] && continue
+        git -C "$there" checkout --quiet --detach >/dev/null 2>&1 || true
+        ;;
+    esac
+  done < <(git -C "$worktree" worktree list --porcelain 2>/dev/null || true)
+}
+
 prepare_ship_branch() { # <worktree> <branch>
   local worktree=$1 branch=$2 head tip
   head=$(git -C "$worktree" rev-parse --verify --quiet 'HEAD^{commit}' 2>/dev/null) || {
     echo "error: pooled worktree '$worktree' has no commit to start branch '$branch' from; refusing to launch" >&2
     return 1
   }
+  detach_ship_branch_checked_out_elsewhere "$worktree" "$branch"
   if tip=$(git -C "$worktree" rev-parse --verify --quiet "refs/heads/$branch^{commit}" 2>/dev/null); then
     if git -C "$worktree" merge-base --is-ancestor "$tip" "$head" 2>/dev/null; then
       git -C "$worktree" checkout --quiet -B "$branch" "$head" -- >/dev/null
