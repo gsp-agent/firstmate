@@ -1,0 +1,19 @@
+# Selected dispatch cases only: sixth launch, seventh refusal, spending fallback
+ok - cursor spawn refuses a bead's 7th launch in a day
+ok - cursor spawn falls back to grok at the usage threshold
+# Sixth-launch persisted input
+{"day":"2026-10-14","beads":{"profile-cursor-sixth-live-phase":5}}
+warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-spawn-dispatch-profile.XlQkJd/profile-cursor-sixth/home/data/profile-cursor-sixth-live-phase/launch-brief.md records no ship branch; defaulting to legacy branch fm/profile-cursor-sixth-live-phase
+warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-spawn-dispatch-profile.XlQkJd/profile-cursor-sixth/home/data/profile-cursor-sixth-live-phase/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-spawn-dispatch-profile.XlQkJd/profile-cursor-sixth/fake/fakebin/timeout: line 3: exec: 1: not found
+/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-spawn-dispatch-profile.XlQkJd/profile-cursor-sixth/fake/fakebin/timeout: line 3: exec: 1: not found
+spawned profile-cursor-sixth-live-phase harness=cursor kind=ship mode=no-mistakes yolo=off window=firstmate:fm-profile-cursor-sixth-live-phase worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-spawn-dispatch-profile.XlQkJd/profile-cursor-sixth/wt
+# Sixth-launch persisted output
+{"day":"2026-10-14","beads":{"profile-cursor-sixth-live-phase":6}}
+# Metadata confirming the admitted worker
+{
+  "id": "profile-cursor-sixth-live-phase",
+  "harness": "cursor"
+}
+ok - sixth Cursor spawn admitted, recorded, and delivered to the fixture backend
+# Selected cursor dispatch cases passed

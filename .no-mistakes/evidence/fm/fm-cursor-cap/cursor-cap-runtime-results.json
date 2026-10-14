@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Before the change, launch three is refused with a persisted count of two",
+    "result": "pass"
+  },
+  {
+    "name": "Six separate guard processes admit one task today; attempts seven and eight refuse without changing its count",
+    "result": "pass"
+  },
+  {
+    "name": "Eight other tasks still receive their own launch allowances",
+    "result": "pass"
+  },
+  {
+    "name": "Returning a failed spawn restores exactly one slot at the cap",
+    "result": "pass"
+  },
+  {
+    "name": "A task at yesterday's cap starts again at one on the real Central date",
+    "result": "pass"
+  },
+  {
+    "name": "Eight simultaneous requests for the last slot admit exactly one and persist six",
+    "result": "pass"
+  },
+  {
+    "name": "Spending routing stays on Cursor at 84%, chooses Grok at 85% and 90%, and fails closed for stale or missing data",
+    "result": "pass"
+  }
+]

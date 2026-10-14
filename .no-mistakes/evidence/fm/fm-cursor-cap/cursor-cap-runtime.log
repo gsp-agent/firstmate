@@ -1,0 +1,73 @@
+Real product entry point: bin/fm-cursor-guard.sh; separate process per invocation, no mocked commands.
+Scope: launch accounting and routing decisions only; no Cursor or Grok worker or model request is launched.
+Current America/Chicago day: 2026-10-14
+Target: 84c071cc9cbcebf23234d50b1bee210d3b9c97ea
+
+SCENARIO: Before the change, launch three is refused with a persisted count of two
+{"command": "bash before-cap-change.sh take gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash before-cap-change.sh take gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 2}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash before-cap-change.sh take gate-answers", "exit_code": 1, "state": {"beads": {"gate-answers": 2}, "day": "2026-10-14"}, "stderr": "cursor guard: refused gate-answers, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run\n", "stdout": ""}
+RESULT: pass
+
+SCENARIO: Six separate guard processes admit one task today; attempts seven and eight refuse without changing its count
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 2}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 3}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 4}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 5}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 6}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 1, "state": {"beads": {"gate-answers": 6}, "day": "2026-10-14"}, "stderr": "cursor guard: refused gate-answers, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 1, "state": {"beads": {"gate-answers": 6}, "day": "2026-10-14"}, "stderr": "cursor guard: refused gate-answers, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+RESULT: pass
+
+SCENARIO: Eight other tasks still receive their own launch allowances
+{"command": "bash fm-cursor-guard.sh take independent-1", "exit_code": 0, "state": {"beads": {"gate-answers": 6, "independent-1": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take independent-2", "exit_code": 0, "state": {"beads": {"gate-answers": 6, "independent-1": 1, "independent-2": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take independent-3", "exit_code": 0, "state": {"beads": {"gate-answers": 6, "independent-1": 1, "independent-2": 1, "independent-3": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take independent-4", "exit_code": 0, "state": {"beads": {"gate-answers": 6, "independent-1": 1, "independent-2": 1, "independent-3": 1, "independent-4": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take independent-5", "exit_code": 0, "state": {"beads": {"gate-answers": 6, "independent-1": 1, "independent-2": 1, "independent-3": 1, "independent-4": 1, "independent-5": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take independent-6", "exit_code": 0, "state": {"beads": {"gate-answers": 6, "independent-1": 1, "independent-2": 1, "independent-3": 1, "independent-4": 1, "independent-5": 1, "independent-6": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take independent-7", "exit_code": 0, "state": {"beads": {"gate-answers": 6, "independent-1": 1, "independent-2": 1, "independent-3": 1, "independent-4": 1, "independent-5": 1, "independent-6": 1, "independent-7": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take independent-8", "exit_code": 0, "state": {"beads": {"gate-answers": 6, "independent-1": 1, "independent-2": 1, "independent-3": 1, "independent-4": 1, "independent-5": 1, "independent-6": 1, "independent-7": 1, "independent-8": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+RESULT: pass
+
+SCENARIO: Returning a failed spawn restores exactly one slot at the cap
+{"command": "bash fm-cursor-guard.sh give gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 5, "independent-1": 1, "independent-2": 1, "independent-3": 1, "independent-4": 1, "independent-5": 1, "independent-6": 1, "independent-7": 1, "independent-8": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 0, "state": {"beads": {"gate-answers": 6, "independent-1": 1, "independent-2": 1, "independent-3": 1, "independent-4": 1, "independent-5": 1, "independent-6": 1, "independent-7": 1, "independent-8": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take gate-answers", "exit_code": 1, "state": {"beads": {"gate-answers": 6, "independent-1": 1, "independent-2": 1, "independent-3": 1, "independent-4": 1, "independent-5": 1, "independent-6": 1, "independent-7": 1, "independent-8": 1}, "day": "2026-10-14"}, "stderr": "cursor guard: refused gate-answers, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+RESULT: pass
+
+SCENARIO: A task at yesterday's cap starts again at one on the real Central date
+{"command": "bash fm-cursor-guard.sh take same-task", "exit_code": 0, "state": {"beads": {"same-task": 1}, "day": "2026-10-13"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take same-task", "exit_code": 0, "state": {"beads": {"same-task": 2}, "day": "2026-10-13"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take same-task", "exit_code": 0, "state": {"beads": {"same-task": 3}, "day": "2026-10-13"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take same-task", "exit_code": 0, "state": {"beads": {"same-task": 4}, "day": "2026-10-13"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take same-task", "exit_code": 0, "state": {"beads": {"same-task": 5}, "day": "2026-10-13"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take same-task", "exit_code": 0, "state": {"beads": {"same-task": 6}, "day": "2026-10-13"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take same-task", "exit_code": 0, "state": {"beads": {"same-task": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+RESULT: pass
+
+SCENARIO: Eight simultaneous requests for the last slot admit exactly one and persist six
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 0, "state": {"beads": {"race-task": 1}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 0, "state": {"beads": {"race-task": 2}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 0, "state": {"beads": {"race-task": 3}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 0, "state": {"beads": {"race-task": 4}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 0, "state": {"beads": {"race-task": 5}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 1, "state": {"beads": {"race-task": 6}, "day": "2026-10-14"}, "stderr": "cursor guard: refused race-task, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 1, "state": {"beads": {"race-task": 6}, "day": "2026-10-14"}, "stderr": "cursor guard: refused race-task, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 0, "state": {"beads": {"race-task": 6}, "day": "2026-10-14"}, "stderr": "", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 1, "state": {"beads": {"race-task": 6}, "day": "2026-10-14"}, "stderr": "cursor guard: refused race-task, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 1, "state": {"beads": {"race-task": 6}, "day": "2026-10-14"}, "stderr": "cursor guard: refused race-task, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 1, "state": {"beads": {"race-task": 6}, "day": "2026-10-14"}, "stderr": "cursor guard: refused race-task, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 1, "state": {"beads": {"race-task": 6}, "day": "2026-10-14"}, "stderr": "cursor guard: refused race-task, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+{"command": "bash fm-cursor-guard.sh take race-task", "exit_code": 1, "state": {"beads": {"race-task": 6}, "day": "2026-10-14"}, "stderr": "cursor guard: refused race-task, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6\n", "stdout": ""}
+Final concurrent state: {"day": "2026-10-14", "beads": {"race-task": 6}}
+RESULT: pass
+
+SCENARIO: Spending routing stays on Cursor at 84%, chooses Grok at 85% and 90%, and fails closed for stale or missing data
+{"command": "bash fm-cursor-guard.sh fallback spending-task", "exit_code": 0, "state": null, "stderr": "", "stdout": "cursor\n"}
+{"command": "bash fm-cursor-guard.sh fallback spending-task", "exit_code": 0, "state": null, "stderr": "", "stdout": "grok Cursor Models at 85% (limit 85%)\n"}
+{"command": "bash fm-cursor-guard.sh fallback spending-task", "exit_code": 0, "state": null, "stderr": "", "stdout": "grok Cursor Models at 90% (limit 85%)\n"}
+{"command": "bash fm-cursor-guard.sh fallback spending-task", "exit_code": 0, "state": null, "stderr": "", "stdout": "grok newest Cursor spending file is 27 h old (limit 26 h)\n"}
+{"command": "bash fm-cursor-guard.sh fallback spending-task", "exit_code": 0, "state": null, "stderr": "", "stdout": "grok no Cursor spending file in /Users/dalecarman/.no-mistakes/evidence/01M4WXW8KSPQP94CN0XC6NMK69/cursor-cap-runtime/missing-spending/usage\n"}
+RESULT: pass
