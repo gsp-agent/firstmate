@@ -6,8 +6,9 @@
 #                      readable file, or it is older than max_age_h (default 26) by mtime, or the
 #                      bead's last Cursor run hit a usage limit (state/<id>.cursor-limit), or the
 #                      pstack plugin dir's plugin.json version is not pstack_version (0.15.21).
-#   take <id>          before a cursor launch; a bead's 3rd launch in one America/Chicago day is
-#                      refused (exit 1, one stderr line). Counts in state/cursor-dispatch.json.
+#   take <id>          before a cursor launch; a bead's launch past bead_daily_cap in one
+#                      America/Chicago day is refused (exit 1, one stderr line). Counts in
+#                      state/cursor-dispatch.json.
 #   give <id>          give the launch back when the spawn failed.
 #   after <id> <rc>    run in the pane after the agent exits; exits with <rc>. When rc is nonzero
 #                      and state/<id>.cursor-stream.jsonl shows a usage-limit or 429 error, writes
@@ -85,8 +86,9 @@ if [ "$op" = give ]; then
   new=$(jq -c --arg id "$id" 'if (.beads[$id] // 0) > 1 then .beads[$id] -= 1 else del(.beads[$id]) end' <<<"$cur")
 else
   n=$(jq -r --arg id "$id" '.beads[$id] // 0' <<<"$cur")
-  if [ "$n" -ge 2 ]; then
-    echo "cursor guard: refused $id, already launched $n times today ($DAY); write blocked: instead of a 3rd run" >&2; exit 1
+  bead_daily_cap=6
+  if [ "$n" -ge "$bead_daily_cap" ]; then
+    echo "cursor guard: refused $id, already launched $n times today ($DAY); write blocked: instead of a run past the daily cap of $bead_daily_cap" >&2; exit 1
   fi
   new=$(jq -c --arg id "$id" '.beads[$id] = ((.beads[$id] // 0) + 1)' <<<"$cur")
 fi
