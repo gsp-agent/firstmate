@@ -96,6 +96,22 @@ printf '%s\n' '{"type":"error","message":"You have exceeded your usage quota"}' 
 case "$(fb u5)" in grok*) ;; *) fail "an exceeded-quota line must route the next launch to grok: $(fb u5)" ;; esac
 pass "exceededLimit false is not a usage limit; an exceeded-quota line is"
 
+# A relaunch asks the guard. Two launches already today is a grok reason for
+# that Chicago day only. A fresh fallback leaves the 3rd-launch refusal to take.
+printf '{"day":"2030-06-01","beads":{"cap1":2}}\n' > "$STATEFILE"
+printf 'cursor_models_pct=12\n' > "$FM_CURSOR_USAGE_DIR/20300601-spending.txt"
+[ "$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1)" = cursor ] \
+  || fail "a fresh fallback must stay on cursor when the only signal is the daily cap: $(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1)"
+out=$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback cap1 relaunch)
+[ "$out" = "grok cursor guard: refused cap1, already launched 2 times today (2030-06-01); write blocked: instead of a 3rd run" ] \
+  || fail "a relaunch at the daily cap must name the reason: $out"
+[ "$(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit")" = "cursor guard: refused cap1, already launched 2 times today (2030-06-01); write blocked: instead of a 3rd run" ] \
+  || fail "the cap reason was not recorded: $(cat "$FM_STATE_OVERRIDE/cap1.cursor-limit" 2>/dev/null || echo absent)"
+out=$(FM_CURSOR_DAY=2030-06-02 "$TOOL" fallback cap1)
+[ "$out" = cursor ] || fail "a cap record from another Chicago day must not force grok: $out"
+[ ! -e "$FM_STATE_OVERRIDE/cap1.cursor-limit" ] || fail "a previous day's cap record must be cleared"
+pass "a relaunch at the daily cap records the reason for that Chicago day"
+
 # The pane command keeps the agent's exit status past the tee, in bash and zsh.
 tpl=$(grep -o '> >(tee __CURSORSTREAM__)' "$ROOT/bin/fm-spawn.sh" | head -1)
 [ -n "$tpl" ] || fail "cursor template no longer tees through process substitution"

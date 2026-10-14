@@ -1319,6 +1319,85 @@ test_muse_session_binding_is_retired_on_a_harness_switch() {
   pass "fm-spawn --relaunch: switching away from muse retires its session binding"
 }
 
+# A cursor relaunch resolves through the guard. Healthy pool (12%, pinned
+# pstack) stays on cursor even when the caller passes --harness grok. The
+# daily cap is a grok reason written to the limit file, not a silent switch.
+seed_cursor_pool() { # <case-dir> <id>
+  local dir=$1 id=$2 meta
+  mkdir -p "$dir/pstack/.cursor-plugin" "$dir/usage"
+  printf '{"version":"0.15.21"}\n' > "$dir/pstack/.cursor-plugin/plugin.json"
+  printf 'cursor_models_pct=12\n' > "$dir/usage/20261013-spending.txt"
+  cat > "$dir/fakebin/cursor-agent" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = --list-models ]; then
+  printf '%s\n' 'cursor-grok-4.5-high - Grok 4.5 High'
+fi
+exit 0
+SH
+  chmod +x "$dir/fakebin/cursor-agent"
+  meta="$dir/home/state/$id.meta"
+  grep -v '^model=' "$meta" > "$meta.next"
+  printf 'model=cursor-grok-4.5-high\n' >> "$meta.next"
+  mv "$meta.next" "$meta"
+  printf 'zsh' > "$dir/fake/command"
+}
+
+run_cursor_relaunch() { # <case-dir> <spawn args...>
+  local dir=$1
+  shift
+  FM_PSTACK_DIR="$dir/pstack" FM_CURSOR_USAGE_DIR="$dir/usage" \
+    run_spawn "$dir" "$@"
+}
+
+test_cursor_relaunch_stays_on_cursor_when_the_pool_is_healthy() {
+  local dir out launch
+  dir=$(new_case cursorstay rl70)
+  add_ship_task "$dir" rl70 cursor
+  seed_cursor_pool "$dir" rl70
+  out=$(run_cursor_relaunch "$dir" rl70 --relaunch --harness grok)
+  assert_contains "$out" "spawned rl70 harness=cursor" \
+    "a healthy pool must stay on cursor when relaunch is asked for grok: $out"
+  [ "$(meta_field "$dir" rl70 harness)" = cursor ] || fail "meta harness must stay cursor"
+  [ "$(meta_field "$dir" rl70 model)" = cursor-grok-4.5-high ] \
+    || fail "staying on cursor must keep the recorded model, got $(meta_field "$dir" rl70 model)"
+  [ ! -e "$dir/home/state/rl70.cursor-limit" ] || fail "a cursor choice must not write a limit"
+  [ ! -e "$dir/home/state/rl70.cursor-fallback" ] || fail "a cursor choice must not write a fallback reason"
+  launch=$(cat "$dir/fake/literal")
+  assert_contains "$launch" "cursor-agent" "the relaunch must launch cursor"
+  assert_not_contains "$launch" "grok --always-approve" "the relaunch must not launch grok"
+  pass "a cursor relaunch at 12% stays on cursor when asked for grok"
+}
+
+test_cursor_relaunch_at_the_daily_cap_logs_the_reason() {
+  local dir out day reason launch
+  day=$(TZ=America/Chicago date +%F)
+  reason="cursor guard: refused rl71, already launched 2 times today ($day); write blocked: instead of a 3rd run"
+  dir=$(new_case cursorcap rl71)
+  add_ship_task "$dir" rl71 cursor
+  seed_cursor_pool "$dir" rl71
+  printf '{"day":"%s","beads":{"rl71":2}}\n' "$day" > "$dir/home/state/cursor-dispatch.json"
+  out=$(run_cursor_relaunch "$dir" rl71 --relaunch --harness grok)
+  assert_contains "$out" "spawned rl71 harness=grok" \
+    "a relaunch at the daily cap must launch grok with the reason recorded: $out"
+  [ "$(cat "$dir/home/state/rl71.cursor-limit" 2>/dev/null || echo absent)" = "$reason" ] \
+    || fail "the cap reason was not recorded: $(cat "$dir/home/state/rl71.cursor-limit" 2>/dev/null || echo absent)"
+  [ ! -e "$dir/home/state/rl71.cursor-fallback" ] || fail "the daily cap is a limit record, not a usage fallback"
+  launch=$(cat "$dir/fake/literal")
+  assert_contains "$launch" "grok --always-approve" "the cap relaunch must launch grok"
+
+  dir=$(new_case cursorcap2 rl72)
+  add_ship_task "$dir" rl72 cursor
+  seed_cursor_pool "$dir" rl72
+  reason="cursor guard: refused rl72, already launched 2 times today ($day); write blocked: instead of a 3rd run"
+  printf '{"day":"%s","beads":{"rl72":2}}\n' "$day" > "$dir/home/state/cursor-dispatch.json"
+  out=$(run_cursor_relaunch "$dir" rl72 --relaunch)
+  assert_contains "$out" "spawned rl72 harness=grok" \
+    "a recorded-cursor relaunch at the cap must fall back through the guard: $out"
+  [ "$(cat "$dir/home/state/rl72.cursor-limit" 2>/dev/null || echo absent)" = "$reason" ] \
+    || fail "the recorded-cursor cap relaunch did not record the reason: $(cat "$dir/home/state/rl72.cursor-limit" 2>/dev/null || echo absent)"
+  pass "a cursor relaunch at the daily cap launches grok and records the reason"
+}
+
 test_cursor_session_binding_is_retired_on_a_harness_switch() {
   local dir
   dir=$(new_case cursorwiring rl35)
@@ -2586,6 +2665,8 @@ test_spawn_relaunch_of_promoted_scout_uses_the_recorded_branch
 test_promoted_scout_relaunch_receives_the_current_delivery_contract
 test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
+test_cursor_relaunch_stays_on_cursor_when_the_pool_is_healthy
+test_cursor_relaunch_at_the_daily_cap_logs_the_reason
 test_cursor_session_binding_is_retired_on_a_harness_switch
 test_missing_worktree_refuses_before_stopping_anything
 test_missing_instructions_refuse_before_stopping_anything
