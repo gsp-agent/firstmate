@@ -1506,6 +1506,8 @@ test_teardown_removes_poll_artifacts() {
   printf 'check\n' > "$dir/home/state/task-a.check.sh"
   printf 'data\n' > "$dir/home/state/task-a.pr-poll"
   printf 'registration\n' > "$dir/home/state/task-a.pr-poll-registration"
+  printf 'queue\n' > "$dir/home/state/task-a.pr-poll-queue"
+  printf 'dropped\n' > "$dir/home/state/task-a.pr-poll-queue-dropped"
   printf 'trust\n' > "$dir/home/state/task-a.check-trust"
   cat > "$fakebin/tmux" <<'SH'
 #!/usr/bin/env bash
@@ -1520,6 +1522,8 @@ SH
   [ ! -e "$dir/home/state/task-a.check.sh" ] || fail "teardown left the runnable check"
   [ ! -e "$dir/home/state/task-a.pr-poll" ] || fail "teardown left the sidecar"
   [ ! -e "$dir/home/state/task-a.pr-poll-registration" ] || fail "teardown left the PR poll registration"
+  [ ! -e "$dir/home/state/task-a.pr-poll-queue" ] || fail "teardown left the queue marker"
+  [ ! -e "$dir/home/state/task-a.pr-poll-queue-dropped" ] || fail "teardown left the queue departure marker"
   [ ! -e "$dir/home/state/task-a.check-trust" ] || fail "teardown left the custom check registration"
 
   dir=$(make_case teardown-retirement-receipt)
@@ -2294,7 +2298,8 @@ add_stop_custom_check() {
 
 assert_poll_absent() {
   local state=$1 id=$2 suffix
-  for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement; do
+  for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement \
+    pr-poll-queue pr-poll-queue-dropped; do
     [ ! -e "$state/$id.$suffix" ] && [ ! -L "$state/$id.$suffix" ] \
       || fail "retired poll left $id.$suffix"
   done
@@ -2302,7 +2307,8 @@ assert_poll_absent() {
 
 poll_artifact_snapshot() {
   local state=$1 id=$2 suffix path
-  for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement meta; do
+  for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement \
+    pr-poll-queue pr-poll-queue-dropped meta; do
     path="$state/$id.$suffix"
     [ -e "$path" ] || [ -L "$path" ] || continue
     if [ -L "$path" ]; then
@@ -3396,7 +3402,7 @@ SH
     || fail "re-recorded registration differs from the one published on the live device"
   [ "$(file_mode "$state/task-a.pr-poll-registration")" = 600 ] || fail "re-recorded registration is not private"
   fm_pr_poll_artifacts_valid "$state" task-a "$POLL" || fail "re-recorded poll is not strictly authenticated"
-  grep -F 'pr view https://github.com/o/r/pull/1 --json state' "$dir/gh.log" >/dev/null \
+  grep -F 'REMOVED_FROM_MERGE_QUEUE_EVENT' "$dir/gh.log" >/dev/null \
     || fail "re-recorded poll did not run its validated check in the same cycle"
   grep -F 're-recorded PR poll identity for task-a' "$state/.watch-triage.log" >/dev/null \
     || fail "re-record left no triage evidence"
@@ -3483,7 +3489,7 @@ SH
     esac
     [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_sha" ] \
       || fail "$mutation let the watcher re-record the registration"
-    ! grep -F -- '--json state' "$dir/gh.log" >/dev/null 2>&1 \
+    ! grep -F 'REMOVED_FROM_MERGE_QUEUE_EVENT' "$dir/gh.log" >/dev/null 2>&1 \
       || fail "$mutation ran the refused poll"
     ! ls "$state"/.fm-pr-poll-registration.* >/dev/null 2>&1 \
       || fail "$mutation left a staged registration behind"
@@ -3630,6 +3636,16 @@ SH
 # it unmerged, must wake once with GitHub's removal reason. A merge still wakes
 # as merged alone. An unreadable read, and a poll that was never verified into
 # the queue, stay silent.
+# A follow-up cycle has to acknowledge the previous wake first. Otherwise the
+# watcher re-announces that wake and never reaches the poll, and a missing
+# dequeue line would pass without the poll having run.
+expect_stop_cycle() {  # <output> <why>
+  case "$(cat "$1")" in
+    check:*z-stop.check.sh:*stop-cycle) ;;
+    *) fail "$2: $(cat "$1")" ;;
+  esac
+}
+
 test_verified_queue_drop_wakes_once() {
   local dir state url rc
   url=https://github.com/o/r/pull/1
@@ -3651,6 +3667,7 @@ test_verified_queue_drop_wakes_once() {
   [ "$rc" -eq 0 ] || fail "queue drop watcher failed: $(cat "$dir/watch.err")"
   [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
     || fail "verified queue drop did not wake once: $(cat "$dir/watch.out")"
+  ack_watcher_cycle "$state" || fail "queue drop: could not acknowledge the first wake"
   set +e
   FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
     FM_TEST_GH_POLL_REASON=failed_checks \
@@ -3658,8 +3675,7 @@ test_verified_queue_drop_wakes_once() {
   rc=$?
   set -e
   [ "$rc" -eq 0 ] || fail "second queue drop watcher failed: $(cat "$dir/watch2.err")"
-  [ "$(grep -c 'dequeued ' "$dir/watch2.out")" -eq 0 ] \
-    || fail "verified queue drop woke again: $(cat "$dir/watch2.out")"
+  expect_stop_cycle "$dir/watch2.out" "verified queue drop woke again"
 
   dir=$(make_case queue-then-merged)
   state="$dir/home/state"
@@ -3672,6 +3688,7 @@ test_verified_queue_drop_wakes_once() {
     || fail "queued merge did not wake as merged: $(cat "$dir/watch.out")"
   [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
     || fail "queued merge also woke as dequeued: $(cat "$dir/watch.out")"
+  assert_poll_absent "$state" task-a
 
   dir=$(make_case queue-drop-unreadable)
   state="$dir/home/state"
@@ -3687,10 +3704,7 @@ test_verified_queue_drop_wakes_once() {
   rc=$?
   set -e
   [ "$rc" -eq 0 ] || fail "unreadable drop watcher failed: $(cat "$dir/watch.err")"
-  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
-    || fail "unreadable drop woke: $(cat "$dir/watch.out")"
-  [ "$(grep -c ': merged$' "$dir/watch.out")" -eq 0 ] \
-    || fail "unreadable drop woke as merged: $(cat "$dir/watch.out")"
+  expect_stop_cycle "$dir/watch.out" "unreadable drop woke"
 
   dir=$(make_case open-poll-not-queued)
   state="$dir/home/state"
@@ -3706,8 +3720,7 @@ test_verified_queue_drop_wakes_once() {
   rc=$?
   set -e
   [ "$rc" -eq 0 ] || fail "unqueued poll watcher failed: $(cat "$dir/watch.err")"
-  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
-    || fail "poll that was never queued woke as dequeued: $(cat "$dir/watch.out")"
+  expect_stop_cycle "$dir/watch.out" "poll that was never queued woke as dequeued"
 
   dir=$(make_case queue-observed-then-dropped)
   state="$dir/home/state"
@@ -3722,8 +3735,8 @@ test_verified_queue_drop_wakes_once() {
   rc=$?
   set -e
   [ "$rc" -eq 0 ] || fail "observed queue watcher failed: $(cat "$dir/queued.err")"
-  [ "$(grep -c 'dequeued ' "$dir/queued.out")" -eq 0 ] \
-    || fail "a pull request still in the queue woke as dequeued: $(cat "$dir/queued.out")"
+  expect_stop_cycle "$dir/queued.out" "a pull request still in the queue woke as dequeued"
+  ack_watcher_cycle "$state" || fail "observed queue: could not acknowledge the queued wake"
   set +e
   FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
     FM_TEST_GH_POLL_REASON='failed checks' \
@@ -3748,10 +3761,89 @@ test_verified_queue_drop_wakes_once() {
   rc=$?
   set -e
   [ "$rc" -eq 0 ] || fail "contradiction watcher failed: $(cat "$dir/watch.err")"
+  expect_stop_cycle "$dir/watch.out" "contradictory read woke"
+
+  dir=$(make_case queue-drop-empty-reason)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "empty reason: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON='' \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "empty reason watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=$' "$dir/watch.out")" -eq 1 ] \
+    || fail "empty removal reason was not named: $(cat "$dir/watch.out")"
+
+  dir=$(make_case queue-merged-with-removal-reason)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "merged with reason: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=MERGED FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "merged-with-reason watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: merged$' "$dir/watch.out")" -eq 1 ] \
+    || fail "merged pull request with a removal reason did not wake as merged: $(cat "$dir/watch.out")"
   [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
-    || fail "contradictory read woke as dequeued: $(cat "$dir/watch.out")"
-  [ "$(grep -c ': merged$' "$dir/watch.out")" -eq 0 ] \
-    || fail "contradictory read woke as merged: $(cat "$dir/watch.out")"
+    || fail "merged pull request also woke as dequeued: $(cat "$dir/watch.out")"
+
+  dir=$(make_case queue-reentry-drops-once-each)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "re-entry: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/first.out" 2> "$dir/first.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "re-entry first drop watcher failed: $(cat "$dir/first.err")"
+  [ "$(grep -c 'dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/first.out")" -eq 1 ] \
+    || fail "re-entry first drop did not wake: $(cat "$dir/first.out")"
+  ack_watcher_cycle "$state" || fail "re-entry: could not acknowledge the first drop"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/back.out" 2> "$dir/back.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "re-entry queue watcher failed: $(cat "$dir/back.err")"
+  expect_stop_cycle "$dir/back.out" "re-entry while queued woke as dequeued"
+  ack_watcher_cycle "$state" || fail "re-entry: could not acknowledge the return to the queue"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=ci_failure \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/second.out" 2> "$dir/second.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "re-entry second drop watcher failed: $(cat "$dir/second.err")"
+  [ "$(grep -c 'dequeued https://github.com/o/r/pull/1 reason=ci_failure$' "$dir/second.out")" -eq 1 ] \
+    || fail "re-entry second drop did not wake once: $(cat "$dir/second.out")"
+  ack_watcher_cycle "$state" || fail "re-entry: could not acknowledge the second drop"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=ci_failure \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/third.out" 2> "$dir/third.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "re-entry repeat watcher failed: $(cat "$dir/third.err")"
+  expect_stop_cycle "$dir/third.out" "re-entry second drop woke again"
 
   pass "a verified queue drop wakes once, a merge stays a merge, and a bad read stays silent"
 }

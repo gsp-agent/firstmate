@@ -65,6 +65,9 @@
 # own view still proves a landed merge, and every outcome it cannot prove
 # refuses, reporting the failed gh read and naming both failed reads when the
 # gh-axi view could not prove the outcome either.
+# A verified queue entry is recorded for the armed poll so a later unmerged
+# departure wakes once; bin/fm-pr-poll.sh owns that line, and a record that
+# cannot be written is reported without changing this command's exit status.
 # If the pull request remains open and the base branch has an effective
 # merge_queue rule, an attended refusal names the queue's configured merge
 # method and exact --attended-override -- --auto --<method> retry flags. While
@@ -1673,6 +1676,12 @@ case "$PROVIDER" in
         if [ "$FM_PR_GITHUB_MERGED" != true ] && [ "$FM_PR_GITHUB_QUEUED" != true ]; then
           github_report_unmerged_outcome
         else
+          if [ "$FM_PR_GITHUB_QUEUED" = true ] && [ "$FM_PR_GITHUB_MERGED" != true ]; then
+            if ! fm_pr_poll_queue_record "$STATE" "$ID" "$URL"; then
+              printf 'actionable: verified queue entry for %s could not be recorded for the merge poll\n' \
+                "$URL" >&2
+            fi
+          fi
           printf 'actionable: the merge command for %s failed, but the pull request reads back as state=%s, merged=%s, isInMergeQueue=%s\n' \
             "$URL" "$FM_PR_GITHUB_STATE" "$FM_PR_GITHUB_MERGED" "$FM_PR_GITHUB_QUEUED" >&2
         fi
@@ -1689,6 +1698,10 @@ case "$PROVIDER" in
     elif [ "$FM_PR_GITHUB_QUEUED" = true ]; then
       printf 'verified: %s is queued (state=%s, merged=%s, isInMergeQueue=%s)\n' \
         "$URL" "$FM_PR_GITHUB_STATE" "$FM_PR_GITHUB_MERGED" "$FM_PR_GITHUB_QUEUED"
+      if ! fm_pr_poll_queue_record "$STATE" "$ID" "$URL"; then
+        printf 'actionable: verified queue entry for %s could not be recorded for the merge poll\n' \
+          "$URL" >&2
+      fi
       exit 0
     else
       github_report_forge_output "$merge_output"
