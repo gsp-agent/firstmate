@@ -147,9 +147,10 @@
 #     those are the rows AGENTS.md sections 7 and 10 make actionable at startup.
 #     Each is ONE line capped by bin/fm-line-cap-lib.sh, so a long hold_reason
 #     costs one line, not a paragraph, and the full row stays one
-#     `bin/fm-tasks-axi.sh show <id> --full` away. An in-flight row whose task
-#     has a live record (state/<id>.meta) is listed once, as that task's line
-#     under "Work under way", so the two groups never repeat each other.
+#     `bin/fm-tasks-axi.sh show <id> --full` away. An unheld, unblocked in-flight
+#     row with a task record (state/<id>.meta) is listed once, as that task's
+#     line under "Work under way"; held or blocked rows remain in the backlog
+#     listing as well.
 #   - Only the plain queued (dispatchable-now) listing is bounded, by
 #     FM_SESSION_START_QUEUED_LIMIT, default 10. Anything it omits is disclosed
 #     with an exact remainder count and the command that shows the rest, so a

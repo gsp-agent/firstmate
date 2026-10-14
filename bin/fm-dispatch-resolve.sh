@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # fm-dispatch-resolve.sh - resolve one concrete crewmate or scout dispatch
-# profile from a task brief with typesafe.ai's System One model (Jev), opt-in.
+# profile from a task brief with opt-in typesafe.ai System One (Jev), or labels.
 #
 # Usage:
 #   fm-dispatch-resolve.sh <brief-file> [--project <name>]
 #   fm-dispatch-resolve.sh --labels <a,b|""> [--project <name>]     (worker routing)
 #
 # Worker routing (--labels, an empty value is allowed): no model judgment, no
-#   key, no network. The first bead label found in `label_routes` in
-#   crew-dispatch.json picks that profile; with no match the `default` is used.
-#   Prints "status: clear ... source: label|default" and the profile line.
+#   key, no network. docs/configuration.md "Label-based worker routing" owns
+#   label precedence, default selection, and conflicting-label handling.
+#   Prints status clear with source label|default and the profile line, or
+#   status escalate with no profile. Conflicting labels print status refused
+#   and exit 1; clear and escalate exit 0. Usage/configuration errors exit 2.
 #
-# Opt-in gate: TYPESAFE_API_KEY non-empty in this process environment, else a
+# Brief-based opt-in gate: TYPESAFE_API_KEY non-empty in this process environment, else a
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
 #   accessor as FMX_PAIRING_TOKEN (bin/fm-env-lib.sh). The environment wins.
 #   Absent in both: one "dispatch-resolve: off" line on stderr, nothing on
@@ -41,7 +43,7 @@
 #   docs/configuration.md "Crew dispatch profiles" owns the declared fields and
 #   "Typed dispatch resolution" owns this tool's operator contract.
 #
-# Never-send check: when the optional $FM_HOME/config/dispatch-never-send list
+# Brief-based never-send check: when the optional $FM_HOME/config/dispatch-never-send list
 #   exists, every string value of the built request is checked against it
 #   before the POST. Each non-blank, non-# line is a literal matched
 #   case-insensitively, with surrounding whitespace trimmed and every run of
@@ -51,7 +53,7 @@
 #   the list line number, never its value, prints nothing on stdout, and exits
 #   0 with no network or quota call, exactly like the absent-key off path.
 #
-# Output (stdout, TOON-style block):
+# Brief-based output (stdout, TOON-style block):
 #   dispatch-resolve:
 #     status: clear | ambiguous | escalate | error
 #     model/latency_ms/tokens, rule (when excerpt) and confidence, probabilities
@@ -71,7 +73,7 @@
 # Environment:
 #   TYPESAFE_API_KEY is the only resolver-specific environment setting.
 #
-# Authority: this tool never replaces firstmate's judgment, quota-array-dispatch,
+# Brief-based authority: this path never replaces firstmate's judgment, quota-array-dispatch,
 #   the captain-approval gate, or fm-spawn.sh validation; it publishes one
 #   inspectable answer plus every candidate's evidence, in code.
 set -u

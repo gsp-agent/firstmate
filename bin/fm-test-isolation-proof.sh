@@ -6,6 +6,8 @@
 # concurrent proof run, and its isolation checks. Production portable CI shards,
 # bounded local fm-test-run.sh --jobs admission, and family worker caps are owned
 # by bin/fm-test-run.sh (docs/fm-test-portable-shards.md).
+# bin/fm-test-machine-line-lib.sh owns shared suite admission and timing across
+# admission waits for both entry points.
 #
 # It does NOT compose production CI shard membership; fm-test-run.sh owns that
 # partition. The default portable pool excludes real Herdr, real default-server
@@ -91,6 +93,12 @@ now_ms() {
     echo $(($(date +%s) * 1000))
   fi
 }
+
+RUN_STARTED_ISO=$(now_iso)
+RUN_STARTED_MS=$(now_ms)
+# shellcheck source=bin/fm-test-machine-line-lib.sh
+. "$ROOT/bin/fm-test-machine-line-lib.sh"
+ORIGINAL_ARGS=("$@")
 
 # Serial exclusions relative to the scout-proposed parallel pool (pure units,
 # fake backends, private git fixtures, stubbed network). Reasons are audit
@@ -388,6 +396,8 @@ for s in "${CANDIDATES[@]}"; do
   [ -f "$s" ] || die "candidate not found: $s"
 done
 
+enter_machine_line "$ROOT/bin/fm-test-isolation-proof.sh" ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}
+
 PROOF_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/fm-isolation-proof.XXXXXX")
 chmod 0700 "$PROOF_ROOT" || die "could not chmod 0700 proof root $PROOF_ROOT"
 RECORDS="$PROOF_ROOT/records.tsv"
@@ -395,8 +405,6 @@ RECORDS="$PROOF_ROOT/records.tsv"
 trap 'rm -rf "$PROOF_ROOT"' EXIT
 
 GIT_BEFORE=$(global_git_snapshot)
-RUN_STARTED_ISO=$(now_iso)
-RUN_STARTED_MS=$(now_ms)
 RUN_ID="fm-isolation-${RUN_STARTED_MS}-$$"
 TOTAL=${#CANDIDATES[@]}
 FAILED=0

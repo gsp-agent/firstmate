@@ -104,6 +104,10 @@
 #   against. Inspection modes execute nothing and stay available, and a run with
 #   no FM_TASK_ID set is unchanged.
 #
+# Machine line:
+#   bin/fm-test-machine-line-lib.sh owns suite admission, gate overrides,
+#   retry behavior, nested runs, and timing across admission waits.
+#
 # Exit status is non-zero if any selected script exits non-zero, a configured
 # --fail-on-gate-skip token appears, the measured duration exceeds
 # --max-wall-ms, timing-artifact finalization fails, or a concurrent worker
@@ -164,6 +168,9 @@ RUN_STARTED_MS=$(now_ms)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
+
+# shellcheck source=bin/fm-test-machine-line-lib.sh
+. "$ROOT/bin/fm-test-machine-line-lib.sh"
 
 MODE=
 LIST_ONLY=0
@@ -1920,6 +1927,10 @@ with open(out, "w", encoding="utf-8") as fh:
 PY
 }
 
+# Saved before parsing consumes them. The admitted child is a re-exec of this
+# script, because the gate holds its lock only around the command it is given.
+ORIGINAL_ARGS=("$@")
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --all)
@@ -2357,6 +2368,9 @@ if [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ]; then
   # shellcheck source=bin/fm-timeout-lib.sh
   . "$ROOT/bin/fm-timeout-lib.sh"
 fi
+
+# Refusals above exit before this, so a refused run does not take the turn.
+enter_machine_line "$ROOT/bin/fm-test-run.sh" ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}
 
 RUN_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run.XXXXXX")
 RECORDS="$RUN_TMP/records.tsv"
