@@ -1,0 +1,1 @@
+fm-test-run: --jobs 2 refused: tests/fm-self-repo-role.test.sh is not in the proven-isolated set (see bin/fm-test-isolation-proof.sh --list) and its family has no recorded concurrent proof. Unproven stateful scripts stay serial.

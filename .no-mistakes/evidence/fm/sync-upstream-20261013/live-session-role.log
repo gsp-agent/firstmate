@@ -1,0 +1,133 @@
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/startup-default bin/fm-session-start.sh
+
+================================================================================
+SESSION START - /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/startup-default
+================================================================================
+
+LOCK
+--------------------------------------------------------------------------------
+lock acquired: harness pid 49853
+
+HOME ROLE
+--------------------------------------------------------------------------------
+fm-role: user (default)
+
+BOOTSTRAP
+--------------------------------------------------------------------------------
+(silent - all good)
+
+WAKE QUEUE
+--------------------------------------------------------------------------------
+(no queued wakes)
+================================================================================
+SUPERVISION OPERATING INSTRUCTIONS - primary harness: codex
+================================================================================
+Current state:
+- Lock: held by this session; this session owns normal supervision unless away mode says otherwise.
+- Away/quiet mode: inactive.
+- X mode: inactive; use the default watcher cadence.
+- Ordinary wake: take the next foreground bin/fm-watch-checkpoint.sh checkpoint as directed below.
+
+Mode: Codex foreground checkpoint.
+
+When this session owns supervision and away mode is not active:
+exit=0
+completed off the startup path in 15s: GitHub authentication, dead-secondmate relaunch, secondmate convergence, pending handoff delivery, project clone refresh with its drift reporting, and inactive terminal-outcome reconciliation.
+(silent - no problems found)
+TIMINGS - where the deferred network checks spent their time (ms):
+  phase       gh-auth                                    start=+6646    elapsed=1654
+  phase       secondmate-liveness                        start=+8335    elapsed=10
+  phase       secondmate-sync                            start=+8376    elapsed=476
+  phase       handoff-delivery                           start=+8866    elapsed=1
+  phase       fleet-sync                                 start=+8328    elapsed=3740
+  stage       network-checks probe_sweeps                start=+1055    elapsed=11567
+  slowest: stage network-checks probe_sweeps 11567ms, phase fleet-sync 3740ms, phase gh-auth 1654ms
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/startup-maintainer bin/fm-session-start.sh
+
+================================================================================
+SESSION START - /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/startup-maintainer
+================================================================================
+
+LOCK
+--------------------------------------------------------------------------------
+lock acquired: harness pid 49853
+
+HOME ROLE
+--------------------------------------------------------------------------------
+fm-role: maintainer github.com/gsp-agent/firstmate (local)
+
+BOOTSTRAP
+--------------------------------------------------------------------------------
+(silent - all good)
+
+WAKE QUEUE
+--------------------------------------------------------------------------------
+(no queued wakes)
+================================================================================
+SUPERVISION OPERATING INSTRUCTIONS - primary harness: codex
+================================================================================
+Current state:
+- Lock: held by this session; this session owns normal supervision unless away mode says otherwise.
+- Away/quiet mode: inactive.
+- X mode: inactive; use the default watcher cadence.
+- Ordinary wake: take the next foreground bin/fm-watch-checkpoint.sh checkpoint as directed below.
+
+Mode: Codex foreground checkpoint.
+
+When this session owns supervision and away mode is not active:
+exit=0
+completed off the startup path in 7s: GitHub authentication, dead-secondmate relaunch, secondmate convergence, pending handoff delivery, project clone refresh with its drift reporting, and inactive terminal-outcome reconciliation.
+(silent - no problems found)
+TIMINGS - where the deferred network checks spent their time (ms):
+  phase       gh-auth                                    start=+2648    elapsed=967
+  phase       secondmate-liveness                        start=+3703    elapsed=8
+  phase       secondmate-sync                            start=+3720    elapsed=335
+  phase       handoff-delivery                           start=+4064    elapsed=2
+  phase       fleet-sync                                 start=+3699    elapsed=2415
+  stage       network-checks probe_sweeps                start=+503     elapsed=5963
+  slowest: stage network-checks probe_sweeps 5963ms, phase fleet-sync 2415ms, phase gh-auth 967ms
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/startup-malformed bin/fm-session-start.sh
+
+================================================================================
+SESSION START - /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/startup-malformed
+================================================================================
+
+LOCK
+--------------------------------------------------------------------------------
+lock acquired: harness pid 49853
+
+HOME ROLE
+--------------------------------------------------------------------------------
+fm-role: user (local) - malformed role file: the maintainer role requires exactly one repository scope
+
+BOOTSTRAP
+--------------------------------------------------------------------------------
+(silent - all good)
+
+WAKE QUEUE
+--------------------------------------------------------------------------------
+(no queued wakes)
+================================================================================
+SUPERVISION OPERATING INSTRUCTIONS - primary harness: codex
+================================================================================
+Current state:
+- Lock: held by this session; this session owns normal supervision unless away mode says otherwise.
+- Away/quiet mode: inactive.
+- X mode: inactive; use the default watcher cadence.
+- Ordinary wake: take the next foreground bin/fm-watch-checkpoint.sh checkpoint as directed below.
+
+Mode: Codex foreground checkpoint.
+
+When this session owns supervision and away mode is not active:
+exit=0
+completed off the startup path in 2s: GitHub authentication, dead-secondmate relaunch, secondmate convergence, pending handoff delivery, project clone refresh with its drift reporting, and inactive terminal-outcome reconciliation.
+(silent - no problems found)
+TIMINGS - where the deferred network checks spent their time (ms):
+  phase       gh-auth                                    start=+638     elapsed=368
+  phase       secondmate-liveness                        start=+1045    elapsed=32
+  phase       secondmate-sync                            start=+1094    elapsed=71
+  phase       handoff-delivery                           start=+1174    elapsed=1
+  phase       fleet-sync                                 start=+1028    elapsed=1188
+  stage       network-checks probe_sweeps                start=+87      elapsed=2200
+  slowest: stage network-checks probe_sweeps 2200ms, phase fleet-sync 1188ms, phase gh-auth 368ms
+All startup role scenarios passed against the real session-start command.

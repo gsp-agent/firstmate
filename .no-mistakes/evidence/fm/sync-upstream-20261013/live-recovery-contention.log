@@ -1,0 +1,38 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/recovery-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/recovery-home
+exit=0
+$ bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/recovery-home
+/tmp/fml.3q7VEl
+exit=0
+$ tmux -L fm-lab new-session -d -s firstmate -n fm-mate-a -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+
+exit=0
+$ tmux -L fm-lab new-window -d -t firstmate: -n fm-mate-b -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+
+exit=0
+$ tmux -L fm-lab display-message -p #{socket_path},#{pid},0
+/private/tmp/fml.3q7VEl/tmux-501/fm-lab,68906,0
+exit=0
+$ tmux -L fm-lab list-panes -a -F #{window_name} #{pane_id} #{pane_pid} #{pane_current_command}
+fm-mate-a %0 68928 zsh
+fm-mate-b %1 68969 zsh
+exit=0
+SCENARIO: A busy home relaunch lock bounds recovery and preserves both dead endpoints without recording attempts.
+$ bin/fm-watch-checkpoint.sh --seconds 8
+watcher: secondmate mate-b liveness: another secondmate relaunch still owns the per-home relaunch lock after 2s; endpoint left dead
+watcher: secondmate liveness check failed
+exit=1
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/recovery-home
+
+exit=0
+The private fm-lab server and its short-lived socket directory were torn down.
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/recovery-contention.py", line 42, in <module>
+    assert f'secondmate {task} liveness: another secondmate relaunch still owns the per-home relaunch lock after 2s' in output, output
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: watcher: secondmate mate-b liveness: another secondmate relaunch still owns the per-home relaunch lock after 2s; endpoint left dead
+watcher: secondmate liveness check failed
+

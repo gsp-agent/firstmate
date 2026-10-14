@@ -1,0 +1,37 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/recovery-home-stable
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/recovery-home-stable
+exit=0
+$ bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/recovery-home-stable
+/tmp/fml.6CryPQ
+exit=0
+$ tmux -L fm-lab new-session -d -s firstmate -n fm-mate-a -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K /bin/bash --noprofile --norc
+
+exit=0
+$ tmux -L fm-lab new-window -d -t firstmate: -n fm-mate-b -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K /bin/bash --noprofile --norc
+
+exit=0
+$ tmux -L fm-lab display-message -p #{socket_path},#{pid},0
+/private/tmp/fml.6CryPQ/tmux-501/fm-lab,58910,0
+exit=0
+$ tmux -L fm-lab list-panes -a -F #{window_name} #{pane_id} #{pane_pid} #{pane_current_command}
+fm-mate-a %0 58914 bash
+fm-mate-b %1 58919 bash
+exit=0
+SCENARIO: A busy home relaunch lock bounds recovery and preserves both dead endpoints without recording attempts.
+$ bin/fm-watch-checkpoint.sh --seconds 8
+watcher: secondmate mate-a liveness: another secondmate relaunch still owns the per-home relaunch lock after 2s; endpoint left dead
+watcher: secondmate mate-b liveness: another secondmate relaunch still owns the per-home relaunch lock after 2s; endpoint left dead
+watcher: secondmate liveness check failed
+exit=1
+$ tmux -L fm-lab list-panes -a -F #{window_name} #{pane_id} #{pane_pid} #{pane_current_command}
+fm-mate-a %0 58914 bash
+fm-mate-b %1 58919 bash
+exit=0
+Both native pane ids, shell pids and foreground commands stayed unchanged; neither attempt ledger was created.
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/recovery-home-stable
+
+exit=0
+The private fm-lab server and its short-lived socket directory were torn down.

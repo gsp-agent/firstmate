@@ -1,0 +1,35 @@
+SCENARIO: A propagated role needs an exact-byte receipt and a revoked grant loses authority.
+$ bin/fm-remote-inherit.sh put config/firstmate-role 42 781fe56aa5ecbf3e1e40b10c73ea335300ad73df8355a24468861e376632cbd4 1
+unchanged: config/firstmate-role
+exit=0
+Persisted inheritance receipt:
+1
+42
+781fe56aa5ecbf3e1e40b10c73ea335300ad73df8355a24468861e376632cbd4
+put
+
+$ bin/fm-role.sh report
+fm-role: maintainer github.com/gsp-agent/firstmate (inherited)
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+authorized: maintainer scope github.com/gsp-agent/firstmate
+exit=0
+$ bin/fm-role.sh report
+fm-role: user - unverified inherited grant: the inherited role grant diverges from the receipt
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+$ bin/fm-remote-inherit.sh absent config/firstmate-role 0 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 2
+removed: config/firstmate-role
+exit=0
+$ bin/fm-role.sh report
+fm-role: user (inherited)
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+$ bin/fm-remote-inherit.sh put config/firstmate-role 42 781fe56aa5ecbf3e1e40b10c73ea335300ad73df8355a24468861e376632cbd4 1
+error: inheritance write generation is superseded
+exit=1
+The stale generation did not restore the revoked role; all receiver scenarios passed.

@@ -1,0 +1,125 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home
+exit=0
+
+SCENARIO: An unconfigured home reports user and refuses self-repository publication.
+$ bin/fm-role.sh report
+fm-role: user (default)
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+$ bin/fm-brief.sh refused-brief firstmate --mode direct-PR --project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+error: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+error: to let this home publish to github.com/gsp-agent/firstmate, write 'maintainer github.com/gsp-agent/firstmate' into /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/config/firstmate-role (docs/configuration.md "Firstmate role"), or pass --upstream-consent github.com/gsp-agent/firstmate for this one task with the captain's explicit approval
+exit=1
+No publishing brief was created.
+
+SCENARIO: Matching task consent and a matching maintainer scope permit scaffolding only for that scope.
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K upstream-consent github.com/another/repo
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+$ bin/fm-brief.sh consented-brief firstmate --mode direct-PR --base-branch upstream-lean --project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K --upstream-consent github.com/gsp-agent/firstmate
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/data/consented-brief/brief.md (ship, mode=direct-PR; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+Generated delivery contract:
+Base branch: upstream-lean
+Delivery contract: mode=direct-PR upstream-consent=github.com/gsp-agent/firstmate
+$ bin/fm-role.sh report
+fm-role: maintainer github.com/gsp-agent/firstmate (local)
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+authorized: maintainer scope github.com/gsp-agent/firstmate
+exit=0
+$ bin/fm-brief.sh maintainer-brief firstmate --mode direct-PR --project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/data/maintainer-brief/brief.md (ship, mode=direct-PR; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+
+SCENARIO: Malformed, duplicate, wrong-scope, and symlinked grants fail closed.
+$ bin/fm-role.sh report
+fm-role: user (local) - malformed role file: the maintainer role requires exactly one repository scope
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+$ bin/fm-role.sh report
+fm-role: user (local) - malformed role file: invalid repository scope '../escape'
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+$ bin/fm-role.sh report
+fm-role: user (local) - malformed role file: role file must hold exactly one directive line
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+$ bin/fm-role.sh report
+fm-role: maintainer github.com/another/repo (local)
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+$ bin/fm-role.sh report
+fm-role: user (local) - malformed role file: role file must not be a symlink
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+
+SCENARIO: Receipt-less secondmate grants authorize nothing.
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/unproven-child
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/unproven-child
+exit=0
+$ bin/fm-role.sh report
+fm-role: user - unverified inherited grant: a role file exists with no propagation receipt, and a secondmate gains the role only through propagation
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit=1
+
+SCENARIO: Local-only self work and ordinary project delivery remain available.
+$ bin/fm-brief.sh local-brief firstmate --mode local-only --project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/data/local-brief/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/projects/ordinary
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/projects/ordinary -c user.name=fixture -c user.email=fixture@example.invalid commit -q --allow-empty -m Ordinary project fixture
+
+exit=0
+$ bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/projects/ordinary
+not a self-repository task
+exit=2
+$ bin/fm-brief.sh ordinary-brief ordinary --mode direct-PR --project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/projects/ordinary
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/data/ordinary-brief/brief.md (ship, mode=direct-PR; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+
+SCENARIO: A publishing spawn cannot evade the role gate or mismatch its recorded consent.
+$ bin/fm-spawn.sh refused-spawn /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K codex --mode direct-PR --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home
+error: spawn refused for refused-spawn: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+error: to let this home publish to github.com/gsp-agent/firstmate, write 'maintainer github.com/gsp-agent/firstmate' into /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/config/firstmate-role (docs/configuration.md "Firstmate role"), or pass --upstream-consent github.com/gsp-agent/firstmate for this one task with the captain's explicit approval
+exit=1
+$ bin/fm-spawn.sh mismatch-spawn /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K codex --mode direct-PR --yolo off --upstream-consent github.com/gsp-agent/firstmate
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home
+error: upstream-consent mismatch for mismatch-spawn: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/data/mismatch-spawn/launch-brief.md records upstream-consent=none but this spawn passed github.com/gsp-agent/firstmate; correct the flag or re-scaffold the brief so the worker's contract and the task record agree
+exit=1
+Neither refused spawn created task metadata or a worker.
+
+SCENARIO: Promoting a self-repository scout repeats the gate and leaves the scout unchanged on refusal.
+$ bin/fm-promote.sh refused-promotion --mode direct-PR --yolo off
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warn: no registry at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/data/projects.md; defaulting 01M4W66NND7QJFBWPK02J5GJ0K to no-mistakes off
+error: promotion refused for refused-promotion: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+error: to let this home publish to github.com/gsp-agent/firstmate, write 'maintainer github.com/gsp-agent/firstmate' into /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4W66NND7QJFBWPK02J5GJ0K/scratchpad-live-validation/role-home/config/firstmate-role (docs/configuration.md "Firstmate role"), or pass --upstream-consent github.com/gsp-agent/firstmate for this one task with the captain's explicit approval
+exit=1
+Scout metadata stayed byte-identical; no ship instructions were published.
+
+All manual role scenarios passed against the real CLI entry points.
