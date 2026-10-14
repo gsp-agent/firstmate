@@ -15,6 +15,12 @@ RUNNER="$ROOT/bin/fm-test-run.sh"
 assert_present "$RUNNER" "bin/fm-test-run.sh is missing"
 [ -x "$RUNNER" ] || fail "bin/fm-test-run.sh must be executable"
 
+# Fixture executions in this file are not a second suite. The machine-line
+# cases below pass FM_TEST_MACHINE_GATE themselves and use a private line
+# directory, so a direct run of this file does not take the live turn once
+# per fixture.
+export FM_TEST_MACHINE_GATE=
+
 test_list_all_exact_suite_coverage() {
   local listed expected missing extra f
   listed=$("$RUNNER" --list --all | LC_ALL=C sort)
@@ -1826,6 +1832,365 @@ assert len(doc["scripts"])==3
   pass "aggregate-json merges lane timing artifacts"
 }
 
+# Stand-in for machine-gate.sh run. Same turn contract: one lock, exit 75 when
+# that lock is already held, and start/end rows in the line log.
+write_machine_gate_standin() {
+  local dest=$1
+  cat >"$dest" <<'SH'
+#!/usr/bin/env bash
+set -eu
+line_dir=${MACHINE_LINE_DIR:?}
+mkdir -p "$line_dir"
+lock="$line_dir/slot.lock"
+log="$line_dir/log.tsv"
+name=${MACHINE_LINE_NAME:-fm-test-run}
+row() {
+  printf '%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$name" "$2" >>"$log"
+}
+if [ "${1:-}" = __holding ]; then
+  mark=$2
+  cap=$3
+  shift 3
+  : >"$mark"
+  row start "pid $$ cap ${cap}m"
+  set +e
+  "$@"
+  rc=$?
+  set -e
+  row end "rc $rc"
+  exit "$rc"
+fi
+[ "${1:-}" = run ] || { echo "usage: machine-gate.sh run [--cap <minutes>] -- <command>" >&2; exit 2; }
+shift
+cap=60
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --cap) cap=$2; shift 2 ;;
+    --) shift; break ;;
+    *) echo "usage: machine-gate.sh run [--cap <minutes>] -- <command>" >&2; exit 2 ;;
+  esac
+done
+[ "$#" -gt 0 ] || { echo "usage: machine-gate.sh run [--cap <minutes>] -- <command>" >&2; exit 2; }
+mark=$(mktemp "${TMPDIR:-/tmp}/fm-line-standin.XXXXXX")
+rm -f "$mark"
+rc=0
+if command -v lockf >/dev/null 2>&1; then
+  set +e
+  lockf -k -s -t 0 "$lock" "$0" __holding "$mark" "$cap" "$@"
+  rc=$?
+  set -e
+elif command -v flock >/dev/null 2>&1; then
+  exec 9>>"$lock"
+  if ! flock -n 9; then
+    echo "machine-gate run: NOT STARTED: the turn is held" >&2
+    row busy "held"
+    exit 75
+  fi
+  set +e
+  "$0" __holding "$mark" "$cap" "$@"
+  rc=$?
+  set -e
+else
+  echo "machine-gate stand-in: need lockf or flock" >&2
+  exit 2
+fi
+if [ -e "$mark" ]; then
+  rm -f "$mark"
+  exit "$rc"
+fi
+rm -f "$mark"
+echo "machine-gate run: NOT STARTED: the turn is held" >&2
+row busy "held"
+exit 75
+SH
+  chmod +x "$dest"
+}
+
+# Prefer the installed gate so the proof uses the same run command as gj.
+# A machine without that file still has to prove the turn contract.
+machine_line_gate() {
+  local real dest
+  real=${HOME}/.agent-state/machine-gate.sh
+  if [ -x "$real" ]; then
+    printf '%s\n' "$real"
+    return 0
+  fi
+  dest=$1/machine-gate.sh
+  write_machine_gate_standin "$dest"
+  printf '%s\n' "$dest"
+}
+
+line_row_count() { # <log> <kind> <detail-regex>
+  local log=$1 kind=$2 detail=$3
+  [ -f "$log" ] || { printf '0\n'; return 0; }
+  awk -F '\t' -v kind="$kind" -v detail="$detail" '
+    $2 == kind && $3 == "fm-test-run" && $4 ~ detail { n++ }
+    END { print n + 0 }
+  ' "$log"
+}
+
+kill_pid_tree() {
+  local pid child
+  for pid in "$@"; do
+    [ -n "$pid" ] || continue
+    for child in $(pgrep -P "$pid" 2>/dev/null || true); do
+      kill_pid_tree "$child"
+    done
+    kill "$pid" 2>/dev/null || true
+  done
+}
+
+test_machine_line_absent_or_inspection_does_not_take_the_turn() {
+  local tmp probe out rc self_nice probe_nice stub listed
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-skip.XXXXXX")
+  probe="$tmp/ok.test.sh"
+  cat >"$probe" <<'SH'
+#!/usr/bin/env bash
+ps -o nice= -p $$ | tr -d ' ' >"$PRI_FILE"
+echo ran
+exit 0
+SH
+  chmod +x "$probe"
+  self_nice=$(ps -o nice= -p $$ | tr -d ' ')
+  env -u FM_TEST_MACHINE_GATE -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    HOME="$tmp/home" MACHINE_LINE_DIR="$tmp/unused-line" PRI_FILE="$tmp/nice" \
+    "$RUNNER" "$probe" >"$tmp/out" 2>"$tmp/err"
+  rc=$?
+  [ "$rc" -eq 0 ] || { rm -rf "$tmp"; fail "missing gate must still run the suite, got $rc"; }
+  grep -qx ran "$tmp/out" || { rm -rf "$tmp"; fail "missing gate did not run the probe"; }
+  [ ! -e "$tmp/unused-line" ] || { rm -rf "$tmp"; fail "missing gate created a machine line directory"; }
+  probe_nice=$(cat "$tmp/nice")
+  [ "$probe_nice" = "$self_nice" ] \
+    || { rm -rf "$tmp"; fail "missing gate changed nice from $self_nice to $probe_nice"; }
+
+  stub="$tmp/stub-gate.sh"
+  cat >"$stub" <<'SH'
+#!/usr/bin/env bash
+echo called >"$STUB_MARK"
+exit 9
+SH
+  chmod +x "$stub"
+  listed=$(env -u FM_TEST_MACHINE_LINE_HELD FM_TEST_MACHINE_GATE="$stub" STUB_MARK="$tmp/stub-mark" \
+    "$RUNNER" --list tests/fm-lint.test.sh 2>"$tmp/list.err") || {
+    rm -rf "$tmp"
+    fail "inspection must not call the machine gate"
+  }
+  [ "$listed" = "tests/fm-lint.test.sh" ] \
+    || { rm -rf "$tmp"; fail "list output changed when a gate is configured: $listed"; }
+  [ ! -e "$tmp/stub-mark" ] || { rm -rf "$tmp"; fail "--list took the machine line"; }
+
+  out=$(env -u FM_TEST_MACHINE_LINE_HELD FM_TEST_MACHINE_GATE="$stub" STUB_MARK="$tmp/held-mark" \
+    PRI_FILE="$tmp/held-nice" FM_TEST_MACHINE_LINE_HELD=1 "$RUNNER" "$probe" 2>"$tmp/held.err") || {
+    rm -rf "$tmp"
+    fail "an already admitted run must not call the gate again"
+  }
+  grep -qx ran <<<"$out" || { rm -rf "$tmp"; fail "already admitted run did not execute the probe"; }
+  [ ! -e "$tmp/held-mark" ] || { rm -rf "$tmp"; fail "already admitted run called the gate"; }
+  rm -rf "$tmp"
+  pass "a missing gate, --list, and an already admitted run do not take the turn"
+}
+
+test_machine_line_takes_and_releases() {
+  local tmp probe gate line log home starts ends rc count self_pri probe_pri self_nice probe_nice pid deadline
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-take.XXXXXX")
+  gate=$(machine_line_gate "$tmp")
+  line="$tmp/line"
+  log="$line/log.tsv"
+  probe="$tmp/ok.test.sh"
+  cat >"$probe" <<'SH'
+#!/usr/bin/env bash
+ps -o pri= -p $$ | tr -d ' ' >"$PRI_FILE"
+ps -o nice= -p $$ | tr -d ' ' >"$NICE_FILE"
+echo ran
+exit 0
+SH
+  chmod +x "$probe"
+  self_pri=$(ps -o pri= -p $$ | tr -d ' ')
+  self_nice=$(ps -o nice= -p $$ | tr -d ' ')
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$line" MACHINE_LINE_NAME=fm-test-run \
+    MACHINE_GATE_READ='printf "%s\n" "SLOT FREE = YES"' \
+    PRI_FILE="$tmp/pri" NICE_FILE="$tmp/nice" \
+    "$RUNNER" "$probe" >"$tmp/out" 2>"$tmp/err"
+  rc=$?
+  [ "$rc" -eq 0 ] || { rm -rf "$tmp"; fail "gated suite failed: $rc $(cat "$tmp/err")"; }
+  grep -qx ran "$tmp/out" || { rm -rf "$tmp"; fail "gated suite did not run the probe"; }
+  starts=$(line_row_count "$log" start "cap 180m")
+  ends=$(line_row_count "$log" end "^rc 0$")
+  [ "$starts" = 1 ] || { rm -rf "$tmp"; fail "expected one start row with cap 180m, got $starts"; }
+  [ "$ends" = 1 ] || { rm -rf "$tmp"; fail "expected one end row rc 0, got $ends"; }
+  case "$(uname -s)" in
+    Darwin)
+      probe_pri=$(cat "$tmp/pri")
+      if [ "$self_pri" -gt 10 ]; then
+        [ "$probe_pri" -lt "$self_pri" ] \
+          || { rm -rf "$tmp"; fail "suite pri $probe_pri was not below the caller pri $self_pri"; }
+      else
+        [ "$probe_pri" -le 10 ] \
+          || { rm -rf "$tmp"; fail "suite pri $probe_pri was not in the background class"; }
+      fi
+      ;;
+    *)
+      probe_nice=$(cat "$tmp/nice")
+      [ "$probe_nice" -gt "$self_nice" ] \
+        || { rm -rf "$tmp"; fail "suite nice $probe_nice was not above the caller nice $self_nice"; }
+      ;;
+  esac
+
+  # The default path is $HOME/.agent-state/machine-gate.sh, not only the override.
+  home="$tmp/home"
+  mkdir -p "$home/.agent-state"
+  ln -s "$gate" "$home/.agent-state/machine-gate.sh"
+  env -u FM_TEST_MACHINE_GATE -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    HOME="$home" MACHINE_LINE_DIR="$tmp/default-line" MACHINE_LINE_NAME=fm-test-run \
+    MACHINE_GATE_READ='printf "%s\n" "SLOT FREE = YES"' \
+    "$RUNNER" "$probe" >"$tmp/default.out" 2>"$tmp/default.err"
+  rc=$?
+  [ "$rc" -eq 0 ] || { rm -rf "$tmp"; fail "default gate path failed: $rc $(cat "$tmp/default.err")"; }
+  [ "$(line_row_count "$tmp/default-line/log.tsv" start "cap 180m")" = 1 ] \
+    || { rm -rf "$tmp"; fail "default gate path did not record a start row"; }
+  [ "$(line_row_count "$tmp/default-line/log.tsv" end "^rc 0$")" = 1 ] \
+    || { rm -rf "$tmp"; fail "default gate path did not record an end row"; }
+
+  cat >"$probe" <<'SH'
+#!/usr/bin/env bash
+n=0
+[ -f "$COUNT" ] && n=$(cat "$COUNT")
+n=$((n + 1))
+printf '%s\n' "$n" >"$COUNT"
+exit 75
+SH
+  chmod +x "$probe"
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$tmp/failed" MACHINE_LINE_NAME=fm-test-run \
+    MACHINE_GATE_READ='printf "%s\n" "SLOT FREE = YES"' \
+    FM_TEST_MACHINE_LINE_RETRY_SECS=1 COUNT="$tmp/count" \
+    "$RUNNER" "$probe" >"$tmp/failed.out" 2>"$tmp/failed.err" &
+  pid=$!
+  deadline=$((SECONDS + 8))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.25
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill_pid_tree "$pid"
+    wait "$pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "a failing suite was retried as if the turn was refused"
+  fi
+  wait "$pid"
+  rc=$?
+  count=$(cat "$tmp/count" 2>/dev/null || echo 0)
+  # The runner reports one suite failure as exit 1, including a script that
+  # itself exits 75. That 75 must not be read as a refused turn.
+  [ "$rc" -eq 1 ] || { rm -rf "$tmp"; fail "failing suite exited $rc"; }
+  [ "$count" = 1 ] || { rm -rf "$tmp"; fail "failing suite ran $count times"; }
+  [ "$(line_row_count "$tmp/failed/log.tsv" end "^rc 1$")" = 1 ] \
+    || { rm -rf "$tmp"; fail "failing suite did not record a single end row"; }
+  rm -rf "$tmp"
+  pass "the suite takes and releases the machine line and keeps a lower priority"
+}
+
+test_machine_line_second_run_does_not_overlap() {
+  local tmp gate line probe_a probe_b a_pid b_pid events deadline debug err
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-overlap.XXXXXX")
+  write_machine_gate_standin "$tmp/machine-gate.sh"
+  gate="$tmp/machine-gate.sh"
+  line="$tmp/line"
+  events="$tmp/events"
+  : >"$events"
+  probe_a="$tmp/a.test.sh"
+  probe_b="$tmp/b.test.sh"
+  cat >"$probe_a" <<'SH'
+#!/usr/bin/env bash
+printf 'A-in\n' >>"$EVENTS"
+while [ ! -f "$RELEASE" ]; do sleep 0.05; done
+printf 'A-out\n' >>"$EVENTS"
+SH
+  cat >"$probe_b" <<'SH'
+#!/usr/bin/env bash
+printf 'B-in\n' >>"$EVENTS"
+SH
+  chmod +x "$probe_a" "$probe_b"
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$line" MACHINE_LINE_NAME=fm-test-run \
+    FM_TEST_MACHINE_LINE_RETRY_SECS=1 EVENTS="$events" RELEASE="$tmp/release" \
+    "$RUNNER" "$probe_a" >"$tmp/a.out" 2>"$tmp/a.err" &
+  a_pid=$!
+  deadline=$((SECONDS + 15))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    grep -qx A-in "$events" 2>/dev/null && [ "$(line_row_count "$line/log.tsv" start "cap 180m")" = 1 ] && break
+    sleep 0.1
+  done
+  grep -qx A-in "$events" 2>/dev/null || {
+    err=$(cat "$tmp/a.err" 2>/dev/null || true)
+    kill_pid_tree "$a_pid"
+    wait "$a_pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "first suite never entered its probe: $err"
+  }
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$line" MACHINE_LINE_NAME=fm-test-run \
+    FM_TEST_MACHINE_LINE_RETRY_SECS=1 EVENTS="$events" \
+    "$RUNNER" "$probe_b" >"$tmp/b.out" 2>"$tmp/b.err" &
+  b_pid=$!
+  sleep 1.2
+  if grep -qx B-in "$events" 2>/dev/null; then
+    kill_pid_tree "$a_pid" "$b_pid"
+    wait "$a_pid" 2>/dev/null || true
+    wait "$b_pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "second suite ran while the first still held the line"
+  fi
+  grep -q "NOT STARTED" "$tmp/b.err" || {
+    err=$(cat "$tmp/b.err" 2>/dev/null || true)
+    kill_pid_tree "$a_pid" "$b_pid"
+    wait "$a_pid" 2>/dev/null || true
+    wait "$b_pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "second suite was not refused while the line was held: $err"
+  }
+  : >"$tmp/release"
+  deadline=$((SECONDS + 15))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    kill -0 "$a_pid" 2>/dev/null || kill -0 "$b_pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  if kill -0 "$a_pid" 2>/dev/null || kill -0 "$b_pid" 2>/dev/null; then
+    {
+      echo "events=$(tr '\n' '|' <"$events" 2>/dev/null || true)"
+      echo "release_exists=$([ -f "$tmp/release" ] && echo yes || echo no)"
+      echo "--- a.err ---"
+      cat "$tmp/a.err" 2>/dev/null || true
+      echo "--- b.err ---"
+      cat "$tmp/b.err" 2>/dev/null || true
+      echo "--- log ---"
+      cat "$line/log.tsv" 2>/dev/null || true
+      echo "--- ps ---"
+      ps -o pid,ppid,state,command -p "$a_pid","$b_pid" 2>/dev/null || true
+    } >"$tmp/debug.txt"
+    debug=$(cat "$tmp/debug.txt")
+    kill_pid_tree "$a_pid" "$b_pid"
+    wait "$a_pid" 2>/dev/null || true
+    wait "$b_pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "suites did not finish after the line was released: $debug"
+  fi
+  wait "$a_pid"
+  wait "$b_pid"
+  [ "$(cat "$events")" = $'A-in\nA-out\nB-in' ] \
+    || { err=$(tr '\n' ' ' <"$events"); rm -rf "$tmp"; fail "overlap order was $err"; }
+  [ "$(line_row_count "$line/log.tsv" start "cap 180m")" = 2 ] \
+    || { rm -rf "$tmp"; fail "expected two start rows after both suites"; }
+  [ "$(line_row_count "$line/log.tsv" end "^rc 0$")" = 2 ] \
+    || { rm -rf "$tmp"; fail "expected two end rows after both suites"; }
+  rm -rf "$tmp"
+  pass "a second suite waits until the first releases the machine line"
+}
+
+test_machine_line_absent_or_inspection_does_not_take_the_turn
+test_machine_line_takes_and_releases
+test_machine_line_second_run_does_not_overlap
 test_list_all_exact_suite_coverage
 test_family_selection
 test_single_script_selection
