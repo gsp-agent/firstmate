@@ -77,7 +77,11 @@
 #   validated state/<id>.meta, so --backend, --scout, --secondmate, a project
 #   positional, and batch pairs are all refused alongside it; only harness,
 #   model, and effort may change, which is what makes a harness switch one
-#   ordinary relaunch. It refuses unless the recorded endpoint is positively
+#   ordinary relaunch. A relaunch whose recorded harness is cursor resolves
+#   cursor versus grok through bin/fm-cursor-guard.sh; --harness grok does not
+#   bypass that decision. The guard stays on cursor, or it returns a grok
+#   reason and that reason is written before grok launches.
+#   It refuses unless the recorded endpoint is positively
 #   agent-free on a backend with a recovery-grade agent-state classifier (tmux
 #   or herdr), and clears the previous harness's per-task wiring before arming
 #   the new incarnation. Two verdicts are agent-free: a `dead` endpoint is
@@ -2445,15 +2449,46 @@ launch_template() {
   esac
 }
 
+# A recorded cursor task cannot be relaunched onto grok by naming the harness.
+# The guard decides, and a grok model passed with that bypass does not replace
+# the cursor profile when the guard stays on cursor.
+if [ "$RELAUNCH" -eq 1 ] && [ "$KIND" != secondmate ] \
+  && [ "$RELAUNCH_PRIOR_HARNESS" = cursor ] && [ "$ARG3" = grok ]; then
+  ARG3=cursor
+  recorded_model=$(fm_meta_get "$RELAUNCH_META" model)
+  recorded_effort=$(fm_meta_get "$RELAUNCH_META" effort)
+  if [ -n "$recorded_model" ] && [ "$recorded_model" != default ]; then
+    MODEL=$recorded_model
+  else
+    MODEL=
+  fi
+  if [ -n "$recorded_effort" ] && [ "$recorded_effort" != default ]; then
+    EFFORT=$recorded_effort
+  else
+    EFFORT=
+  fi
+fi
+
 # Deterministic Cursor fallback (no model judgment): usage at the threshold, no or
 # stale usage file, or this bead's last Cursor run hit a usage limit => bare Grok.
+# Relaunch also treats the daily cap as a grok reason (fm-cursor-guard.sh).
 if [ "$ARG3" = cursor ] && [ "$KIND" != secondmate ]; then
-  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="grok fallback check failed"
+  if [ "$RELAUNCH" -eq 1 ]; then
+    CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID" relaunch) || CURSOR_FALLBACK="grok fallback check failed"
+  else
+    CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="grok fallback check failed"
+  fi
   case "$CURSOR_FALLBACK" in
   grok*)
-    echo "cursor fallback: launching $ID on the grok harness (grok-4.7 xhigh): ${CURSOR_FALLBACK#grok }" >&2
+    CURSOR_FALLBACK_REASON=${CURSOR_FALLBACK#grok }
+    echo "cursor fallback: launching $ID on the grok harness (grok-4.7 xhigh): $CURSOR_FALLBACK_REASON" >&2
     ARG3=grok MODEL=grok-4.7 EFFORT=xhigh
-    printf '%s\n' "${CURSOR_FALLBACK#grok }" > "$STATE/$ID.cursor-fallback"
+    # The daily cap writes state/<id>.cursor-limit itself. Other reasons stay in
+    # state/<id>.cursor-fallback, which a later launch does not treat as sticky.
+    case "$CURSOR_FALLBACK_REASON" in
+      "cursor guard: refused "*) ;;
+      *) printf '%s\n' "$CURSOR_FALLBACK_REASON" > "$STATE/$ID.cursor-fallback" ;;
+    esac
     ;;
   esac
 fi

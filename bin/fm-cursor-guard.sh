@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # fm-cursor-guard.sh - guards around a Cursor code worker. No model judgment.
-#   fallback <id>      prints "cursor" or "grok <reason>". Grok (bare CLI, grok-4.7 xhigh) when
+#   fallback <id> [relaunch]
+#                      prints "cursor" or "grok <reason>". Grok (bare CLI, grok-4.7 xhigh) when
 #                      the newest <usage dir>/*-spending.txt says cursor_models_pct >= the
 #                      crew-dispatch.json cursor_fallback.models_pct (default 85), or there is no
 #                      readable file, or it is older than max_age_h (default 26) by mtime, or the
 #                      bead's last Cursor run hit a usage limit (state/<id>.cursor-limit), or the
 #                      pstack plugin dir's plugin.json version is not pstack_version (0.15.21).
+#                      With relaunch, a bead that already launched twice today (America/Chicago)
+#                      is also grok. That reason is written to state/<id>.cursor-limit and forces
+#                      grok only on that Chicago day; a later day drops the record. A fresh
+#                      fallback does not apply the daily cap, so take still refuses the 3rd launch.
 #   take <id>          before a cursor launch; a bead's 3rd launch in one America/Chicago day is
 #                      refused (exit 1, one stderr line). Counts in state/cursor-dispatch.json.
 #   give <id>          give the launch back when the spawn failed.
@@ -22,7 +27,7 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 USAGE="${FM_CURSOR_USAGE_DIR:-$HOME/.agent-state/a3ov3/cursor-usage}"
 op=${1:-}; id=${2:-}
 case "$op" in take | give | fallback | after) ;; *) op= ;; esac
-[ -n "$op" ] && [ -n "$id" ] || { echo "usage: fm-cursor-guard.sh take|give|fallback <bead-id> | after <bead-id> <rc>" >&2; exit 2; }
+[ -n "$op" ] && [ -n "$id" ] || { echo "usage: fm-cursor-guard.sh take|give|fallback <bead-id> | fallback <bead-id> relaunch | after <bead-id> <rc>" >&2; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "cursor guard: jq required" >&2; exit 1; }
 mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0; }
 
@@ -47,7 +52,24 @@ if [ "$op" = fallback ]; then
   [ ! -r "$CONFIG/crew-dispatch.json" ] || want=$(jq -r '.pstack_version // "0.15.21"' "$CONFIG/crew-dispatch.json" 2>/dev/null || echo 0.15.21)
   have=$(jq -r '.version // empty' "${FM_PSTACK_DIR:-$HOME/dev/pstack/pstack}/.cursor-plugin/plugin.json" 2>/dev/null)
   if [ "$have" != "$want" ]; then echo "grok pstack plugin version is '${have:-unreadable}', not the pinned $want"; exit 0; fi
-  if [ -s "$STATE/$id.cursor-limit" ]; then echo "grok $(head -1 "$STATE/$id.cursor-limit")"; exit 0; fi
+  DAY=${FM_CURSOR_DAY:-$(TZ=America/Chicago date +%F)}
+  if [ -s "$STATE/$id.cursor-limit" ]; then
+    line=$(head -1 "$STATE/$id.cursor-limit")
+    case "$line" in
+      "cursor guard: refused "*" today ($DAY)"*)
+        echo "grok $line"
+        exit 0
+        ;;
+      # The daily cap is one Chicago day. A usage-limit line has no "today (date)" and stays.
+      "cursor guard: refused "*" today ("*)
+        rm -f "$STATE/$id.cursor-limit"
+        ;;
+      *)
+        echo "grok $line"
+        exit 0
+        ;;
+    esac
+  fi
   # Newest-by-mtime needs ls -t; find has no portable equivalent on macOS.
   # shellcheck disable=SC2012
   f=$(ls -t "$USAGE"/*-spending.txt 2>/dev/null | head -1)
@@ -57,6 +79,19 @@ if [ "$op" = fallback ]; then
   pct=$(sed -n 's/^cursor_models_pct=//p' "$f" | tail -1)
   case "$pct" in '' | *[!0-9]*) echo "grok cursor_models_pct missing or not an integer in $(basename "$f")"; exit 0 ;; esac
   if [ "$pct" -ge "$pct_max" ]; then echo "grok Cursor Models at ${pct}% (limit ${pct_max}%)"; exit 0; fi
+  if [ "${3:-}" = relaunch ]; then
+    cap_n=0
+    if [ -s "$STATE/cursor-dispatch.json" ]; then
+      cap_n=$(jq -r --arg d "$DAY" --arg id "$id" 'if .day == $d then (.beads[$id] // 0) else 0 end' "$STATE/cursor-dispatch.json" 2>/dev/null || echo 0)
+    fi
+    case "$cap_n" in '' | *[!0-9]*) cap_n=0 ;; esac
+    if [ "$cap_n" -ge 2 ]; then
+      line="cursor guard: refused $id, already launched $cap_n times today ($DAY); write blocked: instead of a 3rd run"
+      printf '%s\n' "$line" > "$STATE/$id.cursor-limit"
+      echo "grok $line"
+      exit 0
+    fi
+  fi
   echo cursor; exit 0
 fi
 
