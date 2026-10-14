@@ -30,7 +30,7 @@ if [ "$op" = after ]; then
   rc=${3:-0}
   sleep 1  # let the tee in the pane command flush the stream
   S="$STATE/$id.cursor-stream.jsonl"
-  if [ "$rc" != 0 ] && [ -r "$S" ] && grep -qiE 'usage limit|usage_limit|rate.?limit|\b429\b|out of usage|exceeded.*(quota|limit)' "$S"; then
+  if [ "$rc" != 0 ] && [ -r "$S" ] && grep -qiE 'usage limit|usage_limit|rate.?limit|\b429\b|out of usage|\bexceeded\b.*(quota|limit)' "$S"; then
     printf 'cursor run for %s exited %s on a usage-limit/429 error; next launch goes to grok\n' "$id" "$rc" > "$STATE/$id.cursor-limit"
     cat "$STATE/$id.cursor-limit" >&2
   fi
