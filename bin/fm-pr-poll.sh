@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Static watcher program for a validated pull request, merge request, or Gerrit
 # change poll sidecar.
-# It emits exactly one merged line for a merged change. A GitHub pull request
-# verified into the merge queue, by this poll or by bin/fm-pr-merge.sh, emits
-# a `dequeued <url> reason=<token> event=<id>` line for each unreported removal
-# while unmerged. The token is GitHub's removal reason, or `unreadable` when that
+# It emits exactly one merged line for a merged change. An unmerged GitHub
+# pull request outside the merge queue emits
+# a `dequeued <url> reason=<token> event=<id>` line for its latest unreported
+# removal. The token is GitHub's removal reason, or `unreadable` when that
 # reason is not a short token. Every other reading, including every error,
 # stays silent, so a failed lookup can never be read as a merge. The
 # provider-tagged identity is data in the sidecar and is never
@@ -82,70 +82,34 @@ poll_private() {
   [ "$device" = "$state_device" ]
 }
 
-# Queue markers contain a version and URL; departure markers also contain
-# the removal event ID. Format owner for both files is this
+# Departure markers contain a version, URL, and removal event ID.
+# Format owner for the marker is this
 # script.
 poll_marker_matches() {
-  local path=$1 version=$2 expect_url=$3 expect_event=${4-} got_version got_url got_event='' _extra
+  local path=$1 expect_url=$2 expect_event=$3 got_version got_url got_event _extra
   poll_private "$path" || return 1
   exec 8< "$path" || return 1
-  if ! IFS= read -r got_version <&8 || ! IFS= read -r got_url <&8; then
+  if ! IFS= read -r got_version <&8 || ! IFS= read -r got_url <&8 \
+    || ! IFS= read -r got_event <&8; then
     exec 8<&-
     return 1
-  fi
-  if [ -n "$expect_event" ]; then
-    if ! IFS= read -r got_event <&8; then
-      exec 8<&-
-      return 1
-    fi
   fi
   if IFS= read -r _extra <&8; then
     exec 8<&-
     return 1
   fi
   exec 8<&-
-  [ "$got_version" = "$version" ] && [ "$got_url" = "$expect_url" ] \
+  [ "$got_version" = fm-pr-poll-queue-dropped-v1 ] && [ "$got_url" = "$expect_url" ] \
     && [ "$got_event" = "$expect_event" ]
 }
 
-poll_write_lines() {
-  local dest=$1 tmp
-  shift
-  poll_id_usable || return 1
-  [ ! -L "$dest" ] || return 1
-  if [ -e "$dest" ] && [ ! -f "$dest" ]; then
-    return 1
-  fi
-  tmp=$(mktemp "$poll_state/.fm-pr-poll-queue.XXXXXX") || return 1
-  if printf '%s\n' "$@" > "$tmp" \
-    && chmod 0600 "$tmp" \
-    && poll_private "$tmp" \
-    && [ ! -L "$dest" ] \
-    && { [ ! -e "$dest" ] || [ -f "$dest" ]; } \
-    && mv -f -- "$tmp" "$dest" \
-    && poll_private "$dest"; then
-    return 0
-  fi
-  rm -f -- "$tmp"
-  return 1
-}
-
-poll_record_queued() {
-  local queue
-  poll_id_usable || return 0
-  queue="$poll_state/$poll_id.pr-poll-queue"
-  poll_write_lines "$queue" fm-pr-poll-queue-v1 "$url" || return 0
-}
-
 poll_emit_dequeue() {
-  local queue dropped
+  local dropped
   poll_id_usable || return 0
   [ -n "$GH_POLL_EVENT" ] || return 0
-  queue="$poll_state/$poll_id.pr-poll-queue"
   dropped="$poll_state/$poll_id.pr-poll-queue-dropped"
-  poll_marker_matches "$queue" fm-pr-poll-queue-v1 "$url" || return 0
   if [ -e "$dropped" ] || [ -L "$dropped" ]; then
-    if poll_marker_matches "$dropped" fm-pr-poll-queue-dropped-v1 "$url" "$GH_POLL_EVENT"; then
+    if poll_marker_matches "$dropped" "$url" "$GH_POLL_EVENT"; then
       return 0
     fi
     # A private marker for another departure can be replaced. Anything else
@@ -216,7 +180,6 @@ github_poll() {
     return 0
   fi
   if [ "$GH_POLL_QUEUED" = true ]; then
-    poll_record_queued
     return 0
   fi
   poll_emit_dequeue

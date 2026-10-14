@@ -1399,42 +1399,32 @@ fm_pr_poll_retirement_publish() {
 
 # A missing marker is success. A symlink or directory is refused so removal
 # does not follow it. Format owner: bin/fm-pr-poll.sh.
-fm_pr_poll_queue_marker_remove_one() {  # <path>
-  local path=$1
+fm_pr_poll_dequeue_marker_remove() {  # <state> <id>
+  local state=$1 id=$2 path
+  fm_pr_task_id_valid "$id" || return 1
+  path="$state/$id.pr-poll-queue-dropped"
   [ -e "$path" ] || [ -L "$path" ] || return 0
   [ -f "$path" ] && [ ! -L "$path" ] || return 1
   rm -f -- "$path"
 }
 
-fm_pr_poll_queue_markers_remove() {  # <state> <id>
-  local state=$1 id=$2
-  fm_pr_task_id_valid "$id" || return 1
-  fm_pr_poll_queue_marker_remove_one "$state/$id.pr-poll-queue" || return 1
-  fm_pr_poll_queue_marker_remove_one "$state/$id.pr-poll-queue-dropped"
-}
-
-# Format owner: bin/fm-pr-poll.sh. Records a verified merge-queue entry or
-# a published departure identified by its removal event.
-fm_pr_poll_queue_record() {  # <state> <id> <url> [removal-event]
-  local state=$1 id=$2 url=$3 event=${4-} marker tmp state_device
-  local lines=(fm-pr-poll-queue-v1 "$url")
+# Format owner: bin/fm-pr-poll.sh. Records a published departure identified
+# by its removal event.
+fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
+  local state=$1 id=$2 url=$3 event=$4 marker tmp state_device
   fm_pr_task_id_valid "$id" || return 1
   [ -n "$url" ] || return 1
   [ -d "$state" ] && [ ! -L "$state" ] || return 1
   state_device=$(fm_pr_file_device "$state") || return 1
-  marker="$state/$id.pr-poll-queue"
-  if [ "$#" -eq 4 ]; then
-    case "$event" in
-      ''|*[!A-Za-z0-9_+/=-]*) return 1 ;;
-    esac
-    [ "${#event}" -le 256 ] || return 1
-    marker="$marker-dropped"
-    lines=(fm-pr-poll-queue-dropped-v1 "$url" "$event")
-  fi
+  case "$event" in
+    ''|*[!A-Za-z0-9_+/=-]*) return 1 ;;
+  esac
+  [ "${#event}" -le 256 ] || return 1
+  marker="$state/$id.pr-poll-queue-dropped"
   fm_pr_regular_destination_on_device_or_absent "$marker" "$state_device" || return 1
   umask 077
   tmp=$(mktemp "$state/.fm-pr-poll-queue.XXXXXX") || return 1
-  if ! printf '%s\n' "${lines[@]}" > "$tmp" \
+  if ! printf '%s\n' fm-pr-poll-queue-dropped-v1 "$url" "$event" > "$tmp" \
     || ! chmod 0600 "$tmp" \
     || ! fm_pr_private_file_valid "$tmp" 600 "$state_device" \
     || ! fm_pr_regular_destination_on_device_or_absent "$marker" "$state_device" \
@@ -1459,7 +1449,7 @@ fm_pr_poll_retirement_recover_one() {
     return 1
   fi
   state_device=$(fm_pr_file_device "$state") || return 1
-  fm_pr_poll_queue_markers_remove "$state" "$id" || return 1
+  fm_pr_poll_dequeue_marker_remove "$state" "$id" || return 1
   check="$state/$id.check.sh"
   data="$state/$id.pr-poll"
   registration="$state/$id.pr-poll-registration"

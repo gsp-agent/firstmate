@@ -168,8 +168,8 @@ case "${1:-} ${2:-}" in
         "$FM_TEST_REAL_JQ" -n --arg state "$state" --argjson merged "$merged" \
           --argjson queued "${FM_TEST_GH_POLL_QUEUED:-false}" \
           --arg reason "${FM_TEST_GH_POLL_REASON-}" \
-          --arg event "${FM_TEST_GH_POLL_EVENT-MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==}" \
-          '{data:{repository:{pullRequest:{state:$state,merged:$merged,isInMergeQueue:$queued,timelineItems:{nodes:[{id:$event,reason:$reason}]}}}}}' \
+          --arg event "${FM_TEST_GH_POLL_EVENT-}" \
+          '{data:{repository:{pullRequest:{state:$state,merged:$merged,isInMergeQueue:$queued,timelineItems:{nodes:(if $event == "" then [] else [{id:$event,reason:$reason}] end)}}}}}' \
           | "$FM_TEST_REAL_JQ" -r "$jq_filter"
         exit $?
         ;;
@@ -1515,7 +1515,6 @@ test_teardown_removes_poll_artifacts() {
   printf 'check\n' > "$dir/home/state/task-a.check.sh"
   printf 'data\n' > "$dir/home/state/task-a.pr-poll"
   printf 'registration\n' > "$dir/home/state/task-a.pr-poll-registration"
-  printf 'queue\n' > "$dir/home/state/task-a.pr-poll-queue"
   printf 'dropped\n' > "$dir/home/state/task-a.pr-poll-queue-dropped"
   printf 'trust\n' > "$dir/home/state/task-a.check-trust"
   cat > "$fakebin/tmux" <<'SH'
@@ -1531,7 +1530,6 @@ SH
   [ ! -e "$dir/home/state/task-a.check.sh" ] || fail "teardown left the runnable check"
   [ ! -e "$dir/home/state/task-a.pr-poll" ] || fail "teardown left the sidecar"
   [ ! -e "$dir/home/state/task-a.pr-poll-registration" ] || fail "teardown left the PR poll registration"
-  [ ! -e "$dir/home/state/task-a.pr-poll-queue" ] || fail "teardown left the queue marker"
   [ ! -e "$dir/home/state/task-a.pr-poll-queue-dropped" ] || fail "teardown left the queue departure marker"
   [ ! -e "$dir/home/state/task-a.check-trust" ] || fail "teardown left the custom check registration"
 
@@ -2308,7 +2306,7 @@ add_stop_custom_check() {
 assert_poll_absent() {
   local state=$1 id=$2 suffix
   for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement \
-    pr-poll-queue pr-poll-queue-dropped; do
+    pr-poll-queue-dropped; do
     [ ! -e "$state/$id.$suffix" ] && [ ! -L "$state/$id.$suffix" ] \
       || fail "retired poll left $id.$suffix"
   done
@@ -2317,7 +2315,7 @@ assert_poll_absent() {
 poll_artifact_snapshot() {
   local state=$1 id=$2 suffix path
   for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement \
-    pr-poll-queue pr-poll-queue-dropped meta; do
+    pr-poll-queue-dropped meta; do
     path="$state/$id.$suffix"
     [ -e "$path" ] || [ -L "$path" ] || continue
     if [ -L "$path" ]; then
@@ -3641,10 +3639,9 @@ SH
   pass "device re-record publication waits without rewriting its registration"
 }
 
-# A pull request fm-pr-merge.sh verified into the queue, and that later leaves
-# it unmerged, must wake once with GitHub's removal reason. A merge still wakes
-# as merged alone. An unreadable read, and a poll that was never verified into
-# the queue, stay silent.
+# An unmerged pull request outside the queue with a new removal event must
+# wake once with GitHub's removal reason. A merge still wakes as merged
+# alone. An unreadable read, or a poll with no removal event, stays silent.
 # A follow-up cycle has to acknowledge the previous wake first. Otherwise the
 # watcher re-announces that wake and never reaches the poll, and a missing
 # dequeue line would pass without the poll having run.
@@ -3657,6 +3654,7 @@ expect_stop_cycle() {  # <output> <why>
 
 test_verified_queue_drop_wakes_once() {
   local dir state url rc out
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
   url=https://github.com/o/r/pull/1
 
   dir=$(make_case queue-drop-once)
@@ -3765,21 +3763,36 @@ test_verified_queue_drop_wakes_once() {
   [ "$rc" -eq 0 ] || fail "unreadable drop watcher failed: $(cat "$dir/watch.err")"
   expect_stop_cycle "$dir/watch.out" "unreadable drop woke"
 
-  dir=$(make_case open-poll-not-queued)
+  dir=$(make_case queue-drop-between-polls)
   state="$dir/home/state"
   write_task_meta "$dir" task-a
   run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
-    || fail "unqueued poll: could not arm the merge poll"
+    || fail "unobserved queue: could not arm the merge poll"
   retire_contributions_observer "$dir"
   add_stop_custom_check "$dir"
   set +e
   FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
-    FM_TEST_GH_POLL_REASON=failed_checks \
-    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+    FM_TEST_GH_POLL_EVENT='' \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/empty.out" 2> "$dir/empty.err"
   rc=$?
   set -e
-  [ "$rc" -eq 0 ] || fail "unqueued poll watcher failed: $(cat "$dir/watch.err")"
-  expect_stop_cycle "$dir/watch.out" "poll that was never queued woke as dequeued"
+  [ "$rc" -eq 0 ] || fail "no-event watcher failed: $(cat "$dir/empty.err")"
+  expect_stop_cycle "$dir/empty.out" "a poll with no removal event woke as dequeued"
+  ack_watcher_cycle "$state" || fail "no-event cycle acknowledgement failed"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "unobserved queue drop watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "queue drop between polls did not wake once: $(cat "$dir/watch.out")"
+  [ "$(awk -F '\t' -v key="$state/task-a.check.sh" '$3 == "check" && $4 == key { count++ } END { print count + 0 }' "$state/.wake-queue")" -eq 1 ] \
+    || fail "queue drop between polls did not publish exactly one wake row"
+  ack_watcher_cycle "$state" || fail "unobserved queue drop acknowledgement failed"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/repeat.out" 2> "$dir/repeat.err" \
+    || fail "unobserved queue drop repeat failed: $(cat "$dir/repeat.err")"
+  expect_stop_cycle "$dir/repeat.out" "a handled drop between polls woke again"
 
   dir=$(make_case queue-observed-then-dropped)
   state="$dir/home/state"
@@ -3949,6 +3962,7 @@ test_verified_queue_drop_wakes_once() {
 if [ "${1:-}" = queue-drop ]; then
   test_static_poll_contract
   test_verified_queue_drop_wakes_once
+  test_teardown_removes_poll_artifacts
   exit 0
 fi
 

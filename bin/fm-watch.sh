@@ -2916,7 +2916,7 @@ EOF
         fi
         fm_wake_append check "$c" "$reason" || exit 1
         if [ -n "$dequeue_event" ]; then
-          fm_pr_poll_queue_record "$STATE" "$id" "$url" "$dequeue_event" || exit 1
+          fm_pr_poll_dequeue_record "$STATE" "$id" "$url" "$dequeue_event" || exit 1
         fi
         pr_poll_control_release || exit 1
         touch "$STATE/.last-check"
