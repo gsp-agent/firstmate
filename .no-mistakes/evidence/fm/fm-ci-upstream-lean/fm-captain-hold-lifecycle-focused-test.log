@@ -1,0 +1,5 @@
+Selected original test functions: test_teardown_retains_a_gitlab_captain_call_with_its_merge_request_url, test_answer_before_cleanup_replay_notes_a_retained_gitlab_merge_request
+Forge and terminal boundaries are fixtures; this is not live forge evidence.
+ok - an answer before cleanup replay notes the retained GitLab merge request
+ok - cleanup keeps a captain-held GitLab task open and records its merge request URL
+exit=0

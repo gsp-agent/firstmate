@@ -1,0 +1,47 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-guard.sh fallback sample
+grok no Cursor spending file in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.cursor.vs_go79k/usage
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-guard.sh fallback sample
+cursor
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-guard.sh fallback sample
+grok Cursor Models at 85% (limit 85%)
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-guard.sh fallback sample
+grok newest Cursor spending file is 234798 h old (limit 26 h)
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-guard.sh fallback sample
+grok pstack plugin version is '0.15.22', not the pinned 0.15.21
+exit=0
+
+$ five concurrent fm-cursor-guard.sh take sample calls
+exit=0 
+exit=1 cursor guard: refused sample, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+exit=0 
+exit=1 cursor guard: refused sample, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+exit=1 cursor guard: refused sample, already launched 2 times today (2026-10-14); write blocked: instead of a 3rd run
+
+Persisted cursor-dispatch.json:
+{"day":"2026-10-14","beads":{"sample":2}}
+
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-guard.sh give sample
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-guard.sh take sample
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-guard.sh take second-bead
+cursor guard: removed a stale lock older than 60 s at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.cursor.vs_go79k/state/cursor-dispatch.lock
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-guard.sh take sample
+exit=0
+
+Persisted state after real-day rollover:
+{"day":"2026-10-14","beads":{"sample":1}}
+

@@ -1,0 +1,49 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-branch-dispatch.mjs offer
+stdin: check: rearm-resurface
+eligible=1
+status=safe
+corrupted=0
+rows=1
+tasks=one
+unscoped=0
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-branch-dispatch.mjs offer
+stdin: check: rearm-resurface
+eligible=0
+status=safe
+corrupted=0
+rows=1
+tasks=one
+unscoped=0
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-branch-dispatch.mjs offer
+stdin: check: rearm-resurface
+eligible=0
+status=safe
+corrupted=0
+rows=1
+tasks=one
+unscoped=0
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-branch-dispatch.mjs offer
+stdin: check: rearm-resurface
+eligible=0
+status=unsafe
+corrupted=0
+rows=
+tasks=
+unscoped=0
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-branch-dispatch.mjs offer --afk
+stdin: check: rearm-resurface
+eligible=1
+status=safe
+corrupted=0
+rows=1
+tasks=one
+unscoped=0
+exit=0

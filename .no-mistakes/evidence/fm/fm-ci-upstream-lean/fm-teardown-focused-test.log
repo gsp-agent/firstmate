@@ -1,0 +1,6 @@
+Selected original test functions: test_recorded_request_state_decides_pushed_teardown, test_recorded_request_refuses_when_the_copy_is_gone_or_reassigned, test_teardown_closes_a_gitlab_task_with_its_merge_request_url_as_a_note
+Forge and terminal boundaries are fixtures; this is not live forge evidence.
+ok - teardown closes a landed GitLab task with its merge request URL as a note and a GitHub task with --pr
+ok - a recorded open pull request or merge request keeps the task record until it is merged or closed
+ok - an open or unreadable recorded request keeps the task record when the copy is gone or reassigned
+exit=0

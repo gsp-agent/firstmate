@@ -1,0 +1,63 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-assert.sh
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-assert.sh
+exit=0
+
+Generated Cursor JSON configuration (permission 0600):
+{
+  "network": {
+    "custom": true,
+    "useHttp1ForAgent": true
+  },
+  "existing": "kept",
+  "modelParameters": {
+    "other": [],
+    "grok-4.7": [
+      {
+        "id": "context",
+        "value": "256k"
+      },
+      {
+        "id": "reasoning_effort",
+        "value": "xhigh"
+      },
+      {
+        "id": "fast",
+        "value": "false"
+      }
+    ]
+  }
+}
+
+
+Generated per-role models rule:
+---
+description: pstack per-role model choices (overrides skill defaults)
+alwaysApply: true
+---
+# Written by firstmate bin/fm-cursor-assert.sh before every cursor run. Do not edit.
+# No Opus model on purpose: Opus runs only on the Claude harness.
+feature, refactoring: grok-4.7-xhigh
+bug-fix: grok-4.7-xhigh
+perf-issue: grok-4.7-xhigh
+hillclimb: grok-4.7-xhigh
+judgment and prose: grok-4.7-xhigh
+hardest tasks: grok-4.7-xhigh
+how explorer: grok-4.7-xhigh
+how explainer: grok-4.7-xhigh
+why investigators: grok-4.7-xhigh
+why synthesizer: grok-4.7-xhigh
+reflect tooling: grok-4.7-xhigh
+reflect judgment, divergent, synthesizer: grok-4.7-xhigh
+arena runners: grok-4.7-xhigh, gpt-5.6-sol-xhigh
+arena cross-judge pool: grok-4.7-xhigh, gpt-5.6-sol-xhigh
+swarm workers: grok-4.7-xhigh
+architect runners: grok-4.7-xhigh, gpt-5.6-sol-xhigh
+interrogate reviewers: grok-4.7-xhigh, gpt-5.6-sol-xhigh
+
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-cursor-assert.sh
+jq: parse error: Invalid numeric literal at EOF at line 1, column 8
+error: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.cursor-config.06miz47g/cli-config.json is not valid JSON; not rewriting it
+exit=1

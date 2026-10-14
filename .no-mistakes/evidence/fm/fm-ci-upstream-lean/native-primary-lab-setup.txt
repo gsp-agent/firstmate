@@ -1,0 +1,8 @@
+$ tmux -L fm-lab new-session -d -s primary -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC -e FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/fm-lab.Ln937q codex
+error connecting to /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/fm-lab.Ln937q/tmux/tmux-501/fm-lab (File name too long)
+
+exit=1
+$ tmux -L fm-lab kill-server
+error connecting to /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/fm-lab.Ln937q/tmux/tmux-501/fm-lab (File name too long)
+
+exit=1

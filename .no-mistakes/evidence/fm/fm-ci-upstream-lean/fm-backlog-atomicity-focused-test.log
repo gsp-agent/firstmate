@@ -1,0 +1,4 @@
+Selected original test functions: test_recovery_replays_a_gitlab_close_with_its_merge_request_url_as_a_note
+Forge and terminal boundaries are fixtures; this is not live forge evidence.
+ok - session start replays a recorded GitLab close with its merge request URL as a note
+exit=0

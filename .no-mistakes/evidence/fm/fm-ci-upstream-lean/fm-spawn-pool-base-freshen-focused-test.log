@@ -1,0 +1,6 @@
+Selected original test functions: test_ship_spawn_checks_out_its_branch_before_the_crew_starts, test_ship_branch_survives_a_leftover_and_scouts_get_none
+Forge and terminal boundaries are fixtures; this is not live forge evidence.
+ok - a ship spawn has fm/<task> checked out at the refreshed base before the crew's launch is typed
+ok - a leftover ship branch is moved or resumed without losing work, and a scout slot stays detached
+# all fm-spawn-pool-base-freshen tests passed
+exit=0

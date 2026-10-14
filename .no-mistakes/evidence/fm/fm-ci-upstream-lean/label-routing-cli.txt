@@ -1,0 +1,37 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-dispatch-resolve.sh --labels ''
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'cursor' --model 'grok-4.7-xhigh'
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-dispatch-resolve.sh --labels 'bug, ep-opus'
+dispatch-resolve:
+  status: clear
+  source: label (ep-opus)
+  profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-dispatch-resolve.sh --labels docs-only
+dispatch-resolve:
+  status: clear
+  source: label (docs-only)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-dispatch-resolve.sh --labels docs-only,ep-opus
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+exit=1
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-dispatch-resolve.sh --labels unknown
+dispatch-resolve:
+  status: escalate
+  reason: no label route matched and no default
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-dispatch-resolve.sh --labels ''
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.routing.wmeu2ckx/config/crew-dispatch.json - each default profile effort must be supported by its harness and model
+exit=2

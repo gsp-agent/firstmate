@@ -1,0 +1,169 @@
+Real command: bin/fm-session-start.sh --reemit with a disposable marked FM_HOME.
+Setup uses real tasks-axi: 12 ready rows, one plain in-flight row, one captain-held in-flight row, one blocked followup, and one done history row.
+
+
+================================================================================
+SESSION START (CONTEXT RE-EMIT) - /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.startup.3dsebgve
+================================================================================
+This session already took the helm at its own startup and has only lost its
+context. Lock ownership is re-verified and the durable records below are
+reprinted, but the sweeps startup already reconciled - project clone refresh,
+secondmate convergence and liveness, pending remote handoff
+retry, X-mode artifact writes, and stale Herdr child cleanup - are NOT repeated.
+Queued wakes ARE still drained: they arrived after startup and are this turn work.
+
+LOCK
+--------------------------------------------------------------------------------
+lock acquired: harness pid 73425
+
+BOOTSTRAP
+--------------------------------------------------------------------------------
+(silent - all good)
+
+WAKE QUEUE
+--------------------------------------------------------------------------------
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+================================================================================
+SUPERVISION OPERATING INSTRUCTIONS - primary harness: codex
+================================================================================
+Current state:
+- Lock: held by this session; this session owns normal supervision unless away mode says otherwise.
+- Away/quiet mode: inactive.
+- X mode: inactive; use the default watcher cadence.
+- Ordinary wake: take the next foreground bin/fm-watch-checkpoint.sh checkpoint as directed below.
+
+Mode: Codex foreground checkpoint.
+
+When this session owns supervision and away mode is not active:
+1. Drain first with `bin/fm-wake-drain.sh`.
+   After handling all emitted wakes and reconciling open decisions and unread status lines, run the exact `--ack-through` command printed as `WAKE_ACK_REQUIRED`; until then the work remains durable for idempotent re-handling after interruption.
+2. Source `/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.startup.3dsebgve/config/x-mode.env` first when Relay is active.
+3. First cycle: run one foreground watcher checkpoint with `bin/fm-watch-checkpoint.sh --seconds "${FM_CODEX_WATCH_CHECKPOINT:-180}"`.
+4. Ordinary wake: if the command prints `signal:`, `stale:`, `check:`, or `heartbeat`, drain queued wakes, handle that wake, then start the next checkpoint.
+5. If the command prints `checkpoint:` or exits 124 with no wake, drain queued wakes anyway, process any queued user message now visible to Codex, then start the next checkpoint.
+6. Never use shell `&` or Codex background tasks for firstmate watcher supervision.
+7. Do not run `bin/fm-watch-arm.sh` as Codex's normal supervision command.
+   If it is ever shelled anyway, a backgrounded, piped, or bundled anti-pattern is denied automatically by the PreToolUse seatbelt (`bin/fm-arm-pretool-check.sh`) registered in `.codex/hooks.json`.
+8. Failure or missing cycle only: drain queued wakes, inspect the failure, then start a fresh foreground checkpoint.
+
+Codex cannot reason while a foreground tool call is running.
+The bounded checkpoint returns control regularly so user messages and queued wakes can be handled without relying on background-task wake semantics.
+
+
+================================================================================
+READ-ONCE CONTRACT
+================================================================================
+Everything below is this session start's input: the backlog listing, one line
+per state/*.meta task with its newest state/*.status event, data/projects.md,
+data/secondmates.md, data/captain.md, data/captain-shared.md, data/learnings.md.
+Do NOT re-read any of them after reading this digest, and do NOT bulk-read
+data/backlog.md, state/*.meta, or state/*.status.
+Go to a source only when it was flagged ABSENT or looked corrupt; when acting on
+one task (state/<id>.meta, state/<id>.status, bin/fm-crew-state.sh <id>,
+bin/fm-tasks-axi.sh show <id> --full); when omitted queued items matter; when
+NETWORK CHECKS is still IN PROGRESS (bin/fm-startup-network.sh report); or when
+a STARTUP TRUNCATED banner named the stage that would have printed it, whose
+sources were then never emitted.
+
+================================================================================
+FLEET STATE
+================================================================================
+
+data/backlog.md
+--------------------------------------------------------------------------------
+compact backlog listing (tasks-axi; done rows omitted; every in-flight, held, and blocked row shown, one capped line each; ready queued bounded to 10; task bodies omitted)
+
+in flight:
+count: 2
+tasks[2]{id,state,kind,repo,title,blocked_by,hold_kind,hold_reason}:
+  held-flight,in_flight,ship,sample,Held flight work,none,captain,"captain choice pending"
+(1 of them have a live task record and are listed once, with title, under Work under way below)
+
+held (captain- or time-gated; an in-flight item that is also held appears in both groups):
+count: 1
+tasks[1]{id,state,kind,repo,title,blocked_by,hold_kind,hold_reason}:
+  held-flight,in_flight,ship,sample,Held flight work,none,captain,"captain choice pending"
+
+blocked queued:
+count: 1
+tasks[1]{id,state,kind,repo,title,blocked_by,hold_kind,hold_reason}:
+  blocked-followup,queued,ship,sample,Blocked followup,plain-flight,"-","-"
+
+ready queued (dispatchable now):
+count: 12
+ready[12]{id,state,kind,repo,title}:
+  ready-01,queued,ship,sample,Ready item 1
+  ready-02,queued,ship,sample,Ready item 2
+  ready-03,queued,ship,sample,Ready item 3
+  ready-04,queued,ship,sample,Ready item 4
+  ready-05,queued,ship,sample,Ready item 5
+  ready-06,queued,ship,sample,Ready item 6
+  ready-07,queued,ship,sample,Ready item 7
+  ready-08,queued,ship,sample,Ready item 8
+  ready-09,queued,ship,sample,Ready item 9
+  ready-10,queued,ship,sample,Ready item 10
+ready_public_followups: 0 delivery-ready obligations
+(shown 10 of 12 ready queued item(s))
+(2 more queued - bin/fm-tasks-axi.sh ready)
+Full task bodies remain available on demand: bin/fm-tasks-axi.sh show <id> --full when compatible tasks-axi is available, or data/backlog.md.
+
+Work under way (state/*.meta)
+--------------------------------------------------------------------------------
+One line per task: id [endpoint, named only when not alive; kind harness/model, PR] backlog title -- last: newest status event (wake history, not current state; capped at 150 characters, the title shortening first so the event keeps 60).
+Full record state/<id>.meta, event history state/<id>.status, current state bin/fm-crew-state.sh <id>.
+held-flight [endpoint unknown (no window recorded); ship codex/gpt-6.1-sol] Held flight work -- last: working: newest event
+plain-flight [endpoint unknown (no window recorded); ship codex/gpt-6.1-sol] Plain flight work, with a comma -- last: working: newest event
+
+Orphan status logs (state/*.status without matching .meta)
+--------------------------------------------------------------------------------
+(none)
+
+AFK
+--------------------------------------------------------------------------------
+absent
+
+================================================================================
+NETWORK CHECKS
+================================================================================
+completed off the startup path in 1s: GitHub authentication.
+(silent - no problems found)
+
+================================================================================
+CONTEXT
+================================================================================
+
+data/projects.md
+--------------------------------------------------------------------------------
+ABSENT
+
+data/secondmates.md
+--------------------------------------------------------------------------------
+ABSENT
+
+data/captain.md
+--------------------------------------------------------------------------------
+ABSENT
+
+data/captain-shared.md (shared, main-authoritative, read-only in secondmate homes)
+--------------------------------------------------------------------------------
+ABSENT
+
+data/learnings.md
+--------------------------------------------------------------------------------
+ABSENT
+
+================================================================================
+NEXT STEP
+================================================================================
+Follow the supervision operating instructions block above for harness 'codex'.
+This script never starts supervision itself.
+
+The digest above is complete for this session start. The READ-ONCE CONTRACT
+section near the top of it governs what may still be read from disk.
+exit=0

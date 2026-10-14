@@ -1,0 +1,12 @@
+Selected original test functions: test_codex_sol_threads_max_effort, test_grok_threads_xhigh_reasoning_effort, test_claude_crewmate_launch_carries_the_attribution_policy, test_cursor_threads_model_workspace_and_omits_effort_axis, test_cursor_refuses_model_absent_from_live_catalog, test_cursor_third_launch_and_fallback, test_cursor_failed_catalog_probe_blocks_spawn
+Forge and terminal boundaries are fixtures; this is not live forge evidence.
+ok - codex Sol receives model_reasoning_effort max profile flags
+ok - grok receives xhigh reasoning effort
+ok - cursor receives its model-qualified reasoning class and exact task workspace
+ok - cursor refuses model ids absent from its resolved binary's live catalog
+ok - cursor spawn refuses a bead's 3rd launch in a day
+ok - cursor spawn falls back to grok at the usage threshold
+ok - cursor refuses to launch when its live catalog cannot be read
+ok - a claude crewmate launch carries the attribution-off policy in its own settings
+# all fm-spawn-dispatch-profile tests passed
+exit=0

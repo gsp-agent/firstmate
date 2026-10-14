@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Workflow normalized event semantics",
+    "result": "pass"
+  },
+  {
+    "name": "Label dispatch and adversarial refusals",
+    "result": "pass"
+  },
+  {
+    "name": "Cursor usage and concurrent per-bead cap",
+    "result": "pass"
+  },
+  {
+    "name": "Cursor generated configuration contract",
+    "result": "pass"
+  },
+  {
+    "name": "Recovery notification routing",
+    "result": "pass"
+  },
+  {
+    "name": "Startup compact digest with real tasks-axi",
+    "result": "pass"
+  },
+  {
+    "name": "Fresh oversized brief refusal before worker publication",
+    "result": "pass"
+  }
+]

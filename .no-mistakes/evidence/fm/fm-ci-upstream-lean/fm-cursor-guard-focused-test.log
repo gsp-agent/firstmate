@@ -1,0 +1,12 @@
+Selected original test functions: guard take/give/fallback/after including GNU-stat regression fixture
+Forge and terminal boundaries are fixtures; this is not live forge evidence.
+ok - no distinct-bead cap; a bead's 3rd launch in a day is refused
+ok - failed spawns give the launch back
+ok - day rollover resets the count
+ok - mkdir lock honoured; a stale one is removed
+ok - fallback at 84/85, missing file, stale file, bad value
+ok - GNU stat supports spending age and stale-lock recovery
+ok - a pstack plugin version other than the pin falls back to grok
+ok - a usage-limit error is recorded and the bead's next launch goes to grok
+ok - exceededLimit false is not a usage limit; an exceeded-quota line is
+exit=0

@@ -1,0 +1,59 @@
+Take-over 1: retained announced generation and unacknowledged queued notification.
+
+Take-over 2: retained announced generation and unacknowledged queued notification.
+
+Take-over 3: retained announced generation and unacknowledged queued notification.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch-arm.sh --stop
+watcher: stopped pid=93237
+exit=0
+
+Ordinary re-arm after stopping the covered watcher resurfaced the pending notification.
+
+Final home-scoped stop:
+watcher: none running
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch-arm.sh
+watcher: started pid=62458 (beacon fresh)
+watcher: FAILED - watcher cycle exited 143 without an actionable reason
+exit=143
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch-arm.sh --take-over 62012
+watcher: started pid=68656 (beacon fresh)
+watcher: FAILED - watcher cycle exited 143 without an actionable reason
+exit=143
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch-arm.sh --take-over 65836
+watcher: started pid=81287 (beacon fresh)
+watcher: FAILED - watcher cycle exited 143 without an actionable reason
+exit=143
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch-arm.sh --take-over 77123
+watcher: started pid=93237 (beacon fresh)
+watcher: FAILED - watcher cycle exited 143 without an actionable reason
+exit=143
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch-arm.sh
+watcher: started pid=4316 (beacon fresh)
+check: rearm-resurface
+exit=0
+
+Persisted .watch-cycle-exits.log:
+arm_pid=62012	watcher_pid=62458	origin=started	started_at=1791960474	ended_at=1791960476	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=1	lock_before=pid:62458|identity:Wed Oct 14 01:47:54 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=65836	watcher_pid=62458	origin=attached	started_at=1791960476	ended_at=1791960477	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=2	lock_before=pid:62458|identity:Wed Oct 14 01:47:54 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:68656
+arm_pid=65836	watcher_pid=68656	origin=started	started_at=1791960477	ended_at=1791960481	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=2	lock_before=pid:68656|identity:Wed Oct 14 01:47:57 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=77123	watcher_pid=68656	origin=attached	started_at=1791960481	ended_at=1791960482	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=3	lock_before=pid:68656|identity:Wed Oct 14 01:47:57 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:81287
+arm_pid=77123	watcher_pid=81287	origin=started	started_at=1791960482	ended_at=1791960486	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=2	lock_before=pid:81287|identity:Wed Oct 14 01:48:02 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=90680	watcher_pid=81287	origin=attached	started_at=1791960485	ended_at=1791960486	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=2	lock_before=pid:81287|identity:Wed Oct 14 01:48:02 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:93237
+arm_pid=90680	watcher_pid=93237	origin=started	started_at=1791960486	ended_at=1791960490	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=1	lock_before=pid:93237|identity:Wed Oct 14 01:48:06 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=4166	watcher_pid=4316	origin=started	started_at=1791960491	ended_at=1791960492	exit_code=0	signal=none	reason=actionable-check	beacon_age=0	lock_before=pid:4316|identity:Wed Oct 14 01:48:10 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+
+
+Persisted .watcher-down:
+announced:downtime:4316.1791960491.9IJQji
+
+
+Persisted .wake-queue:
+10	10	check	already	check: already delivered
+

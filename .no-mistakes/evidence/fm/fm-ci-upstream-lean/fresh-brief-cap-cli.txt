@@ -1,0 +1,10 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-brief.sh oversized-live-check sample --mode local-only
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.brief-cap.q1cym9d8/data/oversized-live-check/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/bin/fm-spawn.sh oversized-live-check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.brief-cap.q1cym9d8/projects/sample --mode local-only --yolo off --harness codex --model gpt-6.1-sol --effort max
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.brief-cap.q1cym9d8
+error: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WC6DSVCZYV3JHA2XEB61FC/.nm-test-tmp/fm-lab.brief-cap.q1cym9d8/data/oversized-live-check/brief.md has a # Task section of 2115 bytes, over the 2048-byte cap; keep the ask short and link to the bead, PR or file for the detail instead of pasting it
+exit=1
+
+No worker metadata or status was published for the refused oversized brief.

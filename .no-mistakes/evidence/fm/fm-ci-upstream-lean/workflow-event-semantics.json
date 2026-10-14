@@ -1,0 +1,62 @@
+{
+  "baseline": {
+    "push": {
+      "branches": [
+        "main"
+      ]
+    },
+    "pull_request": {
+      "branches": [
+        "main"
+      ]
+    }
+  },
+  "target": {
+    "push": {
+      "branches": [
+        "main",
+        "upstream-lean"
+      ]
+    },
+    "pull_request": {
+      "branches": [
+        "main",
+        "upstream-lean"
+      ]
+    }
+  },
+  "event_match": [
+    {
+      "event": "push",
+      "branch": "main",
+      "eligible": true
+    },
+    {
+      "event": "push",
+      "branch": "upstream-lean",
+      "eligible": true
+    },
+    {
+      "event": "push",
+      "branch": "fm/unrelated",
+      "eligible": false
+    },
+    {
+      "event": "pull_request",
+      "branch": "main",
+      "eligible": true
+    },
+    {
+      "event": "pull_request",
+      "branch": "upstream-lean",
+      "eligible": true
+    },
+    {
+      "event": "pull_request",
+      "branch": "fm/unrelated",
+      "eligible": false
+    }
+  ],
+  "no_mistakes_required_unchanged": true,
+  "evidence_kind": "normalized workflow semantics; GitHub event execution is not local live evidence"
+}
