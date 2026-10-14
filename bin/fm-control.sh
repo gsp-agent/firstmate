@@ -68,8 +68,8 @@
 #              axis for the replacement. With no explicit axis, a secondmate
 #              re-resolves its durable config/secondmate-harness pin (harness
 #              plus its optional model and effort tokens) exactly as any other
-#              respawn does, while a ship or scout keeps the exact adapter
-#              already recorded for it.
+#              respawn does, while ship and scout profile resolution follows
+#              docs/agent-control.md "Transactional relaunch".
 #              A prefixed raw-command basename cannot reconstruct its launch
 #              command, so relaunch requires an explicit --harness for it.
 #              A replacement Claude or Pi profile must also pass this home's

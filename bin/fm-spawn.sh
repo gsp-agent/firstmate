@@ -77,10 +77,11 @@
 #   validated state/<id>.meta, so --backend, --scout, --secondmate, a project
 #   positional, and batch pairs are all refused alongside it; only harness,
 #   model, and effort may change, which is what makes a harness switch one
-#   ordinary relaunch. A relaunch whose recorded harness is cursor
-#   resolves cursor versus grok through bin/fm-cursor-guard.sh; --harness grok
-#   does not bypass the decision. The guard stays on cursor, or it returns a grok reason and that reason is
-#   written before grok launches.
+#   ordinary relaunch. Cursor routing and explicit relaunch overrides follow
+#   docs/agent-control.md "Transactional relaunch". Automatic fallbacks print
+#   their reason and record it before Grok launches in state/<id>.cursor-fallback,
+#   or state/<id>.cursor-limit for usage failures and the daily cap, whose
+#   marker is owned by bin/fm-cursor-guard.sh.
 #   It refuses unless the recorded endpoint is positively
 #   agent-free on a backend with a recovery-grade agent-state classifier (tmux
 #   or herdr), and clears the previous harness's per-task wiring before arming
