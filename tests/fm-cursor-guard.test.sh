@@ -149,7 +149,7 @@ for setting in absent enabled empty; do
   case "$setting" in
     enabled)
       printf 'FM_TEST_ALLOWED\n' > "$launch_home/config/launch-env-allowlist"
-      expected_ambient=unset
+      expected_ambient="unset"
       ;;
     empty)
       : > "$launch_home/config/launch-env-allowlist"
