@@ -1518,6 +1518,61 @@ test_usage_fallback_relaunch_returns_to_a_healthy_cursor_pool() {
   pass "direct and control relaunches recheck tasks with a Cursor fallback record"
 }
 
+test_unrecorded_grok_relaunch_obeys_the_cursor_guard() {
+  local dir id entry scenario out harness model effort command
+  for entry in spawn control; do
+    for scenario in healthy limited; do
+      id="rl84-$entry-$scenario"
+      dir=$(new_case "unrecorded-grok-$entry-$scenario" "$id")
+      add_ship_task "$dir" "$id" grok
+      seed_cursor_pool "$dir" "$id"
+      sed 's/^model=cursor-grok-4\.5-high$/model=grok-4.7/; s/^effort=default$/effort=xhigh/' \
+        "$dir/home/state/$id.meta" > "$dir/home/state/$id.meta.next"
+      mv "$dir/home/state/$id.meta.next" "$dir/home/state/$id.meta"
+      assert_absent "$dir/home/state/$id.cursor-limit" "the prior Grok task must have no limit record"
+      assert_absent "$dir/home/state/$id.cursor-fallback" "the prior Grok task must have no fallback record"
+      harness=cursor model=default effort=default command=cursor-agent
+      if [ "$scenario" = limited ]; then
+        printf 'cursor_models_pct=85\n' > "$dir/usage/20261013-spending.txt"
+        harness=grok model=grok-4.7 effort=xhigh command=grok
+      fi
+      printf '%s' "$command" > "$dir/fake/becomes"
+      if [ "$entry" = spawn ]; then
+        out=$(run_cursor_relaunch "$dir" "$id" --relaunch)
+        expect_code 0 $? "an unrecorded Grok fallback must relaunch through the guard: $out"
+        assert_contains "$out" "spawned $id harness=$harness" \
+          "the direct relaunch must report the guarded profile"
+      else
+        printf 'grok' > "$dir/fake/command"
+        out=$(FM_PSTACK_DIR="$dir/pstack" FM_CURSOR_USAGE_DIR="$dir/usage" \
+          run_control "$dir" "$id" relaunch --note "recover an unrecorded Grok fallback")
+        expect_code 0 $? "an unrecorded Grok fallback must relaunch through control: $out"
+        assert_contains "$out" "relaunched $id harness=$harness from=grok model=$model effort=$effort" \
+          "the control relaunch must report the guarded profile"
+        [ "$(journal_field "$dir" "$id" phase)" = complete ] || fail "the recovery transaction must complete"
+        [ "$(journal_field "$dir" "$id" to_harness)" = "$harness" ] || fail "the recovery journal must record the guarded harness"
+        [ "$(journal_field "$dir" "$id" to_model)" = "$model" ] || fail "the recovery journal must record the guarded model"
+        [ "$(journal_field "$dir" "$id" to_effort)" = "$effort" ] || fail "the recovery journal must record the guarded effort"
+      fi
+      [ "$(meta_field "$dir" "$id" harness)" = "$harness" ] || fail "the recovered task must record the guarded harness"
+      [ "$(meta_field "$dir" "$id" model)" = "$model" ] || fail "the recovered task must record the guarded model"
+      [ "$(meta_field "$dir" "$id" effort)" = "$effort" ] || fail "the recovered task must record the guarded effort"
+      [ "$(cat "$dir/fake/command")" = "$command" ] || fail "the replacement agent must match the guarded harness"
+      if [ "$scenario" = healthy ]; then
+        assert_contains "$(cat "$dir/fake/literal")" "cursor-agent" "a healthy unrecorded fallback must launch Cursor"
+        assert_absent "$dir/home/state/$id.cursor-limit" "a healthy recovery must not record a limit"
+        assert_absent "$dir/home/state/$id.cursor-fallback" "a healthy recovery must not record a fallback"
+      else
+        assert_contains "$(cat "$dir/fake/literal")" "grok --always-approve --model 'grok-4.7' --reasoning-effort 'xhigh'" \
+          "a limited recovery must launch the guarded Grok profile"
+        [ "$(cat "$dir/home/state/$id.cursor-fallback")" = 'Cursor Models at 85% (limit 85%)' ] \
+          || fail "a continued Grok fallback must record the guard's reason"
+      fi
+    done
+  done
+  pass "direct and control relaunches recover unrecorded Grok fallbacks or record the guard's reason"
+}
+
 test_control_cursor_guard_change_refuses_before_replacement() {
   local dir out rc
   dir=$(new_case cursor-guard-change rl83)
@@ -2812,6 +2867,7 @@ test_cursor_relaunch_stays_on_cursor_when_the_pool_is_healthy
 test_cursor_relaunch_at_the_daily_cap_logs_the_reason
 test_control_cursor_relaunch_records_the_guarded_profile
 test_usage_fallback_relaunch_returns_to_a_healthy_cursor_pool
+test_unrecorded_grok_relaunch_obeys_the_cursor_guard
 test_control_cursor_guard_change_refuses_before_replacement
 test_cursor_session_binding_is_retired_on_a_harness_switch
 test_missing_worktree_refuses_before_stopping_anything

@@ -256,8 +256,7 @@ fm_cursor_resolve_profile() {
   if [ "$kind" != secondmate ]; then
     if [ "$harness" = cursor ]; then
       eligible=1
-    elif [ "$relaunch" = 1 ] && [ "$harness" = grok ] &&
-      { [ "$prior" = cursor ] || [ -s "$state/$id.cursor-limit" ] || [ -s "$state/$id.cursor-fallback" ]; }; then
+    elif [ "$relaunch" = 1 ] && [ "$harness" = grok ]; then
       eligible=1
     fi
   fi
