@@ -1,0 +1,58 @@
+{
+  "families": [
+    {
+      "count": 4,
+      "duration_ms": 11621,
+      "failed": 0,
+      "name": "pure-contract-unit"
+    }
+  ],
+  "finished_at": "2026-10-14T08:19:44Z",
+  "run_id": "fm-test-run-1791965968950-36884",
+  "scripts": [
+    {
+      "duration_ms": 6058,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "pure-contract-unit",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-composer-ghost.test.sh"
+    },
+    {
+      "duration_ms": 472,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "pure-contract-unit",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-project-mode.test.sh"
+    },
+    {
+      "duration_ms": 551,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "pure-contract-unit",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-forge-detect.test.sh"
+    },
+    {
+      "duration_ms": 4540,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "pure-contract-unit",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-operational-input.test.sh"
+    }
+  ],
+  "selection": "scripts;jobs=4",
+  "started_at": "2026-10-14T08:19:28Z",
+  "summary": {
+    "duration_ms": 15812,
+    "failed": 0,
+    "skipped_gate": 0,
+    "total": 4
+  }
+}

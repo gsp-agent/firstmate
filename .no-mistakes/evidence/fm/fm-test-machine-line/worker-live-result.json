@@ -1,0 +1,8 @@
+{
+  "result": "pass",
+  "live": true,
+  "worker_name": "fm-test-run-fm-lab-machine-line-worker",
+  "concurrent_worker_workloads": 4,
+  "competing_overlap": false,
+  "detail": "Real Codex shell command ran the suite, which logged a worker-tagged native gate start/end; competing main suite waited and then entered."
+}

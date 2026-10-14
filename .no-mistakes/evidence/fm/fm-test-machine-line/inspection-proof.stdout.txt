@@ -1,0 +1,4 @@
+tests/fm-dod-lib.test.sh
+tests/fm-forge-detect.test.sh
+tests/fm-project-mode.test.sh
+tests/fm-trace-context-lib.test.sh

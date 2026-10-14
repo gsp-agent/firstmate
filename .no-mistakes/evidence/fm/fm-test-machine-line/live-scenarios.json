@@ -1,0 +1,70 @@
+[
+  {
+    "name": "runner-waits-for-runner",
+    "result": "pass",
+    "live": true,
+    "detail": "The second CLI logged native gate busy, executed no workloads while occupied, and entered after all first-suite workloads exited.",
+    "wall_seconds": 19.134
+  },
+  {
+    "name": "proof-waits-for-runner",
+    "result": "pass",
+    "live": true,
+    "detail": "The second CLI logged native gate busy, executed no workloads while occupied, and entered after all first-suite workloads exited.",
+    "wall_seconds": 11.777
+  },
+  {
+    "name": "runner-waits-for-proof",
+    "result": "pass",
+    "live": true,
+    "detail": "The second CLI logged native gate busy, executed no workloads while occupied, and entered after all first-suite workloads exited.",
+    "wall_seconds": 11.464
+  },
+  {
+    "name": "relative-runner-launches",
+    "result": "pass",
+    "live": true,
+    "detail": "Both documented relative launch forms completed and each took and released the real gate.",
+    "wall_seconds": 9.308
+  },
+  {
+    "name": "admission-wait-is-in-budget",
+    "result": "pass",
+    "live": true,
+    "detail": {
+      "outer_duration_ms": 8409,
+      "nested_duration_ms": 385,
+      "exit": 1,
+      "failed_workloads": 0
+    },
+    "wall_seconds": 13.117
+  },
+  {
+    "name": "failed-suite-releases-without-retry",
+    "result": "pass",
+    "live": true,
+    "detail": "An admitted test exit 75 failed once, returned suite exit 1, released the line, and allowed a subsequent suite.",
+    "wall_seconds": 22.176
+  },
+  {
+    "name": "inspection-and-refusal-do-not-wait",
+    "result": "pass",
+    "live": true,
+    "detail": "Both listing commands and invalid invocation returned while the native line remained occupied without attempting admission.",
+    "wall_seconds": 7.26
+  },
+  {
+    "name": "accepted-admission-exceptions",
+    "result": "pass",
+    "live": true,
+    "detail": "Accepted missing/disabled-gate fallback and already-admitted invocation each ran once without fresh admission.",
+    "wall_seconds": 4.329
+  },
+  {
+    "name": "main-jobs4-and-nested-admission",
+    "result": "pass",
+    "live": true,
+    "detail": "Four real parallel workload commands and a nested suite ran under one native gate start/end; caller niceness was preserved.",
+    "wall_seconds": 7.952
+  }
+]

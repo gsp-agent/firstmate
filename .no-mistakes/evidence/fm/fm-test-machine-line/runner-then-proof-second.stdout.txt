@@ -1,0 +1,11 @@
+machine-gate run: NOT STARTED: the turn is held by fm-test-run since 3:09:58 AM CDT (0 min of its 180 min cap): /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/bin/fm-test-run.sh --json /Users/dalecarman/.no-mistakes/evidence/01M4WN4HWS9WN. Wait, then run the same command again yourself; never ask a PM for a turn.
+FM_ISOLATION_BEGIN 2026-10-14T08:10:03Z concurrency=4 candidates=4
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-14T08:10:09Z tests/fm-project-mode.test.sh worker=1
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-14T08:10:09Z tests/fm-dod-lib.test.sh worker=2
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-14T08:10:09Z tests/fm-trace-context-lib.test.sh worker=3
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-14T08:10:09Z tests/fm-forge-detect.test.sh worker=4
+FM_ISOLATION_CANDIDATE_END 2026-10-14T08:10:09Z tests/fm-project-mode.test.sh exit=0 duration_ms=301 worker=1
+FM_ISOLATION_CANDIDATE_END 2026-10-14T08:10:09Z tests/fm-dod-lib.test.sh exit=0 duration_ms=332 worker=2
+FM_ISOLATION_CANDIDATE_END 2026-10-14T08:10:09Z tests/fm-trace-context-lib.test.sh exit=0 duration_ms=312 worker=3
+FM_ISOLATION_CANDIDATE_END 2026-10-14T08:10:09Z tests/fm-forge-detect.test.sh exit=0 duration_ms=299 worker=4
+FM_ISOLATION_SUMMARY total=4 failed=0 concurrency=4 duration_ms=6485

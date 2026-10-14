@@ -1,0 +1,1 @@
+fm-test-run: --jobs must be >= 1

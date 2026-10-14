@@ -1,0 +1,7 @@
+2026-10-14T08:10:35Z	start	fm-lab-budget-holder	pid 18332 cap 1m
+2026-10-14T08:10:35Z	busy	fm-test-run	held by fm-lab-budget-holder
+2026-10-14T08:10:36Z	busy	fm-test-run	held by fm-lab-budget-holder
+2026-10-14T08:10:37Z	busy	fm-test-run	held by fm-lab-budget-holder
+2026-10-14T08:10:37Z	end	fm-lab-budget-holder	rc 0
+2026-10-14T08:10:42Z	start	fm-test-run	pid 32287 cap 180m
+2026-10-14T08:10:43Z	end	fm-test-run	rc 1

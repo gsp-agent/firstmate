@@ -1,0 +1,7 @@
+2026-10-14T08:16:05Z	start	budget-external-holder	pid 45327 cap 1m
+2026-10-14T08:16:06Z	busy	fm-test-run	held by budget-external-holder
+2026-10-14T08:16:07Z	busy	fm-test-run	held by budget-external-holder
+2026-10-14T08:16:08Z	busy	fm-test-run	held by budget-external-holder
+2026-10-14T08:16:09Z	end	budget-external-holder	rc 0
+2026-10-14T08:16:14Z	start	fm-test-run	pid 65273 cap 180m
+2026-10-14T08:16:15Z	end	fm-test-run	rc 0

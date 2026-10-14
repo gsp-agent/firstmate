@@ -1,0 +1,32 @@
+[
+  {
+    "name": "baseline-runner",
+    "result": "reproduced",
+    "revision": "20dcbf91520b1816663b81873ad67d0b93b3e4d6",
+    "overlapping_workloads": 4,
+    "native_gate_suite_starts": 0
+  },
+  {
+    "name": "baseline-proof",
+    "result": "reproduced",
+    "revision": "20dcbf91520b1816663b81873ad67d0b93b3e4d6",
+    "overlapping_workloads": 4,
+    "native_gate_suite_starts": 0
+  },
+  {
+    "name": "relative-reexecution-failure",
+    "result": "reproduced",
+    "revision": "516346af",
+    "exit": 127,
+    "workloads_executed": 0
+  },
+  {
+    "name": "wait-dropped-from-budget",
+    "result": "reproduced",
+    "revision": "516346af",
+    "elapsed_ms": 9700,
+    "reported_ms": 647,
+    "max_wall_ms": 1500,
+    "exit": 0
+  }
+]

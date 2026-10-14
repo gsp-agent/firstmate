@@ -1,0 +1,22 @@
+=== MACHINE GATE 2026-10-14 3:10:51 AM CDT ===
+(1) REAL xcodebuild builds = 0    [bare pgrep matched 2080; 0 are xcodebuildmcp MCP servers, not builds]
+(1b) gj + simulator + headless Blender heavy jobs in flight = 1    [gj preps ~30 s before xcodebuild is visible; a sim run then shows only its app; gj --help/-h is no job; Blender counts only with -b/--background]
+58114 /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup /Users/dalecarman/dev/heru-vr-visi
+(1c) be-still viewpoint renders in flight = 0    [executable render-tree-viewpoint, or swift-frontend -interpret ...render-tree-viewpoint-realitykit.swift]
+(1e) GSP local next build / authenticated-screens runs in flight = 0    [one per run; argv0 node + its script, or next-build; trap 15]
+(1f) Unity editor or build processes = 0    [executable Unity, as pm-carman's line counted it (trap 22); Unity Hub is not counted]
+(1d) gj compile lock held = 0    [/tmp/gj-compile.lock: free; read with F_GETLK, never taken; catches gj run from any path; unreadable counts as held]
+(2) load 1-min = 60.11    (shown only)
+(3) memory free = 79%    (must be > 20)
+(4) Dale active under load = 0    (shown only since 2026-10-06, his words 3:56:50 PM CT, charter 2026-10-06T21:03:37Z; HID idle 77s, 5-min load 43)
+(5) the turn is this gate's (trap 21): start a heavy job ONLY as  bash ~/.agent-state/machine-gate.sh run [--cap <min>] -- <command>  (exit 75 = not your turn: wait, then run it again yourself). Heavy means what rows (1) to (1f) count: xcodebuild, gj and simulator runs (gj unit tests included), headless Blender bakes, viewpoint renders, GSP next builds and authenticated-screens runs, Unity; a Node or Python unit suite, a capture, a model-call loop or a script that waits on the network is not heavy, so run it ungated and leave the turn free. More than one command? Write them to a script FILE and gate the file (run -- /bin/zsh job.zsh); do NOT wrap them in bash -c: Claude Code holds a -c script two minutes and then refuses it when a command in it starts with a variable (trap 26). The order among waiting lanes is the first mate's (hold file), except a live session's own reservation: machine-gate.sh reserve --start <UTC or epoch> --minutes <n> --who <name>. Until that start, a run whose cap would reach it is refused and a run that ends before it still starts. At the start, that owner goes ahead of every waiting background run. No hold file is required. Reserve and admission take one lock around that decision. A run already started whose cap reaches the window keeps the turn, and that reserve is refused without writing. A reserve that lands first refuses a later run whose cap would reach it. Never ask a PM for a turn.
+(7) the turn: yours (this read runs inside the machine-gate.sh run that holds it)
+SLOT FREE = NO
+machine-gate run: NOT STARTED: the gate reads 'SLOT FREE = NO'. Wait, then run the same command again yourself.
+FM_TEST_BEGIN 2026-10-14T08:11:05Z /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/.live-machine-line/candidate-repo/tests/single.test.sh family=unclassified expected_gate_skip=none
+{"kind": "enter", "tag": "after-failure", "workload": "single", "pid": 89384, "ppid": 88795, "at": 1791965465533077000, "utc": "2026-10-14T08:11:05.533079+00:00", "nice": 0, "task": null, "held": "1", "holder": "fm-test-run\t78468\t1791965460\t180\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/bin/fm-test-run.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN\n"}
+{"kind": "exit", "tag": "after-failure", "workload": "single", "pid": 89384, "ppid": 88795, "at": 1791965465757757000, "utc": "2026-10-14T08:11:05.757762+00:00", "nice": 0, "task": null, "held": "1", "holder": "fm-test-run\t78468\t1791965460\t180\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/bin/fm-test-run.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN\n"}
+FM_TEST_END 2026-10-14T08:11:05Z /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/.live-machine-line/candidate-repo/tests/single.test.sh exit=0 duration_ms=486 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=15713
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=486 failed=0
+FM_TEST_SLOWEST rank=1 script=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/.live-machine-line/candidate-repo/tests/single.test.sh duration_ms=486

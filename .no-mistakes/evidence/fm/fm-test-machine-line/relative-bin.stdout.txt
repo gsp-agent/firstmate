@@ -1,0 +1,7 @@
+FM_TEST_BEGIN 2026-10-14T08:10:25Z tests/single.test.sh family=unclassified expected_gate_skip=none
+{"kind": "enter", "tag": "relative", "workload": "single", "pid": 10192, "ppid": 9983, "at": 1791965425759352000, "utc": "2026-10-14T08:10:25.759355+00:00", "nice": 0, "task": null, "held": "1", "holder": "fm-test-run\t3253\t1791965421\t180\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/.live-machine-line/candidate-repo/bin/fm-test-run.sh tests/single.test.sh \n"}
+{"kind": "exit", "tag": "relative", "workload": "single", "pid": 10192, "ppid": 9983, "at": 1791965425983391000, "utc": "2026-10-14T08:10:25.983418+00:00", "nice": 0, "task": null, "held": "1", "holder": "fm-test-run\t3253\t1791965421\t180\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/.live-machine-line/candidate-repo/bin/fm-test-run.sh tests/single.test.sh \n"}
+FM_TEST_END 2026-10-14T08:10:26Z tests/single.test.sh exit=0 duration_ms=310 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=4505
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=310 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/single.test.sh duration_ms=310

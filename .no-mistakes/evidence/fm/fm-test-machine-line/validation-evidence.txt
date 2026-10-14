@@ -1,0 +1,171 @@
+Firstmate machine-line product validation
+Target: eab38dcef5a72c9ecc3b4524eac20376836251a1
+Base: 20dcbf91520b1816663b81873ad67d0b93b3e4d6
+
+Product execution used the unmodified suite CLIs and the installed /Users/dalecarman/.agent-state/machine-gate.sh.
+Controlled workload scripts were suite inputs, not replacement gate/runner/harness implementations.
+Curated fixture repositories contain copies of the unchanged runner scripts to bound isolation-proof membership.
+Native process, memory, hold and lock checks ran; MACHINE_GATE_READ and gate-verdict substitutes were not used.
+All intentional runtime state and labs were inside the test worktree; evidence was written to the dedicated evidence directory.
+Existing Codex login was used by an ephemeral real worker. No Herdr/default fleet lifecycle or credential changes were performed.
+
+Recorded decisions applied: caller priority is preserved; missing or disabled gates run ungated.
+
+Historical failures reproduced through executable interfaces:
+[
+  {
+    "name": "baseline-runner",
+    "result": "reproduced",
+    "revision": "20dcbf91520b1816663b81873ad67d0b93b3e4d6",
+    "overlapping_workloads": 4,
+    "native_gate_suite_starts": 0
+  },
+  {
+    "name": "baseline-proof",
+    "result": "reproduced",
+    "revision": "20dcbf91520b1816663b81873ad67d0b93b3e4d6",
+    "overlapping_workloads": 4,
+    "native_gate_suite_starts": 0
+  },
+  {
+    "name": "relative-reexecution-failure",
+    "result": "reproduced",
+    "revision": "516346af",
+    "exit": 127,
+    "workloads_executed": 0
+  },
+  {
+    "name": "wait-dropped-from-budget",
+    "result": "reproduced",
+    "revision": "516346af",
+    "elapsed_ms": 9700,
+    "reported_ms": 647,
+    "max_wall_ms": 1500,
+    "exit": 0
+  }
+]
+
+Target behavior:
+[
+  {
+    "name": "runner-waits-for-runner",
+    "result": "pass",
+    "live": true,
+    "detail": "The second CLI logged native gate busy, executed no workloads while occupied, and entered after all first-suite workloads exited.",
+    "wall_seconds": 19.134
+  },
+  {
+    "name": "proof-waits-for-runner",
+    "result": "pass",
+    "live": true,
+    "detail": "The second CLI logged native gate busy, executed no workloads while occupied, and entered after all first-suite workloads exited.",
+    "wall_seconds": 11.777
+  },
+  {
+    "name": "runner-waits-for-proof",
+    "result": "pass",
+    "live": true,
+    "detail": "The second CLI logged native gate busy, executed no workloads while occupied, and entered after all first-suite workloads exited.",
+    "wall_seconds": 11.464
+  },
+  {
+    "name": "relative-runner-launches",
+    "result": "pass",
+    "live": true,
+    "detail": "Both documented relative launch forms completed and each took and released the real gate.",
+    "wall_seconds": 9.308
+  },
+  {
+    "name": "admission-wait-is-in-budget",
+    "result": "pass",
+    "live": true,
+    "detail": {
+      "outer_duration_ms": 8409,
+      "nested_duration_ms": 385,
+      "exit": 1,
+      "failed_workloads": 0
+    },
+    "wall_seconds": 13.117
+  },
+  {
+    "name": "failed-suite-releases-without-retry",
+    "result": "pass",
+    "live": true,
+    "detail": "An admitted test exit 75 failed once, returned suite exit 1, released the line, and allowed a subsequent suite.",
+    "wall_seconds": 22.176
+  },
+  {
+    "name": "inspection-and-refusal-do-not-wait",
+    "result": "pass",
+    "live": true,
+    "detail": "Both listing commands and invalid invocation returned while the native line remained occupied without attempting admission.",
+    "wall_seconds": 7.26
+  },
+  {
+    "name": "accepted-admission-exceptions",
+    "result": "pass",
+    "live": true,
+    "detail": "Accepted missing/disabled-gate fallback and already-admitted invocation each ran once without fresh admission.",
+    "wall_seconds": 4.329
+  },
+  {
+    "name": "main-jobs4-and-nested-admission",
+    "result": "pass",
+    "live": true,
+    "detail": "Four real parallel workload commands and a nested suite ran under one native gate start/end; caller niceness was preserved.",
+    "wall_seconds": 7.952
+  }
+]
+
+Real worker result:
+{
+  "result": "pass",
+  "live": true,
+  "worker_name": "fm-test-run-fm-lab-machine-line-worker",
+  "concurrent_worker_workloads": 4,
+  "competing_overlap": false,
+  "detail": "Real Codex shell command ran the suite, which logged a worker-tagged native gate start/end; competing main suite waited and then entered."
+}
+
+Real worker native gate log:
+2026-10-14T08:13:28Z	start	fm-test-run-fm-lab-machine-line-worker	pid 90997 cap 180m
+2026-10-14T08:13:30Z	busy	fm-test-run	held by fm-test-run-fm-lab-machine-line-worker
+2026-10-14T08:13:31Z	end	fm-test-run-fm-lab-machine-line-worker	rc 0
+2026-10-14T08:13:39Z	start	fm-test-run	pid 7734 cap 180m
+2026-10-14T08:13:41Z	end	fm-test-run	rc 0
+
+Runner waiting for isolation proof native gate log:
+2026-10-14T08:10:14Z	start	fm-test-isolation-proof	pid 80269 cap 180m
+2026-10-14T08:10:15Z	busy	fm-test-run	held by fm-test-isolation-proof
+2026-10-14T08:10:16Z	end	fm-test-isolation-proof	rc 0
+2026-10-14T08:10:20Z	start	fm-test-run	pid 94186 cap 180m
+2026-10-14T08:10:21Z	end	fm-test-run	rc 0
+
+Isolation proof waiting for runner native gate log:
+2026-10-14T08:10:02Z	start	fm-test-run	pid 57738 cap 180m
+2026-10-14T08:10:03Z	busy	fm-test-isolation-proof	held by fm-test-run
+2026-10-14T08:10:04Z	end	fm-test-run	rc 0
+2026-10-14T08:10:08Z	start	fm-test-isolation-proof	pid 69296 cap 180m
+2026-10-14T08:10:09Z	end	fm-test-isolation-proof	rc 0
+
+
+Budget: target outer invocation recorded 8409 ms and failed its 1500 ms budget; nested invocation recorded 385 ms.
+Before correction: 516346af recorded 647 ms for a measured 9700 ms invocation and incorrectly returned success.
+
+Four unchanged repository test scripts also ran with bash bin/fm-test-run.sh --jobs 4:
+tests/fm-composer-ghost.test.sh
+tests/fm-project-mode.test.sh
+tests/fm-forge-detect.test.sh
+tests/fm-operational-input.test.sh
+This final invocation completed successfully under one native gate start/end:
+2026-10-14T08:19:33Z	start	fm-test-run-live-repository-suite	pid 28864 cap 180m
+2026-10-14T08:19:44Z	end	fm-test-run-live-repository-suite	rc 0
+
+
+Two test-setup corrections were needed:
+- Absolute fixture script paths were refused for explicit --jobs 4; using the fixture runner with its own relative tests/ membership fixed the selection.
+- An unchanged forge-detection test assumes a non-Git temporary directory. A temporary directory inside the worktree inherited the enclosing Git repository. GIT_CEILING_DIRECTORIES at the temporary root restored that fixture boundary; the failing test then passed and the four-script invocation passed on re-drive.
+The original setup-failure transcripts remain alongside corrected transcripts. No product or committed test files were changed.
+
+Evidence consists of CLI transcripts, native machine-gate logs, workload timestamps and emitted JSON. The scheduling surface is a CLI, so no rendered-UI screenshot was needed.
+Host load samples are contextual only; this run proves serialization rather than attributing a host-load reduction amid unrelated activity.

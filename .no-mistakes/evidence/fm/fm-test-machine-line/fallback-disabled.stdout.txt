@@ -1,0 +1,7 @@
+FM_TEST_BEGIN 2026-10-14T08:11:13Z /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/.live-machine-line/candidate-repo/tests/single.test.sh family=unclassified expected_gate_skip=none
+{"kind": "enter", "tag": "disabled", "workload": "single", "pid": 15075, "ppid": 14199, "at": 1791965473823781000, "utc": "2026-10-14T08:11:13.823784+00:00", "nice": 0, "task": null, "held": null, "holder": null}
+{"kind": "exit", "tag": "disabled", "workload": "single", "pid": 15075, "ppid": 14199, "at": 1791965474049459000, "utc": "2026-10-14T08:11:14.049464+00:00", "nice": 0, "task": null, "held": null, "holder": null}
+FM_TEST_END 2026-10-14T08:11:14Z /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/.live-machine-line/candidate-repo/tests/single.test.sh exit=0 duration_ms=396 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=720
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=396 failed=0
+FM_TEST_SLOWEST rank=1 script=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WN4HWS9WNQ0STXQVSD1KF2/.live-machine-line/candidate-repo/tests/single.test.sh duration_ms=396

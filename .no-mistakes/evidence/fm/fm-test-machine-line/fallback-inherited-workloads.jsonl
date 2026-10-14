@@ -1,0 +1,2 @@
+{"kind": "enter", "tag": "inherited", "workload": "single", "pid": 21974, "ppid": 19898, "at": 1791965476817279000, "utc": "2026-10-14T08:11:16.817282+00:00", "nice": 0, "task": null, "held": "1", "holder": null}
+{"kind": "exit", "tag": "inherited", "workload": "single", "pid": 21974, "ppid": 19898, "at": 1791965477046979000, "utc": "2026-10-14T08:11:17.046984+00:00", "nice": 0, "task": null, "held": "1", "holder": null}

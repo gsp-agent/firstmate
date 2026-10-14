@@ -1,0 +1,5 @@
+2026-10-14T08:10:48Z	start	fm-test-run	pid 41801 cap 180m
+2026-10-14T08:10:49Z	end	fm-test-run	rc 1
+2026-10-14T08:10:58Z	gate-no	fm-test-run	SLOT FREE = NO
+2026-10-14T08:11:05Z	start	fm-test-run	pid 78468 cap 180m
+2026-10-14T08:11:06Z	end	fm-test-run	rc 0
