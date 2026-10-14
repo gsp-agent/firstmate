@@ -86,6 +86,16 @@ printf '{"type":"error","message":"tool failed"}\n' > "$FM_STATE_OVERRIDE/u3.cur
 [ ! -e "$FM_STATE_OVERRIDE/u3.cursor-limit" ] || fail "an unrelated failure must not record a limit"
 pass "a usage-limit error is recorded and the bead's next launch goes to grok"
 
+printf '%s\n' '{"type":"tool_call","result":{"isEmpty":false,"exceededLimit":false,"totalLines":12}}' > "$FM_STATE_OVERRIDE/u4.cursor-stream.jsonl"
+"$TOOL" after u4 1 2>/dev/null; expect_code 1 $? "after passes a nonzero exit when the stream only carries exceededLimit false"
+[ ! -e "$FM_STATE_OVERRIDE/u4.cursor-limit" ] || fail "exceededLimit false must not record a usage limit"
+[ "$(fb u4)" = cursor ] || fail "exceededLimit false must keep the next launch on cursor: $(fb u4)"
+printf '%s\n' '{"type":"error","message":"You have exceeded your usage quota"}' > "$FM_STATE_OVERRIDE/u5.cursor-stream.jsonl"
+"$TOOL" after u5 2 2>/dev/null; expect_code 2 $? "after passes the exceeded-quota exit status through"
+[ -s "$FM_STATE_OVERRIDE/u5.cursor-limit" ] || fail "an exceeded-quota line must record a usage limit"
+case "$(fb u5)" in grok*) ;; *) fail "an exceeded-quota line must route the next launch to grok: $(fb u5)" ;; esac
+pass "exceededLimit false is not a usage limit; an exceeded-quota line is"
+
 # The pane command keeps the agent's exit status past the tee, in bash and zsh.
 tpl=$(grep -o '> >(tee __CURSORSTREAM__)' "$ROOT/bin/fm-spawn.sh" | head -1)
 [ -n "$tpl" ] || fail "cursor template no longer tees through process substitution"
