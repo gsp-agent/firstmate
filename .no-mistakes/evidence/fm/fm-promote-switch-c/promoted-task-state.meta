@@ -1,0 +1,8 @@
+window=fm-promote-live-pr9
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/projects/promotion-fixture
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+harness=cursor
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/promote-live-pr9

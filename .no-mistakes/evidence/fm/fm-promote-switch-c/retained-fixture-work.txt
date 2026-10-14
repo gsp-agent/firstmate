@@ -1,0 +1,2 @@
+Disposable promotion verification fixture.
+Keep this uncommitted scout work during a resumed promotion.

@@ -1,0 +1,165 @@
+{
+  "guard_denies": [
+    "Bash(git checkout -b *)",
+    "Bash(git checkout -B *)",
+    "Bash(git branch -c *)",
+    "Bash(git branch -C *)"
+  ],
+  "observed_states": [
+    {
+      "label": "before promotion",
+      "slot_branch": "",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": true
+    },
+    {
+      "label": "after deny",
+      "slot_branch": "",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": false
+    },
+    {
+      "label": "after promote",
+      "slot_branch": "fm/promote-live-pr9",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": true
+    },
+    {
+      "label": "after relaunch",
+      "slot_branch": "fm/promote-live-pr9",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "M base.txt",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": true
+    },
+    {
+      "label": "after deny",
+      "slot_branch": "fm/promote-live-pr9",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "M base.txt",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": true
+    }
+  ],
+  "retained_work_sha256": "741860e7f2f6a0e71511b0d7d8993e11968b014bcc20d55ee6435794aa2b94be",
+  "cursor_results": {
+    "deny": {
+      "completed_tool_calls": [
+        {
+          "tool": "shellToolCall",
+          "command": "git checkout -b fm/pr9-denied --",
+          "working_directory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+          "result": {
+            "permissionDenied": {
+              "command": "git checkout -b fm/pr9-denied --",
+              "workingDirectory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+              "error": "Command blocked by permissions configuration",
+              "isReadonly": false
+            }
+          }
+        }
+      ],
+      "agent_exit": 0
+    },
+    "promote": {
+      "completed_tool_calls": [
+        {
+          "tool": "shellToolCall",
+          "command": "pwd -P && git rev-parse --show-toplevel && echo \"---BRANCH---\" && git branch --show-current && echo \"---HEAD---\" && git rev-parse HEAD && echo \"---STATUS---\" && git status && echo \"---LOG---\" && git log --oneline -20 && echo \"---DEFAULT---\" && git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || git rev-parse --abbrev-ref origin/HEAD 2>/dev/null; echo \"---BRANCHES---\" && git branch -vv && echo \"---DETACHED---\" && git status -sb",
+          "working_directory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+          "result": {
+            "success": {
+              "command": "pwd -P && git rev-parse --show-toplevel && echo \"---BRANCH---\" && git branch --show-current && echo \"---HEAD---\" && git rev-parse HEAD && echo \"---STATUS---\" && git status && echo \"---LOG---\" && git log --oneline -20 && echo \"---DEFAULT---\" && git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || git rev-parse --abbrev-ref origin/HEAD 2>/dev/null; echo \"---BRANCHES---\" && git branch -vv && echo \"---DETACHED---\" && git status -sb",
+              "workingDirectory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+              "exitCode": 0,
+              "signal": "",
+              "stdout": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n---BRANCH---\n---HEAD---\nae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\n---STATUS---\nNot currently on any branch.\nnothing to commit, working tree clean\n---LOG---\nae116c1 fixture baseline\n---DEFAULT---\norigin/HEAD\n---BRANCHES---\n* (no branch) ae116c1 fixture baseline\n+ main        ae116c1 (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/projects/promotion-fixture) fixture baseline\n---DETACHED---\n## HEAD (no branch)\n",
+              "stderr": "",
+              "executionTime": 5839,
+              "interleavedOutput": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n---BRANCH---\n---HEAD---\nae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\n---STATUS---\nNot currently on any branch.\nnothing to commit, working tree clean\n---LOG---\nae116c1 fixture baseline\n---DEFAULT---\norigin/HEAD\n---BRANCHES---\n* (no branch) ae116c1 fixture baseline\n+ main        ae116c1 (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/projects/promotion-fixture) fixture baseline\n---DETACHED---\n## HEAD (no branch)\n",
+              "localExecutionTimeMs": 3208
+            },
+            "isBackground": false
+          }
+        },
+        {
+          "tool": "shellToolCall",
+          "command": "git rev-parse --verify main && git rev-parse HEAD && if git show-ref --verify --quiet refs/heads/fm/promote-live-pr9; then echo \"BRANCH_EXISTS\"; git switch fm/promote-live-pr9; else echo \"BRANCH_ABSENT\"; git switch -c fm/promote-live-pr9 --; fi && echo \"---VERIFY---\" && pwd -P && git rev-parse --show-toplevel && echo \"---BRANCH---\" && git branch --show-current && echo \"---HEAD---\" && git rev-parse HEAD && echo \"---STATUS---\" && git status && echo \"---SB---\" && git status -sb",
+          "working_directory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+          "result": {
+            "success": {
+              "command": "git rev-parse --verify main && git rev-parse HEAD && if git show-ref --verify --quiet refs/heads/fm/promote-live-pr9; then echo \"BRANCH_EXISTS\"; git switch fm/promote-live-pr9; else echo \"BRANCH_ABSENT\"; git switch -c fm/promote-live-pr9 --; fi && echo \"---VERIFY---\" && pwd -P && git rev-parse --show-toplevel && echo \"---BRANCH---\" && git branch --show-current && echo \"---HEAD---\" && git rev-parse HEAD && echo \"---STATUS---\" && git status && echo \"---SB---\" && git status -sb",
+              "workingDirectory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+              "exitCode": 0,
+              "signal": "",
+              "stdout": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\nae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\nBRANCH_ABSENT\n---VERIFY---\n/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n---BRANCH---\nfm/promote-live-pr9\n---HEAD---\nae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\n---STATUS---\nOn branch fm/promote-live-pr9\nnothing to commit, working tree clean\n---SB---\n## fm/promote-live-pr9\n",
+              "stderr": "Switched to a new branch 'fm/promote-live-pr9'\n",
+              "executionTime": 3882,
+              "interleavedOutput": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\nae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\nBRANCH_ABSENT\nSwitched to a new branch 'fm/promote-live-pr9'\n---VERIFY---\n/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n---BRANCH---\nfm/promote-live-pr9\n---HEAD---\nae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\n---STATUS---\nOn branch fm/promote-live-pr9\nnothing to commit, working tree clean\n---SB---\n## fm/promote-live-pr9\n",
+              "localExecutionTimeMs": 431
+            },
+            "isBackground": false
+          }
+        }
+      ],
+      "agent_exit": 0
+    },
+    "relaunch": {
+      "completed_tool_calls": [
+        {
+          "tool": "shellToolCall",
+          "command": "pwd -P && git rev-parse --show-toplevel && git branch --show-current && git rev-parse HEAD && git status --porcelain=v1 -b && echo '---LOG---' && git log --oneline -20 && echo '---BRANCHES---' && git branch -vv && echo '---DEFAULT---' && git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || git rev-parse --abbrev-ref HEAD",
+          "working_directory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+          "result": {
+            "success": {
+              "command": "pwd -P && git rev-parse --show-toplevel && git branch --show-current && git rev-parse HEAD && git status --porcelain=v1 -b && echo '---LOG---' && git log --oneline -20 && echo '---BRANCHES---' && git branch -vv && echo '---DEFAULT---' && git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || git rev-parse --abbrev-ref HEAD",
+              "workingDirectory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+              "exitCode": 0,
+              "signal": "",
+              "stdout": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\nfm/promote-live-pr9\nae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\n## fm/promote-live-pr9\n M base.txt\n---LOG---\nae116c1 fixture baseline\n---BRANCHES---\n* fm/promote-live-pr9 ae116c1 fixture baseline\n+ main                ae116c1 (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/projects/promotion-fixture) fixture baseline\n---DEFAULT---\nfm/promote-live-pr9\n",
+              "stderr": "",
+              "executionTime": 12582,
+              "interleavedOutput": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\n/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout\nfm/promote-live-pr9\nae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4\n## fm/promote-live-pr9\n M base.txt\n---LOG---\nae116c1 fixture baseline\n---BRANCHES---\n* fm/promote-live-pr9 ae116c1 fixture baseline\n+ main                ae116c1 (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/projects/promotion-fixture) fixture baseline\n---DEFAULT---\nfm/promote-live-pr9\n",
+              "localExecutionTimeMs": 2907
+            },
+            "isBackground": false
+          }
+        }
+      ],
+      "agent_exit": 0
+    }
+  },
+  "normal_config_initial_launch_side_effect": "Cursor refreshed normal CLI configuration during the negative-control run. Subsequent launches use CURSOR_CONFIG_DIR inside the lab and the machine normal credential store.",
+  "assertions": "All three live replay scenarios passed; primary fixture and PR9 settings were unchanged.",
+  "cleanup": {
+    "lab_removed": true,
+    "temporary_dirtiness_baseline_removed": true,
+    "gate_worktree_status": ""
+  }
+}

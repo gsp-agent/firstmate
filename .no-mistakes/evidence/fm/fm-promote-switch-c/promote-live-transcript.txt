@@ -1,0 +1,201 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb
+exit=0
+$ git init -q --initial-branch=main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/projects/promotion-fixture
+exit=0
+$ git config user.name test
+exit=0
+$ git config user.email test@example.com
+exit=0
+$ git config commit.gpgsign false
+exit=0
+$ git add base.txt AGENTS.md
+exit=0
+$ git -c core.hooksPath=/dev/null commit -qm 'fixture baseline'
+exit=0
+$ git worktree add --detach /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout HEAD
+Preparing worktree (detached HEAD ae116c1)
+HEAD is now at ae116c1 fixture baseline
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/bin/fm-brief.sh promote-live-pr9 promotion-fixture --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/data/promote-live-pr9/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+exit=0
+PR9 guard: ["Bash(git checkout -b *)", "Bash(git checkout -B *)", "Bash(git branch -c *)", "Bash(git branch -C *)"]
+$ git branch --show-current
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git rev-parse --show-toplevel
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+exit=0
+$ git status --porcelain
+exit=0
+$ git branch --show-current
+main
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git status --porcelain
+exit=0
+{
+  "label": "before promotion",
+  "slot_branch": "",
+  "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+  "slot_status": "",
+  "primary_branch": "main",
+  "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "primary_status": "",
+  "global_guard_unchanged": true,
+  "global_cursor_config_unchanged": true
+}
+$ cursor-agent --print --output-format stream-json --trust --force --workspace /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout -- <deny-cursor-prompt.txt>
+Cursor deny result: {"exit": 0, "stream": "/Users/dalecarman/.no-mistakes/evidence/01M4WGSNXGZXHFRVE1HA865TSN/deny-cursor-stream.jsonl"}
+$ git branch --show-current
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git rev-parse --show-toplevel
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+exit=0
+$ git status --porcelain
+exit=0
+$ git branch --show-current
+main
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git status --porcelain
+exit=0
+{
+  "label": "after deny",
+  "slot_branch": "",
+  "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+  "slot_status": "",
+  "primary_branch": "main",
+  "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "primary_status": "",
+  "global_guard_unchanged": true,
+  "global_cursor_config_unchanged": false
+}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/bin/fm-promote.sh promote-live-pr9 --mode no-mistakes --yolo off
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warn: no registry at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/data/projects.md; defaulting promotion-fixture to no-mistakes off
+promoted promote-live-pr9 to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/data/promote-live-pr9/ship-instructions.md
+next: FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb bin/fm-send.sh fm-promote-live-pr9 "$(cat /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/data/promote-live-pr9/ship-instructions.md)"
+exit=0
+$ cursor-agent --print --output-format stream-json --trust --force --workspace /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout -- <promote-cursor-prompt.txt>
+Cursor promote result: {"exit": 0, "stream": "/Users/dalecarman/.no-mistakes/evidence/01M4WGSNXGZXHFRVE1HA865TSN/promote-cursor-stream.jsonl"}
+$ git branch --show-current
+fm/promote-live-pr9
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git rev-parse --show-toplevel
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+exit=0
+$ git status --porcelain
+exit=0
+$ git branch --show-current
+main
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git status --porcelain
+exit=0
+{
+  "label": "after promote",
+  "slot_branch": "fm/promote-live-pr9",
+  "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+  "slot_status": "",
+  "primary_branch": "main",
+  "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "primary_status": "",
+  "global_guard_unchanged": true,
+  "global_cursor_config_unchanged": true
+}
+$ cursor-agent --print --output-format stream-json --trust --force --workspace /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout -- <relaunch-cursor-prompt.txt>
+Cursor relaunch result: {"exit": 0, "stream": "/Users/dalecarman/.no-mistakes/evidence/01M4WGSNXGZXHFRVE1HA865TSN/relaunch-cursor-stream.jsonl"}
+$ git branch --show-current
+fm/promote-live-pr9
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git rev-parse --show-toplevel
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+exit=0
+$ git status --porcelain
+ M base.txt
+exit=0
+$ git branch --show-current
+main
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git status --porcelain
+exit=0
+{
+  "label": "after relaunch",
+  "slot_branch": "fm/promote-live-pr9",
+  "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+  "slot_status": "M base.txt",
+  "primary_branch": "main",
+  "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "primary_status": "",
+  "global_guard_unchanged": true,
+  "global_cursor_config_unchanged": true
+}
+$ cursor-agent --print --output-format stream-json --trust --force --workspace /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout -- <deny-cursor-prompt.txt>
+Cursor deny result: {"exit": 0, "stream": "/Users/dalecarman/.no-mistakes/evidence/01M4WGSNXGZXHFRVE1HA865TSN/deny-cursor-stream.jsonl"}
+$ git branch --show-current
+fm/promote-live-pr9
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git rev-parse --show-toplevel
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+exit=0
+$ git status --porcelain
+ M base.txt
+exit=0
+$ git branch --show-current
+main
+exit=0
+$ git rev-parse HEAD
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+exit=0
+$ git status --porcelain
+exit=0
+{
+  "label": "after deny",
+  "slot_branch": "fm/promote-live-pr9",
+  "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+  "slot_status": "M base.txt",
+  "primary_branch": "main",
+  "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+  "primary_status": "",
+  "global_guard_unchanged": true,
+  "global_cursor_config_unchanged": true
+}
+
+Cleanup: disposable lab and temporary dirtiness baseline removed; gate worktree clean.

@@ -1,0 +1,99 @@
+{
+  "lab": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb",
+  "repo": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/projects/promotion-fixture",
+  "slot": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+  "id": "promote-live-pr9",
+  "guard_hash": "4d92df6447b09a1d7830ac5b6c1eee37c8f0764abcd17862c84b743189d3898e",
+  "cursor_config_hash": "788be60be964de310c09bfc7697d60f72a1383aae44fd6b016da5ee93970be5d",
+  "branch_creation_denies": [
+    "Bash(git checkout -b *)",
+    "Bash(git checkout -B *)",
+    "Bash(git branch -c *)",
+    "Bash(git branch -C *)"
+  ],
+  "observations": [
+    {
+      "label": "before promotion",
+      "slot_branch": "",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": true
+    },
+    {
+      "label": "after deny",
+      "slot_branch": "",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": false
+    },
+    {
+      "label": "after promote",
+      "slot_branch": "fm/promote-live-pr9",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": true
+    },
+    {
+      "label": "after relaunch",
+      "slot_branch": "fm/promote-live-pr9",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "M base.txt",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": true
+    },
+    {
+      "label": "after deny",
+      "slot_branch": "fm/promote-live-pr9",
+      "slot_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "slot_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout",
+      "slot_status": "M base.txt",
+      "primary_branch": "main",
+      "primary_head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+      "primary_status": "",
+      "global_guard_unchanged": true,
+      "global_cursor_config_unchanged": true
+    }
+  ],
+  "cursor_runs": {
+    "deny": {
+      "exit": 0,
+      "stream": "/Users/dalecarman/.no-mistakes/evidence/01M4WGSNXGZXHFRVE1HA865TSN/deny-cursor-stream.jsonl"
+    },
+    "promote": {
+      "exit": 0,
+      "stream": "/Users/dalecarman/.no-mistakes/evidence/01M4WGSNXGZXHFRVE1HA865TSN/promote-cursor-stream.jsonl"
+    },
+    "relaunch": {
+      "exit": 0,
+      "stream": "/Users/dalecarman/.no-mistakes/evidence/01M4WGSNXGZXHFRVE1HA865TSN/relaunch-cursor-stream.jsonl"
+    }
+  },
+  "isolated_cursor_config": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/config/cursor-cli",
+  "cursor_config_hash_before_isolation": "7b71563c5ea0cbe5337f344482d82fcf1152cacd4b224ea1a875a742d0cacf7b",
+  "normal_config_initial_launch_side_effect": "Cursor refreshed normal CLI configuration during the negative-control run. Subsequent launches use CURSOR_CONFIG_DIR inside the lab and the machine normal credential store.",
+  "expected_existing_work": {
+    "path": "base.txt",
+    "sha256": "741860e7f2f6a0e71511b0d7d8993e11968b014bcc20d55ee6435794aa2b94be",
+    "head": "ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4",
+    "branch": "fm/promote-live-pr9"
+  }
+}

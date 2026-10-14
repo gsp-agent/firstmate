@@ -1,0 +1,91 @@
+PR 9 guard rejects checkout under the private Cursor configuration
+$ git checkout -b fm/pr9-denied --
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+DENIED: Command blocked by permissions configuration
+Cursor report: I'll request that single checkout now and report whatever the tool returns.Captain, the checkout was refused. The tool returned: `Permission denied: Command blocked by permissions configuration`.
+
+Promoted scout creates its ship branch
+$ pwd -P && git rev-parse --show-toplevel && echo "---BRANCH---" && git branch --show-current && echo "---HEAD---" && git rev-parse HEAD && echo "---STATUS---" && git status && echo "---LOG---" && git log --oneline -20 && echo "---DEFAULT---" && git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || git rev-parse --abbrev-ref origin/HEAD 2>/dev/null; echo "---BRANCHES---" && git branch -vv && echo "---DETACHED---" && git status -sb
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+---BRANCH---
+---HEAD---
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+---STATUS---
+Not currently on any branch.
+nothing to commit, working tree clean
+---LOG---
+ae116c1 fixture baseline
+---DEFAULT---
+origin/HEAD
+---BRANCHES---
+* (no branch) ae116c1 fixture baseline
++ main        ae116c1 (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/projects/promotion-fixture) fixture baseline
+---DETACHED---
+## HEAD (no branch)
+$ git rev-parse --verify main && git rev-parse HEAD && if git show-ref --verify --quiet refs/heads/fm/promote-live-pr9; then echo "BRANCH_EXISTS"; git switch fm/promote-live-pr9; else echo "BRANCH_ABSENT"; git switch -c fm/promote-live-pr9 --; fi && echo "---VERIFY---" && pwd -P && git rev-parse --show-toplevel && echo "---BRANCH---" && git branch --show-current && echo "---HEAD---" && git rev-parse HEAD && echo "---STATUS---" && git status && echo "---SB---" && git status -sb
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+exit=0
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+BRANCH_ABSENT
+---VERIFY---
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+---BRANCH---
+fm/promote-live-pr9
+---HEAD---
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+---STATUS---
+On branch fm/promote-live-pr9
+nothing to commit, working tree clean
+---SB---
+## fm/promote-live-pr9
+Switched to a new branch 'fm/promote-live-pr9'
+Cursor report: I'll verify isolation and inventory this slot before any branch change, and I'll leave an existing `fm/promote-live-pr9` branch in place.Isolation matches this slot, and the tree is a clean detached baseline at the same commit as `main`. `fm/promote-live-pr9` is not present, so I will create it from that base.Branch verification is complete. Isolation matches this disposable slot, and `fm/promote-live-pr9` was created from the clean default-branch commit. No existing ship branch was present to preserve.
+
+- **pwd:** `/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout`
+- **repository top level:** `/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout`
+- **current branch:** `fm/promote-live-pr9`
+- **HEAD:** `ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4`
+- **git status:** On branch `fm/promote-live-pr9`, nothing to commit, working tree clean
+
+Scratch inventory before the switch was a detached `HEAD` at that same commit (`fixture baseline`, also `main`), with a clean working tree. Stopping here.
+
+Saved promoted brief preserves an existing branch and uncommitted work
+$ pwd -P && git rev-parse --show-toplevel && git branch --show-current && git rev-parse HEAD && git status --porcelain=v1 -b && echo '---LOG---' && git log --oneline -20 && echo '---BRANCHES---' && git branch -vv && echo '---DEFAULT---' && git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || git rev-parse --abbrev-ref HEAD
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout
+fm/promote-live-pr9
+ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4
+## fm/promote-live-pr9
+ M base.txt
+---LOG---
+ae116c1 fixture baseline
+---BRANCHES---
+* fm/promote-live-pr9 ae116c1 fixture baseline
++ main                ae116c1 (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/projects/promotion-fixture) fixture baseline
+---DEFAULT---
+fm/promote-live-pr9
+Cursor report: I'll verify isolation and inventory the slot first, then only create `fm/promote-live-pr9` if that ship branch is not already present.Isolation checks match the disposable slot, and the existing ship branch is already in place, so its work stayed as it was.
+
+**pwd:** `/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout`
+
+**Repository top level:** `/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WGSNXGZXHFRVE1HA865TSN/.fm-promote-lab.mhsqlkhb/slots/scout`
+
+**Current branch:** `fm/promote-live-pr9`
+
+**HEAD:** `ae116c1d9d2cddeb4f077cfb8747a1faee2d7eb4` (`fixture baseline`)
+
+**git status:**
+```
+## fm/promote-live-pr9
+ M base.txt
+```
+
+Scratch inventory before any branch change: one commit, `ae116c1 fixture baseline`, and one unstaged modification, `base.txt`. `fm/promote-live-pr9` already pointed at that commit, so the branch and that uncommitted change remain.
+
