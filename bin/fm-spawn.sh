@@ -22,10 +22,6 @@
 #   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}`
 #   placeholders, an empty Task, an incomplete pair of Task subsections, or a
 #   `## Captain's intent` line opening with a Captain label or address.
-#   A fresh ship or scout's # Task section is limited to 2048 bytes, including
-#   Captain's intent and Firstmate spec but excluding scaffold sections outside
-#   Task. Keep the ask short and link to detailed records. --relaunch reuses the
-#   existing task's brief without applying this limit.
 #   Every ship or scout spawn renders `launch-brief.md`; for a no-mistakes ship
 #   it also carries the current `--intent` contract and the extracted captain
 #   intent. A legacy mixed Task is accepted there only under bin/fm-dod-lib.sh's
@@ -3337,7 +3333,10 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
     echo "error: $BRIEF ## Captain's intent has an operator-address line: $ADDRESS_LINE; write the captain's actual words without a Captain label or address before spawn, since the heading already records provenance" >&2
     exit 1
   fi
-  # The header owns the fresh-task limit and legacy relaunch exception.
+  # A fresh worker's task is capped at BRIEF_TASK_MAX_BYTES: the brief carries
+  # the ask and a pointer to where the detail lives (bead, PR, file), never the
+  # detail itself. A relaunch re-delivers the brief its task already runs on, so
+  # a long brief written before the cap cannot strand a live worker.
   if [ "$RELAUNCH" -eq 0 ]; then
     TASK_BYTES=$(fm_brief_heading_body "$BRIEF" "# Task" | wc -c | tr -d '[:space:]')
     if [ "$TASK_BYTES" -gt "$BRIEF_TASK_MAX_BYTES" ]; then
