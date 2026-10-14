@@ -22,9 +22,10 @@
 #   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}`
 #   placeholders, an empty Task, an incomplete pair of Task subsections, or a
 #   `## Captain's intent` line opening with a Captain label or address.
-#   A fresh ship or scout additionally refuses a # Task body over 2048 bytes;
-#   link to the bead, PR, or file for detail instead of pasting it. Relaunches
-#   preserve existing briefs and do not apply this cap.
+#   A fresh ship/scout # Task body is limited to 2048 bytes, including both
+#   subsections; link to a bead, PR, or file for longer detail. The scaffold
+#   outside # Task is not counted, and relaunches retain their existing brief
+#   without applying this fresh-launch cap.
 #   Every ship or scout spawn renders `launch-brief.md`; for a no-mistakes ship
 #   it also carries the current `--intent` contract and the extracted captain
 #   intent. A legacy mixed Task is accepted there only under bin/fm-dod-lib.sh's
@@ -485,14 +486,14 @@
 # busy turn - answering the dialog first if it renders anyway - before
 # reporting success (the rovo/kimi launch-then-confirm shape). Its busy state
 # is a screen-scrape fallback like grok and rovo, and it is crewmate/scout only.
-# cursor installs no per-task hook either: it writes state/<id>.cursor-session to
+# cursor installs no per-task busy hook: it writes state/<id>.cursor-session to
 # bind the pane to cursor's own conversation transcript (projects root, the exact
 # workspace path cursor records in .workspace-trusted, and the conversations that
 # already existed for that workspace). It is launched through the verified binary
 # resolver because `cursor` is not the CLI name. A cursor SECONDMATE instead runs
 # the tracked project-scope .cursor/hooks.json in its own home, whose stop-hook
 # park owns that home's supervision (docs/supervision-protocols/cursor.md).
-# claude is the one harness whose pre-launch setup can REFUSE the spawn: before
+# Claude's workspace-trust setup can REFUSE the spawn: before
 # any per-task state exists, and before its busy hooks are written, every
 # claude launch pre-registers the directory the pane
 # starts in - the task worktree, or the secondmate home for a --secondmate spawn -
@@ -2336,8 +2337,10 @@ launch_template() {
   # effort axis is deliberately omitted and stays in task metadata only.
   # -p --output-format stream-json is tee'd (through process substitution, so
   # the pane command keeps the agent's own exit status) to state/<id>.cursor-stream.jsonl
-  # and still runs in the pane, so it stays visible. --plugin-dir loads pstack
-  # and --approve-mcps lets its MCP servers start unattended. The second --plugin-dir is this
+  # and still runs in the pane, so it stays visible. Control-plane relaunch
+  # re-delivers the brief in a new conversation; it does not pass --resume.
+  # --plugin-dir loads pstack and --approve-mcps
+  # lets its MCP servers start unattended. The second --plugin-dir is this
   # task's crew guard (install_cursor_crew_guard, bin/fm-cursor-crew-guard.mjs):
   # a preToolUse hook that pins shell calls naming no directory to the worktree,
   # because Cursor otherwise runs them wherever the conversation's persistent
