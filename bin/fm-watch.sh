@@ -2918,16 +2918,64 @@ EOF
           check_sweep_output="${check_sweep_output}${reason}"$'\n'
           continue
         fi
-        fm_wake_append check "$c" "$reason" || exit 1
+        publish_dequeue=1
+        sweep_contains=1
+        if [ -n "$dequeue_event" ]; then
+          sweep_contains=0
+          "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --contains "$STATE" "$dequeue_event" \
+            || sweep_contains=$?
+          if [ "$sweep_contains" -eq 0 ]; then
+            publish_dequeue=0
+          fi
+        fi
+        if [ "$publish_dequeue" -eq 1 ]; then
+          fm_wake_append check "$c" "$reason" || exit 1
+        fi
         if [ -n "$dequeue_event" ]; then
           fm_pr_poll_dequeue_record "$STATE" "$id" "$url" "$dequeue_event" || exit 1
+          if [ "$publish_dequeue" -eq 1 ] && [ "$sweep_contains" -eq 1 ]; then
+            "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --record "$STATE" "$dequeue_event" || exit 1
+          fi
         fi
         pr_poll_control_release || exit 1
-        check_sweep_output="${check_sweep_output}${reason}"$'\n'
+        if [ "$publish_dequeue" -eq 1 ]; then
+          check_sweep_output="${check_sweep_output}${reason}"$'\n'
+        fi
         continue
       fi
       pr_poll_control_release || exit 1
     done
+    # Open pull requests in a watched merge-queue repository. The sweep header
+    # owns the line and the seen record.
+    if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
+      run_check_capture "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --scan "$STATE" || exit 1
+      sweep_raw=$FM_CHECK_RESULT
+      sweep_line=
+      while IFS= read -r sweep_line || [ -n "$sweep_line" ]; do
+        [ -n "$sweep_line" ] || continue
+        case "$sweep_line" in
+          'dequeued https://github.com/'*' reason='*' event='*)
+            sweep_event=${sweep_line##* event=}
+            sweep_visible=${sweep_line% event=*}
+            ;;
+          *) continue ;;
+        esac
+        case "$sweep_event" in
+          ''|*[!A-Za-z0-9_+/=-]*) continue ;;
+        esac
+        [ "${#sweep_event}" -le 256 ] || continue
+        sweep_contains=0
+        "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --contains "$STATE" "$sweep_event" \
+          || sweep_contains=$?
+        [ "$sweep_contains" -eq 1 ] || continue
+        sweep_reason="check: $SCRIPT_DIR/fm-pr-queue-sweep.sh: $sweep_visible"
+        fm_wake_append check "$SCRIPT_DIR/fm-pr-queue-sweep.sh" "$sweep_reason" || exit 1
+        "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --record "$STATE" "$sweep_event" || exit 1
+        check_sweep_output="${check_sweep_output}${sweep_reason}"$'\n'
+      done <<EOF
+$sweep_raw
+EOF
+    fi
     if [ -n "$rejected_checks" ]; then
       reason="check: rejected unauthenticated state checks:$rejected_checks"
       fm_wake_append check unauthenticated-state-checks "$reason" || exit 1

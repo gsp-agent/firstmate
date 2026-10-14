@@ -146,6 +146,35 @@ case "${1:-} ${2:-}" in
     # A poll query names the removal event, so this branch can dequeue a
     # pull request the outcome query has never described.
     case " $* " in
+      *pullRequests*)
+        [ "${FM_TEST_GH_SWEEP_FAIL:-0}" = 0 ] || exit 1
+        request_host=github.com
+        cursor=null
+        jq_filter=
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            --jq) shift; jq_filter=${1-} ;;
+            --hostname) shift; request_host=${1-} ;;
+            -f|-F)
+              shift
+              case "${1-}" in cursor=*) cursor=${1#cursor=} ;; esac
+              ;;
+          esac
+          shift
+        done
+        [ "$request_host" = github.com ] || exit 1
+        [ -n "$jq_filter" ] || exit 1
+        if [ -z "${FM_TEST_GH_SWEEP_DIR:-}" ]; then
+          printf '%s\n' '{"data":{"repository":{"pullRequests":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}}}' \
+            | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+          exit $?
+        fi
+        page=$cursor
+        [ "$page" != null ] && [ -n "$page" ] || page=page1
+        [ -f "$FM_TEST_GH_SWEEP_DIR/$page.json" ] || exit 1
+        "$FM_TEST_REAL_JQ" -r "$jq_filter" "$FM_TEST_GH_SWEEP_DIR/$page.json"
+        exit $?
+        ;;
       *REMOVED_FROM_MERGE_QUEUE_EVENT*)
         [ "${FM_TEST_GH_FAIL:-0}" = 0 ] || exit 1
         [ -z "${FM_TEST_GH_STATE_STARTED:-}" ] || : > "$FM_TEST_GH_STATE_STARTED"
@@ -3424,7 +3453,7 @@ SH
     || fail "re-recorded registration differs from the one published on the live device"
   [ "$(file_mode "$state/task-a.pr-poll-registration")" = 600 ] || fail "re-recorded registration is not private"
   fm_pr_poll_artifacts_valid "$state" task-a "$POLL" || fail "re-recorded poll is not strictly authenticated"
-  grep -F 'REMOVED_FROM_MERGE_QUEUE_EVENT' "$dir/gh.log" >/dev/null \
+  grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null \
     || fail "re-recorded poll did not run its validated check in the same cycle"
   grep -F 're-recorded PR poll identity for task-a' "$state/.watch-triage.log" >/dev/null \
     || fail "re-record left no triage evidence"
@@ -3511,7 +3540,7 @@ SH
     esac
     [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_sha" ] \
       || fail "$mutation let the watcher re-record the registration"
-    ! grep -F 'REMOVED_FROM_MERGE_QUEUE_EVENT' "$dir/gh.log" >/dev/null 2>&1 \
+    ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
       || fail "$mutation ran the refused poll"
     ! ls "$state"/.fm-pr-poll-registration.* >/dev/null 2>&1 \
       || fail "$mutation left a staged registration behind"
@@ -4109,6 +4138,132 @@ test_verified_queue_drop_wakes_once() {
   pass "a verified queue drop wakes once, a merge stays a merge, and a bad read stays silent"
 }
 
+# The nine stranded open pull requests, plus 4308 at the moment it left the
+# queue, are the replay. A re-added pull request and a merged removal are not.
+write_queue_sweep_pages() {
+  local dir=$1
+  mkdir -p "$dir/sweep"
+  "$REAL_JQ" -n '
+    def node($n; $reason; $kind; $queued):
+      {number:$n, state:"OPEN", merged:false, isInMergeQueue:$queued,
+       timelineItems:{nodes:
+         (if $kind == "added" then
+            [{__typename:"AddedToMergeQueueEvent", id:("evt"+($n|tostring))}]
+          else
+            [{__typename:"RemovedFromMergeQueueEvent", id:("evt"+($n|tostring)), reason:$reason}]
+          end)}};
+    def page($nodes; $more; $cursor):
+      {data:{repository:{pullRequests:{
+        pageInfo:{hasNextPage:$more, endCursor:(if $more then $cursor else null end)},
+        nodes:$nodes}}}};
+    page([
+      node(3941; "merge_conflict"; "removed"; false),
+      node(3950; "merge_conflict"; "removed"; false),
+      node(3939; "manual"; "removed"; false),
+      node(4006; "merge_conflict"; "removed"; false),
+      node(4017; "failed_checks"; "removed"; false),
+      node(4308; "failed_checks"; "removed"; false)
+    ]; true; "page2")
+  ' > "$dir/sweep/page1.json"
+  "$REAL_JQ" -n '
+    def node($n; $reason; $kind; $queued):
+      {number:$n, state:"OPEN", merged:false, isInMergeQueue:$queued,
+       timelineItems:{nodes:
+         (if $kind == "added" then
+            [{__typename:"AddedToMergeQueueEvent", id:("evt"+($n|tostring))}]
+          else
+            [{__typename:"RemovedFromMergeQueueEvent", id:("evt"+($n|tostring)), reason:$reason}]
+          end)}};
+    def page($nodes; $more; $cursor):
+      {data:{repository:{pullRequests:{
+        pageInfo:{hasNextPage:$more, endCursor:(if $more then $cursor else null end)},
+        nodes:$nodes}}}};
+    page([
+      node(4111; "merge_conflict"; "removed"; false),
+      node(4172; "manual"; "removed"; false),
+      node(4183; "merge_conflict"; "removed"; false),
+      node(4200; "merge_conflict"; "removed"; false),
+      node(3361; "manual"; "added"; false),
+      node(9001; "merged"; "removed"; false)
+    ]; false; "")
+  ' > "$dir/sweep/page2.json"
+}
+
+test_open_queue_removals_wake_once_across_a_watched_repo() {
+  local dir state url spec number reason target
+  url=https://github.com/groovejones/groove-sight-platform/pull/4308
+  dir=$(make_case open-queue-removals)
+  state="$dir/home/state"
+  write_queue_sweep_pages "$dir"
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=evt4308 \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "open queue sweep failed: $(cat "$dir/watch.err")"
+  for spec in \
+    3941:merge_conflict 3950:merge_conflict 3939:manual 4006:merge_conflict \
+    4017:failed_checks 4111:merge_conflict 4172:manual 4183:merge_conflict \
+    4200:merge_conflict 4308:failed_checks
+  do
+    number=${spec%%:*}
+    reason=${spec#*:}
+    [ "$(grep -c "dequeued https://github.com/groovejones/groove-sight-platform/pull/${number} reason=${reason}$" "$dir/watch.out")" -eq 1 ] \
+      || fail "pull ${number} was not reported once: $(cat "$dir/watch.out")"
+  done
+  ! grep -F 'pull/3361' "$dir/watch.out" >/dev/null \
+    || fail "a re-added pull request woke: $(cat "$dir/watch.out")"
+  ! grep -F 'pull/9001' "$dir/watch.out" >/dev/null \
+    || fail "a merged removal woke: $(cat "$dir/watch.out")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 10 ] \
+    || fail "the sweep reported something other than the ten removals: $(cat "$dir/watch.out")"
+  [ "$(file_mode "$state/merge-queue-sweep.seen")" = 600 ] \
+    || fail "the seen record is not private"
+  ack_watcher_cycle "$state" || fail "open queue sweep acknowledgement failed"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=evt4308 \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/repeat.out" 2> "$dir/repeat.err" \
+    || fail "open queue sweep repeat failed: $(cat "$dir/repeat.err")"
+  expect_stop_cycle "$dir/repeat.out" "a handled removal woke again"
+
+  dir=$(make_case open-queue-removals-unreadable)
+  state="$dir/home/state"
+  write_queue_sweep_pages "$dir"
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_SWEEP_FAIL=1 FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/fail.out" 2> "$dir/fail.err" \
+    || fail "unreadable queue sweep failed closed: $(cat "$dir/fail.err")"
+  expect_stop_cycle "$dir/fail.out" "an unreadable sweep woke"
+  [ ! -e "$state/merge-queue-sweep.seen" ] \
+    || fail "an unreadable sweep recorded events"
+
+  dir=$(make_case open-queue-removals-symlink)
+  state="$dir/home/state"
+  write_queue_sweep_pages "$dir"
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url"
+  add_stop_custom_check "$dir"
+  target="$dir/seen-target"
+  printf 'kept\n' > "$target"
+  ln -s "$target" "$state/merge-queue-sweep.seen"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=evt4308 \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/link.out" 2> "$dir/link.err" \
+    || fail "symlink seen record failed the watcher: $(cat "$dir/link.err")"
+  ! grep -F 'fm-pr-queue-sweep.sh: dequeued ' "$dir/link.out" >/dev/null \
+    || fail "an unsafe seen record still swept: $(cat "$dir/link.out")"
+  [ "$(cat "$target")" = kept ] || fail "an unsafe seen record was followed"
+  [ -L "$state/merge-queue-sweep.seen" ] || fail "an unsafe seen record was replaced"
+
+  pass "open pull requests removed from a watched queue wake once"
+}
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -4147,6 +4302,7 @@ test_github_poll_uses_the_pr_host
 test_dequeue_sweep_reaches_later_checks
 test_queue_drop_reason_is_preserved
 test_verified_queue_drop_wakes_once
+test_open_queue_removals_wake_once_across_a_watched_repo
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations
