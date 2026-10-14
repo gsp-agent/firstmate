@@ -4,12 +4,6 @@
 #
 # Usage:
 #   fm-dispatch-resolve.sh <brief-file> [--project <name>]
-#   fm-dispatch-resolve.sh --labels <a,b|""> [--project <name>]     (worker routing)
-#
-# Worker routing (--labels, an empty value is allowed): no model judgment, no
-#   key, no network. The first bead label found in `label_routes` in
-#   crew-dispatch.json picks that profile; with no match the `default` is used.
-#   Prints "status: clear ... source: label|default" and the profile line.
 #
 # Opt-in gate: TYPESAFE_API_KEY non-empty in this process environment, else a
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
@@ -115,13 +109,11 @@ usage() {
   ' "$0"
 }
 
-LABELS='' LABELS_SET=''
 BRIEF='' PROJECT='' RULES_PATH="$CONFIG/crew-dispatch.json" RULES=''
 NEVER_SEND_PATH="$CONFIG/dispatch-never-send"
 while [ $# -gt 0 ]; do
   case "$1" in
     --project) [ $# -ge 2 ] || die "--project needs a value"; PROJECT=$2; shift 2 ;;
-    --labels) [ $# -ge 2 ] || die "--labels needs a value"; LABELS=$2; LABELS_SET=1; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     -*) die "unknown flag $1" ;;
     *) [ -z "$BRIEF" ] || die "one brief file only"; BRIEF=$1; shift ;;
@@ -129,19 +121,17 @@ while [ $# -gt 0 ]; do
 done
 
 # ---- opt-in gate ---------------------------------------------------------------
-if [ -z "$LABELS_SET" ] && [ -z "$TYPESAFE_API_KEY_PRIVATE" ]; then
+if [ -z "$TYPESAFE_API_KEY_PRIVATE" ]; then
   TYPESAFE_API_KEY_PRIVATE=$(fmx_env_get TYPESAFE_API_KEY "$FM_HOME/.env")
 fi
-if [ -z "$LABELS_SET" ] && [ -z "$TYPESAFE_API_KEY_PRIVATE" ]; then
+if [ -z "$TYPESAFE_API_KEY_PRIVATE" ]; then
   echo "dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and $FM_HOME/.env)" >&2
   exit 0
 fi
 
 # ---- inputs --------------------------------------------------------------------
-if [ -z "$LABELS_SET" ]; then
-  [ -n "$BRIEF" ] || die "brief file required (see --help)"
-  [ -r "$BRIEF" ] || die "brief file not readable: $BRIEF"
-fi
+[ -n "$BRIEF" ] || die "brief file required (see --help)"
+[ -r "$BRIEF" ] || die "brief file not readable: $BRIEF"
 [ -e "$RULES_PATH" ] || [ -L "$RULES_PATH" ] || no_rules
 [ -r "$RULES_PATH" ] || die "rules file not readable: $RULES_PATH"
 command -v jq >/dev/null 2>&1 || die "jq required"
@@ -161,9 +151,8 @@ rules_err=$(jq -r --argjson verified_harnesses "$VERIFIED_HARNESSES" --arg provi
     elif ($e | type) != "string" then false
     elif $e == "ultra" then (($h == "pi" or $h == "pi-signed") and (($m | type) == "string") and ($m | startswith("codex-native/")) and ($m | length) > 13)
     elif $h == "claude" then (["low","medium","high","xhigh","max"] | index($e)) != null
-    elif $h == "codex" then ((["low","medium","high","xhigh"] | index($e)) != null or ($e == "max" and ($m == "gpt-5.6-luna" or $m == "gpt-6.1-sol")))
-    elif $h == "grok" then (["low","medium","high","xhigh"] | index($e)) != null
-    elif $h == "agy" then (["low","medium","high"] | index($e)) != null
+    elif $h == "codex" then ((["low","medium","high","xhigh"] | index($e)) != null or ($e == "max" and $m == "gpt-5.6-luna"))
+    elif $h == "grok" or $h == "agy" then (["low","medium","high"] | index($e)) != null
     elif $h == "pi" or $h == "pi-signed" or $h == "omp" or $h == "muse" then (["low","medium","high","xhigh","max"] | index($e)) != null
     elif $h == "rovo" then (["low","medium","high","max"] | index($e)) != null
     elif $h == "opencode" or $h == "kimi" or $h == "cursor" then false
@@ -202,11 +191,6 @@ rules_err=$(jq -r --argjson verified_harnesses "$VERIFIED_HARNESSES" --arg provi
   elif any((.rules // [])[]; duplicate_profiles(profiles(.use))) then "each rule use must not contain duplicate harness, model, and effort profiles"
   elif any((.rules // [])[] | profiles(.use)[]; (verified(.harness) | not)) then "each use profile must name a verified harness"
   elif any((.rules // [])[] | profiles(.use)[]; (effort_ok(.harness; .model; .effort) | not)) then "each use profile effort must be supported by its harness and model"
-  elif has("cursor_fallback") and ((.cursor_fallback | type) != "object" or ((.cursor_fallback.models_pct | type) != "number") or .cursor_fallback.models_pct < 1 or .cursor_fallback.models_pct > 100 or ((.cursor_fallback.max_age_h | type) != "number") or .cursor_fallback.max_age_h <= 0) then "cursor_fallback needs models_pct 1..100 and max_age_h > 0"
-  elif has("label_routes") and ((.label_routes | type) != "object" or any(.label_routes[]; (profiles(.) | length) != 1 or (. | type) != "object")) then "label_routes must map each label to one profile object"
-  elif any((.label_routes // {})[]; profile_bad(.)) then "each label_routes profile needs harness; model and effort must be well formed"
-  elif any((.label_routes // {})[]; (verified(.harness) | not)) then "each label_routes profile must name a verified harness"
-  elif any((.label_routes // {})[]; (effort_ok(.harness; .model; .effort) | not)) then "each label_routes profile effort must be supported by its harness and model"
   elif has("default") and (profiles(.default) | length) == 0 then "default must be a profile object or non-empty profile array"
   elif has("default") and any(profiles(.default)[]; profile_bad(.)) then "each default profile needs harness; model, effort, and floor must be well formed, and provider must match ^[a-z0-9]+(-[a-z0-9]+)*\\z when present"
   elif has("default") and duplicate_profiles(profiles(.default)) then "default must not contain duplicate harness, model, and effort profiles"
@@ -215,41 +199,6 @@ rules_err=$(jq -r --argjson verified_harnesses "$VERIFIED_HARNESSES" --arg provi
   else empty end
 ' "$RULES" 2>/dev/null) || die "malformed rules file: $RULES_PATH (not JSON)"
 [ -z "$rules_err" ] || die "malformed rules file: $RULES_PATH - $rules_err"
-
-# ---- worker routing: labels, then default, no model judgment ----------------------
-if [ -n "$LABELS_SET" ]; then
-  case ",${LABELS// /}," in
-  *,docs-only,*)
-    case ",${LABELS// /}," in
-    *,ep-opus,*)
-      echo "dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)" >&2
-      printf 'dispatch-resolve:\n  status: refused\n  reason: labels docs-only and ep-opus conflict\n'
-      exit 1
-      ;;
-    esac
-    ;;
-  esac
-  routed=$(jq -r --arg labels "$LABELS" '
-    def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
-    def flat: gsub("[\\r\\n]"; " ");
-    ($labels | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))) as $ls
-    | (.label_routes // {}) as $routes
-    | ([$ls[] | select($routes[.] != null)] | first // null) as $hit
-    | (if $hit != null then {src: "label", detail: $hit, p: $routes[$hit]}
-       else {src: "default", detail: "no label matched", p: (profiles(.default // null) | first // null)} end)
-    | if .p == null then "NONE"
-      else ["dispatch-resolve:", "  status: clear", "  source: \(.src) (\(.detail | flat))",
-            "  profile: --harness \(.p.harness | @sh)"
-            + (if .p.model then " --model \(.p.model | @sh)" else "" end)
-            + (if .p.effort then " --effort \(.p.effort | @sh)" else "" end)] | join("\n") end
-  ' "$RULES") || die "worker routing failed: $RULES_PATH"
-  if [ "$routed" = NONE ]; then
-    printf 'dispatch-resolve:\n  status: escalate\n  reason: no label route matched and no default\n'
-  else
-    printf '%s\n' "$routed"
-  fi
-  exit 0
-fi
 
 missing_provider=$(jq -r '
   def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;

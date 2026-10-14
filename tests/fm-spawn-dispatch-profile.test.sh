@@ -66,8 +66,6 @@ make_spawn_case() {
   launchlog="$case_dir/launch.log"
   fakebin=$(make_spawn_fakebin "$case_dir/fake")
   fm_test_spawn_home "$home" "$harness"
-  mkdir -p "$home/pstack/.cursor-plugin" && printf '{"version":"0.15.21"}\n' > "$home/pstack/.cursor-plugin/plugin.json"
-  mkdir -p "$home/cursor-usage" && printf 'cursor_models_pct=10\n' > "$home/cursor-usage/20261012-spending.txt"
   fm_git_worktree "$proj" "$wt" "wt-$name"
   for id in "$@"; do
     fm_test_spawn_brief "$home" "$id"
@@ -117,7 +115,6 @@ run_spawn() {
     FM_FAKE_CURSOR_MODELS="${FM_TEST_CURSOR_MODELS:-}" \
     FM_FAKE_CURSOR_LIST_STATUS="${FM_TEST_CURSOR_LIST_STATUS:-0}" \
     GROK_HOME="$home/grok-home" \
-    FM_PSTACK_DIR="$home/pstack" FM_CURSOR_USAGE_DIR="$home/cursor-usage" FM_CURSOR_CLI_CONFIG="$home/cursor-cli-config.json" FM_CURSOR_MODELS_RULE="$home/pstack-models.mdc" \
     fm_test_run_spawn "$home" "$wt" "$fakebin" "$@"
 }
 
@@ -563,21 +560,6 @@ test_codex_threads_model_and_max_effort() {
   pass "codex Luna receives --model and model_reasoning_effort max profile flags"
 }
 
-test_codex_sol_threads_max_effort() {
-  local rec id out status launch
-  id=profile-codex-sol-max-z4s
-  rec=$(make_spawn_case profile-codex-sol-max codex "$id")
-  read_case_record "$rec"
-
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model gpt-6.1-sol --effort max)
-  status=$?
-  expect_code 0 "$status" "codex Sol spawn with max effort should succeed"
-  launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "codex --model 'gpt-6.1-sol' -c 'model_reasoning_effort=\"max\"' --dangerously-bypass-approvals-and-sandbox" \
-    "codex launch did not thread Sol's max reasoning effort config"
-  pass "codex Sol receives model_reasoning_effort max profile flags"
-}
-
 test_codex_omits_max_effort_for_unsupported_model() {
   local rec id out status launch
   id=profile-codex-max-unsupported-z4b
@@ -674,22 +656,23 @@ test_grok_omits_invalid_max_reasoning_effort() {
   pass "grok omits unsupported max reasoning effort"
 }
 
-test_grok_threads_xhigh_reasoning_effort() {
+test_grok_omits_invalid_xhigh_reasoning_effort() {
   local rec id out status launch
   id=profile-grok-xhigh-z6b
   rec=$(make_spawn_case profile-grok-xhigh grok "$id")
   read_case_record "$rec"
 
-  # grok 1.0.50 accepts xhigh for grok-4.7, whose effort menu advertises it.
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model grok-4.7 --effort xhigh)
+  # grok 0.2.99 rejects xhigh (accepted set is only low|medium|high).
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model grok-4 --effort xhigh)
   status=$?
-  expect_code 0 "$status" "grok spawn with xhigh reasoning effort should succeed"
-  assert_meta_profile "$HOME_DIR/state/$id.meta" grok grok-4.7 xhigh
+  expect_code 0 "$status" "grok spawn with unsupported xhigh reasoning effort should omit the effort flag"
+  assert_meta_profile "$HOME_DIR/state/$id.meta" grok grok-4 xhigh
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "grok --always-approve --model 'grok-4.7' --reasoning-effort 'xhigh'" \
-    "grok launch did not thread xhigh reasoning effort"
-  assert_not_contains "$launch" "--effort" "grok launch must use --reasoning-effort, not --effort"
-  pass "grok receives xhigh reasoning effort"
+  assert_contains "$launch" "grok --always-approve --model 'grok-4' \"\$('${ROOT}/bin/fm-operational-input.sh' encode launch-brief < " \
+    "grok launch did not preserve the model flag and typed brief when xhigh effort was omitted"
+  assert_not_contains "$launch" "--reasoning-effort" "grok launch must omit unsupported xhigh reasoning effort"
+  assert_not_contains "$launch" "--effort" "grok launch must not fall back to --effort for reasoning effort"
+  pass "grok omits unsupported xhigh reasoning effort"
 }
 
 test_cursor_threads_model_workspace_and_omits_effort_axis() {
@@ -704,16 +687,8 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
   expect_code 0 "$status" "cursor spawn with a model-qualified reasoning class should succeed"
   assert_meta_profile "$HOME_DIR/state/$id.meta" cursor cursor-grok-4.5-high high
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "-p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir " \
-    "cursor launch did not carry print/stream-json, trust, autonomy, approve-mcps and plugin-dir flags"
-  assert_contains "$launch" "--model 'cursor-grok-4.5-high' --workspace '$WT_DIR'" \
-    "cursor launch did not carry model and exact workspace flags"
-  assert_contains "$launch" "> >(tee '" "cursor launch did not tee its stream-json through process substitution"
-  assert_contains "$launch" "$id.cursor-stream.jsonl" "cursor stream was not teed to Firstmate state"
-  assert_contains "$launch" "fm-cursor-guard.sh" "cursor launch did not run the post-run usage-limit hook"
-  assert_grep 'useHttp1ForAgent": true' "$HOME_DIR/cursor-cli-config.json" "cursor config was not re-asserted before launch"
-  assert_grep '"fast"' "$HOME_DIR/cursor-cli-config.json" "cursor config lost the fast tier"
-  assert_not_contains "$(cat "$HOME_DIR/pstack-models.mdc")" "opus" "pstack role models must never name an Opus model in Cursor"
+  assert_contains "$launch" "--trust --yolo --model 'cursor-grok-4.5-high' --workspace '$WT_DIR'" \
+    "cursor launch did not carry trust, autonomy, model, and exact workspace flags"
   # The executable is RESOLVED, never named: `cursor` is not the CLI, so a
   # literal `cursor agent` command cannot run on a machine that has only the
   # real installed names.
@@ -752,39 +727,8 @@ test_cursor_refuses_model_absent_from_live_catalog() {
   pass "cursor refuses model ids absent from its resolved binary's live catalog"
 }
 
-test_cursor_third_launch_and_fallback() {
-  local rec id out status
-  id=profile-cursor-guard-z6f
-  rec=$(make_spawn_case profile-cursor-guard cursor "$id")
-  read_case_record "$rec"
-  mkdir -p "$HOME_DIR/state"
-  printf '{"day":"%s","beads":{"%s":2}}\n' "$(TZ=America/Chicago date +%F)" "$id" > "$HOME_DIR/state/cursor-dispatch.json"
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
-    --harness cursor --model cursor-grok-4.5-high)
-  status=$?
-  expect_code 1 "$status" "a 3rd cursor launch of one bead in a day must be refused"
-  assert_contains "$out" "cursor guard: refused $id" "refusal did not name the bead"
-  [ ! -s "$LAUNCH_LOG" ] || fail "a refused cursor spawn must not launch"
-  pass "cursor spawn refuses a bead's 3rd launch in a day"
-
-  id=profile-cursor-fallback-z6g
-  rec=$(make_spawn_case profile-cursor-fallback cursor "$id")
-  read_case_record "$rec"
-  printf 'cursor_models_pct=85\n' > "$HOME_DIR/cursor-usage/20261012-spending.txt"
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
-    --harness cursor --model grok-4.7-xhigh)
-  status=$?
-  expect_code 0 "$status" "a fallback spawn should succeed"
-  assert_contains "$out" "cursor fallback: launching $id on the grok harness" "fallback was not announced on stderr"
-  assert_contains "$(cat "$LAUNCH_LOG")" "grok " "fallback did not launch on grok"
-  assert_grep 'harness=grok' "$HOME_DIR/state/$id.meta" "fallback harness was not recorded"
-  assert_grep 'Cursor Models at 85%' "$HOME_DIR/state/$id.cursor-fallback" "fallback reason was not recorded in state"
-  printf 'cursor_models_pct=10\n' > "$HOME_DIR/cursor-usage/20261012-spending.txt"
-  pass "cursor spawn falls back to grok at the usage threshold"
-}
-
-test_cursor_failed_catalog_probe_blocks_spawn() {
-  local rec id out status
+test_cursor_failed_catalog_probe_does_not_block_spawn() {
+  local rec id out status launch
   id=profile-cursor-catalog-unreachable-z6e
   rec=$(make_spawn_case profile-cursor-catalog-unreachable cursor "$id")
   read_case_record "$rec"
@@ -793,10 +737,12 @@ test_cursor_failed_catalog_probe_blocks_spawn() {
     out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
       --model cursor-catalog-unreachable)
   status=$?
-  expect_code 1 "$status" "cursor spawn must hard-fail when the catalog query fails"
-  assert_contains "$out" "refusing to launch Cursor model" "hard-fail did not say why"
-  [ ! -s "$LAUNCH_LOG" ] || fail "an unchecked cursor model must not launch"
-  pass "cursor refuses to launch when its live catalog cannot be read"
+  expect_code 0 "$status" "cursor spawn should fail open when the bounded catalog query fails"
+  launch=$(cat "$LAUNCH_LOG")
+  assert_contains "$launch" "--model 'cursor-catalog-unreachable'" \
+    "failed catalog lookup incorrectly removed the requested model"
+  assert_meta_profile "$HOME_DIR/state/$id.meta" cursor cursor-catalog-unreachable default
+  pass "cursor preserves the requested model when its live catalog is unreachable"
 }
 
 test_opencode_threads_model_and_effort_variant() {
@@ -2263,17 +2209,15 @@ test_chained_raw_launch_strips_ai_trailer_in_every_step
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort
 test_codex_threads_model_and_max_effort
-test_codex_sol_threads_max_effort
 test_codex_omits_max_effort_for_unsupported_model
 test_codex_crewmate_launch_disables_the_hook_layer
 test_codex_secondmate_launch_keeps_the_hook_layer
 test_grok_threads_model_and_reasoning_effort
 test_grok_omits_invalid_max_reasoning_effort
-test_grok_threads_xhigh_reasoning_effort
+test_grok_omits_invalid_xhigh_reasoning_effort
 test_cursor_threads_model_workspace_and_omits_effort_axis
 test_cursor_refuses_model_absent_from_live_catalog
-test_cursor_third_launch_and_fallback
-test_cursor_failed_catalog_probe_blocks_spawn
+test_cursor_failed_catalog_probe_does_not_block_spawn
 test_opencode_threads_model_and_effort_variant
 test_opencode_without_effort_keeps_launch_config_unchanged
 test_opencode_emits_variant_for_openai_family_effort

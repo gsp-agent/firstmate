@@ -58,25 +58,212 @@ keep: $sha add notes" "$CHECK_OUT" "a proof sha marks the path and the commit"
   pass "a proof sha makes that path ok and the check exits 0"
 }
 
-test_guard_path_is_ok_and_a_sibling_file_still_drifts() {
+test_guard_files_have_no_exemptions() {
   local repo sha
   repo=$(fm_test_tmproot drift-guard)
   fm_git_init_commit "$repo"
   git -C "$repo" branch upstream
-  mkdir -p "$repo/bin"
+  mkdir -p "$repo/bin" "$repo/tests" "$repo/docs"
   printf '#!/bin/bash\n' > "$repo/bin/fm-drift-nightly.sh"
-  printf 'other\n' > "$repo/extra.txt"
-  git -C "$repo" add bin/fm-drift-nightly.sh extra.txt
-  fixture_commit "$repo" "add guard and extra"
+  printf 'fixture test\n' > "$repo/tests/fm-drift-nightly.test.sh"
+  printf 'fixture docs\n' > "$repo/docs/scripts.md"
+  printf '# fixture proof\n' > "$repo/drift-proof.txt"
+  git -C "$repo" add bin/fm-drift-nightly.sh tests/fm-drift-nightly.test.sh docs/scripts.md drift-proof.txt
+  fixture_commit "$repo" "add guard files"
   sha=$(git -C "$repo" rev-parse HEAD)
   run_check "$repo" --fork HEAD --upstream upstream
-  expect_code 1 "$CHECK_RC" "a sibling of a guard path still exits 1"
+  expect_code 1 "$CHECK_RC" "unproven guard files exit 1"
   assert_equals "behind: 0
 ahead: 1
-path-ok: bin/fm-drift-nightly.sh
-path-drift: extra.txt
-unproven: $sha add guard and extra" "$CHECK_OUT" "the guard path is ok and extra.txt drifts"
-  pass "the guard's own file is path-ok and a sibling file still drifts"
+path-drift: bin/fm-drift-nightly.sh
+path-drift: docs/scripts.md
+path-drift: drift-proof.txt
+path-drift: tests/fm-drift-nightly.test.sh
+unproven: $sha add guard files" "$CHECK_OUT" "every unproven guard file drifts"
+  printf '%s\n' "$sha" > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 0 "$CHECK_RC" "exact proven guard patches exit 0: $CHECK_ERR"
+  printf 'later edit\n' >> "$repo/bin/fm-drift-nightly.sh"
+  printf 'later edit\n' >> "$repo/tests/fm-drift-nightly.test.sh"
+  printf 'later edit\n' >> "$repo/docs/scripts.md"
+  printf '# later edit\n' >> "$repo/drift-proof.txt"
+  git -C "$repo" add bin/fm-drift-nightly.sh tests/fm-drift-nightly.test.sh docs/scripts.md drift-proof.txt
+  fixture_commit "$repo" "edit proven guard files"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 1 "$CHECK_RC" "later unproven guard edits exit 1"
+  assert_contains "$CHECK_OUT" 'path-drift: bin/fm-drift-nightly.sh' "guard script drift is reported"
+  assert_contains "$CHECK_OUT" 'path-drift: tests/fm-drift-nightly.test.sh' "guard test drift is reported"
+  assert_contains "$CHECK_OUT" 'path-drift: docs/scripts.md' "guard documentation drift is reported"
+  assert_contains "$CHECK_OUT" 'path-drift: drift-proof.txt' "proof manifest drift is reported"
+  pass "guard files require exact proven patches and later edits fail"
+}
+
+test_unproven_edit_to_proven_file_exits_1() {
+  local repo kept later
+  repo=$(fm_test_tmproot drift-proven-edit)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'custom\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "proven notes"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'unproven\n' >> "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "unproven edit"
+  later=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 1 "$CHECK_RC" "an unproven edit to a proven path exits 1"
+  assert_equals "behind: 0
+ahead: 2
+path-drift: notes.txt
+unproven: $later unproven edit
+keep: $kept proven notes" "$CHECK_OUT" "the later edit cannot borrow the earlier proof"
+  pass "an unproven edit to an already-proven file fails"
+}
+
+test_proven_patches_are_replayed_in_ancestry_order() {
+  local repo first second
+  repo=$(fm_test_tmproot drift-ordered-proof)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'first\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "first patch"
+  first=$(git -C "$repo" rev-parse HEAD)
+  printf 'second\n' >> "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "second patch"
+  second=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n%s\n' "$second" "$first" > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 0 "$CHECK_RC" "dependent proven patches replay in ancestry order: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" 'path-ok: notes.txt' "the cumulative proven patch is accepted"
+  pass "dependent proven patches are accepted regardless of proof-file order"
+}
+
+test_proven_commit_does_not_accept_earlier_unproven_content() {
+  local repo i kept
+  repo=$(fm_test_tmproot drift-inherited-content)
+  fm_git_init_commit "$repo"
+  for ((i = 1; i <= 20; i++)); do printf 'line %s\n' "$i"; done > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "upstream notes"
+  git -C "$repo" branch upstream
+  {
+    printf 'unproven first line\n'
+    for ((i = 2; i <= 20; i++)); do printf 'line %s\n' "$i"; done
+  } > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "unproven first line"
+  {
+    printf 'unproven first line\n'
+    for ((i = 2; i < 20; i++)); do printf 'line %s\n' "$i"; done
+    printf 'proven last line\n'
+  } > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "proven last line"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$kept" > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 1 "$CHECK_RC" "a proven patch cannot accept unrelated inherited content: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "earlier unproven content is still drift"
+  pass "proof approves a patch rather than the commit's entire file snapshot"
+}
+
+test_cut_unproven_changes_do_not_fail_after_restoration() {
+  local repo
+  repo=$(fm_test_tmproot drift-cut)
+  fm_git_init_commit "$repo"
+  printf 'upstream\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "upstream notes"
+  git -C "$repo" branch upstream
+  printf 'custom\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "unproven notes"
+  printf 'upstream\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "cut unproven notes"
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 0 "$CHECK_RC" "cut changes with no effective drift exit 0: $CHECK_ERR"
+  assert_not_contains "$CHECK_OUT" 'path-drift:' "reverted historical changes are not effective drift"
+  pass "cut unproven changes pass once their effective changes are gone"
+}
+
+test_proven_change_can_also_cut_unproven_changes() {
+  local repo kept
+  repo=$(fm_test_tmproot drift-proof-and-cut)
+  fm_git_init_commit "$repo"
+  printf 'upstream\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "upstream notes"
+  git -C "$repo" branch upstream
+  printf 'unproven\n' > "$repo/notes.txt"
+  printf 'unproven\n' > "$repo/extra.txt"
+  git -C "$repo" add notes.txt extra.txt
+  fixture_commit "$repo" "unproven changes"
+  printf 'upstream\n' > "$repo/notes.txt"
+  git -C "$repo" rm -q extra.txt
+  printf 'proven\n' > "$repo/kept.txt"
+  git -C "$repo" add notes.txt kept.txt
+  fixture_commit "$repo" "cut unproven changes and add proven patch"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$kept" > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 0 "$CHECK_RC" "a proven patch with already-cut changes replays: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" 'path-ok: kept.txt' "the retained measured patch is accepted"
+  assert_not_contains "$CHECK_OUT" 'path-drift:' "cut changes are not required patch dependencies"
+  pass "a proven change can cut unrelated unproven changes in the same commit"
+}
+
+test_missing_proven_patch_is_drift() {
+  local repo kept
+  repo=$(fm_test_tmproot drift-missing-proof)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'custom\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "proven notes"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$kept" > "$repo/proof.txt"
+  git -C "$repo" rm -q notes.txt
+  fixture_commit "$repo" "remove proven notes"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 1 "$CHECK_RC" "removing an accepted patch without changing proof exits 1"
+  assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "a missing accepted file is reported even when fork matches upstream"
+  pass "missing accepted patches are reported as drift"
+}
+
+test_unproven_mode_change_is_drift() {
+  local repo kept
+  repo=$(fm_test_tmproot drift-mode)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'custom\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "proven notes"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$kept" > "$repo/proof.txt"
+  chmod +x "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "unproven executable mode"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 1 "$CHECK_RC" "unproven file modes exit 1"
+  assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "unproven executable mode is reported"
+  pass "unproven file modes cannot borrow content proof"
+}
+
+test_unknown_proof_commit_is_an_error() {
+  local repo
+  repo=$(fm_test_tmproot drift-unknown-proof)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf '0000000000000000000000000000000000000000\n' > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 2 "$CHECK_RC" "unknown proof commits exit 2"
+  assert_contains "$CHECK_ERR" 'proof commit not found:' "unknown proof is an actionable error"
+  pass "unknown proof commits cannot silently authorize changes"
 }
 
 test_behind_count_is_reported_and_does_not_fail_alone() {
@@ -188,7 +375,15 @@ test_bad_hour_exits_2() {
 
 test_unproven_file_is_path_drift_and_exits_1
 test_proof_sha_makes_that_path_ok_and_exits_0
-test_guard_path_is_ok_and_a_sibling_file_still_drifts
+test_guard_files_have_no_exemptions
+test_unproven_edit_to_proven_file_exits_1
+test_proven_patches_are_replayed_in_ancestry_order
+test_proven_commit_does_not_accept_earlier_unproven_content
+test_cut_unproven_changes_do_not_fail_after_restoration
+test_proven_change_can_also_cut_unproven_changes
+test_missing_proven_patch_is_drift
+test_unproven_mode_change_is_drift
+test_unknown_proof_commit_is_an_error
 test_behind_count_is_reported_and_does_not_fail_alone
 test_merge_commit_is_labeled_merge
 test_install_dry_run_writes_nothing

@@ -1,0 +1,111 @@
+Nightly drift guard measured on this machine
+Measured: 2026-10-14T13:08:36.431099-05:00
+Platform: Darwin 27.2.0 arm64
+Starting head: ce08ec298a7d52333a4c57ff01cdf0471c3bfdab
+Upstream: 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Scope: executable guard behavior in local Git fixtures; deployment is outside this review phase.
+
+$ git --version
+git version 2.56.0
+exit: 0
+
+$ git hash-object bin/fm-drift-nightly.sh
+0a8b0f9ce67600d4e64302e94080dda97ad82d15
+exit: 0
+
+Upstream baseline: no nightly drift guard exists at the imported upstream commit.
+$ git cat-file -e 7df545bf74ff729ed1733f77b0aea02a9b164ac1:bin/fm-drift-nightly.sh
+stderr:
+fatal: path 'bin/fm-drift-nightly.sh' exists on disk, but not in '7df545bf74ff729ed1733f77b0aea02a9b164ac1'
+exit: 128
+
+Cut recovery: the Git consumer verifies all eight archived branch heads.
+$ git bundle verify archives/fork-cuts.bundle
+The bundle contains these 8 refs:
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+ada14efcab836915609ea325e537fef0e9c45edc refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+745991e8e70fab9fb35bb63e5d2c1491c42124da refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+ece80a3543c804bd10e8f13ad28775abef9a4e94 refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+8193b2365719da824fe563f01645fe1eb1ccffa0 refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+592992342dfbfd681ce66a08a6aeb38177c53a79 refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+8bd577837677140faf740ac6c51dd1954bba675a refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+The bundle requires these 2 refs:
+20dcbf91520b1816663b81873ad67d0b93b3e4d6 
+7df545bf74ff729ed1733f77b0aea02a9b164ac1 
+The bundle uses this hash algorithm: sha1
+stderr:
+archives/fork-cuts.bundle is okay
+exit: 0
+
+$ git bundle list-heads archives/fork-cuts.bundle
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+ada14efcab836915609ea325e537fef0e9c45edc refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+745991e8e70fab9fb35bb63e5d2c1491c42124da refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+ece80a3543c804bd10e8f13ad28775abef9a4e94 refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+8193b2365719da824fe563f01645fe1eb1ccffa0 refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+592992342dfbfd681ce66a08a6aeb38177c53a79 refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+8bd577837677140faf740ac6c51dd1954bba675a refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+exit: 0
+
+Counterfactual 1: identical proven-file drift is accepted by the original guard and rejected by the revised guard.
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv/proof.txt
+behind: 0
+ahead: 2
+path-ok: notes.txt
+unproven: 4a127569b77da7e216a93126e76fdcbb00a63108 unproven edit to proven file
+keep: be5763ce5a82a9bbc4bb34d89a97099bfec6b01b proven notes
+exit: 0
+
+$ bash bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv/proof.txt
+behind: 0
+ahead: 2
+path-drift: notes.txt
+unproven: 4a127569b77da7e216a93126e76fdcbb00a63108 unproven edit to proven file
+keep: be5763ce5a82a9bbc4bb34d89a97099bfec6b01b proven notes
+exit: 1
+
+Counterfactual 2: identical unproven guard-file drift is accepted by the original guard and rejected by the revised guard.
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv/proof.txt
+behind: 0
+ahead: 3
+path-ok: bin/fm-drift-nightly.sh
+path-ok: notes.txt
+unproven: dc4bce16ffdce128ea498fe7da9e5e06d8f4f23f restore notes and add unproven guard
+unproven: 4a127569b77da7e216a93126e76fdcbb00a63108 unproven edit to proven file
+keep: be5763ce5a82a9bbc4bb34d89a97099bfec6b01b proven notes
+exit: 0
+
+$ bash bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv/proof.txt
+behind: 0
+ahead: 3
+path-drift: bin/fm-drift-nightly.sh
+path-ok: notes.txt
+unproven: dc4bce16ffdce128ea498fe7da9e5e06d8f4f23f restore notes and add unproven guard
+unproven: 4a127569b77da7e216a93126e76fdcbb00a63108 unproven edit to proven file
+keep: be5763ce5a82a9bbc4bb34d89a97099bfec6b01b proven notes
+exit: 1
+
+Focused behavioral verification of the retained nightly guard:
+$ bash tests/fm-drift-nightly.test.sh
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - dependent proven patches are accepted regardless of proof-file order
+ok - proof approves a patch rather than the commit's entire file snapshot
+ok - cut unproven changes pass once their effective changes are gone
+ok - a proven change can cut unrelated unproven changes in the same commit
+ok - missing accepted patches are reported as drift
+ok - unproven file modes cannot borrow content proof
+ok - unknown proof commits cannot silently authorize changes
+ok - behind is reported and does not fail the check by itself
+ok - a merge commit is labeled merge and adds no path-drift when its tree matches upstream
+ok - install --dry-run prints the job and writes nothing
+ok - install writes the nightly agent and uninstall removes it, including a second call
+ok - install rejects hour 24
+exit: 0
+
+Elapsed seconds: 5.581
+The eight prior keeps have no retained effective changes; the required guard supplies detection absent upstream and closes the measured original exemptions.

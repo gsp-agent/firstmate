@@ -7,20 +7,21 @@
 #   fm-drift-nightly.sh uninstall [--dry-run]
 #   fm-drift-nightly.sh --help
 #
-# check prints behind and ahead counts, then one line per path in the diff
-# from the merge-base to the fork ref, then one line per commit reachable from
-# the fork ref and not from the upstream ref.
-# A path is path-ok when it is one of this guard's own files or a file a proof
-# commit changes. Every other path is path-drift.
+# check prints behind and ahead counts, then one line per changed or missing
+# proven path, then one line per commit reachable from the fork ref and not
+# from the upstream ref.
+# Proof patches are replayed from the merge-base in ancestry order using
+# git merge-tree with each proof commit's parent as its patch base. A path is
+# path-ok only when its fork content and mode match the resulting tree.
+# Missing proven changes and extra changes are path-drift.
 # A commit is keep when its full sha is in the proof file, merge when it has
 # two parents, and unproven otherwise.
 # Exit 0 when no path-drift line is printed, 1 when one is, and 2 on usage or
 # git failure. behind is reported and does not change the exit code.
-# A path owned by a proof commit is allowed in full, so a later edit on that
-# same path is not a separate finding.
 #
 # The proof file holds one full 40-hex sha per line. Blank lines and lines
 # whose first character is # are ignored. Any other line is an error.
+# Listed commits must exist and be reachable from the fork ref.
 # When --proof is omitted and <repo>/drift-proof.txt exists, that file is the
 # proof file. When it does not exist, no commit is proven.
 #
@@ -48,13 +49,6 @@ die() {
   exit 2
 }
 
-guard_path() {
-  case $1 in
-    bin/fm-drift-nightly.sh|tests/fm-drift-nightly.test.sh|docs/scripts.md|drift-proof.txt) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
 proof_has() {
   case $PROOF_SHAS in
     *"|$1|"*) return 0 ;;
@@ -64,29 +58,29 @@ proof_has() {
 
 load_proof() {
   PROOF_SHAS='|'
-  PROOF_PATHS='|'
   [ -n "$PROOF" ] || return 0
   [ -f "$PROOF" ] || die "proof file not found: $PROOF"
-  local line sha path
+  local line
   while IFS= read -r line || [ -n "$line" ]; do
     case $line in
       ''|\#*) continue ;;
     esac
     printf '%s\n' "$line" | grep -Eq '^[0-9a-f]{40}$' || die "proof line is not a full sha: $line"
+    git -C "$REPO" rev-parse --verify "${line}^{commit}" >/dev/null 2>&1 || die "proof commit not found: $line"
+    git -C "$REPO" merge-base --is-ancestor "$line" "$fork" || die "proof commit is not reachable from fork: $line"
     PROOF_SHAS="${PROOF_SHAS}${line}|"
-    while IFS= read -r path; do
-      [ -n "$path" ] || continue
-      PROOF_PATHS="${PROOF_PATHS}${path}|"
-    done < <(git -C "$REPO" diff-tree --no-commit-id --name-only -r "$line" 2>/dev/null || true)
   done < "$PROOF"
 }
 
-path_ok() {
-  guard_path "$1" && return 0
-  case $PROOF_PATHS in
-    *"|$1|"*) return 0 ;;
-    *) return 1 ;;
-  esac
+replay_proof() {
+  local sha parent
+  EXPECTED_TREE=$(git -C "$REPO" rev-parse "${base}^{tree}") || die "cannot read the merge-base tree"
+  git -C "$REPO" rev-list --reverse --topo-order "$base..$fork" > "$CHECK_TMP/commits" || die "cannot order fork commits"
+  while IFS= read -r sha; do
+    proof_has "$sha" || continue
+    parent=$(git -C "$REPO" rev-parse "${sha}^1") || die "cannot read proof parent: $sha"
+    EXPECTED_TREE=$(git -C "$REPO" merge-tree --write-tree --no-messages --merge-base="$parent" "$EXPECTED_TREE" "$sha") || die "proof patch conflicts without unproven changes: $sha"
+  done < "$CHECK_TMP/commits"
 }
 
 int_in_range() { # <value> <max>
@@ -175,22 +169,32 @@ cmd_check() {
   if [ -z "$PROOF" ] && [ -f "$REPO/drift-proof.txt" ]; then
     PROOF=$REPO/drift-proof.txt
   fi
-  load_proof
   local base behind ahead path sha subject parents drift=0
   base=$(git -C "$REPO" merge-base "$fork" "$upstream") || die "no merge-base for $fork and $upstream"
   behind=$(git -C "$REPO" rev-list --count "$fork..$upstream") || die "behind count failed"
   ahead=$(git -C "$REPO" rev-list --count "$upstream..$fork") || die "ahead count failed"
+  load_proof
+  CHECK_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-drift.XXXXXX") || die "cannot create a temporary directory"
+  trap 'rm -f -- "$CHECK_TMP/paths" "$CHECK_TMP/commits"; rmdir -- "$CHECK_TMP"' EXIT
+  replay_proof
+  git -C "$REPO" diff --name-only -z "$base" "$fork" > "$CHECK_TMP/paths" || die "cannot read fork paths"
   printf 'behind: %s\n' "$behind"
   printf 'ahead: %s\n' "$ahead"
-  while IFS= read -r path; do
-    [ -n "$path" ] || continue
-    if path_ok "$path"; then
+  while IFS= read -r -d '' path; do
+    if git --literal-pathspecs -C "$REPO" diff --quiet "$EXPECTED_TREE" "$fork" -- "$path"; then
       printf 'path-ok: %s\n' "$path"
     else
       printf 'path-drift: %s\n' "$path"
       drift=1
     fi
-  done < <(git -C "$REPO" diff --name-only "$base" "$fork" | LC_ALL=C sort)
+  done < "$CHECK_TMP/paths"
+  git -C "$REPO" diff --name-only -z "$EXPECTED_TREE" "$fork" > "$CHECK_TMP/paths" || die "cannot read drift paths"
+  while IFS= read -r -d '' path; do
+    if git --literal-pathspecs -C "$REPO" diff --quiet "$base" "$fork" -- "$path"; then
+      printf 'path-drift: %s\n' "$path"
+      drift=1
+    fi
+  done < "$CHECK_TMP/paths"
   while IFS= read -r sha; do
     [ -n "$sha" ] || continue
     subject=$(git -C "$REPO" log -1 --format=%s "$sha") || die "cannot read $sha"
