@@ -2409,14 +2409,17 @@ launch_template() {
 }
 
 # Deterministic Cursor fallback (no model judgment): usage at the threshold, no or
-# stale usage file, or this bead's last Cursor run hit a usage limit => bare Grok.
+# stale usage file, or this bead's last Cursor run hit a usage limit => Codex, or
+# Claude when its last Codex run hit one (bare Grok draws the same pool); a pstack
+# version off the pin => bare Grok. Codex and Claude run their CLI's default model.
 if [ "$ARG3" = cursor ] && [ "$KIND" != secondmate ]; then
-  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="grok fallback check failed"
+  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
   case "$CURSOR_FALLBACK" in
-  grok*)
-    echo "cursor fallback: launching $ID on the grok harness (grok-4.7 xhigh): ${CURSOR_FALLBACK#grok }" >&2
-    ARG3=grok MODEL=grok-4.7 EFFORT=xhigh
-    printf '%s\n' "${CURSOR_FALLBACK#grok }" > "$STATE/$ID.cursor-fallback"
+  grok* | codex* | claude*)
+    ARG3=${CURSOR_FALLBACK%% *} EFFORT=xhigh
+    if [ "$ARG3" = grok ]; then MODEL=grok-4.7; else MODEL=; fi
+    echo "cursor fallback: launching $ID on the $ARG3 harness (${MODEL:-default model} xhigh): ${CURSOR_FALLBACK#* }" >&2
+    printf '%s\n' "${CURSOR_FALLBACK#* }" > "$STATE/$ID.cursor-fallback"
     ;;
   esac
 fi

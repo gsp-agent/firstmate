@@ -775,12 +775,13 @@ test_cursor_third_launch_and_fallback() {
     --harness cursor --model grok-4.7-xhigh)
   status=$?
   expect_code 0 "$status" "a fallback spawn should succeed"
-  assert_contains "$out" "cursor fallback: launching $id on the grok harness" "fallback was not announced on stderr"
-  assert_contains "$(cat "$LAUNCH_LOG")" "grok " "fallback did not launch on grok"
-  assert_grep 'harness=grok' "$HOME_DIR/state/$id.meta" "fallback harness was not recorded"
+  assert_contains "$out" "cursor fallback: launching $id on the codex harness" "fallback was not announced on stderr"
+  assert_contains "$(cat "$LAUNCH_LOG")" "codex " "fallback did not launch on codex"
+  assert_not_contains "$(cat "$LAUNCH_LOG")" "grok-4.7-xhigh" "fallback must not carry the cursor model to codex"
+  assert_grep 'harness=codex' "$HOME_DIR/state/$id.meta" "fallback harness was not recorded"
   assert_grep 'Cursor Models at 85%' "$HOME_DIR/state/$id.cursor-fallback" "fallback reason was not recorded in state"
   printf 'cursor_models_pct=10\n' > "$HOME_DIR/cursor-usage/20261012-spending.txt"
-  pass "cursor spawn falls back to grok at the usage threshold"
+  pass "cursor spawn falls back to codex at the usage threshold"
 }
 
 test_cursor_failed_catalog_probe_blocks_spawn() {
