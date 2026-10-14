@@ -1171,7 +1171,7 @@ This section is the single owner of the canonical schema and its per-field seman
 | Profile `model` and `effort`; rule `why` | Optional. |
 | `label_routes` | Optional map from each label to one profile object, read by `fm-dispatch-resolve.sh --labels`. |
 | `cursor_fallback` | Optional object with numeric `models_pct` from 1 through 100 and numeric `max_age_h` greater than 0. |
-| `pstack_version` | Optional value that `fm-cursor-guard.sh` replaces with 0.15.21 when the field is absent. |
+| `pstack_version` | Optional value `fm-cursor-guard.sh` reads, defaulting to 0.15.21 when the field is absent. |
 
 **Fields applied only by typed resolution**
 
