@@ -1072,7 +1072,9 @@ entries.push({ type: "message", message: { role: "user", content: legacyOperatio
 await fire("agent_start", {}, mainCtx);
 const unsolicited = dispatch("signal: healthy resource result");
 if (!unsolicited.accepted) throw new Error("branch did not accept the unsolicited result");
-await settle(() => fleetOperations.length === 2, "unsolicited result acknowledgement");
+// The accepted offer owns an asynchronous drain and acknowledgement. Wait for
+// that public completion contract rather than racing a fixed polling window.
+await unsolicited.settlement;
 if (sentToMain.length !== 1 || sentToMain[0].options.triggerTurn) {
   throw new Error(`unsolicited healthy result opened a main turn: ${JSON.stringify(sentToMain)}`);
 }
@@ -1101,7 +1103,10 @@ for (let index = 0; index < requestedPrompts.length; index += 1) {
   await fire("agent_start", {}, mainCtx);
   const requested = dispatch("signal: healthy resource result");
   if (!requested.accepted) throw new Error(`branch did not accept requested result ${index}`);
-  await settle(() => fleetOperations.length === 4 + (index * 2), `requested result ${index} acknowledgement`);
+  await requested.settlement;
+  if (fleetOperations.length !== 4 + (index * 2)) {
+    throw new Error(`requested result ${index} did not acknowledge its event exactly once: ${JSON.stringify(fleetOperations)}`);
+  }
   const deliveredRequestMirror = globalThis.__fmSessions[0].ops
     .filter((op) => op.kind === "custom" && op.message.customType === "fm-main-mirror")
     .at(-1)?.message.content;
