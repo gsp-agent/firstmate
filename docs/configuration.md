@@ -786,9 +786,10 @@ claude, codex, opencode, pi, pi-signed, grok, kimi, cursor, and omp are empirica
 ### Harness restrictions and credentials
 
 `fm-spawn.sh` refuses kimi on cmux and Orca at preflight, because answering Kimi's folder-trust dialog needs a verified viewport-only capture those backends lack; [its adapter reference](../.agents/skills/harness-adapters/references/harness/kimi.md#readiness-gated-start) owns the trust-dialog handling.
-A cursor secondmate or primary runs the tracked project-scope `.cursor/hooks.json` in its own home and must be launched with `--trust`, or no project hook loads; [`docs/supervision-protocols/cursor.md`](supervision-protocols/cursor.md) owns its supervision protocol.
+Cursor primary setup follows the [interactive, trusted launch in README](../README.md#requirements); managed launches follow [`fm-spawn.sh`](../bin/fm-spawn.sh)'s print-mode template and the [headless stop-hook limitation](turnend-guard.md#compatibility-limits), including for secondmates.
+Every managed Cursor launch reasserts machine-level CLI settings and the pstack model rule through [`fm-cursor-assert.sh`](../bin/fm-cursor-assert.sh), whose header owns the settings, paths, and overrides.
 
-Cursor typed-submit confirmation is verified on tmux and Herdr only.
+Interactive Cursor typed-submit confirmation is verified on tmux and Herdr only.
 On Zellij, cmux, and Orca a typed-plane Cursor send (a harness-native invocation or an explicit backend target; ordinary text steers ride the durable inbox and exit 0 at enqueue) lands, but `fm-send` reports delivery unconfirmed and exits non-zero because their shared submit core does not consult the busy footer; [runtime backend verification](verification/runtime-backends.md#cursor-agent-cli) owns the evidence and transcript-state boundary.
 
 muse is verified for crewmate and scout launches ONLY, and `fm-spawn.sh` refuses it for a secondmate, because muse ships no usable hook surface for a primary session's turn-end supervision; [`docs/verification/muse.md`](verification/muse.md) owns that evidence.
@@ -1125,8 +1126,8 @@ Firstmate cannot see which part of a worker's life uses the resource, so the num
 
 ## Crew dispatch profiles (config/crew-dispatch.json)
 
-`config/crew-dispatch.json` is an optional local, gitignored file containing natural-language rules that firstmate reads before dispatching a crewmate or scout.
-Firstmate chooses the best matching rule with judgment; shell scripts do not match the natural-language rules.
+`config/crew-dispatch.json` is an optional local, gitignored file containing natural-language rules, optional label routes, and Cursor fallback settings for crewmate and scout dispatch.
+For natural-language routing, firstmate chooses the best matching rule with judgment; shell scripts do not match those rules.
 Firstmate resolves the rule's profile object or array under `AGENTS.md` section 4 and `quota-array-dispatch`, then passes only concrete `--harness`, `--model`, and `--effort` flags to `fm-spawn.sh`.
 
 **Spawn requirements**
@@ -1169,10 +1170,26 @@ This section is the single owner of the canonical schema and its per-field seman
 | `use` and optional top-level `default` | Accept one profile object or a non-empty array of profile objects; the single-object form remains fully backward-compatible. |
 | Profile `harness` | Required in every profile. |
 | Profile `model` and `effort`; rule `why` | Optional. |
+| `label_routes` | Optional object mapping each label to one profile object with a verified `harness` and optional supported `model` and `effort`. |
+| `cursor_fallback` | Optional object containing `models_pct`, the Cursor Models spending threshold, and `max_age_h`, the maximum spending-file age in hours; both fields are required when the object is present. |
+| `pstack_version` | Optional expected version of the Cursor pstack plugin; the guard's header below owns its default. |
+
+**Label routing**
+
+The resolver's label mode is independent of natural-language matching and needs no brief, API key, model request, or quota request.
+It chooses the first supplied label present in `label_routes`; with no match it uses the single `default` profile or the first entry of a default array, and with no available default it returns `escalate`.
+This mode does not apply typed approval, confidence, provider, or quota-floor checks; profile-array quota selection below describes natural-language intake.
+Supplying both `docs-only` and `ep-opus` refuses routing regardless of label order.
+[`fm-dispatch-resolve.sh --help`](../bin/fm-dispatch-resolve.sh) owns the label flag, output, and exit statuses.
+
+**Cursor fallback**
+
+For a crewmate or scout requested on Cursor, [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh)'s header owns spending-file selection, fallback triggers and defaults, the daily launch cap, and post-run limit detection.
+[`fm-spawn.sh`](../bin/fm-spawn.sh) applies the fallback before Cursor preflight; secondmates skip fallback but still use the launch cap.
 
 **Fields applied only by typed resolution**
 
-Rule `approval`, `min_confidence`, and `floor`, and profile `provider` and `floor` are optional declarations that only [typed dispatch resolution](#typed-dispatch-resolution-env-typesafe_api_key) applies in code; without that opt-in they are inert, and firstmate's own intake reads them as ordinary hints.
+Rule `approval`, `min_confidence`, and `floor`, and profile `provider` and `floor` are optional declarations that only [typed dispatch resolution](#typed-dispatch-resolution-env-typesafe_api_key) applies in code; outside that path they are inert, and firstmate's own intake reads them as ordinary hints.
 The resolver supplies the fixed neutral Choice option `No listed rule applies to this task.` for work that matches no listed rule.
 
 - `approval` accepts only `"captain"` and means a task the rule matches is never dispatched from the tool's answer alone.
@@ -1213,8 +1230,8 @@ This single-provider table is separate from the frozen legacy mapping used by `f
 - Codex `max` is valid when the profile selects `gpt-5.6-luna` or `gpt-6.1-sol`, whose installed catalog entries support that reasoning level.
 - An omitted model or effort means the selected harness uses its own default for that axis.
 - OpenCode receives the effort as its default `build` agent's `variant`, keyed to the resolved model, inside the `OPENCODE_CONFIG_CONTENT` JSON its launch already writes (the per-model reasoning-effort field of the config schema, verified on opencode 1.18.32); with no model resolved, the effort is recorded in task metadata but omitted from the launch.
-- Every profile array is an implicit quota-aware choice resolved through `quota-array-dispatch`.
-- If no dispatch rule fits, firstmate resolves `default` through the same object-or-array path before falling back to `config/crew-harness`.
+- In natural-language intake, every profile array is an implicit quota-aware choice resolved through `quota-array-dispatch`.
+- If no natural-language dispatch rule fits, firstmate resolves `default` through the same object-or-array path before falling back to `config/crew-harness`.
 - Except for `ultra`, which refuses unsupported profiles under the native-effort contract above, an effort value the chosen harness does not accept is recorded as `effort=` in task meta for traceability but omitted from the launch flags.
 - Bootstrap reports unsupported harness/model/effort combinations as a `CREW_DISPATCH` diagnostic when they are visible in the file.
 
@@ -1236,7 +1253,8 @@ Secondmate homes inherit this file from the primary, so a secondmate's own crewm
 ## Typed dispatch resolution (.env TYPESAFE_API_KEY)
 
 `bin/fm-dispatch-resolve.sh` resolves one concrete crewmate or scout profile from a written brief with typesafe.ai's System One model (Jev), so the rule match that firstmate otherwise reasons out in its own context becomes one short tool turn.
-It is off unless `TYPESAFE_API_KEY` is non-empty in the calling environment or the home's gitignored `.env` holds a `TYPESAFE_API_KEY=` line; the environment wins, matching the Relay and mail-plane contracts, and the Relay accessor in `bin/fm-env-lib.sh` reads the line.
+This brief-based path is off unless `TYPESAFE_API_KEY` is non-empty in the calling environment or the home's gitignored `.env` holds a `TYPESAFE_API_KEY=` line; the environment wins, matching the Relay and mail-plane contracts, and the Relay accessor in `bin/fm-env-lib.sh` reads the line.
+The separate label mode is owned by [Crew dispatch profiles](#crew-dispatch-profiles-configcrew-dispatchjson).
 
 Off means one `dispatch-resolve: off` line on stderr, nothing on stdout, exit 0, and no network call, so firstmate dispatches exactly as it does without the tool.
 This section is the single owner of the tool's operator contract; the script header owns its exact flags and output lines, and "Crew dispatch profiles" above owns the declared rule and profile fields it applies.

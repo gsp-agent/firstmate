@@ -2,15 +2,16 @@
 
 Verified for crew and scout work on tmux on 2026-08-11 and Herdr on 2026-08-12, and for secondmate and primary work on 2026-08-13, with Cursor Agent CLI 2026.08.11-e8db854.
 Cross-harness provider and credential identity is owned by `references/common/model-and-effort.md`.
+Composer, slash-submit, and key-control observations below apply to interactive sessions.
 
 ## Operating facts
 
 | Fact | Value |
 |---|---|
 | Binary | `fm_cursor_resolve_binary` in `../../../bin/fm-cursor-lib.sh` resolves stable launcher `cursor-agent` or legacy `agent`, never `cursor`; both symlink into `~/.local/share/cursor-agent/versions/<version>/cursor-agent`, whose target auto-update replaces. |
-| Launch | Positional instructions with `--trust`, `--yolo`, optional `--model <model>`, and `--workspace <absolute-task-worktree>`, after clearing foreign primary markers. |
+| Launch | Managed launches use the print-mode template in [`fm-spawn.sh`](../../../../../bin/fm-spawn.sh), which owns the flags, plugins, and stream capture. |
 | Attribution | Cursor can append a Co-authored-by trailer after the typed message. Unless the home sets `config/keep-ai-trailers` (`../../../../../docs/configuration.md` "Commit attribution"), every fleet launch installs the pane-scoped commit-msg strip in `../../../bin/fm-git-strip-ai-trailers.sh`, which removes known AI trailers and leaves human co-authors and the author identity untouched. |
-| Models | Use current-account `cursor-agent --list-models` or legacy `agent --list-models`; the drifting observed list had only `cursor-grok-4.5-high` and `cursor-grok-4.5-high-fast` for Grok plus several `xhigh` ids, so choose a returned reasoning id and never assume low or medium Grok. |
+| Models | Use current-account `cursor-agent --list-models` or legacy `agent --list-models`; [`fm-spawn.sh`](../../../../../bin/fm-spawn.sh) owns requested-model validation. |
 | Busy state | `../../../bin/fm-busy-lib.sh` folds the per-conversation transcript as `cursor-transcript`: `role:user` opens and typed `turn_ended` closes success or abort, covering manual interrupt; nothing is armed or seeded, and this backend-agnostic source was identical on tmux and Herdr. |
 | Exit command | `/exit`. |
 | Interrupt | Single Escape returns the placeholder with no clear key; control makes no cancellation claim because an aborted transcript close appeared within seconds in some runs and not within twenty in others. |
@@ -64,17 +65,13 @@ Refresh with `FM_HARNESS_LIVENESS_DRIFT=1 ../../../bin/fm-test-run.sh ../../../t
 Firstmate enters its acquired worktree and passes the same absolute path through `--workspace`.
 Never pass Cursor `-w` or `--worktree`, which allocates a second copy under `~/.cursor/worktrees` and breaks isolation.
 The CLI supports repeatable `--add-dir`, but the adapter adds none; positional instructions need no grant to their private directory.
-Cursor keeps one persistent shell per conversation, and a Shell call that names no working directory runs wherever the previous call left that shell, not in the workspace.
-A call that names the primary checkout therefore sends the next unnamed call there; measured 2026-10-13 on Cursor Agent CLI 2026.10.01-e373342 in print mode, where a following `git symbolic-ref HEAD` moved the primary's HEAD.
-Every crew launch loads a per-task plugin, `state/<id>.cursor-crew-guard`, whose `preToolUse` hook (`../../../bin/fm-cursor-crew-guard.mjs`) rewrites an empty working directory to the task worktree and refuses `git symbolic-ref` and `git update-ref`.
-The captain's own Cursor sessions never load it.
-Cursor also imports `permissions.deny` from `~/.claude/settings.json` and the repository's `.claude/settings.json`, and a deny beats every allow, so `git checkout -b` and `git checkout -B` are refused wherever those files deny them while `git switch -c` runs.
-Spawn therefore creates the ship branch itself, and a crew starts any later branch with `git switch -c`.
-Example: `../../../bin/fm-spawn.sh <task-id> <project> --scout --harness cursor --model cursor-grok-4.5-high`.
+The per-task crew guard's [header](../../../../../bin/fm-cursor-crew-guard.mjs) owns implicit-directory pinning, ref-plumbing refusals, imported branch-command restrictions, and the explicit-directory limits; [`fm-cursor-guard.test.sh`](../../../../../tests/fm-cursor-guard.test.sh) covers the guard's scope.
+Fresh ship-branch preparation is owned by [`fm-spawn.sh`](../../../../../bin/fm-spawn.sh), and the generated [`fm-brief.sh`](../../../../../bin/fm-brief.sh) Setup owns branch verification and later branch commands.
+Example: `../../../bin/fm-spawn.sh <task-id> <project> --scout --harness cursor --model <catalog-model>`.
 
 ## Primary integration
 
-Primary supervision is the stop-hook park in `../../../docs/supervision-protocols/cursor.md` through tracked `.cursor/hooks.json`; primary and secondmate launches require `--trust` or hooks do not load.
+Primary supervision is owned by [`supervision-protocols/cursor.md`](../../../../../docs/supervision-protocols/cursor.md); [configuration.md](../../../../../docs/configuration.md#harness-restrictions-and-credentials) distinguishes primary setup from managed launch limitations.
 In a home with `config/supervision-host` and no `config/supervision-host-off` the park runs the supervision host instead of `../../../bin/fm-watch-arm.sh`, with Claude's print mode as its headless engine; [`supervision-host.md`](../../../../../docs/supervision-host.md) owns the host.
 Cursor exposes 20 project events plus a Claude-Code compatibility map that loads `.claude/settings.json`.
 Tracked hooks register `stop`, `sessionStart`, and two `preToolUse` seatbelts through `$CURSOR_PROJECT_DIR`; Claude entries stand down on Cursor payloads under `../../../docs/turnend-guard.md`.

@@ -6,12 +6,13 @@
 #   fm-dispatch-resolve.sh <brief-file> [--project <name>]
 #   fm-dispatch-resolve.sh --labels <a,b|""> [--project <name>]     (worker routing)
 #
-# Worker routing (--labels, an empty value is allowed): no model judgment, no
-#   key, no network. The first bead label found in `label_routes` in
-#   crew-dispatch.json picks that profile; with no match the `default` is used.
-#   Prints "status: clear ... source: label|default" and the profile line.
+# Worker routing (--labels, an empty value is allowed): docs/configuration.md
+#   "Crew dispatch profiles" owns label selection and its unchecked fields.
+#   clear prints "status: clear ... source: label|default" and the profile line;
+#   no route/default returns escalate, exit 0; docs-only with ep-opus returns
+#   refused, exit 1. Usage and configuration errors exit 2.
 #
-# Opt-in gate: TYPESAFE_API_KEY non-empty in this process environment, else a
+# Brief-based opt-in gate: TYPESAFE_API_KEY non-empty in this process environment, else a
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
 #   accessor as FMX_PAIRING_TOKEN (bin/fm-env-lib.sh). The environment wins.
 #   Absent in both: one "dispatch-resolve: off" line on stderr, nothing on
@@ -51,7 +52,7 @@
 #   the list line number, never its value, prints nothing on stdout, and exits
 #   0 with no network or quota call, exactly like the absent-key off path.
 #
-# Output (stdout, TOON-style block):
+# Brief-based output (stdout, TOON-style block):
 #   dispatch-resolve:
 #     status: clear | ambiguous | escalate | error
 #     model/latency_ms/tokens, rule (when excerpt) and confidence, probabilities
@@ -71,7 +72,7 @@
 # Environment:
 #   TYPESAFE_API_KEY is the only resolver-specific environment setting.
 #
-# Authority: this tool never replaces firstmate's judgment, quota-array-dispatch,
+# Brief-based authority: this tool never replaces firstmate's judgment, quota-array-dispatch,
 #   the captain-approval gate, or fm-spawn.sh validation; it publishes one
 #   inspectable answer plus every candidate's evidence, in code.
 set -u
