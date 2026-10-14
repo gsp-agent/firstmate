@@ -62,6 +62,21 @@ printf 'cursor_models_pct=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "the newest fresh low file must keep cursor"
 printf '{"cursor_fallback":{"models_pct":10,"max_age_h":26}}\n' > "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
 case "$(fb e1)" in "grok Cursor Models at 10% (limit 10%)") ;; *) fail "threshold must come from crew-dispatch.json: $(fb e1)" ;; esac
+printf 'cursor_models_pct=85\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+printf '{"cursor_fallback":{"models_pct":84.5,"max_age_h":26.5}}\n' > "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
+[ "$(fb e1)" = 'grok Cursor Models at 85% (limit 84.5%)' ] \
+  || fail "a fractional threshold must enforce the limit: $(fb e1)"
+printf 'cursor_models_pct=84\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+[ "$(fb e1)" = cursor ] || fail "usage below a fractional threshold must keep Cursor: $(fb e1)"
+printf '{"cursor_fallback":{"models_pct":84.5,"max_age_h":0.5}}\n' > "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
+python3 - "$FM_CURSOR_USAGE_DIR/20261013-spending.txt" <<'PY'
+import os, sys, time
+mtime = time.time() - 2700
+os.utime(sys.argv[1], (mtime, mtime))
+PY
+case "$(fb e1)" in "grok newest Cursor spending file is"*"(limit 0.5 h)") ;; *) fail "a fractional age must expire stale usage: $(fb e1)" ;; esac
+touch "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+[ "$(fb e1)" = cursor ] || fail "fresh usage under a fractional age must keep Cursor: $(fb e1)"
 rm -f "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
 pass "fallback at 84/85, missing file, stale file, bad value"
 
@@ -112,13 +127,41 @@ out=$(FM_CURSOR_DAY=2030-06-02 "$TOOL" fallback cap1)
 [ ! -e "$FM_STATE_OVERRIDE/cap1.cursor-limit" ] || fail "a previous day's cap record must be cleared"
 pass "a relaunch at the daily cap records the reason for that Chicago day"
 
+printf '{"day":"2030-06-01","beads":{"capwrite":2}}\n' > "$STATEFILE"
+ln -s "$TMP_ROOT/missing/limit" "$FM_STATE_OVERRIDE/capwrite.cursor-limit"
+out=$(FM_CURSOR_DAY=2030-06-01 "$TOOL" fallback capwrite relaunch 2> "$TMP_ROOT/err")
+expect_code 1 $? "a daily-cap reason that cannot be written must refuse the decision"
+[ -z "$out" ] || fail "a failed daily-cap write must not publish a Grok decision: $out"
+pass "a daily-cap fallback refuses when its reason cannot be recorded"
+
 # The pane command keeps the agent's exit status past the tee, in bash and zsh.
-tpl=$(grep -o '> >(tee __CURSORSTREAM__)' "$ROOT/bin/fm-spawn.sh" | head -1)
-[ -n "$tpl" ] || fail "cursor template no longer tees through process substitution"
+. "$ROOT/tests/fixtures.sh"
+launch_home="$TMP_ROOT/launch-home"
+launch_wt="$TMP_ROOT/launch-wt"
+launch_log="$TMP_ROOT/launch.log"
+launch_id=cursor-exit-status
+fm_test_spawn_home "$launch_home" cursor
+fm_test_spawn_brief "$launch_home" "$launch_id"
+fm_git_worktree "$TMP_ROOT/launch-project" "$launch_wt" cursor-exit-status
+fakebin=$(fm_test_make_spawn_fakebin "$TMP_ROOT/launch-tools")
+cat > "$fakebin/cursor-agent" <<'SH'
+#!/usr/bin/env bash
+printf '{"type":"error","message":"unrelated failure"}\n'
+exit 7
+SH
+chmod +x "$fakebin/cursor-agent"
+out=$(FM_FAKE_LAUNCH_LOG="$launch_log" \
+  FM_CURSOR_CLI_CONFIG="$launch_home/cli-config.json" FM_CURSOR_MODELS_RULE="$launch_home/models.mdc" \
+  fm_test_run_spawn "$launch_home" "$launch_wt" "$fakebin" "$launch_id" "$TMP_ROOT/launch-project" --mode no-mistakes --yolo off)
+expect_code 0 $? "Cursor exit-status fixture must generate a launch command: $out"
+[ -s "$launch_log" ] || fail "Cursor spawn did not deliver a launch command"
+cp "$launch_log" "$TMP_ROOT/launch.sh"
 for sh in bash zsh; do
   command -v "$sh" >/dev/null 2>&1 || continue
-  "$sh" -c "(echo out; exit 7) ${tpl//__CURSORSTREAM__/\"$TMP_ROOT/stream.jsonl\"}"
+  HOME="$launch_home/user-home" "$sh" "$TMP_ROOT/launch.sh"
   expect_code 7 $? "$sh: pane command exits with the agent's status, not tee's"
+  [ "$(cat "$launch_home/state/$launch_id.cursor-stream.jsonl")" = '{"type":"error","message":"unrelated failure"}' ] \
+    || fail "$sh: the generated launch did not capture Cursor output"
 done
 pass "cursor exit code survives the tee"
 

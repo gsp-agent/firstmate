@@ -173,6 +173,8 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 . "$SCRIPT_DIR/fm-busy-lib.sh"
 # shellcheck source=bin/fm-control-lib.sh
 . "$SCRIPT_DIR/fm-control-lib.sh"
+# shellcheck source=bin/fm-cursor-lib.sh
+. "$SCRIPT_DIR/fm-cursor-lib.sh"
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 # shellcheck source=bin/fm-wake-lib.sh
@@ -951,6 +953,10 @@ resolve_relaunch_profile() {
   else
     TARGET_EFFORT=default
   fi
+  local cursor_profile
+  cursor_profile=$(fm_cursor_resolve_profile "$STATE" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" "$ID" 1 "$KIND" \
+    "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT") || return 1
+  IFS=$'\t' read -r TARGET_HARNESS TARGET_MODEL TARGET_EFFORT <<< "$cursor_profile"
   if [ "$TARGET_EFFORT" = ultra ]; then
     "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1
   fi

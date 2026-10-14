@@ -75,10 +75,10 @@ if [ "$op" = fallback ]; then
   f=$(ls -t "$USAGE"/*-spending.txt 2>/dev/null | head -1)
   if [ -z "$f" ] || [ ! -r "$f" ]; then echo "grok no Cursor spending file in $USAGE"; exit 0; fi
   age=$(( $(date +%s) - $(mtime "$f") ))
-  if [ "$age" -gt $(( age_max * 3600 )) ]; then echo "grok newest Cursor spending file is $((age / 3600)) h old (limit $age_max h)"; exit 0; fi
+  if jq -en --argjson age "$age" --argjson max "$age_max" '$age > ($max * 3600)' >/dev/null; then echo "grok newest Cursor spending file is $((age / 3600)) h old (limit $age_max h)"; exit 0; fi
   pct=$(sed -n 's/^cursor_models_pct=//p' "$f" | tail -1)
   case "$pct" in '' | *[!0-9]*) echo "grok cursor_models_pct missing or not an integer in $(basename "$f")"; exit 0 ;; esac
-  if [ "$pct" -ge "$pct_max" ]; then echo "grok Cursor Models at ${pct}% (limit ${pct_max}%)"; exit 0; fi
+  if jq -en --argjson pct "$pct" --argjson max "$pct_max" '$pct >= $max' >/dev/null; then echo "grok Cursor Models at ${pct}% (limit ${pct_max}%)"; exit 0; fi
   if [ "${3:-}" = relaunch ]; then
     cap_n=0
     if [ -s "$STATE/cursor-dispatch.json" ]; then
@@ -87,7 +87,7 @@ if [ "$op" = fallback ]; then
     case "$cap_n" in '' | *[!0-9]*) cap_n=0 ;; esac
     if [ "$cap_n" -ge 2 ]; then
       line="cursor guard: refused $id, already launched $cap_n times today ($DAY); write blocked: instead of a 3rd run"
-      printf '%s\n' "$line" > "$STATE/$id.cursor-limit"
+      printf '%s\n' "$line" > "$STATE/$id.cursor-limit" || exit 1
       echo "grok $line"
       exit 0
     fi
