@@ -3,8 +3,8 @@
 # change poll sidecar.
 # It emits exactly one merged line for a merged change. A GitHub pull request
 # verified into the merge queue, by this poll or by bin/fm-pr-merge.sh, emits
-# one `dequeued <url> reason=<token>` line once when it later leaves the queue
-# unmerged. The token is GitHub's removal reason, or `unreadable` when that
+# a `dequeued <url> reason=<token> event=<id>` line for each unreported removal
+# while unmerged. The token is GitHub's removal reason, or `unreadable` when that
 # reason is not a short token. Every other reading, including every error,
 # stays silent, so a failed lookup can never be read as a merge. The
 # provider-tagged identity is data in the sidecar and is never
@@ -82,38 +82,30 @@ poll_private() {
   [ "$device" = "$state_device" ]
 }
 
-# lines is 2 for the queue marker and 3 for the departure marker. The third
-# line is the reason and may be empty. Format owner for both files is this
+# Queue markers contain a version and URL; departure markers also contain
+# the removal event ID. Format owner for both files is this
 # script.
 poll_marker_matches() {
-  local path=$1 version=$2 expect_url=$3 lines=$4 got_version got_url _extra i
+  local path=$1 version=$2 expect_url=$3 expect_event=${4-} got_version got_url got_event='' _extra
   poll_private "$path" || return 1
   exec 8< "$path" || return 1
   if ! IFS= read -r got_version <&8 || ! IFS= read -r got_url <&8; then
     exec 8<&-
     return 1
   fi
-  i=2
-  while [ "$i" -lt "$lines" ]; do
-    if ! IFS= read -r _extra <&8; then
+  if [ -n "$expect_event" ]; then
+    if ! IFS= read -r got_event <&8; then
       exec 8<&-
       return 1
     fi
-    i=$((i + 1))
-  done
+  fi
   if IFS= read -r _extra <&8; then
     exec 8<&-
     return 1
   fi
   exec 8<&-
-  [ "$got_version" = "$version" ] && [ "$got_url" = "$expect_url" ]
-}
-
-poll_remove_regular() {
-  local path=$1
-  [ -e "$path" ] || [ -L "$path" ] || return 0
-  [ -f "$path" ] && [ ! -L "$path" ] || return 1
-  rm -f -- "$path"
+  [ "$got_version" = "$version" ] && [ "$got_url" = "$expect_url" ] \
+    && [ "$got_event" = "$expect_event" ]
 }
 
 poll_write_lines() {
@@ -139,55 +131,39 @@ poll_write_lines() {
 }
 
 poll_record_queued() {
-  local queue dropped
+  local queue
   poll_id_usable || return 0
   queue="$poll_state/$poll_id.pr-poll-queue"
-  dropped="$poll_state/$poll_id.pr-poll-queue-dropped"
   poll_write_lines "$queue" fm-pr-poll-queue-v1 "$url" || return 0
-  poll_remove_regular "$dropped" || true
-}
-
-poll_reason_token() {
-  local raw=$1
-  local LC_ALL=C
-  if [ "${#raw}" -le 64 ]; then
-    case "$raw" in
-      *[!A-Za-z0-9_-]*) printf '%s' unreadable ;;
-      *) printf '%s' "$raw" ;;
-    esac
-  else
-    printf '%s' unreadable
-  fi
 }
 
 poll_emit_dequeue() {
-  local queue dropped token
+  local queue dropped
   poll_id_usable || return 0
+  [ -n "$GH_POLL_EVENT" ] || return 0
   queue="$poll_state/$poll_id.pr-poll-queue"
   dropped="$poll_state/$poll_id.pr-poll-queue-dropped"
-  poll_marker_matches "$queue" fm-pr-poll-queue-v1 "$url" 2 || return 0
+  poll_marker_matches "$queue" fm-pr-poll-queue-v1 "$url" || return 0
   if [ -e "$dropped" ] || [ -L "$dropped" ]; then
-    if poll_marker_matches "$dropped" fm-pr-poll-queue-dropped-v1 "$url" 3; then
+    if poll_marker_matches "$dropped" fm-pr-poll-queue-dropped-v1 "$url" "$GH_POLL_EVENT"; then
       return 0
     fi
     # A private marker for another departure can be replaced. Anything else
     # stays silent, so a bad file cannot wake on every poll.
     poll_private "$dropped" || return 0
   fi
-  token=$(poll_reason_token "$GH_POLL_REASON")
-  printf 'dequeued %s reason=%s\n' "$url" "$token"
-  poll_write_lines "$dropped" fm-pr-poll-queue-dropped-v1 "$url" "$token" || true
+  printf 'dequeued %s reason=%s event=%s\n' "$url" "$GH_POLL_REASON" "$GH_POLL_EVENT"
 }
 
 github_read_poll() {
   local fields line total=0
-  local state='' merged='' queued='' reason=''
-  local saw_state=0 saw_merged=0 saw_queued=0 saw_reason=0
+  local state='' merged='' queued='' reason='' event=''
+  local saw_state=0 saw_merged=0 saw_queued=0 saw_reason=0 saw_event=0
   # shellcheck disable=SC2016  # GraphQL and jq text are literal.
   fields=$(gh api graphql \
-    -f query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{reason}}}}}}' \
+    -f query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}' \
     -F "owner=$owner" -F "repo=$repo" -F "number=$number" \
-    --jq '.data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "reason=" + (((.timelineItems.nodes // []) | map(select(.reason != null) | .reason) | last // "") | if test("^[A-Za-z0-9_-]{0,64}$") then . else "unreadable" end)' \
+    --jq '.data.repository.pullRequest | ((.timelineItems.nodes // []) | last // {}) as $event | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "reason=" + (($event.reason // "") | if test("^[A-Za-z0-9_-]{0,64}$") then . else "unreadable" end), "event=" + (($event.id // "") | if test("^[A-Za-z0-9_+/=-]{0,256}$") then . else "" end)' \
     2>/dev/null) || return 1
   [ -n "$fields" ] || return 1
   while IFS= read -r line; do
@@ -197,14 +173,15 @@ github_read_poll() {
       merged=*) merged=${line#merged=}; saw_merged=$((saw_merged + 1)) ;;
       queued=*) queued=${line#queued=}; saw_queued=$((saw_queued + 1)) ;;
       reason=*) reason=${line#reason=}; saw_reason=$((saw_reason + 1)) ;;
+      event=*) event=${line#event=}; saw_event=$((saw_event + 1)) ;;
       *) return 1 ;;
     esac
   done <<EOF
 $fields
 EOF
-  [ "$total" -eq 4 ] || return 1
+  [ "$total" -eq 5 ] || return 1
   [ "$saw_state" -eq 1 ] && [ "$saw_merged" -eq 1 ] \
-    && [ "$saw_queued" -eq 1 ] && [ "$saw_reason" -eq 1 ] || return 1
+    && [ "$saw_queued" -eq 1 ] && [ "$saw_reason" -eq 1 ] && [ "$saw_event" -eq 1 ] || return 1
   [ -n "$state" ] || return 1
   { [ "$merged" = true ] || [ "$merged" = false ]; } || return 1
   { [ "$queued" = true ] || [ "$queued" = false ]; } || return 1
@@ -221,9 +198,14 @@ EOF
     *[!A-Za-z0-9_-]*) reason=unreadable ;;
   esac
   [ "${#reason}" -le 64 ] || reason=unreadable
+  case "$event" in
+    *[!A-Za-z0-9_+/=-]*) return 1 ;;
+  esac
+  [ "${#event}" -le 256 ] || return 1
   GH_POLL_MERGED=$merged
   GH_POLL_QUEUED=$queued
   GH_POLL_REASON=$reason
+  GH_POLL_EVENT=$event
 }
 
 github_poll() {

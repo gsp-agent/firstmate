@@ -2863,6 +2863,15 @@ EOF
             continue
           fi
         fi
+        dequeue_event=
+        if [ "$is_pr_poll" -eq 1 ]; then
+          case "$out" in
+            "dequeued $url reason="*" event="*)
+              dequeue_event=${out##* event=}
+              out=${out% event=*}
+              ;;
+          esac
+        fi
         reason="check: $c: $out"
         if [ "$is_pr_poll" -eq 1 ] && [ "$out" = merged ]; then
           if [ "$(fm_meta_get "$STATE/$id.meta" kind)" = secondmate ]; then
@@ -2905,8 +2914,11 @@ EOF
           fi
           wake "$reason"
         fi
-        pr_poll_control_release || exit 1
         fm_wake_append check "$c" "$reason" || exit 1
+        if [ -n "$dequeue_event" ]; then
+          fm_pr_poll_queue_record "$STATE" "$id" "$url" "$dequeue_event" || exit 1
+        fi
+        pr_poll_control_release || exit 1
         touch "$STATE/.last-check"
         wake "$reason"
       fi

@@ -1413,19 +1413,28 @@ fm_pr_poll_queue_markers_remove() {  # <state> <id>
   fm_pr_poll_queue_marker_remove_one "$state/$id.pr-poll-queue-dropped"
 }
 
-# Format owner: bin/fm-pr-poll.sh. Records a verified merge-queue entry and
-# clears a prior departure so a later unmerged departure can wake once.
-fm_pr_poll_queue_record() {  # <state> <id> <url>
-  local state=$1 id=$2 url=$3 marker tmp state_device
+# Format owner: bin/fm-pr-poll.sh. Records a verified merge-queue entry or
+# a published departure identified by its removal event.
+fm_pr_poll_queue_record() {  # <state> <id> <url> [removal-event]
+  local state=$1 id=$2 url=$3 event=${4-} marker tmp state_device
+  local lines=(fm-pr-poll-queue-v1 "$url")
   fm_pr_task_id_valid "$id" || return 1
   [ -n "$url" ] || return 1
   [ -d "$state" ] && [ ! -L "$state" ] || return 1
   state_device=$(fm_pr_file_device "$state") || return 1
   marker="$state/$id.pr-poll-queue"
+  if [ "$#" -eq 4 ]; then
+    case "$event" in
+      ''|*[!A-Za-z0-9_+/=-]*) return 1 ;;
+    esac
+    [ "${#event}" -le 256 ] || return 1
+    marker="$marker-dropped"
+    lines=(fm-pr-poll-queue-dropped-v1 "$url" "$event")
+  fi
   fm_pr_regular_destination_on_device_or_absent "$marker" "$state_device" || return 1
   umask 077
   tmp=$(mktemp "$state/.fm-pr-poll-queue.XXXXXX") || return 1
-  if ! printf '%s\n%s\n' fm-pr-poll-queue-v1 "$url" > "$tmp" \
+  if ! printf '%s\n' "${lines[@]}" > "$tmp" \
     || ! chmod 0600 "$tmp" \
     || ! fm_pr_private_file_valid "$tmp" 600 "$state_device" \
     || ! fm_pr_regular_destination_on_device_or_absent "$marker" "$state_device" \
@@ -1434,7 +1443,7 @@ fm_pr_poll_queue_record() {  # <state> <id> <url>
     rm -f -- "$tmp"
     return 1
   fi
-  fm_pr_poll_queue_marker_remove_one "$state/$id.pr-poll-queue-dropped"
+  return 0
 }
 
 fm_pr_poll_retirement_recover_one() {
