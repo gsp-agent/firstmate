@@ -1,0 +1,8 @@
+1791964229	7	check	/tmp/fm-lab.T9c9Te/state/a-alert.check.sh	check: /tmp/fm-lab.T9c9Te/state/a-alert.check.sh: early-alert
+1791964231	8	check	/tmp/fm-lab.T9c9Te/state/task-a0.check.sh	check: /tmp/fm-lab.T9c9Te/state/task-a0.check.sh: midpoint
+1791964232	9	check	/tmp/fm-lab.T9c9Te/state/z-final.check.sh	check: /tmp/fm-lab.T9c9Te/state/z-final.check.sh: end-of-sweep
+
+stderr:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 9 --recovery-generation 58416.1791964229.61Q1uF
+WARNING: watcher still down (same stale episode; last beat: 7s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

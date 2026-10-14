@@ -1,0 +1,11 @@
+1791964215	1	check	/tmp/fm-lab.T9c9Te/state/a-alert.check.sh	check: /tmp/fm-lab.T9c9Te/state/a-alert.check.sh: early-alert
+1791964217	2	check	/tmp/fm-lab.T9c9Te/state/task-a.check.sh	check: /tmp/fm-lab.T9c9Te/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1791964217	3	check	/tmp/fm-lab.T9c9Te/state/task-a0.check.sh	check: /tmp/fm-lab.T9c9Te/state/task-a0.check.sh: midpoint
+1791964220	4	check	/tmp/fm-lab.T9c9Te/state/task-b.check.sh	check: /tmp/fm-lab.T9c9Te/state/task-b.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1791964222	5	check	merged-task-m-https://github.com/groovejones/groove-sight-platform/pull/4308	check: merge landed: task-m https://github.com/groovejones/groove-sight-platform/pull/4308 external
+1791964224	6	check	/tmp/fm-lab.T9c9Te/state/z-final.check.sh	check: /tmp/fm-lab.T9c9Te/state/z-final.check.sh: end-of-sweep
+
+stderr:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 6 --recovery-generation 17440.1791964215.3oAAPl
+WARNING: watcher still down (same stale episode; last beat: 12s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

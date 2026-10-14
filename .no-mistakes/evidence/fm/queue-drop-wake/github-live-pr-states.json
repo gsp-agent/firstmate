@@ -1,0 +1,68 @@
+{
+  "a": {
+    "headRefOid": "1ef2d896668bb5635ab0fae154e86df5169ccfb8",
+    "isDraft": false,
+    "isInMergeQueue": false,
+    "merged": false,
+    "state": "OPEN",
+    "timelineItems": {
+      "nodes": [
+        {
+          "createdAt": "2026-10-08T17:51:54Z",
+          "id": "RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A",
+          "reason": "failed_checks"
+        }
+      ]
+    },
+    "url": "https://github.com/groovejones/groove-sight-platform/pull/4017"
+  },
+  "b": {
+    "headRefOid": "ca47385ddf15d28bf494896c8736b51f490ab642",
+    "isDraft": false,
+    "isInMergeQueue": false,
+    "merged": false,
+    "state": "OPEN",
+    "timelineItems": {
+      "nodes": [
+        {
+          "createdAt": "2026-10-10T03:21:08Z",
+          "id": "RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqmwDMg",
+          "reason": "invalid_merge_commit"
+        },
+        {
+          "createdAt": "2026-10-10T09:40:36Z",
+          "id": "RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqxldeQ",
+          "reason": "failed_checks"
+        },
+        {
+          "createdAt": "2026-10-10T10:24:09Z",
+          "id": "RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA",
+          "reason": "manual"
+        }
+      ]
+    },
+    "url": "https://github.com/groovejones/groove-sight-platform/pull/4172"
+  },
+  "m": {
+    "headRefOid": "8e98b588755b195fb0b25b1666f49c162b924e3e",
+    "isDraft": false,
+    "isInMergeQueue": false,
+    "merged": true,
+    "state": "MERGED",
+    "timelineItems": {
+      "nodes": [
+        {
+          "createdAt": "2026-10-14T02:32:46Z",
+          "id": "RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHujf8MA",
+          "reason": "failed_checks"
+        },
+        {
+          "createdAt": "2026-10-14T03:12:38Z",
+          "id": "RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHulOGHA",
+          "reason": "merged"
+        }
+      ]
+    },
+    "url": "https://github.com/groovejones/groove-sight-platform/pull/4308"
+  }
+}

@@ -1,0 +1,6 @@
+check: /tmp/fm-lab.T9c9Te/state/a-alert.check.sh: early-alert
+check: /tmp/fm-lab.T9c9Te/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+check: /tmp/fm-lab.T9c9Te/state/task-a0.check.sh: midpoint
+check: /tmp/fm-lab.T9c9Te/state/task-b.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+check: /tmp/fm-lab.T9c9Te/state/task-m.check.sh: merged
+check: /tmp/fm-lab.T9c9Te/state/z-final.check.sh: end-of-sweep

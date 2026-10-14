@@ -1,0 +1,12 @@
+{
+  "capture_before_publication": "pass",
+  "latest_drop_and_reason": "pass",
+  "sweep_completion": "pass",
+  "publication_failure_retry": "pass",
+  "merged_is_not_dequeued": "pass",
+  "github_host_binding": "pass",
+  "multiple_removals_latest_only": "pass",
+  "handled_drop_deduplicated": "pass",
+  "unreadable_forge_is_silent": "pass",
+  "cleanup_host_binding_gh": "pass"
+}

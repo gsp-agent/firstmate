@@ -1,0 +1,354 @@
+Read-only live GitHub validation; GH_HOST=enterprise.invalid; account=gsp-agent
+$ mktemp -d /tmp/fm-lab.XXXXXX
+/tmp/fm-lab.T9c9Te
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-lab-home.sh create /tmp/fm-lab.T9c9Te
+/tmp/fm-lab.T9c9Te
+exit=0
+$ tmux -L fm-lab new-session -d -s validation -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD -e FM_HOME=/tmp/fm-lab.T9c9Te bash --noprofile --norc
+exit=0
+$ tmux -L fm-lab display-message -p -t validation '#{socket_path},#{pid},#{pane_index}'
+/private/tmp/fm-lab.T9c9Te/tmux/tmux-501/fm-lab,68022,0
+exit=0
+$ git -c core.hooksPath=/dev/null init -q /tmp/fm-lab.T9c9Te/workcopy
+exit=0
+$ gh api graphql --hostname github.com -f 'query=query{repository(owner:"groovejones",name:"groove-sight-platform"){
+      a:pullRequest(number:4017){url state merged isInMergeQueue isDraft headRefOid timelineItems(last:5,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason createdAt}}}}
+      b:pullRequest(number:4172){url state merged isInMergeQueue isDraft headRefOid timelineItems(last:5,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason createdAt}}}}
+      m:pullRequest(number:4308){url state merged isInMergeQueue isDraft headRefOid timelineItems(last:5,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason createdAt}}}}
+    }}' --jq .data.repository
+{"a":{"headRefOid":"1ef2d896668bb5635ab0fae154e86df5169ccfb8","isDraft":false,"isInMergeQueue":false,"merged":false,"state":"OPEN","timelineItems":{"nodes":[{"createdAt":"2026-10-08T17:51:54Z","id":"RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A","reason":"failed_checks"}]},"url":"https://github.com/groovejones/groove-sight-platform/pull/4017"},"b":{"headRefOid":"ca47385ddf15d28bf494896c8736b51f490ab642","isDraft":false,"isInMergeQueue":false,"merged":false,"state":"OPEN","timelineItems":{"nodes":[{"createdAt":"2026-10-10T03:21:08Z","id":"RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqmwDMg","reason":"invalid_merge_commit"},{"createdAt":"2026-10-10T09:40:36Z","id":"RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqxldeQ","reason":"failed_checks"},{"createdAt":"2026-10-10T10:24:09Z","id":"RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA","reason":"manual"}]},"url":"https://github.com/groovejones/groove-sight-platform/pull/4172"},"m":{"headRefOid":"8e98b588755b195fb0b25b1666f49c162b924e3e","isDraft":false,"isInMergeQueue":false,"merged":true,"state":"MERGED","timelineItems":{"nodes":[{"createdAt":"2026-10-14T02:32:46Z","id":"RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHujf8MA","reason":"failed_checks"},{"createdAt":"2026-10-14T03:12:38Z","id":"RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHulOGHA","reason":"merged"}]},"url":"https://github.com/groovejones/groove-sight-platform/pull/4308"}}
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-pr-check.sh task-a https://github.com/groovejones/groove-sight-platform/pull/4017
+armed: state/task-a.check.sh
+stderr:
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-pr-check.sh task-b https://github.com/groovejones/groove-sight-platform/pull/4172
+armed: state/task-b.check.sh
+stderr:
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-pr-check.sh task-m https://github.com/groovejones/groove-sight-platform/pull/4308
+armed: state/task-m.check.sh
+stderr:
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-check-unregister.sh contributions
+unregistered: state/contributions.check.sh
+exit=0
+
+Capture the real removal twice before publication: both reads must remain reportable.
+$ bash /tmp/fm-lab.T9c9Te/state/task-a.check.sh
+dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks event=RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A
+exit=0
+$ bash /tmp/fm-lab.T9c9Te/state/task-a.check.sh
+dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks event=RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A
+exit=0
+
+Make the durable queue sequence destination unavailable, then retry through the real watcher.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-watch.sh
+stderr:
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-wake-lib.sh: line 2169: /tmp/fm-lab.T9c9Te/state/.wake-queue.seq: Is a directory
+exit=1
+After failure: no handled-removal marker and no durable wake row.
+$ rmdir /tmp/fm-lab.T9c9Te/state/.wake-queue.seq
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-check-register.sh a-alert
+registered: state/a-alert.check.sh
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-check-register.sh task-a0
+registered: state/task-a0.check.sh
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-check-register.sh z-final
+registered: state/z-final.check.sh
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-watch.sh
+check: rearm-resurface
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-wake-drain.sh
+stderr:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 0 --recovery-generation 97703.1791964210.JZVlnH
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  3 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-wake-drain.sh --ack-through 0 --recovery-generation 97703.1791964210.JZVlnH
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-watch.sh
+check: /tmp/fm-lab.T9c9Te/state/a-alert.check.sh: early-alert
+check: /tmp/fm-lab.T9c9Te/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+check: /tmp/fm-lab.T9c9Te/state/task-a0.check.sh: midpoint
+check: /tmp/fm-lab.T9c9Te/state/task-b.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+check: /tmp/fm-lab.T9c9Te/state/task-m.check.sh: merged
+check: /tmp/fm-lab.T9c9Te/state/z-final.check.sh: end-of-sweep
+exit=0
+task-a published marker:
+fm-pr-poll-queue-dropped-v1
+https://github.com/groovejones/groove-sight-platform/pull/4017
+RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A
+task-b published marker:
+fm-pr-poll-queue-dropped-v1
+https://github.com/groovejones/groove-sight-platform/pull/4172
+RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA
+First sweep progress:
+midpoint stamp=absent
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-wake-drain.sh
+1791964215	1	check	/tmp/fm-lab.T9c9Te/state/a-alert.check.sh	check: /tmp/fm-lab.T9c9Te/state/a-alert.check.sh: early-alert
+1791964217	2	check	/tmp/fm-lab.T9c9Te/state/task-a.check.sh	check: /tmp/fm-lab.T9c9Te/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1791964217	3	check	/tmp/fm-lab.T9c9Te/state/task-a0.check.sh	check: /tmp/fm-lab.T9c9Te/state/task-a0.check.sh: midpoint
+1791964220	4	check	/tmp/fm-lab.T9c9Te/state/task-b.check.sh	check: /tmp/fm-lab.T9c9Te/state/task-b.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1791964222	5	check	merged-task-m-https://github.com/groovejones/groove-sight-platform/pull/4308	check: merge landed: task-m https://github.com/groovejones/groove-sight-platform/pull/4308 external
+1791964224	6	check	/tmp/fm-lab.T9c9Te/state/z-final.check.sh	check: /tmp/fm-lab.T9c9Te/state/z-final.check.sh: end-of-sweep
+stderr:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 6 --recovery-generation 17440.1791964215.3oAAPl
+WARNING: watcher still down (same stale episode; last beat: 12s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-wake-drain.sh --ack-through 6 --recovery-generation 17440.1791964215.3oAAPl
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-watch.sh
+check: /tmp/fm-lab.T9c9Te/state/a-alert.check.sh: early-alert
+check: /tmp/fm-lab.T9c9Te/state/task-a0.check.sh: midpoint
+check: /tmp/fm-lab.T9c9Te/state/z-final.check.sh: end-of-sweep
+exit=0
+Repeat sweep progress:
+midpoint stamp=absent
+midpoint stamp=946684800
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-wake-drain.sh
+1791964229	7	check	/tmp/fm-lab.T9c9Te/state/a-alert.check.sh	check: /tmp/fm-lab.T9c9Te/state/a-alert.check.sh: early-alert
+1791964231	8	check	/tmp/fm-lab.T9c9Te/state/task-a0.check.sh	check: /tmp/fm-lab.T9c9Te/state/task-a0.check.sh: midpoint
+1791964232	9	check	/tmp/fm-lab.T9c9Te/state/z-final.check.sh	check: /tmp/fm-lab.T9c9Te/state/z-final.check.sh: end-of-sweep
+stderr:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 9 --recovery-generation 58416.1791964229.61Q1uF
+WARNING: watcher still down (same stale episode; last beat: 7s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-wake-drain.sh --ack-through 9 --recovery-generation 58416.1791964229.61Q1uF
+exit=0
+
+A real failed network read must stay silent and preserve the poll.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-pr-check.sh unreadable https://github.com/groovejones/groove-sight-platform/pull/4017
+armed: state/unreadable.check.sh
+stderr:
+WARNING: watcher still down (same stale episode; last beat: 8s ago, grace 300s) - full banner already printed this episode.
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-check-unregister.sh contributions
+unregistered: state/contributions.check.sh
+exit=0
+$ gh api graphql --hostname github.com -f 'query=query{repository(owner:"groovejones",name:"groove-sight-platform"){
+      a:pullRequest(number:4017){url state merged isInMergeQueue isDraft headRefOid timelineItems(last:5,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason createdAt}}}}
+      b:pullRequest(number:4172){url state merged isInMergeQueue isDraft headRefOid timelineItems(last:5,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason createdAt}}}}
+      m:pullRequest(number:4308){url state merged isInMergeQueue isDraft headRefOid timelineItems(last:5,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason createdAt}}}}
+    }}'
+stderr:
+Post "https://api.github.com/graphql": proxyconnect tcp: dial tcp 127.0.0.1:9: connect: connection refused
+exit=1
+$ bash /tmp/fm-lab.T9c9Te/state/unreadable.check.sh
+exit=0
+
+Cleanup must keep an open github.com PR record even under a conflicting GH_HOST.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-teardown.sh open-record-gh
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.T9c9Te
+WARNING: watcher still down (same stale episode; last beat: 11s ago, grace 300s) - full banner already printed this episode.
+REFUSED: task open-record-gh records https://github.com/groovejones/groove-sight-platform/pull/4017 and that pull request or merge request is still open.
+The task record stays so the request can still be merged.
+Merge or close it, or get the captain's explicit OK to discard, then --force.
+exit=1
+Fallback check uses the real gh-axi binary; gh is absent from this process PATH.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-teardown.sh open-record-gh-axi
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.T9c9Te
+WARNING: watcher still down (same stale episode; last beat: 13s ago, grace 300s) - full banner already printed this episode.
+REFUSED: task open-record-gh-axi records https://github.com/groovejones/groove-sight-platform/pull/4017 but its forge state could not be read.
+The task record stays. Teardown will not treat a push as proof the request is finished.
+Retry when the forge can be read, or get the captain's explicit OK to discard, then --force.
+exit=1
+
+Inspect and stop only the lab socket, then remove its disposable home.
+$ tmux -L fm-lab list-sessions
+validation: 1 windows (created Wed Oct 14 02:49:50 2026)
+exit=0
+$ tmux -L fm-lab kill-server
+exit=0
+$ tmux -L fm-lab list-sessions
+stderr:
+no server running on /private/tmp/fm-lab.T9c9Te/tmux/tmux-501/fm-lab
+exit=1
+Disposable inventory: config/backlog-backend, config/backend, state/open-record-gh.meta, state/task-a.pr-poll-registration, state/task-m.meta, state/task-m.pr-poll-merge-notified, state/.last-heartbeat, state/task-a.meta, state/task-a0.check.sh, state/.guard-watcher-stale-banner, state/unreadable.pr-poll-registration, state/unreadable.meta, state/z-final.check.sh, state/.inactive-outcome-reconcile, state/unreadable.pr-poll, state/.watch-triage.log, state/.last-watcher-beat, state/a-alert.check.sh, state/home-summary.json, state/.watch-deliveries.log, state/task-a.pr-poll-queue-dropped, state/task-b.check.sh, state/.wake-queue.seq, state/open-record-gh-axi.meta, state/task-b.pr-poll, state/unreadable.check.sh, state/z-final.check-trust, state/.wake-queue, state/.heartbeat-streak, state/task-a.pr-poll, state/sweep-progress, state/.last-check, state/task-a.check.sh, state/task-a0.check-trust, state/.watcher-down, state/task-b.pr-poll-queue-dropped, state/task-b.meta, state/.secondmate-liveness-tick, state/a-alert.check-trust, state/task-b.pr-poll-registration, state/terminal-outcomes, workcopy/.git/objects/pack, workcopy/.git/objects/info, workcopy/.git/info/exclude, workcopy/.git/hooks/commit-msg.sample, workcopy/.git/hooks/pre-rebase.sample, workcopy/.git/hooks/sendemail-validate.sample, workcopy/.git/hooks/pre-commit.sample, workcopy/.git/hooks/applypatch-msg.sample, workcopy/.git/hooks/fsmonitor-watchman.sample, workcopy/.git/hooks/pre-receive.sample, workcopy/.git/hooks/prepare-commit-msg.sample, workcopy/.git/hooks/post-update.sample, workcopy/.git/hooks/pre-merge-commit.sample, workcopy/.git/hooks/pre-applypatch.sample, workcopy/.git/hooks/pre-push.sample, workcopy/.git/hooks/update.sample, workcopy/.git/hooks/push-to-checkout.sample, workcopy/.git/refs/heads, workcopy/.git/refs/tags, workcopy/.git/config, workcopy/.git/HEAD, workcopy/.git/description, workcopy/.git/objects, workcopy/.git/info, workcopy/.git/hooks, workcopy/.git/refs, workcopy/.git, axi-only/gh-axi, axi-only/tmux, axi-only/jq, tmux/tmux-501/fm-lab, tmux/tmux-501, .fm-lab-home, config, projects, state, workcopy, axi-only, tmux, data
+$ rm -- /tmp/fm-lab.T9c9Te/config/backlog-backend
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/config/backend
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/open-record-gh.meta
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-a.pr-poll-registration
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-m.meta
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-m.pr-poll-merge-notified
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.last-heartbeat
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-a.meta
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-a0.check.sh
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.guard-watcher-stale-banner
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/unreadable.pr-poll-registration
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/unreadable.meta
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/z-final.check.sh
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.inactive-outcome-reconcile
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/unreadable.pr-poll
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.watch-triage.log
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.last-watcher-beat
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/a-alert.check.sh
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/home-summary.json
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.watch-deliveries.log
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-a.pr-poll-queue-dropped
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-b.check.sh
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.wake-queue.seq
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/open-record-gh-axi.meta
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-b.pr-poll
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/unreadable.check.sh
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/z-final.check-trust
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.wake-queue
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.heartbeat-streak
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-a.pr-poll
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/sweep-progress
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.last-check
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-a.check.sh
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-a0.check-trust
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.watcher-down
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-b.pr-poll-queue-dropped
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-b.meta
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/.secondmate-liveness-tick
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/a-alert.check-trust
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/state/task-b.pr-poll-registration
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/state/terminal-outcomes
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy/.git/objects/pack
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy/.git/objects/info
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/info/exclude
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/commit-msg.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/pre-rebase.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/sendemail-validate.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/pre-commit.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/applypatch-msg.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/fsmonitor-watchman.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/pre-receive.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/prepare-commit-msg.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/post-update.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/pre-merge-commit.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/pre-applypatch.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/pre-push.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/update.sample
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/hooks/push-to-checkout.sample
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy/.git/refs/heads
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy/.git/refs/tags
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/config
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/HEAD
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/workcopy/.git/description
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy/.git/objects
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy/.git/info
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy/.git/hooks
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy/.git/refs
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy/.git
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/axi-only/gh-axi
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/axi-only/tmux
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/axi-only/jq
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/tmux/tmux-501/fm-lab
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/tmux/tmux-501
+exit=0
+$ rm -- /tmp/fm-lab.T9c9Te/.fm-lab-home
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/config
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/projects
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/state
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/workcopy
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/axi-only
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/tmux
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te/data
+exit=0
+$ rmdir /tmp/fm-lab.T9c9Te
+exit=0
+Lab home removed; no test primary or server remains.

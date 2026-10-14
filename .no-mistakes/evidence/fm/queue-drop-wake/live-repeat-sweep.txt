@@ -1,0 +1,3 @@
+check: /tmp/fm-lab.T9c9Te/state/a-alert.check.sh: early-alert
+check: /tmp/fm-lab.T9c9Te/state/task-a0.check.sh: midpoint
+check: /tmp/fm-lab.T9c9Te/state/z-final.check.sh: end-of-sweep

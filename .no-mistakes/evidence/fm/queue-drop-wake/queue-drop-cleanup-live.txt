@@ -1,0 +1,142 @@
+Read-only live GitHub validation; GH_HOST=enterprise.invalid; account=gsp-agent
+$ mktemp -d /tmp/fm-lab.XXXXXX
+/tmp/fm-lab.VhEknc
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-lab-home.sh create /tmp/fm-lab.VhEknc
+/tmp/fm-lab.VhEknc
+exit=0
+$ tmux -L fm-lab new-session -d -s validation -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD -e FM_HOME=/tmp/fm-lab.VhEknc bash --noprofile --norc
+exit=0
+$ tmux -L fm-lab display-message -p -t validation '#{socket_path},#{pid},#{pane_index}'
+/private/tmp/fm-lab.VhEknc/tmux/tmux-501/fm-lab,37253,0
+exit=0
+$ git -c core.hooksPath=/dev/null init -q /tmp/fm-lab.VhEknc/workcopy
+exit=0
+$ gh api graphql --hostname github.com -f 'query=query{repository(owner:"groovejones",name:"groove-sight-platform"){
+      a:pullRequest(number:4017){url state merged isInMergeQueue isDraft headRefOid timelineItems(last:5,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason createdAt}}}}
+      b:pullRequest(number:4172){url state merged isInMergeQueue isDraft headRefOid timelineItems(last:5,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason createdAt}}}}
+      m:pullRequest(number:4308){url state merged isInMergeQueue isDraft headRefOid timelineItems(last:5,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason createdAt}}}}
+    }}' --jq .data.repository
+{"a":{"headRefOid":"1ef2d896668bb5635ab0fae154e86df5169ccfb8","isDraft":false,"isInMergeQueue":false,"merged":false,"state":"OPEN","timelineItems":{"nodes":[{"createdAt":"2026-10-08T17:51:54Z","id":"RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A","reason":"failed_checks"}]},"url":"https://github.com/groovejones/groove-sight-platform/pull/4017"},"b":{"headRefOid":"ca47385ddf15d28bf494896c8736b51f490ab642","isDraft":false,"isInMergeQueue":false,"merged":false,"state":"OPEN","timelineItems":{"nodes":[{"createdAt":"2026-10-10T03:21:08Z","id":"RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqmwDMg","reason":"invalid_merge_commit"},{"createdAt":"2026-10-10T09:40:36Z","id":"RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqxldeQ","reason":"failed_checks"},{"createdAt":"2026-10-10T10:24:09Z","id":"RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA","reason":"manual"}]},"url":"https://github.com/groovejones/groove-sight-platform/pull/4172"},"m":{"headRefOid":"8e98b588755b195fb0b25b1666f49c162b924e3e","isDraft":false,"isInMergeQueue":false,"merged":true,"state":"MERGED","timelineItems":{"nodes":[{"createdAt":"2026-10-14T02:32:46Z","id":"RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHujf8MA","reason":"failed_checks"},{"createdAt":"2026-10-14T03:12:38Z","id":"RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHulOGHA","reason":"merged"}]},"url":"https://github.com/groovejones/groove-sight-platform/pull/4308"}}
+exit=0
+
+Cleanup must keep an open github.com PR record even under a conflicting GH_HOST.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4WK97NVNAQQSVPMPF30NGSD/bin/fm-teardown.sh open-record-gh
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.VhEknc
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: task open-record-gh records https://github.com/groovejones/groove-sight-platform/pull/4017 and that pull request or merge request is still open.
+The task record stays so the request can still be merged.
+Merge or close it, or get the captain's explicit OK to discard, then --force.
+exit=1
+Direct stock fallback-reader integration against real gh-axi; automatic handover is not injected.
+$ bash /tmp/fm-lab.VhEknc/fallback-reader.sh
+state=OPEN
+merged=false
+exit=0
+Live results: {"cleanup_host_binding_gh": "pass", "fallback_reader_live_host_binding": "pass"}
+
+Inspect and stop only the lab socket, then remove its disposable home.
+$ tmux -L fm-lab list-sessions
+validation: 1 windows (created Wed Oct 14 02:56:21 2026)
+exit=0
+$ tmux -L fm-lab kill-server
+exit=0
+$ tmux -L fm-lab list-sessions
+stderr:
+no server running on /private/tmp/fm-lab.VhEknc/tmux/tmux-501/fm-lab
+exit=1
+Disposable inventory: config/backlog-backend, config/backend, state/open-record-gh.meta, state/.guard-watcher-stale-banner, state/open-record-gh-axi.meta, workcopy/.git/objects/pack, workcopy/.git/objects/info, workcopy/.git/info/exclude, workcopy/.git/hooks/commit-msg.sample, workcopy/.git/hooks/pre-rebase.sample, workcopy/.git/hooks/sendemail-validate.sample, workcopy/.git/hooks/pre-commit.sample, workcopy/.git/hooks/applypatch-msg.sample, workcopy/.git/hooks/fsmonitor-watchman.sample, workcopy/.git/hooks/pre-receive.sample, workcopy/.git/hooks/prepare-commit-msg.sample, workcopy/.git/hooks/post-update.sample, workcopy/.git/hooks/pre-merge-commit.sample, workcopy/.git/hooks/pre-applypatch.sample, workcopy/.git/hooks/pre-push.sample, workcopy/.git/hooks/update.sample, workcopy/.git/hooks/push-to-checkout.sample, workcopy/.git/refs/heads, workcopy/.git/refs/tags, workcopy/.git/config, workcopy/.git/HEAD, workcopy/.git/description, workcopy/.git/objects, workcopy/.git/info, workcopy/.git/hooks, workcopy/.git/refs, workcopy/.git, tmux/tmux-501/fm-lab, tmux/tmux-501, .fm-lab-home, fallback-reader.sh, config, projects, state, workcopy, tmux, data
+$ rm -- /tmp/fm-lab.VhEknc/config/backlog-backend
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/config/backend
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/state/open-record-gh.meta
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/state/.guard-watcher-stale-banner
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/state/open-record-gh-axi.meta
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy/.git/objects/pack
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy/.git/objects/info
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/info/exclude
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/commit-msg.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/pre-rebase.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/sendemail-validate.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/pre-commit.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/applypatch-msg.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/fsmonitor-watchman.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/pre-receive.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/prepare-commit-msg.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/post-update.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/pre-merge-commit.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/pre-applypatch.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/pre-push.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/update.sample
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/hooks/push-to-checkout.sample
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy/.git/refs/heads
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy/.git/refs/tags
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/config
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/HEAD
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/workcopy/.git/description
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy/.git/objects
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy/.git/info
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy/.git/hooks
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy/.git/refs
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy/.git
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/tmux/tmux-501/fm-lab
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/tmux/tmux-501
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/.fm-lab-home
+exit=0
+$ rm -- /tmp/fm-lab.VhEknc/fallback-reader.sh
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/config
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/projects
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/state
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/workcopy
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/tmux
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc/data
+exit=0
+$ rmdir /tmp/fm-lab.VhEknc
+exit=0
+Lab home removed; no test primary or server remains.
