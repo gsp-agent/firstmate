@@ -97,7 +97,7 @@ test_changed_file_selection_is_conservative() {
 init_changed_fixture_repo() {
   local repo=$1 script
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   chmod +x "$repo/bin/fm-test-run.sh"
   for script in \
@@ -192,7 +192,7 @@ init_primary_and_linked_worktree() {
   git -C "$repo" worktree add --quiet -b linked-probe "$linked"
   for tree in "$repo" "$linked"; do
     mkdir -p "$tree/bin" "$tree/tests"
-    cp "$RUNNER" "$tree/bin/fm-test-run.sh"
+    cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$tree/bin/"
     cp "$ROOT/tests/git-config-helpers.sh" "$tree/tests/"
     chmod +x "$tree/bin/fm-test-run.sh"
     cat >"$tree/tests/probe.test.sh" <<PROBE
@@ -517,7 +517,7 @@ PY
   timeout_repo="$tmp/timeout-repo"
   timeout_script=tests/fm-calm-pi-extension.test.sh
   mkdir -p "$timeout_repo/bin" "$timeout_repo/tests"
-  cp "$RUNNER" "$timeout_repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$timeout_repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$timeout_repo/tests/"
   cat >"$timeout_repo/bin/fm-timeout-lib.sh" <<'SH'
 fm_run_timed() {
@@ -669,7 +669,7 @@ test_family_proofs_run_in_separate_concurrent_phases() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-family-phases.XXXXXX")
   repo="$tmp/repo"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cp "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/fm-timeout-lib.sh"
   chmod +x "$repo/bin/fm-test-run.sh"
@@ -1022,7 +1022,7 @@ test_list_scheduled_non_lane_selections_use_serial_weights() {
   tmp=$(fm_test_tmproot fm-test-run-non-lane-schedule)
   repo="$tmp/repo"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
   for script in "${scripts[@]}"; do
     printf '#!/usr/bin/env bash\nexit 0\n' >"$repo/$script"
     chmod +x "$repo/$script"
@@ -1208,7 +1208,7 @@ test_portable_serial_packing_budget_boundary() {
   done < <("$RUNNER" --list --all)
 
   for weight in 1200000 1200001; do
-    cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+    cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
     python3 - "$repo/bin/fm-test-run.sh" "$weight" <<'PY' \
       || fail "could not seed the fixture's measured timing input"
 from pathlib import Path
@@ -1346,7 +1346,7 @@ test_unmapped_new_test_never_inherits_family_concurrency() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-unmapped.XXXXXX")
   repo="$tmp/repo"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   chmod +x "$repo/bin/fm-test-run.sh"
   # Two members of the proven residual family, plus a test basename the family
@@ -1464,7 +1464,7 @@ test_per_script_timeout_bounds_a_hang() {
   runner="$repo/bin/fm-test-run.sh"
   hang=tests/fm-hang-fixture.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$runner"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cp "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/fm-timeout-lib.sh"
   grandchild_pid="$tmp/grandchild.pid"
@@ -1531,7 +1531,7 @@ test_changed_bound_gives_slow_watcher_suites_headroom() {
   repo="$tmp/repo"
   script=tests/fm-watch-triage.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cat >"$repo/bin/fm-timeout-lib.sh" <<'SH'
 fm_run_timed() {
@@ -1569,7 +1569,7 @@ test_max_wall_ms_is_a_result_not_advice() {
   runner="$repo/bin/fm-test-run.sh"
   fast=tests/fm-budget-fixture.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$runner"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cat >"$repo/$fast" <<'SH'
 #!/usr/bin/env bash
@@ -1634,7 +1634,7 @@ test_jobs_parallel_scheduler_and_failure_propagation() {
   c=tests/fm-lint.test.sh
   d=tests/fm-supervision-instructions.test.sh
   mkdir -p "$repo/bin" "$repo/tests" "$evidence" "$fake_bin"
-  cp "$RUNNER" "$runner"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cat >"$fake_bin/stat" <<'SH'
 #!/usr/bin/env bash
@@ -2009,6 +2009,7 @@ SH
   self_nice=$(ps -o nice= -p $$ | tr -d ' ')
   env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
     FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$line" MACHINE_LINE_NAME=fm-test-run \
+    FM_TEST_MACHINE_LINE_CAP=ignored \
     MACHINE_GATE_READ='printf "%s\n" "SLOT FREE = YES"' \
     PRI_FILE="$tmp/pri" NICE_FILE="$tmp/nice" \
     "$RUNNER" "$probe" >"$tmp/out" 2>"$tmp/err"
@@ -2080,8 +2081,109 @@ SH
   pass "the suite takes and releases the machine line at the caller's priority"
 }
 
+test_machine_line_relative_runner_paths() {
+  local tmp repo gate invocation from rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-relative.XXXXXX")
+  repo="$tmp/repo"
+  gate="$tmp/machine-gate.sh"
+  mkdir -p "$repo/bin" "$repo/tests" "$repo/skills/tools/harness"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
+  printf '#!/usr/bin/env bash\necho ran\n' >"$repo/tests/probe.test.sh"
+  write_machine_gate_standin "$gate"
+  for invocation in ./fm-test-run.sh ../../../bin/fm-test-run.sh; do
+    case "$invocation" in
+      ./fm-test-run.sh) from=bin ;;
+      *) from=skills/tools/harness ;;
+    esac
+    set +e
+    (cd "$repo/$from" && env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+      FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$tmp/line" MACHINE_LINE_NAME=fm-test-run \
+      "$invocation" tests/probe.test.sh) >"$tmp/out" 2>"$tmp/err"
+    rc=$?
+    set -e
+    [ "$rc" -eq 0 ] || fail "relative launch $invocation failed: $(cat "$tmp/err")"
+    grep -qx ran "$tmp/out" || fail "relative launch $invocation did not run the probe"
+  done
+  [ "$(line_row_count "$tmp/line/log.tsv" start 'cap 180m')" = 2 ] \
+    || fail "relative launches did not each take the line"
+  [ "$(line_row_count "$tmp/line/log.tsv" end '^rc 0$')" = 2 ] \
+    || fail "relative launches did not each release the line"
+  rm -rf "$tmp"
+  pass "relative runner paths survive machine-line re-execution"
+}
+
+test_machine_line_wait_counts_toward_budget() {
+  local tmp gate probe inner rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-timing.XXXXXX")
+  gate="$tmp/gate.sh"
+  probe="$tmp/outer.test.sh"
+  inner="$tmp/inner.test.sh"
+  cat >"$gate" <<'SH'
+#!/usr/bin/env bash
+set -eu
+[ "$1" = run ] || exit 2
+shift
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --cap) shift 2 ;;
+    --) shift; break ;;
+    *) exit 2 ;;
+  esac
+done
+attempt=0
+[ ! -f "$WAIT_STATE/attempts" ] || attempt=$(cat "$WAIT_STATE/attempts")
+attempt=$((attempt + 1))
+printf '%s\n' "$attempt" >"$WAIT_STATE/attempts"
+python3 - "$WAIT_STATE" "$attempt" <<'PY'
+import datetime, json, pathlib, sys, time
+root = pathlib.Path(sys.argv[1])
+now = {"ms": int(time.time() * 1000), "iso": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+if sys.argv[2] == "1":
+    (root / "wait-start.json").write_text(json.dumps(now))
+elif sys.argv[2] == "3":
+    started = json.loads((root / "wait-start.json").read_text())
+    (root / "wait.json").write_text(json.dumps({"started_at": started["iso"], "admitted_at": now["iso"], "duration_ms": now["ms"] - started["ms"]}))
+PY
+[ "$attempt" -ge 3 ] || exit 75
+"$@"
+SH
+  cat >"$probe" <<'SH'
+#!/usr/bin/env bash
+"$NESTED_RUNNER" --json "$NESTED_JSON" "$NESTED_PROBE"
+SH
+  printf '#!/usr/bin/env bash\necho ran\n' >"$inner"
+  chmod +x "$gate"
+  set +e
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" FM_TEST_MACHINE_LINE_RETRY_SECS=1 WAIT_STATE="$tmp" \
+    NESTED_RUNNER="$RUNNER" NESTED_JSON="$tmp/inner.json" NESTED_PROBE="$inner" \
+    "$RUNNER" --max-wall-ms 1500 --json "$tmp/outer.json" "$probe" >"$tmp/out" 2>"$tmp/err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 1 ] || fail "admission wait did not exceed the invocation budget: rc=$rc $(cat "$tmp/err")"
+  [ "$(cat "$tmp/attempts")" = 3 ] || fail "nested suite took the line again"
+  python3 - "$tmp" <<'PY' || fail "admission wait was lost or inherited by a nested invocation"
+import json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+outer = json.loads((root / "outer.json").read_text())
+inner = json.loads((root / "inner.json").read_text())
+wait = json.loads((root / "wait.json").read_text())
+assert wait["duration_ms"] >= 2000
+assert outer["started_at"] <= wait["started_at"]
+assert outer["summary"]["duration_ms"] >= wait["duration_ms"]
+assert outer["summary"]["failed"] == 0
+assert inner["started_at"] >= wait["admitted_at"]
+assert inner["summary"]["failed"] == 0
+PY
+  rm -rf "$tmp"
+  pass "admission wait counts toward timing and budget only for its invocation"
+}
+
 test_machine_line_second_run_does_not_overlap() {
-  local tmp gate line probe_a probe_b a_pid b_pid events deadline debug err
+  local tmp gate line probe_a probe_b a_pid b_pid events deadline debug err repo proof
+  local first_mode=${1:-runner} second_mode=${2:-runner}
+  local -a first_command second_command
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-overlap.XXXXXX")
   write_machine_gate_standin "$tmp/machine-gate.sh"
   gate="$tmp/machine-gate.sh"
@@ -2101,10 +2203,25 @@ SH
 printf 'B-in\n' >>"$EVENTS"
 SH
   chmod +x "$probe_a" "$probe_b"
+  repo="$tmp/repo"
+  proof="$repo/bin/fm-test-isolation-proof.sh"
+  mkdir -p "$repo/bin" "$repo/tests"
+  cp "$RUNNER" "$ROOT/bin/fm-test-isolation-proof.sh" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
+  first_command=("$RUNNER" "$probe_a")
+  second_command=("$RUNNER" "$probe_b")
+  if [ "$first_mode" = proof ]; then
+    cp "$probe_a" "$repo/tests/fm-test-run.test.sh"
+    first_command=("$proof" --pool pure-contract-unit --jobs 4)
+  fi
+  if [ "$second_mode" = proof ]; then
+    cp "$probe_b" "$repo/tests/fm-test-run.test.sh"
+    second_command=("$proof" --pool pure-contract-unit --jobs 4)
+  fi
   env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
     FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$line" MACHINE_LINE_NAME=fm-test-run \
     FM_TEST_MACHINE_LINE_RETRY_SECS=1 EVENTS="$events" RELEASE="$tmp/release" \
-    "$RUNNER" "$probe_a" >"$tmp/a.out" 2>"$tmp/a.err" &
+    "${first_command[@]}" >"$tmp/a.out" 2>"$tmp/a.err" &
   a_pid=$!
   deadline=$((SECONDS + 15))
   while [ "$SECONDS" -lt "$deadline" ]; do
@@ -2121,7 +2238,7 @@ SH
   env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
     FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$line" MACHINE_LINE_NAME=fm-test-run \
     FM_TEST_MACHINE_LINE_RETRY_SECS=1 EVENTS="$events" \
-    "$RUNNER" "$probe_b" >"$tmp/b.out" 2>"$tmp/b.err" &
+    "${second_command[@]}" >"$tmp/b.out" 2>"$tmp/b.err" &
   b_pid=$!
   sleep 1.2
   if grep -qx B-in "$events" 2>/dev/null; then
@@ -2174,12 +2291,16 @@ SH
   [ "$(line_row_count "$line/log.tsv" end "^rc 0$")" = 2 ] \
     || { rm -rf "$tmp"; fail "expected two end rows after both suites"; }
   rm -rf "$tmp"
-  pass "a second suite waits until the first releases the machine line"
+  pass "$second_mode waits until $first_mode releases the machine line"
 }
 
 test_machine_line_absent_or_inspection_does_not_take_the_turn
 test_machine_line_takes_and_releases
+test_machine_line_relative_runner_paths
+test_machine_line_wait_counts_toward_budget
 test_machine_line_second_run_does_not_overlap
+test_machine_line_second_run_does_not_overlap runner proof
+test_machine_line_second_run_does_not_overlap proof runner
 test_list_all_exact_suite_coverage
 test_family_selection
 test_single_script_selection

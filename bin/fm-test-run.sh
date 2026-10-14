@@ -175,6 +175,9 @@ RUN_STARTED_MS=$(now_ms)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 
+# shellcheck source=bin/fm-test-machine-line-lib.sh
+. "$ROOT/bin/fm-test-machine-line-lib.sh"
+
 MODE=
 LIST_ONLY=0
 LIST_SCHEDULED=0
@@ -227,14 +230,6 @@ PORTABLE_SERIAL_MAX_WEIGHT_MS=1200000
 # leaves room for newly added tests while making a stale hint table fail loudly
 # instead of silently. docs/fm-test-portable-shards.md owns the refresh.
 PORTABLE_SERIAL_MAX_UNHINTED_PERCENT=15
-
-# Minutes passed to the gate as --cap. Past this, machine-gate.sh clear may
-# end the run. The suite itself does not stop at the cap.
-MACHINE_LINE_CAP_MINUTES=180
-
-# Inside the gate's 180 second live-waiter window, so a waiting suite keeps
-# its place in line.
-MACHINE_LINE_RETRY_SECS=15
 
 usage() {
   awk '
@@ -1942,73 +1937,6 @@ PY
 # script, because the gate holds its lock only around the command it is given.
 ORIGINAL_ARGS=("$@")
 
-# Take the machine line, then exit with the admitted child's status.
-# Returns only when this process should run the suite itself.
-enter_machine_line() {
-  # A suite can exit 75. The admission file is written only after the gate has
-  # started this script, so a refused turn (also exit 75) retries and a real
-  # suite exit does not.
-  if [ -n "${FM_TEST_MACHINE_LINE_HELD:-}" ]; then
-    if [ -n "${FM_TEST_MACHINE_LINE_ADMITTED:-}" ]; then
-      : >"$FM_TEST_MACHINE_LINE_ADMITTED" \
-        || die "could not record machine-line admission"
-    fi
-    return 0
-  fi
-
-  local gate cap retry admitted rc line_name
-  if [ "${FM_TEST_MACHINE_GATE+x}" = x ]; then
-    gate=$FM_TEST_MACHINE_GATE
-  else
-    gate=${HOME}/.agent-state/machine-gate.sh
-  fi
-  if [ ! -x "$gate" ]; then
-    return 0
-  fi
-
-  cap=${FM_TEST_MACHINE_LINE_CAP:-$MACHINE_LINE_CAP_MINUTES}
-  case "$cap" in
-    ''|*[!0-9]*) die "FM_TEST_MACHINE_LINE_CAP must be whole minutes" ;;
-  esac
-  retry=${FM_TEST_MACHINE_LINE_RETRY_SECS:-$MACHINE_LINE_RETRY_SECS}
-  case "$retry" in
-    ''|*[!0-9]*) die "FM_TEST_MACHINE_LINE_RETRY_SECS must be whole seconds" ;;
-  esac
-
-  line_name=${MACHINE_LINE_NAME:-}
-  if [ -z "$line_name" ]; then
-    if [ -n "${FM_TASK_ID:-}" ]; then
-      line_name="fm-test-run-${FM_TASK_ID}"
-    else
-      line_name=fm-test-run
-    fi
-  fi
-
-  admitted=$(mktemp "${TMPDIR:-/tmp}/fm-test-machine-line.XXXXXX") \
-    || die "could not create machine-line admission marker"
-  rm -f "$admitted"
-
-  while :; do
-    set +e
-    FM_TEST_MACHINE_LINE_HELD=1 \
-      FM_TEST_MACHINE_LINE_ADMITTED="$admitted" \
-      MACHINE_LINE_NAME="$line_name" \
-      bash "$gate" run --cap "$cap" -- "$0" \
-      ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}
-    rc=$?
-    set -e
-    if [ -e "$admitted" ]; then
-      rm -f "$admitted"
-      exit "$rc"
-    fi
-    if [ "$rc" -ne 75 ]; then
-      rm -f "$admitted"
-      exit "$rc"
-    fi
-    sleep "$retry"
-  done
-}
-
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --all)
@@ -2448,7 +2376,7 @@ if [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ]; then
 fi
 
 # Refusals above exit before this, so a refused run does not take the turn.
-enter_machine_line
+enter_machine_line "$ROOT/bin/fm-test-run.sh" ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}
 
 RUN_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run.XXXXXX")
 RECORDS="$RUN_TMP/records.tsv"
