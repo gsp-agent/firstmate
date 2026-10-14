@@ -242,8 +242,9 @@ fm_cursor_process_matches() {  # <comm> <args> [argv0]
 }
 
 fm_cursor_resolve_profile() {
-  local state=$1 config=$2 id=$3 relaunch=$4 kind=$5 harness=$6 model=$7 effort=$8
-  local prior='' eligible=0 mode='' fallback reason guard
+  local state=$1 config=$2 id=$3 relaunch=$4 kind=$5 harness=$6 model=$7 effort=$8 explicit=${9:-0}
+  local prior='' eligible=0 mode='' fallback reason guard provenance=0
+  local model_given=$model effort_given=$effort
   model=${model:-default}
   effort=${effort:-default}
   if [ "$relaunch" = 1 ]; then
@@ -253,14 +254,57 @@ fm_cursor_resolve_profile() {
     printf '%s\t%s\t%s\n' "$harness" "$model" "$effort"
     return 0
   fi
+  guard="$(dirname "${BASH_SOURCE[0]}")/fm-cursor-guard.sh"
+  # Explicit grok keeps the caller's profile. A recorded cursor task also
+  # consults the guard and writes the override; that file is Cursor provenance.
+  # A guard decision of cursor does not replace the explicit harness. A grok
+  # target that the caller did not explicitly choose is a recheck, not an override.
+  if [ "$relaunch" = 1 ] && [ "$explicit" = 1 ] && [ "$harness" = grok ] && [ "$kind" != secondmate ]; then
+    if [ "$prior" = cursor ]; then
+      fallback=$(FM_STATE_OVERRIDE="$state" FM_CONFIG_OVERRIDE="$config" "$guard" fallback "$id" "$mode") \
+        || fallback="grok fallback check failed"
+      case "$fallback" in
+        cursor|grok\ *) ;;
+        *)
+          echo "error: cursor guard returned an invalid fallback decision for $id" >&2
+          return 1
+          ;;
+      esac
+      reason="explicit --harness grok override of a recorded cursor task"
+      printf '%s\n' "$reason" > "$state/$id.cursor-fallback" || return 1
+      echo "cursor fallback: launching $id on the grok harness (explicit override): $reason" >&2
+    fi
+    printf '%s\t%s\t%s\n' "$harness" "$model" "$effort"
+    return 0
+  fi
+  if [ -s "$state/$id.cursor-limit" ] || [ -s "$state/$id.cursor-fallback" ]; then
+    provenance=1
+  fi
   if [ "$kind" != secondmate ]; then
     if [ "$harness" = cursor ]; then
       eligible=1
-    elif [ "$relaunch" = 1 ] && [ "$harness" = grok ]; then
+    elif [ "$relaunch" = 1 ] && [ "$harness" = grok ] && [ "$provenance" = 1 ]; then
       eligible=1
     fi
   fi
-  guard="$(dirname "${BASH_SOURCE[0]}")/fm-cursor-guard.sh"
+  # An intake grok choice is not a fallback. Skip the guard so it cannot write
+  # a reason file that would make the next relaunch eligible for Cursor.
+  # A direct relaunch passes no model flag. That empty flag is not a request
+  # to replace the recorded profile with default.
+  if [ "$eligible" != 1 ] && [ "$harness" = grok ]; then
+    if [ "$relaunch" = 1 ] && [ "$explicit" != 1 ]; then
+      if [ -z "$model_given" ]; then
+        model=$(fm_meta_get "$state/$id.meta" model)
+        model=${model:-default}
+      fi
+      if [ -z "$effort_given" ]; then
+        effort=$(fm_meta_get "$state/$id.meta" effort)
+        effort=${effort:-default}
+      fi
+    fi
+    printf '%s\t%s\t%s\n' "$harness" "$model" "$effort"
+    return 0
+  fi
   fallback=$(FM_STATE_OVERRIDE="$state" FM_CONFIG_OVERRIDE="$config" "$guard" fallback "$id" "$mode") \
     || fallback="grok fallback check failed"
   if [ "$eligible" != 1 ]; then

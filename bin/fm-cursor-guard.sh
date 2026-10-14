@@ -7,12 +7,14 @@
 #                      readable file, or it is older than max_age_h (default 26) by mtime, or the
 #                      bead's last Cursor run hit a usage limit (state/<id>.cursor-limit), or the
 #                      pstack plugin dir's plugin.json version is not pstack_version (0.15.21).
-#                      With relaunch, a bead that already launched twice today (America/Chicago)
-#                      is also grok. That reason is written to state/<id>.cursor-limit and forces
-#                      grok only on that Chicago day; a later day ignores the record. A fresh
-#                      fallback does not apply the daily cap, so take still refuses the 3rd launch.
-#   take <id>          before a cursor launch; a bead's 3rd launch in one America/Chicago day is
-#                      refused (exit 1, one stderr line). Counts in state/cursor-dispatch.json.
+#                      With relaunch, a bead that has already launched bead_daily_cap times today
+#                      (America/Chicago) is also grok. That reason is written to
+#                      state/<id>.cursor-limit and forces grok only on that Chicago day; a later
+#                      day ignores the record. A fresh fallback does not apply the daily cap, so
+#                      take still refuses the launch past bead_daily_cap.
+#   take <id>          before a cursor launch; a bead's launch past bead_daily_cap in one
+#                      America/Chicago day is refused (exit 1, one stderr line). Counts in
+#                      state/cursor-dispatch.json. The relaunch check reads this same value.
 #   give <id>          give the launch back when the spawn failed.
 #   after <id> <rc>    run in the pane after the agent exits; exits with <rc>. When rc is nonzero
 #                      and state/<id>.cursor-stream.jsonl shows a usage-limit or 429 error, writes
@@ -25,6 +27,8 @@ FM_HOME="${FM_HOME:-$FM_ROOT}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 USAGE="${FM_CURSOR_USAGE_DIR:-$HOME/.agent-state/a3ov3/cursor-usage}"
+# take and fallback's relaunch check share this Chicago-day budget.
+bead_daily_cap=6
 op=${1:-}; id=${2:-}
 case "$op" in take | give | fallback | after) ;; *) op= ;; esac
 [ -n "$op" ] && [ -n "$id" ] || { echo "usage: fm-cursor-guard.sh take|give|fallback <bead-id> | fallback <bead-id> relaunch | after <bead-id> <rc>" >&2; exit 2; }
@@ -85,8 +89,8 @@ if [ "$op" = fallback ]; then
       cap_n=$(jq -r --arg d "$DAY" --arg id "$id" 'if .day == $d then (.beads[$id] // 0) else 0 end' "$STATE/cursor-dispatch.json" 2>/dev/null || echo 0)
     fi
     case "$cap_n" in '' | *[!0-9]*) cap_n=0 ;; esac
-    if [ "$cap_n" -ge 2 ]; then
-      line="cursor guard: refused $id, already launched $cap_n times today ($DAY); write blocked: instead of a 3rd run"
+    if [ "$cap_n" -ge "$bead_daily_cap" ]; then
+      line="cursor guard: refused $id, already launched $cap_n times today ($DAY); write blocked: instead of a run past the daily cap of $bead_daily_cap"
       printf '%s\n' "$line" > "$STATE/$id.cursor-limit" || exit 1
       echo "grok $line"
       exit 0
@@ -120,8 +124,8 @@ if [ "$op" = give ]; then
   new=$(jq -c --arg id "$id" 'if (.beads[$id] // 0) > 1 then .beads[$id] -= 1 else del(.beads[$id]) end' <<<"$cur")
 else
   n=$(jq -r --arg id "$id" '.beads[$id] // 0' <<<"$cur")
-  if [ "$n" -ge 2 ]; then
-    echo "cursor guard: refused $id, already launched $n times today ($DAY); write blocked: instead of a 3rd run" >&2; exit 1
+  if [ "$n" -ge "$bead_daily_cap" ]; then
+    echo "cursor guard: refused $id, already launched $n times today ($DAY); write blocked: instead of a run past the daily cap of $bead_daily_cap" >&2; exit 1
   fi
   new=$(jq -c --arg id "$id" '.beads[$id] = ((.beads[$id] // 0) + 1)' <<<"$cur")
 fi

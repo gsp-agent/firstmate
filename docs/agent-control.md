@@ -68,13 +68,20 @@ A relaunch does take one session reference when the endpoint's own runtime recor
 `relaunch` is the only verb that changes durable records, so it runs as a transaction with a journal at `state/<id>.control-relaunch`, the prior record preserved beside it, and a ship or scout's prior instructions preserved when a progress note is appended.
 
 1. **Resolve the profile.**
-   An explicit `--harness` selects the replacement adapter without Cursor guard re-resolution.
+   An explicit `--harness cursor` selects Cursor without guard re-resolution.
+   An explicit `--harness grok` keeps Grok.
+   When the task's recorded harness is cursor, the resolver writes the override reason before launch.
+   Reason-file mechanics stay in [`fm-spawn.sh`'s header](../bin/fm-spawn.sh).
    Explicit `--model` and `--effort` override inherited axes unless automatic Cursor/Grok routing replaces the profile.
    Without `--harness`, a `kind=secondmate` task re-resolves its durable `config/secondmate-harness` pin, including that file's optional model and effort tokens, exactly as every other respawn does - so setting the pin and relaunching is the ordinary way to move a secondmate's runtime.
    A ship or scout starts from its recorded profile rather than re-reading dispatch configuration.
-   For an inherited `cursor` or `grok` ship or scout profile, [`fm-cursor-lib.sh`](../bin/fm-cursor-lib.sh) resolves the guard's Cursor/Grok choice before the transaction records its target, including Grok tasks with no prior Cursor reason file.
-   A healthy guard chooses Cursor; an automatic fallback records its reason before Grok launches, with reason-file mechanics owned by [`fm-spawn.sh`'s header](../bin/fm-spawn.sh) and guard conditions owned by [`fm-cursor-guard.sh`'s header](../bin/fm-cursor-guard.sh).
-   Automatic Grok fallback uses the resolver's fixed profile; recovery from an inherited Grok profile to Cursor uses Cursor's default model and effort.
+   For an inherited `cursor` ship or scout profile, [`fm-cursor-lib.sh`](../bin/fm-cursor-lib.sh) resolves the guard's Cursor/Grok choice before the transaction records its target.
+   An inherited `grok` profile returns to Cursor only when `state/<id>.cursor-limit` or `state/<id>.cursor-fallback` already exists.
+   Without that provenance it stays on Grok, and the resolver still runs.
+   A healthy guard chooses Cursor for an eligible profile.
+   An automatic fallback records its reason before Grok launches, with reason-file mechanics owned by [`fm-spawn.sh`'s header](../bin/fm-spawn.sh) and guard conditions owned by [`fm-cursor-guard.sh`'s header](../bin/fm-cursor-guard.sh).
+   Automatic Grok fallback uses the resolver's fixed profile.
+   Recovery from an inherited Grok profile that has Cursor provenance uses Cursor's default model and effort.
    Other recorded adapters are unchanged by Cursor routing.
    A recorded raw-command basename that differs from its resolved adapter cannot reproduce the command actually running, so relaunch refuses before the checkpoint unless the caller passes an explicit `--harness` to choose the replacement runtime deliberately.
    An explicit harness change resets model and effort unless they are named too, because a model chosen for one adapter does not transfer to another.

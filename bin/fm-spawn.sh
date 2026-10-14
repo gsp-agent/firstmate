@@ -81,7 +81,10 @@
 #   docs/agent-control.md "Transactional relaunch". Automatic fallbacks print
 #   their reason and record it before Grok launches in state/<id>.cursor-fallback,
 #   or state/<id>.cursor-limit for usage failures and the daily cap, whose
-#   marker is owned by bin/fm-cursor-guard.sh.
+#   marker is owned by bin/fm-cursor-guard.sh. An explicit grok relaunch of a
+#   recorded cursor task keeps grok and writes state/<id>.cursor-fallback
+#   naming the override. That file is Cursor provenance, the same as any other
+#   fallback reason.
 #   It refuses unless the recorded endpoint is positively
 #   agent-free on a backend with a recovery-grade agent-state classifier (tmux
 #   or herdr), and clears the previous harness's per-task wiring before arming
@@ -2497,9 +2500,17 @@ case "$ARG3" in
   ;;
 esac
 
+# Explicit grok still resolves, so an override of a recorded cursor task is
+# recorded. Explicit cursor is not re-resolved. A control recheck of a grok
+# target the operator did not name is not itself an explicit override.
+cursor_explicit=0
+if [ "$HARNESS_SET" = 1 ] && [ "${FM_CONTROL_RELAUNCH_HARNESS_SET:-1}" = 1 ]; then
+  cursor_explicit=1
+fi
 if [ "$RELAUNCH" != 1 ] || [ "$HARNESS_SET" = 0 ] ||
-  { [ "$SPAWN_CONTROL_PARENT" = 1 ] && [ "${FM_CONTROL_RELAUNCH_HARNESS_SET:-1}" = 0 ]; }; then
-  CURSOR_PROFILE=$(fm_cursor_resolve_profile "$STATE" "$CONFIG" "$ID" "$RELAUNCH" "$KIND" "$HARNESS" "$MODEL" "$EFFORT") || exit 1
+  { [ "$SPAWN_CONTROL_PARENT" = 1 ] && [ "${FM_CONTROL_RELAUNCH_HARNESS_SET:-1}" = 0 ]; } ||
+  { [ "$RELAUNCH" = 1 ] && [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ] && [ "$cursor_explicit" = 1 ]; }; then
+  CURSOR_PROFILE=$(fm_cursor_resolve_profile "$STATE" "$CONFIG" "$ID" "$RELAUNCH" "$KIND" "$HARNESS" "$MODEL" "$EFFORT" "$cursor_explicit") || exit 1
   IFS=$'\t' read -r RESOLVED_HARNESS RESOLVED_MODEL RESOLVED_EFFORT <<< "$CURSOR_PROFILE"
   if [ "$SPAWN_CONTROL_PARENT" = 1 ] &&
     { [ "$RESOLVED_HARNESS" != "$HARNESS" ] ||
@@ -2604,7 +2615,7 @@ cursor)
   fi
   # Re-assert Cursor's settings before every run (spawn and relaunch).
   "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
-  # A bead's 3rd Cursor launch in one day is refused; given back below if the spawn fails.
+  # Reserve one launch under the guard's daily cap; give it back if the spawn fails.
   FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
   CURSOR_CAP_TAKEN=1
   ;;

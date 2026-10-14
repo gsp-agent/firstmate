@@ -953,10 +953,13 @@ resolve_relaunch_profile() {
   else
     TARGET_EFFORT=default
   fi
-  if [ "$HARNESS_SET" = 0 ]; then
+  # Inherited profiles resolve here. Explicit grok does too, so a recorded
+  # cursor task keeps grok and records the override. Explicit cursor is not
+  # re-resolved.
+  if [ "$HARNESS_SET" = 0 ] || [ "$TARGET_HARNESS" = grok ]; then
     local cursor_profile
     cursor_profile=$(fm_cursor_resolve_profile "$STATE" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" "$ID" 1 "$KIND" \
-      "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT") || return 1
+      "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" "$HARNESS_SET") || return 1
     IFS=$'\t' read -r TARGET_HARNESS TARGET_MODEL TARGET_EFFORT <<< "$cursor_profile"
   fi
   if [ "$TARGET_EFFORT" = ultra ]; then
