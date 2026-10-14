@@ -82,7 +82,7 @@
 #   their reason and record it before Grok launches in state/<id>.cursor-fallback,
 #   or state/<id>.cursor-limit for usage failures and the daily cap, whose
 #   marker is owned by bin/fm-cursor-guard.sh. An explicit grok relaunch of a
-#   recorded cursor task keeps grok and writes state/<id>.cursor-fallback
+#   ship or scout recorded as cursor keeps grok and writes state/<id>.cursor-fallback
 #   naming the override. That file is Cursor provenance, the same as any other
 #   fallback reason.
 #   It refuses unless the recorded endpoint is positively
