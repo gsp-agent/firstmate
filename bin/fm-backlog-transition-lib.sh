@@ -517,21 +517,28 @@ fm_backlog_start() {  # <data-dir> <id>
 }
 
 # tasks-axi takes a --pr link only as a canonical GitHub or Forgejo pull request
-# and refuses anything else, so a Gerrit change URL is recorded on the row as a
-# note instead. The subshell keeps the parse from overwriting a caller's
-# FM_PR_* identity.
-fm_backlog_pr_is_gerrit_change() {  # <url>
-  ( fm_pr_url_parse "$1" && [ "$FM_PR_PROVIDER" = gerrit ] )
+# and refuses anything else.
+fm_backlog_pr_note() {  # <url>
+  local provider
+  provider=$(
+    fm_pr_url_parse "$1" || exit 1
+    printf '%s' "$FM_PR_PROVIDER"
+  ) || return 1
+  case "$provider" in
+    gerrit) printf 'Gerrit change %s' "$1" ;;
+    gitlab) printf 'GitLab merge request %s' "$1" ;;
+    *) return 1 ;;
+  esac
 }
 
 fm_backlog_done() {  # <data-dir> <id> [flag...]
-  local data=$1 id=$2 arg previous_arg=''
+  local data=$1 id=$2 arg previous_arg='' note
   local -a done_args=()
   shift 2
   for arg in "$@"; do
-    if [ "$previous_arg" = --pr ] && fm_backlog_pr_is_gerrit_change "$arg"; then
+    if [ "$previous_arg" = --pr ] && note=$(fm_backlog_pr_note "$arg"); then
       done_args[${#done_args[@]}-1]=--note
-      done_args+=("Gerrit change $arg")
+      done_args+=("$note")
     else
       done_args+=("$arg")
     fi
@@ -543,7 +550,7 @@ fm_backlog_done() {  # <data-dir> <id> [flag...]
 fm_backlog_row_artifact_supported() {
   local id=$1 flag=${2:-} value=${3:-}
   case "$flag" in
-    --pr) ! fm_backlog_pr_is_gerrit_change "$value" ;;
+    --pr) ! fm_backlog_pr_note "$value" >/dev/null ;;
     --report) [ "$value" = "data/$id/report.md" ] ;;
     *) return 1 ;;
   esac
@@ -558,7 +565,7 @@ fm_backlog_row_artifact_supported() {
 # fields; only bin/fm-captain-hold.sh answer resolves the call.
 fm_backlog_retain() {  # <data-dir> <id> [flag...]
   local data authorized_data=$1 id=$2 out command_status previous_arg=''
-  local arg deliverable='' line body new_body tmp
+  local arg deliverable='' line body new_body tmp note
   local -a row_args=()
   if ! data=$(fm_backlog_data_absolute "$1"); then
     FM_BACKLOG_TRANSITION_ERROR="data directory cannot be resolved: $1"
@@ -575,11 +582,11 @@ fm_backlog_retain() {  # <data-dir> <id> [flag...]
         fi
         ;;
       --pr)
-        if fm_backlog_row_artifact_supported "$id" --pr "$arg"; then
+        if note=$(fm_backlog_pr_note "$arg"); then
+          deliverable="${deliverable:+$deliverable; }$note"
+        else
           deliverable="${deliverable:+$deliverable; }PR $arg"
           row_args=(--pr "$arg")
-        else
-          deliverable="${deliverable:+$deliverable; }Gerrit change $arg"
         fi
         ;;
       --note) deliverable="${deliverable:+$deliverable; }$arg" ;;
