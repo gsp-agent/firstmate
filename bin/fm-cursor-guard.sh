@@ -48,8 +48,6 @@ if [ "$op" = fallback ]; then
   have=$(jq -r '.version // empty' "${FM_PSTACK_DIR:-$HOME/dev/pstack/pstack}/.cursor-plugin/plugin.json" 2>/dev/null)
   if [ "$have" != "$want" ]; then echo "grok pstack plugin version is '${have:-unreadable}', not the pinned $want"; exit 0; fi
   if [ -s "$STATE/$id.cursor-limit" ]; then echo "grok $(head -1 "$STATE/$id.cursor-limit")"; exit 0; fi
-  # Newest-by-mtime needs ls -t; find has no portable equivalent on macOS.
-  # shellcheck disable=SC2012
   f=$(ls -t "$USAGE"/*-spending.txt 2>/dev/null | head -1)
   if [ -z "$f" ] || [ ! -r "$f" ]; then echo "grok no Cursor spending file in $USAGE"; exit 0; fi
   age=$(( $(date +%s) - $(mtime "$f") ))

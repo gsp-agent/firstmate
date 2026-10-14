@@ -2492,11 +2492,8 @@ WATCHER_RECOVERY_PENDING=0
 if [ -n "${FM_LOCK_RECOVERED_PID:-}" ]; then
   WATCHER_RECOVERY_PENDING=1
 fi
-# Confirmed TERM take-over continues an announced episode, so this start does not
-# reopen it. A pending episode still reaches the arm check below.
 if [ "${FM_WATCH_HANDLING_SUCCESSOR:-0}" != 1 ] \
-  && [ "${FM_WATCH_FOREGROUND_CHECKPOINT:-0}" != 1 ] \
-  && [ "${FM_WATCH_TAKEOVER_CONTINUITY:-0}" != 1 ]; then
+  && [ "${FM_WATCH_FOREGROUND_CHECKPOINT:-0}" != 1 ]; then
   if ! fm_recovery_marker_reopen_announced "$WATCHER_DOWNTIME_MARKER"; then
     echo "watcher: recovery state could not be reopened safely; retaining stale lock evidence" >&2
     exit 1

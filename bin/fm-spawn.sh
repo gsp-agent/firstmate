@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Spawn a direct report: a crewmate in a treehouse or Orca worktree, or a
 # secondmate in its isolated firstmate home.
-# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--upstream-consent <host>/<owner>/<repo>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
+# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
@@ -22,9 +22,6 @@
 #   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}`
 #   placeholders, an empty Task, an incomplete pair of Task subsections, or a
 #   `## Captain's intent` line opening with a Captain label or address.
-#   A fresh ship or scout additionally refuses a # Task body over 2048 bytes;
-#   link to the bead, PR, or file for detail instead of pasting it. Relaunches
-#   preserve existing briefs and do not apply this cap.
 #   Every ship or scout spawn renders `launch-brief.md`; for a no-mistakes ship
 #   it also carries the current `--intent` contract and the extracted captain
 #   intent. A legacy mixed Task is accepted there only under bin/fm-dod-lib.sh's
@@ -40,11 +37,7 @@
 #   selected branch does not match the project's registered prefix, the spawn
 #   prints a one-line deviation notice and continues, because the registered
 #   prefix is the captain's standing preference and the brief agreement above
-#   already guarantees the worker's instructions match the branch. A fresh
-#   (non-relaunch) ship spawn creates and checks out that branch in the
-#   refreshed slot before the worker launches (prepare_ship_branch), so the
-#   worker only verifies it; a leftover branch of that name is moved only when
-#   its commits are already in the slot's HEAD and is otherwise resumed as it is.
+#   already guarantees the worker's instructions match the branch.
 #   --base-branch is the optional branch selected at intake for a ship or scout
 #   to start from and target instead of origin's default branch. A fresh launch
 #   resets its pooled copy to origin/<branch>, refusing when the project has no
@@ -55,12 +48,6 @@
 #   base_branch= in state/<id>.meta, which a relaunch reuses and later review and
 #   cleanup read; it is refused on secondmates and relaunches, and without it
 #   nothing changes.
-#   --upstream-consent records one task's captain-approved publication scope
-#   for firstmate's own repository under bin/fm-role-lib.sh's gate. It must
-#   match the brief's upstream-consent= token, is recorded in task metadata,
-#   and is reused on relaunch rather than overridden. It is refused on scouts,
-#   secondmates, and local-only; docs/configuration.md "Firstmate role" owns
-#   the authority policy.
 #   Ship/scout launches always put fm-dod-lib.sh's current worker role scope
 #   first in the private launch-brief overlay, including the exact task-owned
 #   steering inbox. This never rewrites a project's instruction files or a
@@ -432,7 +419,6 @@
 #     __WORKTREE__  absolute path to the task worktree
 #     __CURSORBIN__ resolved, cursor-verified executable for a cursor launch
 #     __PSTACKDIR__ pstack plugin dir for --plugin-dir (FM_PSTACK_DIR, default ~/dev/pstack/pstack)
-#     __CURSORCREWGUARD__ state/<task-id>.cursor-crew-guard, the per-task plugin dir carrying bin/fm-cursor-crew-guard.mjs
 #     __CURSORSTREAM__ state/<task-id>.cursor-stream.jsonl, the tee target for cursor's stream-json
 #     __CURSORGUARD__ / __CURSORID__ the post-run hook that records a usage-limit failure and exits with the agent's status
 #     __GEMINISETTINGS__ firstmate-owned per-task gemini settings file (busy-state hooks)
@@ -506,9 +492,6 @@
 # never writes a Co-Authored-By trailer, Claude-Session link, or generated-with
 # line into a commit or PR body; launch_template() below owns the reason it
 # cannot come from the captain's own settings.
-# claude_session_settings_keys() also sets autoMemoryEnabled false in that
-# JSON, so a launched Claude session does not load an auto-memory directory
-# or MEMORY.md.
 # Cursor and the other non-Claude runtimes have no equivalent per-launch
 # settings overlay: Cursor injects a Co-Authored-By trailer at the tooling
 # layer after the worker types a clean message, and a per-machine
@@ -755,10 +738,6 @@ UPSTREAM_CONSENT=
 UPSTREAM_CONSENT_SET=0
 TRACEPARENT_SET=0
 RELAUNCH=0
-# The most a fresh worker's `# Task` section (the ask: Captain's intent plus
-# Firstmate spec) may carry. Not the scaffold: Setup, Rules and Definition of done
-# are upstream's fixed contract and stay as scaffolded.
-BRIEF_TASK_MAX_BYTES=2048
 # Opt-in only: exact-resume presentation-order lock waits instead of refusing.
 # Absent/unset keeps upstream refuse-on-contention. See header.
 HERDR_RESUME_LOCK_WAIT=0
@@ -2054,20 +2033,6 @@ shell_quote() {
   printf "'"
 }
 
-# Interior of the per-launch Claude session-settings object, without braces.
-# autoMemoryEnabled is false on every launch. Claude Code treats a missing
-# key as on, so a worker would otherwise load an auto-memory directory and
-# MEMORY.md. Attribution stays in the object unless config/keep-ai-trailers
-# is present. The inline --settings value and the secondmate settings file
-# both use this string.
-claude_session_settings_keys() {
-  if [ "$KEEP_AI_TRAILERS" = 1 ]; then
-    printf '%s' '"feedbackDrafts":"off","autoMemoryEnabled":false'
-  else
-    printf '%s' '"feedbackDrafts":"off","autoMemoryEnabled":false,"attribution":{"commit":"","pr":"","sessionUrl":false}'
-  fi
-}
-
 resolve_pi_executable() {
   local candidate dir
   candidate=$(type -P -- "$1" 2>/dev/null) || return 1
@@ -2194,12 +2159,11 @@ launch_template() {
   # sources are not guaranteed to load that scope, so a worker would
   # otherwise run with attribution back on; carrying it per launch keeps the
   # policy in force regardless of which settings scopes end up loaded.
-  # claude_session_settings_keys() owns those session-key bytes, including
-  # autoMemoryEnabled false, for the inline value and the secondmate file.
   # Claude Code's --settings flag takes one value, a file path or an inline
   # JSON string (https://code.claude.com/docs/en/cli-reference). A secondmate's
   # busy hooks share that value, in state/<id>.claude-settings.json, and the
-  # file also carries the session keys so they stay in force.
+  # file also carries feedbackDrafts and attribution so those session keys
+  # stay in force.
   # __CLAUDEPERMFLAG__ is the permission flag config/claude-permission-mode
   # selects (header above): --dangerously-skip-permissions by default, or
   # --permission-mode auto for a captain who refuses bypass mode.
@@ -2316,12 +2280,7 @@ launch_template() {
   # --dangerously-skip-permissions. grok's turn-end signal does NOT ride the
   # launch command - it is a Stop-event hook installed below (global hook +
   # per-task pointer), so the template is identical for ship/scout/secondmate.
-  # Keep unattended sessions off imported Claude/Cursor MCP servers and skills;
-  # project .mcp.json servers and Grok-native plugins still load. Disable API-key
-  # auth to prevent fallback to a metered key, and disable cross-session memory.
-  # Grok's config reference (compat.*, auth.*) and memory guide (GROK_MEMORY)
-  # document these variables.
-  grok) printf '%s' 'env GROK_DISABLE_API_KEY_AUTH=1 GROK_MEMORY=0 GROK_CLAUDE_SKILLS_ENABLED=0 GROK_CURSOR_SKILLS_ENABLED=0 GROK_CLAUDE_MCPS_ENABLED=0 GROK_CURSOR_MCPS_ENABLED=0 grok --always-approve __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+  grok) printf '%s' 'grok --always-approve __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
   # Cursor Agent CLI. --trust suppresses the workspace-trust prompt, which
   # --yolo does NOT cover and which would otherwise block every spawn, since
   # each task gets a fresh worktree path cursor has never seen. --yolo is the
@@ -2336,13 +2295,10 @@ launch_template() {
   # effort axis is deliberately omitted and stays in task metadata only.
   # -p --output-format stream-json is tee'd (through process substitution, so
   # the pane command keeps the agent's own exit status) to state/<id>.cursor-stream.jsonl
-  # and still runs in the pane, so it stays visible. --plugin-dir loads pstack
-  # and --approve-mcps lets its MCP servers start unattended. The second --plugin-dir is this
-  # task's crew guard (install_cursor_crew_guard, bin/fm-cursor-crew-guard.mjs):
-  # a preToolUse hook that pins shell calls naming no directory to the worktree,
-  # because Cursor otherwise runs them wherever the conversation's persistent
-  # shell last was, and refuses git symbolic-ref and update-ref.
-  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ --plugin-dir __CURSORCREWGUARD__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?' ;;
+  # and still runs in the pane, so it stays visible; steer by relaunching with
+  # --resume of the bound session. --plugin-dir loads pstack and --approve-mcps
+  # lets its MCP servers start unattended.
+  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?' ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
   # command exactly as it does for claude and grok (verified: a multi-line
@@ -3337,17 +3293,6 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
     echo "error: $BRIEF ## Captain's intent has an operator-address line: $ADDRESS_LINE; write the captain's actual words without a Captain label or address before spawn, since the heading already records provenance" >&2
     exit 1
   fi
-  # A fresh worker's task is capped at BRIEF_TASK_MAX_BYTES: the brief carries
-  # the ask and a pointer to where the detail lives (bead, PR, file), never the
-  # detail itself. A relaunch re-delivers the brief its task already runs on, so
-  # a long brief written before the cap cannot strand a live worker.
-  if [ "$RELAUNCH" -eq 0 ]; then
-    TASK_BYTES=$(fm_brief_heading_body "$BRIEF" "# Task" | wc -c | tr -d '[:space:]')
-    if [ "$TASK_BYTES" -gt "$BRIEF_TASK_MAX_BYTES" ]; then
-      echo "error: $BRIEF has a # Task section of $TASK_BYTES bytes, over the $BRIEF_TASK_MAX_BYTES-byte cap; keep the ask short and link to the bead, PR or file for the detail instead of pasting it" >&2
-      exit 1
-    fi
-  fi
   if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
     if fm_brief_task_heading_present "$BRIEF" "## Captain's intent"; then
       CAPTAIN_INTENT=$(fm_brief_task_heading_body "$BRIEF" "## Captain's intent")
@@ -3743,53 +3688,6 @@ freshen_spawn_worktree_base() { # <worktree> [<base-branch>]
     echo "error: pooled worktree '$worktree' is at '${actual:-unknown}', not current '$target' ('$expected'); refusing to launch" >&2
     return 1
   fi
-}
-
-# A fresh ship slot starts on its own branch. Spawn creates and checks out
-# <branch> at the refreshed base before any crew exists, so the crew's first
-# action only verifies it (bin/fm-brief.sh) and never needs a branch-creating
-# command that a harness may refuse. A leftover branch of the same name whose
-# commits are already in HEAD is moved to HEAD (nothing is lost); one that
-# carries commits HEAD lacks is checked out as it is, never reset.
-prepare_ship_branch() { # <worktree> <branch>
-  local worktree=$1 branch=$2 head tip
-  head=$(git -C "$worktree" rev-parse --verify --quiet 'HEAD^{commit}' 2>/dev/null) || {
-    echo "error: pooled worktree '$worktree' has no commit to start branch '$branch' from; refusing to launch" >&2
-    return 1
-  }
-  if tip=$(git -C "$worktree" rev-parse --verify --quiet "refs/heads/$branch^{commit}" 2>/dev/null); then
-    if git -C "$worktree" merge-base --is-ancestor "$tip" "$head" 2>/dev/null; then
-      git -C "$worktree" checkout --quiet -B "$branch" "$head" -- >/dev/null
-    else
-      echo "notice: branch $branch already exists in $worktree with commits the refreshed base lacks; launching on it as it is" >&2
-      git -C "$worktree" checkout --quiet "$branch" -- >/dev/null
-    fi
-  else
-    git -C "$worktree" checkout --quiet -b "$branch" "$head" -- >/dev/null
-  fi || {
-    echo "error: could not check out ship branch '$branch' in '$worktree'; refusing to launch" >&2
-    return 1
-  }
-  if [ "$(git -C "$worktree" branch --show-current 2>/dev/null)" != "$branch" ]; then
-    echo "error: '$worktree' is not on ship branch '$branch' after preparing it; refusing to launch" >&2
-    return 1
-  fi
-}
-
-# Write the per-task Cursor plugin that carries bin/fm-cursor-crew-guard.mjs as a
-# preToolUse hook for this crew session alone: it pins every shell call that
-# names no directory to <worktree> and refuses git symbolic-ref and update-ref.
-# The launch loads it with --plugin-dir, so the captain's own Cursor sessions
-# never see it. Rewritten on every launch; teardown removes the directory.
-install_cursor_crew_guard() { # <plugin-dir> <worktree>
-  local dir=$1 worktree=$2 command
-  command="$(shell_quote "$SCRIPT_DIR/fm-cursor-crew-guard.mjs") --worktree $(shell_quote "$worktree")"
-  mkdir -p "$dir/.cursor-plugin" "$dir/hooks" || return 1
-  jq -n '{name: "fm-crew-guard", displayName: "Firstmate crew guard", version: "1.0.0",
-    description: "Pins crew shell calls to the task worktree and refuses git symbolic-ref and update-ref.",
-    hooks: "./hooks/hooks.json"}' >"$dir/.cursor-plugin/plugin.json" || return 1
-  jq -n --arg command "$command" '{version: 1, hooks: {preToolUse: [
-    {matcher: "Shell", type: "command", command: $command, timeout: 10}]}}' >"$dir/hooks/hooks.json"
 }
 
 herdr_projection_meta_field_exact() { # <meta> <key>
@@ -4744,9 +4642,6 @@ fi
 if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
   freshen_spawn_worktree_base "$WT" "$BASE_BRANCH" || exit 1
 fi
-if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" = ship ] && [ -n "${BRANCH:-}" ]; then
-  prepare_ship_branch "$WT" "$BRANCH" || exit 1
-fi
 
 # Re-assert the durable task copy after either treehouse acquisition or endpoint
 # adoption. This also updates Herdr's restored pane shell before any harness is
@@ -4984,7 +4879,11 @@ BUSY_GEN=
     fi
     hooks_json="\"hooks\":{\"UserPromptSubmit\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"$j_submit\"}]}],${stop_entry}\"StopFailure\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"$j_stopfail\"}]}],\"SessionEnd\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"$j_sessionend\"}]}]}"
     if [ "$KIND" = secondmate ]; then
-      printf '{%s,%s}\n' "$(claude_session_settings_keys)" "$hooks_json" >"$STATE_REAL/$ID.claude-settings.json"
+      session_keys='"feedbackDrafts":"off",'
+      if [ "$KEEP_AI_TRAILERS" != 1 ]; then
+        session_keys='"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false},'
+      fi
+      printf '{%s%s}\n' "$session_keys" "$hooks_json" >"$STATE_REAL/$ID.claude-settings.json"
     else
       mkdir -p "$WT/.claude"
       printf '{%s}\n' "$hooks_json" >"$WT/.claude/settings.local.json"
@@ -5583,11 +5482,16 @@ case "$LAUNCH" in
   if [ "$KIND" = secondmate ]; then
     LAUNCH=${LAUNCH//__CLAUDESETTINGS__/$(shell_quote "$STATE_REAL/$ID.claude-settings.json")}
   else
-    claude_settings=$(shell_quote "{$(claude_session_settings_keys)}")
+    claude_settings="'{\"feedbackDrafts\":\"off\"__CLAUDEATTRIBUTION__}'"
     LAUNCH=${LAUNCH//__CLAUDESETTINGS__/$claude_settings}
   fi
   ;;
 esac
+if [ "$KEEP_AI_TRAILERS" = 1 ]; then
+  LAUNCH=${LAUNCH//__CLAUDEATTRIBUTION__/}
+else
+  LAUNCH=${LAUNCH//__CLAUDEATTRIBUTION__/,'"attribution":{"commit":"","pr":"","sessionUrl":false}'}
+fi
 if [ "$HARNESS" = rovo ]; then
   ROVOCONFIGOVERRIDE=$(rovo_config_override_flag "$EFFORT" "$DATA" "$STATE" "$ID") || {
     echo "error: could not resolve this task's home paths for rovo's allowedExternalPaths grant" >&2
@@ -5608,12 +5512,6 @@ pi | pi-signed) LAUNCH=${LAUNCH//__PIBIN__/"$(shell_quote "$PI_BIN")"} ;;
 cursor)
   LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"}
   LAUNCH=${LAUNCH//__PSTACKDIR__/"$(shell_quote "${FM_PSTACK_DIR:-$HOME/dev/pstack/pstack}")"}
-  CURSOR_CREW_GUARD_DIR="$STATE_REAL/$ID.cursor-crew-guard"
-  install_cursor_crew_guard "$CURSOR_CREW_GUARD_DIR" "$WT" || {
-    echo "error: could not write the Cursor crew guard plugin for $ID at $CURSOR_CREW_GUARD_DIR; refusing to launch a crew without it" >&2
-    exit 1
-  }
-  LAUNCH=${LAUNCH//__CURSORCREWGUARD__/"$(shell_quote "$CURSOR_CREW_GUARD_DIR")"}
   LAUNCH=${LAUNCH//__CURSORSTREAM__/"$(shell_quote "$STATE_REAL/$ID.cursor-stream.jsonl")"}
   LAUNCH=${LAUNCH//__CURSORGUARD__/"FM_STATE_OVERRIDE=$(shell_quote "$STATE_REAL") $(shell_quote "$SCRIPT_DIR/fm-cursor-guard.sh")"}
   LAUNCH=${LAUNCH//__CURSORID__/"$(shell_quote "$ID")"}

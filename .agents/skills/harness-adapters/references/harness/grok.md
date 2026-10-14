@@ -2,7 +2,7 @@
 
 The xAI `grok` TUI is Claude-Code-compatible.
 Verified initially on 2026-06-29 with 0.2.73, slash submission on 2026-07-03 with 0.2.82, effort on 2026-07-13 with 0.2.99, exit on 2026-07-19 with 0.2.103, and folder trust, the training opt-in, and unsent composer delivery on 2026-09-24 with 1.0.41.
-[`fm-spawn.sh`](../../../../../bin/fm-spawn.sh) owns the launch command and its authentication, imported skill/MCP, and memory controls.
+Launch shape: `grok --always-approve "$(cat <brief>)"`.
 
 ## Operating facts
 

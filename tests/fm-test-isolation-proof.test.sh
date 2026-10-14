@@ -7,7 +7,6 @@ set -u
 
 PROOF="$ROOT/bin/fm-test-isolation-proof.sh"
 RUNNER="$ROOT/bin/fm-test-run.sh"
-export FM_TEST_MACHINE_GATE=
 
 assert_present "$PROOF" "bin/fm-test-isolation-proof.sh is missing"
 [ -x "$PROOF" ] || fail "bin/fm-test-isolation-proof.sh must be executable"
@@ -36,7 +35,6 @@ test_family_pool_json_identifies_admission() {
   skipped_json="$tmp/skipped-proof.json"
   mkdir -p "$repo/bin" "$repo/tests"
   cp "$PROOF" "$proof"
-  cp "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
   cat >"$repo/bin/fm-test-run.sh" <<'SH'
 #!/usr/bin/env bash
 if { [ "$1" = --list ] || [ "$1" = --list-scheduled ]; } && [ "$2" = --family ]; then

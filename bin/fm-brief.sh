@@ -758,7 +758,7 @@ $SETUP_BASE
 The path check is authoritative: \`git rev-parse --git-dir\` and \`git rev-parse --git-common-dir\` can help inspect the repo, but they do not prove you are outside the primary checkout.
 If the top-level path is the primary checkout or not the worktree you were launched in, STOP - do not branch or commit here - append \`blocked [at=<epoch>]: launched in primary checkout, not an isolated worktree\` to the status file and stop.
 
-1. First action: confirm you are on your branch: \`test "\$(git branch --show-current)" = $BRANCH_Q\`. Firstmate created and checked it out before launch, so you do not create it; if the check fails, append \`blocked [at=<epoch>]: not on my ship branch\` to the status file and stop. For any later branch use \`git switch -c <name>\`.$SETUP2
+1. First action: create your branch: \`git checkout -b $BRANCH_Q --\`$SETUP2
 
 # Rules
 $RULE1
