@@ -109,8 +109,6 @@
 #   the whole suite when that file is executable. The call is that gate's run
 #   command, the same one gj and the PM starter use, with a 180 minute cap.
 #   A refused turn exits 75 and this runner retries every 15 seconds.
-#   macOS runs that command under taskpolicy -b so the suite stays in the
-#   background scheduling class. Other systems run it under nice -n 10.
 #   Inspection modes do not take the turn. A missing gate, or an empty
 #   FM_TEST_MACHINE_GATE, leaves the run unchanged. FM_TEST_MACHINE_LINE_HELD
 #   set means this process is already the admitted run and must not take the
@@ -1944,16 +1942,6 @@ PY
 # script, because the gate holds its lock only around the command it is given.
 ORIGINAL_ARGS=("$@")
 
-# Run <command> at background scheduling priority. macOS nice does not change
-# the Darwin priority class, so taskpolicy -b is the mechanism there.
-fm_test_run_lowered() {
-  if [ "$(uname -s)" = Darwin ] && command -v taskpolicy >/dev/null 2>&1; then
-    taskpolicy -b "$@"
-  else
-    nice -n 10 "$@"
-  fi
-}
-
 # Take the machine line, then exit with the admitted child's status.
 # Returns only when this process should run the suite itself.
 enter_machine_line() {
@@ -2005,7 +1993,7 @@ enter_machine_line() {
     FM_TEST_MACHINE_LINE_HELD=1 \
       FM_TEST_MACHINE_LINE_ADMITTED="$admitted" \
       MACHINE_LINE_NAME="$line_name" \
-      fm_test_run_lowered bash "$gate" run --cap "$cap" -- "$0" \
+      bash "$gate" run --cap "$cap" -- "$0" \
       ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}
     rc=$?
     set -e

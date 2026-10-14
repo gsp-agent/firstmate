@@ -2019,23 +2019,12 @@ SH
   ends=$(line_row_count "$log" end "^rc 0$")
   [ "$starts" = 1 ] || { rm -rf "$tmp"; fail "expected one start row with cap 180m, got $starts"; }
   [ "$ends" = 1 ] || { rm -rf "$tmp"; fail "expected one end row rc 0, got $ends"; }
-  case "$(uname -s)" in
-    Darwin)
-      probe_pri=$(cat "$tmp/pri")
-      if [ "$self_pri" -gt 10 ]; then
-        [ "$probe_pri" -lt "$self_pri" ] \
-          || { rm -rf "$tmp"; fail "suite pri $probe_pri was not below the caller pri $self_pri"; }
-      else
-        [ "$probe_pri" -le 10 ] \
-          || { rm -rf "$tmp"; fail "suite pri $probe_pri was not in the background class"; }
-      fi
-      ;;
-    *)
-      probe_nice=$(cat "$tmp/nice")
-      [ "$probe_nice" -gt "$self_nice" ] \
-        || { rm -rf "$tmp"; fail "suite nice $probe_nice was not above the caller nice $self_nice"; }
-      ;;
-  esac
+  probe_pri=$(cat "$tmp/pri")
+  probe_nice=$(cat "$tmp/nice")
+  [ "$probe_pri" = "$self_pri" ] \
+    || { rm -rf "$tmp"; fail "suite pri $probe_pri differed from the caller pri $self_pri"; }
+  [ "$probe_nice" = "$self_nice" ] \
+    || { rm -rf "$tmp"; fail "suite nice $probe_nice differed from the caller nice $self_nice"; }
 
   # The default path is $HOME/.agent-state/machine-gate.sh, not only the override.
   home="$tmp/home"
@@ -2088,7 +2077,7 @@ SH
   [ "$(line_row_count "$tmp/failed/log.tsv" end "^rc 1$")" = 1 ] \
     || { rm -rf "$tmp"; fail "failing suite did not record a single end row"; }
   rm -rf "$tmp"
-  pass "the suite takes and releases the machine line and keeps a lower priority"
+  pass "the suite takes and releases the machine line at the caller's priority"
 }
 
 test_machine_line_second_run_does_not_overlap() {
