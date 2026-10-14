@@ -1,0 +1,14 @@
+{
+  "Label": "dev.firstmate.drift-nightly",
+  "ProgramArguments": [
+    "/bin/bash",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh",
+    "check",
+    "--repo",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/recovery"
+  ],
+  "StartCalendarInterval": {
+    "Hour": 4,
+    "Minute": 5
+  }
+}

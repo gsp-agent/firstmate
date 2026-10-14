@@ -1,0 +1,110 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/exact --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/exact-proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: d66c037ef7e2175042bdf61055dbca759571c7fc accepted last-line patch
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/exact --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/exact-proof.txt
+behind: 0
+ahead: 2
+path-drift: notes.txt
+unproven: 9aef12aec75c1d1189c34606f18b5d33cfe6251d unproved edit to accepted file
+keep: d66c037ef7e2175042bdf61055dbca759571c7fc accepted last-line patch
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/exact --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/exact-proof.txt
+behind: 0
+ahead: 3
+path-ok: notes.txt
+unproven: 80f7bd42854a747ad7897cb12befa41e6b589fa9 remove unproved edit
+unproven: 9aef12aec75c1d1189c34606f18b5d33cfe6251d unproved edit to accepted file
+keep: d66c037ef7e2175042bdf61055dbca759571c7fc accepted last-line patch
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/exact --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/exact-proof.txt
+behind: 0
+ahead: 4
+path-drift: notes.txt
+unproven: f0ac30b9856d41bc68a99c8a3066c9ab3e8726df unproved executable permission
+unproven: 80f7bd42854a747ad7897cb12befa41e6b589fa9 remove unproved edit
+unproven: 9aef12aec75c1d1189c34606f18b5d33cfe6251d unproved edit to accepted file
+keep: d66c037ef7e2175042bdf61055dbca759571c7fc accepted last-line patch
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/guard-paths --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/guard-paths-proof.txt
+behind: 0
+ahead: 1
+path-ok: bin/fm-drift-nightly.sh
+path-ok: docs/scripts.md
+path-ok: drift-proof.txt
+path-ok: tests/fm-drift-nightly.test.sh
+keep: b3fa0dbdec37a88d601511638456a9bfc6511921 accepted guard files
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/guard-paths --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/guard-paths-proof.txt
+behind: 0
+ahead: 2
+path-drift: bin/fm-drift-nightly.sh
+path-drift: docs/scripts.md
+path-drift: drift-proof.txt
+path-drift: tests/fm-drift-nightly.test.sh
+unproven: 29936f1f10acb820fffb247467bd5ea0c3e09fd0 unproved changes to guard paths
+keep: b3fa0dbdec37a88d601511638456a9bfc6511921 accepted guard files
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/missing-proof --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/missing-proof-proof.txt
+behind: 0
+ahead: 2
+path-drift: accepted.txt
+unproven: f659ac95b8236e7524a6eb764dbc34897669f318 unproved removal of accepted file
+keep: 0bb486b7652ce6907751d9dd46870ffbf4f90fec accepted file
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/invalid-proof --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/invalid-proof-proof.txt
+stderr:
+error: proof commit not found: 0000000000000000000000000000000000000000
+exit: 2
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/invalid-proof --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/invalid-proof-proof.txt
+stderr:
+error: proof commit is not reachable from fork: 13d51e4eb68e0ca808dd2e9661d7c359ba027c9c
+exit: 2
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/inherited-unproved --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/inherited-unproved-proof.txt
+behind: 0
+ahead: 2
+path-drift: notes.txt
+keep: 1486022352ce88ee4e3f7a8f297cdc422cb6c3d1 accepted last line patch
+unproven: 261a028ca700bed14b49760a40f16eeba2813a2c unproved inherited content
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/moving-upstream --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/reversed-proof.txt
+behind: 1
+ahead: 12
+path-ok: accepted-00.txt
+path-ok: accepted-01.txt
+path-ok: accepted-02.txt
+path-ok: accepted-03.txt
+path-ok: accepted-04.txt
+path-ok: accepted-05.txt
+path-ok: accepted-06.txt
+path-ok: accepted-07.txt
+path-ok: accepted-08.txt
+path-ok: accepted-09.txt
+path-ok: accepted-10.txt
+path-ok: accepted-11.txt
+keep: 2c8708913a85446c98309b2e606156154a686624 accepted patch 11
+keep: 2cce54138b2eabcdbd50cf827c546e84d04697d1 accepted patch 10
+keep: d070f98146b0253d8cb660ec92365f98ce16e01d accepted patch 9
+keep: 69afc6e2c0c0d29b090fc4e9a3742a3187ca250f accepted patch 8
+keep: 7560db16734de7e0c7a29abf67f42dd32ddb5a4e accepted patch 7
+keep: d1b9ba9c3cb8c1a51e18eda271b4af9d3375c8fd accepted patch 6
+keep: 9b7e4be03292f2f32315dd79b7938cc6742899bf accepted patch 5
+keep: 08b3df808d8a3c7b98d9ea35e8c2c812d7e90982 accepted patch 4
+keep: b59f0d0ef99dc14908fda7d509a0b7903341ad3b accepted patch 3
+keep: f8cb56df4ffcb2dde4f377d4b0f0d1e863cdb80f accepted patch 2
+keep: 3d9eaea7514042b21aeefe5ec57650946e0e1bcf accepted patch 1
+keep: ba629d2e2432822a1715d589643fbccc5420fa1f accepted patch 0
+exit: 0
+

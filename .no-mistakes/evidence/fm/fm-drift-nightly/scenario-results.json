@@ -1,0 +1,100 @@
+[
+  {
+    "name": "Recover cut commits as branches; restored heads match all eight bundled SHAs and 30 prior cuts have remote archive heads",
+    "result": "pass",
+    "live": true,
+    "evidence": "archive-recovery.log",
+    "reason": ""
+  },
+  {
+    "name": "Approve exact patches; changes supplied in reverse proof order still replay correctly and cutting unproved edits restores a pass",
+    "result": "pass",
+    "live": true,
+    "evidence": "cli-live.log",
+    "reason": ""
+  },
+  {
+    "name": "Edit an already-proven file; later content, inherited unrelated content, and executable-mode changes are rejected",
+    "result": "pass",
+    "live": true,
+    "evidence": "cli-live.log",
+    "reason": ""
+  },
+  {
+    "name": "Alter guard or proof files, or remove accepted content; every mismatch is reported as drift",
+    "result": "pass",
+    "live": true,
+    "evidence": "cli-live.log",
+    "reason": ""
+  },
+  {
+    "name": "Delete an original file identical to a proven copy; rename detection cannot hide the deletion",
+    "result": "pass",
+    "live": true,
+    "evidence": "rename-deletion.log; counterfactual-and-delivered-fork.log",
+    "reason": ""
+  },
+  {
+    "name": "Supply unknown or unreachable proof SHAs; the CLI refuses with an actionable error",
+    "result": "pass",
+    "live": true,
+    "evidence": "cli-live.log",
+    "reason": ""
+  },
+  {
+    "name": "Run a real upstream fetch; the report includes the newly fetched revision",
+    "result": "pass",
+    "live": true,
+    "evidence": "fetch-and-snapshot.log",
+    "reason": ""
+  },
+  {
+    "name": "Advance the fork while a check runs; its captured report stays consistent and the next check detects the new unproved file",
+    "result": "pass",
+    "live": true,
+    "evidence": "fetch-and-snapshot.log",
+    "reason": ""
+  },
+  {
+    "name": "Advance upstream while a check runs; its captured report stays consistent and the next check sees the update",
+    "result": "pass",
+    "live": true,
+    "evidence": "fetch-and-snapshot.log",
+    "reason": ""
+  },
+  {
+    "name": "Check the delivered fork against canonical upstream; empty proof fails closed and exact test-approved patch replay passes",
+    "result": "pass",
+    "live": true,
+    "evidence": "counterfactual-and-delivered-fork.log",
+    "reason": ""
+  },
+  {
+    "name": "Preview installation and uninstallation; dry-run prints the schedule without writing files or loading a job",
+    "result": "pass",
+    "live": true,
+    "evidence": "scheduler-dry-run.log",
+    "reason": ""
+  },
+  {
+    "name": "Execute the emitted nightly ProgramArguments manually; the real delivered guard succeeds with configured test proof",
+    "result": "pass",
+    "live": true,
+    "evidence": "generated-nightly-command.log; nightly-launchagent-semantic.json",
+    "reason": ""
+  },
+  {
+    "name": "Load the nightly LaunchAgent, observe it fire, and uninstall it from launchd",
+    "result": "untested",
+    "live": false,
+    "evidence": "generated-nightly-command.log records the substituted launchctl; actual job loading was not attempted.",
+    "reason": "The workspace boundary forbids changing host launchd state. A deployment-capable run authorized for an isolated LaunchAgent must bootstrap, trigger, observe, and bootout the real job."
+  },
+  {
+    "name": "Cut over the main home on the PM\u2019s word and remeasure it the following day",
+    "result": "untested",
+    "live": false,
+    "evidence": "drift-proof.txt names the cutover and 2026-10-15 check-back; this run only used disposable repositories.",
+    "reason": "This test phase has no authority to merge or change the external main-home checkout/config, and the next-day check is future work. The outer delivery owner needs the PM\u2019s cutover authorization, then must deploy and remeasure on 2026-10-15."
+  }
+]

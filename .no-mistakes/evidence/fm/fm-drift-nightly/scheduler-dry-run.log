@@ -1,0 +1,14 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh install --dry-run --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/fetch-fork --hour 4 --minute 5
+dry-run: install
+label: dev.firstmate.drift-nightly
+hour: 4
+minute: 5
+plist: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/agents/dev.firstmate.drift-nightly.plist
+repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/fetch-fork
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh uninstall --dry-run
+dry-run: uninstall
+absent: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/live-drift-test-01M4XNE5/agents/dev.firstmate.drift-nightly.plist
+exit: 0
+
