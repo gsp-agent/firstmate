@@ -1,0 +1,103 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr
+exit=0
+head=5572682cbff00644fa7073d5ec56cadb0c5ebfee
+Chicago day=2026-10-14
+$ tmux -L fm-lab new-session -d -s replay -n control -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5 /bin/bash --noprofile --norc
+
+exit=0
+
+SCENARIO nm-usage-fallback: prior=cursor, usage=85%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-usage-fallback relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr
+cursor fallback: launching nm-usage-fallback on the grok harness (grok-4.7 xhigh): Cursor Models at 85% (limit 85%)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cursor fallback: launching nm-usage-fallback on the grok harness (grok-4.7 xhigh): Cursor Models at 85% (limit 85%)
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/data/nm-usage-fallback/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-usage-fallback
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/data/nm-usage-fallback/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-usage-fallback harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-usage-fallback worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/wt-nm-usage-fallback
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/wt-nm-usage-fallback
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=<absent>
+cursor-fallback=Cursor Models at 85% (limit 85%)
+--- actual pane capture (last 25 lines) ---
+  tools.
+
+  # Current no-mistakes intent contract
+  This section supersedes every earlier brief instruction about constructing
+  `--intent`, but not later clarifications actually supplied by the captain.
+  Use everything under `## Captain intent authorized for --intent` through the
+  end of this brief, including any nested subheadings but excluding that
+  heading, plus any later words the captain actually supplied as `--intent`;
+  never include Firstmate specification or other mixed Task content.
+  Preserve those words without adding speaker labels or direct address.
+  Firstmate-authored constraints, acceptance criteria, implementation details,
+  decisions, and tradeoffs are specification, not captain intent.
+  The Definition of done's rule that `--intent` must be self-sufficient still
+  governs the string you pass: resolve any report, decision, or PR the intent
+  below refers to into its substance rather than passing the pointer.
+
+  ## Captain intent authorized for --intent
+  This is an isolated live routing replay. Reply with FM_ROUTING_READY_ followed
+  immediately by nm_usage_fallback. Do not use any tools or edit any files.
+
+◆ Thinking…
+┃ I will reply with FM_ROUTING_READY_
+⠋ Thinking… 0.0s                                                      30s ⇣2.46k
+❯
+Grok 4.7 (xhigh) · always-approve · 2.5K / 256K (1%) · ctrl+o transcript
+--- end pane capture ---
+RESULT pass: An inherited Cursor relaunch at 85% uses Grok with a usage reason
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-spawn.sh nm-direct-grok --relaunch --harness grok
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching nm-direct-grok on the grok harness (explicit override): explicit --harness grok override of a recorded cursor task
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/data/nm-direct-grok/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-direct-grok
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/data/nm-direct-grok/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned nm-direct-grok harness=grok kind=ship mode=no-mistakes yolo=off window=replay:fm-nm-direct-grok worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/wt-nm-direct-grok
+exit=0
+direct meta.harness=grok
+direct cursor-fallback=explicit --harness grok override of a recorded cursor task
+--- actual direct Grok pane ---
+  Preserve those words without adding speaker labels or direct address.
+  Firstmate-authored constraints, acceptance criteria, implementation details,
+  decisions, and tradeoffs are specification, not captain intent.
+  The Definition of done's rule that `--intent` must be self-sufficient still
+  governs the string you pass: resolve any report, decision, or PR the intent
+  below refers to into its substance rather than passing the pointer.
+
+  ## Captain intent authorized for --intent
+  This is an isolated live routing replay. Reply with FM_ROUTING_READY_ followed
+  immediately by nm_direct_grok. Do not use any tools or edit any files.
+
+◆ Thinking…
+┃ I will reply with FM_ROUTING_READY_ followed immediately by nm_direct_grok.
+⠴ Thinking… 0.2s                                                     8.3s ⇣2.28k
+❯
+Grok 4.7 (high) · always-approve · 2.3K / 256K (1%) · ctrl+o transcript
+RESULT pass: A direct explicit Grok relaunch preserves the override and writes its Cursor provenance
+Cleanup: killing only the private fm-lab tmux server
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr
+
+exit=0
+original .cursor/cli-config.json unchanged=True
+original .grok/auth.json unchanged=True
+Lab cleanup target=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr

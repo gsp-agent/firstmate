@@ -1,0 +1,23 @@
+[
+  {
+    "name": "A recorded Cursor task stays on Cursor at 12% usage",
+    "result": "fail",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": "real Cursor did not produce the readiness response"
+  },
+  {
+    "name": "An explicit Grok override records its Cursor provenance before launch",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": ""
+  },
+  {
+    "name": "An explicit Cursor relaunch stays on Cursor at 85% usage",
+    "result": "fail",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": "real Cursor did not produce the readiness response"
+  }
+]

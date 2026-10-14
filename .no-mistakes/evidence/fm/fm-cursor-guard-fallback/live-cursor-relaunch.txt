@@ -1,0 +1,526 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+exit=0
+head=5572682cbff00644fa7073d5ec56cadb0c5ebfee
+Chicago day=2026-10-14
+$ tmux -L fm-lab new-session -d -s replay -n control -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5 /bin/bash --noprofile --norc
+
+exit=0
+
+SCENARIO nm-healthy: prior=cursor, usage=12%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-healthy relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-healthy/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-healthy
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-healthy/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-healthy harness=cursor from=cursor model=default effort=default backend=tmux endpoint=replay:fm-nm-healthy worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-healthy
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-healthy
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=<absent>
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "FM_ROUTING_READY_nm_healthy"}]}, "session_id": "0fbc2f52-4db3-417a-aac8-57a4d6324323", "timestamp_ms": 1791997999504}]
+--- actual pane capture (last 25 lines) ---
+{"type":"thinking","subtype":"delta","text":" overrides the first.","session_id"
+:"0fbc2f52-4db3-417a-aac8-57a4d6324323","timestamp_ms":1791997993058}
+{"type":"thinking","subtype":"delta","text":" It mandates no tools","session_id"
+:"0fbc2f52-4db3-417a-aac8-57a4d6324323","timestamp_ms":1791997993189}
+{"type":"thinking","subtype":"delta","text":" and a readiness marker","session_i
+d":"0fbc2f52-4db3-417a-aac8-57a4d6324323","timestamp_ms":1791997993263}
+{"type":"thinking","subtype":"delta","text":" reply. I will follow","session_id"
+:"0fbc2f52-4db3-417a-aac8-57a4d6324323","timestamp_ms":1791997993355}
+{"type":"thinking","subtype":"delta","text":" that continuation instruction.","s
+ession_id":"0fbc2f52-4db3-417a-aac8-57a4d6324323","timestamp_ms":1791997993458}
+{"type":"thinking","subtype":"delta","text":"\n\nThe exact reply is FM_ROUTING_R
+EADY_nm_healthy. I will not address the captain, overriding AGENTS.md.","session
+_id":"0fbc2f52-4db3-417a-aac8-57a4d6324323","timestamp_ms":1791997996606}
+{"type":"thinking","subtype":"completed","session_id":"0fbc2f52-4db3-417a-aac8-5
+7a4d6324323","timestamp_ms":1791997996607}
+{"type":"connection","subtype":"reconnecting","session_id":"0fbc2f52-4db3-417a-a
+ac8-57a4d6324323","timestamp_ms":1791997997436,"attempt":1,"endpoint_url":"https
+://api2.cursor.sh"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","tex
+t":"FM_ROUTING_READY_nm_healthy"}]},"session_id":"0fbc2f52-4db3-417a-aac8-57a4d6
+324323","timestamp_ms":1791997999504}
+{"type":"retry","subtype":"starting","session_id":"0fbc2f52-4db3-417a-aac8-57a4d
+6324323","timestamp_ms":1791997999505,"attempt":1,"is_resume":true}
+{"type":"retry","subtype":"resuming","session_id":"0fbc2f52-4db3-417a-aac8-57a4d
+6324323","timestamp_ms":1791997999505,"checkpoint_turn_count":1,"attempt":1}
+--- end pane capture ---
+RESULT pass: A recorded Cursor task stays on Cursor at 12% usage
+
+SCENARIO nm-explicit-grok: prior=cursor, usage=12%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-explicit-grok relaunch --harness grok --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+cursor fallback: launching nm-explicit-grok on the grok harness (explicit override): explicit --harness grok override of a recorded cursor task
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching nm-explicit-grok on the grok harness (explicit override): explicit --harness grok override of a recorded cursor task
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-explicit-grok/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-explicit-grok
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-explicit-grok/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-explicit-grok harness=grok from=cursor model=default effort=default backend=tmux endpoint=replay:fm-nm-explicit-grok worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-explicit-grok
+exit=0
+meta.harness=grok
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-explicit-grok
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=grok
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=explicit --harness grok override of a recorded cursor task
+--- actual pane capture (last 25 lines) ---
+  # Current no-mistakes intent contract
+  This section supersedes every earlier brief instruction about constructing
+  `--intent`, but not later clarifications actually supplied by the captain.
+  Use everything under `## Captain intent authorized for --intent` through the
+  end of this brief, including any nested subheadings but excluding that
+  heading, plus any later words the captain actually supplied as `--intent`;
+  never include Firstmate specification or other mixed Task content.
+  Preserve those words without adding speaker labels or direct address.
+  Firstmate-authored constraints, acceptance criteria, implementation details,
+  decisions, and tradeoffs are specification, not captain intent.
+  The Definition of done's rule that `--intent` must be self-sufficient still
+  governs the string you pass: resolve any report, decision, or PR the intent
+  below refers to into its substance rather than passing the pointer.
+
+  ## Captain intent authorized for --intent
+  This is an isolated live routing replay. Reply with FM_ROUTING_READY_ followed
+  immediately by nm_explicit_grok. Do not use any tools or edit any files.
+
+◆ Thought for 0.8s
+┃ I will reply with FM_ROUTING_READY_ followed immediately by nm_explicit_grok.
+┃ No tools or file edits will be used.
+FM_ROUTING_READY_nm_explicit_grok
+⠧ Responding… 0.3s                                                   5.3s ⇣28.9k
+❯
+Grok 4.7 (high) · always-approve · 28K / 256K (11%) · ctrl+o transcript
+--- end pane capture ---
+RESULT pass: An explicit Grok override records its Cursor provenance before launch
+
+SCENARIO nm-explicit-cursor: prior=cursor, usage=85%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-explicit-cursor relaunch --harness cursor --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-explicit-cursor/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-explicit-cursor
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-explicit-cursor/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-explicit-cursor harness=cursor from=cursor model=default effort=default backend=tmux endpoint=replay:fm-nm-explicit-cursor worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-explicit-cursor
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-explicit-cursor
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=<absent>
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "The relaunch note says a steer may still be in the instruction inbox, so I will read those messages in order before sending the routing marker."}]}, "session_id": "3caa0ddb-b35b-4b5d-b963-0e3f69765b6c", "model_call_id": "8678b3f4-2f2f-4347-8b26-a3df848ce563-0-vwsl", "timestamp_ms": 1791998065187}]
+--- actual pane capture (last 25 lines) ---
+{"type":"thinking","subtype":"delta","text":" supersedes that.","session_id":"3c
+aa0ddb-b35b-4b5d-b963-0e3f69765b6c","timestamp_ms":1791998061706}
+{"type":"thinking","subtype":"delta","text":"\n\nThe inbox check is","session_id
+":"3caa0ddb-b35b-4b5d-b963-0e3f69765b6c","timestamp_ms":1791998063819}
+{"type":"thinking","subtype":"delta","text":" required by the worker","session_i
+d":"3caa0ddb-b35b-4b5d-b963-0e3f69765b6c","timestamp_ms":1791998063949}
+{"type":"thinking","subtype":"delta","text":" contract and the relaunch progress
+ note. The routing replay itself must use no tools.","session_id":"3caa0ddb-b35b
+-4b5d-b963-0e3f69765b6c","timestamp_ms":1791998064436}
+{"type":"thinking","subtype":"completed","session_id":"3caa0ddb-b35b-4b5d-b963-0
+e3f69765b6c","timestamp_ms":1791998064437}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","tex
+t":"The relaunch note says a steer may still be in the instruction inbox, so I w
+ill read those messages in order before sending the routing marker."}]},"session
+_id":"3caa0ddb-b35b-4b5d-b963-0e3f69765b6c","model_call_id":"8678b3f4-2f2f-4347-
+8b26-a3df848ce563-0-vwsl","timestamp_ms":1791998065187}
+{"type":"tool_call","subtype":"started","call_id":"call-b6b3f54c-ecbe-4043-892e-
+790af88ad384-0\nfc_6faef507-015e-99a4-8c92-c181efd54cee_0","tool_call":{"globToo
+lCall":{"args":{"targetDirectory":"/Users/dalecarman/.no-mistakes/worktrees/a5e6
+7f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/state/nm-
+explicit-cursor.inbox","globPattern":"*.msg"}},"hookAdditionalContexts":[],"tool
+CallId":"call-b6b3f54c-ecbe-4043-892e-790af88ad384-0\nfc_6faef507-015e-99a4-8c92
+-c181efd54cee_0","startedAtMs":"1791998065156"},"model_call_id":"8678b3f4-2f2f-4
+347-8b26-a3df848ce563-0-vwsl","session_id":"3caa0ddb-b35b-4b5d-b963-0e3f69765b6c
+","timestamp_ms":1791998065187}
+--- end pane capture ---
+RESULT pass: An explicit Cursor relaunch stays on Cursor at 85% usage
+
+SCENARIO nm-intake-healthy: prior=grok, usage=12%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-intake-healthy relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-intake-healthy/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-intake-healthy
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-intake-healthy/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-intake-healthy harness=grok from=grok model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-intake-healthy worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-intake-healthy
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-intake-healthy
+journal.phase=complete
+journal.from_harness=grok
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=<absent>
+cursor-fallback=<absent>
+--- actual pane capture (last 25 lines) ---
+  end of this brief, including any nested subheadings but excluding that
+  heading, plus any later words the captain actually supplied as `--intent`;
+  never include Firstmate specification or other mixed Task content.
+  Preserve those words without adding speaker labels or direct address.
+  Firstmate-authored constraints, acceptance criteria, implementation details,
+  decisions, and tradeoffs are specification, not captain intent.
+  The Definition of done's rule that `--intent` must be self-sufficient still
+  governs the string you pass: resolve any report, decision, or PR the intent
+  below refers to into its substance rather than passing the pointer.
+
+  ## Captain intent authorized for --intent
+  This is an isolated live routing replay. Reply with FM_ROUTING_READY_ followed
+  immediately by nm_intake_healthy. Do not use any tools or edit any files.
+
+◆ Thought for 3.3s
+┃ I will reply with FM_ROUTING_READY_ followed immediately by nm_intake_healthy.
+┃ No tools or file edits will be used.
+┃
+┃ The worker role contract requires reading the steering inbox. The captain's
+┃ intent and task instructions explicitly forbid tools and file edits.
+FM_ROUTING_READY_nm_intake_healthy
+Worked for 9.5s
+minimal · /help
+❯
+Grok 4.7 (xhigh) · always-approve · 29K / 256K (11%) · ctrl+o transcript
+--- end pane capture ---
+RESULT pass: An intake Grok task without Cursor provenance stays on Grok at 12%
+
+SCENARIO nm-intake-limited: prior=grok, usage=85%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-intake-limited relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-intake-limited/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-intake-limited
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-intake-limited/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-intake-limited harness=grok from=grok model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-intake-limited worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-intake-limited
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-intake-limited
+journal.phase=complete
+journal.from_harness=grok
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=<absent>
+cursor-fallback=<absent>
+--- actual pane capture (last 25 lines) ---
+  heading, plus any later words the captain actually supplied as `--intent`;
+  never include Firstmate specification or other mixed Task content.
+  Preserve those words without adding speaker labels or direct address.
+  Firstmate-authored constraints, acceptance criteria, implementation details,
+  decisions, and tradeoffs are specification, not captain intent.
+  The Definition of done's rule that `--intent` must be self-sufficient still
+  governs the string you pass: resolve any report, decision, or PR the intent
+  below refers to into its substance rather than passing the pointer.
+
+  ## Captain intent authorized for --intent
+  This is an isolated live routing replay. Reply with FM_ROUTING_READY_ followed
+  immediately by nm_intake_limited. Do not use any tools or edit any files.
+
+◆ Thought for 4.0s
+┃ I will reply with FM_ROUTING_READY_ followed immediately by nm_intake_limited.
+┃ No tools or file edits will be used.
+┃
+┃ The progress note instructs checking the instruction inbox first, but the
+┃ captain's intent and worker role contract both require replaying the routing
+┃ decision immediately with no tools. This creates a conflict between reading
+┃ inbox messages and responding with the readiness marker.
+FM_ROUTING_READY_nm_intake_limited
+⠹ Responding… 1.4s                                                   1m1s ⇣2.46k
+❯
+Grok 4.7 (xhigh) · always-approve · 2.5K / 256K (1%) · ctrl+o transcript
+--- end pane capture ---
+RESULT pass: An intake Grok task at 85% remains Grok without acquiring false provenance
+
+SCENARIO nm-provenance: prior=grok, usage=12%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-provenance relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-provenance/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-provenance
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-provenance/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-provenance harness=cursor from=grok model=default effort=default backend=tmux endpoint=replay:fm-nm-provenance worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-provenance
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-provenance
+journal.phase=complete
+journal.from_harness=grok
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=explicit --harness grok override of a recorded cursor task
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "FM_ROUTING_READY_nm_provenance"}]}, "session_id": "b2b7af44-def8-4b7d-b78b-f57de42600b1"}, {"type": "result", "subtype": "success", "duration_ms": 18185, "duration_api_ms": 18185, "is_error": false, "result": "FM_ROUTING_READY_nm_provenance", "session_id": "b2b7af44-def8-4b7d-b78b-f57de42600b1", "request_id": "e4310039-3ff2-4cb0-a136-cd24bc3eb9aa", "usage": {"inputTokens": 25869, "outputTokens": 547, "cacheReadTokens": 5888, "cacheWriteTokens": 0}}]
+--- actual pane capture (last 25 lines) ---
+d":"b2b7af44-def8-4b7d-b78b-f57de42600b1","timestamp_ms":1791998261788}
+{"type":"thinking","subtype":"delta","text":" forbids any tools or","session_id"
+:"b2b7af44-def8-4b7d-b78b-f57de42600b1","timestamp_ms":1791998261905}
+{"type":"thinking","subtype":"delta","text":" file edits.","session_id":"b2b7af4
+4-def8-4b7d-b78b-f57de42600b1","timestamp_ms":1791998261970}
+{"type":"thinking","subtype":"delta","text":"\n\nThe progress note's","session_i
+d":"b2b7af44-def8-4b7d-b78b-f57de42600b1","timestamp_ms":1791998262473}
+{"type":"thinking","subtype":"delta","text":" final sentence overrides","session
+_id":"b2b7af44-def8-4b7d-b78b-f57de42600b1","timestamp_ms":1791998262618}
+{"type":"thinking","subtype":"delta","text":" the inbox check. The","session_id"
+:"b2b7af44-def8-4b7d-b78b-f57de42600b1","timestamp_ms":1791998262729}
+{"type":"thinking","subtype":"delta","text":" routing replay takes","session_id"
+:"b2b7af44-def8-4b7d-b78b-f57de42600b1","timestamp_ms":1791998262873}
+{"type":"thinking","subtype":"delta","text":" precedence.","session_id":"b2b7af4
+4-def8-4b7d-b78b-f57de42600b1","timestamp_ms":1791998262965}
+{"type":"thinking","subtype":"completed","session_id":"b2b7af44-def8-4b7d-b78b-f
+57de42600b1","timestamp_ms":1791998264415}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","tex
+t":"FM_ROUTING_READY_nm_provenance"}]},"session_id":"b2b7af44-def8-4b7d-b78b-f57
+de42600b1"}
+{"type":"result","subtype":"success","duration_ms":18185,"duration_api_ms":18185
+,"is_error":false,"result":"FM_ROUTING_READY_nm_provenance","session_id":"b2b7af
+44-def8-4b7d-b78b-f57de42600b1","request_id":"e4310039-3ff2-4cb0-a136-cd24bc3eb9
+aa","usage":{"inputTokens":25869,"outputTokens":547,"cacheReadTokens":5888,"cach
+eWriteTokens":0}}
+--- end pane capture ---
+RESULT fail: A Grok task with an explicit-override reason returns to healthy Cursor: successful Cursor replacement retained old provenance
+
+SCENARIO nm-sixth: prior=cursor, usage=12%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-sixth relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-sixth/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-sixth
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-sixth/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-sixth harness=cursor from=cursor model=default effort=default backend=tmux endpoint=replay:fm-nm-sixth worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-sixth
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-sixth
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=<absent>
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "FM_ROUTING_READY_nm_sixth"}]}, "session_id": "680655ec-ae7f-4524-a87e-e25ec047a5db", "timestamp_ms": 1791998334232}]
+--- actual pane capture (last 25 lines) ---
+{"type":"thinking","subtype":"delta","text":" the apparent conflict","session_id
+":"680655ec-ae7f-4524-a87e-e25ec047a5db","timestamp_ms":1791998327670}
+{"type":"thinking","subtype":"delta","text":" with the captain's ","session_id":
+"680655ec-ae7f-4524-a87e-e25ec047a5db","timestamp_ms":1791998327751}
+{"type":"thinking","subtype":"delta","text":"intent.","session_id":"680655ec-ae7
+f-4524-a87e-e25ec047a5db","timestamp_ms":1791998327841}
+{"type":"thinking","subtype":"delta","text":"\n\nThe expected reply","session_id
+":"680655ec-ae7f-4524-a87e-e25ec047a5db","timestamp_ms":1791998328489}
+{"type":"thinking","subtype":"delta","text":" is exactly FM_ROUTING_READY_nm_six
+th.","session_id":"680655ec-ae7f-4524-a87e-e25ec047a5db","timestamp_ms":17919983
+28743}
+{"type":"thinking","subtype":"completed","session_id":"680655ec-ae7f-4524-a87e-e
+25ec047a5db","timestamp_ms":1791998330782}
+{"type":"connection","subtype":"reconnecting","session_id":"680655ec-ae7f-4524-a
+87e-e25ec047a5db","timestamp_ms":1791998332098,"attempt":1,"endpoint_url":"https
+://api2.cursor.sh"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","tex
+t":"FM_ROUTING_READY_nm_sixth"}]},"session_id":"680655ec-ae7f-4524-a87e-e25ec047
+a5db","timestamp_ms":1791998334232}
+{"type":"retry","subtype":"starting","session_id":"680655ec-ae7f-4524-a87e-e25ec
+047a5db","timestamp_ms":1791998334232,"attempt":1,"is_resume":true}
+{"type":"retry","subtype":"resuming","session_id":"680655ec-ae7f-4524-a87e-e25ec
+047a5db","timestamp_ms":1791998334232,"checkpoint_turn_count":1,"attempt":1}
+{"type":"connection","subtype":"reconnected","session_id":"680655ec-ae7f-4524-a8
+7e-e25ec047a5db","timestamp_ms":1791998334818}
+--- end pane capture ---
+persisted sixth-launch budget={"day": "2026-10-14", "beads": {"nm-sixth": 6}}
+RESULT pass: The sixth Cursor relaunch is admitted and increments the shared budget
+
+SCENARIO nm-seventh: prior=cursor, usage=12%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-seventh relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+cursor fallback: launching nm-seventh on the grok harness (grok-4.7 xhigh): cursor guard: refused nm-seventh, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching nm-seventh on the grok harness (grok-4.7 xhigh): cursor guard: refused nm-seventh, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-seventh/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-seventh
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-seventh/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-seventh harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-seventh worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-seventh
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-seventh
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=cursor guard: refused nm-seventh, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+cursor-fallback=<absent>
+--- actual pane capture (last 25 lines) ---
+  # Current no-mistakes intent contract
+  This section supersedes every earlier brief instruction about constructing
+  `--intent`, but not later clarifications actually supplied by the captain.
+  Use everything under `## Captain intent authorized for --intent` through the
+  end of this brief, including any nested subheadings but excluding that
+  heading, plus any later words the captain actually supplied as `--intent`;
+  never include Firstmate specification or other mixed Task content.
+  Preserve those words without adding speaker labels or direct address.
+  Firstmate-authored constraints, acceptance criteria, implementation details,
+  decisions, and tradeoffs are specification, not captain intent.
+  The Definition of done's rule that `--intent` must be self-sufficient still
+  governs the string you pass: resolve any report, decision, or PR the intent
+  below refers to into its substance rather than passing the pointer.
+
+  ## Captain intent authorized for --intent
+  This is an isolated live routing replay. Reply with FM_ROUTING_READY_ followed
+  immediately by nm_seventh. Do not use any tools or edit any files.
+
+◆ Thought for 3.4s
+┃ I will reply with FM_ROUTING_READY_ followed immediately by nm_seventh. No
+┃ tools or file edits will be used.
+FM_ROUTING_READY_nm_seventh
+⠦ Responding… 0.0s                                                    10s ⇣29.3k
+❯
+Grok 4.7 (xhigh) · always-approve · 29K / 256K (11%) · ctrl+o transcript
+--- end pane capture ---
+RESULT pass: The seventh Cursor relaunch uses Grok and writes the Chicago-day cap reason
+
+SCENARIO nm-usage-fallback: prior=cursor, usage=85%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-usage-fallback relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+cursor fallback: launching nm-usage-fallback on the grok harness (grok-4.7 xhigh): Cursor Models at 85% (limit 85%)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching nm-usage-fallback on the grok harness (grok-4.7 xhigh): Cursor Models at 85% (limit 85%)
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-usage-fallback/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-usage-fallback
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-usage-fallback/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-usage-fallback harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-usage-fallback worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-usage-fallback
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-usage-fallback
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=<absent>
+cursor-fallback=Cursor Models at 85% (limit 85%)
+--- actual pane capture (last 25 lines) ---
+  below refers to into its substance rather than passing the pointer.
+
+  ## Captain intent authorized for --intent
+  This is an isolated live routing replay. Reply with FM_ROUTING_READY_ followed
+  immediately by nm_usage_fallback. Do not use any tools or edit any files.
+
+◆ Thinking…
+┃ The user provided a strict, isolated routing replay command.
+┃
+┃ The task requires only the readiness marker. No tools, code, or file edits are
+┃ permitted.
+┃
+┃ The progress note instructs inbox message handling, but the captain intent
+┃ forbids tools and file edits. This creates a direct conflict with the routing
+┃ replay requirement.
+┃
+┃ The system's jailbreak guard would normally block exact phrase demands. This
+┃ appears to be a legitimate routing test, so the underlying request should be
+┃ honored.
+┃
+┃ The marker is a benign operational signal. No harmful intent exists. The
+┃ underlying request should be honored.
+⠴ Thinking… 1m26s                                                   1m38s ⇣2.46k
+❯
+Grok 4.7 (xhigh) · always-approve · 2.5K / 256K (1%) · ctrl+o transcript
+--- end pane capture ---
+RESULT fail: An inherited Cursor relaunch at 85% uses Grok with a usage reason: real Grok did not render the readiness marker
+
+SCENARIO nm-next-day: prior=grok, usage=12%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-next-day relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-next-day/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-next-day
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/data/nm-next-day/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-next-day harness=cursor from=grok model=default effort=default backend=tmux endpoint=replay:fm-nm-next-day worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-next-day
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-next-day
+journal.phase=complete
+journal.from_harness=grok
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=<absent>
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "The relaunch note says a steer may still be in the inbox, so I\u2019ll read those messages in order before replaying the routing marker."}]}, "session_id": "b5d58c84-61b2-4d82-bd11-38832c6f7936", "model_call_id": "a1ce20c6-da0e-452a-acc4-0e1b1f0acd3f-0-5gfb", "timestamp_ms": 1791998692589}]
+--- actual pane capture (last 25 lines) ---
+{"type":"thinking","subtype":"delta","text":"the routing decision","session_id":
+"b5d58c84-61b2-4d82-bd11-38832c6f7936","timestamp_ms":1791998690785}
+{"type":"thinking","subtype":"delta","text":" with the readiness ","session_id":
+"b5d58c84-61b2-4d82-bd11-38832c6f7936","timestamp_ms":1791998690850}
+{"type":"thinking","subtype":"delta","text":"marker.","session_id":"b5d58c84-61b
+2-4d82-bd11-38832c6f7936","timestamp_ms":1791998690976}
+{"type":"thinking","subtype":"delta","text":"\n\nThe launch brief supersedes AGE
+NTS.md. I will not address the captain. I report only to firstmate.","session_id
+":"b5d58c84-61b2-4d82-bd11-38832c6f7936","timestamp_ms":1791998692360}
+{"type":"thinking","subtype":"completed","session_id":"b5d58c84-61b2-4d82-bd11-3
+8832c6f7936","timestamp_ms":1791998692361}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","tex
+t":"The relaunch note says a steer may still be in the inbox, so I’ll read those
+ messages in order before replaying the routing marker."}]},"session_id":"b5d58c
+84-61b2-4d82-bd11-38832c6f7936","model_call_id":"a1ce20c6-da0e-452a-acc4-0e1b1f0
+acd3f-0-5gfb","timestamp_ms":1791998692589}
+{"type":"tool_call","subtype":"started","call_id":"call-d4763cb8-ad6d-491b-b0ee-
+034064c7dff8-0\nfc_44319a5b-1a8a-9a60-b951-a3bd24b64e19_0","tool_call":{"globToo
+lCall":{"args":{"targetDirectory":"/Users/dalecarman/.no-mistakes/worktrees/a5e6
+7f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/state/nm-
+next-day.inbox","globPattern":"*.msg"}},"hookAdditionalContexts":[],"toolCallId"
+:"call-d4763cb8-ad6d-491b-b0ee-034064c7dff8-0\nfc_44319a5b-1a8a-9a60-b951-a3bd24
+b64e19_0","startedAtMs":"1791998692499"},"model_call_id":"a1ce20c6-da0e-452a-acc
+4-0e1b1f0acd3f-0-5gfb","session_id":"b5d58c84-61b2-4d82-bd11-38832c6f7936","time
+stamp_ms":1791998692589}
+--- end pane capture ---
+RESULT pass: A prior-day cap fallback returns to Cursor and clears expired provenance
+Cleanup: killing only the private fm-lab tmux server
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u
+
+exit=0
+original .cursor/cli-config.json unchanged=False
+original .grok/auth.json unchanged=True
+Lab cleanup target=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u

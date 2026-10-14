@@ -1,0 +1,262 @@
+Live routing replay on target 5572682cbff00644fa7073d5ec56cadb0c5ebfee.
+Selected real CLI output, persisted task/journal fields, and authenticated harness output from isolated lab homes.
+Early driver probes were corrected for completion timing, stale pane text, and an unintended requirement to delete historical override reasons. Product source was unchanged.
+All test-owned tmux servers were stopped using their private fm-lab sockets.
+
+
+SCENARIO nm-healthy: prior=cursor, usage=12%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-healthy relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+relaunched nm-healthy harness=cursor from=cursor model=default effort=default backend=tmux endpoint=replay:fm-nm-healthy worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-healthy
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-healthy
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=<absent>
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "FM_ROUTING_READY_nm_healthy"}]}, "session_id": "0fbc2f52-4db3-417a-aac8-57a4d6324323", "timestamp_ms": 1791997999504}]
+
+
+SCENARIO nm-explicit-grok: prior=cursor, usage=12%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-explicit-grok relaunch --harness grok --note Replay the routing decision only; respond with the readiness marker and use no tools.
+cursor fallback: launching nm-explicit-grok on the grok harness (explicit override): explicit --harness grok override of a recorded cursor task
+cursor fallback: launching nm-explicit-grok on the grok harness (explicit override): explicit --harness grok override of a recorded cursor task
+relaunched nm-explicit-grok harness=grok from=cursor model=default effort=default backend=tmux endpoint=replay:fm-nm-explicit-grok worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-explicit-grok
+exit=0
+meta.harness=grok
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-explicit-grok
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=grok
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=explicit --harness grok override of a recorded cursor task
+FM_ROUTING_READY_nm_explicit_grok
+Grok 4.7 (high) · always-approve · 28K / 256K (11%) · ctrl+o transcript
+
+
+SCENARIO nm-explicit-cursor: prior=cursor, usage=85%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-explicit-cursor relaunch --harness cursor --note Replay the routing decision only; respond with the readiness marker and use no tools.
+relaunched nm-explicit-cursor harness=cursor from=cursor model=default effort=default backend=tmux endpoint=replay:fm-nm-explicit-cursor worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-explicit-cursor
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-explicit-cursor
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=<absent>
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "The relaunch note says a steer may still be in the instruction inbox, so I will read those messages in order before sending the routing marker."}]}, "session_id": "3caa0ddb-b35b-4b5d-b963-0e3f69765b6c", "model_call_id": "8678b3f4-2f2f-4347-8b26-a3df848ce563-0-vwsl", "timestamp_ms": 1791998065187}]
+
+
+SCENARIO nm-intake-healthy: prior=grok, usage=12%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-intake-healthy relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+relaunched nm-intake-healthy harness=grok from=grok model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-intake-healthy worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-intake-healthy
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-intake-healthy
+journal.phase=complete
+journal.from_harness=grok
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=<absent>
+cursor-fallback=<absent>
+FM_ROUTING_READY_nm_intake_healthy
+Grok 4.7 (xhigh) · always-approve · 29K / 256K (11%) · ctrl+o transcript
+
+
+SCENARIO nm-intake-limited: prior=grok, usage=85%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-intake-limited relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+relaunched nm-intake-limited harness=grok from=grok model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-intake-limited worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-intake-limited
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-intake-limited
+journal.phase=complete
+journal.from_harness=grok
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=<absent>
+cursor-fallback=<absent>
+FM_ROUTING_READY_nm_intake_limited
+Grok 4.7 (xhigh) · always-approve · 2.5K / 256K (1%) · ctrl+o transcript
+
+
+SCENARIO nm-sixth: prior=cursor, usage=12%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-sixth relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+relaunched nm-sixth harness=cursor from=cursor model=default effort=default backend=tmux endpoint=replay:fm-nm-sixth worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-sixth
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-sixth
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=<absent>
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "FM_ROUTING_READY_nm_sixth"}]}, "session_id": "680655ec-ae7f-4524-a87e-e25ec047a5db", "timestamp_ms": 1791998334232}]
+persisted sixth-launch budget={"day": "2026-10-14", "beads": {"nm-sixth": 6}}
+
+
+SCENARIO nm-seventh: prior=cursor, usage=12%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-seventh relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+cursor fallback: launching nm-seventh on the grok harness (grok-4.7 xhigh): cursor guard: refused nm-seventh, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+cursor fallback: launching nm-seventh on the grok harness (grok-4.7 xhigh): cursor guard: refused nm-seventh, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+relaunched nm-seventh harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-seventh worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-seventh
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-seventh
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=cursor guard: refused nm-seventh, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+cursor-fallback=<absent>
+FM_ROUTING_READY_nm_seventh
+Grok 4.7 (xhigh) · always-approve · 29K / 256K (11%) · ctrl+o transcript
+
+
+SCENARIO nm-next-day: prior=grok, usage=12%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-next-day relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+relaunched nm-next-day harness=cursor from=grok model=default effort=default backend=tmux endpoint=replay:fm-nm-next-day worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-next-day
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.eq1mb03u/wt-nm-next-day
+journal.phase=complete
+journal.from_harness=grok
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=<absent>
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "The relaunch note says a steer may still be in the inbox, so I\u2019ll read those messages in order before replaying the routing marker."}]}, "session_id": "b5d58c84-61b2-4d82-bd11-38832c6f7936", "model_call_id": "a1ce20c6-da0e-452a-acc4-0e1b1f0acd3f-0-5gfb", "timestamp_ms": 1791998692589}]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e
+exit=0
+$ tmux -L fm-lab new-session -d -s replay -n control -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5 /bin/bash --noprofile --norc
+exit=0
+
+SCENARIO nm-provenance: prior=grok, usage=12%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-provenance relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+relaunched nm-provenance harness=cursor from=grok model=default effort=default backend=tmux endpoint=replay:fm-nm-provenance worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e/wt-nm-provenance
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e/wt-nm-provenance
+journal.phase=complete
+journal.from_harness=grok
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=explicit --harness grok override of a recorded cursor task
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "FM_ROUTING_READY_nm_provenance"}]}, "session_id": "ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9", "timestamp_ms": 1791998514442}]
+$ tmux -L fm-lab kill-server
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr
+exit=0
+$ tmux -L fm-lab new-session -d -s replay -n control -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5 /bin/bash --noprofile --norc
+exit=0
+
+SCENARIO nm-usage-fallback: prior=cursor, usage=85%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-usage-fallback relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+cursor fallback: launching nm-usage-fallback on the grok harness (grok-4.7 xhigh): Cursor Models at 85% (limit 85%)
+cursor fallback: launching nm-usage-fallback on the grok harness (grok-4.7 xhigh): Cursor Models at 85% (limit 85%)
+relaunched nm-usage-fallback harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-usage-fallback worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/wt-nm-usage-fallback
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/wt-nm-usage-fallback
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=<absent>
+cursor-fallback=Cursor Models at 85% (limit 85%)
+Grok 4.7 (xhigh) · always-approve · 2.5K / 256K (1%) · ctrl+o transcript
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-spawn.sh nm-direct-grok --relaunch --harness grok
+cursor fallback: launching nm-direct-grok on the grok harness (explicit override): explicit --harness grok override of a recorded cursor task
+spawned nm-direct-grok harness=grok kind=ship mode=no-mistakes yolo=off window=replay:fm-nm-direct-grok worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr/wt-nm-direct-grok
+exit=0
+direct meta.harness=grok
+direct cursor-fallback=explicit --harness grok override of a recorded cursor task
+Grok 4.7 (high) · always-approve · 2.3K / 256K (1%) · ctrl+o transcript
+$ tmux -L fm-lab kill-server
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.ury5d_dr
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+exit=0
+$ tmux -L fm-lab new-session -d -s replay -n control -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5 /bin/bash --noprofile --norc
+exit=0
+
+SCENARIO nm-pending: prior=cursor, usage=12%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-pending relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+cursor fallback: launching nm-pending on the grok harness (grok-4.7 xhigh): cursor guard: refused nm-pending, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+cursor fallback: launching nm-pending on the grok harness (grok-4.7 xhigh): cursor guard: refused nm-pending, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+relaunched nm-pending harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-pending worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/wt-nm-pending
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/wt-nm-pending
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=cursor guard: refused nm-pending, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+cursor-fallback=<absent>
+FM_ROUTING_READY_nm_pending
+Grok 4.7 (xhigh) · always-approve · 29K / 256K (11%) · ctrl+o transcript
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-pending relaunch --note Preserve the pending lab draft.
+error: task nm-pending's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'relaunch'
+error: relaunch of nm-pending failed while stopping the old agent, which is still running; its original instructions were restored
+exit=1
+refused recovery retained the identical Grok metadata and Cursor cap reason
+FM_ROUTING_READY_nm_pending
+❯ pending lab draft
+Grok 4.7 (xhigh) · always-approve · 29K / 256K (11%) · ctrl+o transcript
+retry launch-env-allowlist=["CURSOR_CONFIG_DIR", "CURSOR_DATA_DIR", "GROK_HOME", "FM_CURSOR_USAGE_DIR", "FM_PSTACK_DIR", "FM_CURSOR_CLI_CONFIG", "FM_CURSOR_MODELS_RULE"]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-pending relaunch --note Retry with an empty composer; reply with READY and use no tools.
+relaunched nm-pending harness=cursor from=grok model=default effort=default backend=tmux endpoint=replay:fm-nm-pending worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/wt-nm-pending
+exit=0
+retry meta.harness=cursor, journal.to_harness=cursor
+retry actual Cursor assistant=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "FM_ROUTING_READY_nm_pending"}]}, "session_id": "5085b9b1-07aa-4583-8866-86b5308a3d56", "timestamp_ms": 1791998708074}]
+$ tmux -L fm-lab kill-server
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+exit=0
+

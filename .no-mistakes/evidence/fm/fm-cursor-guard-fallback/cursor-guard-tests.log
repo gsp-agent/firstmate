@@ -1,0 +1,26 @@
+ok - no distinct-bead cap; a bead's 6th launch in a day is allowed and the 7th is refused
+ok - failed spawns give the launch back
+ok - day rollover resets the count
+ok - mkdir lock honoured; a stale one is removed
+ok - fallback at 84/85, missing file, stale file, bad value
+ok - a pstack plugin version other than the pin falls back to grok
+ok - a usage-limit error is recorded and the bead's next launch goes to grok
+ok - exceededLimit false is not a usage limit; an exceeded-quota line is
+ok - a 6th relaunch stays on cursor and a 7th records the daily-cap reason
+ok - a daily-cap fallback refuses when its reason cannot be recorded
+{"type":"error","message":"unrelated failure","allowed":"synthetic-provider","ambient":"synthetic-unrelated"}
+{"type":"error","message":"unrelated failure","allowed":"synthetic-provider","ambient":"synthetic-unrelated"}
+ok - cursor exit code and environment survive the tee (allowlist=absent)
+{"type":"error","message":"unrelated failure","allowed":"synthetic-provider","ambient":"unset"}
+{"type":"error","message":"unrelated failure","allowed":"synthetic-provider","ambient":"unset"}
+{"type":"error","message":"unrelated failure","allowed":"synthetic-provider","ambient":"unset"}
+{"type":"error","message":"unrelated failure","allowed":"synthetic-provider","ambient":"unset"}
+ok - cursor exit code and environment survive the tee (allowlist=enabled)
+{"type":"error","message":"unrelated failure","allowed":"unset","ambient":"unset"}
+{"type":"error","message":"unrelated failure","allowed":"unset","ambient":"unset"}
+{"type":"error","message":"unrelated failure","allowed":"unset","ambient":"unset"}
+{"type":"error","message":"unrelated failure","allowed":"unset","ambient":"unset"}
+ok - cursor exit code and environment survive the tee (allowlist=empty)
+ok - crew guard: refuses git symbolic-ref and update-ref in every command position, leaves reads and branch creation alone
+ok - crew guard: pins an empty working directory, leaves explicit ones, other tools and bad input alone
+# all fm-cursor-guard tests passed

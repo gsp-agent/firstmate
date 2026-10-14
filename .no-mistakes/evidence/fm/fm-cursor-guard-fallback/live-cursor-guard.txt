@@ -1,0 +1,42 @@
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.guard.L1kdjs
+head=5572682cbff00644fa7073d5ec56cadb0c5ebfee
+Chicago day=2026-10-14
+
+$ bin/fm-cursor-guard.sh take live-budget  # six real reservations
+launch 1 exit=0, persisted count=1
+launch 2 exit=0, persisted count=2
+launch 3 exit=0, persisted count=3
+launch 4 exit=0, persisted count=4
+launch 5 exit=0, persisted count=5
+launch 6 exit=0, persisted count=6
+
+$ bin/fm-cursor-guard.sh take live-budget  # seventh reservation
+cursor guard: refused live-budget, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+exit=1
+
+$ bin/fm-cursor-guard.sh fallback live-budget relaunch
+grok cursor guard: refused live-budget, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+persisted state/live-budget.cursor-limit: cursor guard: refused live-budget, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+
+$ FM_CURSOR_DAY=2030-06-02 bin/fm-cursor-guard.sh fallback live-budget relaunch
+cursor
+expired provenance remains until successful Cursor replacement publishes
+
+$ bin/fm-cursor-guard.sh fallback no-write relaunch  # unwriteable reason target
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-cursor-guard.sh: line 94: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.guard.L1kdjs/state/no-write.cursor-limit: No such file or directory
+exit=1, decision stdout bytes=0
+
+$ bin/fm-cursor-guard.sh fallback fractional relaunch  # 85% usage, limit 84.5%
+grok Cursor Models at 85% (limit 84.5%)
+
+$ bin/fm-cursor-guard.sh fallback fractional relaunch  # 84% usage, limit 84.5%
+cursor
+
+$ bin/fm-cursor-guard.sh fallback stale relaunch  # 45-minute-old input, max age 0.5 hours
+grok newest Cursor spending file is 0 h old (limit 0.5 h)
+
+$ FM_PSTACK_DIR=<uninstalled lab path> bin/fm-cursor-guard.sh fallback plugin relaunch
+grok pstack plugin version is 'unreadable', not the pinned 0.15.21
+
+All guard CLI decisions and persisted-state assertions passed.
+Lab cleanup target=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.guard.L1kdjs

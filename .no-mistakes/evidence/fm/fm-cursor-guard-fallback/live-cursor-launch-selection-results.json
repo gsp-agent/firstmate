@@ -1,0 +1,16 @@
+[
+  {
+    "name": "An inherited Cursor relaunch at 85% uses Grok with a usage reason",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-launch-selection.txt",
+    "reason": ""
+  },
+  {
+    "name": "A direct explicit Grok relaunch preserves the override and writes its Cursor provenance",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-launch-selection.txt",
+    "reason": ""
+  }
+]

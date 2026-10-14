@@ -1,0 +1,9 @@
+[
+  {
+    "name": "A pending composer preserves expired Cursor provenance, then an empty-composer retry restores Cursor",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-pending-composer.txt",
+    "reason": ""
+  }
+]

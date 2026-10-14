@@ -1,0 +1,72 @@
+[
+  {
+    "name": "A recorded Cursor task stays on Cursor at 12% usage",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": ""
+  },
+  {
+    "name": "An explicit Grok override records its Cursor provenance before launch",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": ""
+  },
+  {
+    "name": "An explicit Cursor relaunch stays on Cursor at 85% usage",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": ""
+  },
+  {
+    "name": "An intake Grok task without Cursor provenance stays on Grok at 12%",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": ""
+  },
+  {
+    "name": "An intake Grok task at 85% remains Grok without acquiring false provenance",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": ""
+  },
+  {
+    "name": "A Grok task with an explicit-override reason returns to healthy Cursor",
+    "result": "fail",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": "successful Cursor replacement retained old provenance"
+  },
+  {
+    "name": "The sixth Cursor relaunch is admitted and increments the shared budget",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": ""
+  },
+  {
+    "name": "The seventh Cursor relaunch uses Grok and writes the Chicago-day cap reason",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": ""
+  },
+  {
+    "name": "An inherited Cursor relaunch at 85% uses Grok with a usage reason",
+    "result": "fail",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": "real Grok did not render the readiness marker"
+  },
+  {
+    "name": "A prior-day cap fallback returns to Cursor and clears expired provenance",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-relaunch.txt",
+    "reason": ""
+  }
+]

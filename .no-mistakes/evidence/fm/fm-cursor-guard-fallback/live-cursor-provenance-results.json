@@ -1,0 +1,9 @@
+[
+  {
+    "name": "A Grok task with an explicit-override reason returns to healthy Cursor",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4XMT32QFFQ0EVYVMDK67KP5/live-cursor-provenance.txt",
+    "reason": ""
+  }
+]

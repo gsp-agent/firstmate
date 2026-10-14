@@ -1,0 +1,74 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e
+exit=0
+head=5572682cbff00644fa7073d5ec56cadb0c5ebfee
+Chicago day=2026-10-14
+$ tmux -L fm-lab new-session -d -s replay -n control -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5 /bin/bash --noprofile --norc
+
+exit=0
+
+SCENARIO nm-provenance: prior=grok, usage=12%, expected=cursor
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-provenance relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e/data/nm-provenance/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-provenance
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e/data/nm-provenance/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-provenance harness=cursor from=grok model=default effort=default backend=tmux endpoint=replay:fm-nm-provenance worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e/wt-nm-provenance
+exit=0
+meta.harness=cursor
+meta.model=default
+meta.effort=default
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e/wt-nm-provenance
+journal.phase=complete
+journal.from_harness=grok
+journal.to_harness=cursor
+journal.to_model=default
+journal.to_effort=default
+cursor-limit=<absent>
+cursor-fallback=explicit --harness grok override of a recorded cursor task
+cursor assistant/result records=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "FM_ROUTING_READY_nm_provenance"}]}, "session_id": "ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9", "timestamp_ms": 1791998514442}]
+--- actual pane capture (last 25 lines) ---
+{"type":"thinking","subtype":"delta","text":" conflict with the inbox","session_
+id":"ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998506325}
+{"type":"thinking","subtype":"delta","text":" instructions.","session_id":"ff611
+e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998506447}
+{"type":"thinking","subtype":"delta","text":"\n\nThe worker role contract","sess
+ion_id":"ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998507496}
+{"type":"thinking","subtype":"delta","text":" overrides AGENTS.md,","session_id"
+:"ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998507631}
+{"type":"thinking","subtype":"delta","text":" which instructs addressing","sessi
+on_id":"ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998507680}
+{"type":"thinking","subtype":"delta","text":" the captain. The most","session_id
+":"ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998507876}
+{"type":"thinking","subtype":"delta","text":" specific and recent","session_id":
+"ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998507886}
+{"type":"thinking","subtype":"delta","text":" task instructions take","session_i
+d":"ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998508261}
+{"type":"thinking","subtype":"delta","text":" precedence over general","session_
+id":"ff611e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998508265}
+{"type":"thinking","subtype":"delta","text":" inbox procedures.","session_id":"f
+f611e4b-d3d7-4ec0-b4e4-6494fa4271d9","timestamp_ms":1791998508265}
+{"type":"thinking","subtype":"completed","session_id":"ff611e4b-d3d7-4ec0-b4e4-6
+494fa4271d9","timestamp_ms":1791998509239}
+{"type":"connection","subtype":"reconnecting","session_id":"ff611e4b-d3d7-4ec0-b
+4e4-6494fa4271d9","timestamp_ms":1791998512109,"attempt":1,"endpoint_url":"https
+://api2.cursor.sh"}
+--- end pane capture ---
+RESULT pass: A Grok task with an explicit-override reason returns to healthy Cursor
+Cleanup: killing only the private fm-lab tmux server
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e
+
+exit=0
+original .cursor/cli-config.json unchanged=False
+original .grok/auth.json unchanged=True
+Lab cleanup target=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.bbzvj__e

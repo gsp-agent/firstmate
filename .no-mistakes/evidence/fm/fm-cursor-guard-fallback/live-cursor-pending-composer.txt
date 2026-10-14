@@ -1,0 +1,105 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+exit=0
+head=5572682cbff00644fa7073d5ec56cadb0c5ebfee
+Chicago day=2026-10-14
+$ tmux -L fm-lab new-session -d -s replay -n control -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5 /bin/bash --noprofile --norc
+
+exit=0
+
+SCENARIO nm-pending: prior=cursor, usage=12%, expected=grok
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-pending relaunch --note Replay the routing decision only; respond with the readiness marker and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+cursor fallback: launching nm-pending on the grok harness (grok-4.7 xhigh): cursor guard: refused nm-pending, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cursor fallback: launching nm-pending on the grok harness (grok-4.7 xhigh): cursor guard: refused nm-pending, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/data/nm-pending/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-pending
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/data/nm-pending/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-pending harness=grok from=cursor model=grok-4.7 effort=xhigh backend=tmux endpoint=replay:fm-nm-pending worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/wt-nm-pending
+exit=0
+meta.harness=grok
+meta.model=grok-4.7
+meta.effort=xhigh
+meta.worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/wt-nm-pending
+journal.phase=complete
+journal.from_harness=cursor
+journal.to_harness=grok
+journal.to_model=grok-4.7
+journal.to_effort=xhigh
+cursor-limit=cursor guard: refused nm-pending, already launched 6 times today (2026-10-14); write blocked: instead of a run past the daily cap of 6
+cursor-fallback=<absent>
+--- actual pane capture (last 25 lines) ---
+  `--intent`, but not later clarifications actually supplied by the captain.
+  Use everything under `## Captain intent authorized for --intent` through the
+  end of this brief, including any nested subheadings but excluding that
+  heading, plus any later words the captain actually supplied as `--intent`;
+  never include Firstmate specification or other mixed Task content.
+  Preserve those words without adding speaker labels or direct address.
+  Firstmate-authored constraints, acceptance criteria, implementation details,
+  decisions, and tradeoffs are specification, not captain intent.
+  The Definition of done's rule that `--intent` must be self-sufficient still
+  governs the string you pass: resolve any report, decision, or PR the intent
+  below refers to into its substance rather than passing the pointer.
+
+  ## Captain intent authorized for --intent
+  This is an isolated live routing replay. Reply with FM_ROUTING_READY_ followed
+  immediately by nm_pending. Do not use any tools or edit any files.
+
+◆ Thought for 2.4s
+┃ I will reply with FM_ROUTING_READY_ followed immediately by nm_pending.
+┃
+┃ The instructions conflict. The progress note directs checking the instruction
+┃ inbox, but the captain's intent forbids tools and file edits.
+FM_ROUTING_READY_nm_pending
+⠋ Responding… 0.5s                                                    15s ⇣29.2k
+❯
+Grok 4.7 (xhigh) · always-approve · 29K / 256K (11%) · ctrl+o transcript
+--- end pane capture ---
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-pending relaunch --note Preserve the pending lab draft.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+error: task nm-pending's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'relaunch'
+error: relaunch of nm-pending failed while stopping the old agent, which is still running; its original instructions were restored
+exit=1
+refused recovery retained the identical Grok metadata and Cursor cap reason
+--- pending composer capture ---
+  immediately by nm_pending. Do not use any tools or edit any files.
+
+◆ Thought for 2.4s
+┃ I will reply with FM_ROUTING_READY_ followed immediately by nm_pending.
+┃
+┃ The instructions conflict. The progress note directs checking the instruction
+┃ inbox, but the captain's intent forbids tools and file edits.
+FM_ROUTING_READY_nm_pending
+Worked for 17s
+minimal · /help
+❯ pending lab draft
+Grok 4.7 (xhigh) · always-approve · 29K / 256K (11%) · ctrl+o transcript
+retry launch-env-allowlist=["CURSOR_CONFIG_DIR", "CURSOR_DATA_DIR", "GROK_HOME", "FM_CURSOR_USAGE_DIR", "FM_PSTACK_DIR", "FM_CURSOR_CLI_CONFIG", "FM_CURSOR_MODELS_RULE"]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-control.sh nm-pending relaunch --note Retry with an empty composer; reply with READY and use no tools.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/data/nm-pending/launch-brief.md records no ship branch; defaulting to legacy branch fm/nm-pending
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/data/nm-pending/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nm-pending harness=cursor from=grok model=default effort=default backend=tmux endpoint=replay:fm-nm-pending worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f/wt-nm-pending
+exit=0
+retry meta.harness=cursor, journal.to_harness=cursor
+retry actual Cursor assistant=[{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "FM_ROUTING_READY_nm_pending"}]}, "session_id": "5085b9b1-07aa-4583-8866-86b5308a3d56", "timestamp_ms": 1791998708074}]
+RESULT pass: A pending composer preserves expired Cursor provenance, then an empty-composer retry restores Cursor
+Cleanup: killing only the private fm-lab tmux server
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
+
+exit=0
+original .cursor/cli-config.json unchanged=False
+original .grok/auth.json unchanged=True
+Lab cleanup target=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XMT32QFFQ0EVYVMDK67KP5/.test-cursor-phase/fm-lab.j8zgl90f
