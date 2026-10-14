@@ -74,6 +74,40 @@ printf 'cursor_models_pct=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "under the limit must stay on cursor: $(fb e1)"
 pass "fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit"
 
+stat_bin="$TMP_ROOT/stat-bin"
+stat_usage="$TMP_ROOT/stat-usage"
+stat_state="$TMP_ROOT/stat-state"
+mkdir -p "$stat_bin" "$stat_usage" "$stat_state/cursor-dispatch.lock"
+cat > "$stat_bin/uname" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' Linux
+SH
+cat > "$stat_bin/stat" <<'SH'
+#!/usr/bin/env bash
+case "${1:-} ${2:-}" in
+  '-f %m') printf '%s\n' 'File: "fixture"' 'Type: ext4'; exit 1 ;;
+  '-c %Y') python3 -c 'import os, sys; print(int(os.stat(sys.argv[1]).st_mtime))' "$3" ;;
+  *) exit 2 ;;
+esac
+SH
+chmod +x "$stat_bin/uname" "$stat_bin/stat"
+printf 'cursor_models_pct=10\n' > "$stat_usage/current-spending.txt"
+out=$(PATH="$stat_bin:$PATH" FM_CURSOR_USAGE_DIR="$stat_usage" "$TOOL" fallback linux-stat 2> "$TMP_ROOT/stat.err")
+expect_code 0 $? "GNU stat accepts a fresh spending file"
+[ "$out" = cursor ] || fail "GNU stat must keep fresh low usage on Cursor: $out"
+[ ! -s "$TMP_ROOT/stat.err" ] || fail "GNU stat emitted an age-arithmetic error: $(cat "$TMP_ROOT/stat.err")"
+touch -t 200001010000 "$stat_usage/current-spending.txt" "$stat_state/cursor-dispatch.lock"
+out=$(PATH="$stat_bin:$PATH" FM_CURSOR_USAGE_DIR="$stat_usage" "$TOOL" fallback linux-stat 2> "$TMP_ROOT/stat.err")
+expect_code 0 $? "GNU stat detects stale spending evidence"
+case "$out" in "grok newest Cursor spending file is"*) ;; *) fail "GNU stat must reject stale evidence: $out" ;; esac
+PATH="$stat_bin:$PATH" FM_STATE_OVERRIDE="$stat_state" g 2030-01-03 take linux-stat
+expect_code 0 $? "GNU stat recovers a stale dispatch lock"
+assert_contains "$(cat "$TMP_ROOT/err")" "removed a stale lock" "GNU stat must announce stale-lock recovery"
+[ ! -e "$stat_state/cursor-dispatch.lock" ] || fail "GNU stat must release the recovered lock"
+jq -e '.beads["linux-stat"] == 1' "$stat_state/cursor-dispatch.json" >/dev/null \
+  || fail "GNU stat recovery did not record the launch"
+pass "GNU stat supports spending age and stale-lock recovery"
+
 # real fixture shape (Chip-Grok's 2026-10-12-1512-spending.txt)
 printf 'cursor_models_pct=26\nother_models_pct=45\non_demand=disabled\ncycle_resets=2026-10-14\nread_at=2026-10-12T15:12-05:00\n' > "$FM_CURSOR_USAGE_DIR/20261014-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "the real spending file shape at 26% must keep cursor: $(fb e1)"

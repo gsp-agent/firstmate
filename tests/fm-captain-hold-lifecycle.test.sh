@@ -3380,6 +3380,12 @@ test_teardown_retains_a_gitlab_captain_call_with_its_merge_request_url() {
   local gitlab_url=https://gitlab.example.com/group/sub/project/-/merge_requests/269
   home=$(make_home teardown-held-gitlab)
   id=sample-held-gitlab
+  cat > "$home/fakebin/glab" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-} ${2:-}" = "mr view" ] || exit 1
+printf '%s\n' '{"state":"merged"}'
+SH
+  chmod +x "$home/fakebin/glab"
   repo="$home/projects/sample"
   wt="$home/projects/$id"
   fm_git_worktree "$repo" "$wt" fm/held-gitlab

@@ -830,6 +830,12 @@ test_teardown_closes_a_gitlab_task_with_its_merge_request_url_as_a_note() {
   case_dir=$(make_case tasks-axi-close-gitlab)
   write_meta "$case_dir" no-mistakes ship
   printf 'pr=%s\n' "$gitlab_url" >> "$case_dir/state/task-x1.meta"
+  cat > "$case_dir/fakebin/glab" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-} ${2:-}" = "mr view" ] || exit 1
+printf '%s\n' '{"state":"merged"}'
+SH
+  chmod +x "$case_dir/fakebin/glab"
   seed_backlog_in_flight "$case_dir"
   real_tasks_axi=$(command -v tasks-axi)
   cat > "$case_dir/fakebin/tasks-axi" <<SH
@@ -858,6 +864,7 @@ SH
   case_dir=$(make_case tasks-axi-close-github-under-gitlab-refusal)
   write_meta "$case_dir" no-mistakes ship
   printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/task-x1.meta"
+  add_gh_axi_pr_state "$case_dir" merged
   seed_backlog_in_flight "$case_dir"
   cp "$TMP_ROOT/tasks-axi-close-gitlab/fakebin/tasks-axi" "$case_dir/fakebin/tasks-axi"
   out=$(run_teardown "$case_dir" 2>&1) || fail "teardown of a landed GitHub task failed: $out"

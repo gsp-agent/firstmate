@@ -28,7 +28,13 @@ op=${1:-}; id=${2:-}
 case "$op" in take | give | fallback | after) ;; *) op= ;; esac
 [ -n "$op" ] && [ -n "$id" ] || { echo "usage: fm-cursor-guard.sh take|give|fallback <bead-id> | after <bead-id> <rc>" >&2; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "cursor guard: jq required" >&2; exit 1; }
-mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0; }
+mtime() {
+  if [ "$(uname)" = Darwin ]; then
+    /usr/bin/stat -f %m "$1" 2>/dev/null || echo 0
+  else
+    stat -c %Y "$1" 2>/dev/null || echo 0
+  fi
+}
 
 if [ "$op" = after ]; then
   rc=${3:-0}
