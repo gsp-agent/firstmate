@@ -20,13 +20,17 @@
 # Missing proven changes and extra changes are path-drift. Rename detection
 # is disabled so a deletion cannot disappear into a rename onto a proven file.
 # No file is exempt, including the guard and proof files.
-# A commit is merge when it has multiple parents, keep when its full sha is
-# in the proof file and it is not a merge, and unproven otherwise.
+# A commit is merge when it has multiple parents, keep when it is selected
+# by the proof file and is not a merge, and unproven otherwise.
 # Exit 0 when no path-drift line is printed, 1 when one is, and 2 on usage or
 # git failure. behind is reported and does not change the exit code.
 #
-# The proof file holds one full 40-hex sha per line. Blank lines and lines
-# whose first character is # are ignored. Any other line is an error.
+# The proof file holds one full 40-hex sha per line, or "after: <full sha>"
+# to select the unique reachable commit whose first parent is that sha.
+# This lets a manifest name its own finalized patch before its commit SHA
+# exists, without approving later descendants. Missing or multiple direct
+# children are errors. Selection uses only the captured fork snapshot.
+# Blank lines and lines whose first character is # are ignored.
 # Listed commits must exist and be reachable from the fork ref.
 # When --proof is omitted and <repo>/drift-proof.txt exists, that file is the
 # proof file. When it does not exist, no commit is proven.
@@ -65,19 +69,35 @@ proof_has() {
   esac
 }
 
+proof_successor() {
+  local history sha parent _parents selected=''
+  history=$(git -C "$REPO" rev-list --ancestry-path --parents "$1..$fork") || die "cannot read proof descendants: $1"
+  while read -r sha parent _parents; do
+    [ "$parent" = "$1" ] || continue
+    [ -z "$selected" ] || die "proof parent has multiple direct children: $1"
+    selected=$sha
+  done <<< "$history"
+  [ -n "$selected" ] || die "proof parent has no direct child: $1"
+  printf '%s\n' "$selected"
+}
+
 load_proof() {
   PROOF_SHAS='|'
   [ -n "$PROOF" ] || return 0
   [ -f "$PROOF" ] || die "proof file not found: $PROOF"
-  local line
+  local line sha
   while IFS= read -r line || [ -n "$line" ]; do
     case $line in
       ''|\#*) continue ;;
     esac
-    printf '%s\n' "$line" | grep -Eq '^[0-9a-f]{40}$' || die "proof line is not a full sha: $line"
-    git -C "$REPO" rev-parse --verify "${line}^{commit}" >/dev/null 2>&1 || die "proof commit not found: $line"
-    git -C "$REPO" merge-base --is-ancestor "$line" "$fork" || die "proof commit is not reachable from fork: $line"
-    PROOF_SHAS="${PROOF_SHAS}${line}|"
+    sha=${line#after: }
+    printf '%s\n' "$sha" | grep -Eq '^[0-9a-f]{40}$' || die "proof line is not a full sha: $line"
+    git -C "$REPO" rev-parse --verify "${sha}^{commit}" >/dev/null 2>&1 || die "proof commit not found: $sha"
+    git -C "$REPO" merge-base --is-ancestor "$sha" "$fork" || die "proof commit is not reachable from fork: $sha"
+    if [ "$sha" != "$line" ]; then
+      sha=$(proof_successor "$sha") || exit 2
+    fi
+    PROOF_SHAS="${PROOF_SHAS}${sha}|"
   done < "$PROOF"
 }
 

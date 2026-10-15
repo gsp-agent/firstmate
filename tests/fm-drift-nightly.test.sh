@@ -58,6 +58,79 @@ keep: $sha add notes" "$CHECK_OUT" "a proof sha marks the path and the commit"
   pass "a proof sha makes that path ok and the check exits 0"
 }
 
+test_manifest_accepts_its_own_commit_without_accepting_later_edits() {
+  local repo parent kept later
+  repo=$(fm_test_tmproot drift-self-proof)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  parent=$(git -C "$repo" rev-parse HEAD)
+  mkdir -p "$repo/bin"
+  printf 'guard contract\n' > "$repo/bin/fm-drift-nightly.sh"
+  printf 'after: %s\n' "$parent" > "$repo/drift-proof.txt"
+  git -C "$repo" add bin/fm-drift-nightly.sh drift-proof.txt
+  fixture_commit "$repo" "finalized measured patches and proof"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --upstream upstream
+  expect_code 0 "$CHECK_RC" "the shipped manifest accepts its finalized patch: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" 'path-ok: drift-proof.txt' "the proof file itself matches the accepted patch"
+  assert_contains "$CHECK_OUT" "keep: $kept finalized measured patches and proof" "the fixed parent resolves to the acceptance commit"
+  printf 'unproven guard edit\n' >> "$repo/bin/fm-drift-nightly.sh"
+  printf '# unproven proof edit\n' >> "$repo/drift-proof.txt"
+  git -C "$repo" add bin/fm-drift-nightly.sh drift-proof.txt
+  fixture_commit "$repo" "later unproven edits"
+  later=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --upstream upstream
+  expect_code 1 "$CHECK_RC" "the same manifest rejects later guard and proof edits"
+  assert_contains "$CHECK_OUT" 'path-drift: bin/fm-drift-nightly.sh' "the guard has no exemption"
+  assert_contains "$CHECK_OUT" 'path-drift: drift-proof.txt' "the manifest has no exemption"
+  assert_contains "$CHECK_OUT" "unproven: $later later unproven edits" "acceptance stays pinned after another commit"
+  pass "a shipped proof accepts its own patch and rejects later edits"
+}
+
+test_parent_proof_does_not_accept_inherited_unproven_changes() {
+  local repo parent
+  repo=$(fm_test_tmproot drift-parent-inherited)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'unproven\n' > "$repo/unproven.txt"
+  git -C "$repo" add unproven.txt
+  fixture_commit "$repo" "unproven earlier change"
+  parent=$(git -C "$repo" rev-parse HEAD)
+  printf 'after: %s\n' "$parent" > "$repo/drift-proof.txt"
+  git -C "$repo" add drift-proof.txt
+  fixture_commit "$repo" "accepted manifest patch"
+  run_check "$repo" --upstream upstream
+  expect_code 1 "$CHECK_RC" "parent proof accepts only the child patch: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" 'path-ok: drift-proof.txt' "the accepted manifest patch is replayed"
+  assert_contains "$CHECK_OUT" 'path-drift: unproven.txt' "unproven parent content remains drift"
+  pass "parent proof does not approve inherited unproven content"
+}
+
+test_parent_proof_requires_one_direct_child() {
+  local repo parent
+  repo=$(fm_test_tmproot drift-parent-ambiguity)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  parent=$(git -C "$repo" rev-parse HEAD)
+  printf 'after: %s\n' "$parent" > "$repo/proof.txt"
+  run_check "$repo" --upstream upstream --proof "$repo/proof.txt"
+  expect_code 2 "$CHECK_RC" "an acceptance parent with no child is an error"
+  assert_contains "$CHECK_ERR" 'proof parent has no direct child:' "missing acceptance is actionable"
+  git -C "$repo" switch -q -c side
+  printf 'side\n' > "$repo/side.txt"
+  git -C "$repo" add side.txt
+  fixture_commit "$repo" "side child"
+  git -C "$repo" switch -q main
+  printf 'main\n' > "$repo/main.txt"
+  git -C "$repo" add main.txt
+  fixture_commit "$repo" "main child"
+  git -C "$repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' merge --no-ff -qm "merge both children" side
+  run_check "$repo" --upstream upstream --proof "$repo/proof.txt"
+  expect_code 2 "$CHECK_RC" "two reachable children cannot share an acceptance parent"
+  assert_contains "$CHECK_ERR" 'proof parent has multiple direct children:' "ambiguous acceptance fails closed"
+  pass "parent proof refuses missing or ambiguous acceptance commits"
+}
+
 test_guard_files_have_no_exemptions() {
   local repo sha
   repo=$(fm_test_tmproot drift-guard)
@@ -480,6 +553,9 @@ test_bad_hour_exits_2() {
 
 test_unproven_file_is_path_drift_and_exits_1
 test_proof_sha_makes_that_path_ok_and_exits_0
+test_manifest_accepts_its_own_commit_without_accepting_later_edits
+test_parent_proof_does_not_accept_inherited_unproven_changes
+test_parent_proof_requires_one_direct_child
 test_guard_files_have_no_exemptions
 test_unproven_edit_to_proven_file_exits_1
 test_unproven_deletion_cannot_rename_into_proven_file

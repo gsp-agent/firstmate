@@ -367,7 +367,7 @@ It does not prove the removed shared settings, headless/plugin launch, cap, lock
 Those portions are cut and archived; they are not approved by the old resolver measurements or matching blob hashes.
 The original cuts remain in their eight named branches, and archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts preserves this round's complete starting tree, including PR 26's plugin-pin branch.
 Recovery uses the existing Git bundle at archives/fork-cuts.bundle.
-The source proof manifest keeps only wholly measured original patches as SHA entries; the acceptance owner must record the finalized measured patch sequence, including these cuts, after the outer executor commits it and before installation.
+The finalized source proof manifest records the complete patch sequence, including the mandatory corrective cuts; "Finalized shipped acceptance" below verifies the delivered effective tree without an installation-time proof rewrite.
 
 R16 retained behavior after cutting unsupported portions
 Measured: 2026-10-14T19:56:36-0500
@@ -486,3 +486,49 @@ The bundle requires these 2 refs:
 The bundle uses this hash algorithm: sha1
 
 result: all focused behavioral comparisons passed
+
+Finalized shipped acceptance
+Measured: 2026-10-14T20:52:31-05:00
+Platform: Darwin 27.2.0 arm64
+Git: git version 2.56.0
+Starting head: 3d91d6eb379009013d74f6bc6886684b67116009
+Fetched kunchenguid/main: 33503ab33737b76d1ec7d891b95d44ce020a1579
+Scope: the real drift CLI in a disposable repository containing this delivery's history and files; no operator state or scheduler changes.
+
+Baseline reproduction with the shipped manifest:
+$ bash bin/fm-drift-nightly.sh check --repo .agent-state/drift-fix/product --fork 3d91d6eb379009013d74f6bc6886684b67116009
+behind: 11
+ahead: 65
+path-ok: 1 line
+path-drift: 16 lines
+exit: 1
+
+Cause: the manifest accepted only two original patches and deferred acceptance of the remaining measured changes and corrective cuts until installation.
+Its SHA-only format also could not name the future commit containing the finalized manifest itself.
+The complete sequence now includes the mandatory cuts; replay dependencies are not approval to restore their removed behavior.
+The fixed-parent entry names only the finalized acceptance patch, resolving against the captured fork rather than a moving ref.
+
+Regression first, before the parser fix:
+$ bash tests/fm-drift-nightly.test.sh
+not ok - the shipped manifest accepts its finalized patch: error: proof line is not a full sha: after: 56bb1817ffc38acfda62f597616990a090871bff: expected exit 0, got 2
+exit: 1
+
+After the fix:
+$ bash tests/fm-drift-nightly.test.sh
+23 behavior checks passed
+exit: 0
+
+The delivery files were copied into the disposable repository and committed directly after the starting head, using its unchanged shipped manifest as the default proof input.
+$ bash bin/fm-drift-nightly.sh check --repo .agent-state/drift-fix/product --no-fetch
+behind: 11
+ahead: 66
+path-ok: 17 lines
+path-drift: 0 lines
+exit: 0
+
+Counterfactuals through the same CLI and default manifest, each on a separate descendant of the accepted delivery:
+Later edit to bin/fm-spawn.sh: path-drift: bin/fm-spawn.sh; exit 1.
+Later edit to bin/fm-drift-nightly.sh: path-drift: bin/fm-drift-nightly.sh; exit 1.
+Later comment edit to drift-proof.txt: path-drift: drift-proof.txt; exit 1.
+Omitting the mandatory 3d91d6eb corrective patch from the manifest: exit 2, patch replay conflict.
+The focused regression also rejects missing or ambiguous acceptance children and leaves inherited unproven changes as drift.
