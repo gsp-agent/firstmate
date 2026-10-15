@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sweep open pull requests in each GitHub repository that has an armed merge watch.
 # A repository is watched when a private pr-poll sidecar names it.
-# One pass reads open pull requests, at most 10 pages of 100, newest update first.
+# One pass reads all open pull requests in pages of 100, newest update first.
 # It reports a pull request when its newest queue event is a removal, the pull
 # request is open and not merged, and it is not back in the queue.
 # A removal re-added before this pass is no longer the newest queue event, so a
@@ -23,11 +23,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 
 SWEEP_SEEN_VERSION=fm-merge-queue-sweep-v1
-SWEEP_PAGE_CAP=10
 # shellcheck disable=SC2016
 SWEEP_QUERY='query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:UPDATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}'
 # shellcheck disable=SC2016
-SWEEP_JQ='(.data.repository.pullRequests) as $p | if $p == null or ($p.pageInfo | type) != "object" then error("no page") else (($p.nodes // [])[] | . as $pr | (($pr.timelineItems.nodes // []) | last // {}) as $e | ["pr", ($pr.number | tostring), ($pr.state // ""), ($pr.merged | tostring), ($pr.isInMergeQueue | tostring), (if $e.__typename == "RemovedFromMergeQueueEvent" then "removed" elif $e.__typename == "AddedToMergeQueueEvent" then "added" else "" end), (if (($e.id // "") | test("^[A-Za-z0-9_+/=-]{0,256}$")) then ($e.id // "") else "" end), (if ($e.reason | type) == "string" then ($e.reason | tojson | .[1:-1]) else "" end)] | @tsv), (["page", (if $p.pageInfo.hasNextPage == true then "true" else "false" end), ($p.pageInfo.endCursor // "")] | @tsv) end'
+SWEEP_JQ='(.data.repository.pullRequests) as $p | if $p == null or ($p.pageInfo | type) != "object" then error("no page") else (($p.nodes // [])[] | . as $pr | (($pr.timelineItems.nodes // []) | last // {}) as $e | (["pr", ($pr.number | tostring), ($pr.state // ""), ($pr.merged | tostring), ($pr.isInMergeQueue | tostring), (if $e.__typename == "RemovedFromMergeQueueEvent" then "removed" elif $e.__typename == "AddedToMergeQueueEvent" then "added" else "" end), (if (($e.id // "") | test("^[A-Za-z0-9_+/=-]{0,256}$")) then ($e.id // "") else "" end)] | @tsv) + "\t" + (($e.reason // "") | tojson | .[1:-1])), (["page", (if $p.pageInfo.hasNextPage == true then "true" else "false" end), ($p.pageInfo.endCursor // "")] | @tsv) end'
 
 sweep_event_id_ok() {
   local event=$1
@@ -207,11 +206,10 @@ sweep_note_sidecars() {
 # Print dequeue lines for one repository, or return 1 when a page cannot be read.
 # Nothing is printed until every fetched page has been read.
 sweep_one_repo() {
-  local owner=$1 repo=$2 cursor='' pages=0 fields line kind rest number state merged
+  local owner=$1 repo=$2 cursor='' fields line kind rest number state merged
   local queued event_kind event reason more page_cursor saw_page collected url
   collected=
-  while [ "$pages" -lt "$SWEEP_PAGE_CAP" ]; do
-    pages=$((pages + 1))
+  while :; do
     if [ -z "$cursor" ]; then
       fields=$(gh api graphql --hostname github.com \
         -f query="$SWEEP_QUERY" \
@@ -264,9 +262,6 @@ sweep_one_repo() {
           [ "$queued" = false ] || continue
           [ "$event_kind" = removed ] || continue
           [ "$reason" != merged ] || continue
-          case "$reason" in
-            *[![:print:]]*|'') continue ;;
-          esac
           case "$number" in
             ''|*[!0-9]*|0*) continue ;;
           esac
@@ -298,7 +293,6 @@ EOF
     [ "$page_cursor" != "$cursor" ] || return 1
     cursor=$page_cursor
   done
-  printf '%s' "$collected"
 }
 
 sweep_scan() {

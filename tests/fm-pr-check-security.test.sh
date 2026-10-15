@@ -4184,7 +4184,11 @@ write_queue_sweep_pages() {
       node(4183; "merge_conflict"; "removed"; false),
       node(4200; "merge_conflict"; "removed"; false),
       node(3361; "manual"; "added"; false),
-      node(9001; "merged"; "removed"; false)
+      node(9001; "merged"; "removed"; false),
+      node(9002; null; "removed"; false),
+      node(9003; ""; "removed"; false),
+      node(9004; "échec des vérifications"; "removed"; false),
+      node(9005; "failed \"checks\"\\path\nnext\tline\rcontrol\u0001 event=not-the-id"; "removed"; false)
     ]; false; "")
   ' > "$dir/sweep/page2.json"
 }
@@ -4198,7 +4202,7 @@ test_open_queue_removals_wake_once_across_a_watched_repo() {
   write_poll_meta "$state" task-a "$url"
   seed_canonical_poll "$dir" task-a "$url"
   add_stop_custom_check "$dir"
-  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+  LC_ALL=C FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
     FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=evt4308 \
     FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
     run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
@@ -4213,16 +4217,25 @@ test_open_queue_removals_wake_once_across_a_watched_repo() {
     [ "$(grep -c "dequeued https://github.com/groovejones/groove-sight-platform/pull/${number} reason=${reason}$" "$dir/watch.out")" -eq 1 ] \
       || fail "pull ${number} was not reported once: $(cat "$dir/watch.out")"
   done
+  for number in 9002 9003 9004 9005; do
+    case "$number" in
+      9002|9003) reason= ;;
+      9004) reason='échec des vérifications' ;;
+      9005) reason='failed \"checks\"\\path\nnext\tline\rcontrol\u0001 event=not-the-id' ;;
+    esac
+    [ "$(grep -Fxc "check: $ROOT/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/${number} reason=${reason}" "$dir/watch.out")" -eq 1 ] \
+      || fail "pull ${number} lost or changed its reason: $(cat "$dir/watch.out")"
+  done
   ! grep -F 'pull/3361' "$dir/watch.out" >/dev/null \
     || fail "a re-added pull request woke: $(cat "$dir/watch.out")"
   ! grep -F 'pull/9001' "$dir/watch.out" >/dev/null \
     || fail "a merged removal woke: $(cat "$dir/watch.out")"
-  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 10 ] \
-    || fail "the sweep reported something other than the ten removals: $(cat "$dir/watch.out")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 14 ] \
+    || fail "the sweep did not report fourteen removals: $(cat "$dir/watch.out")"
   [ "$(file_mode "$state/merge-queue-sweep.seen")" = 600 ] \
     || fail "the seen record is not private"
   ack_watcher_cycle "$state" || fail "open queue sweep acknowledgement failed"
-  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+  LC_ALL=C FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
     FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=evt4308 \
     FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
     run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/repeat.out" 2> "$dir/repeat.err" \
@@ -4264,6 +4277,43 @@ test_open_queue_removals_wake_once_across_a_watched_repo() {
   pass "open pull requests removed from a watched queue wake once"
 }
 
+test_open_queue_sweep_exhausts_pages() {
+  local dir state page
+  dir=$(make_case open-queue-sweep-eleven-pages)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  add_stop_custom_check "$dir"
+  mkdir -p "$dir/sweep"
+  for page in 1 2 3 4 5 6 7 8 9 10 11; do
+    "$REAL_JQ" -n --argjson page "$page" '
+      {data:{repository:{pullRequests:{
+        pageInfo:{hasNextPage:($page < 11),
+          endCursor:(if $page < 11 then "page"+(($page+1)|tostring) else null end)},
+        nodes:(if $page < 11 then
+          [range(($page-1)*100+1; $page*100+1) |
+            {number:., state:"OPEN", merged:false, isInMergeQueue:true,
+             timelineItems:{nodes:[]}}]
+        else
+          [{number:1001, state:"OPEN", merged:false, isInMergeQueue:false,
+            timelineItems:{nodes:[{__typename:"RemovedFromMergeQueueEvent",
+              id:"evt1001", reason:"failed_checks"}]}}]
+        end)}}}}
+    ' > "$dir/sweep/page${page}.json"
+  done
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "eleven-page queue sweep failed: $(cat "$dir/watch.err")"
+  [ "$(grep -Fxc "check: $ROOT/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/1001 reason=failed_checks" "$dir/watch.out")" -eq 1 ] \
+    || fail "the sweep missed the removal after 1,000 open PRs: $(cat "$dir/watch.out")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 1 ] \
+    || fail "the sweep reported something other than the eleventh-page removal: $(cat "$dir/watch.out")"
+  "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt1001 \
+    || fail "the eleventh-page removal was not published"
+  pass "the queue sweep reads every page of open pull requests"
+}
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -4303,6 +4353,7 @@ test_dequeue_sweep_reaches_later_checks
 test_queue_drop_reason_is_preserved
 test_verified_queue_drop_wakes_once
 test_open_queue_removals_wake_once_across_a_watched_repo
+test_open_queue_sweep_exhausts_pages
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations
