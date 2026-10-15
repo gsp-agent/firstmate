@@ -108,7 +108,7 @@ ok - install rejects hour 24
 exit: 0
 
 Elapsed seconds: 5.581
-The eight prior keeps have no retained effective changes; the required guard supplies detection absent upstream and closes the measured original exemptions.
+The required guard supplies detection absent upstream and closes the measured original exemptions.
 
 Rename and ref-snapshot regressions measured on this machine
 Measured: 2026-10-14T13:39:19.643373-05:00
@@ -284,3 +284,76 @@ exit: 0
 
 Elapsed seconds: 11.612
 The revised guard rejects the previously hidden deletion and reports a consistent captured revision when either ref advances.
+
+Live routing file
+Measured: 2026-10-14T19:09:58-05:00
+Starting head: 8b34567a2def0fc2aa502e8ae123ae5c01b35d02
+Live file: /Users/dalecarman/dev/firstmate-upstream/config/crew-dispatch.json, read only.
+It routes with grok xhigh and codex max and sets label_routes, cursor_fallback and pstack_version.
+Each revision's bin/ was exported with git archive <rev> bin; curl was a stub that records calls, and it recorded 0.
+
+Dispatch resolver, brief mode, on the live file:
+$ TYPESAFE_API_KEY=measure-not-a-key FM_HOME=/Users/dalecarman/dev/firstmate-upstream PATH=<curl-stub>:$PATH bash <rev>/bin/fm-dispatch-resolve.sh <brief>
+7df545bf74ff729ed1733f77b0aea02a9b164ac1 (upstream merge-base): exit 2
+08f0a069af2f88911858b44175d225b77362cffe (kunchenguid/main): exit 2
+bad73aa7e1cbbfa7786429ec271487f87f8e1c8a (this change with the keeps cut): exit 2
+error: malformed rules file: /Users/dalecarman/dev/firstmate-upstream/config/crew-dispatch.json - each use profile effort must be supported by its harness and model
+
+Dispatch resolver, worker routing, 8b34567a against upstream-lean 4877ac8e, which the main home runs:
+$ TYPESAFE_API_KEY=measure-not-a-key FM_HOME=/Users/dalecarman/dev/firstmate-upstream PATH=<curl-stub>:$PATH bash <rev>/bin/fm-dispatch-resolve.sh --labels <set>
+set 1 labels='' exit 0/0 identical: grok grok-4.7 xhigh
+set 2 labels=docs-only exit 0/0 identical: grok grok-4.7 xhigh
+set 3 labels=ep-opus exit 0/0 identical: claude claude-opus-5-5[1m] xhigh
+set 4 labels='bug, ep-opus' exit 0/0 identical: claude claude-opus-5-5[1m] xhigh
+set 5 labels=docs-only,ep-opus exit 1/1 identical: refused, labels conflict
+set 6 labels=ep-opus,docs-only exit 1/1 identical: refused, labels conflict
+set 7 labels=bug exit 0/0 identical: grok grok-4.7 xhigh
+set 8 labels=' docs-only ' exit 0/0 identical: grok grok-4.7 xhigh
+set 9 labels='unknown, docs-only' exit 0/0 identical: grok grok-4.7 xhigh
+identical: 9/9
+
+Session-start validator, crew_dispatch_validate from each revision's bin/fm-bootstrap.sh, on a copy of the live file:
+8b34567a: accepted, no diagnostic
+bad73aa7: CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: codex:max, grok:xhigh
+7df545bf: CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: codex:max, grok:xhigh
+
+PR 26 port onto the kept guard:
+$ git rev-parse 8b34567a:bin/fm-cursor-guard.sh 4877ac8e:bin/fm-cursor-guard.sh
+2151f0bb73eea792fc6ada0fe7ea3bbf8da2b069
+2151f0bb73eea792fc6ada0fe7ea3bbf8da2b069
+exit: 0
+
+59299234 and 8bd57783 change only docs/configuration.md, which neither validator reads, so they stay cut.
+
+Nightly check with this drift-proof.txt:
+$ bash bin/fm-drift-nightly.sh check --no-fetch
+behind: 7
+ahead: 63
+path-ok: .agents/skills/harness-adapters/references/harness/grok.md
+path-ok: bin/fm-bootstrap.sh
+path-ok: bin/fm-cursor-assert.sh
+path-ok: bin/fm-cursor-guard.sh
+path-ok: bin/fm-dispatch-resolve.sh
+path-ok: tests/fm-bootstrap.test.sh
+path-ok: tests/fm-cursor-guard.test.sh
+path-ok: tests/fm-dispatch-resolve.test.sh
+path-ok: tests/fm-spawn-dispatch-profile.test.sh
+path-drift: archives/fork-cuts.bundle
+path-drift: bin/fm-brief.sh
+path-drift: bin/fm-drift-nightly.sh
+path-drift: bin/fm-spawn.sh
+path-drift: docs/documentation-audiences.json
+path-drift: docs/scripts.md
+path-drift: drift-measurements.txt
+path-drift: drift-proof.txt
+path-drift: tests/fm-drift-nightly.test.sh
+exit: 1
+Every path-drift line is a file this change adds or edits; bin/fm-spawn.sh also carries this change's usage-line edit on top of the kept patches.
+
+Install-time proof: the eight kept SHAs plus this change's non-merge commits except 85bc5153, 59299234 and 8bd57783.
+Those three only remove or edit cut changes, so their patches conflict when replayed onto upstream and stop the check with exit 2.
+$ bash bin/fm-drift-nightly.sh check --no-fetch --proof <that list of 14 SHAs>
+path-ok: 18 lines
+path-drift: 0 lines
+keep: 14 lines
+exit: 0

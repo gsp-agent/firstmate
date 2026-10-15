@@ -1,16 +1,24 @@
-# No prior fork custom commits are retained without measured proof.
-# All eight formerly listed keeps are cut; their named branches are stored in archives/fork-cuts.bundle.
-# Recover a cut with git fetch archives/fork-cuts.bundle refs/heads/archive/<sha>-<slug>:refs/heads/archive/<sha>-<slug>.
-# archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
-# archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
-# archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
-# archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
-# archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
-# archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+# Kept: the live config/crew-dispatch.json depends on these six fork commits.
+# Proof: "Live routing file" in [drift-measurements.txt](drift-measurements.txt); without them upstream rejects the live file, with them it routes as upstream-lean 4877ac8e does.
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48
+ada14efcab836915609ea325e537fef0e9c45edc
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d
+745991e8e70fab9fb35bb63e5d2c1491c42124da
+ece80a3543c804bd10e8f13ad28775abef9a4e94
+8193b2365719da824fe563f01645fe1eb1ccffa0
+# Kept: PR 26's cursor fallback (Codex first, then Claude) ported onto the kept guard, which reads the live file's cursor_fallback and pstack_version.
+# Proof: the same section; the ported bin/fm-cursor-guard.sh is byte-identical to upstream-lean 4877ac8e.
+e478c151d6663c20e3f9d389f6178728d4cdba47
+98242c4f4a262044841090f4ff36581e136935cf
+# Follow-up: move config/crew-dispatch.json onto upstream's dispatch-profile schema so these commits can be cut.
+# Cut: every other fork commit, archived as archive/<sha>-<slug> on gsp-agent/firstmate.
+# archives/fork-cuts.bundle holds the eight commits this file listed before: the six keeps above and the two cuts below.
+# Recover one with git fetch archives/fork-cuts.bundle refs/heads/archive/<sha>-<slug>:refs/heads/archive/<sha>-<slug>.
 # archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
 # archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
 # Measured proof for the required nightly guard: [drift-measurements.txt](drift-measurements.txt).
 # Before installation, the acceptance owner must record the final measured commit SHAs in the installed repository's local drift-proof.txt; alternate --proof inputs apply only to manual checks (bin/fm-drift-nightly.sh owns selection).
+# Those SHAs are this change's non-merge commits except the cut commits 85bc5153, 59299234 and 8bd57783, whose patches conflict on replay ("Install-time proof" in drift-measurements.txt).
 # This source manifest cannot name its own future commit; guard and proof files have no automatic exemption.
-# Cutover on the PM's word: migrate the main home's crew-dispatch.json to the upstream schema, fast-forward /Users/dalecarman/dev/firstmate-upstream to the merged result, accept the measured patches, then install the nightly check.
+# Cutover on the PM's word: fast-forward /Users/dalecarman/dev/firstmate-upstream to the merged result, accept the measured patches, then install the nightly check; config/crew-dispatch.json stays as it is.
 # Check back 2026-10-15: measure the main home's effective diff and run the installed check against its accepted proof.
