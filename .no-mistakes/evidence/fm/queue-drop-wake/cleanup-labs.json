@@ -1,0 +1,20 @@
+[
+  {
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZD4BA0ECK6FQ99Q9Q2C5DR/.fm-queue-live",
+    "files_removed": 24,
+    "empty_directories_removed": 7,
+    "exists_after": false
+  },
+  {
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZD4BA0ECK6FQ99Q9Q2C5DR/.fm-queue-live-order",
+    "files_removed": 34,
+    "empty_directories_removed": 8,
+    "exists_after": false
+  },
+  {
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZD4BA0ECK6FQ99Q9Q2C5DR/.fm-queue-history-replay",
+    "files_removed": 26,
+    "empty_directories_removed": 8,
+    "exists_after": false
+  }
+]

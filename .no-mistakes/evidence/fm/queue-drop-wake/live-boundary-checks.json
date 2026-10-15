@@ -1,0 +1,59 @@
+[
+  {
+    "label": "baseline-live-poll",
+    "command": [
+      "bash",
+      "/Users/dalecarman/.no-mistakes/evidence/01M4ZD4BA0ECK6FQ99Q9Q2C5DR/baseline-fm-pr-poll.sh",
+      "--validated",
+      "github",
+      "https://github.com/groovejones/groove-sight-platform/pull/3941",
+      "github.com",
+      "groovejones/groove-sight-platform",
+      "3941"
+    ],
+    "exit": 0,
+    "stdout": ""
+  },
+  {
+    "label": "target-live-poll",
+    "command": [
+      "bin/fm-pr-poll.sh",
+      "--validated",
+      "github",
+      "https://github.com/groovejones/groove-sight-platform/pull/3941",
+      "github.com",
+      "groovejones/groove-sight-platform",
+      "3941"
+    ],
+    "exit": 0,
+    "stdout": "dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict event=RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g\n"
+  },
+  {
+    "label": "live-unreadable-api",
+    "command": [
+      "bin/fm-pr-poll.sh",
+      "--validated",
+      "github",
+      "https://github.com/groovejones/groove-sight-platform/pull/3941",
+      "github.com",
+      "groovejones/groove-sight-platform",
+      "3941"
+    ],
+    "exit": 0,
+    "stdout": ""
+  },
+  {
+    "label": "live-merged-poll",
+    "command": [
+      "bin/fm-pr-poll.sh",
+      "--validated",
+      "github",
+      "https://github.com/groovejones/groove-sight-platform/pull/4308",
+      "github.com",
+      "groovejones/groove-sight-platform",
+      "4308"
+    ],
+    "exit": 0,
+    "stdout": "merged\n"
+  }
+]

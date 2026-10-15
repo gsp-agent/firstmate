@@ -1,0 +1,2 @@
+armed: state/task-a.check.sh
+verified: https://github.com/o/r/pull/1 is queued (state=OPEN, merged=false, isInMergeQueue=true)

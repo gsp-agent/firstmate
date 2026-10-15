@@ -1,0 +1,1 @@
+registered: state/zz-lab-complete.check.sh

@@ -1,0 +1,1 @@
+registered: state/zz-publication-complete.check.sh

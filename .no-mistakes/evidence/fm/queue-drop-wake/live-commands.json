@@ -1,0 +1,100 @@
+[
+  {
+    "label": "live-create",
+    "command": [
+      "bin/fm-lab-home.sh",
+      "create",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZD4BA0ECK6FQ99Q9Q2C5DR/.fm-queue-live"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-arm",
+    "command": [
+      "bin/fm-pr-check.sh",
+      "live3941",
+      "https://github.com/groovejones/groove-sight-platform/pull/3941"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-register-sentinel",
+    "command": [
+      "bin/fm-check-register.sh",
+      "zz-lab-complete"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-host-bound-poll",
+    "command": [
+      "bin/fm-pr-poll.sh",
+      "--validated",
+      "github",
+      "https://github.com/groovejones/groove-sight-platform/pull/3941",
+      "github.com",
+      "groovejones/groove-sight-platform",
+      "3941"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-open-scan",
+    "command": [
+      "bin/fm-pr-queue-sweep.sh",
+      "--scan",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZD4BA0ECK6FQ99Q9Q2C5DR/.fm-queue-live/state"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-first-watch",
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-first-drain",
+    "command": [
+      "bin/fm-wake-drain.sh"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-first-ack",
+    "command": [
+      "bin/fm-wake-drain.sh",
+      "--ack-through",
+      "11",
+      "--recovery-generation",
+      "25400.1792058826.tDxhHb"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-repeat-watch",
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-repeat-drain",
+    "command": [
+      "bin/fm-wake-drain.sh"
+    ],
+    "exit": 0
+  },
+  {
+    "label": "live-repeat-ack",
+    "command": [
+      "bin/fm-wake-drain.sh",
+      "--ack-through",
+      "12",
+      "--recovery-generation",
+      "35511.1792058840.dEPTLq"
+    ],
+    "exit": 0
+  }
+]

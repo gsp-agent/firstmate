@@ -1,0 +1,193 @@
+{
+  "notice": "Recorded GitHub events fetched in this run; PR states reconstructed as OPEN/unmerged immediately after their historical drops. This is replay evidence, not a live GitHub transition.",
+  "response": {
+    "data": {
+      "repository": {
+        "pullRequest": {
+          "number": 4308,
+          "state": "OPEN",
+          "merged": false,
+          "isInMergeQueue": false,
+          "timelineItems": {
+            "nodes": [
+              {
+                "__typename": "RemovedFromMergeQueueEvent",
+                "id": "RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHujf8MA",
+                "reason": "failed_checks",
+                "createdAt": "2026-10-14T02:32:46Z"
+              }
+            ]
+          }
+        },
+        "pullRequests": {
+          "nodes": [
+            {
+              "number": 3941,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g",
+                    "reason": "merge_conflict",
+                    "createdAt": "2026-10-07T19:34:26Z"
+                  }
+                ]
+              }
+            },
+            {
+              "number": 3950,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA",
+                    "reason": "merge_conflict",
+                    "createdAt": "2026-10-08T23:08:21Z"
+                  }
+                ]
+              }
+            },
+            {
+              "number": 3939,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABVmppb88AAAAHpS4Ieg",
+                    "reason": "manual",
+                    "createdAt": "2026-10-09T00:30:47Z"
+                  }
+                ]
+              }
+            },
+            {
+              "number": 4006,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg",
+                    "reason": "merge_conflict",
+                    "createdAt": "2026-10-08T17:51:54Z"
+                  }
+                ]
+              }
+            },
+            {
+              "number": 4017,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A",
+                    "reason": "failed_checks",
+                    "createdAt": "2026-10-08T17:51:54Z"
+                  }
+                ]
+              }
+            },
+            {
+              "number": 4111,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg",
+                    "reason": "merge_conflict",
+                    "createdAt": "2026-10-09T22:08:31Z"
+                  }
+                ]
+              }
+            },
+            {
+              "number": 4172,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA",
+                    "reason": "manual",
+                    "createdAt": "2026-10-10T10:24:09Z"
+                  }
+                ]
+              }
+            },
+            {
+              "number": 4183,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw",
+                    "reason": "merge_conflict",
+                    "createdAt": "2026-10-10T15:39:38Z"
+                  }
+                ]
+              }
+            },
+            {
+              "number": 4200,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA",
+                    "reason": "merge_conflict",
+                    "createdAt": "2026-10-10T15:47:28Z"
+                  }
+                ]
+              }
+            },
+            {
+              "number": 4308,
+              "state": "OPEN",
+              "merged": false,
+              "isInMergeQueue": false,
+              "timelineItems": {
+                "nodes": [
+                  {
+                    "__typename": "RemovedFromMergeQueueEvent",
+                    "id": "RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHujf8MA",
+                    "reason": "failed_checks",
+                    "createdAt": "2026-10-14T02:32:46Z"
+                  }
+                ]
+              }
+            }
+          ],
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": null
+          }
+        }
+      }
+    }
+  }
+}
