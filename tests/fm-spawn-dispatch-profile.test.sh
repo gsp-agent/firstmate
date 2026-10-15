@@ -66,7 +66,6 @@ make_spawn_case() {
   launchlog="$case_dir/launch.log"
   fakebin=$(make_spawn_fakebin "$case_dir/fake")
   fm_test_spawn_home "$home" "$harness"
-  mkdir -p "$home/pstack/.cursor-plugin" && printf '{"version":"0.15.21"}\n' > "$home/pstack/.cursor-plugin/plugin.json"
   mkdir -p "$home/cursor-usage" && printf 'cursor_models_pct=10\n' > "$home/cursor-usage/20261012-spending.txt"
   fm_git_worktree "$proj" "$wt" "wt-$name"
   for id in "$@"; do
@@ -117,7 +116,7 @@ run_spawn() {
     FM_FAKE_CURSOR_MODELS="${FM_TEST_CURSOR_MODELS:-}" \
     FM_FAKE_CURSOR_LIST_STATUS="${FM_TEST_CURSOR_LIST_STATUS:-0}" \
     GROK_HOME="$home/grok-home" \
-    FM_PSTACK_DIR="$home/pstack" FM_CURSOR_USAGE_DIR="$home/cursor-usage" FM_CURSOR_CLI_CONFIG="$home/cursor-cli-config.json" FM_CURSOR_MODELS_RULE="$home/pstack-models.mdc" \
+    FM_CURSOR_USAGE_DIR="$home/cursor-usage" \
     fm_test_run_spawn "$home" "$wt" "$fakebin" "$@"
 }
 
@@ -653,8 +652,6 @@ test_grok_threads_model_and_reasoning_effort() {
   assert_contains "$launch" "grok --always-approve --model 'grok-4' --reasoning-effort 'high'" \
     "grok launch did not thread model and reasoning-effort flags"
   assert_not_contains "$launch" "--effort" "grok launch must use --reasoning-effort, not --effort"
-  assert_contains "$launch" "env GROK_DISABLE_API_KEY_AUTH=1 GROK_MEMORY=0 GROK_CLAUDE_SKILLS_ENABLED=0 GROK_CURSOR_SKILLS_ENABLED=0 GROK_CLAUDE_MCPS_ENABLED=0 GROK_CURSOR_MCPS_ENABLED=0 grok --always-approve " \
-    "grok launch did not keep the crewmate off the captain's Claude and Cursor MCP servers and skills"
   pass "grok receives --model and --reasoning-effort profile flags"
 }
 
@@ -706,16 +703,10 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
   expect_code 0 "$status" "cursor spawn with a model-qualified reasoning class should succeed"
   assert_meta_profile "$HOME_DIR/state/$id.meta" cursor cursor-grok-4.5-high high
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "-p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir " \
-    "cursor launch did not carry print/stream-json, trust, autonomy, approve-mcps and plugin-dir flags"
+  assert_contains "$launch" "cursor-agent' --trust --yolo " \
+    "cursor launch did not carry trust and autonomy flags"
   assert_contains "$launch" "--model 'cursor-grok-4.5-high' --workspace '$WT_DIR'" \
     "cursor launch did not carry model and exact workspace flags"
-  assert_contains "$launch" "> >(tee '" "cursor launch did not tee its stream-json through process substitution"
-  assert_contains "$launch" "$id.cursor-stream.jsonl" "cursor stream was not teed to Firstmate state"
-  assert_contains "$launch" "fm-cursor-guard.sh" "cursor launch did not run the post-run usage-limit hook"
-  assert_grep 'useHttp1ForAgent": true' "$HOME_DIR/cursor-cli-config.json" "cursor config was not re-asserted before launch"
-  assert_grep '"fast"' "$HOME_DIR/cursor-cli-config.json" "cursor config lost the fast tier"
-  assert_not_contains "$(cat "$HOME_DIR/pstack-models.mdc")" "opus" "pstack role models must never name an Opus model in Cursor"
   # The executable is RESOLVED, never named: `cursor` is not the CLI, so a
   # literal `cursor agent` command cannot run on a machine that has only the
   # real installed names.
@@ -736,89 +727,6 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
   pass "cursor receives its model-qualified reasoning class and exact task workspace"
 }
 
-# Stand-in for Cursor's shell tool. Cursor asks each preToolUse hook first, then
-# runs a call that names no directory wherever the conversation's previous call
-# left its persistent shell, and an explicit directory moves that shell. This
-# applies those rules to the hook command a spawn really generated, against
-# scratch repositories only. REPLAY_CWD is the persistent shell's directory.
-REPLAY_CWD=
-REPLAY_RAN=
-REPLAY_OUT=
-cursor_shell_call() {  # <hook-command> <command> [working-directory]
-  local hook=$1 command=$2 dir=${3-} decision
-  decision=$(jq -nc --arg c "$command" --arg d "$dir" '{tool_name:"Shell",tool_input:{command:$c,cwd:$d}}' | sh -c "$hook")
-  REPLAY_RAN=0
-  REPLAY_OUT=$(printf '%s' "$decision" | jq -r '.agent_message // empty')
-  [ "$(printf '%s' "$decision" | jq -r '.permission // empty')" != deny ] || return 0
-  [ -n "$dir" ] || dir=$(printf '%s' "$decision" | jq -r '.updated_input.cwd // empty')
-  [ -n "$dir" ] || dir=$REPLAY_CWD
-  REPLAY_CWD=$dir
-  REPLAY_RAN=1
-  REPLAY_OUT=$(cd "$dir" && sh -c "$command" 2>&1)
-}
-
-test_cursor_crew_guard_pins_cwd_and_refuses_ref_plumbing() {
-  local rec id out status launch guard_dir hook_cmd primary baseline head_before head_after
-  id=profile-cursor-crewguard-z6g
-  rec=$(make_spawn_case profile-cursor-crewguard cursor "$id")
-  read_case_record "$rec"
-
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --model cursor-grok-4.5-high)
-  status=$?
-  expect_code 0 "$status" "cursor spawn should write its crew guard plugin"$'\n'"$out"
-  launch=$(cat "$LAUNCH_LOG")
-  guard_dir="$(cd "$HOME_DIR/state" && pwd -P)/$id.cursor-crew-guard"
-  assert_contains "$launch" "--plugin-dir '$guard_dir' --model" \
-    "cursor launch did not load the per-task crew guard plugin"
-  [ "$(jq -r '.hooks' "$guard_dir/.cursor-plugin/plugin.json")" = ./hooks/hooks.json ] \
-    || fail "the crew guard plugin does not point at its hooks file"
-  [ "$(jq -c '.hooks.preToolUse | map({matcher, type})' "$guard_dir/hooks/hooks.json")" = '[{"matcher":"Shell","type":"command"}]' ] \
-    || fail "the crew guard hook is not a single Shell preToolUse command: $(cat "$guard_dir/hooks/hooks.json")"
-  hook_cmd=$(jq -r '.hooks.preToolUse[0].command' "$guard_dir/hooks/hooks.json")
-  [ "$hook_cmd" = "'$ROOT/bin/fm-cursor-crew-guard.mjs' --worktree '$WT_DIR'" ] \
-    || fail "the crew guard hook command does not pin this task's worktree: $hook_cmd"
-  if [ "${FM_TEST_EVIDENCE:-0}" = 1 ]; then
-    printf '# crew guard plugin bytes (%s)\n' "$guard_dir"
-    cat "$guard_dir/.cursor-plugin/plugin.json" "$guard_dir/hooks/hooks.json"
-  fi
-
-  # Replay of the 2026-10-13 incident: a call names the primary checkout as its
-  # directory, then a call names none and tries to move HEAD with plumbing.
-  primary="$CASE_DIR/scratch-primary"
-  baseline="$CASE_DIR/scratch-primary-unguarded"
-  fm_git_init_commit "$primary"
-  fm_git_init_commit "$baseline"
-
-  REPLAY_CWD=$WT_DIR
-  cursor_shell_call ':' 'git rev-parse --show-toplevel' "$baseline"
-  cursor_shell_call ':' 'pwd'
-  [ "$(cd "$REPLAY_CWD" && pwd -P)" = "$(cd "$baseline" && pwd -P)" ] \
-    || fail "stand-in shell did not model the persistent directory (ran in $REPLAY_CWD)"
-  cursor_shell_call ':' 'git branch fm/replay && git symbolic-ref HEAD refs/heads/fm/replay'
-  [ "$(git -C "$baseline" symbolic-ref HEAD)" = refs/heads/fm/replay ] \
-    || fail "unguarded replay did not reproduce the HEAD flip"
-
-  head_before=$(git -C "$primary" symbolic-ref HEAD)
-  REPLAY_CWD=$WT_DIR
-  cursor_shell_call "$hook_cmd" 'git rev-parse --show-toplevel' "$primary"
-  cursor_shell_call "$hook_cmd" 'pwd'
-  [ "$REPLAY_RAN" = 1 ] || fail "a pinned empty-directory call did not run"
-  [ "$(cd "$REPLAY_OUT" && pwd -P)" = "$(cd "$WT_DIR" && pwd -P)" ] \
-    || fail "an empty-directory call ran in '$REPLAY_OUT', not the task worktree"
-  cursor_shell_call "$hook_cmd" 'git branch fm/replay && git symbolic-ref HEAD refs/heads/fm/replay'
-  [ "$REPLAY_RAN" = 0 ] || fail "the symbolic-ref call was not refused"
-  assert_contains "$REPLAY_OUT" "git symbolic-ref" "the refusal did not name the refused command"
-  head_after=$(git -C "$primary" symbolic-ref HEAD)
-  [ "$head_after" = "$head_before" ] || fail "scratch primary HEAD moved: $head_before -> $head_after"
-  [ -z "$(git -C "$primary" branch --list fm/replay)" ] || fail "the refused call still created a branch in the scratch primary"
-  [ -z "$(git -C "$WT_DIR" branch --list fm/replay)" ] || fail "the refused call still created a branch in the slot"
-  if [ "${FM_TEST_EVIDENCE:-0}" = 1 ]; then
-    printf '# replay, unguarded: scratch primary HEAD main -> %s\n' "$(git -C "$baseline" symbolic-ref HEAD)"
-    printf '# replay, guarded: scratch primary HEAD before=%s after=%s\n' "$head_before" "$head_after"
-  fi
-  pass "the cursor crew guard pins empty-directory calls to the worktree and a replayed symbolic-ref leaves a scratch primary's HEAD alone"
-}
-
 test_cursor_refuses_model_absent_from_live_catalog() {
   local rec id out status
   id=profile-cursor-unsupported-z6d
@@ -837,21 +745,8 @@ test_cursor_refuses_model_absent_from_live_catalog() {
   pass "cursor refuses model ids absent from its resolved binary's live catalog"
 }
 
-test_cursor_third_launch_and_fallback() {
+test_cursor_fallback() {
   local rec id out status
-  id=profile-cursor-guard-z6f
-  rec=$(make_spawn_case profile-cursor-guard cursor "$id")
-  read_case_record "$rec"
-  mkdir -p "$HOME_DIR/state"
-  printf '{"day":"%s","beads":{"%s":2}}\n' "$(TZ=America/Chicago date +%F)" "$id" > "$HOME_DIR/state/cursor-dispatch.json"
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
-    --harness cursor --model cursor-grok-4.5-high)
-  status=$?
-  expect_code 1 "$status" "a 3rd cursor launch of one bead in a day must be refused"
-  assert_contains "$out" "cursor guard: refused $id" "refusal did not name the bead"
-  [ ! -s "$LAUNCH_LOG" ] || fail "a refused cursor spawn must not launch"
-  pass "cursor spawn refuses a bead's 3rd launch in a day"
-
   id=profile-cursor-fallback-z6g
   rec=$(make_spawn_case profile-cursor-fallback cursor "$id")
   read_case_record "$rec"
@@ -1604,7 +1499,7 @@ test_claude_forwards_firstmate_config_dir_when_set() {
   status=$?
   expect_code 0 "$status" "claude spawn with CLAUDE_CONFIG_DIR set should succeed"
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "CLAUDE_CONFIG_DIR='$CASE_DIR/claude-work' env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions $(claude_worker_add_dirs "$HOME_DIR" "$id")--settings '{\"feedbackDrafts\":\"off\",\"autoMemoryEnabled\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}'" \
+  assert_contains "$launch" "CLAUDE_CONFIG_DIR='$CASE_DIR/claude-work' env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude --dangerously-skip-permissions $(claude_worker_add_dirs "$HOME_DIR" "$id")--settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}'" \
     "claude launch did not forward firstmate's CLAUDE_CONFIG_DIR to the crewmate pane"
   pass "claude forwards firstmate's CLAUDE_CONFIG_DIR so the crewmate uses the same credential store"
 }
@@ -1703,16 +1598,6 @@ assert_attribution_policy_absent() {  # <launch-command> <what>
     || fail "$what launch settings JSON still disables Claude attribution: $settings"
 }
 
-# Claude Code treats a missing autoMemoryEnabled as on. Both the inline crew
-# settings and the secondmate settings file must set it false, including when
-# keep-ai-trailers omits attribution.
-assert_auto_memory_disabled() {  # <launch-command> <what>
-  local launch=$1 what=$2 settings
-  settings=$(claude_settings_json_arg "$launch")
-  printf '%s' "$settings" | jq -e '.autoMemoryEnabled == false' >/dev/null \
-    || fail "$what launch settings JSON does not disable Claude auto-memory: $settings"
-}
-
 test_claude_task_launch_carries_control_channel_authority() {
   local rec id out status launch
   id=profile-claude-control-channel-z21
@@ -1785,7 +1670,6 @@ test_claude_crewmate_launch_carries_the_attribution_policy() {
   expect_code 0 "$status" "claude crewmate spawn should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
   assert_attribution_policy "$launch" "claude crewmate"
-  assert_auto_memory_disabled "$launch" "claude crewmate"
   [ -d "$HOME_DIR/state/$id.git-hooks" ] || fail "default config did not install the AI trailer hooks"
   pass "a claude crewmate launch carries the attribution-off policy in its own settings"
 }
@@ -1802,7 +1686,6 @@ test_keep_ai_trailers_omits_attribution_settings_and_strip_hooks() {
   expect_code 0 "$status" "claude spawn with keep-ai-trailers should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
   assert_attribution_policy_absent "$launch" "opted-in claude"
-  assert_auto_memory_disabled "$launch" "opted-in claude"
   assert_not_contains "$launch" 'GIT_CONFIG_KEY_0=core.hooksPath' \
     "opted-in launch still overrides the repository hooksPath"
   [ ! -e "$HOME_DIR/state/$id.git-hooks" ] \
@@ -1826,8 +1709,6 @@ test_keep_ai_trailers_reaches_secondmate_crew_launches() {
   status=$?
   expect_code 0 "$status" "secondmate spawn with keep-ai-trailers should succeed"$'\n'"$out"
   [ -e "$sm/config/keep-ai-trailers" ] || fail "secondmate home did not inherit config/keep-ai-trailers"
-  launch=$(cat "$LAUNCH_LOG")
-  assert_auto_memory_disabled "$launch" "keep-ai-trailers claude secondmate"
 
   read_case_record "$sm_rec"
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$crew_id" "$PROJ_DIR")
@@ -1835,7 +1716,6 @@ test_keep_ai_trailers_reaches_secondmate_crew_launches() {
   expect_code 0 "$status" "secondmate crew spawn should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
   assert_attribution_policy_absent "$launch" "secondmate crew claude"
-  assert_auto_memory_disabled "$launch" "secondmate crew claude"
   assert_not_contains "$launch" 'GIT_CONFIG_KEY_0=core.hooksPath' \
     "secondmate crew launch still overrides the repository hooksPath"
   [ ! -e "$HOME_DIR/state/$crew_id.git-hooks" ] \
@@ -1857,7 +1737,6 @@ test_claude_secondmate_launch_carries_the_attribution_policy() {
   expect_code 0 "$status" "secondmate claude spawn should succeed"$'\n'"$out"
   launch=$(cat "$LAUNCH_LOG")
   assert_attribution_policy "$launch" "claude secondmate"
-  assert_auto_memory_disabled "$launch" "claude secondmate"
   pass "a claude secondmate launch carries the attribution-off policy too"
 }
 
@@ -2236,7 +2115,7 @@ claude_expected_launch() {  # <launch> <home> <id> <permission-flag>
   [ "$(printf '%s' "$doorbell" | "$ROOT/bin/fm-operational-input.sh" doorbell-kind)" = launch-brief ] \
     || doorbell="not a launch-brief doorbell"
   quoted="'$(printf '%s' "$doorbell" | sed "s/'/'\\\\''/g")'"
-  printf '%s' "export COMPACT_ADVISER_DISABLE=1; $(task_inbox_export "$2" "$3")$(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 $(claude_worker_add_dirs "$2" "$3")--settings '{\"feedbackDrafts\":\"off\",\"autoMemoryEnabled\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
+  printf '%s' "export COMPACT_ADVISER_DISABLE=1; $(task_inbox_export "$2" "$3")$(ai_trailer_hooks_prefix "$2" "$3")env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false CLAUDE_CODE_SEND_FEEDBACK=0 claude $4 $(claude_worker_add_dirs "$2" "$3")--settings '{\"feedbackDrafts\":\"off\",\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}' $CLAUDE_CONTROL_CHANNEL_FLAG $quoted"
 }
 
 test_claude_permission_mode_bypass_matches_absent_launch() {
@@ -2390,9 +2269,8 @@ test_grok_threads_model_and_reasoning_effort
 test_grok_omits_invalid_max_reasoning_effort
 test_grok_threads_xhigh_reasoning_effort
 test_cursor_threads_model_workspace_and_omits_effort_axis
-test_cursor_crew_guard_pins_cwd_and_refuses_ref_plumbing
 test_cursor_refuses_model_absent_from_live_catalog
-test_cursor_third_launch_and_fallback
+test_cursor_fallback
 test_cursor_failed_catalog_probe_blocks_spawn
 test_opencode_threads_model_and_effort_variant
 test_opencode_without_effort_keeps_launch_config_unchanged

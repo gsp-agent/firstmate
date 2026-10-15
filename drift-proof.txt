@@ -1,0 +1,57 @@
+# Finalized effective patch sequence, with behavioral proof from this machine.
+# Replay this sequence together: original composite patches are dependencies of the corrective cuts, not approvals to restore their removed behavior.
+# aba49d6b: Grok xhigh reaches the executed launch argv instead of being silently omitted upstream; "R16 effort delivery" in [drift-measurements.txt](drift-measurements.txt).
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48
+# ada14efc: both dispatch validators accept that supported effort; "Live routing file" and "R16 routing compatibility" in [drift-measurements.txt](drift-measurements.txt).
+ada14efcab836915609ea325e537fef0e9c45edc
+# Retained portions of composite commits, measured after the cuts below.
+# cce0ab3a: label routing, Codex Sol max delivery and refusal of an unreadable Cursor model catalogue; "R16 routing compatibility", "R16 effort delivery" and "R16 catalogue refusal" in [drift-measurements.txt](drift-measurements.txt).
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d
+# 745991e8: replay dependency only, completely removed by 3d91d6eb below; "R16 proof scope" in [drift-measurements.txt](drift-measurements.txt).
+745991e8e70fab9fb35bb63e5d2c1491c42124da
+# ece80a35: quota-file selection and cursor_fallback validation, plus the measured docs-only routing; "R16 quota fallback" and "Live routing file" in [drift-measurements.txt](drift-measurements.txt).
+ece80a3543c804bd10e8f13ad28775abef9a4e94
+# 8193b236: replay dependency only, completely removed by 3d91d6eb below; "R16 proof scope" in [drift-measurements.txt](drift-measurements.txt).
+8193b2365719da824fe563f01645fe1eb1ccffa0
+# e478c151: quota fallback selects Codex, then Claude for the existing codex-limit record; "R16 quota fallback" and the accepted live ac-q14t1 records in [drift-measurements.txt](drift-measurements.txt).
+e478c151d6663c20e3f9d389f6178728d4cdba47
+# 98242c4f: the short-pool path selects Codex without consulting an unrelated plugin pin; "R16 quota fallback" in [drift-measurements.txt](drift-measurements.txt).
+98242c4f4a262044841090f4ff36581e136935cf
+# 0efb72c1: required nightly guard with uninstall, absent upstream; "Nightly drift guard measured on this machine" in [drift-measurements.txt](drift-measurements.txt).
+0efb72c1f28e335037a7470a7583bccb51fec71b
+# ce08ec29: original proof-record dependency, finalized below; "Finalized shipped acceptance" in [drift-measurements.txt](drift-measurements.txt).
+ce08ec298a7d52333a4c57ff01cdf0471c3bfdab
+# 9f1504c9: exact patch replay and recovery archive; "Counterfactual 1", "Counterfactual 2" and "Cut recovery" in [drift-measurements.txt](drift-measurements.txt).
+9f1504c961e14d45dcbadbcbaede630dc30bb94e
+# 23b309bf: hidden-deletion refusal and fixed comparison snapshots; "The revised guard rejects the previously hidden deletion" in [drift-measurements.txt](drift-measurements.txt).
+23b309bfda0e09a6348a6f252e3c5e8bb2cc6620
+# bad73aa7: guard help, usage and documentation alignment; focused CLI checks in "Finalized shipped acceptance" in [drift-measurements.txt](drift-measurements.txt).
+bad73aa7e1cbbfa7786429ec271487f87f8e1c8a
+# e85b9515: restored composite dependency, reduced by 3d91d6eb; "R16 retained behavior after cutting unsupported portions" in [drift-measurements.txt](drift-measurements.txt).
+e85b95155824b19bb7c95969369c4e5d98356cb7
+# 814465e1: recorded routing comparison; "Live routing file" in [drift-measurements.txt](drift-measurements.txt).
+814465e1383e1654aea41db0544c28cd1f30fa92
+# 3d91d6eb: mandatory corrective cuts and their recovery archive; "R16 retained behavior after cutting unsupported portions" and "Recovery archive consumer" in [drift-measurements.txt](drift-measurements.txt).
+3d91d6eb379009013d74f6bc6886684b67116009
+# aaac2ae1: finalized patch replay and fixed-parent selection; "Finalized shipped acceptance" in [drift-measurements.txt](drift-measurements.txt).
+aaac2ae1f8467c00e5ee7389599b4502a00be9a4
+# 6f8648a1: dispatch and Cursor fallback documentation alignment; "D1 documentation finalization" in [drift-measurements.txt](drift-measurements.txt).
+6f8648a1a009a1075078b21fd3a5dfbff3fb1d31
+# 5f2b4f1c: finalized documentation drift proof; "D1 documentation finalization" in [drift-measurements.txt](drift-measurements.txt).
+5f2b4f1ce74292fc0d2d15fa5a5c828925e1ca9d
+# d5cb3202: quoted empty model assignment and the D1 finalized manifest; "D1 documentation finalization" in [drift-measurements.txt](drift-measurements.txt).
+d5cb32027c633844262dc5013e735de9f1cb18a7
+# 75f251ff: failing install regressions for XML specials in paths and an invalid plist; "Install plist escaping" in [drift-measurements.txt](drift-measurements.txt).
+75f251ffc3ba760928d2cfb6f037840103867a16
+# Final acceptance patch: fixed parent selects only the commit delivering this manifest, never later descendants; "Install plist escaping" in [drift-measurements.txt](drift-measurements.txt).
+after: 75f251ffc3ba760928d2cfb6f037840103867a16
+# Cut completely: 745991e8's cap/tee changes and 8193b236's stream classifier.
+# Cut portions: cce0ab3a's headless/plugin launch and shared Cursor settings; ece80a35's cap, lock recovery, post-run stream state and plugin fallback; 98242c4f's plugin-pin branch.
+# All cuts remain recoverable as named branches in archives/fork-cuts.bundle, including archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts.
+# Recover a cut with git fetch archives/fork-cuts.bundle refs/heads/archive/<sha>-<slug>:refs/heads/archive/<sha>-<slug>.
+# The bundle also retains the original eight archive branches; 59299234 and 8bd57783 remain cut.
+# The earlier "Install-time proof" list in drift-measurements.txt predates these cuts and is superseded; do not reinstall its whole-commit approvals.
+# Alternate --proof inputs apply only to manual checks (bin/fm-drift-nightly.sh owns selection).
+# Guard and proof files have no automatic exemption; their complete patches must match this sequence.
+# Cutover on the PM's word: let existing Cursor launches finish, fast-forward /Users/dalecarman/dev/firstmate-upstream to the merged result, run its shipped proof check, then install the nightly check; config/crew-dispatch.json stays as it is.
+# Check back 2026-10-15: measure the main home's effective diff and run the installed check against its accepted proof.

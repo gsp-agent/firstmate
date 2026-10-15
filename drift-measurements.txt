@@ -1,0 +1,591 @@
+Nightly drift guard measured on this machine
+Measured: 2026-10-14T13:08:36.431099-05:00
+Platform: Darwin 27.2.0 arm64
+Starting head: ce08ec298a7d52333a4c57ff01cdf0471c3bfdab
+Upstream: 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Scope: executable guard behavior in local Git fixtures; deployment is outside this review phase.
+
+$ git --version
+git version 2.56.0
+exit: 0
+
+$ git hash-object bin/fm-drift-nightly.sh
+0a8b0f9ce67600d4e64302e94080dda97ad82d15
+exit: 0
+
+Upstream baseline: no nightly drift guard exists at the imported upstream commit.
+$ git cat-file -e 7df545bf74ff729ed1733f77b0aea02a9b164ac1:bin/fm-drift-nightly.sh
+stderr:
+fatal: path 'bin/fm-drift-nightly.sh' exists on disk, but not in '7df545bf74ff729ed1733f77b0aea02a9b164ac1'
+exit: 128
+
+Cut recovery: the Git consumer verifies all eight archived branch heads.
+$ git bundle verify archives/fork-cuts.bundle
+The bundle contains these 8 refs:
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+ada14efcab836915609ea325e537fef0e9c45edc refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+745991e8e70fab9fb35bb63e5d2c1491c42124da refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+ece80a3543c804bd10e8f13ad28775abef9a4e94 refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+8193b2365719da824fe563f01645fe1eb1ccffa0 refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+592992342dfbfd681ce66a08a6aeb38177c53a79 refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+8bd577837677140faf740ac6c51dd1954bba675a refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+The bundle requires these 2 refs:
+20dcbf91520b1816663b81873ad67d0b93b3e4d6
+7df545bf74ff729ed1733f77b0aea02a9b164ac1
+The bundle uses this hash algorithm: sha1
+stderr:
+archives/fork-cuts.bundle is okay
+exit: 0
+
+$ git bundle list-heads archives/fork-cuts.bundle
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+ada14efcab836915609ea325e537fef0e9c45edc refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+745991e8e70fab9fb35bb63e5d2c1491c42124da refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+ece80a3543c804bd10e8f13ad28775abef9a4e94 refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+8193b2365719da824fe563f01645fe1eb1ccffa0 refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+592992342dfbfd681ce66a08a6aeb38177c53a79 refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+8bd577837677140faf740ac6c51dd1954bba675a refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+exit: 0
+
+Counterfactual 1: identical proven-file drift is accepted by the original guard and rejected by the revised guard.
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv/proof.txt
+behind: 0
+ahead: 2
+path-ok: notes.txt
+unproven: 4a127569b77da7e216a93126e76fdcbb00a63108 unproven edit to proven file
+keep: be5763ce5a82a9bbc4bb34d89a97099bfec6b01b proven notes
+exit: 0
+
+$ bash bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv/proof.txt
+behind: 0
+ahead: 2
+path-drift: notes.txt
+unproven: 4a127569b77da7e216a93126e76fdcbb00a63108 unproven edit to proven file
+keep: be5763ce5a82a9bbc4bb34d89a97099bfec6b01b proven notes
+exit: 1
+
+Counterfactual 2: identical unproven guard-file drift is accepted by the original guard and rejected by the revised guard.
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv/proof.txt
+behind: 0
+ahead: 3
+path-ok: bin/fm-drift-nightly.sh
+path-ok: notes.txt
+unproven: dc4bce16ffdce128ea498fe7da9e5e06d8f4f23f restore notes and add unproven guard
+unproven: 4a127569b77da7e216a93126e76fdcbb00a63108 unproven edit to proven file
+keep: be5763ce5a82a9bbc4bb34d89a97099bfec6b01b proven notes
+exit: 0
+
+$ bash bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-tmp/counterfactual-k331p0zv/proof.txt
+behind: 0
+ahead: 3
+path-drift: bin/fm-drift-nightly.sh
+path-ok: notes.txt
+unproven: dc4bce16ffdce128ea498fe7da9e5e06d8f4f23f restore notes and add unproven guard
+unproven: 4a127569b77da7e216a93126e76fdcbb00a63108 unproven edit to proven file
+keep: be5763ce5a82a9bbc4bb34d89a97099bfec6b01b proven notes
+exit: 1
+
+Focused behavioral verification of the retained nightly guard:
+$ bash tests/fm-drift-nightly.test.sh
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - dependent proven patches are accepted regardless of proof-file order
+ok - proof approves a patch rather than the commit's entire file snapshot
+ok - cut unproven changes pass once their effective changes are gone
+ok - a proven change can cut unrelated unproven changes in the same commit
+ok - missing accepted patches are reported as drift
+ok - unproven file modes cannot borrow content proof
+ok - unknown proof commits cannot silently authorize changes
+ok - behind is reported and does not fail the check by itself
+ok - a merge commit is labeled merge and adds no path-drift when its tree matches upstream
+ok - install --dry-run prints the job and writes nothing
+ok - install writes the nightly agent and uninstall removes it, including a second call
+ok - install rejects hour 24
+exit: 0
+
+Elapsed seconds: 5.581
+The required guard supplies detection absent upstream and closes the measured original exemptions.
+
+Rename and ref-snapshot regressions measured on this machine
+Measured: 2026-10-14T13:39:19.643373-05:00
+Starting head: 9f1504c961e14d45dcbadbcbaede630dc30bb94e
+Revised guard blob: b4c91bae3fb94e246a8534f51367ec628547535a
+rename counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-5o8fg7uc --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-5o8fg7uc/proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+unproven: e0583b2dbc3981f46423b12801d58c1681161167 unproven deletion
+keep: 776b4b2261255e6c96ae508ebf743635ca0851d5 proven change
+exit: 0
+
+rename counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-6q60uge8 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-6q60uge8/proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+path-drift: original.txt
+unproven: d9c7d18b5b2aa34071b0d74d7f6b6f6d4d18ebfc unproven deletion
+keep: cebaf6694c3e196221811044d945378cdea61a3a proven change
+exit: 1
+
+The fixture advances refs/heads/main to 9bd11e1fa806cb002f0d61d1fdae7f18462cbde4 after the first path enumeration.
+fork counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-8glvn5va --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-8glvn5va/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+unproven: 9bd11e1fa806cb002f0d61d1fdae7f18462cbde4 later commit
+keep: b55f22d245140fa133b18e515d7fe6448081136e proven change
+exit: 0
+
+The fixture advances refs/heads/main to f83ec887688c9bc3423f4c5aa7e3c5d2adaf869c after the first path enumeration.
+fork counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-dlvo49r8 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-dlvo49r8/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: c4b99a69f69ba9a9377130864b6623f0f2fa2fa9 proven change
+exit: 0
+
+The fixture advances refs/heads/upstream to 563569f5208accac23cffcd6e56728e455016cef after the first path enumeration.
+upstream counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-534w1xh2 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-534w1xh2/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+exit: 0
+
+The fixture advances refs/heads/upstream to 2117800a0691cb43660cc36b3b59ab05587205a9 after the first path enumeration.
+upstream counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-490jl9kb --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-490jl9kb/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: 1f72d5816e50dd21d1b63b2491cba5b08cac13c2 proven change
+exit: 0
+
+Focused behavioral verification, including a real local Git fetch:
+$ bash tests/fm-drift-nightly.test.sh
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+ok - a moving fork ref cannot change the captured check or its report
+ok - a moving upstream ref cannot change the captured check or its report
+Not currently on any branch.
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   ../../../bin/fm-drift-nightly.sh
+	modified:   ../../../drift-measurements.txt
+	modified:   ../../../tests/fm-drift-nightly.test.sh
+
+no changes added to commit (use "git add" and/or "git commit -a")
+stderr:
+fatal: destination path '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/drift-fetch-fork.ygvsTO' already exists and is not an empty directory.
+The following paths are ignored by one of your .gitignore files:
+.agent-state/verification-round-3
+hint: Use -f if you really want to add them.
+hint: Disable this message with "git config set advice.addIgnoredFile false"
+not ok - the fetched upstream snapshot preserves the proven patch: From https://github.com/gsp-agent/firstmate
+ * branch              main       -> FETCH_HEAD
+error: proof patch conflicts without unproven changes: 9f1504c961e14d45dcbadbcbaede630dc30bb94e: expected exit 0, got 2
+exit: 1
+
+
+Rename and ref-snapshot regressions measured on this machine
+Measured: 2026-10-14T13:47:35.088722-05:00
+Starting head: 9f1504c961e14d45dcbadbcbaede630dc30bb94e
+Revised guard blob: b4c91bae3fb94e246a8534f51367ec628547535a
+rename counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-ntl0qo1_ --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-ntl0qo1_/proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+unproven: 07199e2b825de968c9ee17987c8dc212fe609005 unproven deletion
+keep: bdf27d4c9e3dcfb174d4b2697067c32a5745ef06 proven change
+exit: 0
+
+rename counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-50kgswjp --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/rename-50kgswjp/proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+path-drift: original.txt
+unproven: 07199e2b825de968c9ee17987c8dc212fe609005 unproven deletion
+keep: bdf27d4c9e3dcfb174d4b2697067c32a5745ef06 proven change
+exit: 1
+
+The fixture advances refs/heads/main to d72621897d5a42caef19dfa628d4feff72a06e13 after the first path enumeration.
+fork counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-0mb3h5d9 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-0mb3h5d9/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+unproven: d72621897d5a42caef19dfa628d4feff72a06e13 later commit
+keep: ea6c544b50c1d5ee84019bc522949d9b604b8589 proven change
+exit: 0
+
+The fixture advances refs/heads/main to 6d53afb46c0a851b13f4cf67c1c3a52a1bdd0531 after the first path enumeration.
+fork counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-ugfur6qe --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/fork-ugfur6qe/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: 39967fdd76bd5fc6b5d0ea514494634b29914b20 proven change
+exit: 0
+
+The fixture advances refs/heads/upstream to ac48f4c3a6a19575e3702088ab16728b470fa9c0 after the first path enumeration.
+upstream counterfactual, original guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/original-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-lhtkojs5 --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-lhtkojs5/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+exit: 0
+
+The fixture advances refs/heads/upstream to ac48f4c3a6a19575e3702088ab16728b470fa9c0 after the first path enumeration.
+upstream counterfactual, revised guard:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-1ou1xmom --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4XNE5RJ4SWE239K2J4FBE3K/.agent-state/verification-round-3/upstream-1ou1xmom/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: b9efab1d450125efc48add4a9c97006a044bbf39 proven change
+exit: 0
+
+Focused behavioral verification, including a real local Git fetch:
+$ bash tests/fm-drift-nightly.test.sh
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+ok - a moving fork ref cannot change the captured check or its report
+ok - a moving upstream ref cannot change the captured check or its report
+ok - the captured upstream includes updates from the completed fetch
+ok - dependent proven patches are accepted regardless of proof-file order
+ok - proof approves a patch rather than the commit's entire file snapshot
+ok - cut unproven changes pass once their effective changes are gone
+ok - a proven change can cut unrelated unproven changes in the same commit
+ok - missing accepted patches are reported as drift
+ok - unproven file modes cannot borrow content proof
+ok - unknown proof commits cannot silently authorize changes
+ok - behind is reported and does not fail the check by itself
+ok - a merge commit is labeled merge and adds no path-drift when its tree matches upstream
+ok - install --dry-run prints the job and writes nothing
+ok - install writes the nightly agent and uninstall removes it, including a second call
+ok - install rejects hour 24
+exit: 0
+
+Elapsed seconds: 11.612
+The revised guard rejects the previously hidden deletion and reports a consistent captured revision when either ref advances.
+
+Live routing file
+Measured: 2026-10-14T19:09:58-05:00
+Starting head: 8b34567a2def0fc2aa502e8ae123ae5c01b35d02
+Live file: /Users/dalecarman/dev/firstmate-upstream/config/crew-dispatch.json, read only.
+It routes with grok xhigh and codex max and sets label_routes, cursor_fallback and pstack_version.
+Each revision's bin/ was exported with git archive <rev> bin; curl was a stub that records calls, and it recorded 0.
+
+Dispatch resolver, brief mode, on the live file:
+$ TYPESAFE_API_KEY=measure-not-a-key FM_HOME=/Users/dalecarman/dev/firstmate-upstream PATH=<curl-stub>:$PATH bash <rev>/bin/fm-dispatch-resolve.sh <brief>
+7df545bf74ff729ed1733f77b0aea02a9b164ac1 (upstream merge-base): exit 2
+08f0a069af2f88911858b44175d225b77362cffe (kunchenguid/main): exit 2
+bad73aa7e1cbbfa7786429ec271487f87f8e1c8a (this change with the keeps cut): exit 2
+error: malformed rules file: /Users/dalecarman/dev/firstmate-upstream/config/crew-dispatch.json - each use profile effort must be supported by its harness and model
+
+Dispatch resolver, worker routing, 8b34567a against upstream-lean 4877ac8e, which the main home runs:
+$ TYPESAFE_API_KEY=measure-not-a-key FM_HOME=/Users/dalecarman/dev/firstmate-upstream PATH=<curl-stub>:$PATH bash <rev>/bin/fm-dispatch-resolve.sh --labels <set>
+set 1 labels='' exit 0/0 identical: grok grok-4.7 xhigh
+set 2 labels=docs-only exit 0/0 identical: grok grok-4.7 xhigh
+set 3 labels=ep-opus exit 0/0 identical: claude claude-opus-5-5[1m] xhigh
+set 4 labels='bug, ep-opus' exit 0/0 identical: claude claude-opus-5-5[1m] xhigh
+set 5 labels=docs-only,ep-opus exit 1/1 identical: refused, labels conflict
+set 6 labels=ep-opus,docs-only exit 1/1 identical: refused, labels conflict
+set 7 labels=bug exit 0/0 identical: grok grok-4.7 xhigh
+set 8 labels=' docs-only ' exit 0/0 identical: grok grok-4.7 xhigh
+set 9 labels='unknown, docs-only' exit 0/0 identical: grok grok-4.7 xhigh
+identical: 9/9
+
+Session-start validator, crew_dispatch_validate from each revision's bin/fm-bootstrap.sh, on a copy of the live file:
+8b34567a: accepted, no diagnostic
+bad73aa7: CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: codex:max, grok:xhigh
+7df545bf: CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: codex:max, grok:xhigh
+
+PR 26 port onto the kept guard:
+$ git rev-parse 8b34567a:bin/fm-cursor-guard.sh 4877ac8e:bin/fm-cursor-guard.sh
+2151f0bb73eea792fc6ada0fe7ea3bbf8da2b069
+2151f0bb73eea792fc6ada0fe7ea3bbf8da2b069
+exit: 0
+
+59299234 and 8bd57783 change only docs/configuration.md, which neither validator reads, so they stay cut.
+
+Nightly check with this drift-proof.txt:
+$ bash bin/fm-drift-nightly.sh check --no-fetch
+behind: 7
+ahead: 63
+path-ok: .agents/skills/harness-adapters/references/harness/grok.md
+path-ok: bin/fm-bootstrap.sh
+path-ok: bin/fm-cursor-assert.sh
+path-ok: bin/fm-cursor-guard.sh
+path-ok: bin/fm-dispatch-resolve.sh
+path-ok: tests/fm-bootstrap.test.sh
+path-ok: tests/fm-cursor-guard.test.sh
+path-ok: tests/fm-dispatch-resolve.test.sh
+path-ok: tests/fm-spawn-dispatch-profile.test.sh
+path-drift: archives/fork-cuts.bundle
+path-drift: bin/fm-brief.sh
+path-drift: bin/fm-drift-nightly.sh
+path-drift: bin/fm-spawn.sh
+path-drift: docs/documentation-audiences.json
+path-drift: docs/scripts.md
+path-drift: drift-measurements.txt
+path-drift: drift-proof.txt
+path-drift: tests/fm-drift-nightly.test.sh
+exit: 1
+Every path-drift line is a file this change adds or edits; bin/fm-spawn.sh also carries this change's usage-line edit on top of the kept patches.
+
+Install-time proof: the eight kept SHAs plus this change's non-merge commits except 85bc5153, 59299234 and 8bd57783.
+Those three only remove or edit cut changes, so their patches conflict when replayed onto upstream and stop the check with exit 2.
+$ bash bin/fm-drift-nightly.sh check --no-fetch --proof <that list of 14 SHAs>
+path-ok: 18 lines
+path-drift: 0 lines
+keep: 14 lines
+exit: 0
+
+R16 proof scope
+The whole-commit approvals and install-time list above predate this review's cuts and are superseded.
+The measurements below exercise the retained behavior through public CLIs and the actual staged launch, executed with recording harness fixtures.
+They measure delivery of the requested effort, dispatch acceptance, catalogue failure and selection of a harness outside the exhausted Cursor pool; they make no claim about model output quality.
+The accepted live ac-q14t1 evidence is its persisted quota-fallback reason and task metadata, read without changing that home.
+It does not prove the removed shared settings, headless/plugin launch, cap, lock recovery or stream classification.
+Those portions are cut and archived; they are not approved by the old resolver measurements or matching blob hashes.
+The original cuts remain in their eight named branches, and archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts preserves this round's complete starting tree, including PR 26's plugin-pin branch.
+Recovery uses the existing Git bundle at archives/fork-cuts.bundle.
+The finalized source proof manifest records the complete patch sequence, including the mandatory corrective cuts; "Finalized shipped acceptance" below verifies the delivered effective tree without an installation-time proof rewrite.
+
+R16 retained behavior after cutting unsupported portions
+Measured: 2026-10-14T19:56:36-0500
+Starting head: 814465e1383e1654aea41db0544c28cd1f30fa92
+Upstream baseline: 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Platform: Darwin 27.2.0 arm64
+Git: git version 2.56.0
+Command: bash .agent-state/measure-r16.sh
+Scope: public CLIs and executed generated launches in isolated local fixtures; no live model calls or deployment.
+Measured guard blob: e9906f633c6b40f33a4cad10d49ca72e82e0a011
+Measured spawn blob: 2ae6fed418d286ddc352dc3cc1234a43902c9416
+
+R16 accepted live ac-q14t1 quota evidence (read only)
+$ cat /Users/dalecarman/dev/firstmate-upstream/state/ac-q14t1.cursor-fallback
+Cursor Models at 89% (limit 85%)
+$ read harness, kind, model, effort and spawn_gen from the persisted ac-q14t1.meta protocol
+harness=claude
+kind=ship
+model=claude-opus-5-5[1m]
+effort=xhigh
+spawn_gen=s1792023981.98009.28408
+
+R16 effort delivery
+$ FM_HOME=<fixture> bash upstream/bin/fm-spawn.sh <id> <project> --harness grok --mode no-mistakes --yolo off --model grok-4.7 --effort xhigh
+upstream grok-xhigh: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": null, "headless": false, "model": "grok-4.7", "process_exit": 7, "reasoning_effort": null, "received_tool": "grok", "recorded_harness": "grok"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness grok --mode no-mistakes --yolo off --model grok-4.7 --effort xhigh
+current grok-xhigh: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": null, "headless": false, "model": "grok-4.7", "process_exit": 7, "reasoning_effort": "xhigh", "received_tool": "grok", "recorded_harness": "grok"}
+$ FM_HOME=<fixture> bash upstream/bin/fm-spawn.sh <id> <project> --harness codex --mode no-mistakes --yolo off --model gpt-6.1-sol --effort max
+upstream sol-max: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": null, "headless": false, "model": "gpt-6.1-sol", "process_exit": 7, "reasoning_effort": null, "received_tool": "codex", "recorded_harness": "codex"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness codex --mode no-mistakes --yolo off --model gpt-6.1-sol --effort max
+current sol-max: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": "model_reasoning_effort=\"max\"", "cursor_workspace_exact": null, "headless": false, "model": "gpt-6.1-sol", "process_exit": 7, "reasoning_effort": null, "received_tool": "codex", "recorded_harness": "codex"}
+
+R16 quota fallback
+$ FM_HOME=<fixture> bash upstream/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+upstream quota-89: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": true, "headless": false, "model": "cursor-grok-4.5-high", "process_exit": 7, "reasoning_effort": null, "received_tool": "cursor-agent", "recorded_harness": "cursor"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+current quota-89: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": "model_reasoning_effort=\"xhigh\"", "cursor_workspace_exact": null, "headless": false, "model": null, "process_exit": 7, "reasoning_effort": null, "received_tool": "codex", "recorded_harness": "codex"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+current codex-limit: spawn exit 0
+{"claude_effort": "xhigh", "codex_reasoning_config": null, "cursor_workspace_exact": null, "headless": false, "model": null, "process_exit": 7, "reasoning_effort": null, "received_tool": "claude", "recorded_harness": "claude"}
+
+R16 catalogue refusal
+$ FM_HOME=<fixture> bash upstream/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+upstream catalogue-failure: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": true, "headless": false, "model": "cursor-grok-4.5-high", "process_exit": 7, "reasoning_effort": null, "received_tool": "cursor-agent", "recorded_harness": "cursor"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+current catalogue-failure: spawn exit 1
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+current ordinary-cursor: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": true, "headless": false, "model": "cursor-grok-4.5-high", "process_exit": 7, "reasoning_effort": null, "received_tool": "cursor-agent", "recorded_harness": "cursor"}
+
+R16 routing compatibility
+$ upstream/bin/fm-dispatch-resolve.sh <brief>
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/r16-tmp/r16-behavior.i8ngy4/routing/config/crew-dispatch.json - each use profile effort must be supported by its harness and model
+exit: 2
+$ current/bin/fm-dispatch-resolve.sh --labels ""
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit: 0
+$ current/bin/fm-dispatch-resolve.sh --labels "docs-only"
+dispatch-resolve:
+  status: clear
+  source: label (docs-only)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit: 0
+$ current/bin/fm-dispatch-resolve.sh --labels "ep-opus"
+dispatch-resolve:
+  status: clear
+  source: label (ep-opus)
+  profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+exit: 0
+$ current/bin/fm-dispatch-resolve.sh --labels "docs-only,ep-opus"
+dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+exit: 1
+$ current/bin/fm-dispatch-resolve.sh --labels "ep-opus,docs-only"
+dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+exit: 1
+upstream bootstrap: CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: codex:max, grok:xhigh
+current bootstrap: dispatch config accepted
+
+Focused fallback regression
+$ bash tests/fm-cursor-guard.test.sh
+ok - fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit
+# all fm-cursor-guard tests passed
+
+Recovery archive consumer
+$ git bundle verify archives/fork-cuts.bundle
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/archives/fork-cuts.bundle is okay
+The bundle contains these 9 refs:
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+ada14efcab836915609ea325e537fef0e9c45edc refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+745991e8e70fab9fb35bb63e5d2c1491c42124da refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+ece80a3543c804bd10e8f13ad28775abef9a4e94 refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+8193b2365719da824fe563f01645fe1eb1ccffa0 refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+592992342dfbfd681ce66a08a6aeb38177c53a79 refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+8bd577837677140faf740ac6c51dd1954bba675a refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+814465e1383e1654aea41db0544c28cd1f30fa92 refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts
+The bundle requires these 2 refs:
+20dcbf91520b1816663b81873ad67d0b93b3e4d6
+7df545bf74ff729ed1733f77b0aea02a9b164ac1
+The bundle uses this hash algorithm: sha1
+
+result: all focused behavioral comparisons passed
+
+Finalized shipped acceptance
+Measured: 2026-10-14T20:52:31-05:00
+Platform: Darwin 27.2.0 arm64
+Git: git version 2.56.0
+Starting head: 3d91d6eb379009013d74f6bc6886684b67116009
+Fetched kunchenguid/main: 33503ab33737b76d1ec7d891b95d44ce020a1579
+Scope: the real drift CLI in a disposable repository containing this delivery's history and files; no operator state or scheduler changes.
+
+Baseline reproduction with the shipped manifest:
+$ bash bin/fm-drift-nightly.sh check --repo .agent-state/drift-fix/product --fork 3d91d6eb379009013d74f6bc6886684b67116009
+behind: 11
+ahead: 65
+path-ok: 1 line
+path-drift: 16 lines
+exit: 1
+
+Cause: the manifest accepted only two original patches and deferred acceptance of the remaining measured changes and corrective cuts until installation.
+Its SHA-only format also could not name the future commit containing the finalized manifest itself.
+The complete sequence now includes the mandatory cuts; replay dependencies are not approval to restore their removed behavior.
+The fixed-parent entry names only the finalized acceptance patch, resolving against the captured fork rather than a moving ref.
+
+Regression first, before the parser fix:
+$ bash tests/fm-drift-nightly.test.sh
+not ok - the shipped manifest accepts its finalized patch: error: proof line is not a full sha: after: 56bb1817ffc38acfda62f597616990a090871bff: expected exit 0, got 2
+exit: 1
+
+After the fix:
+$ bash tests/fm-drift-nightly.test.sh
+23 behavior checks passed
+exit: 0
+
+The delivery files were copied into the disposable repository and committed directly after the starting head, using its unchanged shipped manifest as the default proof input.
+$ bash bin/fm-drift-nightly.sh check --repo .agent-state/drift-fix/product --no-fetch
+behind: 11
+ahead: 66
+path-ok: 17 lines
+path-drift: 0 lines
+exit: 0
+
+Counterfactuals through the same CLI and default manifest, each on a separate descendant of the accepted delivery:
+Later edit to bin/fm-spawn.sh: path-drift: bin/fm-spawn.sh; exit 1.
+Later edit to bin/fm-drift-nightly.sh: path-drift: bin/fm-drift-nightly.sh; exit 1.
+Later comment edit to drift-proof.txt: path-drift: drift-proof.txt; exit 1.
+Omitting the mandatory 3d91d6eb corrective patch from the manifest: exit 2, patch replay conflict.
+The focused regression also rejects missing or ambiguous acceptance children and leaves inherited unproven changes as drift.
+
+D1 documentation finalization
+Measured documentation check: 2026-10-14 (Central)
+Git: git version 2.56.0
+Python: Python 3.14.8
+Starting head: 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31
+Baseline: the previous fixed-parent entry selected aaac2ae1f8467c00e5ee7389599b4502a00be9a4 only, leaving the subsequent documentation commit outside the accepted sequence.
+The manifest now lists aaac2ae1f8467c00e5ee7389599b4502a00be9a4 explicitly with its "Finalized shipped acceptance" proof above and lists 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31 with this documentation verification.
+The fixed-parent entry now names 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31 so it selects the single finalizing commit containing both updated proof records.
+The accepted documentation commit changes seven files, with only prose and shell-header corrections; the executable bodies and tests are unchanged.
+
+Documentation validation:
+$ bash bin/fm-doc-audience-check.sh
+fm-doc-audience-check: ok surfaces=121 local_links=765
+exit: 0
+
+Final-head guard verification is pending the outer executor's commit directly on the starting head; this document phase does not create that commit or claim its verification result.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
+Required result: exit 0 and zero path-drift lines on the resulting head.
+
+Install plist escaping
+Measured install check: 2026-10-15 (Central)
+Starting head: d5cb32027c633844262dc5013e735de9f1cb18a7
+Baseline: install wrote SCRIPT_PATH and the --repo value into the plist XML unescaped, then booted out the installed job before bootstrapping a plist nothing had validated.
+Reproduction with a repository path ending in "repo & <copy>", launchctl stubbed:
+install rc=0
+launchctl calls: bootout gui/501/dev.firstmate.drift-nightly, then bootstrap of the new plist
+plutil -lint: Encountered unknown ampersand-escape sequence at line 13; lint rc=1
+
+Cause: write_plist interpolated raw strings into XML, and install replaced the plist and called launchctl without checking the result.
+Fix: install XML-escapes every string, writes the new plist beside the installed one, and requires plutil -lint to accept it before it replaces the installed plist and boots out the old job.
+Escaping alone does not cover every --repo value: a value holding invalid UTF-8 (byte 0xff) is still rejected by plutil -lint after escaping ("Unable to convert string to correct encoding"), so that input exercises the refusal path.
+The escape replacements are backslash-quoted; stock Bash 3.2.57 and Bash 5.3 with patsub_replacement on produce identical output.
+
+Regression first, before the fix (75f251ffc3ba760928d2cfb6f037840103867a16):
+$ bash tests/fm-drift-nightly.test.sh
+not ok - a plist parser reads back the exact script and repo paths
+exit: 1
+With only the invalid-plist case selected:
+not ok - a reinstall whose plist fails lint exits 2: expected exit 2, got 0
+exit: 1
+
+After the fix:
+$ bash tests/fm-drift-nightly.test.sh
+25 behavior checks passed (Bash 5.3 and stock /bin/bash 3.2.57)
+exit: 0
+The same reproduction: install rc=0, plutil -lint OK, and ProgramArguments.4 reads back as the exact "repo & <copy>" path.
+
+Without plutil on PATH, as on the Linux CI runners, the tests use a strict plistlib stand-in:
+Fixed head: 25 behavior checks passed, exit 0.
+Unfixed script from a full export of 75f251ff: the escaping case fails with the parser error and the invalid-plist case fails with "expected exit 2, got 0", each exit 1.
+$ shellcheck -x bin/fm-drift-nightly.sh tests/fm-drift-nightly.test.sh
+exit: 0
+
+A real launchd bootstrap and scheduled firing remain unmeasured here; installing the job on this machine waits for the cutover.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
+Required result: exit 0 and zero path-drift lines on the resulting head.
