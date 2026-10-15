@@ -7,6 +7,9 @@
 #                      it is older than max_age_h (default 26) by mtime. Bare Grok draws the same
 #                      pool, so it is no fallback there. Claude instead of Codex when the bead's
 #                      last Codex run hit a usage limit (state/<id>.codex-limit).
+# The usage directory defaults to ~/.agent-state/a3ov3/cursor-usage.
+# Spending files supply cursor_models_pct=<integer>; invalid values select fallback.
+# Usage percentages, configured thresholds, and configured ages are consumed as integers.
 # Overrides for tests: FM_STATE_OVERRIDE, FM_CONFIG_OVERRIDE, FM_CURSOR_USAGE_DIR.
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

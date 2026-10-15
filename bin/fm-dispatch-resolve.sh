@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 # fm-dispatch-resolve.sh - resolve one concrete crewmate or scout dispatch
-# profile from a task brief with typesafe.ai's System One model (Jev), opt-in.
+# profile from task labels, or opt-in from a brief with typesafe.ai's Jev model.
 #
 # Usage:
 #   fm-dispatch-resolve.sh <brief-file> [--project <name>]
 #   fm-dispatch-resolve.sh --labels <a,b|""> [--project <name>]     (worker routing)
 #
 # Worker routing (--labels, an empty value is allowed): no model judgment, no
-#   key, no network. The first bead label found in `label_routes` in
-#   crew-dispatch.json picks that profile; with no match the `default` is used.
-#   Prints "status: clear ... source: label|default" and the profile line.
+#   key, no network or quota call. After shared configuration validation, the
+#   first matching label in the comma-separated input picks its `label_routes`
+#   profile. With no match, use the `default` object or first default-array
+#   entry; this path does not rank arrays or apply rule approvals or floors.
+#   Prints "status: clear ... source: label|default" and the profile line, exit 0.
+#   Missing configuration or no matching route and no default prints escalate,
+#   exit 0. Combining docs-only and ep-opus prints refused with no profile,
+#   exit 1. Usage and configuration errors exit 2, as in brief mode.
 #
-# Opt-in gate: TYPESAFE_API_KEY non-empty in this process environment, else a
+# Brief-mode opt-in gate: TYPESAFE_API_KEY non-empty in this environment, else a
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
 #   accessor as FMX_PAIRING_TOKEN (bin/fm-env-lib.sh). The environment wins.
 #   Absent in both: one "dispatch-resolve: off" line on stderr, nothing on
@@ -51,7 +56,7 @@
 #   the list line number, never its value, prints nothing on stdout, and exits
 #   0 with no network or quota call, exactly like the absent-key off path.
 #
-# Output (stdout, TOON-style block):
+# Brief-mode output (stdout, TOON-style block):
 #   dispatch-resolve:
 #     status: clear | ambiguous | escalate | error
 #     model/latency_ms/tokens, rule (when excerpt) and confidence, probabilities
