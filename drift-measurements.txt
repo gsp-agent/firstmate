@@ -357,3 +357,132 @@ path-ok: 18 lines
 path-drift: 0 lines
 keep: 14 lines
 exit: 0
+
+R16 proof scope
+The whole-commit approvals and install-time list above predate this review's cuts and are superseded.
+The measurements below exercise the retained behavior through public CLIs and the actual staged launch, executed with recording harness fixtures.
+They measure delivery of the requested effort, dispatch acceptance, catalogue failure and selection of a harness outside the exhausted Cursor pool; they make no claim about model output quality.
+The accepted live ac-q14t1 evidence is its persisted quota-fallback reason and task metadata, read without changing that home.
+It does not prove the removed shared settings, headless/plugin launch, cap, lock recovery or stream classification.
+Those portions are cut and archived; they are not approved by the old resolver measurements or matching blob hashes.
+The original cuts remain in their eight named branches, and archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts preserves this round's complete starting tree, including PR 26's plugin-pin branch.
+Recovery uses the existing Git bundle at archives/fork-cuts.bundle.
+The source proof manifest keeps only wholly measured original patches as SHA entries; the acceptance owner must record the finalized measured patch sequence, including these cuts, after the outer executor commits it and before installation.
+
+R16 retained behavior after cutting unsupported portions
+Measured: 2026-10-14T19:56:36-0500
+Starting head: 814465e1383e1654aea41db0544c28cd1f30fa92
+Upstream baseline: 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Platform: Darwin 27.2.0 arm64
+Git: git version 2.56.0
+Command: bash .agent-state/measure-r16.sh
+Scope: public CLIs and executed generated launches in isolated local fixtures; no live model calls or deployment.
+Measured guard blob: e9906f633c6b40f33a4cad10d49ca72e82e0a011
+Measured spawn blob: 2ae6fed418d286ddc352dc3cc1234a43902c9416
+
+R16 accepted live ac-q14t1 quota evidence (read only)
+$ cat /Users/dalecarman/dev/firstmate-upstream/state/ac-q14t1.cursor-fallback
+Cursor Models at 89% (limit 85%)
+$ read harness, kind, model, effort and spawn_gen from the persisted ac-q14t1.meta protocol
+harness=claude
+kind=ship
+model=claude-opus-5-5[1m]
+effort=xhigh
+spawn_gen=s1792023981.98009.28408
+
+R16 effort delivery
+$ FM_HOME=<fixture> bash upstream/bin/fm-spawn.sh <id> <project> --harness grok --mode no-mistakes --yolo off --model grok-4.7 --effort xhigh
+upstream grok-xhigh: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": null, "headless": false, "model": "grok-4.7", "process_exit": 7, "reasoning_effort": null, "received_tool": "grok", "recorded_harness": "grok"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness grok --mode no-mistakes --yolo off --model grok-4.7 --effort xhigh
+current grok-xhigh: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": null, "headless": false, "model": "grok-4.7", "process_exit": 7, "reasoning_effort": "xhigh", "received_tool": "grok", "recorded_harness": "grok"}
+$ FM_HOME=<fixture> bash upstream/bin/fm-spawn.sh <id> <project> --harness codex --mode no-mistakes --yolo off --model gpt-6.1-sol --effort max
+upstream sol-max: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": null, "headless": false, "model": "gpt-6.1-sol", "process_exit": 7, "reasoning_effort": null, "received_tool": "codex", "recorded_harness": "codex"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness codex --mode no-mistakes --yolo off --model gpt-6.1-sol --effort max
+current sol-max: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": "model_reasoning_effort=\"max\"", "cursor_workspace_exact": null, "headless": false, "model": "gpt-6.1-sol", "process_exit": 7, "reasoning_effort": null, "received_tool": "codex", "recorded_harness": "codex"}
+
+R16 quota fallback
+$ FM_HOME=<fixture> bash upstream/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+upstream quota-89: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": true, "headless": false, "model": "cursor-grok-4.5-high", "process_exit": 7, "reasoning_effort": null, "received_tool": "cursor-agent", "recorded_harness": "cursor"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+current quota-89: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": "model_reasoning_effort=\"xhigh\"", "cursor_workspace_exact": null, "headless": false, "model": null, "process_exit": 7, "reasoning_effort": null, "received_tool": "codex", "recorded_harness": "codex"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+current codex-limit: spawn exit 0
+{"claude_effort": "xhigh", "codex_reasoning_config": null, "cursor_workspace_exact": null, "headless": false, "model": null, "process_exit": 7, "reasoning_effort": null, "received_tool": "claude", "recorded_harness": "claude"}
+
+R16 catalogue refusal
+$ FM_HOME=<fixture> bash upstream/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+upstream catalogue-failure: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": true, "headless": false, "model": "cursor-grok-4.5-high", "process_exit": 7, "reasoning_effort": null, "received_tool": "cursor-agent", "recorded_harness": "cursor"}
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+current catalogue-failure: spawn exit 1
+$ FM_HOME=<fixture> bash current/bin/fm-spawn.sh <id> <project> --harness cursor --mode no-mistakes --yolo off --model cursor-grok-4.5-high
+current ordinary-cursor: spawn exit 0
+{"claude_effort": null, "codex_reasoning_config": null, "cursor_workspace_exact": true, "headless": false, "model": "cursor-grok-4.5-high", "process_exit": 7, "reasoning_effort": null, "received_tool": "cursor-agent", "recorded_harness": "cursor"}
+
+R16 routing compatibility
+$ upstream/bin/fm-dispatch-resolve.sh <brief>
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/r16-tmp/r16-behavior.i8ngy4/routing/config/crew-dispatch.json - each use profile effort must be supported by its harness and model
+exit: 2
+$ current/bin/fm-dispatch-resolve.sh --labels ""
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit: 0
+$ current/bin/fm-dispatch-resolve.sh --labels "docs-only"
+dispatch-resolve:
+  status: clear
+  source: label (docs-only)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit: 0
+$ current/bin/fm-dispatch-resolve.sh --labels "ep-opus"
+dispatch-resolve:
+  status: clear
+  source: label (ep-opus)
+  profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+exit: 0
+$ current/bin/fm-dispatch-resolve.sh --labels "docs-only,ep-opus"
+dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+exit: 1
+$ current/bin/fm-dispatch-resolve.sh --labels "ep-opus,docs-only"
+dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+exit: 1
+upstream bootstrap: CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: codex:max, grok:xhigh
+current bootstrap: dispatch config accepted
+
+Focused fallback regression
+$ bash tests/fm-cursor-guard.test.sh
+ok - fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit
+# all fm-cursor-guard tests passed
+
+Recovery archive consumer
+$ git bundle verify archives/fork-cuts.bundle
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/archives/fork-cuts.bundle is okay
+The bundle contains these 9 refs:
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+ada14efcab836915609ea325e537fef0e9c45edc refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+745991e8e70fab9fb35bb63e5d2c1491c42124da refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+ece80a3543c804bd10e8f13ad28775abef9a4e94 refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+8193b2365719da824fe563f01645fe1eb1ccffa0 refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+592992342dfbfd681ce66a08a6aeb38177c53a79 refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+8bd577837677140faf740ac6c51dd1954bba675a refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+814465e1383e1654aea41db0544c28cd1f30fa92 refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts
+The bundle requires these 2 refs:
+20dcbf91520b1816663b81873ad67d0b93b3e4d6
+7df545bf74ff729ed1733f77b0aea02a9b164ac1
+The bundle uses this hash algorithm: sha1
+
+result: all focused behavioral comparisons passed

@@ -425,9 +425,6 @@
 #                  script published into the receiving home's operational inbox
 #     __WORKTREE__  absolute path to the task worktree
 #     __CURSORBIN__ resolved, cursor-verified executable for a cursor launch
-#     __PSTACKDIR__ pstack plugin dir for --plugin-dir (FM_PSTACK_DIR, default ~/dev/pstack/pstack)
-#     __CURSORSTREAM__ state/<task-id>.cursor-stream.jsonl, the tee target for cursor's stream-json
-#     __CURSORGUARD__ / __CURSORID__ the post-run hook that records a usage-limit failure and exits with the agent's status
 #     __GEMINISETTINGS__ firstmate-owned per-task gemini settings file (busy-state hooks)
 #     __ROVOBIN__   resolved, rovo-verified executable for a rovo launch
 #     __DEVINBIN__ resolved Devin executable
@@ -1377,13 +1374,8 @@ parse_orca_worktree_result() {
   fi
 }
 
-CURSOR_CAP_TAKEN=0
 spawn_abort_cleanup() {
   local status=$?
-  if [ "$status" -ne 0 ] && [ "$CURSOR_CAP_TAKEN" = 1 ] && [ "$SPAWN_LAUNCH_SENT" = 0 ]; then
-    CURSOR_CAP_TAKEN=0
-    FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" give "$ID" || true
-  fi
   if [ "$RELAUNCH_REPLACEMENT_PENDING" = 1 ] &&
     [ "$SPAWN_META_PUBLISH_STARTED" = 1 ] &&
     [ -n "$SPAWN_META_TMP" ] &&
@@ -2300,12 +2292,7 @@ launch_template() {
   # inherited CLAUDECODE cannot outrank cursor's own marker in a process that
   # only reads the environment. Cursor exposes no effort flag, so the shared
   # effort axis is deliberately omitted and stays in task metadata only.
-  # -p --output-format stream-json is tee'd (through process substitution, so
-  # the pane command keeps the agent's own exit status) to state/<id>.cursor-stream.jsonl
-  # and still runs in the pane, so it stays visible; steer by relaunching with
-  # --resume of the bound session. --plugin-dir loads pstack and --approve-mcps
-  # lets its MCP servers start unattended.
-  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?' ;;
+  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ --trust --yolo __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
   # command exactly as it does for claude and grok (verified: a multi-line
@@ -2409,15 +2396,13 @@ launch_template() {
 }
 
 # Deterministic Cursor fallback (no model judgment): usage at the threshold, no or
-# stale usage file, or this bead's last Cursor run hit a usage limit => Codex, or
-# Claude when its last Codex run hit one (bare Grok draws the same pool); a pstack
-# version off the pin => bare Grok. Codex and Claude run their CLI's default model.
+# stale usage file => Codex, or Claude when its last Codex run hit one.
+# Codex and Claude run their CLI's default model.
 if [ "$ARG3" = cursor ] && [ "$KIND" != secondmate ]; then
   CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
   case "$CURSOR_FALLBACK" in
-  grok* | codex* | claude*)
-    ARG3=${CURSOR_FALLBACK%% *} EFFORT=xhigh
-    if [ "$ARG3" = grok ]; then MODEL=grok-4.7; else MODEL=; fi
+  codex* | claude*)
+    ARG3=${CURSOR_FALLBACK%% *} MODEL= EFFORT=xhigh
     echo "cursor fallback: launching $ID on the $ARG3 harness (${MODEL:-default model} xhigh): ${CURSOR_FALLBACK#* }" >&2
     printf '%s\n' "${CURSOR_FALLBACK#* }" > "$STATE/$ID.cursor-fallback"
     ;;
@@ -2556,11 +2541,6 @@ cursor)
       exit 1
     fi
   fi
-  # Re-assert Cursor's settings before every run (spawn and relaunch).
-  "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
-  # A bead's 3rd Cursor launch in one day is refused; given back below if the spawn fails.
-  FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
-  CURSOR_CAP_TAKEN=1
   ;;
 omp)
   OMP_BIN=$(resolve_pi_executable omp) || {
@@ -5519,13 +5499,7 @@ LAUNCH=${LAUNCH//__OMPWORKERCFG__/$sq_ompcfg}
 LAUNCH=${LAUNCH//__OPINPUT__/$sq_opinput}
 case "$HARNESS" in
 pi | pi-signed) LAUNCH=${LAUNCH//__PIBIN__/"$(shell_quote "$PI_BIN")"} ;;
-cursor)
-  LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"}
-  LAUNCH=${LAUNCH//__PSTACKDIR__/"$(shell_quote "${FM_PSTACK_DIR:-$HOME/dev/pstack/pstack}")"}
-  LAUNCH=${LAUNCH//__CURSORSTREAM__/"$(shell_quote "$STATE_REAL/$ID.cursor-stream.jsonl")"}
-  LAUNCH=${LAUNCH//__CURSORGUARD__/"FM_STATE_OVERRIDE=$(shell_quote "$STATE_REAL") $(shell_quote "$SCRIPT_DIR/fm-cursor-guard.sh")"}
-  LAUNCH=${LAUNCH//__CURSORID__/"$(shell_quote "$ID")"}
-  ;;
+cursor) LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"} ;;
 gemini) LAUNCH=${LAUNCH//__GEMINISETTINGS__/"$(shell_quote "$STATE_REAL/$ID.gemini-settings.json")"} ;;
 omp) LAUNCH=${LAUNCH//__OMPBIN__/"$(shell_quote "$OMP_BIN")"} ;;
 devin)

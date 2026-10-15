@@ -66,7 +66,6 @@ make_spawn_case() {
   launchlog="$case_dir/launch.log"
   fakebin=$(make_spawn_fakebin "$case_dir/fake")
   fm_test_spawn_home "$home" "$harness"
-  mkdir -p "$home/pstack/.cursor-plugin" && printf '{"version":"0.15.21"}\n' > "$home/pstack/.cursor-plugin/plugin.json"
   mkdir -p "$home/cursor-usage" && printf 'cursor_models_pct=10\n' > "$home/cursor-usage/20261012-spending.txt"
   fm_git_worktree "$proj" "$wt" "wt-$name"
   for id in "$@"; do
@@ -117,7 +116,7 @@ run_spawn() {
     FM_FAKE_CURSOR_MODELS="${FM_TEST_CURSOR_MODELS:-}" \
     FM_FAKE_CURSOR_LIST_STATUS="${FM_TEST_CURSOR_LIST_STATUS:-0}" \
     GROK_HOME="$home/grok-home" \
-    FM_PSTACK_DIR="$home/pstack" FM_CURSOR_USAGE_DIR="$home/cursor-usage" FM_CURSOR_CLI_CONFIG="$home/cursor-cli-config.json" FM_CURSOR_MODELS_RULE="$home/pstack-models.mdc" \
+    FM_CURSOR_USAGE_DIR="$home/cursor-usage" \
     fm_test_run_spawn "$home" "$wt" "$fakebin" "$@"
 }
 
@@ -704,16 +703,10 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
   expect_code 0 "$status" "cursor spawn with a model-qualified reasoning class should succeed"
   assert_meta_profile "$HOME_DIR/state/$id.meta" cursor cursor-grok-4.5-high high
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "-p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir " \
-    "cursor launch did not carry print/stream-json, trust, autonomy, approve-mcps and plugin-dir flags"
+  assert_contains "$launch" "cursor-agent' --trust --yolo " \
+    "cursor launch did not carry trust and autonomy flags"
   assert_contains "$launch" "--model 'cursor-grok-4.5-high' --workspace '$WT_DIR'" \
     "cursor launch did not carry model and exact workspace flags"
-  assert_contains "$launch" "> >(tee '" "cursor launch did not tee its stream-json through process substitution"
-  assert_contains "$launch" "$id.cursor-stream.jsonl" "cursor stream was not teed to Firstmate state"
-  assert_contains "$launch" "fm-cursor-guard.sh" "cursor launch did not run the post-run usage-limit hook"
-  assert_grep 'useHttp1ForAgent": true' "$HOME_DIR/cursor-cli-config.json" "cursor config was not re-asserted before launch"
-  assert_grep '"fast"' "$HOME_DIR/cursor-cli-config.json" "cursor config lost the fast tier"
-  assert_not_contains "$(cat "$HOME_DIR/pstack-models.mdc")" "opus" "pstack role models must never name an Opus model in Cursor"
   # The executable is RESOLVED, never named: `cursor` is not the CLI, so a
   # literal `cursor agent` command cannot run on a machine that has only the
   # real installed names.
@@ -752,21 +745,8 @@ test_cursor_refuses_model_absent_from_live_catalog() {
   pass "cursor refuses model ids absent from its resolved binary's live catalog"
 }
 
-test_cursor_third_launch_and_fallback() {
+test_cursor_fallback() {
   local rec id out status
-  id=profile-cursor-guard-z6f
-  rec=$(make_spawn_case profile-cursor-guard cursor "$id")
-  read_case_record "$rec"
-  mkdir -p "$HOME_DIR/state"
-  printf '{"day":"%s","beads":{"%s":2}}\n' "$(TZ=America/Chicago date +%F)" "$id" > "$HOME_DIR/state/cursor-dispatch.json"
-  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
-    --harness cursor --model cursor-grok-4.5-high)
-  status=$?
-  expect_code 1 "$status" "a 3rd cursor launch of one bead in a day must be refused"
-  assert_contains "$out" "cursor guard: refused $id" "refusal did not name the bead"
-  [ ! -s "$LAUNCH_LOG" ] || fail "a refused cursor spawn must not launch"
-  pass "cursor spawn refuses a bead's 3rd launch in a day"
-
   id=profile-cursor-fallback-z6g
   rec=$(make_spawn_case profile-cursor-fallback cursor "$id")
   read_case_record "$rec"
@@ -2290,7 +2270,7 @@ test_grok_omits_invalid_max_reasoning_effort
 test_grok_threads_xhigh_reasoning_effort
 test_cursor_threads_model_workspace_and_omits_effort_axis
 test_cursor_refuses_model_absent_from_live_catalog
-test_cursor_third_launch_and_fallback
+test_cursor_fallback
 test_cursor_failed_catalog_probe_blocks_spawn
 test_opencode_threads_model_and_effort_variant
 test_opencode_without_effort_keeps_launch_config_unchanged
