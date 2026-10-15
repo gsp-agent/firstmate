@@ -14,7 +14,7 @@
 //      the previous call left that shell, not in the workspace. A single
 //      earlier call with an explicit working directory in another checkout
 //      can therefore redirect the next empty-directory call. The hook rewrites an
-//      empty directory to --worktree (updated_input.cwd), so a call that names
+//      empty directory to --worktree (updated_input.working_directory), so a call that names
 //      no directory always runs in the task worktree. A call that names a
 //      directory is left alone.
 //
@@ -129,8 +129,8 @@ function decide(input, worktree) {
   if (refuses(command)) {
     return { permission: "deny", user_message: REFUSAL, agent_message: REFUSAL };
   }
-  if (worktree && !toolInput.cwd) {
-    return { permission: "allow", updated_input: { command, cwd: worktree } };
+  if (worktree && !toolInput.working_directory) {
+    return { permission: "allow", updated_input: { ...toolInput, working_directory: worktree } };
   }
   return null;
 }

@@ -3,8 +3,8 @@
 #   fallback <id>      prints "cursor", "codex <reason>", "claude <reason>" or "grok <reason>".
 #                      Codex when the shared Cursor/Grok pool is short or unknown: the newest
 #                      <usage dir>/*-spending.txt says cursor_models_pct >= the crew-dispatch.json
-#                      cursor_fallback.models_pct (default 85), or there is no readable file, or
-#                      it is older than max_age_h (default 26) by mtime, or the bead's last Cursor
+#                      cursor_fallback.models_pct (integer 1..100, default 85), or there is no readable file, or
+#                      it is older than max_age_h (positive integer, default 26) by mtime, or the bead's last Cursor
 #                      run hit a usage limit (state/<id>.cursor-limit). Bare Grok draws the same
 #                      pool, so it is no fallback there. Claude instead of Codex when the bead's
 #                      last Codex run hit a usage limit (state/<id>.codex-limit). Grok (bare CLI,
