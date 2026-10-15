@@ -47,9 +47,9 @@ d5cb32027c633844262dc5013e735de9f1cb18a7
 after: 75f251ffc3ba760928d2cfb6f037840103867a16
 # Cut completely: 745991e8's cap/tee changes and 8193b236's stream classifier.
 # Cut portions: cce0ab3a's headless/plugin launch and shared Cursor settings; ece80a35's cap, lock recovery, post-run stream state and plugin fallback; 98242c4f's plugin-pin branch.
-# All cuts remain recoverable as named branches in archives/fork-cuts.bundle, including archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts.
-# Recover a cut with git fetch archives/fork-cuts.bundle refs/heads/archive/<sha>-<slug>:refs/heads/archive/<sha>-<slug>.
-# The bundle also retains the original eight archive branches; 59299234 and 8bd57783 remain cut.
+# Every cut commit is reachable from the snapshot ref archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts in archives/fork-cuts.bundle.
+# Recover a cut: git fetch archives/fork-cuts.bundle refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts && git cherry-pick <sha>
+# The bundle also retains the original eight archive/<sha>-<slug> branches; 59299234 and 8bd57783 remain cut.
 # The earlier "Install-time proof" list in drift-measurements.txt predates these cuts and is superseded; do not reinstall its whole-commit approvals.
 # Alternate --proof inputs apply only to manual checks (bin/fm-drift-nightly.sh owns selection).
 # Guard and proof files have no automatic exemption; their complete patches must match this sequence.
