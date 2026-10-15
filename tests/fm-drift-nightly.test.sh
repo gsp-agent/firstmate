@@ -20,6 +20,44 @@ run_check() { # <repo> [extra args...]
   CHECK_ERR=$(cat "$repo.err")
 }
 
+fake_launchctl() { # <dir> -> path of a launchctl that logs to FM_DRIFT_LAUNCHCTL_LOG
+  cat > "$1/launchctl" <<'EOF'
+#!/bin/bash
+printf '%s\n' "$*" >> "$FM_DRIFT_LAUNCHCTL_LOG"
+if [ "$1" = print ]; then
+  exit 1
+fi
+exit 0
+EOF
+  chmod +x "$1/launchctl"
+  printf '%s\n' "$1/launchctl"
+}
+
+lint_path() { # <dir> -> PATH whose plutil -lint is real, or a strict plistlib stand-in where plutil is absent
+  if command -v plutil >/dev/null 2>&1; then
+    printf '%s\n' "$PATH"
+    return 0
+  fi
+  mkdir -p "$1/lint-bin"
+  cat > "$1/lint-bin/plutil" <<'EOF'
+#!/usr/bin/env python3
+import plistlib, sys
+try:
+    with open(sys.argv[2], "rb") as f:
+        plistlib.load(f)
+except Exception as e:
+    print(f"{sys.argv[2]}: ({e})")
+    sys.exit(1)
+print(f"{sys.argv[2]}: OK")
+EOF
+  chmod +x "$1/lint-bin/plutil"
+  printf '%s\n' "$1/lint-bin:$PATH"
+}
+
+plist_args() { # <plist> -> ProgramArguments, one per line, read by a strict XML plist parser
+  python3 -I -c 'import plistlib, sys; print("\n".join(plistlib.load(open(sys.argv[1], "rb"))["ProgramArguments"]))' "$1"
+}
+
 test_unproven_file_is_path_drift_and_exits_1() {
   local repo sha out
   repo=$(fm_test_tmproot drift-unproven)
@@ -500,24 +538,16 @@ repo: /tmp/example-repo" "$out" "install --dry-run prints the job and does not d
 }
 
 test_install_and_uninstall_round_trip() {
-  local dir log fake repo out rc plist
+  local dir log fake repo out rc plist lint
   dir=$(fm_test_tmproot drift-install)
   log=$dir/launchctl.log
-  fake=$dir/launchctl
+  fake=$(fake_launchctl "$dir")
+  lint=$(lint_path "$dir")
   repo=$dir/repo
   mkdir -p "$repo"
-  cat > "$fake" <<'EOF'
-#!/bin/bash
-printf '%s\n' "$*" >> "$FM_DRIFT_LAUNCHCTL_LOG"
-if [ "$1" = print ]; then
-  exit 1
-fi
-exit 0
-EOF
-  chmod +x "$fake"
   plist=$dir/agents/dev.firstmate.drift-nightly.plist
   rc=0
-  out=$(FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
+  out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
     "$SCRIPT" install --hour 3 --minute 17 --repo "$repo") || rc=$?
   expect_code 0 "$rc" "install exits 0"
   assert_equals "installed: $plist" "$out" "install names the plist it wrote"
@@ -540,6 +570,57 @@ EOF
   expect_code 0 "$rc" "a second uninstall exits 0"
   assert_equals "uninstalled: absent" "$out" "a second uninstall reports absent"
   pass "install writes the nightly agent and uninstall removes it, including a second call"
+}
+
+test_install_escapes_xml_in_script_and_repo_paths() {
+  local dir log fake lint tools repo out rc plist
+  dir=$(fm_test_tmproot drift-install-xml)
+  log=$dir/launchctl.log
+  fake=$(fake_launchctl "$dir")
+  lint=$(lint_path "$dir")
+  tools="$dir/tools & <bin>"
+  repo="$dir/repo & <copy> \"it's\""
+  mkdir -p "$tools" "$repo"
+  cp "$SCRIPT" "$tools/fm-drift-nightly.sh"
+  plist=$dir/agents/dev.firstmate.drift-nightly.plist
+  rc=0
+  out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
+    bash "$tools/fm-drift-nightly.sh" install --repo "$repo" 2>&1) || rc=$?
+  expect_code 0 "$rc" "install from paths holding XML specials exits 0: $out"
+  assert_equals "/bin/bash
+$tools/fm-drift-nightly.sh
+check
+--repo
+$repo" "$(plist_args "$plist" 2>&1)" "a plist parser reads back the exact script and repo paths"
+  assert_equals "bootout gui/$(id -u)/dev.firstmate.drift-nightly
+bootstrap gui/$(id -u) $plist" "$(cat "$log")" "install boots out the old job, then bootstraps the new plist"
+  pass "install escapes &, <, > and quotes in the script and repo paths"
+}
+
+test_install_keeps_the_installed_job_when_the_plist_is_invalid() {
+  local dir log fake lint repo out rc plist before
+  dir=$(fm_test_tmproot drift-install-invalid)
+  log=$dir/launchctl.log
+  fake=$(fake_launchctl "$dir")
+  lint=$(lint_path "$dir")
+  repo=$dir/repo
+  mkdir -p "$repo"
+  plist=$dir/agents/dev.firstmate.drift-nightly.plist
+  rc=0
+  out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
+    "$SCRIPT" install --repo "$repo" 2>&1) || rc=$?
+  expect_code 0 "$rc" "the first install exits 0: $out"
+  before=$(cat "$plist")
+  : > "$log"
+  rc=0
+  out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
+    "$SCRIPT" install --repo "$dir/not-utf8-"$'\377' 2>&1) || rc=$?
+  expect_code 2 "$rc" "a reinstall whose plist fails lint exits 2"
+  assert_contains "$out" "installed job unchanged" "the refusal says the installed job is unchanged"
+  assert_equals "" "$(cat "$log")" "a refused reinstall called launchctl"
+  assert_equals "$before" "$(cat "$plist")" "a refused reinstall changed the installed plist"
+  assert_equals "dev.firstmate.drift-nightly.plist" "$(ls -A "$dir/agents")" "a refused reinstall leaves a stray file"
+  pass "a reinstall whose plist fails lint leaves the installed job and plist unchanged"
 }
 
 test_bad_hour_exits_2() {
@@ -573,4 +654,6 @@ test_behind_count_is_reported_and_does_not_fail_alone
 test_merge_commit_is_labeled_merge
 test_install_dry_run_writes_nothing
 test_install_and_uninstall_round_trip
+test_install_escapes_xml_in_script_and_repo_paths
+test_install_keeps_the_installed_job_when_the_plist_is_invalid
 test_bad_hour_exits_2
