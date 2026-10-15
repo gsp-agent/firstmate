@@ -4143,6 +4143,7 @@ test_verified_queue_drop_wakes_once() {
 write_queue_sweep_pages() {
   local dir=$1
   mkdir -p "$dir/sweep"
+  # shellcheck disable=SC2016 # $n, $reason, $kind, and $queued are jq variables.
   "$REAL_JQ" -n '
     def node($n; $reason; $kind; $queued):
       {number:$n, state:"OPEN", merged:false, isInMergeQueue:$queued,
@@ -4165,6 +4166,7 @@ write_queue_sweep_pages() {
       node(4308; "failed_checks"; "removed"; false)
     ]; true; "page2")
   ' > "$dir/sweep/page1.json"
+  # shellcheck disable=SC2016 # $n, $reason, $kind, and $queued are jq variables.
   "$REAL_JQ" -n '
     def node($n; $reason; $kind; $queued):
       {number:$n, state:"OPEN", merged:false, isInMergeQueue:$queued,
@@ -4286,6 +4288,7 @@ test_open_queue_sweep_exhausts_pages() {
   add_stop_custom_check "$dir"
   mkdir -p "$dir/sweep"
   for page in 1 2 3 4 5 6 7 8 9 10 11; do
+    # shellcheck disable=SC2016 # $page is a jq variable.
     "$REAL_JQ" -n --argjson page "$page" '
       {data:{repository:{pullRequests:{
         pageInfo:{hasNextPage:($page < 11),
@@ -4312,6 +4315,115 @@ test_open_queue_sweep_exhausts_pages() {
   "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt1001 \
     || fail "the eleventh-page removal was not published"
   pass "the queue sweep reads every page of open pull requests"
+}
+
+# Arms task-a on a copy of the poll template that differs by one trailing
+# newline, so the registration records that copy and not the current template.
+arm_previous_template_poll() {  # <dir> <url>
+  local dir=$1 url=$2 state historical
+  state="$dir/home/state"
+  historical="$dir/historical-fm-pr-poll.sh"
+  cp "$POLL" "$historical"
+  printf '\n' >> "$historical"
+  chmod 0600 "$historical"
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url" "$historical"
+  ! cmp -s "$POLL" "$state/task-a.check.sh" \
+    || fail "previous-template fixture matched the current template"
+  fm_pr_poll_artifacts_valid "$state" task-a "$historical" \
+    || fail "previous-template fixture was not valid for the template it was armed on"
+  ! fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "previous-template fixture already matched the current template"
+}
+
+test_old_template_watch_polls_after_upgrade() {
+  local dir state url rc
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
+  url=https://github.com/o/r/pull/1
+  dir=$(make_case old-template-upgrade)
+  state="$dir/home/state"
+  arm_previous_template_poll "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "old-template watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "old-template watch did not wake on the dequeue: $(cat "$dir/watch.out")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "old-template watch was not re-recorded from the current template"
+  cmp -s "$POLL" "$state/task-a.check.sh" \
+    || fail "re-recorded check is not the current template"
+  pass "a watch armed on the previous template keeps polling after the template changes"
+}
+
+test_tampered_check_stays_rejected() {
+  local dir state url registration_sha check_sha rc out
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
+  url=https://github.com/o/r/pull/1
+  dir=$(make_case tampered-check-rejected)
+  state="$dir/home/state"
+  arm_previous_template_poll "$dir" "$url"
+  printf '# tampered\n' >> "$state/task-a.check.sh"
+  registration_sha=$(fm_pr_sha256 "$state/task-a.pr-poll-registration")
+  check_sha=$(fm_pr_sha256 "$state/task-a.check.sh")
+  : > "$dir/gh.log"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "tampered-check watcher failed: $(cat "$dir/watch.err")"
+  out=$(cat "$dir/watch.out")
+  case "$out" in
+    "check: rejected unauthenticated state checks:"*"task-a.check.sh"*) ;;
+    *) fail "tampered check was not refused: $out" ;;
+  esac
+  [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_sha" ] \
+    || fail "tampered check was re-recorded"
+  [ "$(fm_pr_sha256 "$state/task-a.check.sh")" = "$check_sha" ] \
+    || fail "tampered check bytes were replaced"
+  ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+    || fail "tampered check was queried"
+  pass "a tampered check copy stays rejected"
+}
+
+test_interrupted_template_upgrade_finishes_on_the_next_poll() {
+  local dir state url check_identity rc
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
+  url=https://github.com/o/r/pull/1
+  dir=$(make_case interrupted-template-upgrade)
+  state="$dir/home/state"
+  arm_previous_template_poll "$dir" "$url"
+  check_identity=$(fm_pr_file_identity "$state/task-a.check.sh")
+  cat "$POLL" > "$state/task-a.check.sh"
+  [ "$(fm_pr_file_identity "$state/task-a.check.sh")" = "$check_identity" ] \
+    || fail "interrupted upgrade fixture replaced the check file"
+  cmp -s "$POLL" "$state/task-a.check.sh" \
+    || fail "interrupted upgrade fixture did not leave the current template in place"
+  ! fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "interrupted upgrade fixture was already valid"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "interrupted-template watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "interrupted template upgrade did not wake on the dequeue: $(cat "$dir/watch.out")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "interrupted template upgrade did not finish the registration"
+  [ "$(fm_pr_file_identity "$state/task-a.check.sh")" = "$check_identity" ] \
+    || fail "interrupted template upgrade replaced the check file"
+  pass "a template upgrade interrupted after the check rewrite finishes on the next poll"
 }
 
 test_parser_matrix
@@ -4354,6 +4466,9 @@ test_queue_drop_reason_is_preserved
 test_verified_queue_drop_wakes_once
 test_open_queue_removals_wake_once_across_a_watched_repo
 test_open_queue_sweep_exhausts_pages
+test_old_template_watch_polls_after_upgrade
+test_tampered_check_stays_rejected
+test_interrupted_template_upgrade_finishes_on_the_next_poll
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations

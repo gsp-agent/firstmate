@@ -2668,6 +2668,34 @@ rerecord_device_shifted_pr_poll() {  # <id>
   return 0
 }
 
+# A poll armed before fm-pr-poll.sh changed can fail capture only because its
+# check copy is the previous template, or because a rewrite replaced that copy
+# and died before recording the new template hash. bin/fm-pr-lib.sh
+# fm_pr_poll_registration_rerecord_template and
+# fm_pr_poll_registration_rerecord_template_hash own those proofs and rewrites.
+# Returns 0 when a re-record was attempted under the control lock, so the caller
+# captures again whatever the outcome.
+rerecord_template_upgraded_pr_poll() {  # <id>
+  local id=$1
+  if ! fm_pr_poll_registration_template_upgradable "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" \
+    && ! fm_pr_poll_registration_template_hash_stale "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; then
+    return 1
+  fi
+  PR_POLL_CONTROL_LOCK="$STATE/.control-$id.lock"
+  fm_lock_acquire_wait "$PR_POLL_CONTROL_LOCK" || exit 1
+  PR_POLL_PUBLISH_LOCK="$STATE/.pr-poll-publish-$id.lock"
+  fm_lock_acquire_wait "$PR_POLL_PUBLISH_LOCK" || exit 1
+  if fm_pr_poll_registration_rerecord_template "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" \
+    || fm_pr_poll_registration_rerecord_template_hash "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; then
+    triage_log "re-recorded PR poll for $id from the current template"
+  else
+    triage_log "PR poll for $id was not re-recorded from the current template; the locked proof or rewrite did not hold"
+  fi
+  pr_poll_publish_release || exit 1
+  pr_poll_control_release || exit 1
+  return 0
+}
+
 resurface_after_downtime() {
   # Handling successors already have a predecessor-delivered wake on the way.
   # Re-announcing from this cycle is what turned a lost handshake into an
@@ -2817,6 +2845,8 @@ while :; do
         id=$(basename "$c" .check.sh)
         if fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" \
           || { rerecord_device_shifted_pr_poll "$id" \
+            && fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; } \
+          || { rerecord_template_upgraded_pr_poll "$id" \
             && fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; }; then
           is_pr_poll=1
           provider=$FM_PR_POLL_SNAPSHOT_PROVIDER
