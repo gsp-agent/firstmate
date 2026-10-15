@@ -33,8 +33,12 @@ e85b95155824b19bb7c95969369c4e5d98356cb7
 814465e1383e1654aea41db0544c28cd1f30fa92
 # 3d91d6eb: mandatory corrective cuts and their recovery archive; "R16 retained behavior after cutting unsupported portions" and "Recovery archive consumer" in [drift-measurements.txt](drift-measurements.txt).
 3d91d6eb379009013d74f6bc6886684b67116009
-# Final acceptance patch: fixed parent selects only the commit delivering this manifest, never later descendants; "Finalized shipped acceptance" in [drift-measurements.txt](drift-measurements.txt).
-after: 3d91d6eb379009013d74f6bc6886684b67116009
+# aaac2ae1: finalized patch replay and fixed-parent selection; "Finalized shipped acceptance" in [drift-measurements.txt](drift-measurements.txt).
+aaac2ae1f8467c00e5ee7389599b4502a00be9a4
+# 6f8648a1: dispatch and Cursor fallback documentation alignment; "D1 documentation finalization" in [drift-measurements.txt](drift-measurements.txt).
+6f8648a1a009a1075078b21fd3a5dfbff3fb1d31
+# Final acceptance patch: fixed parent selects only the commit delivering this manifest, never later descendants; "D1 documentation finalization" in [drift-measurements.txt](drift-measurements.txt).
+after: 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31
 # Cut completely: 745991e8's cap/tee changes and 8193b236's stream classifier.
 # Cut portions: cce0ab3a's headless/plugin launch and shared Cursor settings; ece80a35's cap, lock recovery, post-run stream state and plugin fallback; 98242c4f's plugin-pin branch.
 # All cuts remain recoverable as named branches in archives/fork-cuts.bundle, including archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts.

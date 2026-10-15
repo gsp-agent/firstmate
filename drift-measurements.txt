@@ -532,3 +532,22 @@ Later edit to bin/fm-drift-nightly.sh: path-drift: bin/fm-drift-nightly.sh; exit
 Later comment edit to drift-proof.txt: path-drift: drift-proof.txt; exit 1.
 Omitting the mandatory 3d91d6eb corrective patch from the manifest: exit 2, patch replay conflict.
 The focused regression also rejects missing or ambiguous acceptance children and leaves inherited unproven changes as drift.
+
+D1 documentation finalization
+Measured documentation check: 2026-10-14 (Central)
+Git: git version 2.56.0
+Python: Python 3.14.8
+Starting head: 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31
+Baseline: the previous fixed-parent entry selected aaac2ae1f8467c00e5ee7389599b4502a00be9a4 only, leaving the subsequent documentation commit outside the accepted sequence.
+The manifest now lists aaac2ae1f8467c00e5ee7389599b4502a00be9a4 explicitly with its "Finalized shipped acceptance" proof above and lists 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31 with this documentation verification.
+The fixed-parent entry now names 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31 so it selects the single finalizing commit containing both updated proof records.
+The accepted documentation commit changes seven files, with only prose and shell-header corrections; the executable bodies and tests are unchanged.
+
+Documentation validation:
+$ bash bin/fm-doc-audience-check.sh
+fm-doc-audience-check: ok surfaces=121 local_links=765
+exit: 0
+
+Final-head guard verification is pending the outer executor's commit directly on the starting head; this document phase does not create that commit or claim its verification result.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
+Required result: exit 0 and zero path-drift lines on the resulting head.
