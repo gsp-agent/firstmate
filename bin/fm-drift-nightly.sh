@@ -47,7 +47,9 @@
 # install XML-escapes each string it writes and replaces the plist only after
 # plutil -lint accepts the new one; a rejected plist exits 2 before launchctl
 # runs, leaving the installed plist and job unchanged.
-# uninstall bootstraps nothing, removes that job, and deletes the plist.
+# uninstall bootstraps nothing, removes that job, and deletes the plist only
+# when launchctl bootout succeeds or exits 3 because no such job is loaded;
+# any other bootout failure keeps the plist and exits 2.
 # A second uninstall, when the plist is already gone, exits 0.
 # --dry-run prints the action and does not write a file or call launchctl.
 # FM_DRIFT_AGENT_DIR selects the LaunchAgents directory.
@@ -308,7 +310,7 @@ cmd_uninstall() {
       *) die "unknown uninstall argument: $1" ;;
     esac
   done
-  local dir plist uid bin
+  local dir plist uid bin rc
   dir=$(agent_dir)
   plist=$dir/$LABEL.plist
   uid=$(id -u)
@@ -327,10 +329,13 @@ cmd_uninstall() {
     return 0
   fi
   bin=$(launchctl_bin)
-  "$bin" bootout "gui/$uid/$LABEL" >/dev/null 2>&1 || true
-  if "$bin" print "gui/$uid/$LABEL" >/dev/null 2>&1; then
-    die "launchctl bootout gui/$uid/$LABEL left the job loaded"
-  fi
+  rc=0
+  "$bin" bootout "gui/$uid/$LABEL" >/dev/null 2>&1 || rc=$?
+  # launchctl bootout exits 3 (no such process) when the job is not loaded.
+  case $rc in
+    0 | 3) ;;
+    *) die "launchctl bootout gui/$uid/$LABEL failed with exit $rc; kept $plist" ;;
+  esac
   rm -f -- "$plist" || die "cannot remove $plist"
   printf 'uninstalled: removed\n'
 }
