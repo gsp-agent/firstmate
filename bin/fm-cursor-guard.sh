@@ -25,12 +25,14 @@ mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0; 
 
 pct_max=85; age_max=26
 if [ -r "$CONFIG/crew-dispatch.json" ]; then
-  pct_max=$(jq -r '.cursor_fallback.models_pct // 85' "$CONFIG/crew-dispatch.json" 2>/dev/null || echo 85)
-  age_max=$(jq -r '.cursor_fallback.max_age_h // 26' "$CONFIG/crew-dispatch.json" 2>/dev/null || echo 26)
+  pct_max=$(jq -r '.cursor_fallback.models_pct // 85 | if type == "number" and . == floor then floor else . end' "$CONFIG/crew-dispatch.json" 2>/dev/null || echo 85)
+  age_max=$(jq -r '.cursor_fallback.max_age_h // 26 | if type == "number" and . == floor then floor else . end' "$CONFIG/crew-dispatch.json" 2>/dev/null || echo 26)
 fi
 pool() {
   if [ -s "$STATE/$id.codex-limit" ]; then echo "claude $1; $(head -1 "$STATE/$id.codex-limit")"; else echo "codex $1"; fi
 }
+case "$pct_max" in '' | *[!0-9]*) pool "cursor_fallback.models_pct '$pct_max' in crew-dispatch.json is not an integer"; exit 0 ;; esac
+case "$age_max" in '' | *[!0-9]*) pool "cursor_fallback.max_age_h '$age_max' in crew-dispatch.json is not an integer"; exit 0 ;; esac
 # shellcheck disable=SC2012
 f=$(ls -t "$USAGE"/*-spending.txt 2>/dev/null | head -1)
 if [ -z "$f" ] || [ ! -r "$f" ]; then pool "no Cursor spending file in $USAGE"; exit 0; fi

@@ -1168,7 +1168,7 @@ This section is the single owner of the canonical schema and its per-field seman
 | Rule `when` and `use` | Required for each rule. |
 | `use` and optional top-level `default` | Accept one profile object or a non-empty array of profile objects; the single-object form remains fully backward-compatible. |
 | Top-level `label_routes` | Optional object mapping each label to one profile object for deterministic worker routing. |
-| Top-level `cursor_fallback` | Optional object with numeric `models_pct` and `max_age_h` settings for the [Cursor quota-file guard](../bin/fm-cursor-guard.sh); its header owns defaults and consumption limits. |
+| Top-level `cursor_fallback` | Optional object with integer `models_pct` and `max_age_h` settings for the [Cursor quota-file guard](../bin/fm-cursor-guard.sh); its header owns defaults and consumption limits. |
 | Profile `harness` | Required in every profile. |
 | Profile `model` and `effort`; rule `why` | Optional. |
 
