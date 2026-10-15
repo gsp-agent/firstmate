@@ -1,0 +1,36 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh install --dry-run --hour 4 --minute 5 --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/product
+dry-run: install
+label: dev.firstmate.drift-nightly
+hour: 4
+minute: 5
+plist: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/launch-agents/dev.firstmate.drift-nightly.plist
+repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/product
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh install --dry-run --hour 24
+error: --hour must be 0 through 23
+exit: 2
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh uninstall
+uninstalled: absent
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh install --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/product
+error: launchctl bootstrap gui/501 failed
+exit: 2
+
+Normalized generated job:
+{
+  "Label": "dev.firstmate.drift-nightly",
+  "ProgramArguments": [
+    "/bin/bash",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh",
+    "check",
+    "--repo",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/product"
+  ],
+  "StartCalendarInterval": {
+    "Hour": 3,
+    "Minute": 17
+  }
+}

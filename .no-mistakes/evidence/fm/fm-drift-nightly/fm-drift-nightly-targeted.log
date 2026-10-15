@@ -1,0 +1,23 @@
+$ bash tests/fm-drift-nightly.test.sh
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+ok - a moving fork ref cannot change the captured check or its report
+ok - a moving upstream ref cannot change the captured check or its report
+ok - the captured upstream includes updates from the completed fetch
+ok - dependent proven patches are accepted regardless of proof-file order
+ok - proof approves a patch rather than the commit's entire file snapshot
+ok - cut unproven changes pass once their effective changes are gone
+ok - a proven change can cut unrelated unproven changes in the same commit
+ok - missing accepted patches are reported as drift
+ok - unproven file modes cannot borrow content proof
+ok - unknown proof commits cannot silently authorize changes
+ok - behind is reported and does not fail the check by itself
+ok - a merge commit is labeled merge and adds no path-drift when its tree matches upstream
+ok - install --dry-run prints the job and writes nothing
+ok - install writes the nightly agent and uninstall removes it, including a second call
+ok - install rejects hour 24
+
+exit: 0

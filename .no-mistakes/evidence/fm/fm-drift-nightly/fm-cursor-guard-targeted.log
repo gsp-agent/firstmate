@@ -1,0 +1,5 @@
+$ bash tests/fm-cursor-guard.test.sh
+ok - fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit
+# all fm-cursor-guard tests passed
+
+exit: 0

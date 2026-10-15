@@ -1,0 +1,25 @@
+Native consumer of the model and effort emitted by fm-spawn:
+$ codex --no-daemon exec --ephemeral --sandbox read-only --disable hooks --model gpt-6.1-sol -c 'model_reasoning_effort="max"' -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/1/native --color never -o /Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/native-sol-max-response.txt 'Reply with LIVE_CHECK_READY only. Do not use any tools, inspect files, or change anything.'
+LIVE_CHECK_READY
+Reading additional input from stdin...
+OpenAI Codex v0.162.1
+--------
+workdir: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/1/native
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: max
+reasoning summaries: none
+session id: 01a13d2f-ab57-7b12-870e-df8164dea49f
+--------
+user
+Reply with LIVE_CHECK_READY only. Do not use any tools, inspect files, or change anything.
+2026-10-15T01:31:37.157442Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 403: {\"error\":{\"code\":\"challenge\",\"message\":\"This request requires a challenge to be completed.\",\"id\":\"cle1::1792027897-PEbwF7UafXxKyTLLreSq0o2fxZpursNR\"}}\n")
+2026-10-15T01:31:37.852389Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 403: {\"error\":{\"code\":\"challenge\",\"message\":\"This request requires a challenge to be completed.\",\"id\":\"cle1::1792027897-trpqMh6fnitBRjHTJPmaZuXFcd1uHYaW\"}}\n")
+codex
+LIVE_CHECK_READY
+tokens used
+18,210
+
+exit: 0

@@ -1,0 +1,31 @@
+Preview nightly installation and uninstall; validate schedule inputs without modifying the scheduler
+Measured: 2026-10-14T20:58:54.504655-05:00
+Platform: macOS-27.2-arm64-arm-64bit-Mach-O
+Target: aaac2ae1f8467c00e5ee7389599b4502a00be9a4
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh install --dry-run --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/delivered
+dry-run: install
+label: dev.firstmate.drift-nightly
+hour: 3
+minute: 17
+plist: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/launch-agents/dev.firstmate.drift-nightly.plist
+repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/delivered
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh uninstall --dry-run
+dry-run: uninstall
+absent: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/launch-agents/dev.firstmate.drift-nightly.plist
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh install --hour 24
+
+stderr:
+error: --hour must be 0 through 23
+exit: 2
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh install --minute 60
+
+stderr:
+error: --minute must be 0 through 59
+exit: 2
+

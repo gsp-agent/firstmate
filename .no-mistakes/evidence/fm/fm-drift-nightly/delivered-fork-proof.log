@@ -1,0 +1,4 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/product --fork 3d91d6eb379009013d74f6bc6886684b67116009 --upstream 08f0a069af2f88911858b44175d225b77362cffe --no-fetch
+error: upstream ref not found: 08f0a069af2f88911858b44175d225b77362cffe
+
+exit: 2

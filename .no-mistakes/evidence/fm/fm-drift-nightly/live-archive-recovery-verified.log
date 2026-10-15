@@ -1,0 +1,132 @@
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery fetch /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/source.bundle HEAD:refs/heads/product-source
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/source.bundle
+ * [new ref]         HEAD       -> product-source
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery bundle verify /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/archives/fork-cuts.bundle
+The bundle contains these 9 refs:
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+ada14efcab836915609ea325e537fef0e9c45edc refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+745991e8e70fab9fb35bb63e5d2c1491c42124da refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+ece80a3543c804bd10e8f13ad28775abef9a4e94 refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+8193b2365719da824fe563f01645fe1eb1ccffa0 refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+592992342dfbfd681ce66a08a6aeb38177c53a79 refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+8bd577837677140faf740ac6c51dd1954bba675a refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+814465e1383e1654aea41db0544c28cd1f30fa92 refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts
+The bundle requires these 2 refs:
+20dcbf91520b1816663b81873ad67d0b93b3e4d6 
+7df545bf74ff729ed1733f77b0aea02a9b164ac1 
+The bundle uses this hash algorithm: sha1
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/archives/fork-cuts.bundle is okay
+exit: 0
+
+$ git bundle list-heads /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/archives/fork-cuts.bundle
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+ada14efcab836915609ea325e537fef0e9c45edc refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+745991e8e70fab9fb35bb63e5d2c1491c42124da refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+ece80a3543c804bd10e8f13ad28775abef9a4e94 refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+8193b2365719da824fe563f01645fe1eb1ccffa0 refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+592992342dfbfd681ce66a08a6aeb38177c53a79 refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+8bd577837677140faf740ac6c51dd1954bba675a refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+814465e1383e1654aea41db0544c28cd1f30fa92 refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery fetch /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/archives/fork-cuts.bundle 'refs/heads/archive/*:refs/heads/archive/*'
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/archives/fork-cuts.bundle
+ * [new branch]      archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts -> archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts
+ * [new branch]      archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default -> archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+ * [new branch]      archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner -> archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+ * [new branch]      archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13 -> archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+ * [new branch]      archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin -> archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+ * [new branch]      archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads -> archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+ * [new branch]      archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max -> archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+ * [new branch]      archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators -> archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+ * [new branch]      archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok -> archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery cat-file -t refs/heads/archive/aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48-feat-spawn-pass-xhigh-reasoning-effort-to-grok
+commit
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+ada14efcab836915609ea325e537fef0e9c45edc
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery cat-file -t refs/heads/archive/ada14efcab836915609ea325e537fef0e9c45edc-fix-dispatch-accept-grok-xhigh-in-the-validators
+commit
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+cce0ab3a8a709642fc85a3999f6424a8bcb6633d
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery cat-file -t refs/heads/archive/cce0ab3a8a709642fc85a3999f6424a8bcb6633d-feat-cursor-step-1-of-the-cursor-cutover-pstack-launch-line-label-routing-sol-max
+commit
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+745991e8e70fab9fb35bb63e5d2c1491c42124da
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery cat-file -t refs/heads/archive/745991e8e70fab9fb35bb63e5d2c1491c42124da-feat-cursor-keep-the-agent-s-exit-status-past-the-tee-daily-cap-on-cursor-beads
+commit
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+ece80a3543c804bd10e8f13ad28775abef9a4e94
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery cat-file -t refs/heads/archive/ece80a3543c804bd10e8f13ad28775abef9a4e94-feat-cursor-run-wide-deterministic-grok-fallback-per-bead-3rd-launch-stop-stale-lock-docs-only-routing-pstack-version-pin
+commit
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+8193b2365719da824fe563f01645fe1eb1ccffa0
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery cat-file -t refs/heads/archive/8193b2365719da824fe563f01645fe1eb1ccffa0-fix-cursor-guard-match-usage-limit-prose-not-exceededlimit-false-13
+commit
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+592992342dfbfd681ce66a08a6aeb38177c53a79
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery cat-file -t refs/heads/archive/592992342dfbfd681ce66a08a6aeb38177c53a79-state-the-bounds-of-the-live-dispatch-fields-in-the-schema-owner
+commit
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+8bd577837677140faf740ac6c51dd1954bba675a
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery cat-file -t refs/heads/archive/8bd577837677140faf740ac6c51dd1954bba675a-name-an-absent-pstack-version-as-the-guard-s-default
+commit
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts
+814465e1383e1654aea41db0544c28cd1f30fa92
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery cat-file -t refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts
+commit
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery switch -q --detach refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse HEAD
+814465e1383e1654aea41db0544c28cd1f30fa92
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse HEAD
+814465e1383e1654aea41db0544c28cd1f30fa92
+exit: 0
+
+Recovered complete pre-cut checkout: 814465e1383e1654aea41db0544c28cd1f30fa92

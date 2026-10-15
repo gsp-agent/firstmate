@@ -1,0 +1,178 @@
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork init -q -b main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork config user.name 'Live Race Fixture'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork config user.email fixture@example.invalid
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork config commit.gpgsign false
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork add base.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork commit -qm baseline
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork branch upstream
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork add kept.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork commit -qm 'proven patch'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork rev-parse HEAD
+542f5900b438f85205fb12ce21cf98dd2f31c1f8
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork switch -qc future
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork add later.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork commit -qm 'later update'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork rev-parse HEAD
+d7c6d43a12d01b99ee16f78f75348a1967700a77
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork switch -q main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork update-ref refs/heads/main d7c6d43a12d01b99ee16f78f75348a1967700a77
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/fork-race-proof.txt --no-fetch
+behind: 0
+ahead: 1
+path-ok: kept.txt
+keep: 542f5900b438f85205fb12ce21cf98dd2f31c1f8 proven patch
+exit: 0
+Native Git trace (observer, no wrappers):
+20:34:06.794063 git.c:506               trace: built-in: git rev-parse --is-inside-work-tree
+20:34:06.800935 git.c:506               trace: built-in: git rev-parse --verify 'HEAD^{commit}'
+20:34:06.809245 git.c:506               trace: built-in: git rev-parse --verify 'upstream^{commit}'
+20:34:06.817665 git.c:506               trace: built-in: git merge-base 542f5900b438f85205fb12ce21cf98dd2f31c1f8 64a536803783c7fb65d729cba66dce8b86af9223
+20:34:06.824983 git.c:506               trace: built-in: git rev-list --count 542f5900b438f85205fb12ce21cf98dd2f31c1f8..64a536803783c7fb65d729cba66dce8b86af9223
+20:34:06.832169 git.c:506               trace: built-in: git rev-list --count 64a536803783c7fb65d729cba66dce8b86af9223..542f5900b438f85205fb12ce21cf98dd2f31c1f8
+20:34:06.842603 git.c:506               trace: built-in: git rev-parse --verify '542f5900b438f85205fb12ce21cf98dd2f31c1f8^{commit}'
+20:34:06.849014 git.c:506               trace: built-in: git merge-base --is-ancestor 542f5900b438f85205fb12ce21cf98dd2f31c1f8 542f5900b438f85205fb12ce21cf98dd2f31c1f8
+20:34:06.859900 git.c:506               trace: built-in: git rev-parse '64a536803783c7fb65d729cba66dce8b86af9223^{tree}'
+20:34:06.867771 git.c:506               trace: built-in: git rev-list --reverse --topo-order 64a536803783c7fb65d729cba66dce8b86af9223..542f5900b438f85205fb12ce21cf98dd2f31c1f8
+20:34:06.874642 git.c:506               trace: built-in: git rev-parse 542f5900b438f85205fb12ce21cf98dd2f31c1f8^1
+20:34:06.882396 git.c:506               trace: built-in: git merge-tree --write-tree --no-messages --merge-base=64a536803783c7fb65d729cba66dce8b86af9223 4b36dfd79db36d8c59d1fb032de66b57f0457b65 542f5900b438f85205fb12ce21cf98dd2f31c1f8
+20:34:06.889986 git.c:506               trace: built-in: git diff --no-renames --name-only -z 64a536803783c7fb65d729cba66dce8b86af9223 542f5900b438f85205fb12ce21cf98dd2f31c1f8
+20:34:06.898027 git.c:506               trace: built-in: git diff --no-renames --quiet 1efc09f0917f42f75b9224d4c35f7c4bf2ababa7 542f5900b438f85205fb12ce21cf98dd2f31c1f8 -- kept.txt
+20:34:06.905541 git.c:506               trace: built-in: git diff --no-renames --name-only -z 1efc09f0917f42f75b9224d4c35f7c4bf2ababa7 542f5900b438f85205fb12ce21cf98dd2f31c1f8
+20:34:06.913060 git.c:506               trace: built-in: git rev-list 64a536803783c7fb65d729cba66dce8b86af9223..542f5900b438f85205fb12ce21cf98dd2f31c1f8
+20:34:06.920599 git.c:506               trace: built-in: git log -1 '--format=%s' 542f5900b438f85205fb12ce21cf98dd2f31c1f8
+20:34:06.928484 git.c:506               trace: built-in: git rev-list --parents -n 1 542f5900b438f85205fb12ce21cf98dd2f31c1f8
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork rev-parse refs/heads/main
+d7c6d43a12d01b99ee16f78f75348a1967700a77
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-fork --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/fork-race-proof.txt --no-fetch
+behind: 0
+ahead: 2
+path-ok: kept.txt
+path-drift: later.txt
+unproven: d7c6d43a12d01b99ee16f78f75348a1967700a77 later update
+keep: 542f5900b438f85205fb12ce21cf98dd2f31c1f8 proven patch
+exit: 1
+
+PASS: moving fork uses the original snapshot; the next check sees the changed ref.
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream init -q -b main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream config user.name 'Live Race Fixture'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream config user.email fixture@example.invalid
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream config commit.gpgsign false
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream add base.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream commit -qm baseline
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream branch upstream
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream add kept.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream commit -qm 'proven patch'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream rev-parse HEAD
+c95edebdf00301b325d10680a3be6036661bcb58
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream switch -qc future
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream add later.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream commit -qm 'later update'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream rev-parse HEAD
+6bb435bc1c77a94959d4e0b64c2d9cb51c8659e6
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream switch -q main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream update-ref refs/heads/upstream 6bb435bc1c77a94959d4e0b64c2d9cb51c8659e6
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/upstream-race-proof.txt --no-fetch
+behind: 0
+ahead: 1
+path-ok: kept.txt
+keep: c95edebdf00301b325d10680a3be6036661bcb58 proven patch
+exit: 0
+Native Git trace (observer, no wrappers):
+20:34:07.301615 git.c:506               trace: built-in: git rev-parse --is-inside-work-tree
+20:34:07.308971 git.c:506               trace: built-in: git rev-parse --verify 'HEAD^{commit}'
+20:34:07.316767 git.c:506               trace: built-in: git rev-parse --verify 'upstream^{commit}'
+20:34:07.325286 git.c:506               trace: built-in: git merge-base c95edebdf00301b325d10680a3be6036661bcb58 e35ef6b025ccbbd32358043b32291a8dd029407a
+20:34:07.332199 git.c:506               trace: built-in: git rev-list --count c95edebdf00301b325d10680a3be6036661bcb58..e35ef6b025ccbbd32358043b32291a8dd029407a
+20:34:07.340251 git.c:506               trace: built-in: git rev-list --count e35ef6b025ccbbd32358043b32291a8dd029407a..c95edebdf00301b325d10680a3be6036661bcb58
+20:34:07.351024 git.c:506               trace: built-in: git rev-parse --verify 'c95edebdf00301b325d10680a3be6036661bcb58^{commit}'
+20:34:07.358420 git.c:506               trace: built-in: git merge-base --is-ancestor c95edebdf00301b325d10680a3be6036661bcb58 c95edebdf00301b325d10680a3be6036661bcb58
+20:34:07.367923 git.c:506               trace: built-in: git rev-parse 'e35ef6b025ccbbd32358043b32291a8dd029407a^{tree}'
+20:34:07.375296 git.c:506               trace: built-in: git rev-list --reverse --topo-order e35ef6b025ccbbd32358043b32291a8dd029407a..c95edebdf00301b325d10680a3be6036661bcb58
+20:34:07.382714 git.c:506               trace: built-in: git rev-parse c95edebdf00301b325d10680a3be6036661bcb58^1
+20:34:07.389865 git.c:506               trace: built-in: git merge-tree --write-tree --no-messages --merge-base=e35ef6b025ccbbd32358043b32291a8dd029407a 4b36dfd79db36d8c59d1fb032de66b57f0457b65 c95edebdf00301b325d10680a3be6036661bcb58
+20:34:07.396847 git.c:506               trace: built-in: git diff --no-renames --name-only -z e35ef6b025ccbbd32358043b32291a8dd029407a c95edebdf00301b325d10680a3be6036661bcb58
+20:34:07.404262 git.c:506               trace: built-in: git diff --no-renames --quiet 1efc09f0917f42f75b9224d4c35f7c4bf2ababa7 c95edebdf00301b325d10680a3be6036661bcb58 -- kept.txt
+20:34:07.411783 git.c:506               trace: built-in: git diff --no-renames --name-only -z 1efc09f0917f42f75b9224d4c35f7c4bf2ababa7 c95edebdf00301b325d10680a3be6036661bcb58
+20:34:07.419093 git.c:506               trace: built-in: git rev-list e35ef6b025ccbbd32358043b32291a8dd029407a..c95edebdf00301b325d10680a3be6036661bcb58
+20:34:07.426876 git.c:506               trace: built-in: git log -1 '--format=%s' c95edebdf00301b325d10680a3be6036661bcb58
+20:34:07.434177 git.c:506               trace: built-in: git rev-list --parents -n 1 c95edebdf00301b325d10680a3be6036661bcb58
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream rev-parse refs/heads/upstream
+6bb435bc1c77a94959d4e0b64c2d9cb51c8659e6
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/live-moving-upstream --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/upstream-race-proof.txt --no-fetch
+behind: 1
+ahead: 0
+exit: 0
+
+PASS: moving upstream uses the original snapshot; the next check sees the changed ref.
+

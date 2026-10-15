@@ -1,0 +1,7 @@
+Targeted baseline: bash tests/fm-drift-nightly.test.sh, bash tests/fm-cursor-guard.test.sh and bash tests/fm-dispatch-resolve.test.sh all exited 0.
+The first full launcher-file attempt exited 1 because its secondmate fixture was inside the source repository; moving the code root to a disposable source copy resolved that placement.
+The isolated full launcher-file attempt exceeded this runner's 300-second budget while progressing through unrelated Pi exclusion cases. No product failure was identified.
+Selected existing launch behavior cases were then executed from that disposable copy; all seven relevant selectors and their shared setup checks exited 0. No real model session was started by those fixture-backed launch tests.
+Live product checks used the actual shell CLIs and Git repositories, including real network fetch, patch replay, archive recovery and concurrent ref updates.
+No linter, formatter, static analysis, complete repository suite, pipeline-control, push, PR, CI, host scheduler installation, or production cutover command was run.
+Cleanup complete: all disposable repositories, fixture homes, test copies and transient drivers were removed. Read-only fixture hook directories required restoring user-write permission before the non-forced removal succeeded. Original source worktree remains unchanged.

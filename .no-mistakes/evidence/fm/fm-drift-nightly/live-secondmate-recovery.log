@@ -1,0 +1,104 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/n
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/n
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/product show-ref --verify --quiet refs/heads/main
+exit: 1
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/product branch main HEAD
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-a
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-a
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-a init -q -b main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-a fetch -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/source.bundle HEAD
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-a switch -q -c fixture-home FETCH_HEAD
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-b
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-b
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-b init -q -b main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-b fetch -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/source.bundle HEAD
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-b switch -q -c fixture-home FETCH_HEAD
+exit: 0
+
+$ tmux -L fm-lab -f /dev/null new-session -d -s launcher -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/n /bin/bash --noprofile --norc
+exit: 0
+
+$ tmux -L fm-lab display-message -p -t launcher '#{socket_path},#{pid},#{session_id}'
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/n/tmux/tmux-501/fm-lab,67217,$0
+exit: 0
+
+$ tmux -L fm-lab new-window -d -t launcher: -n fm-recovery-a -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-a /bin/bash --noprofile --norc
+exit: 0
+
+$ tmux -L fm-lab new-window -d -t launcher: -n fm-recovery-b -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-b /bin/bash --noprofile --norc
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/product/bin/fm-bootstrap.sh
+SECONDMATE_SYNC: secondmate recovery-a: skipped: cannot determine default branch
+SECONDMATE_SYNC: secondmate recovery-b: skipped: cannot determine default branch
+exit: 0
+
+recovery-a persisted ledger:
+1792027860	attempt
+1792027863	relaunched
+
+recovery-a persisted metadata:
+window=launcher:fm-recovery-a
+endpoint_task_id=recovery-a
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-a
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-a
+harness=codex
+kind=secondmate
+mode=secondmate
+yolo=off
+tasktmp=/tmp/fm-recovery-a
+model=default
+effort=default
+spawn_gen=s1792027861.68604.16707
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-a
+projects=
+
+recovery-b persisted ledger:
+1792027863	attempt
+1792027869	relaunched
+
+recovery-b persisted metadata:
+window=launcher:fm-recovery-b
+endpoint_task_id=recovery-b
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-b
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-b
+harness=codex
+kind=secondmate
+mode=secondmate
+yolo=off
+tasktmp=/tmp/fm-recovery-b
+model=default
+effort=default
+spawn_gen=s1792027866.72058.27186
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/recovery-b
+projects=
+
+$ tmux -L fm-lab list-panes -a -F '#{session_name}:#{window_name} #{pane_current_command} #{pane_width}x#{pane_height}'
+launcher:bash bash 120x40
+launcher:fm-recovery-a node 120x40
+launcher:fm-recovery-b node 120x40
+exit: 0
+
+$ tmux -L fm-lab kill-server
+exit: 0
+
+Private fm-lab tmux server stopped.

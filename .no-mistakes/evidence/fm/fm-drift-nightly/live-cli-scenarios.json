@@ -1,0 +1,58 @@
+[
+  {
+    "name": "Check accepts only the effective proven patches and rejects later edits or missing accepted files",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/live-drift-exact.log",
+    "reason": ""
+  },
+  {
+    "name": "Delete an unproved original after proving an identical copy: the original deletion is reported as drift",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/live-drift-rename-attack.log",
+    "reason": ""
+  },
+  {
+    "name": "Fetch a local upstream update: the completed fetch is reflected in the captured comparison",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/live-drift-fetch.log",
+    "reason": ""
+  },
+  {
+    "name": "Resolve worker labels with Grok xhigh and Sol max; conflicting labels and unsupported efforts are refused",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/live-dispatch-routing.log",
+    "reason": ""
+  },
+  {
+    "name": "Select Cursor below quota, Codex for short or unknown quota, and the recorded per-task Claude fallback",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/live-cursor-fallback.log",
+    "reason": ""
+  },
+  {
+    "name": "Refuse unapproved Firstmate publication; allow scoped consent and local-only work; inherit and revoke explicit grants",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/live-publication-boundary.log",
+    "reason": ""
+  },
+  {
+    "name": "Recover every cut branch from the shipped bundle and check out the complete pre-cut tree",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/live-archive-recovery-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "Preview the nightly schedule without installing, reject invalid time, and safely uninstall an absent job",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/live-nightly-configuration.log",
+    "reason": ""
+  }
+]

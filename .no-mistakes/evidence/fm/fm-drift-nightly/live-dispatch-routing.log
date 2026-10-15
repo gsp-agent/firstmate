@@ -1,0 +1,43 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/routing-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/routing-home
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-dispatch-resolve.sh --labels ''
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-dispatch-resolve.sh --labels unknown
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-dispatch-resolve.sh --labels code
+dispatch-resolve:
+  status: clear
+  source: label (code)
+  profile: --harness 'codex' --model 'gpt-6.1-sol' --effort 'max'
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-dispatch-resolve.sh --labels docs-only
+dispatch-resolve:
+  status: clear
+  source: label (docs-only)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-dispatch-resolve.sh --labels docs-only,ep-opus
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+exit: 1
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-dispatch-resolve.sh --labels code
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/routing-home/config/crew-dispatch.json - each label_routes profile effort must be supported by its harness and model
+exit: 2
+

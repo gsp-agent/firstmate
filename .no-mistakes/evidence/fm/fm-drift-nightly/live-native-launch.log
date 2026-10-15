@@ -1,0 +1,2588 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l
+exit: 0
+
+$ git init --bare -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/source.git
+exit: 0
+
+$ git clone -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/source.git /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native
+warning: You appear to have cloned an empty repository.
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native config user.name 'Native Launch Validation'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native config user.email fixture@example.invalid
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native config commit.gpgsign false
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native add README.md
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native commit -q -m 'seed isolated launch project'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native push -q origin main
+exit: 0
+
+$ tmux -L fm-lab -f /dev/null new-session -d -s launcher -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native -e FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l -e TREEHOUSE_ROOT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool -e SHELL=/bin/bash /bin/bash --noprofile --norc
+exit: 0
+
+$ tmux -L fm-lab display-message -p -t launcher '#{socket_path},#{pid},#{session_id}'
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/tmux/tmux-501/fm-lab,20217,$0
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-spawn.sh native-sol-max /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native --mode local-only --yolo off --harness codex --model gpt-6.1-sol --effort max
+spawned native-sol-max harness=codex kind=ship mode=local-only yolo=off window=launcher:fm-native-sol-max worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/1/native
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/data/native-sol-max/launch-brief.md records no ship branch; defaulting to legacy branch fm/native-sol-max
+notice: native-sol-max ships mode=local-only while the standing posture for native is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+exit: 0
+
+Persisted launch metadata:
+{
+  "window": "launcher:fm-native-sol-max",
+  "endpoint_task_id": "native-sol-max",
+  "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/1/native",
+  "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native",
+  "harness": "codex",
+  "kind": "ship",
+  "mode": "local-only",
+  "yolo": "off",
+  "branch": "fm/native-sol-max",
+  "tasktmp": "/tmp/fm-native-sol-max",
+  "model": "gpt-6.1-sol",
+  "effort": "max",
+  "spawn_gen": "s1792027499.20220.17192"
+}
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-sol-max -S -150
+treehouse get
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:native dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.3
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/
+1/native. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/nati
+ve-d56963/1/native'
+bash-3.2$ export GOTMPDIR=/tmp/fm-native-sol-max/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=native-sol-max
+bash-3.2$ . '/tmp/fm-native-sol-max+a87f8e7feac2489f22465a97a452fa5246b8869d7f7373449c89a1bc0c131198/launch.s1792027499.
+20220.17192.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-sol-max -S -150
+
+  >_ OpenAI Codex (v0.162.1)
+     ~/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/1/native
+
+
+
+
+
+
+
+
+                                                       ⣀⣤⣤⣤⣀⣀
+                                                    ⣠⣶⣿⣿⣿⣿⣿⣿⣿⣿⣦⣤⣤⣤⣤⣤⣤⡀
+                                                  ⢀⣾⣿⣿⠿⠋⠉⠉⢉⣭⣿⣿⣿⣿⣿⠿⣿⣿⣿⣿⣷⣄
+                                                 ⣀⣾⣿⣿⠃ ⣀⣴⣾⣿⣿⡿⠟⠋ ⣀⡀ ⠈⠙⢿⣿⣿⣧
+                                              ⣀⣶⣿⣿⣿⣿⡇ ⢸⣿⣿⡿⠛⠉⢀⣠⣴⣿⣿⣿⣷⣦⣀⠈⢻⣿⣿⡇
+                                             ⣰⣿⣿⡿⢿⣿⣿⡇ ⢸⣿⣿⢀⣤⣶⣿⣿⣿⠟⠛⠻⣿⣿⣿⣿⣮⣿⣿⡷
+                                            ⢰⣿⣿⡟⠁⢸⣿⣿⡇ ⢸⣿⣿⣿⣿⠿⠿⣿⣿⣿⣦⣄⡀⠈⠛⠿⣿⣿⣿⣧⡀
+                                            ⣾⣿⣿⠃ ⢸⣿⣿⡇ ⢸⣿⣿⠋⠁  ⠈⠙⢻⣿⣿⣿⣶⣤⡀ ⠹⢿⣿⣷⡄
+                                            ⢸⣿⣿⣇ ⠸⣿⣿⣷⣦⣼⣿⣿      ⢸⣿⣿⠻⢿⣿⣿⡇ ⠘⣿⣿⣿
+                                            ⠈⢿⣿⣿⣦⡀⠈⠛⠿⣿⣿⣿⣿⣄⡀  ⢀⣠⣼⣿⣿  ⣿⣿⡇  ⣿⣿⣿⠇
+                                              ⢻⣿⣿⣿⣷⣦⣀⠈⠙⠻⣿⣿⣿⣶⣶⣿⣿⣿⣿⣿  ⣿⣿⡇ ⣠⣿⣿⣿
+                                              ⢸⣿⣿⡿⢿⣿⣿⣿⣦⣠⣴⣿⣿⣿⡿⠟⠋⢸⣿⣿  ⣿⣿⣷⣴⣿⣿⣿⠃
+                                              ⠘⣿⣿⣷ ⠈⠛⢿⣿⣿⣿⠿⠋⠉ ⣠⣴⣿⣿⣿  ⣿⣿⣿⣿⣿⠟⠁
+                                               ⠻⣿⣿⣿⣤⣀ ⠈⠉ ⢀⣤⣶⣿⣿⣿⠿⠟⠁ ⣰⣿⣿⡟⠋⠁
+                                                ⠈⠿⣿⣿⣿⣿⣶⣾⣿⣿⣿⣿⠟⠋⠁  ⣠⣼⣿⣿⡟
+                                                   ⠙⠛⠛⠛⠻⠛⢿⣿⣿⣿⣿⣷⣾⣿⣿⣿⡿⠏
+                                                          ⠈⠙⠛⠿⠿⠿⠿⠛⠉
+
+
+
+
+
+
+
+
+› Ask Codex to do anything
+
+
+  ? for shortcuts
+exit: 0
+
+$ tmux -L fm-lab display-message -p -t launcher:fm-native-sol-max '#{pane_width}x#{pane_height}'
+120x40
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-control.sh native-sol-max exit
+stopped native-sol-max harness=codex backend=tmux endpoint=launcher:fm-native-sol-max worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/1/native
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-spawn.sh native-quota-fallback /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native --mode local-only --yolo off --harness cursor --model grok-4.7-xhigh
+spawned native-quota-fallback harness=codex kind=ship mode=local-only yolo=off window=launcher:fm-native-quota-fallback worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/2/native
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l
+cursor fallback: launching native-quota-fallback on the codex harness (default model xhigh): Cursor Models at 89% (limit 85%)
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/data/native-quota-fallback/launch-brief.md records no ship branch; defaulting to legacy branch fm/native-quota-fallback
+notice: native-quota-fallback ships mode=local-only while the standing posture for native is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+exit: 0
+
+Persisted launch metadata:
+{
+  "window": "launcher:fm-native-quota-fallback",
+  "endpoint_task_id": "native-quota-fallback",
+  "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/2/native",
+  "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native",
+  "harness": "codex",
+  "kind": "ship",
+  "mode": "local-only",
+  "yolo": "off",
+  "branch": "fm/native-quota-fallback",
+  "tasktmp": "/tmp/fm-native-quota-fallback",
+  "model": "default",
+  "effort": "xhigh",
+  "spawn_gen": "s1792027510.27095.23431"
+}
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-quota-fallback -S -150
+treehouse get
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:native dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.3
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/
+2/native. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/nati
+ve-d56963/2/native'
+bash-3.2$ export GOTMPDIR=/tmp/fm-native-quota-fallback/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=native-quota-fallback
+bash-3.2$ . '/tmp/fm-native-quota-fallback+a87f8e7feac2489f22465a97a452fa5246b8869d7f7373449c89a1bc0c131198/launch.s1792
+027510.27095.23431.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-quota-fallback -S -150
+
+  >_ OpenAI Codex (v0.162.1)
+     ~/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/2/native
+
+
+
+
+
+
+
+
+                                                       ⣀⣤⣤⣤⣀⣀
+                                                    ⣠⣶⣿⣿⣿⣿⣿⣿⣿⣿⣦⣤⣤⣤⣤⣤⣤⡀
+                                                  ⢀⣾⣿⣿⠿⠋⠉⠉⢉⣭⣿⣿⣿⣿⣿⠿⣿⣿⣿⣿⣷⣄
+                                                 ⣀⣾⣿⣿⠃ ⣀⣴⣾⣿⣿⡿⠟⠋ ⣀⡀ ⠈⠙⢿⣿⣿⣧
+                                              ⣀⣶⣿⣿⣿⣿⡇ ⢸⣿⣿⡿⠛⠉⢀⣠⣴⣿⣿⣿⣷⣦⣀⠈⢻⣿⣿⡇
+                                             ⣰⣿⣿⡿⢿⣿⣿⡇ ⢸⣿⣿⢀⣤⣶⣿⣿⣿⠟⠛⠻⣿⣿⣿⣿⣮⣿⣿⡷
+                                            ⢰⣿⣿⡟⠁⢸⣿⣿⡇ ⢸⣿⣿⣿⣿⠿⠿⣿⣿⣿⣦⣄⡀⠈⠛⠿⣿⣿⣿⣧⡀
+                                            ⣾⣿⣿⠃ ⢸⣿⣿⡇ ⢸⣿⣿⠋⠁  ⠈⠙⢻⣿⣿⣿⣶⣤⡀ ⠹⢿⣿⣷⡄
+                                            ⢸⣿⣿⣇ ⠸⣿⣿⣷⣦⣼⣿⣿      ⢸⣿⣿⠻⢿⣿⣿⡇ ⠘⣿⣿⣿
+                                            ⠈⢿⣿⣿⣦⡀⠈⠛⠿⣿⣿⣿⣿⣄⡀  ⢀⣠⣼⣿⣿  ⣿⣿⡇  ⣿⣿⣿⠇
+                                              ⢻⣿⣿⣿⣷⣦⣀⠈⠙⠻⣿⣿⣿⣶⣶⣿⣿⣿⣿⣿  ⣿⣿⡇ ⣠⣿⣿⣿
+                                              ⢸⣿⣿⡿⢿⣿⣿⣿⣦⣠⣴⣿⣿⣿⡿⠟⠋⢸⣿⣿  ⣿⣿⣷⣴⣿⣿⣿⠃
+                                              ⠘⣿⣿⣷ ⠈⠛⢿⣿⣿⣿⠿⠋⠉ ⣠⣴⣿⣿⣿  ⣿⣿⣿⣿⣿⠟⠁
+                                               ⠻⣿⣿⣿⣤⣀ ⠈⠉ ⢀⣤⣶⣿⣿⣿⠿⠟⠁ ⣰⣿⣿⡟⠋⠁
+                                                ⠈⠿⣿⣿⣿⣿⣶⣾⣿⣿⣿⣿⠟⠋⠁  ⣠⣼⣿⣿⡟
+                                                   ⠙⠛⠛⠛⠻⠛⢿⣿⣿⣿⣿⣷⣾⣿⣿⣿⡿⠏
+                                                          ⠈⠙⠛⠿⠿⠿⠿⠛⠉
+
+
+
+
+
+
+
+
+› Ask Codex to do anything
+
+
+  ? for shortcuts
+exit: 0
+
+$ tmux -L fm-lab display-message -p -t launcher:fm-native-quota-fallback '#{pane_width}x#{pane_height}'
+120x40
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-control.sh native-quota-fallback exit
+stopped native-quota-fallback harness=codex backend=tmux endpoint=launcher:fm-native-quota-fallback worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/2/native
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-spawn.sh native-grok-xhigh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native --mode local-only --yolo off --harness grok --model grok-4.7 --effort xhigh
+spawned native-grok-xhigh harness=grok kind=ship mode=local-only yolo=off window=launcher:fm-native-grok-xhigh worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/3/native
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/data/native-grok-xhigh/launch-brief.md records no ship branch; defaulting to legacy branch fm/native-grok-xhigh
+notice: native-grok-xhigh ships mode=local-only while the standing posture for native is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+exit: 0
+
+Persisted launch metadata:
+{
+  "window": "launcher:fm-native-grok-xhigh",
+  "endpoint_task_id": "native-grok-xhigh",
+  "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/3/native",
+  "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/projects/native",
+  "harness": "grok",
+  "kind": "ship",
+  "mode": "local-only",
+  "yolo": "off",
+  "branch": "fm/native-grok-xhigh",
+  "tasktmp": "/tmp/fm-native-grok-xhigh",
+  "model": "grok-4.7",
+  "effort": "xhigh",
+  "spawn_gen": "s1792027520.38306.17403"
+}
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+treehouse get
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:native dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.3
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/native-d56963/
+3/native. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l/pool/.treehouse/nati
+ve-d56963/3/native'
+bash-3.2$ export GOTMPDIR=/tmp/fm-native-grok-xhigh/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=native-grok-xhigh
+bash-3.2$ . '/tmp/fm-native-grok-xhigh+a87f8e7feac2489f22465a97a452fa5246b8869d7f7373449c89a1bc0c131198/launch.s17920275
+20.38306.17403.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                                      Connecting...
+
+
+
+
+
+
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab capture-pane -p -t launcher:fm-native-grok-xhigh -S -150
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+
+exit: 0
+
+$ tmux -L fm-lab display-message -p -t launcher:fm-native-grok-xhigh '#{pane_width}x#{pane_height}'
+120x40
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-control.sh native-grok-xhigh exit
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/l
+error: task native-grok-xhigh's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+exit: 1
+
+$ tmux -L fm-lab kill-server
+exit: 0
+
+Private tmux server stopped; only the owned fm-lab socket was addressed.

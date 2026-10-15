@@ -1,0 +1,45 @@
+Advance fork and upstream references during a real check; keep one snapshot and observe changes on the next run
+Measured: 2026-10-14T21:01:35.629388-05:00
+Platform: macOS-27.2-arm64-arm-64bit-Mach-O
+Target: aaac2ae1f8467c00e5ee7389599b4502a00be9a4
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-main --fork main --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-main/proof.txt
+Real Git TRACE2 observer will advance main to 9d4a2eacfe226cba9dd6ac077e9f6a509ee0cb6d at the first path enumeration. No command or output is mocked.
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: 3b3ed2fe941d8f5eec97f17987ef9991d54adcb8 accepted notes
+exit: 0
+Concurrent real update-ref: [{"returncode": 0, "stderr": "", "timestamp": 22810.682773791, "event_index": 98}]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-main rev-parse main
+9d4a2eacfe226cba9dd6ac077e9f6a509ee0cb6d
+exit: 0
+
+Next real CLI invocation observes the new reference:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-main --fork main --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-main/proof.txt
+behind: 0
+ahead: 2
+path-ok: notes.txt
+path-drift: later.txt
+unproven: 9d4a2eacfe226cba9dd6ac077e9f6a509ee0cb6d later unproven change
+keep: 3b3ed2fe941d8f5eec97f17987ef9991d54adcb8 accepted notes
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream --fork main --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream/proof.txt
+Real Git TRACE2 observer will advance upstream to 6f2dfc8e64678e86e326e386f95cbfeb579cb9e3 at the first path enumeration. No command or output is mocked.
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: c53d86031d0534b8f0b40f9017d32be839171917 accepted notes
+exit: 0
+Concurrent real update-ref: [{"returncode": 0, "stderr": "", "timestamp": 22811.161127916, "event_index": 98}]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream rev-parse upstream
+6f2dfc8e64678e86e326e386f95cbfeb579cb9e3
+exit: 0
+
+Next real CLI invocation observes the new reference:
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream --fork main --upstream upstream --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream/proof.txt
+behind: 1
+ahead: 0
+exit: 0
+

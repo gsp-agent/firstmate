@@ -1,0 +1,45 @@
+Select Cursor, Codex or Claude from isolated quota records and preserve per-task boundaries
+Measured: 2026-10-14T20:58:54.224559-05:00
+Platform: macOS-27.2-arm64-arm-64bit-Mach-O
+Target: aaac2ae1f8467c00e5ee7389599b4502a00be9a4
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-cursor-guard.sh fallback task-a
+codex no Cursor spending file in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/fallback-home/usage
+exit: 0
+
+Fixture spending data: cursor_models_pct=84
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-cursor-guard.sh fallback task-a
+cursor
+exit: 0
+
+Fixture spending data: cursor_models_pct=85
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-cursor-guard.sh fallback task-a
+codex Cursor Models at 85% (limit 85%)
+exit: 0
+
+Fixture spending data: cursor_models_pct=89
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-cursor-guard.sh fallback task-a
+codex Cursor Models at 89% (limit 85%)
+exit: 0
+
+Fixture spending data: cursor_models_pct=abc
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-cursor-guard.sh fallback task-a
+codex cursor_models_pct missing or not an integer in 20261014-spending.txt
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-cursor-guard.sh fallback task-a
+codex newest Cursor spending file is 234817 h old (limit 26 h)
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-cursor-guard.sh fallback task-a
+codex Cursor Models at 10% (limit 10%)
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-cursor-guard.sh fallback task-a
+claude Cursor Models at 89% (limit 10%); existing recorded Codex usage limit
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-cursor-guard.sh fallback task-b
+codex Cursor Models at 89% (limit 10%)
+exit: 0
+

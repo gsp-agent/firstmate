@@ -1,0 +1,93 @@
+[
+  {
+    "name": "Check the delivered fork with its shipped manifest against freshly fetched upstream; accept its effective tree",
+    "result": "pass",
+    "live": true,
+    "evidence": "shipped-drift-check.log",
+    "reason": ""
+  },
+  {
+    "name": "Commit later edits to the launcher, guard and proof file; reject each with path-drift",
+    "result": "pass",
+    "live": true,
+    "evidence": "delivered-adversarial-edits.log",
+    "reason": ""
+  },
+  {
+    "name": "Use fixed-parent acceptance; reject later, inherited, missing and ambiguous approvals",
+    "result": "pass",
+    "live": true,
+    "evidence": "manifest-boundaries.log",
+    "reason": ""
+  },
+  {
+    "name": "Accept a measured patch, reject extra bytes and modes, and accept removal of unproved edits",
+    "result": "pass",
+    "live": true,
+    "evidence": "effective-patch-check.log",
+    "reason": ""
+  },
+  {
+    "name": "Delete an unproved original beside a proven identical copy; report the deletion despite rename detection",
+    "result": "pass",
+    "live": true,
+    "evidence": "hidden-deletion-check.log",
+    "reason": ""
+  },
+  {
+    "name": "Fetch the cut archives as named branches and recover the pre-cut source tree",
+    "result": "pass",
+    "live": true,
+    "evidence": "archive-recovery.log",
+    "reason": ""
+  },
+  {
+    "name": "Resolve explicit labels and default supported efforts without an API key; refuse conflicts and invalid profiles",
+    "result": "pass",
+    "live": true,
+    "evidence": "label-routing-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "Select Cursor, Codex or Claude from isolated quota records and preserve per-task boundaries",
+    "result": "pass",
+    "live": true,
+    "evidence": "quota-fallback-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "Preview nightly installation and uninstall; validate schedule inputs without modifying the scheduler",
+    "result": "pass",
+    "live": true,
+    "evidence": "scheduler-preview.log",
+    "reason": ""
+  },
+  {
+    "name": "Advance fork and upstream references during a real check; keep one snapshot and observe changes on the next run",
+    "result": "pass",
+    "live": true,
+    "evidence": "concurrent-reference-check.log",
+    "reason": ""
+  },
+  {
+    "name": "Load supported Grok xhigh and Sol max profiles at startup; improve on upstream and still report invalid fallback configuration",
+    "result": "pass",
+    "live": true,
+    "evidence": "startup-profile-comparison.log",
+    "reason": ""
+  },
+  {
+    "name": "Install and uninstall the nightly job in a real macOS launchd domain",
+    "result": "untested",
+    "live": false,
+    "evidence": "scheduler-preview.log; baseline-fm-drift-nightly.log",
+    "reason": "Exercised isolated install/uninstall previews and the existing mocked-launchctl round trip. The real command always bootstraps or removes gui/<uid>/dev.firstmate.drift-nightly; redirecting FM_DRIFT_AGENT_DIR does not isolate that shared launchd domain. This run expressly forbids system-state changes outside the worktree. The deployment owner must perform the real round trip with explicit host-installation authority or supply an authorized disposable macOS login domain."
+  },
+  {
+    "name": "Cut over the main home to the merged result and remeasure it the next day",
+    "result": "untested",
+    "live": false,
+    "evidence": "shipped-drift-check.log; drift-proof.txt",
+    "reason": "Validated the exact delivery commit in a disposable clone against freshly fetched upstream and checked the recorded cutover/check-back contract. Moving the operator checkout, installing its job, and inspecting real fleet state are explicitly outside this test phase and workspace boundary. The outer delivery owner needs the PM merge/cutover word, must run the main-home acceptance check, then recheck on 2026-10-15."
+  }
+]

@@ -1,0 +1,27 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/catalog-lab
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/catalog-lab
+exit: 0
+
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/catalog-lab/projects/native
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/catalog-lab/projects/native add README.md
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/catalog-lab/projects/native -c user.name=Fixture -c user.email=fixture@example.invalid -c commit.gpgsign=false commit -qm fixture
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-spawn.sh catalog-unlisted /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/catalog-lab/projects/native --mode local-only --yolo off --harness cursor --model fm-deliberately-nonexistent-model
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/catalog-lab
+error: Cursor model 'fm-deliberately-nonexistent-model' is not available from '/Users/dalecarman/.local/bin/cursor-agent --list-models'; choose an id listed by that command or omit --model
+exit: 1
+
+No task metadata was published; native catalogue refusal happened before endpoint creation.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-spawn.sh catalog-unavailable /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/catalog-lab/projects/native --mode local-only --yolo off --harness cursor --model fm-deliberately-nonexistent-model
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/catalog-lab
+error: could not read '/Users/dalecarman/.local/bin/cursor-agent --list-models'; refusing to launch Cursor model 'fm-deliberately-nonexistent-model' unchecked
+exit: 1
+
+No task metadata was published; native catalogue refusal happened before endpoint creation.
+

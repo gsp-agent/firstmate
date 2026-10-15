@@ -1,0 +1,43 @@
+Use fixed-parent acceptance; reject later, inherited, missing and ambiguous approvals
+Measured: 2026-10-14T20:58:51.348946-05:00
+Platform: macOS-27.2-arm64-arm-64bit-Mach-O
+Target: aaac2ae1f8467c00e5ee7389599b4502a00be9a4
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/manifest --no-fetch --upstream upstream
+behind: 0
+ahead: 1
+path-ok: drift-proof.txt
+path-ok: guard.txt
+keep: ff6e33fe20bb53f28c3481a66e082d872e53cefa final acceptance
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/manifest --no-fetch --upstream upstream
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-drift: guard.txt
+unproven: 58899c9f0e9ff3686735dc7dae4cc1a09e146db6 later edit
+keep: ff6e33fe20bb53f28c3481a66e082d872e53cefa final acceptance
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/manifest --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/manifest/missing-proof.txt
+
+stderr:
+error: proof parent has no direct child: 58899c9f0e9ff3686735dc7dae4cc1a09e146db6
+exit: 2
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/manifest-inherited --no-fetch --upstream upstream
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-drift: unproven.txt
+keep: f99812d6474973364e0c0d306cafec52a17ae65e accepted manifest only
+unproven: b3180419282575e92c33e0792ffe25006cd925a6 unproven earlier change
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/manifest-ambiguous --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/manifest-ambiguous/proof.txt
+
+stderr:
+error: proof parent has multiple direct children: 5aec6e831b765835a025e089d85941b3b1ef85d4
+exit: 2
+

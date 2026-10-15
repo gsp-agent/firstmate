@@ -1,0 +1,40 @@
+
+  detached worktree ~/.n/w/a/0/m/p/.t/n/3/native                                             2.4K / 256K │ [Dashboard]
+
+
+     ❯ FIRSTMATE_OP: v1 launch-brief: # Current worker role contract                                         8:29 PM
+       You are a crewmate: an autonomous worker agent managed by firstmate.
+       This section establishes your current identity before every project or task instruction below and …
+
+
+     ◆ Thought for 1.3s
+
+     LIVE_CHECK_READY                                                                                        8:29 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ⠴ Responding… 0.1s                                                                               6.0s ⇣2.38k [stop]
+
+  Help improve Grok                                                                                 [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  for training and debugging purposes. Change anytime via settings.
+  Read Terms and Privacy Policy.
+
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                │
+  ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+
+  Shift+Tab:mode  │  Ctrl+c:cancel  │  Ctrl+x:shortcuts
+

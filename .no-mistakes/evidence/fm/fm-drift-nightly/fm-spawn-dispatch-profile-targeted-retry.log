@@ -1,0 +1,14 @@
+$ bash tests/fm-spawn-dispatch-profile.test.sh
+ok - allowlist=absent preserves the operational floor and filters only when opted in
+ok - allowlist=missing-config preserves the operational floor and filters only when opted in
+ok - allowlist=enabled preserves the operational floor and filters only when opted in
+ok - allowlist=empty preserves the operational floor and filters only when opted in
+ok - invalid allowlist names refuse before launch or task publication
+ok - inaccessible config with present allowlist refuses before launch or task publication
+ok - inaccessible config with absent allowlist refuses before launch or task publication
+ok - inaccessible ancestor with present allowlist refuses before launch or task publication
+ok - inaccessible ancestor with absent allowlist refuses before launch or task publication
+fm-config-inherit: error: cannot resolve the primary role firstmate-role at /private/tmp/fm-spawn-dispatch-profile.77QiF3/env-secondmate/home/config/firstmate-role
+not ok - allowlist removal failed to converge
+
+exit: 1

@@ -1,0 +1,40 @@
+
+   detached worktree ~/.n/w/a/0/l/p/.t/n/3/native
+
+
+
+                                                     ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                     ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                     ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                     ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                     ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                     ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                     ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                      Approve in your browser to finish signing in.
+
+                                                        [redacted authentication challenge]
+
+                                         Make sure your browser shows this code.
+
+                                         If it doesn't open, click here to copy.
+
+
+
+                                    Copying not working? Click here to show full URL.
+
+                                                 Waiting for approval...
+
+
+
+
+
+
+                                                      ctrl+q  quit
+
+
+
+
+
+

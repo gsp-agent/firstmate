@@ -1,0 +1,14 @@
+Delete an unproved original beside a proven identical copy; report the deletion despite rename detection
+Measured: 2026-10-14T20:58:53.441060-05:00
+Platform: macOS-27.2-arm64-arm-64bit-Mach-O
+Target: aaac2ae1f8467c00e5ee7389599b4502a00be9a4
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/hidden-delete --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/hidden-delete/proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+path-drift: original.txt
+unproven: 540d8319c81352c585456bd0dac45ff7a4511ec5 unproven original deletion
+keep: a2472e589e6ea44d2603ec70c3c0d7e0b6807aa6 accepted identical copy
+exit: 1
+

@@ -1,0 +1,32 @@
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery init -q -b main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery config user.name 'Live Validation Fixture'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery config user.email fixture@example.invalid
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery config commit.gpgsign false
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery add --all
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery commit -q -m 'upstream baseline'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery rev-parse HEAD
+fa62bb00004bec51d2298cfdc5f2d3154109bffe
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery bundle verify /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/archives/fork-cuts.bundle
+error: Repository lacks these prerequisite commits:
+error: 20dcbf91520b1816663b81873ad67d0b93b3e4d6 
+error: 7df545bf74ff729ed1733f77b0aea02a9b164ac1 
+exit: 1
+
+OBSERVATION FAILURE: ['git', '-C', PosixPath('/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/archive-recovery'), 'bundle', 'verify', PosixPath('/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/archives/fork-cuts.bundle')]: expected 0, got 1:  error: Repository lacks these prerequisite commits:
+error: 20dcbf91520b1816663b81873ad67d0b93b3e4d6 
+error: 7df545bf74ff729ed1733f77b0aea02a9b164ac1 
+

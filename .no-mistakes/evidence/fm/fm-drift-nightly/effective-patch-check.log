@@ -1,0 +1,39 @@
+Accept a measured patch, reject extra bytes and modes, and accept removal of unproved edits
+Measured: 2026-10-14T20:58:52.523471-05:00
+Platform: macOS-27.2-arm64-arm-64bit-Mach-O
+Target: aaac2ae1f8467c00e5ee7389599b4502a00be9a4
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/exact-patches --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/exact-patches/proof.txt
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: eac3270af1c3fa280c374a01247ba4343a491999 accepted patch
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/exact-patches --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/exact-patches/proof.txt
+behind: 0
+ahead: 2
+path-drift: notes.txt
+unproven: faf41ef2f3620a41f60872e9877d5188625b12b3 unproven extra content
+keep: eac3270af1c3fa280c374a01247ba4343a491999 accepted patch
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/exact-patches --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/exact-patches/proof.txt
+behind: 0
+ahead: 3
+path-ok: notes.txt
+unproven: 9c193ddee823f3e8b0360c29357326dc759d322d cut the unproven edit
+unproven: faf41ef2f3620a41f60872e9877d5188625b12b3 unproven extra content
+keep: eac3270af1c3fa280c374a01247ba4343a491999 accepted patch
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/exact-patches --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/exact-patches/proof.txt
+behind: 0
+ahead: 4
+path-drift: notes.txt
+unproven: fddbb0e780cf21e45a535ed12d94a00d241d82cd unproven executable mode
+unproven: 9c193ddee823f3e8b0360c29357326dc759d322d cut the unproven edit
+unproven: faf41ef2f3620a41f60872e9877d5188625b12b3 unproven extra content
+keep: eac3270af1c3fa280c374a01247ba4343a491999 accepted patch
+exit: 1
+

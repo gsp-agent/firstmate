@@ -1,0 +1,18 @@
+Load supported Grok xhigh and Sol max profiles at startup; improve on upstream and still report invalid fallback configuration
+Measured: 2026-10-14T21:03:26.781877-05:00
+Platform: macOS-27.2-arm64-arm-64bit-Mach-O
+Target: aaac2ae1f8467c00e5ee7389599b4502a00be9a4
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/upstream-runtime/bin/fm-bootstrap.sh
+CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: grok:xhigh
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-bootstrap.sh
+
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-bootstrap.sh
+CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs models_pct 1..100 and max_age_h > 0
+exit: 0
+
+Supported effort profiles accepted; out-of-range fallback configuration reported; all checks were detect-only and skipped network and lifecycle sweeps.

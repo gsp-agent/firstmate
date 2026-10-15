@@ -1,0 +1,1686 @@
+[
+  {
+    "event": "version",
+    "sid": "20261015T020136.395308Z-Hdfe21ce3-P0000f5f1",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.395748Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.395308Z-Hdfe21ce3-P0000f5f1",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.395755Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000551,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-parse",
+      "--is-inside-work-tree"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.395308Z-Hdfe21ce3-P0000f5f1",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.395867Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.395308Z-Hdfe21ce3-P0000f5f1",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.395917Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-parse",
+    "hierarchy": "rev-parse"
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.395308Z-Hdfe21ce3-P0000f5f1",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.396056Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.395308Z-Hdfe21ce3-P0000f5f1",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.396164Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.000961,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.395308Z-Hdfe21ce3-P0000f5f1",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.396169Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.000967,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.402357Z-Hdfe21ce3-P0000f5fc",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.402769Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.402357Z-Hdfe21ce3-P0000f5fc",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.402776Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000527,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-parse",
+      "--verify",
+      "main^{commit}"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.402357Z-Hdfe21ce3-P0000f5fc",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.403000Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.402357Z-Hdfe21ce3-P0000f5fc",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.403090Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-parse",
+    "hierarchy": "rev-parse"
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.402357Z-Hdfe21ce3-P0000f5fc",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.403232Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.402357Z-Hdfe21ce3-P0000f5fc",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.404049Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.001801,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.402357Z-Hdfe21ce3-P0000f5fc",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.404055Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001807,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.410990Z-Hdfe21ce3-P0000f609",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.411840Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.410990Z-Hdfe21ce3-P0000f609",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.411847Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000982,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-parse",
+      "--verify",
+      "upstream^{commit}"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.410990Z-Hdfe21ce3-P0000f609",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.412032Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.410990Z-Hdfe21ce3-P0000f609",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.412091Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-parse",
+    "hierarchy": "rev-parse"
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.410990Z-Hdfe21ce3-P0000f609",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.412216Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.410990Z-Hdfe21ce3-P0000f609",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.413013Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.002149,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.410990Z-Hdfe21ce3-P0000f609",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.413017Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.002154,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.418883Z-Hdfe21ce3-P0000f613",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.419510Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.418883Z-Hdfe21ce3-P0000f613",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.419520Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000918,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "merge-base",
+      "c53d86031d0534b8f0b40f9017d32be839171917",
+      "ddf9ee1d26439c77312600b877e1e4db60af3092"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.418883Z-Hdfe21ce3-P0000f613",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.419744Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.418883Z-Hdfe21ce3-P0000f613",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.419949Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.418883Z-Hdfe21ce3-P0000f613",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.420043Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "merge-base",
+    "hierarchy": "merge-base"
+  },
+  {
+    "event": "data",
+    "sid": "20261015T020136.418883Z-Hdfe21ce3-P0000f613",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.420962Z",
+    "file": "commit-reach.c",
+    "line": 274,
+    "repo": 1,
+    "t_abs": 0.002361,
+    "t_rel": 0.002361,
+    "nesting": 1,
+    "category": "paint_down_to_common",
+    "key": "steps",
+    "value": "2"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.418883Z-Hdfe21ce3-P0000f613",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.420972Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.002372,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.418883Z-Hdfe21ce3-P0000f613",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.420977Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.002376,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.426902Z-Hdfe21ce3-P0000f61b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.427261Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.426902Z-Hdfe21ce3-P0000f61b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.427269Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000502,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-list",
+      "--count",
+      "c53d86031d0534b8f0b40f9017d32be839171917..ddf9ee1d26439c77312600b877e1e4db60af3092"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.426902Z-Hdfe21ce3-P0000f61b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.427417Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.426902Z-Hdfe21ce3-P0000f61b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.427591Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.426902Z-Hdfe21ce3-P0000f61b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.427678Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-list",
+    "hierarchy": "rev-list"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.426902Z-Hdfe21ce3-P0000f61b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.428562Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.001795,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.426902Z-Hdfe21ce3-P0000f61b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.428567Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001801,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.433875Z-Hdfe21ce3-P0000f622",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.434324Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.433875Z-Hdfe21ce3-P0000f622",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.434333Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000555,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-list",
+      "--count",
+      "ddf9ee1d26439c77312600b877e1e4db60af3092..c53d86031d0534b8f0b40f9017d32be839171917"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.433875Z-Hdfe21ce3-P0000f622",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.434495Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.433875Z-Hdfe21ce3-P0000f622",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.434690Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.433875Z-Hdfe21ce3-P0000f622",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.434775Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-list",
+    "hierarchy": "rev-list"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.433875Z-Hdfe21ce3-P0000f622",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.435745Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.001969,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.433875Z-Hdfe21ce3-P0000f622",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.435753Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001977,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.445290Z-Hdfe21ce3-P0000f62f",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.445695Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.445290Z-Hdfe21ce3-P0000f62f",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.445702Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000533,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-parse",
+      "--verify",
+      "c53d86031d0534b8f0b40f9017d32be839171917^{commit}"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.445290Z-Hdfe21ce3-P0000f62f",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.445859Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.445290Z-Hdfe21ce3-P0000f62f",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.445913Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-parse",
+    "hierarchy": "rev-parse"
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.445290Z-Hdfe21ce3-P0000f62f",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.446040Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.445290Z-Hdfe21ce3-P0000f62f",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.446826Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.001659,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.445290Z-Hdfe21ce3-P0000f62f",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.446832Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001664,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.451799Z-Hdfe21ce3-P0000f638",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.452111Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.451799Z-Hdfe21ce3-P0000f638",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.452117Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000413,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "merge-base",
+      "--is-ancestor",
+      "c53d86031d0534b8f0b40f9017d32be839171917",
+      "c53d86031d0534b8f0b40f9017d32be839171917"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.451799Z-Hdfe21ce3-P0000f638",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.452248Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.451799Z-Hdfe21ce3-P0000f638",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.452400Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.451799Z-Hdfe21ce3-P0000f638",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.452473Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "merge-base",
+    "hierarchy": "merge-base"
+  },
+  {
+    "event": "data",
+    "sid": "20261015T020136.451799Z-Hdfe21ce3-P0000f638",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.453378Z",
+    "file": "commit-reach.c",
+    "line": 274,
+    "repo": 1,
+    "t_abs": 0.001674,
+    "t_rel": 0.001674,
+    "nesting": 1,
+    "category": "paint_down_to_common",
+    "key": "steps",
+    "value": "1"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.451799Z-Hdfe21ce3-P0000f638",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.453388Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.001685,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.451799Z-Hdfe21ce3-P0000f638",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.453391Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001688,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.460938Z-Hdfe21ce3-P0000f645",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.461284Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.460938Z-Hdfe21ce3-P0000f645",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.461290Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000449,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-parse",
+      "ddf9ee1d26439c77312600b877e1e4db60af3092^{tree}"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.460938Z-Hdfe21ce3-P0000f645",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.461418Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.460938Z-Hdfe21ce3-P0000f645",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.461463Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-parse",
+    "hierarchy": "rev-parse"
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.460938Z-Hdfe21ce3-P0000f645",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.461579Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.460938Z-Hdfe21ce3-P0000f645",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.462474Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.001633,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.460938Z-Hdfe21ce3-P0000f645",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.462483Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001642,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.468199Z-Hdfe21ce3-P0000f64e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.468650Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.468199Z-Hdfe21ce3-P0000f64e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.468658Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000559,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-list",
+      "--reverse",
+      "--topo-order",
+      "ddf9ee1d26439c77312600b877e1e4db60af3092..c53d86031d0534b8f0b40f9017d32be839171917"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.468199Z-Hdfe21ce3-P0000f64e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.468842Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.468199Z-Hdfe21ce3-P0000f64e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.469042Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.468199Z-Hdfe21ce3-P0000f64e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.469133Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-list",
+    "hierarchy": "rev-list"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.468199Z-Hdfe21ce3-P0000f64e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.470126Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.002028,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.468199Z-Hdfe21ce3-P0000f64e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.470133Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.002035,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.475968Z-Hdfe21ce3-P0000f657",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.476383Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.475968Z-Hdfe21ce3-P0000f657",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.476390Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000525,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-parse",
+      "c53d86031d0534b8f0b40f9017d32be839171917^1"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.475968Z-Hdfe21ce3-P0000f657",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.476563Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.475968Z-Hdfe21ce3-P0000f657",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.476631Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-parse",
+    "hierarchy": "rev-parse"
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.475968Z-Hdfe21ce3-P0000f657",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.476769Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.475968Z-Hdfe21ce3-P0000f657",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.477531Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.001666,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.475968Z-Hdfe21ce3-P0000f657",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.477538Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001674,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.483635Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.483642Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000521,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "merge-tree",
+      "--write-tree",
+      "--no-messages",
+      "--merge-base=ddf9ee1d26439c77312600b877e1e4db60af3092",
+      "93dca4cbb0211db7bcbb757365f9dae5708bcb17",
+      "c53d86031d0534b8f0b40f9017d32be839171917"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.483834Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.484013Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.484105Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "merge-tree",
+    "hierarchy": "merge-tree"
+  },
+  {
+    "event": "region_enter",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485068Z",
+    "file": "merge-ort.c",
+    "line": 5409,
+    "repo": 1,
+    "nesting": 1,
+    "category": "merge",
+    "label": "incore_nonrecursive"
+  },
+  {
+    "event": "region_enter",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485074Z",
+    "file": "merge-ort.c",
+    "line": 5411,
+    "repo": 1,
+    "nesting": 2,
+    "category": "merge",
+    "label": "merge_start"
+  },
+  {
+    "event": "region_leave",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485079Z",
+    "file": "merge-ort.c",
+    "line": 5423,
+    "repo": 1,
+    "t_rel": 5e-06,
+    "nesting": 2,
+    "category": "merge",
+    "label": "merge_start"
+  },
+  {
+    "event": "region_enter",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485082Z",
+    "file": "merge-ort.c",
+    "line": 5261,
+    "repo": 1,
+    "nesting": 2,
+    "category": "merge",
+    "label": "collect_merge_info"
+  },
+  {
+    "event": "region_leave",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485097Z",
+    "file": "merge-ort.c",
+    "line": 5275,
+    "repo": 1,
+    "t_rel": 1.5e-05,
+    "nesting": 2,
+    "category": "merge",
+    "label": "collect_merge_info"
+  },
+  {
+    "event": "region_enter",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485100Z",
+    "file": "merge-ort.c",
+    "line": 5277,
+    "repo": 1,
+    "nesting": 2,
+    "category": "merge",
+    "label": "renames"
+  },
+  {
+    "event": "region_leave",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485103Z",
+    "file": "merge-ort.c",
+    "line": 5279,
+    "repo": 1,
+    "t_rel": 3e-06,
+    "nesting": 2,
+    "category": "merge",
+    "label": "renames"
+  },
+  {
+    "event": "region_enter",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485104Z",
+    "file": "merge-ort.c",
+    "line": 5287,
+    "repo": 1,
+    "nesting": 2,
+    "category": "merge",
+    "label": "process_entries"
+  },
+  {
+    "event": "region_leave",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485144Z",
+    "file": "merge-ort.c",
+    "line": 5290,
+    "repo": 1,
+    "t_rel": 3.9e-05,
+    "nesting": 2,
+    "category": "merge",
+    "label": "process_entries"
+  },
+  {
+    "event": "region_leave",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485148Z",
+    "file": "merge-ort.c",
+    "line": 5426,
+    "repo": 1,
+    "t_rel": 8e-05,
+    "nesting": 1,
+    "category": "merge",
+    "label": "incore_nonrecursive"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485157Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.002038,
+    "code": 0
+  },
+  {
+    "event": "data_json",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485161Z",
+    "file": "tree-walk.c",
+    "line": 187,
+    "repo": 1,
+    "t_abs": 0.002041,
+    "t_rel": 0.002041,
+    "nesting": 1,
+    "category": "traverse_trees",
+    "key": "statistics",
+    "value": {
+      "traverse_trees_count": 1,
+      "traverse_trees_max_depth": 1
+    }
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.483226Z-Hdfe21ce3-P0000f660",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.485165Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.002045,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.490527Z-Hdfe21ce3-P0000f669",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.490898Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.490527Z-Hdfe21ce3-P0000f669",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.490904Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000477,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "diff",
+      "--no-renames",
+      "--name-only",
+      "-z",
+      "ddf9ee1d26439c77312600b877e1e4db60af3092",
+      "c53d86031d0534b8f0b40f9017d32be839171917"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.490527Z-Hdfe21ce3-P0000f669",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.491091Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.490527Z-Hdfe21ce3-P0000f669",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.491152Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "diff",
+    "hierarchy": "diff"
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.490527Z-Hdfe21ce3-P0000f669",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.491323Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.490527Z-Hdfe21ce3-P0000f669",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.492460Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.002033,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.490527Z-Hdfe21ce3-P0000f669",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.492464Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.002038,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.498260Z-Hdfe21ce3-P0000f671",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.498607Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.498260Z-Hdfe21ce3-P0000f671",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.498614Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000474,
+    "argv": [
+      "git",
+      "--literal-pathspecs",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "diff",
+      "--no-renames",
+      "--quiet",
+      "c87b1f9df586a114be2a770f1d3a90e7f30c44db",
+      "c53d86031d0534b8f0b40f9017d32be839171917",
+      "--",
+      "notes.txt"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.498260Z-Hdfe21ce3-P0000f671",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.498791Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.498260Z-Hdfe21ce3-P0000f671",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.498852Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "diff",
+    "hierarchy": "diff"
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.498260Z-Hdfe21ce3-P0000f671",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.498978Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.498260Z-Hdfe21ce3-P0000f671",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.499912Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.001772,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.498260Z-Hdfe21ce3-P0000f671",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.499916Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001778,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.505202Z-Hdfe21ce3-P0000f675",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.505619Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.505202Z-Hdfe21ce3-P0000f675",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.505626Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000534,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "diff",
+      "--no-renames",
+      "--name-only",
+      "-z",
+      "c87b1f9df586a114be2a770f1d3a90e7f30c44db",
+      "c53d86031d0534b8f0b40f9017d32be839171917"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.505202Z-Hdfe21ce3-P0000f675",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.505795Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.505202Z-Hdfe21ce3-P0000f675",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.505857Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "diff",
+    "hierarchy": "diff"
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.505202Z-Hdfe21ce3-P0000f675",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.505987Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.505202Z-Hdfe21ce3-P0000f675",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.507113Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.002021,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.505202Z-Hdfe21ce3-P0000f675",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.507120Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.002029,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.512501Z-Hdfe21ce3-P0000f67b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.512960Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.512501Z-Hdfe21ce3-P0000f67b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.512969Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000581,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-list",
+      "ddf9ee1d26439c77312600b877e1e4db60af3092..c53d86031d0534b8f0b40f9017d32be839171917"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.512501Z-Hdfe21ce3-P0000f67b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.513158Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.512501Z-Hdfe21ce3-P0000f67b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.513347Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.512501Z-Hdfe21ce3-P0000f67b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.513432Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-list",
+    "hierarchy": "rev-list"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.512501Z-Hdfe21ce3-P0000f67b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.514357Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.00197,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.512501Z-Hdfe21ce3-P0000f67b",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.514363Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001976,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.519783Z-Hdfe21ce3-P0000f67e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.520220Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.519783Z-Hdfe21ce3-P0000f67e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.520229Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000546,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "log",
+      "-1",
+      "--format=%s",
+      "c53d86031d0534b8f0b40f9017d32be839171917"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.519783Z-Hdfe21ce3-P0000f67e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.520423Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.519783Z-Hdfe21ce3-P0000f67e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.520637Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.519783Z-Hdfe21ce3-P0000f67e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.520742Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "log",
+    "hierarchy": "log"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.519783Z-Hdfe21ce3-P0000f67e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.521721Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.00204,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.519783Z-Hdfe21ce3-P0000f67e",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.521727Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.002047,
+    "code": 0
+  },
+  {
+    "event": "version",
+    "sid": "20261015T020136.527290Z-Hdfe21ce3-P0000f683",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.527659Z",
+    "file": "common-init.c",
+    "line": 77,
+    "evt": "4",
+    "exe": "2.56.0"
+  },
+  {
+    "event": "start",
+    "sid": "20261015T020136.527290Z-Hdfe21ce3-P0000f683",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.527666Z",
+    "file": "common-init.c",
+    "line": 78,
+    "t_abs": 0.000475,
+    "argv": [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream",
+      "rev-list",
+      "--parents",
+      "-n",
+      "1",
+      "c53d86031d0534b8f0b40f9017d32be839171917"
+    ]
+  },
+  {
+    "event": "cmd_ancestry",
+    "sid": "20261015T020136.527290Z-Hdfe21ce3-P0000f683",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.527817Z",
+    "file": "compat/darwin/procinfo.c",
+    "line": 81,
+    "ancestry": [
+      "bash",
+      "Python",
+      "codex",
+      "node",
+      "no-mistakes",
+      "launchd"
+    ]
+  },
+  {
+    "event": "def_repo",
+    "sid": "20261015T020136.527290Z-Hdfe21ce3-P0000f683",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.528011Z",
+    "file": "repository.c",
+    "line": 256,
+    "repo": 1,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/phase-test/concurrent-upstream"
+  },
+  {
+    "event": "cmd_name",
+    "sid": "20261015T020136.527290Z-Hdfe21ce3-P0000f683",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.528108Z",
+    "file": "git.c",
+    "line": 507,
+    "name": "rev-list",
+    "hierarchy": "rev-list"
+  },
+  {
+    "event": "exit",
+    "sid": "20261015T020136.527290Z-Hdfe21ce3-P0000f683",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.529012Z",
+    "file": "git.c",
+    "line": 789,
+    "t_abs": 0.00182,
+    "code": 0
+  },
+  {
+    "event": "atexit",
+    "sid": "20261015T020136.527290Z-Hdfe21ce3-P0000f683",
+    "thread": "main",
+    "time": "2026-10-15T02:01:36.529018Z",
+    "file": "trace2/tr2_tgt_event.c",
+    "line": 207,
+    "t_abs": 0.001827,
+    "code": 0
+  }
+]

@@ -1,0 +1,263 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m
+exit: 0
+
+$ git init --bare -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/source.git
+exit: 0
+
+$ git clone -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/source.git /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native
+warning: You appear to have cloned an empty repository.
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native config user.name 'Native Launch Validation'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native config user.email fixture@example.invalid
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native config commit.gpgsign false
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native add README.md
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native commit -q -m 'seed isolated launch project'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native push -q origin main
+exit: 0
+
+$ tmux -L fm-lab -f /dev/null new-session -d -s launcher -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native -e FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m -e TREEHOUSE_ROOT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool -e SHELL=/bin/bash /bin/bash --noprofile --norc
+exit: 0
+
+$ tmux -L fm-lab display-message -p -t launcher '#{socket_path},#{pid},#{session_id}'
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/tmux/tmux-501/fm-lab,22564,$0
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-spawn.sh native-sol-max /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native --mode local-only --yolo off --harness codex --model gpt-6.1-sol --effort max
+spawned native-sol-max harness=codex kind=ship mode=local-only yolo=off window=launcher:fm-native-sol-max worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/1/native
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/data/native-sol-max/launch-brief.md records no ship branch; defaulting to legacy branch fm/native-sol-max
+notice: native-sol-max ships mode=local-only while the standing posture for native is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+exit: 0
+
+Persisted launch metadata:
+{
+  "window": "launcher:fm-native-sol-max",
+  "endpoint_task_id": "native-sol-max",
+  "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/1/native",
+  "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native",
+  "harness": "codex",
+  "kind": "ship",
+  "mode": "local-only",
+  "yolo": "off",
+  "branch": "fm/native-sol-max",
+  "tasktmp": "/tmp/fm-native-sol-max",
+  "model": "gpt-6.1-sol",
+  "effort": "max",
+  "spawn_gen": "s1792027690.22645.765"
+}
+Final native capture:
+
+  Folder access
+  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/1/n
+  ative
+
+  Note: You’re in a subdirectory of a Git project. Trusting will apply to the repository root:
+  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native
+
+  Trust this folder? Codex can read, edit, and run files here, subject to your permission settings. Folder settings
+  can run code automatically, even without a model request. Continue only if you trust these files. Your trust
+  decision will be saved.
+
+› 1. Trust and continue
+  2. Quit
+
+  enter continue · esc quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$ tmux -L fm-lab display-message -p -t launcher:fm-native-sol-max '#{pane_width}x#{pane_height}'
+120x40
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-control.sh native-sol-max exit
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m
+error: task native-sol-max's composer state is 'unknown', not proven empty; refusing to type the /quit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+exit: 1
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-spawn.sh native-quota-fallback /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native --mode local-only --yolo off --harness cursor --model grok-4.7-xhigh
+spawned native-quota-fallback harness=codex kind=ship mode=local-only yolo=off window=launcher:fm-native-quota-fallback worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/2/native
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m
+cursor fallback: launching native-quota-fallback on the codex harness (default model xhigh): Cursor Models at 89% (limit 85%)
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/data/native-quota-fallback/launch-brief.md records no ship branch; defaulting to legacy branch fm/native-quota-fallback
+notice: native-quota-fallback ships mode=local-only while the standing posture for native is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+exit: 0
+
+Persisted launch metadata:
+{
+  "window": "launcher:fm-native-quota-fallback",
+  "endpoint_task_id": "native-quota-fallback",
+  "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/2/native",
+  "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native",
+  "harness": "codex",
+  "kind": "ship",
+  "mode": "local-only",
+  "yolo": "off",
+  "branch": "fm/native-quota-fallback",
+  "tasktmp": "/tmp/fm-native-quota-fallback",
+  "model": "default",
+  "effort": "xhigh",
+  "spawn_gen": "s1792027724.42378.5893"
+}
+Final native capture:
+
+  Folder access
+  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/2/n
+  ative
+
+  Note: You’re in a subdirectory of a Git project. Trusting will apply to the repository root:
+  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native
+
+  Trust this folder? Codex can read, edit, and run files here, subject to your permission settings. Folder settings
+  can run code automatically, even without a model request. Continue only if you trust these files. Your trust
+  decision will be saved.
+
+› 1. Trust and continue
+  2. Quit
+
+  enter continue · esc quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$ tmux -L fm-lab display-message -p -t launcher:fm-native-quota-fallback '#{pane_width}x#{pane_height}'
+120x40
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-control.sh native-quota-fallback exit
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m
+error: task native-quota-fallback's composer state is 'unknown', not proven empty; refusing to type the /quit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+exit: 1
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-spawn.sh native-grok-xhigh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native --mode local-only --yolo off --harness grok --model grok-4.7 --effort xhigh
+spawned native-grok-xhigh harness=grok kind=ship mode=local-only yolo=off window=launcher:fm-native-grok-xhigh worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/3/native
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/data/native-grok-xhigh/launch-brief.md records no ship branch; defaulting to legacy branch fm/native-grok-xhigh
+notice: native-grok-xhigh ships mode=local-only while the standing posture for native is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+exit: 0
+
+Persisted launch metadata:
+{
+  "window": "launcher:fm-native-grok-xhigh",
+  "endpoint_task_id": "native-grok-xhigh",
+  "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/pool/.treehouse/native-3c84be/3/native",
+  "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m/projects/native",
+  "harness": "grok",
+  "kind": "ship",
+  "mode": "local-only",
+  "yolo": "off",
+  "branch": "fm/native-grok-xhigh",
+  "tasktmp": "/tmp/fm-native-grok-xhigh",
+  "model": "grok-4.7",
+  "effort": "xhigh",
+  "spawn_gen": "s1792027754.70104.11770"
+}
+Final native capture:
+
+  detached worktree ~/.n/w/a/0/m/p/.t/n/3/native                                             2.4K / 256K │ [Dashboard]
+
+
+     ❯ FIRSTMATE_OP: v1 launch-brief: # Current worker role contract                                         8:29 PM
+       You are a crewmate: an autonomous worker agent managed by firstmate.
+       This section establishes your current identity before every project or task instruction below and …
+
+
+     ◆ Thought for 1.3s
+
+     LIVE_CHECK_READY                                                                                        8:29 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ⠴ Responding… 0.1s                                                                               6.0s ⇣2.38k [stop]
+
+  Help improve Grok                                                                                 [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  for training and debugging purposes. Change anytime via settings.
+  Read Terms and Privacy Policy.
+
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                │
+  ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+
+  Shift+Tab:mode  │  Ctrl+c:cancel  │  Ctrl+x:shortcuts
+
+
+$ tmux -L fm-lab display-message -p -t launcher:fm-native-grok-xhigh '#{pane_width}x#{pane_height}'
+120x40
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-control.sh native-grok-xhigh exit
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/m
+error: task native-grok-xhigh's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+exit: 1
+
+$ tmux -L fm-lab kill-server
+exit: 0
+
+Private tmux server stopped; only the owned fm-lab socket was addressed.

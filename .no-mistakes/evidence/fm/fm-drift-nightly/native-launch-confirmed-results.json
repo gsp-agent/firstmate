@@ -1,0 +1,29 @@
+[
+  {
+    "name": "native-sol-max",
+    "result": "observed",
+    "live": true,
+    "harness": "codex",
+    "model": "gpt-6.1-sol",
+    "effort": "max",
+    "terminal": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/native-sol-max-confirmed-terminal.txt"
+  },
+  {
+    "name": "native-quota-fallback",
+    "result": "observed",
+    "live": true,
+    "harness": "codex",
+    "model": "default",
+    "effort": "xhigh",
+    "terminal": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/native-quota-fallback-confirmed-terminal.txt"
+  },
+  {
+    "name": "native-grok-xhigh",
+    "result": "observed",
+    "live": true,
+    "harness": "grok",
+    "model": "grok-4.7",
+    "effort": "xhigh",
+    "terminal": "/Users/dalecarman/.no-mistakes/evidence/01M4YF995M5NZF0BV2E19995J9/native-grok-xhigh-confirmed-terminal.txt"
+  }
+]
