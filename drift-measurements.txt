@@ -589,3 +589,61 @@ exit: 0
 A real launchd bootstrap and scheduled firing remain unmeasured here; installing the job on this machine waits for the cutover.
 Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
 Required result: exit 0 and zero path-drift lines on the resulting head.
+
+R17 crew isolation
+Measured: 2026-10-15 (Central), Cursor Agent CLI 2026.10.14-0f9edde, macOS 27.2
+Reproduction (chip, https://github.com/gsp-agent/firstmate/pull/25#pullrequestreview-5531600854): a Cursor Shell call with cwd set to the primary checkout, then a call with no cwd running git symbolic-ref HEAD refs/heads/fm/<id>, runs the second call in the primary through Cursor's persistent shell and moves the primary's HEAD.
+Upstream: kunchenguid/main has no bin/fm-cursor-crew-guard.mjs, and its Cursor launch template names no crew guard plugin (0 matches for CURSORCREWGUARD).
+The same two calls through the restored guard (node bin/fm-cursor-crew-guard.mjs --worktree <slot>):
+call 1, cwd=<primary>, pwd: no decision (an explicit working directory is left alone)
+call 2, no cwd, git symbolic-ref HEAD refs/heads/fm/x: {"permission":"deny"}
+a bare call with no cwd: {"permission":"allow","updated_input":{"command":"pwd","cwd":"<slot>"}}
+Restored without the cut parts of 4ad5d60f's launch line: headless print mode, pstack plugin dir, stream tee and after-run guard stay cut; the interactive launch gains only --plugin-dir for the per-task guard, a general Cursor CLI flag in 2026.10.14 (not limited to --print).
+$ bash tests/fm-cursor-guard.test.sh: 3 checks passed, including both crew guard cases.
+$ bash tests/fm-spawn-dispatch-profile.test.sh: 87 checks passed, including test_cursor_crew_guard_pins_cwd_and_refuses_ref_plumbing.
+$ bash tests/fm-brief.test.sh: 39 passed; tests/fm-tangle-guard.test.sh: 6 passed; tests/fm-spawn-pool-base-freshen.test.sh: 29 passed.
+
+R17 teardown record keeping
+Measured: 2026-10-15 (Central)
+At 516926a9 bin/fm-teardown.sh was byte-identical to kunchenguid/main, so the record loss chip reproduced is upstream's own flaw.
+The two restored regressions, run against kunchenguid/main's bin/fm-teardown.sh and then against this head:
+test_recorded_request_state_decides_pushed_teardown
+  upstream: not ok - recorded-pr-open: an open pull request must refuse even when the branch is on origin
+  this head: ok - a recorded open pull request or merge request keeps the task record until it is merged or closed
+test_recorded_request_refuses_when_the_copy_is_gone_or_reassigned
+  upstream: not ok - recorded-pr-open-gone: an open pull request must refuse when the recorded copy is gone (meta=absent forge=none)
+  this head: ok - an open or unreadable recorded request keeps the task record when the copy is gone or reassigned
+$ bash tests/fm-teardown.test.sh on the restored head: 125 checks passed, exit 0.
+
+R17 uninstall
+Measured: 2026-10-15 (Central), macOS 27.2
+launchctl on this machine, for a label that is not loaded: bootout exits 3 ("Boot-out failed: 3: No such process"); print exits 113.
+Before the fix (41bc017c), a launchctl that exits 71 for bootout and print:
+not ok - uninstall exits 2 when launchctl fails with 71: expected exit 2, got 0
+After the fix: uninstall exits 2 with "error: launchctl bootout gui/<uid>/dev.firstmate.drift-nightly failed with exit 71; kept <plist>" and keeps the plist; bootout exit 3 still reports "uninstalled: removed".
+
+R17 cut recovery
+Measured: 2026-10-15 (Central)
+In a scratch repository holding only the bundle's two prerequisite commits, checked out at 20dcbf91:
+the old documented form: fatal: couldn't find remote ref refs/heads/archive/b606779ed08299d160ccbb154ec7c0dc8277b9d8-<slug>
+the new line, run as written with <sha>=b606779ed08299d160ccbb154ec7c0dc8277b9d8: exit 0, one new commit whose tree equals b606779e's tree (6235ade9064f4dc925885c137b300a624ddef9e3).
+Per-cut refs would rewrite the 307 KB bundle; the snapshot ref already reaches every cut, so only the manifest line changed.
+test_documented_cut_recovery_restores_a_cut_from_the_bundle runs that manifest line verbatim: not ok before 6a0bee96, ok after.
+
+R17 Cursor fallback after harness choice
+Measured: 2026-10-15 (Central)
+config/crew-harness=cursor, no crew-dispatch.json, no --harness, fresh cursor_models_pct=89 against the default 85:
+before (c5b5ad18): not ok - the config/crew-harness cursor spawn skipped the usage fallback
+after (0030e13b): ok - cursor chosen by config/crew-harness falls back to codex at the usage threshold
+The explicit --harness cursor cases still fall back to Codex, and to Claude after a Codex limit.
+
+R17 integer fallback numbers
+Measured: 2026-10-15 (Central), jq-1.8.2
+Before (d102d0e9): with models_pct 85.5 and a fresh 86% file the guard printed cursor; bootstrap and fm-dispatch-resolve accepted 85.5 and 0.5.
+After (5491620c): both validators report "cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0"; the guard falls back with "cursor_fallback.models_pct '85.5' in crew-dispatch.json is not an integer" and reads 85.0 as 85.
+$ bash tests/fm-cursor-guard.test.sh: 3 passed; tests/fm-dispatch-resolve.test.sh: 25 passed; tests/fm-bootstrap.test.sh: 28 passed.
+
+R17 finalization
+The manifest lists 516926a9 and every R17 commit above, and its fixed-parent entry names 5491620c so it selects only the commit delivering this manifest.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
+Required result: exit 0 and zero path-drift lines on the resulting head.
