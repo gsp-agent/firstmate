@@ -1,0 +1,31 @@
+Fixture: exact target-commit product snapshot inside the gate worktree; fixture homes outside that code root.
+Existing behavioral test selectors: test_cursor_threads_model_workspace_and_omits_effort_axis, test_cursor_crew_guard_pins_working_directory_and_refuses_ref_plumbing, test_cursor_secondmate_stays_interactive, test_cursor_allowlist_launch_executes_and_preserves_exit
+# all fm-spawn-dispatch-profile tests passed
+ok - cursor receives its model-qualified reasoning class and exact task workspace
+# crew guard plugin bytes (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-spawn-dispatch-profile.HEEhe5/profile-cursor-crewguard/home/state/profile-cursor-crewguard-z6g.cursor-crew-guard)
+{
+  "name": "fm-crew-guard",
+  "displayName": "Firstmate crew guard",
+  "version": "1.0.0",
+  "description": "Pins crew shell calls to the task worktree and refuses git symbolic-ref and update-ref.",
+  "hooks": "./hooks/hooks.json"
+}
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "matcher": "Shell",
+        "type": "command",
+        "command": "'/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/product/bin/fm-cursor-crew-guard.mjs' --worktree '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-spawn-dispatch-profile.HEEhe5/profile-cursor-crewguard/wt'",
+        "timeout": 10
+      }
+    ]
+  }
+}
+# replay, unguarded: scratch primary HEAD main -> refs/heads/fm/replay
+# replay, guarded: scratch primary HEAD before=refs/heads/main after=refs/heads/main
+ok - the cursor crew guard pins empty-directory calls to the worktree and a replayed symbolic-ref leaves a scratch primary's HEAD alone
+ok - Cursor secondmates use the interactive CLI without the worker launch allowance
+ok - allowlisted Cursor launches execute and preserve output and the agent's exit code
+focused replay exit=0

@@ -1,0 +1,88 @@
+Real Pi CLI; private 120x40 tmux primary; local provider endpoint 127.0.0.1:65224; no user credential or configuration. Start exit=0
+After real typed-user turn:
+
+ pi v0.85.0
+ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  observer.ts
+
+
+ Warning: tmux extended-keys is off. Modified Enter keys may not work. Add `set -g extended-keys on` to ~/.tmux.conf
+ and restart tmux.
+
+
+ native user protocol probe
+
+
+ LOCAL-LAB-ACK
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA (detached)
+0.0%/131k (auto)                                                                                          (nm-local) lab
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ pi v0.85.0
+ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+[Extensions]
+  observer.ts
+
+
+ Warning: tmux extended-keys is off. Modified Enter keys may not work. Add `set -g extended-keys on` to ~/.tmux.conf
+ and restart tmux.
+
+
+ native user protocol probe
+
+
+ LOCAL-LAB-ACK
+
+
+ [nm-validation]
+
+ native custom protocol probe
+
+
+ LOCAL-LAB-ACK
+
+
+ ⁣FIRSTMATE_OP: v1 watcher: FIRSTMATE WATCHER WAKE: watcher: FAILED - Pi extension could not restore watcher continuity
+ after 5 retries
+ watcher: FAILED - refusing to arm from a disposable validation checkout:
+ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/bin
+
+ Run bin/fm-wake-drain.sh first and handle the queued wake. Watcher continuity is extension-owned.
+
+
+ LOCAL-LAB-ACK
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA (detached)
+0.1%/131k (auto)                                                                                          (nm-local) lab
+no server running on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/L/tmux/tmux-501/fm-lab

@@ -1,0 +1,95 @@
+An attended recovery containing only routine task rows goes to the branch.
+$ node bin/fm-branch-dispatch.mjs offer
+exit=0
+eligible=1
+status=safe
+corrupted=0
+rows=1
+tasks=demo
+unscoped=0
+
+Other attended check triggers stay on main over the same queue.
+$ node bin/fm-branch-dispatch.mjs offer
+exit=0
+eligible=0
+status=safe
+corrupted=0
+rows=1
+tasks=demo
+unscoped=0
+
+Adversarial mixed routine/check resurface stays on main.
+$ node bin/fm-branch-dispatch.mjs offer
+exit=0
+eligible=0
+status=safe
+corrupted=0
+rows=1
+tasks=demo
+unscoped=0
+
+Away posture accepts the same mixed rows.
+$ node bin/fm-branch-dispatch.mjs offer --afk
+exit=0
+eligible=1
+status=safe
+corrupted=0
+rows=1 2
+tasks=demo
+unscoped=1
+
+An empty recovery queue cannot manufacture branch work.
+$ node bin/fm-branch-dispatch.mjs offer
+exit=0
+eligible=0
+status=empty
+corrupted=0
+rows=
+tasks=
+unscoped=0
+
+A new isolated home defaults to user.
+$ bash bin/fm-role.sh report
+exit=0
+fm-role: user (default)
+
+Owning the repository does not authorize self-publication.
+$ bash bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA
+exit=1
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+
+A grant for another repository cannot authorize this one.
+$ bash bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA
+exit=1
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+
+A second directive fails closed.
+$ bash bin/fm-role.sh report
+exit=0
+fm-role: user (local) - malformed role file: role file must hold exactly one directive line
+
+The newest fresh low-usage file wins over a stale high-usage file.
+$ bash bin/fm-cursor-guard.sh fallback lab-worker
+exit=0
+cursor
+
+High shared-pool usage selects Codex.
+$ bash bin/fm-cursor-guard.sh fallback lab-worker
+exit=0
+codex Cursor Models at 89% (limit 85%)
+
+Cursor launch allowance 1 is accepted.
+$ bash bin/fm-cursor-guard.sh take lab-worker
+exit=0
+
+Cursor launch allowance 2 is accepted.
+$ bash bin/fm-cursor-guard.sh take lab-worker
+exit=0
+
+A third launch is refused.
+$ bash bin/fm-cursor-guard.sh take lab-worker
+exit=1
+cursor guard: refused lab-worker, already launched 2 times today (2026-10-15); write blocked: instead of a 3rd run
+
+Persisted launch allowance: {"day":"2026-10-15","beads":{"lab-worker":2}}
+

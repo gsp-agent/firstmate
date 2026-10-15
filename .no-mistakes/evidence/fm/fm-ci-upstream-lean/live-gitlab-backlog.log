@@ -1,0 +1,93 @@
+ok: added native-gitlab-close (ship, repo fixture) -> In flight
+task:
+  id: native-gitlab-close
+  title: Complete the GitLab item
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: fixture
+  priority: "-"
+  created: 2026-10-15
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi done native-gitlab-close --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/backlog-home/data/backlog.md` when it ships
+  - Run `tasks-axi block native-gitlab-close --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/backlog-home/data/backlog.md` to record a dependency
+task:
+  id: native-gitlab-close
+  title: Complete the GitLab item
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: fixture
+  priority: "-"
+  created: "-"
+  closed: 2026-10-15
+  deps: none
+  links: none
+  body: "GitLab merge request https://gitlab.example.com/group/sub/project/-/merge_requests/269"
+ok: added native-gitlab-replay (ship, repo fixture) -> In flight
+task:
+  id: native-gitlab-replay
+  title: Recover the interrupted GitLab close
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: fixture
+  priority: "-"
+  created: 2026-10-15
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi done native-gitlab-replay --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/backlog-home/data/backlog.md` when it ships
+  - Run `tasks-axi block native-gitlab-replay --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/backlog-home/data/backlog.md` to record a dependency
+close_replay_result=closed
+task:
+  id: native-gitlab-replay
+  title: Recover the interrupted GitLab close
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: fixture
+  priority: "-"
+  created: "-"
+  closed: 2026-10-15
+  deps: none
+  links: none
+  body: "GitLab merge request https://gitlab.example.com/group/sub/project/-/merge_requests/269"
+
+Persisted backlog after both public transitions:
+# Backlog
+
+## In flight
+## Queued
+
+## Done
+- [x] native-gitlab-replay - Recover the interrupted GitLab close (repo: fixture) (kind: ship) (done 2026-10-15)
+  GitLab merge request https://gitlab.example.com/group/sub/project/-/merge_requests/269
+- [x] native-gitlab-close - Complete the GitLab item (repo: fixture) (kind: ship) (done 2026-10-15)
+  GitLab merge request https://gitlab.example.com/group/sub/project/-/merge_requests/269

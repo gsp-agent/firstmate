@@ -1,0 +1,71 @@
+Actual public fm-spawn, actual tmux backend, actual Cursor binary; isolated configuration/data; no credential supplied. Spawn command exit=0
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/L
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: secondmate native-cursor-recheck sync skipped before launch: cannot determine default branch
+spawned native-cursor-recheck harness=cursor kind=secondmate mode=secondmate yolo=off window=primary:fm-native-cursor-recheck worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/cursor-secondmate-recheck
+Persisted task metadata:
+window=primary:fm-native-cursor-recheck
+endpoint_task_id=native-cursor-recheck
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/cursor-secondmate-recheck
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/cursor-secondmate-recheck
+harness=cursor
+kind=secondmate
+mode=secondmate
+yolo=off
+tasktmp=/tmp/fm-native-cursor-recheck
+model=default
+effort=default
+spawn_gen=s1792106736.39805.17856
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/cursor-secondmate-recheck
+projects=
+
+Kernel-observed native Cursor processes below this pane:
+[
+  [
+    42699,
+    "/Users/dalecarman/.local/bin/cursor-agent --use-system-ca /Users/dalecarman/.local/share/cursor-agent/versions/2026.10.14-0f9edde/index.js --trust --yolo --approve-mcps --plugin-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/L/pstack --plugin-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/L/state/native-cursor-recheck.cursor-crew-guard --workspace /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/cursor-secondmate-recheck \\040-cFIRSTMATE_OP: v1 launch-brief: Remain idle for an isolated CLI-mode validation. Do not use tools."
+  ]
+]
+Real Cursor pane:
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ export GOTMPDIR=/tmp/fm-native-cursor-recheck/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ . '/tmp/fm-native-cursor-recheck+ea7ed0481d84ed3ea6302c5c0af4ae7a093662dbb9407dc49dfdd4e050d40096/launch.s1792
+106736.39805.17856.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Worker launch allowance file exists=False

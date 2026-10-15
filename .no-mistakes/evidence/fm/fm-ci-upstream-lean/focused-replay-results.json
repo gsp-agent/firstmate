@@ -1,0 +1,28 @@
+[
+  {
+    "subject": "fm-spawn-dispatch-profile",
+    "selectors": [
+      "test_cursor_threads_model_workspace_and_omits_effort_axis",
+      "test_cursor_crew_guard_pins_working_directory_and_refuses_ref_plumbing",
+      "test_cursor_secondmate_stays_interactive",
+      "test_cursor_allowlist_launch_executes_and_preserves_exit"
+    ],
+    "exit": 0
+  },
+  {
+    "subject": "fm-pi-branch-extension",
+    "selectors": [
+      "test_away_record_parks_main_and_presents_after_archive",
+      "test_branch_mirror_filters_order_and_cursor"
+    ],
+    "exit": 0
+  },
+  {
+    "subject": "fm-pi-watch-extension",
+    "selectors": [
+      "test_pi_streaming_followup_is_replayed_after_replacement",
+      "test_pi_streaming_time_delivery_keeps_the_successor_chain"
+    ],
+    "exit": 0
+  }
+]

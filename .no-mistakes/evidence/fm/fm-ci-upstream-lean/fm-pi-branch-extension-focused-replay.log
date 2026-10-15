@@ -1,0 +1,5 @@
+Fixture: exact target-commit product snapshot inside the gate worktree; fixture homes outside that code root.
+Existing behavioral test selectors: test_away_record_parks_main_and_presents_after_archive, test_branch_mirror_filters_order_and_cursor
+ok - under the away-posture record the wake carries the verbatim read-back tail, claims every row, opens no processing turn, cancels a pending request, and presents the accumulated rows after archive
+ok - dialog mirror filters tool and operational traffic, lands before wakes, and keeps a durable cursor
+focused replay exit=0

@@ -1,0 +1,7 @@
+{"event":"lock","stdout":"lock acquired: harness pid 82323\n","stderr":"","code":0,"killed":false}
+{"event":"ready","pid":82323}
+{"event":"before_agent_start","messageType":"user","hasPrompt":true,"prompt":"native user protocol probe"}
+{"event":"assistant_end","stopReason":"stop","content":[{"type":"text","text":"LOCAL-LAB-ACK"}]}
+{"event":"before_agent_start","messageType":"custom","hasPrompt":false,"customType":"nm-validation"}
+{"event":"assistant_end","stopReason":"stop","content":[{"type":"text","text":"LOCAL-LAB-ACK"}]}
+{"event":"shutdown"}

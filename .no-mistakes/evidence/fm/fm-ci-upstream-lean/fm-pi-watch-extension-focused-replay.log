@@ -1,0 +1,6 @@
+Fixture: exact target-commit product snapshot inside the gate worktree; fixture homes outside that code root.
+Existing behavioral test selectors: test_pi_streaming_followup_is_replayed_after_replacement, test_pi_streaming_time_delivery_keeps_the_successor_chain
+ok - OpenCode watcher plugin runs the supervision host on an opted-in home and relays every host line (quiet record)
+ok - Pi replacement replays a streaming follow-up before consumption
+ok - Pi streaming-time wake delivery keeps the successor chain and replays only unconsumed wakes
+focused replay exit=0

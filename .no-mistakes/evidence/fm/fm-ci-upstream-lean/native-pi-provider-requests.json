@@ -1,0 +1,22 @@
+[
+  {
+    "path": "/v1/chat/completions",
+    "model": "lab",
+    "stream": true,
+    "message_roles": [
+      "system",
+      "user"
+    ]
+  },
+  {
+    "path": "/v1/chat/completions",
+    "model": "lab",
+    "stream": true,
+    "message_roles": [
+      "system",
+      "user",
+      "assistant",
+      "user"
+    ]
+  }
+]

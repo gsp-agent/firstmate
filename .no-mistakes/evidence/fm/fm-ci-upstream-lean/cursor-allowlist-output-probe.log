@@ -1,0 +1,6 @@
+# all fm-spawn-dispatch-profile tests passed
+ok - allowlisted Cursor launches execute and preserve output and the agent's exit code
+Observed /bin/sh launch stdout (probe exits 7):
+cursor-stream-probe
+Observed captured worker stream:
+cursor-stream-probe

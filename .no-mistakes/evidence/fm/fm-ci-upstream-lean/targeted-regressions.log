@@ -1,0 +1,171 @@
+FM_TEST_BEGIN 2026-10-15T23:05:29Z tests/fm-spawn-pool-base-freshen.test.sh family=standalone expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-15T23:05:29Z tests/fm-dispatch-resolve.test.sh family=standalone expected_gate_skip=none
+ok - absent key is off: one stderr line, exit 0, no network call
+ok - TYPESAFE_API_KEY= in .env activates the tool; environment and config overrides work
+ok - clear: one rule Choice request, key on the fd header only, spendPriority argmax over every candidate
+ok - never-send list withholds the request on a match or a bad list, and never prints the value
+ok - rules snapshots and shell quoting preserve the profile protocol
+ok - no-rule fallback, Agy, Gemini, and documented configurations resolve
+ok - ambiguous: confidence below the fixed floor hands the decision back
+ok - per-rule confidence floors fall to the most probable runner-up that clears its own floor
+ok - only the brief's task sections and scout tag reach the model, with a whole-brief fallback
+ok - escalate: a rule declared approval: captain never yields a profile
+ok - rule floor: known shortfall falls through while unavailable evidence escalates
+ok - declared provider and profile floor evidence are applied in code
+ok - nonnumeric spendPriority evidence is never ranked
+ok - partial and missing quota evidence remain eligible but unranked
+ok - provider-wide and exact quota rows combine into one limiting candidate
+ok - default: no rule matched resolves among the default profiles
+ok - tie: equal spendPriority never breaks by array order
+ok - no rankable candidate: the tool escalates instead of guessing
+ok - native Codex binds to codex-home before default, independently of Pi accounts and row order
+ok - Pi native adapters bind to codex-home with existing fallbacks and schema 5 compatibility
+ok - schema 6: each candidate binds to its account row; schema 5 is unchanged
+ok - quota evidence comes from one quota-axi --json read, and its failure is an error outcome
+ok - API, transport, and response failures are error outcomes with exit 0
+ok - configuration errors exit 2 before any network call
+ok - worker routing is labels then default, with no model call
+# all fm-dispatch-resolve tests passed
+FM_TEST_END 2026-10-15T23:05:59Z tests/fm-dispatch-resolve.test.sh exit=0 duration_ms=30125 gate_skip=false
+# remote-seeded Treehouse spawn command
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/remote-seeded/home bin/fm-spawn.sh pool-remote-seeded-r13 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/remote-seeded/project --scout
+spawned pool-remote-seeded-r13 harness=codex kind=scout window=firstmate:fm-pool-remote-seeded-r13 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/remote-seeded/pool
+exit=0
+published worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/remote-seeded/pool
+resolved project lock=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/remote-seeded/home/state/.treehouse-project-d13fe6df095eabcb193165bc456b9bd0b6d8ebc5.lock
+ok - a remote-seeded secondmate home allocates and launches from its Treehouse pool
+ok - a Treehouse slot claim names the launched task, refuses when unclaimable, and is dropped by a locked abort
+# evidence begin: linked-home spawn, returned=primary
+$ bin/fm-spawn.sh pool-linked-primary-r12 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-primary/secondmate --scout
+error: treehouse get did not enter an isolated worktree within 60s (last seen '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-primary/project': it is the repository's primary checkout (its git dir is the spawning project's common git dir); spawning project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-primary/secondmate'); inspect window firstmate:fm-pool-linked-primary-r12
+exit=1
+primary HEAD before=f164d09fb5068b2f390f637bf63b825a415325af after=f164d09fb5068b2f390f637bf63b825a415325af
+primary reflog before:
+f164d09 HEAD@{0}: commit (initial): initial
+primary reflog after:
+f164d09 HEAD@{0}: commit (initial): initial
+FETCH_HEAD absent
+task metadata absent
+# evidence end
+ok - linked spawning home: primary preserves the primary before any refresh
+# evidence begin: linked-home spawn, returned=primary-alias
+$ bin/fm-spawn.sh pool-linked-primary-alias-r12 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-primary-alias/secondmate --scout
+error: treehouse get did not enter an isolated worktree within 60s (last seen '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-primary-alias/primary-alias': it is the repository's primary checkout (its git dir is the spawning project's common git dir); spawning project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-primary-alias/secondmate'); inspect window firstmate:fm-pool-linked-primary-alias-r12
+exit=1
+primary HEAD before=f4b429990a63a2cc6e30345b5b123030cf914467 after=f4b429990a63a2cc6e30345b5b123030cf914467
+primary reflog before:
+f4b4299 HEAD@{0}: commit (initial): initial
+primary reflog after:
+f4b4299 HEAD@{0}: commit (initial): initial
+FETCH_HEAD absent
+task metadata absent
+# evidence end
+ok - linked spawning home: primary-alias preserves the primary before any refresh
+# evidence begin: linked-home spawn, returned=spawning
+$ bin/fm-spawn.sh pool-linked-spawning-r12 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-spawning/secondmate --scout
+error: treehouse get did not enter an isolated worktree within 60s (last seen '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-spawning/secondmate': it is the spawning project itself; spawning project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-spawning/secondmate'); inspect window firstmate:fm-pool-linked-spawning-r12
+exit=1
+primary HEAD before=c8545e0f421be94166a38e21f215155c0652fdf4 after=c8545e0f421be94166a38e21f215155c0652fdf4
+primary reflog before:
+c8545e0 HEAD@{0}: commit (initial): initial
+primary reflog after:
+c8545e0 HEAD@{0}: commit (initial): initial
+FETCH_HEAD absent
+task metadata absent
+# evidence end
+ok - linked spawning home: spawning preserves the primary before any refresh
+# evidence begin: linked-home spawn, returned=scout
+$ bin/fm-spawn.sh pool-linked-scout-r12 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-scout/secondmate --scout
+spawned pool-linked-scout-r12 harness=codex kind=scout window=firstmate:fm-pool-linked-scout-r12 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-scout/pool
+exit=0
+primary HEAD before=d489b9d859c91893d8408932ed959b94f8209a15 after=d489b9d859c91893d8408932ed959b94f8209a15
+primary reflog before:
+d489b9d HEAD@{0}: commit (initial): initial
+primary reflog after:
+d489b9d HEAD@{0}: commit (initial): initial
+FETCH_HEAD absent
+saved task metadata:
+window=firstmate:fm-pool-linked-scout-r12
+endpoint_task_id=pool-linked-scout-r12
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-scout/pool
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/linked-scout/secondmate
+harness=codex
+kind=scout
+tasktmp=/tmp/fm-pool-linked-scout-r12
+model=default
+effort=default
+spawn_gen=s1792105566.27093.27176
+worker HEAD=5a2ec7c00834cd190cfcc7c6474e24f39bf72de3 origin/main=5a2ec7c00834cd190cfcc7c6474e24f39bf72de3
+# evidence end
+ok - linked spawning home: scout preserves the primary before any refresh
+# observed spawn: spawned pool-current-base-r1 harness=codex kind=ship mode=no-mistakes yolo=off window=firstmate:fm-pool-current-base-r1 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/current-base/pool
+# observed base: HEAD=eb82ce7980e73342d078c61a105b2b528520355f origin/main=eb82ce7980e73342d078c61a105b2b528520355f advanced-main=must survive a newly spawned branch
+ok - a stale pooled worktree refreshes to current origin/main before spawn creates the crew branch
+# slot branch at launch (1 typed lines): fm/pool-ship-branch-r14
+# slot HEAD=4417e737f9fa69e1af8dc7f90b1cf49590e35225 origin/main=4417e737f9fa69e1af8dc7f90b1cf49590e35225
+ok - a ship spawn has fm/<task> checked out at the refreshed base before the crew's launch is typed
+ok - a ship spawn refuses a branch held elsewhere without changing that worktree or its work
+ok - a leftover ship branch is moved or resumed without losing work, and a scout slot stays detached
+ok - --base-branch picks the copy's starting point and is recorded; a missing or local-only base refuses
+ok - a spawn refuses when --base-branch and the brief's Base branch lines disagree
+ok - a Base branch line in the captain's intent neither blocks nor redirects a spawn
+ok - a based scout on a forge=gerrit project is refused at spawn
+ok - a stale pooled worktree resolves and refreshes a non-main default branch
+# observed direct-pr spawn: spawned pool-direct-pr-r3 harness=codex kind=ship mode=direct-PR yolo=off window=firstmate:fm-pool-direct-pr-r3 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/direct-pr/pool
+# observed scout spawn: spawned pool-scout-r3 harness=codex kind=scout window=firstmate:fm-pool-scout-r3 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/scout/pool
+ok - direct-PR ships and scouts both refresh stale pooled worktrees before launch
+# observed dirty refusal: error: pooled worktree '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/dirty-refusal/pool' is not clean; refusing to discard uncommitted work while refreshing its base; preserved=keep this local work
+ok - a dirty pooled worktree is refused without discarding its local work
+# observed unresolved-default refusal: error: could not resolve origin's current default branch for pooled worktree '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/unresolved-default/pool'; refusing to launch from a potentially stale base
+ok - an unresolved remote default branch refuses the pooled worktree
+# observed unreachable-origin refusal: error: could not fetch origin for pooled worktree '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/unreachable-origin/pool'; refusing to launch from a potentially stale base
+ok - an unreachable origin refuses a potentially stale pooled worktree
+# observed origin-less launch: spawned pool-originless-r6 harness=codex kind=ship mode=no-mistakes yolo=off window=firstmate:fm-pool-originless-r6 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-test-run.uDDJLR/w1/tmp/fm-spawn-pool-base-freshen.EtIcT1/originless/pool
+ok - an origin-less pooled worktree launches as-is, skipping the freshness gate
+ok - a dirty origin-less pooled worktree is refused without discarding its local work
+ok - an origin configuration without a URL refuses the pooled worktree
+ok - an empty origin configuration section refuses the pooled worktree
+ok - an empty-only included origin section documents the accepted detection boundary
+ok - an inactive conditional origin include leaves the pooled worktree origin-less
+# observed stale-pin refusal: error: submodule 'ui' is checked out at 2d2cbe89ae14e526aa36027900af2c9eaad8920f, but this base records ebb9a9644cf84d492a34807fdc8a49a34b29d86b
+ok - an origin-less pool with a stale submodule pin refuses while naming both pins and no remedy
+ok - an unpushed submodule commit keeps the uncommitted-work refusal and survives it
+ok - work inside a submodule is still refused as uncommitted work, not called stale
+ok - a stale pin carrying real work is refused conservatively, never called stale
+ok - a stale pin beside other dirt yields the conservative refusal alone, with no stale-pin line
+# all fm-spawn-pool-base-freshen tests passed
+FM_TEST_END 2026-10-15T23:09:13Z tests/fm-spawn-pool-base-freshen.test.sh exit=0 duration_ms=224119 gate_skip=false
+FM_TEST_BEGIN 2026-10-15T23:09:13Z tests/fm-spawn-dispatch-profile.test.sh family=backend-dispatch expected_gate_skip=none
+ok - allowlist=absent preserves the operational floor and filters only when opted in
+ok - allowlist=missing-config preserves the operational floor and filters only when opted in
+ok - allowlist=enabled preserves the operational floor and filters only when opted in
+ok - allowlist=empty preserves the operational floor and filters only when opted in
+ok - invalid allowlist names refuse before launch or task publication
+ok - inaccessible config with present allowlist refuses before launch or task publication
+ok - inaccessible config with absent allowlist refuses before launch or task publication
+ok - inaccessible ancestor with present allowlist refuses before launch or task publication
+ok - inaccessible ancestor with absent allowlist refuses before launch or task publication
+not ok - secondmate with an allowlist should spawn: error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/tmp/fm-spawn-dispatch-profile.cInzpA/env-secondmate/secondmate-home: expected exit 0, got 1
+FM_TEST_END 2026-10-15T23:09:35Z tests/fm-spawn-dispatch-profile.test.sh exit=1 duration_ms=21993 gate_skip=false
+FM_TEST_BEGIN 2026-10-15T23:09:36Z tests/fm-cursor-guard.test.sh family=unclassified expected_gate_skip=none
+ok - no distinct-bead cap; a bead's 3rd launch in a day is refused
+ok - failed spawns give the launch back
+ok - day rollover resets the count
+ok - mkdir lock honoured; a stale one is removed
+ok - fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit
+ok - GNU stat supports spending age and stale-lock recovery
+ok - an off-pin pstack falls back to grok only while the pool is fine; a short pool still goes to codex
+ok - a usage-limit error is recorded and the bead's next launch goes to codex
+ok - exceededLimit false is not a usage limit; an exceeded-quota line is
+ok - crew guard: refuses git symbolic-ref and update-ref in every command position, leaves reads and branch creation alone
+ok - crew guard: pins an empty working directory, leaves explicit ones, other tools and bad input alone
+# all fm-cursor-guard tests passed
+FM_TEST_END 2026-10-15T23:09:53Z tests/fm-cursor-guard.test.sh exit=0 duration_ms=17331 gate_skip=false
+FM_TEST_SUMMARY total=4 failed=1 skipped_gate=0 duration_ms=268258
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=21993 failed=1
+FM_TEST_SUMMARY_FAMILY family=standalone count=2 duration_ms=254244 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=17331 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-spawn-pool-base-freshen.test.sh duration_ms=224119
+FM_TEST_SLOWEST rank=2 script=tests/fm-dispatch-resolve.test.sh duration_ms=30125
+FM_TEST_SLOWEST rank=3 script=tests/fm-spawn-dispatch-profile.test.sh duration_ms=21993
+FM_TEST_SLOWEST rank=4 script=tests/fm-cursor-guard.test.sh duration_ms=17331

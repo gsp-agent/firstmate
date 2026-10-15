@@ -1,0 +1,4 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/L
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: secondmate native-cursor-recheck sync skipped before launch: cannot determine default branch
+spawned native-cursor-recheck harness=cursor kind=secondmate mode=secondmate yolo=off window=primary:fm-native-cursor-recheck worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/cursor-secondmate-recheck

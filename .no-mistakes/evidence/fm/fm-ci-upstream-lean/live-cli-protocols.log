@@ -1,0 +1,100 @@
+fm-dispatch-resolve --labels "": fractional-percent; config={"default": {"harness": "codex"}, "cursor_fallback": {"models_pct": 84.5, "max_age_h": 26}}; exit=2
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/home/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+
+fm-dispatch-resolve --labels "": fractional-age; config={"default": {"harness": "codex"}, "cursor_fallback": {"models_pct": 85, "max_age_h": 0.5}}; exit=2
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/home/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+
+fm-dispatch-resolve --labels "": minimum-integers; config={"default": {"harness": "codex"}, "cursor_fallback": {"models_pct": 1, "max_age_h": 1}}; exit=0
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'codex'
+
+fm-dispatch-resolve --labels "": maximum-percent; config={"default": {"harness": "codex"}, "cursor_fallback": {"models_pct": 100, "max_age_h": 26}}; exit=0
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'codex'
+
+fm-dispatch-resolve --labels "": percent-zero; config={"default": {"harness": "codex"}, "cursor_fallback": {"models_pct": 0, "max_age_h": 26}}; exit=2
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/home/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+
+fm-dispatch-resolve --labels "": percent-over-limit; config={"default": {"harness": "codex"}, "cursor_fallback": {"models_pct": 101, "max_age_h": 26}}; exit=2
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/home/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+
+fm-dispatch-resolve --labels "": age-zero; config={"default": {"harness": "codex"}, "cursor_fallback": {"models_pct": 85, "max_age_h": 0}}; exit=2
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/home/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+
+fm-dispatch-resolve --labels "": string-percent; config={"default": {"harness": "codex"}, "cursor_fallback": {"models_pct": "85", "max_age_h": 26}}; exit=2
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/home/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+
+Cursor preToolUse CLI: omitted-directory; input={"tool_name": "Shell", "tool_input": {"command": "pwd", "timeout": 123, "description": "preserve fields"}}; exit=0
+{"permission":"allow","updated_input":{"command":"pwd","timeout":123,"description":"preserve fields","working_directory":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/task"}}
+
+Cursor preToolUse CLI: empty-directory; input={"tool_name": "Shell", "tool_input": {"command": "pwd", "working_directory": ""}}; exit=0
+{"permission":"allow","updated_input":{"command":"pwd","working_directory":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/task"}}
+
+Cursor preToolUse CLI: explicit-directory; input={"tool_name": "Shell", "tool_input": {"command": "pwd", "working_directory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/other"}}; exit=0
+(no decision; explicit input retained)
+Cursor preToolUse CLI: deny-symbolic-ref; input={"tool_name": "Shell", "tool_input": {"command": "git symbolic-ref HEAD refs/heads/moved"}}; exit=0
+{"permission":"deny","user_message":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`.","agent_message":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`."}
+
+Cursor preToolUse CLI: deny-ref-wrapper; input={"tool_name": "Shell", "tool_input": {"command": "env -S 'git -C /irrelevant update-ref HEAD abc123'"}}; exit=0
+{"permission":"deny","user_message":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`.","agent_message":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`."}
+
+Cursor preToolUse CLI: deny-compound-ref; input={"tool_name": "Shell", "tool_input": {"command": "if true; then git update-ref HEAD abc123; fi"}}; exit=0
+{"permission":"deny","user_message":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`.","agent_message":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`."}
+
+Cursor preToolUse CLI: allow-branch-read; input={"tool_name": "Shell", "tool_input": {"command": "git branch --show-current"}}; exit=0
+{"permission":"allow","updated_input":{"command":"git branch --show-current","working_directory":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.test-phase/live-cli/task"}}
+
+fm-cursor-assert invocation 1; generated configuration:
+{
+  "network": {
+    "useHttp1ForAgent": true,
+    "retained": "yes"
+  },
+  "modelParameters": {
+    "grok-4.7": [
+      {
+        "id": "context",
+        "value": "256k"
+      },
+      {
+        "id": "reasoning_effort",
+        "value": "xhigh"
+      },
+      {
+        "id": "fast",
+        "value": "false"
+      }
+    ]
+  },
+  "unrelated": "keep"
+}
+fm-cursor-assert invocation 2; generated configuration:
+{
+  "network": {
+    "useHttp1ForAgent": true,
+    "retained": "yes"
+  },
+  "modelParameters": {
+    "grok-4.7": [
+      {
+        "id": "context",
+        "value": "256k"
+      },
+      {
+        "id": "reasoning_effort",
+        "value": "xhigh"
+      },
+      {
+        "id": "fast",
+        "value": "false"
+      }
+    ]
+  },
+  "unrelated": "keep"
+}
+Result
+All direct product CLI checks passed. These checks use no vendor or terminal stand-in; native Cursor consumption is a separate scenario.

@@ -1,0 +1,59 @@
+$ bash bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.l.1uom9afv
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.l.1uom9afv
+exit=0
+Attempt: relative_socket_directory=False; TMUX_TMPDIR=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.l.1uom9afv/tmux; grid=120x40
+$ tmux -L fm-lab new-session -d -s primary -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA -e FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.l.1uom9afv cursor-agent
+error connecting to /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.l.1uom9afv/tmux/tmux-501/fm-lab (File name too long)
+exit=1
+No server or primary was started; no lifecycle or vendor command ran.
+$ bash bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.l.rffq56s8
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.l.rffq56s8
+exit=0
+Attempt: relative_socket_directory=True; TMUX_TMPDIR=.l.rffq56s8/tmux; grid=120x40
+$ tmux -L fm-lab new-session -d -s primary -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA -e FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.l.rffq56s8 cursor-agent
+error connecting to /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/.l.rffq56s8/tmux/tmux-501/fm-lab (File name too long)
+exit=1
+No server or primary was started; no lifecycle or vendor command ran.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Shortest supported workspace-local lab attempt: 103-byte socket path; real Pi CLI; isolated Pi configuration; 120x40 grid.
+exit=0

@@ -1,0 +1,8 @@
+{"event":"lock","stdout":"lock acquired: harness pid 61501\n","stderr":"","code":0,"killed":false}
+{"event":"ready","pid":61501}
+{"event":"before_agent_start","hasPrompt":true,"prompt":"native user protocol probe"}
+{"event":"assistant_end","stopReason":"stop","content":[{"type":"text","text":"LOCAL-LAB-ACK"}]}
+{"event":"assistant_end","stopReason":"stop","content":[{"type":"text","text":"LOCAL-LAB-ACK"}]}
+{"event":"before_agent_start","hasPrompt":true,"prompt":"⁣FIRSTMATE_OP: v1 watcher: FIRSTMATE WATCHER WAKE: watcher: FAILED - Pi extension could not restore watcher continuity after 5 retries\nwatcher: FAILED - refusing to arm from a disposable validation checkout: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M50V2BM2QVYA70JHTFYFVJEA/bin\n\nRun bin/fm-wake-drain.sh first and handle the queued wake. Watcher continuity is extension-owned."}
+{"event":"assistant_end","stopReason":"stop","content":[{"type":"text","text":"LOCAL-LAB-ACK"}]}
+{"event":"shutdown"}

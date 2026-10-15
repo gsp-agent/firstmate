@@ -1,0 +1,23 @@
+{
+  "network": {
+    "useHttp1ForAgent": true,
+    "retained": "yes"
+  },
+  "modelParameters": {
+    "grok-4.7": [
+      {
+        "id": "context",
+        "value": "256k"
+      },
+      {
+        "id": "reasoning_effort",
+        "value": "xhigh"
+      },
+      {
+        "id": "fast",
+        "value": "false"
+      }
+    ]
+  },
+  "unrelated": "keep"
+}
