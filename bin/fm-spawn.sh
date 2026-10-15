@@ -2402,7 +2402,7 @@ if [ "$ARG3" = cursor ] && [ "$KIND" != secondmate ]; then
   CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
   case "$CURSOR_FALLBACK" in
   codex* | claude*)
-    ARG3=${CURSOR_FALLBACK%% *} MODEL= EFFORT=xhigh
+    ARG3=${CURSOR_FALLBACK%% *} MODEL='' EFFORT=xhigh
     echo "cursor fallback: launching $ID on the $ARG3 harness (${MODEL:-default model} xhigh): ${CURSOR_FALLBACK#* }" >&2
     printf '%s\n' "${CURSOR_FALLBACK#* }" > "$STATE/$ID.cursor-fallback"
     ;;
