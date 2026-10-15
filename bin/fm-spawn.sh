@@ -425,6 +425,9 @@
 #                  script published into the receiving home's operational inbox
 #     __WORKTREE__  absolute path to the task worktree
 #     __CURSORBIN__ resolved, cursor-verified executable for a cursor launch
+#     __PSTACKDIR__ pstack plugin dir for --plugin-dir (FM_PSTACK_DIR, default ~/dev/pstack/pstack)
+#     __CURSORSTREAM__ state/<task-id>.cursor-stream.jsonl, the tee target for cursor's stream-json
+#     __CURSORGUARD__ / __CURSORID__ the post-run hook that records a usage-limit failure and exits with the agent's status
 #     __GEMINISETTINGS__ firstmate-owned per-task gemini settings file (busy-state hooks)
 #     __ROVOBIN__   resolved, rovo-verified executable for a rovo launch
 #     __DEVINBIN__ resolved Devin executable
@@ -1374,8 +1377,13 @@ parse_orca_worktree_result() {
   fi
 }
 
+CURSOR_CAP_TAKEN=0
 spawn_abort_cleanup() {
   local status=$?
+  if [ "$status" -ne 0 ] && [ "$CURSOR_CAP_TAKEN" = 1 ] && [ "$SPAWN_LAUNCH_SENT" = 0 ]; then
+    CURSOR_CAP_TAKEN=0
+    FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" give "$ID" || true
+  fi
   if [ "$RELAUNCH_REPLACEMENT_PENDING" = 1 ] &&
     [ "$SPAWN_META_PUBLISH_STARTED" = 1 ] &&
     [ -n "$SPAWN_META_TMP" ] &&
@@ -2292,7 +2300,12 @@ launch_template() {
   # inherited CLAUDECODE cannot outrank cursor's own marker in a process that
   # only reads the environment. Cursor exposes no effort flag, so the shared
   # effort axis is deliberately omitted and stays in task metadata only.
-  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ --trust --yolo __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+  # -p --output-format stream-json is tee'd (through process substitution, so
+  # the pane command keeps the agent's own exit status) to state/<id>.cursor-stream.jsonl
+  # and still runs in the pane, so it stays visible; steer by relaunching with
+  # --resume of the bound session. --plugin-dir loads pstack and --approve-mcps
+  # lets its MCP servers start unattended.
+  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?' ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
   # command exactly as it does for claude and grok (verified: a multi-line
@@ -2394,6 +2407,19 @@ launch_template() {
   *) return 1 ;;
   esac
 }
+
+# Deterministic Cursor fallback (no model judgment): usage at the threshold, no or
+# stale usage file, or this bead's last Cursor run hit a usage limit => bare Grok.
+if [ "$ARG3" = cursor ] && [ "$KIND" != secondmate ]; then
+  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="grok fallback check failed"
+  case "$CURSOR_FALLBACK" in
+  grok*)
+    echo "cursor fallback: launching $ID on the grok harness (grok-4.7 xhigh): ${CURSOR_FALLBACK#grok }" >&2
+    ARG3=grok MODEL=grok-4.7 EFFORT=xhigh
+    printf '%s\n' "${CURSOR_FALLBACK#grok }" > "$STATE/$ID.cursor-fallback"
+    ;;
+  esac
+fi
 
 case "$ARG3" in
 *' '*) # raw launch command (unverified-adapter escape hatch)
@@ -2515,14 +2541,23 @@ cursor)
   # missing install a loud spawn refusal instead of a pane that dies with a
   # command-not-found the supervisor would read as a wedged worker.
   CURSOR_BIN=$(fm_cursor_resolve_binary) || exit 1
+  # The model check is a hard fail: a catalog that cannot be read is a refusal,
+  # never a pass, so a worker cannot start on an unchecked model.
   if [ -n "$MODEL" ] && [ "$MODEL" != default ]; then
-    if CURSOR_MODELS=$(fm_cursor_list_models "$CURSOR_BIN"); then
-      if ! printf '%s\n' "$CURSOR_MODELS" | fm_cursor_catalog_has_model "$MODEL"; then
-        echo "error: Cursor model '$MODEL' is not available from '$CURSOR_BIN --list-models'; choose an id listed by that command or omit --model" >&2
-        exit 1
-      fi
+    if ! CURSOR_MODELS=$(fm_cursor_list_models "$CURSOR_BIN"); then
+      echo "error: could not read '$CURSOR_BIN --list-models'; refusing to launch Cursor model '$MODEL' unchecked" >&2
+      exit 1
+    fi
+    if ! printf '%s\n' "$CURSOR_MODELS" | fm_cursor_catalog_has_model "$MODEL"; then
+      echo "error: Cursor model '$MODEL' is not available from '$CURSOR_BIN --list-models'; choose an id listed by that command or omit --model" >&2
+      exit 1
     fi
   fi
+  # Re-assert Cursor's settings before every run (spawn and relaunch).
+  "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
+  # A bead's 3rd Cursor launch in one day is refused; given back below if the spawn fails.
+  FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
+  CURSOR_CAP_TAKEN=1
   ;;
 omp)
   OMP_BIN=$(resolve_pi_executable omp) || {
@@ -2778,23 +2813,24 @@ effort_flag_for_harness() {
     ;;
   codex)
     # The installed codex config schema uses model_reasoning_effort. The
-    # installed model catalog supports max for gpt-5.6-luna; keep that level
-    # scoped to the model whose catalog entry advertises it.
+    # installed model catalog supports max for gpt-5.6-luna and gpt-6.1-sol;
+    # keep that level scoped to the models whose catalog entries advertise it.
     case "$effort" in
     low | medium | high | xhigh) printf -- '-c %s ' "$(shell_quote "model_reasoning_effort=\"$effort\"")" ;;
     max)
-      [ "$model" = gpt-5.6-luna ] || return 0
+      [ "$model" = gpt-5.6-luna ] || [ "$model" = gpt-6.1-sol ] || return 0
       printf -- '-c %s ' "$(shell_quote 'model_reasoning_effort="max"')"
       ;;
     esac
     ;;
   grok)
     # grok exposes both --effort and --reasoning-effort; firstmate's profile
-    # axis is the reasoning knob. As of grok 0.2.99, --reasoning-effort accepts
-    # only low|medium|high and rejects both xhigh and max, so omit those rather
-    # than passing a known-bad value.
+    # axis is the reasoning knob. grok 0.2.99 accepted only low|medium|high;
+    # grok 1.0.50 takes xhigh for a model whose menu advertises it (grok-4.7
+    # does) and still rejects max there ("use one of: xhigh, high, medium,
+    # low"), so max stays omitted rather than passed as a known-bad value.
     case "$effort" in
-    low | medium | high) printf -- '--reasoning-effort %s ' "$(shell_quote "$effort")" ;;
+    low | medium | high | xhigh) printf -- '--reasoning-effort %s ' "$(shell_quote "$effort")" ;;
     esac
     ;;
   agy)
@@ -5480,7 +5516,13 @@ LAUNCH=${LAUNCH//__OMPWORKERCFG__/$sq_ompcfg}
 LAUNCH=${LAUNCH//__OPINPUT__/$sq_opinput}
 case "$HARNESS" in
 pi | pi-signed) LAUNCH=${LAUNCH//__PIBIN__/"$(shell_quote "$PI_BIN")"} ;;
-cursor) LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"} ;;
+cursor)
+  LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"}
+  LAUNCH=${LAUNCH//__PSTACKDIR__/"$(shell_quote "${FM_PSTACK_DIR:-$HOME/dev/pstack/pstack}")"}
+  LAUNCH=${LAUNCH//__CURSORSTREAM__/"$(shell_quote "$STATE_REAL/$ID.cursor-stream.jsonl")"}
+  LAUNCH=${LAUNCH//__CURSORGUARD__/"FM_STATE_OVERRIDE=$(shell_quote "$STATE_REAL") $(shell_quote "$SCRIPT_DIR/fm-cursor-guard.sh")"}
+  LAUNCH=${LAUNCH//__CURSORID__/"$(shell_quote "$ID")"}
+  ;;
 gemini) LAUNCH=${LAUNCH//__GEMINISETTINGS__/"$(shell_quote "$STATE_REAL/$ID.gemini-settings.json")"} ;;
 omp) LAUNCH=${LAUNCH//__OMPBIN__/"$(shell_quote "$OMP_BIN")"} ;;
 devin)

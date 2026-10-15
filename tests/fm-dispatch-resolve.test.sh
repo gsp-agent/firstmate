@@ -1005,4 +1005,50 @@ expect_code 0 "$code" "--help exits 0"
 assert_contains "$out" 'Usage:' "--help prints usage"
 pass "configuration errors exit 2 before any network call"
 
+# ---- worker routing: --labels, no model judgment -----------------------------------
+cat > "$RULES" <<'JSON'
+{
+  "rules": [
+    { "when": "Grok cannot carry this task.", "use": { "harness": "codex", "model": "gpt-6.1-sol", "effort": "max" } }
+  ],
+  "label_routes": { "ep-opus": { "harness": "claude", "model": "claude-opus-5-5[1m]", "effort": "xhigh" } },
+  "default": { "harness": "cursor", "model": "grok-4.7-xhigh" }
+}
+JSON
+rm -f "$LOG/argv"
+TYPESAFE_API_KEY=$KEY run code out err --labels ""
+expect_code 0 "$code" "unlabelled worker routing exits 0"
+assert_contains "$out" "status: clear" "unlabelled worker routing is clear"
+assert_contains "$out" "profile: --harness 'cursor' --model 'grok-4.7-xhigh'" "unlabelled bead resolves to the cursor default"
+assert_contains "$out" "source: default" "unlabelled bead names the default as its source"
+assert_absent "$LOG/argv" "unlabelled worker routing never calls Jev even with the key set"
+TYPESAFE_API_KEY=$KEY run code out err --labels "bug, ep-opus"
+assert_contains "$out" "profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'" "ep-opus label routes to Opus xhigh on claude"
+assert_contains "$out" "source: label (ep-opus)" "label route names the label"
+assert_absent "$LOG/argv" "label routing never calls Jev"
+run code out err --labels ""
+expect_code 0 "$code" "worker routing needs no key"
+assert_contains "$out" "profile: --harness 'cursor'" "worker routing works with no key and no brief"
+printf '%s\n' '{"label_routes":{"x":{"harness":"cursor","model":"m","effort":"high"}},"default":{"harness":"cursor"}}' > "$RULES"
+run code out err --labels x
+expect_code 2 "$code" "a label route with an unsupported effort is a configuration error"
+printf '%s\n' '{"rules":[{"when":"x","use":{"harness":"codex","model":"gpt-6.1-sol","effort":"max"}}]}' > "$RULES"
+run code out err --labels ""
+expect_code 0 "$code" "codex gpt-6.1-sol at max validates"
+printf '%s\n' '{"rules":[{"when":"x","use":{"harness":"codex","model":"gpt-5.6-sol","effort":"max"}}]}' > "$RULES"
+run code out err --labels ""
+expect_code 2 "$code" "codex max stays model-scoped"
+printf '%s\n' '{"cursor_fallback":{"models_pct":0,"max_age_h":26},"default":{"harness":"cursor"}}' > "$RULES"
+run code out err --labels ""
+expect_code 2 "$code" "a malformed cursor_fallback is a configuration error"
+printf '%s\n' '{"label_routes":{"docs-only":{"harness":"grok","model":"grok-4.7","effort":"xhigh"},"ep-opus":{"harness":"claude","model":"claude-opus-5-5[1m]","effort":"xhigh"}},"default":{"harness":"cursor","model":"grok-4.7-xhigh"}}' > "$RULES"
+run code out err --labels "docs-only"
+assert_contains "$out" "profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'" "docs-only routes to bare grok"
+run code out err --labels "docs-only,ep-opus"
+expect_code 1 "$code" "docs-only with ep-opus is refused"
+assert_contains "$err" "docs-only and ep-opus conflict" "the refusal is one stderr line"
+assert_not_contains "$out" "profile:" "a refused bead gets no profile"
+cp "$BASE_RULES" "$RULES"
+pass "worker routing is labels then default, with no model call"
+
 printf '# all fm-dispatch-resolve tests passed\n'
