@@ -713,8 +713,10 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
   assert_contains "$launch" "> >(tee '" "cursor launch did not tee its stream-json through process substitution"
   assert_contains "$launch" "$id.cursor-stream.jsonl" "cursor stream was not teed to Firstmate state"
   assert_contains "$launch" "fm-cursor-guard.sh" "cursor launch did not run the post-run usage-limit hook"
-  assert_grep 'useHttp1ForAgent": true' "$HOME_DIR/cursor-cli-config.json" "cursor config was not re-asserted before launch"
-  assert_grep '"fast"' "$HOME_DIR/cursor-cli-config.json" "cursor config lost the fast tier"
+  jq -e '.network.useHttp1ForAgent == true' "$HOME_DIR/cursor-cli-config.json" >/dev/null \
+    || fail "cursor config was not re-asserted before launch"
+  jq -e 'any(.modelParameters["grok-4.7"][]; .id == "fast" and .value == "false")' "$HOME_DIR/cursor-cli-config.json" >/dev/null \
+    || fail "cursor config did not disable the grok-4.7 fast tier"
   assert_not_contains "$(cat "$HOME_DIR/pstack-models.mdc")" "opus" "pstack role models must never name an Opus model in Cursor"
   # The executable is RESOLVED, never named: `cursor` is not the CLI, so a
   # literal `cursor agent` command cannot run on a machine that has only the
