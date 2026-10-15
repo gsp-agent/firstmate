@@ -44,8 +44,10 @@
 #   already guarantees the worker's instructions match the branch. A fresh
 #   (non-relaunch) ship spawn creates and checks out that branch in the
 #   refreshed slot before the worker launches (prepare_ship_branch), so the
-#   worker only verifies it; a leftover branch of that name is moved only when
-#   its commits are already in the slot's HEAD and is otherwise resumed as it is.
+#   worker only verifies it. A branch checked out in another worktree refuses
+#   launch without detaching or changing that worktree; an available leftover
+#   branch is moved only when its commits are already in the slot's HEAD and
+#   is otherwise resumed as it is.
 #   --base-branch is the optional branch selected at intake for a ship or scout
 #   to start from and target instead of origin's default branch. A fresh launch
 #   resets its pooled copy to origin/<branch>, refusing when the project has no
