@@ -44,6 +44,9 @@
 # defaulting to 03:17 in the machine's local time. It passes only --repo, so
 # the installed job uses the default refs, fetch, and repository proof file;
 # alternate check options are not persisted by install.
+# install XML-escapes each string it writes and replaces the plist only after
+# plutil -lint accepts the new one; a rejected plist exits 2 before launchctl
+# runs, leaving the installed plist and job unchanged.
 # uninstall bootstraps nothing, removes that job, and deletes the plist.
 # A second uninstall, when the plist is already gone, exits 0.
 # --dry-run prints the action and does not write a file or call launchctl.
@@ -136,21 +139,36 @@ launchctl_bin() {
   fi
 }
 
+xml_escape() { # <var> <value>
+  # Backslash-quoted & stays literal under Bash 5.2's patsub_replacement.
+  local s=$2
+  s=${s//\&/\&amp;}
+  s=${s//</\&lt;}
+  s=${s//>/\&gt;}
+  s=${s//\"/\&quot;}
+  s=${s//\'/\&apos;}
+  printf -v "$1" '%s' "$s"
+}
+
 write_plist() { # <path> <repo> <hour> <minute>
+  local label script repo
+  xml_escape label "$LABEL"
+  xml_escape script "$SCRIPT_PATH"
+  xml_escape repo "$2"
   cat > "$1" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>$LABEL</string>
+  <string>$label</string>
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>$SCRIPT_PATH</string>
+    <string>$script</string>
     <string>check</string>
     <string>--repo</string>
-    <string>$2</string>
+    <string>$repo</string>
   </array>
   <key>StartCalendarInterval</key>
   <dict>
@@ -252,9 +270,10 @@ cmd_install() {
   done
   int_in_range "$hour" 23 || die "--hour must be 0 through 23"
   int_in_range "$minute" 59 || die "--minute must be 0 through 59"
-  local dir plist uid bin
+  local dir plist next lint uid bin
   dir=$(agent_dir)
   plist=$dir/$LABEL.plist
+  next=$plist.new
   uid=$(id -u)
   if [ "$dry" -eq 1 ]; then
     printf 'dry-run: install\n'
@@ -266,7 +285,15 @@ cmd_install() {
     return 0
   fi
   mkdir -p -- "$dir" || die "cannot create $dir"
-  write_plist "$plist" "$repo" "$hour" "$minute" || die "cannot write $plist"
+  if ! write_plist "$next" "$repo" "$hour" "$minute"; then
+    rm -f -- "$next"
+    die "cannot write $next"
+  fi
+  if ! lint=$(plutil -lint "$next" 2>&1); then
+    rm -f -- "$next"
+    die "plutil -lint rejected the new plist, installed job unchanged: $lint"
+  fi
+  mv -f -- "$next" "$plist" || die "cannot replace $plist"
   bin=$(launchctl_bin)
   "$bin" bootout "gui/$uid/$LABEL" >/dev/null 2>&1 || true
   "$bin" bootstrap "gui/$uid" "$plist" || die "launchctl bootstrap gui/$uid failed"

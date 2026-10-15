@@ -551,3 +551,41 @@ exit: 0
 Final-head guard verification is pending the outer executor's commit directly on the starting head; this document phase does not create that commit or claim its verification result.
 Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
 Required result: exit 0 and zero path-drift lines on the resulting head.
+
+Install plist escaping
+Measured install check: 2026-10-15 (Central)
+Starting head: d5cb32027c633844262dc5013e735de9f1cb18a7
+Baseline: install wrote SCRIPT_PATH and the --repo value into the plist XML unescaped, then booted out the installed job before bootstrapping a plist nothing had validated.
+Reproduction with a repository path ending in "repo & <copy>", launchctl stubbed:
+install rc=0
+launchctl calls: bootout gui/501/dev.firstmate.drift-nightly, then bootstrap of the new plist
+plutil -lint: Encountered unknown ampersand-escape sequence at line 13; lint rc=1
+
+Cause: write_plist interpolated raw strings into XML, and install replaced the plist and called launchctl without checking the result.
+Fix: install XML-escapes every string, writes the new plist beside the installed one, and requires plutil -lint to accept it before it replaces the installed plist and boots out the old job.
+Escaping alone does not cover every --repo value: a value holding invalid UTF-8 (byte 0xff) is still rejected by plutil -lint after escaping ("Unable to convert string to correct encoding"), so that input exercises the refusal path.
+The escape replacements are backslash-quoted; stock Bash 3.2.57 and Bash 5.3 with patsub_replacement on produce identical output.
+
+Regression first, before the fix (75f251ffc3ba760928d2cfb6f037840103867a16):
+$ bash tests/fm-drift-nightly.test.sh
+not ok - a plist parser reads back the exact script and repo paths
+exit: 1
+With only the invalid-plist case selected:
+not ok - a reinstall whose plist fails lint exits 2: expected exit 2, got 0
+exit: 1
+
+After the fix:
+$ bash tests/fm-drift-nightly.test.sh
+25 behavior checks passed (Bash 5.3 and stock /bin/bash 3.2.57)
+exit: 0
+The same reproduction: install rc=0, plutil -lint OK, and ProgramArguments.4 reads back as the exact "repo & <copy>" path.
+
+Without plutil on PATH, as on the Linux CI runners, the tests use a strict plistlib stand-in:
+Fixed head: 25 behavior checks passed, exit 0.
+Unfixed script from a full export of 75f251ff: the escaping case fails with the parser error and the invalid-plist case fails with "expected exit 2, got 0", each exit 1.
+$ shellcheck -x bin/fm-drift-nightly.sh tests/fm-drift-nightly.test.sh
+exit: 0
+
+A real launchd bootstrap and scheduled firing remain unmeasured here; installing the job on this machine waits for the cutover.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
+Required result: exit 0 and zero path-drift lines on the resulting head.
