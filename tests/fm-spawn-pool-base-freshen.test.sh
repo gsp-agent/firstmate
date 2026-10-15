@@ -262,8 +262,8 @@ test_ship_spawn_checks_out_its_branch_before_the_crew_starts() {
   pass "a ship spawn has fm/<task> checked out at the refreshed base before the crew's launch is typed"
 }
 
-test_ship_branch_moves_off_a_sibling_worktree() {
-  local rec id out status sibling current
+test_ship_branch_refuses_a_sibling_worktree() {
+  local rec id out status sibling before
   id='pool-ship-sibling-r16'
   rec=$(make_case ship-sibling "$id")
   read_case_record "$rec"
@@ -271,18 +271,23 @@ test_ship_branch_moves_off_a_sibling_worktree() {
   git -C "$PROJECT_DIR" worktree add --quiet -b "fm/$id" "$sibling" "$INITIAL_SHA"
   [ "$(git -C "$sibling" branch --show-current)" = "fm/$id" ] \
     || fail "fixture sibling is not on fm/$id"
+  before=$(git -C "$sibling" rev-parse HEAD)
+  printf 'uncommitted sibling work\n' > "$sibling/uncommitted.txt"
 
   out=$(run_spawn "$id" --mode no-mistakes --yolo off)
   status=$?
-  expect_code 0 "$status" "a ship spawn should take its branch off a sibling worktree"$'\n'"$out"
-  current=$(git -C "$POOL_DIR" rev-parse origin/main)
-  [ "$(git -C "$POOL_DIR" branch --show-current)" = "fm/$id" ] \
-    || fail "the pool slot is not on fm/$id after the sibling released it"
-  [ "$(git -C "$POOL_DIR" rev-parse "fm/$id")" = "$current" ] \
-    || fail "fm/$id did not move to the refreshed base"
-  [ -z "$(git -C "$sibling" branch --show-current)" ] \
-    || fail "the sibling worktree still holds fm/$id"
-  pass "a ship spawn detaches a sibling worktree that already has its branch and checks the branch out on the new slot"
+  [ "$status" -ne 0 ] || fail "spawn took a branch held by an unverified sibling worktree"
+  assert_contains "$out" "$sibling" "refusal must identify the worktree holding the branch"
+  assert_contains "$out" "refusing" "the held-branch error must explain that launch was refused"
+  [ "$(git -C "$sibling" branch --show-current)" = "fm/$id" ] \
+    || fail "spawn detached the sibling worktree"
+  [ "$(git -C "$sibling" rev-parse HEAD)" = "$before" ] \
+    || fail "spawn moved the sibling's HEAD"
+  [ "$(git -C "$sibling" rev-parse "fm/$id")" = "$before" ] \
+    || fail "spawn moved the held branch"
+  assert_grep 'uncommitted sibling work' "$sibling/uncommitted.txt" "spawn changed sibling work"
+  assert_absent "$HOME_DIR/state/$id.meta" "refused spawn must not publish a worker"
+  pass "a ship spawn refuses a branch held elsewhere without changing that worktree or its work"
 }
 
 test_ship_branch_survives_a_leftover_and_scouts_get_none() {
@@ -992,7 +997,7 @@ test_pool_slot_claim_follows_the_spawn_outcome
 test_linked_spawning_home_rejects_primary_before_refresh
 test_stale_pool_base_refreshes_before_branching
 test_ship_spawn_checks_out_its_branch_before_the_crew_starts
-test_ship_branch_moves_off_a_sibling_worktree
+test_ship_branch_refuses_a_sibling_worktree
 test_ship_branch_survives_a_leftover_and_scouts_get_none
 test_named_base_branch_starts_from_that_branch
 test_base_branch_must_agree_with_the_brief

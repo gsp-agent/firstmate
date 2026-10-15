@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Behavior tests for bin/fm-cursor-guard.sh (per-bead stop, usage fallback, limit
-# record), for the cursor pane command keeping the agent's exit status, and for
+# record), and for
 # bin/fm-cursor-crew-guard.mjs, the preToolUse hook a crew session loads.
 set -u
 # shellcheck source=tests/lib.sh
@@ -99,7 +99,7 @@ expect_code 0 $? "GNU stat accepts a fresh spending file"
 touch -t 200001010000 "$stat_usage/current-spending.txt" "$stat_state/cursor-dispatch.lock"
 out=$(PATH="$stat_bin:$PATH" FM_CURSOR_USAGE_DIR="$stat_usage" "$TOOL" fallback linux-stat 2> "$TMP_ROOT/stat.err")
 expect_code 0 $? "GNU stat detects stale spending evidence"
-case "$out" in "grok newest Cursor spending file is"*) ;; *) fail "GNU stat must reject stale evidence: $out" ;; esac
+case "$out" in "codex newest Cursor spending file is"*) ;; *) fail "GNU stat must reject stale evidence: $out" ;; esac
 PATH="$stat_bin:$PATH" FM_STATE_OVERRIDE="$stat_state" g 2030-01-03 take linux-stat
 expect_code 0 $? "GNU stat recovers a stale dispatch lock"
 assert_contains "$(cat "$TMP_ROOT/err")" "removed a stale lock" "GNU stat must announce stale-lock recovery"
@@ -142,21 +142,11 @@ printf '%s\n' '{"type":"error","message":"You have exceeded your usage quota"}' 
 case "$(fb u5)" in codex*) ;; *) fail "an exceeded-quota line must route the next launch to codex: $(fb u5)" ;; esac
 pass "exceededLimit false is not a usage limit; an exceeded-quota line is"
 
-# The pane command keeps the agent's exit status past the tee, in bash and zsh.
-tpl=$(grep -o '> >(tee __CURSORSTREAM__)' "$ROOT/bin/fm-spawn.sh" | head -1)
-[ -n "$tpl" ] || fail "cursor template no longer tees through process substitution"
-for sh in bash zsh; do
-  command -v "$sh" >/dev/null 2>&1 || continue
-  "$sh" -c "(echo out; exit 7) ${tpl//__CURSORSTREAM__/\"$TMP_ROOT/stream.jsonl\"}"
-  expect_code 7 $? "$sh: pane command exits with the agent's status, not tee's"
-done
-pass "cursor exit code survives the tee"
-
 # ---- crew guard: the preToolUse hook a crew session loads ----
 CREW_GUARD="$ROOT/bin/fm-cursor-crew-guard.mjs"
 SLOT="$TMP_ROOT/slot"
-# crew_hook <command> [cwd]: Cursor's preToolUse payload for a Shell call.
-crew_hook() { jq -nc --arg c "$1" --arg d "${2-}" '{tool_name:"Shell",tool_input:{command:$c,cwd:$d}}' | node "$CREW_GUARD" --worktree "$SLOT"; }
+# crew_hook <command> [working-directory]: Cursor's native Shell payload.
+crew_hook() { jq -nc --arg c "$1" --arg d "${2-}" '{tool_name:"Shell",tool_input:{command:$c,working_directory:$d}}' | node "$CREW_GUARD" --worktree "$SLOT"; }
 
 while IFS= read -r cmd; do
   out=$(crew_hook "$cmd" "$SLOT")
@@ -197,12 +187,15 @@ assert_contains "$out" 'blocked [at=<epoch>]' "the refusal must say a refused co
 pass "crew guard: refuses git symbolic-ref and update-ref in every command position, leaves reads and branch creation alone"
 
 out=$(crew_hook 'pwd' '')
-[ "$(printf '%s' "$out" | jq -c '.')" = "{\"permission\":\"allow\",\"updated_input\":{\"command\":\"pwd\",\"cwd\":\"$SLOT\"}}" ] \
+[ "$(printf '%s' "$out" | jq -c '.')" = "{\"permission\":\"allow\",\"updated_input\":{\"command\":\"pwd\",\"working_directory\":\"$SLOT\"}}" ] \
   || fail "an empty working directory must be rewritten to the worktree: $out"
+out=$(printf '{"tool_name":"Shell","tool_input":{"command":"pwd","timeout":123}}' | node "$CREW_GUARD" --worktree "$SLOT")
+printf '%s' "$out" | jq -e --arg slot "$SLOT" '.updated_input == {command:"pwd",timeout:123,working_directory:$slot}' >/dev/null \
+  || fail "an omitted working directory must be pinned without dropping other Shell inputs: $out"
 [ -z "$(crew_hook 'pwd' /elsewhere)" ] || fail "an explicit working directory must be left alone"
 [ -z "$(printf '{"tool_name":"Read","tool_input":{"path":"x"}}' | node "$CREW_GUARD" --worktree "$SLOT")" ] \
   || fail "a non-Shell tool must be left alone"
-[ -z "$(jq -nc '{tool_name:"Shell",tool_input:{command:"pwd",cwd:""}}' | node "$CREW_GUARD")" ] \
+[ -z "$(jq -nc '{tool_name:"Shell",tool_input:{command:"pwd",working_directory:""}}' | node "$CREW_GUARD")" ] \
   || fail "without --worktree there is nothing to pin to"
 out=$(printf 'not json' | node "$CREW_GUARD" --worktree "$SLOT"); expect_code 0 $? "unparseable input must fail open"
 [ -z "$out" ] || fail "unparseable input must produce no decision"

@@ -1246,10 +1246,10 @@ The combination `docs-only` and `ep-opus` is refused so the bead can be relabele
 ### Cursor launch controls
 
 `cursor_fallback` and `pstack_version` configure [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh), whose header owns spending-file freshness, plugin compatibility, usage-limit markers, and daily launch accounting.
-An explicit Cursor ship or scout selection can fall back to Grok before launch; the reason is printed and recorded with the task.
+An explicit Cursor ship or scout selection can fall back to Codex, Claude, or Grok before launch; the reason is printed and recorded with the task.
 Cursor launches that proceed invoke [`fm-cursor-assert.sh`](../bin/fm-cursor-assert.sh), whose header owns the per-user Cursor settings and pstack role rules reasserted on each launch.
 These writes affect subsequent Cursor sessions on the same user account, rather than only the task's workspace.
-[`fm-spawn.sh`](../bin/fm-spawn.sh) owns the print-mode launch, plugin loading, named-model catalog refusal, and stream capture, with regression coverage in [`fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) and [`fm-cursor-guard.test.sh`](../tests/fm-cursor-guard.test.sh).
+[`fm-spawn.sh`](../bin/fm-spawn.sh) owns the worker print-mode launch, interactive secondmate launch, plugin loading, named-model catalog refusal, and stream capture, with regression coverage in [`fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) and [`fm-cursor-guard.test.sh`](../tests/fm-cursor-guard.test.sh).
 The [Cursor adapter reference](../.agents/skills/harness-adapters/references/harness/cursor.md) owns harness-specific operating guidance.
 
 ## Typed dispatch resolution (.env TYPESAFE_API_KEY)

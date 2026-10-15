@@ -2335,9 +2335,10 @@ launch_template() {
   # inherited CLAUDECODE cannot outrank cursor's own marker in a process that
   # only reads the environment. Cursor exposes no effort flag, so the shared
   # effort axis is deliberately omitted and stays in task metadata only.
-  # -p --output-format stream-json is tee'd (through process substitution, so
-  # the pane command keeps the agent's own exit status) to state/<id>.cursor-stream.jsonl
-  # and still runs in the pane, so it stays visible. Control-plane relaunch
+  # Workers use -p --output-format stream-json, tee'd to state/<id>.cursor-stream.jsonl
+  # through process substitution to keep the agent's own exit status and visible output.
+  # Secondmates stay interactive so their project stop hook can park and resume
+  # supervision. Control-plane relaunch
   # re-delivers the brief in a new conversation; it does not pass --resume.
   # --plugin-dir loads pstack and --approve-mcps
   # lets its MCP servers start unattended. The second --plugin-dir is this
@@ -2345,7 +2346,16 @@ launch_template() {
   # a preToolUse hook that pins shell calls naming no directory to the worktree,
   # because Cursor otherwise runs them wherever the conversation's persistent
   # shell last was, and refuses git symbolic-ref and update-ref.
-  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ --plugin-dir __CURSORCREWGUARD__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?' ;;
+  cursor)
+    printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ '
+    if [ "$kind" != secondmate ]; then
+      printf '%s' '-p --output-format stream-json '
+    fi
+    printf '%s' '--trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ --plugin-dir __CURSORCREWGUARD__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+    if [ "$kind" != secondmate ]; then
+      printf '%s' ' > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?'
+    fi
+    ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
   # command exactly as it does for claude and grok (verified: a multi-line
@@ -2599,8 +2609,10 @@ cursor)
   # Re-assert Cursor's settings before every run (spawn and relaunch).
   "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
   # A bead's 3rd Cursor launch in one day is refused; given back below if the spawn fails.
-  FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
-  CURSOR_CAP_TAKEN=1
+  if [ "$KIND" != secondmate ]; then
+    FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
+    CURSOR_CAP_TAKEN=1
+  fi
   ;;
 omp)
   OMP_BIN=$(resolve_pi_executable omp) || {
@@ -3757,32 +3769,12 @@ freshen_spawn_worktree_base() { # <worktree> [<base-branch>]
 # command that a harness may refuse. A leftover branch of the same name whose
 # commits are already in HEAD is moved to HEAD (nothing is lost); one that
 # carries commits HEAD lacks is checked out as it is, never reset.
-# Git allows a branch to be checked out in only one worktree. A recovery
-# launch into a new pool slot finds the previous slot still on this task's
-# branch, so that slot detaches and this slot takes the branch.
-detach_ship_branch_checked_out_elsewhere() { # <worktree> <branch>
-  local worktree=$1 branch=$2 line other="" here there
-  here=$(cd "$worktree" && pwd -P) || return 0
-  while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in
-      "worktree "*) other=${line#worktree } ;;
-      "branch refs/heads/$branch")
-        [ -n "$other" ] || continue
-        there=$(cd "$other" && pwd -P) || continue
-        [ "$there" = "$here" ] && continue
-        git -C "$there" checkout --quiet --detach >/dev/null 2>&1 || true
-        ;;
-    esac
-  done < <(git -C "$worktree" worktree list --porcelain 2>/dev/null || true)
-}
-
 prepare_ship_branch() { # <worktree> <branch>
   local worktree=$1 branch=$2 head tip
   head=$(git -C "$worktree" rev-parse --verify --quiet 'HEAD^{commit}' 2>/dev/null) || {
     echo "error: pooled worktree '$worktree' has no commit to start branch '$branch' from; refusing to launch" >&2
     return 1
   }
-  detach_ship_branch_checked_out_elsewhere "$worktree" "$branch"
   if tip=$(git -C "$worktree" rev-parse --verify --quiet "refs/heads/$branch^{commit}" 2>/dev/null); then
     if git -C "$worktree" merge-base --is-ancestor "$tip" "$head" 2>/dev/null; then
       git -C "$worktree" checkout --quiet -B "$branch" "$head" -- >/dev/null
@@ -5869,7 +5861,10 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
     # shellcheck disable=SC2016
     LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX "'${TRACEPARENT+"TRACEPARENT=$TRACEPARENT"}'
   fi
-  LAUNCH="$LAUNCH_ENV_PREFIX /bin/sh -c $(shell_quote "$LAUNCH")"
+  LAUNCH_ENV_SHELL=/bin/sh
+  # Cursor's worker stream capture uses Bash process substitution.
+  [ "$HARNESS" != cursor ] || LAUNCH_ENV_SHELL=/bin/bash
+  LAUNCH="$LAUNCH_ENV_PREFIX $LAUNCH_ENV_SHELL -c $(shell_quote "$LAUNCH")"
 fi
 # Implement the launch-delivery contract in this script's header. The full
 # home-identity hash isolates equal task ids across homes, and the spawn token in
