@@ -33,6 +33,16 @@ EOF
   printf '%s\n' "$1/launchctl"
 }
 
+exiting_launchctl() { # <path> <bootout exit> <print exit>: a logging launchctl with fixed exit statuses
+  cat > "$1" <<EOF
+#!/bin/bash
+printf '%s\n' "\$*" >> "\$FM_DRIFT_LAUNCHCTL_LOG"
+[ "\$1" = print ] && exit $3
+exit $2
+EOF
+  chmod +x "$1"
+}
+
 lint_path() { # <dir> -> PATH whose plutil -lint is real, or a strict plistlib stand-in where plutil is absent
   if command -v plutil >/dev/null 2>&1; then
     printf '%s\n' "$PATH"
@@ -623,6 +633,62 @@ test_install_keeps_the_installed_job_when_the_plist_is_invalid() {
   pass "a reinstall whose plist fails lint leaves the installed job and plist unchanged"
 }
 
+test_uninstall_keeps_the_plist_unless_launchctl_reports_the_job_gone() {
+  local dir log lint repo out rc plist
+  dir=$(fm_test_tmproot drift-uninstall-error)
+  log=$dir/launchctl.log
+  lint=$(lint_path "$dir")
+  repo=$dir/repo
+  mkdir -p "$repo"
+  plist=$dir/agents/dev.firstmate.drift-nightly.plist
+  exiting_launchctl "$dir/launchctl-ok" 0 1
+  exiting_launchctl "$dir/launchctl-71" 71 71
+  exiting_launchctl "$dir/launchctl-absent" 3 113
+  rc=0
+  out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$dir/launchctl-ok" FM_DRIFT_LAUNCHCTL_LOG="$log" \
+    "$SCRIPT" install --repo "$repo" 2>&1) || rc=$?
+  expect_code 0 "$rc" "install exits 0: $out"
+  rc=0
+  out=$(FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$dir/launchctl-71" FM_DRIFT_LAUNCHCTL_LOG="$log" \
+    "$SCRIPT" uninstall 2>&1) || rc=$?
+  expect_code 2 "$rc" "uninstall exits 2 when launchctl fails with 71"
+  assert_equals "error: launchctl bootout gui/$(id -u)/dev.firstmate.drift-nightly failed with exit 71; kept $plist" "$out" "uninstall names the launchctl failure and the kept plist"
+  assert_present "$plist" "uninstall deleted the plist after launchctl failed"
+  rc=0
+  out=$(FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$dir/launchctl-absent" FM_DRIFT_LAUNCHCTL_LOG="$log" \
+    "$SCRIPT" uninstall 2>&1) || rc=$?
+  expect_code 0 "$rc" "uninstall exits 0 when launchctl reports no such service"
+  assert_equals "uninstalled: removed" "$out" "uninstall reports removed when the job is not loaded"
+  assert_absent "$plist" "uninstall kept the plist of a job launchctl reports absent"
+  pass "uninstall deletes the plist only when bootout succeeds or launchctl reports no such service"
+}
+
+test_documented_cut_recovery_restores_a_cut_from_the_bundle() {
+  local dir scratch cmd sha base out rc
+  sha=b606779ed08299d160ccbb154ec7c0dc8277b9d8
+  base=20dcbf91520b1816663b81873ad67d0b93b3e4d6
+  cmd=$(sed -n 's/^# Recover a cut: //p' "$ROOT/drift-proof.txt")
+  assert_contains "$cmd" "<sha>" "drift-proof.txt documents no '# Recover a cut: ' command taking <sha>"
+  dir=$(fm_test_tmproot drift-recover)
+  scratch=$dir/repo
+  git init -q "$scratch"
+  git -C "$scratch" fetch -q "$ROOT" "$base" 7df545bf74ff729ed1733f77b0aea02a9b164ac1 ||
+    fail "cannot fetch the bundle prerequisites from $ROOT"
+  git -C "$scratch" switch -q --detach "$base"
+  ! git -C "$scratch" cat-file -e "$sha^{commit}" 2>/dev/null || fail "the scratch repository already holds the cut commit"
+  mkdir -p "$scratch/archives"
+  cp "$ROOT/archives/fork-cuts.bundle" "$scratch/archives/"
+  rc=0
+  out=$(cd "$scratch" &&
+    export GIT_AUTHOR_NAME='Firstmate Tests' GIT_AUTHOR_EMAIL='tests@example.invalid' \
+      GIT_COMMITTER_NAME='Firstmate Tests' GIT_COMMITTER_EMAIL='tests@example.invalid' &&
+    eval "${cmd//<sha>/$sha}" 2>&1) || rc=$?
+  expect_code 0 "$rc" "the documented recovery command exits 0: $out"
+  assert_equals "$base" "$(git -C "$scratch" rev-parse 'HEAD^')" "the recovery adds one commit on top of the starting head"
+  assert_equals "$(git -C "$scratch" rev-parse "$sha^{tree}")" "$(git -C "$scratch" rev-parse 'HEAD^{tree}')" "the recovered commit has the cut commit's tree"
+  pass "the documented cut recovery restores a cut commit from the bundle alone"
+}
+
 test_bad_hour_exits_2() {
   local rc out
   rc=0
@@ -656,4 +722,6 @@ test_install_dry_run_writes_nothing
 test_install_and_uninstall_round_trip
 test_install_escapes_xml_in_script_and_repo_paths
 test_install_keeps_the_installed_job_when_the_plist_is_invalid
+test_uninstall_keeps_the_plist_unless_launchctl_reports_the_job_gone
+test_documented_cut_recovery_restores_a_cut_from_the_bundle
 test_bad_hour_exits_2
