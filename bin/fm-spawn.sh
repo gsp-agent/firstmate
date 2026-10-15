@@ -2405,20 +2405,6 @@ launch_template() {
   esac
 }
 
-# Deterministic Cursor fallback (no model judgment): usage at the threshold, no or
-# stale usage file => Codex, or Claude when its last Codex run hit one.
-# Codex and Claude run their CLI's default model.
-if [ "$ARG3" = cursor ] && [ "$KIND" != secondmate ]; then
-  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
-  case "$CURSOR_FALLBACK" in
-  codex* | claude*)
-    ARG3=${CURSOR_FALLBACK%% *} MODEL='' EFFORT=xhigh
-    echo "cursor fallback: launching $ID on the $ARG3 harness (${MODEL:-default model} xhigh): ${CURSOR_FALLBACK#* }" >&2
-    printf '%s\n' "${CURSOR_FALLBACK#* }" > "$STATE/$ID.cursor-fallback"
-    ;;
-  esac
-fi
-
 case "$ARG3" in
 *' '*) # raw launch command (unverified-adapter escape hatch)
   RAW_LAUNCH=1
@@ -2465,6 +2451,25 @@ case "$ARG3" in
   }
   ;;
 esac
+
+# Deterministic Cursor fallback (no model judgment), whether --harness or
+# config/crew-harness chose cursor: usage at the threshold, no or stale usage
+# file => Codex, or Claude when its last Codex run hit one.
+# Codex and Claude run their CLI's default model.
+if [ "$HARNESS" = cursor ] && [ "$RAW_LAUNCH" = 0 ] && [ "$KIND" != secondmate ]; then
+  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
+  case "$CURSOR_FALLBACK" in
+  codex* | claude*)
+    HARNESS=${CURSOR_FALLBACK%% *} MODEL='' EFFORT=xhigh
+    LAUNCH=$(launch_template "$HARNESS" "$KIND") || {
+      echo "error: no launch template for the cursor fallback harness '$HARNESS'" >&2
+      exit 1
+    }
+    echo "cursor fallback: launching $ID on the $HARNESS harness (${MODEL:-default model} xhigh): ${CURSOR_FALLBACK#* }" >&2
+    printf '%s\n' "${CURSOR_FALLBACK#* }" > "$STATE/$ID.cursor-fallback"
+    ;;
+  esac
+fi
 
 # muse, gemini, agy, and devin are verified as CREWMATE/SCOUT adapters only. A secondmate is
 # a firstmate instance, so it needs a primary supervision protocol.
