@@ -1,0 +1,9 @@
+ok - codex Sol receives model_reasoning_effort max profile flags
+ok - codex omits max for models without the catalog capability
+ok - grok receives xhigh reasoning effort
+ok - grok omits unsupported max reasoning effort
+ok - cursor receives its model-qualified reasoning class and exact task workspace
+ok - cursor refuses model ids absent from its resolved binary's live catalog
+ok - cursor spawn falls back to codex at the usage threshold
+ok - cursor spawn falls back to claude when the bead's codex run hit its limit
+ok - cursor refuses to launch when its live catalog cannot be read

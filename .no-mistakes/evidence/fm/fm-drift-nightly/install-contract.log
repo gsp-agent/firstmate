@@ -1,0 +1,40 @@
+The real installer runs below. launchctl is a local recording dependency; no macOS scheduler job is registered or removed.
+$ bash '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/tools & <bin>/fm-drift-nightly.sh' install --repo '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/repo & <copy> "it'"'"'s"'
+installed: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/install-agents/dev.firstmate.drift-nightly.plist
+exit: 0
+
+Strict plist consumer read the exact argv and 03:17 calendar schedule:
+{
+  "Label": "dev.firstmate.drift-nightly",
+  "ProgramArguments": [
+    "/bin/bash",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/tools & <bin>/fm-drift-nightly.sh",
+    "check",
+    "--repo",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/repo & <copy> \"it's\""
+  ],
+  "StartCalendarInterval": {
+    "Hour": 3,
+    "Minute": 17
+  }
+}
+$ bash '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/tools & <bin>/fm-drift-nightly.sh' install --repo '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/invalid-\udcff'
+error: plutil -lint rejected the new plist, installed job unchanged: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/install-agents/dev.firstmate.drift-nightly.plist.new: (Unable to convert string to correct encoding)
+exit: 2
+
+The invalid reinstall preserved the installed bytes and made no scheduler calls.
+$ bash '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/tools & <bin>/fm-drift-nightly.sh' uninstall
+uninstalled: removed
+exit: 0
+
+$ bash '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/tools & <bin>/fm-drift-nightly.sh' uninstall
+uninstalled: absent
+exit: 0
+
+Recorded dependency calls (these are not real launchd registrations):
+bootout gui/501/dev.firstmate.drift-nightly
+bootstrap gui/501 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/install-agents/dev.firstmate.drift-nightly.plist
+bootout gui/501/dev.firstmate.drift-nightly
+bootstrap gui/501 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/install-agents/dev.firstmate.drift-nightly.plist
+bootout gui/501/dev.firstmate.drift-nightly
+print gui/501/dev.firstmate.drift-nightly

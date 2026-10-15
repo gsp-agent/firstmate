@@ -1,0 +1,14 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/cursor-catalogue-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/cursor-catalogue-home
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-brief.sh catalogue-check fixture --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/cursor-catalogue-home/data/catalogue-check/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-spawn.sh catalogue-check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/deletion-repository --scout --backend tmux --harness cursor --model validation-nonexistent-model
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/cursor-catalogue-home
+error: Cursor model 'validation-nonexistent-model' is not available from '/Users/dalecarman/.local/bin/cursor-agent --list-models'; choose an id listed by that command or omit --model
+exit: 1
+
+The real installed Cursor CLI was probed; the actual spawn refused before a task endpoint or metadata was published.

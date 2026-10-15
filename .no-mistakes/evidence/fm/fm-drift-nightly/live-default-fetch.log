@@ -1,0 +1,54 @@
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-upstream init -q -b main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-upstream add -A
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-upstream -c user.name=Validation -c user.email=validation@example.invalid -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -qm 'Upstream baseline'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-upstream rev-parse HEAD
+6f6cc504e84d8c2a87faf207c6c19451620c598a
+exit: 0
+
+$ git clone -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-upstream /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-fork
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-fork remote rename origin kunchenguid
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-fork add -A
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-fork -c user.name=Validation -c user.email=validation@example.invalid -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -qm 'Retained proven change'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-fork rev-parse HEAD
+094c182f09439810a30eddd257db18af65a5c2c7
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-upstream add -A
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-upstream -c user.name=Validation -c user.email=validation@example.invalid -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -qm 'Upstream advanced after the fork'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-upstream rev-parse HEAD
+9a585211e411dc6ebaac53ffb0dfb711a49cbe7d
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-fork --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-proof.txt
+behind: 1
+ahead: 1
+path-ok: retained.txt
+keep: 094c182f09439810a30eddd257db18af65a5c2c7 Retained proven change
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-upstream
+ * branch            main       -> FETCH_HEAD
+   6f6cc50..9a58521  main       -> kunchenguid/main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/fetch-fork rev-parse kunchenguid/main
+9a585211e411dc6ebaac53ffb0dfb711a49cbe7d
+exit: 0
+
+The real fetch advanced kunchenguid/main, then the nightly command reported the new upstream snapshot and accepted only the proven fork patch.

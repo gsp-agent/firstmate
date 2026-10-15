@@ -1,0 +1,43 @@
+[
+  {
+    "name": "The shipped head passes exact proof; later edits to proven source, guard and manifest fail",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Rename detection cannot hide an unproved deletion behind a proved copy",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Removing a proven file or changing its executable mode is drift",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A concurrent fork fast-forward cannot change the snapshot or report",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A concurrent upstream fast-forward cannot change the snapshot or report",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Cut commits recover from the shipped bundle into a fresh checkout",
+    "result": "fail",
+    "live": true,
+    "error": "git clone --no-checkout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/archives/fork-cuts.bundle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/archive-consumer: expected 0, got 128: Cloning into '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/archive-consumer'...\nhint: Using 'master' as the name for the initial branch. This default branch name\nhint: will change to \"main\" in Git 3.0. To configure the initial branch name\nhint: to use in all of your new repositories, which will suppress this warning,\nhint: call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\nhint:\nhint: Disable this message with \"git config set advice.defaultBranchName false\"\nerror: Repository lacks these prerequisite commits:\nerror: 20dcbf91520b1816663b81873ad67d0b93b3e4d6 \nerror: 7df545bf74ff729ed1733f77b0aea02a9b164ac1 \nfatal: remote transport reported error\n"
+  },
+  {
+    "name": "Label routing and quota fallbacks emit the expected profiles and refusal reasons",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "An operator previews the nightly schedule and removal without side effects",
+    "result": "pass",
+    "live": true
+  }
+]

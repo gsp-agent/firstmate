@@ -1,0 +1,597 @@
+
+SCENARIO: The shipped head passes exact proof; later edits to proven source, guard and manifest fail
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/shipped-repository --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+behind: 0
+ahead: 71
+path-ok: .agents/skills/harness-adapters/references/harness/codex.md
+path-ok: .agents/skills/harness-adapters/references/harness/cursor.md
+path-ok: .agents/skills/harness-adapters/references/harness/grok.md
+path-ok: .agents/skills/operational-home-layout/SKILL.md
+path-ok: archives/fork-cuts.bundle
+path-ok: bin/fm-bootstrap.sh
+path-ok: bin/fm-brief.sh
+path-ok: bin/fm-cursor-guard.sh
+path-ok: bin/fm-dispatch-resolve.sh
+path-ok: bin/fm-drift-nightly.sh
+path-ok: bin/fm-spawn.sh
+path-ok: docs/configuration.md
+path-ok: docs/documentation-audiences.json
+path-ok: docs/scripts.md
+path-ok: drift-measurements.txt
+path-ok: drift-proof.txt
+path-ok: tests/fm-bootstrap.test.sh
+path-ok: tests/fm-cursor-guard.test.sh
+path-ok: tests/fm-dispatch-resolve.test.sh
+path-ok: tests/fm-drift-nightly.test.sh
+path-ok: tests/fm-spawn-dispatch-profile.test.sh
+keep: 516926a92e179b5cbc4bff564b9e6c5ff1a71190 escape drift install plist values and lint before replacing the job
+keep: 75f251ffc3ba760928d2cfb6f037840103867a16 test drift install with XML specials in paths and an invalid plist
+keep: d5cb32027c633844262dc5013e735de9f1cb18a7 no-mistakes(lint): Fix empty model assignment and finalize drift proof
+keep: 5f2b4f1ce74292fc0d2d15fa5a5c828925e1ca9d no-mistakes(document): Finalize documentation drift proof
+keep: 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31 no-mistakes(document): Correct dispatch and Cursor fallback documentation
+keep: aaac2ae1f8467c00e5ee7389599b4502a00be9a4 no-mistakes(test): Finalize shipped drift proof and reject later edits
+keep: 3d91d6eb379009013d74f6bc6886684b67116009 no-mistakes(review): Archive unsupported Cursor changes and link measured proof
+keep: 814465e1383e1654aea41db0544c28cd1f30fa92 list the kept commits in drift-proof.txt with their live-file measurement
+merge: 8b34567a2def0fc2aa502e8ae123ae5c01b35d02 merge upstream-lean (PR 26) into fm/fm-drift-nightly
+keep: 98242c4f4a262044841090f4ff36581e136935cf cursor fallback: pool checks before the pstack pin; test the claude spawn
+keep: e478c151d6663c20e3f9d389f6178728d4cdba47 cursor fallback: Codex first, then Claude, not bare Grok
+keep: e85b95155824b19bb7c95969369c4e5d98356cb7 restore the six commits the live routing file depends on
+merge: 4877ac8efddab30fb01fb756dc52c81f30adedd5 Merge pull request #26 from gsp-agent/fm/codex-fallback
+unproven: 8e41a7db2a33ec9366a5429e8dbeba688c3f9ecc cursor fallback: pool checks before the pstack pin; test the claude spawn
+unproven: 974e42ac3022b10573ff20b963c23bf8ff8ef266 cursor fallback: Codex first, then Claude, not bare Grok
+keep: bad73aa7e1cbbfa7786429ec271487f87f8e1c8a no-mistakes(document): Clarify drift checks and publication consent documentation
+keep: 23b309bfda0e09a6348a6f252e3c5e8bb2cc6620 no-mistakes(review): Reject hidden drift and pin comparison commits
+keep: 9f1504c961e14d45dcbadbcbaede630dc30bb94e no-mistakes(review): Archive unsupported keeps and reject unproven patch drift
+keep: ce08ec298a7d52333a4c57ff01cdf0471c3bfdab record the kept dispatch commits in drift-proof.txt
+unproven: 8bd577837677140faf740ac6c51dd1954bba675a name an absent pstack_version as the guard's default
+unproven: 592992342dfbfd681ce66a08a6aeb38177c53a79 state the bounds of the live dispatch fields in the schema owner
+keep: 0efb72c1f28e335037a7470a7583bccb51fec71b add a nightly fork drift check with an uninstall path
+unproven: 85bc5153a829043a9c4850cdaf1b6a1cff8da8da cut unproven fork changes and keep the live dispatch commits
+merge: 8287d35f4152c050bdb77fb26a8262ea42406575 Merge pull request #22 from gsp-agent/fm/fm-test-machine-line
+unproven: c1b24cc9687cb259d405f17d8b8ab0504e57836f no-mistakes(document): Refresh suite admission and affected operational documentation
+unproven: eab38dcef5a72c9ecc3b4524eac20376836251a1 no-mistakes(review): Fix suite admission, runner paths, timing, and cap
+unproven: 516346afbbd8f36b23885c5c5a79ea8f7c8ff972 fix(fm-test-run): keep suite runs at caller priority on the machine line
+unproven: 7a8e6d580c83f104077e31a773a5c15b46172b7f fix(fm-test-run): hold the machine line for each suite run
+merge: f2214ad4567231cebabbf49d416bde354c995af1 Merge pull request #19 from gsp-agent/fm/fm-promote-switch-c
+unproven: 58573e6360fb52575a975fe5970588981e4aef08 no-mistakes(document): Align promotion, dispatch, and harness documentation
+unproven: 9a849dd4fb0b48f91ea1ed033f939aed558c45ed fix(promote): tell a promoted scout to run git switch -c
+merge: 37902fa5bb1cb0089a68c4e242f23ba1cfa648b2 Merge pull request #18 from gsp-agent/fm/sync-upstream-20261013
+merge: f525bbba83a62c03324eaba18920d0fd890a250e Merge pull request #15 from gsp-agent/fm/fm-teardown-open-pr
+unproven: 54a767b5d265e7d4d2b34c54184f2e99979a62eb no-mistakes(lint): Restore merge documentation and suppress SC2012
+unproven: 47a7870946c4158308d9b1ebffc82ff30889735c no-mistakes(document): Align dispatch, launch, and supervision documentation
+unproven: ff9a8d36cc2e9a71bb15103019f63f9c17e713ed fix(teardown): refuse an open recorded request when the copy is gone
+unproven: 3b60ba95d799a2a56eadec82f27f7a42e22d9b2c test(teardown): show an open request still loses its record when the copy is gone
+merge: b0d5875dfea533418e101610f966fc74e30a0c39 Merge kunchenguid/firstmate main (7df545bf) into upstream-lean
+merge: f47850ef54ef3a3c38912a7607436a6e1b1c2c90 Merge pull request #17 from gsp-agent/fm/ep-watch-resurface
+unproven: 17c4d13162f8fcdfb6cc9885a01648cf82b2a7a9 fix(bin): close GitLab-landed backlog items with the merge request URL as a note (#16)
+keep: 8193b2365719da824fe563f01645fe1eb1ccffa0 fix(cursor-guard): match usage-limit prose, not exceededLimit false (#13)
+unproven: 3ce31900713f4e569dfa2aba6e463115e28eeae4 fix(host): offer a rearm resurface by the rows it re-announces
+merge: 44a0ba0ad7b5c3539c706cfe04261f522fdf52e8 Merge pull request #12 from gsp-agent/fm/a3ov3-2-fm
+unproven: 14b1c4432cfb9443ea03a320adb09bf97c7b047c fix(teardown): keep a task record until its request is merged or closed
+unproven: 9733ff859b3f7ac0d8209d37e47df32a626ab2ea test(teardown): show an open recorded request still loses its task record
+unproven: 7aad5e45f778cd28bdd047010f6b994480308648 fix(spawn): disable Claude auto-memory on every launch
+unproven: 9c9ddae92ab31b074a90587542f8346f9c1b45ec test(spawn): require Claude launches to disable auto-memory
+merge: a129556026c1c2b56dc17c9dddc822978bd2165c Merge pull request #11 from gsp-agent/fm/a3ov3-4-fm
+unproven: 1d82cb6ea8661cedc95c4a825661c57c3b57ddff fix(watch): limit takeover continuity to confirmed TERM stops
+unproven: 2c1ca1dcd8a6e18fde320357db7ea70a0b6daf7e test(watch): reproduce announced recovery lost during self-exit takeover
+unproven: 9cbbbd76419b1dcbe23b7b376c700bf9521adc54 no-mistakes(lint): Restore watcher scope by reverting unrelated documentation changes
+unproven: 96e8d817220911f5292fcb61957d5687bc40b1a3 no-mistakes(document): Align dispatch, launch, startup, and watcher documentation
+unproven: 3ad15feca7b37ce8ef405e268481219ff3a4b5f1 fix(watch): take-over does not reopen an already-announced episode
+unproven: a727bbf5a3c51ce9bdc2ebdc14f58d77db3c5eb7 test(watch): a repeated Stop take-over must keep an announced episode quiet
+merge: dd8fc4533f44a8d0670c25e11f11e30252058f2e Merge PR 9: crew isolation (Codex APPROVE at bcba9dac; Chip-Grok PASS)
+unproven: bcba9dacdb658976bf77dd2415cdc1265c45b072 crew guard: check wrapper payloads and commands after a leading keyword; state the scope
+unproven: 4ad5d60fec0b33026e1ebe74be89fb54229585d9 Crew isolation: spawn creates the ship branch, crew guard pins cwd and refuses ref plumbing
+merge: dc6078041281132565f5b886cf99db9152f88bb7 Merge PR #8 (carry 4 commits onto upstream-lean; Opus reviewer PASS at 89b9cbcac; Dale 8:0x PM: don't wait on Grok)
+unproven: 89b9cbcacaccc45b642129aa6cce68ef50f2831c fix(session-start): the newest event keeps its full 60 characters
+unproven: 981bd823e260fc8586c13ec10a403c43828ba318 fix: keep hold fields and the newest event visible; accept configured efforts
+unproven: a158eb8675cc62ec2fe8fa8d33bfaa64d0df52d6 fix(session-start): cap each task line at 150 characters (#4)
+unproven: fccd2fe3482cc9df9951b2a95a334f83ac507048 feat(session-start): one line per task in the fleet digest (#3)
+merge: e98dda6bd04a94f741d9cf6635a2fdd876371b67 Merge PR #7 (passed by the Opus reviewer and Chip-Grok; Dale 6:4x PM: both passes = approval)
+merge: 92a657f4ec4b45f9b5b179539b196b1ffc748e58 Merge PR #6 (passed by the Opus reviewer and Chip-Grok; Dale 6:4x PM: both passes = approval)
+keep: ece80a3543c804bd10e8f13ad28775abef9a4e94 feat(cursor): run wide; deterministic grok fallback, per-bead 3rd-launch stop, stale lock, docs-only routing, pstack version pin
+keep: 745991e8e70fab9fb35bb63e5d2c1491c42124da feat(cursor): keep the agent's exit status past the tee; daily cap on Cursor beads
+keep: cce0ab3a8a709642fc85a3999f6424a8bcb6633d feat(cursor): step 1 of the Cursor cutover: pstack launch line, label routing, Sol max
+keep: ada14efcab836915609ea325e537fef0e9c45edc fix(dispatch): accept grok xhigh in the validators
+keep: aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 feat(spawn): pass xhigh reasoning effort to grok
+unproven: 2f360c82b60815e9f07a84c12256a0fe20db0b6f feat(spawn): refuse a fresh task whose # Task section is over 2048 bytes
+unproven: b606779ed08299d160ccbb154ec7c0dc8277b9d8 feat(spawn): keep a Grok crewmate off the captain's Claude and Cursor surface
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/shipped-repository --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+behind: 0
+ahead: 72
+path-ok: .agents/skills/harness-adapters/references/harness/codex.md
+path-ok: .agents/skills/harness-adapters/references/harness/cursor.md
+path-ok: .agents/skills/harness-adapters/references/harness/grok.md
+path-ok: .agents/skills/operational-home-layout/SKILL.md
+path-ok: archives/fork-cuts.bundle
+path-ok: bin/fm-bootstrap.sh
+path-ok: bin/fm-brief.sh
+path-ok: bin/fm-cursor-guard.sh
+path-ok: bin/fm-dispatch-resolve.sh
+path-ok: docs/configuration.md
+path-ok: docs/documentation-audiences.json
+path-ok: docs/scripts.md
+path-ok: drift-measurements.txt
+path-ok: tests/fm-bootstrap.test.sh
+path-ok: tests/fm-cursor-guard.test.sh
+path-ok: tests/fm-dispatch-resolve.test.sh
+path-ok: tests/fm-drift-nightly.test.sh
+path-ok: tests/fm-spawn-dispatch-profile.test.sh
+path-drift: bin/fm-drift-nightly.sh
+path-drift: bin/fm-spawn.sh
+path-drift: drift-proof.txt
+unproven: a92c9ec8dee70b384747e131349320024854d56d Unapproved edits to previously proven paths
+keep: 516926a92e179b5cbc4bff564b9e6c5ff1a71190 escape drift install plist values and lint before replacing the job
+keep: 75f251ffc3ba760928d2cfb6f037840103867a16 test drift install with XML specials in paths and an invalid plist
+keep: d5cb32027c633844262dc5013e735de9f1cb18a7 no-mistakes(lint): Fix empty model assignment and finalize drift proof
+keep: 5f2b4f1ce74292fc0d2d15fa5a5c828925e1ca9d no-mistakes(document): Finalize documentation drift proof
+keep: 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31 no-mistakes(document): Correct dispatch and Cursor fallback documentation
+keep: aaac2ae1f8467c00e5ee7389599b4502a00be9a4 no-mistakes(test): Finalize shipped drift proof and reject later edits
+keep: 3d91d6eb379009013d74f6bc6886684b67116009 no-mistakes(review): Archive unsupported Cursor changes and link measured proof
+keep: 814465e1383e1654aea41db0544c28cd1f30fa92 list the kept commits in drift-proof.txt with their live-file measurement
+merge: 8b34567a2def0fc2aa502e8ae123ae5c01b35d02 merge upstream-lean (PR 26) into fm/fm-drift-nightly
+keep: 98242c4f4a262044841090f4ff36581e136935cf cursor fallback: pool checks before the pstack pin; test the claude spawn
+keep: e478c151d6663c20e3f9d389f6178728d4cdba47 cursor fallback: Codex first, then Claude, not bare Grok
+keep: e85b95155824b19bb7c95969369c4e5d98356cb7 restore the six commits the live routing file depends on
+merge: 4877ac8efddab30fb01fb756dc52c81f30adedd5 Merge pull request #26 from gsp-agent/fm/codex-fallback
+unproven: 8e41a7db2a33ec9366a5429e8dbeba688c3f9ecc cursor fallback: pool checks before the pstack pin; test the claude spawn
+unproven: 974e42ac3022b10573ff20b963c23bf8ff8ef266 cursor fallback: Codex first, then Claude, not bare Grok
+keep: bad73aa7e1cbbfa7786429ec271487f87f8e1c8a no-mistakes(document): Clarify drift checks and publication consent documentation
+keep: 23b309bfda0e09a6348a6f252e3c5e8bb2cc6620 no-mistakes(review): Reject hidden drift and pin comparison commits
+keep: 9f1504c961e14d45dcbadbcbaede630dc30bb94e no-mistakes(review): Archive unsupported keeps and reject unproven patch drift
+keep: ce08ec298a7d52333a4c57ff01cdf0471c3bfdab record the kept dispatch commits in drift-proof.txt
+unproven: 8bd577837677140faf740ac6c51dd1954bba675a name an absent pstack_version as the guard's default
+unproven: 592992342dfbfd681ce66a08a6aeb38177c53a79 state the bounds of the live dispatch fields in the schema owner
+keep: 0efb72c1f28e335037a7470a7583bccb51fec71b add a nightly fork drift check with an uninstall path
+unproven: 85bc5153a829043a9c4850cdaf1b6a1cff8da8da cut unproven fork changes and keep the live dispatch commits
+merge: 8287d35f4152c050bdb77fb26a8262ea42406575 Merge pull request #22 from gsp-agent/fm/fm-test-machine-line
+unproven: c1b24cc9687cb259d405f17d8b8ab0504e57836f no-mistakes(document): Refresh suite admission and affected operational documentation
+unproven: eab38dcef5a72c9ecc3b4524eac20376836251a1 no-mistakes(review): Fix suite admission, runner paths, timing, and cap
+unproven: 516346afbbd8f36b23885c5c5a79ea8f7c8ff972 fix(fm-test-run): keep suite runs at caller priority on the machine line
+unproven: 7a8e6d580c83f104077e31a773a5c15b46172b7f fix(fm-test-run): hold the machine line for each suite run
+merge: f2214ad4567231cebabbf49d416bde354c995af1 Merge pull request #19 from gsp-agent/fm/fm-promote-switch-c
+unproven: 58573e6360fb52575a975fe5970588981e4aef08 no-mistakes(document): Align promotion, dispatch, and harness documentation
+unproven: 9a849dd4fb0b48f91ea1ed033f939aed558c45ed fix(promote): tell a promoted scout to run git switch -c
+merge: 37902fa5bb1cb0089a68c4e242f23ba1cfa648b2 Merge pull request #18 from gsp-agent/fm/sync-upstream-20261013
+merge: f525bbba83a62c03324eaba18920d0fd890a250e Merge pull request #15 from gsp-agent/fm/fm-teardown-open-pr
+unproven: 54a767b5d265e7d4d2b34c54184f2e99979a62eb no-mistakes(lint): Restore merge documentation and suppress SC2012
+unproven: 47a7870946c4158308d9b1ebffc82ff30889735c no-mistakes(document): Align dispatch, launch, and supervision documentation
+unproven: ff9a8d36cc2e9a71bb15103019f63f9c17e713ed fix(teardown): refuse an open recorded request when the copy is gone
+unproven: 3b60ba95d799a2a56eadec82f27f7a42e22d9b2c test(teardown): show an open request still loses its record when the copy is gone
+merge: b0d5875dfea533418e101610f966fc74e30a0c39 Merge kunchenguid/firstmate main (7df545bf) into upstream-lean
+merge: f47850ef54ef3a3c38912a7607436a6e1b1c2c90 Merge pull request #17 from gsp-agent/fm/ep-watch-resurface
+unproven: 17c4d13162f8fcdfb6cc9885a01648cf82b2a7a9 fix(bin): close GitLab-landed backlog items with the merge request URL as a note (#16)
+keep: 8193b2365719da824fe563f01645fe1eb1ccffa0 fix(cursor-guard): match usage-limit prose, not exceededLimit false (#13)
+unproven: 3ce31900713f4e569dfa2aba6e463115e28eeae4 fix(host): offer a rearm resurface by the rows it re-announces
+merge: 44a0ba0ad7b5c3539c706cfe04261f522fdf52e8 Merge pull request #12 from gsp-agent/fm/a3ov3-2-fm
+unproven: 14b1c4432cfb9443ea03a320adb09bf97c7b047c fix(teardown): keep a task record until its request is merged or closed
+unproven: 9733ff859b3f7ac0d8209d37e47df32a626ab2ea test(teardown): show an open recorded request still loses its task record
+unproven: 7aad5e45f778cd28bdd047010f6b994480308648 fix(spawn): disable Claude auto-memory on every launch
+unproven: 9c9ddae92ab31b074a90587542f8346f9c1b45ec test(spawn): require Claude launches to disable auto-memory
+merge: a129556026c1c2b56dc17c9dddc822978bd2165c Merge pull request #11 from gsp-agent/fm/a3ov3-4-fm
+unproven: 1d82cb6ea8661cedc95c4a825661c57c3b57ddff fix(watch): limit takeover continuity to confirmed TERM stops
+unproven: 2c1ca1dcd8a6e18fde320357db7ea70a0b6daf7e test(watch): reproduce announced recovery lost during self-exit takeover
+unproven: 9cbbbd76419b1dcbe23b7b376c700bf9521adc54 no-mistakes(lint): Restore watcher scope by reverting unrelated documentation changes
+unproven: 96e8d817220911f5292fcb61957d5687bc40b1a3 no-mistakes(document): Align dispatch, launch, startup, and watcher documentation
+unproven: 3ad15feca7b37ce8ef405e268481219ff3a4b5f1 fix(watch): take-over does not reopen an already-announced episode
+unproven: a727bbf5a3c51ce9bdc2ebdc14f58d77db3c5eb7 test(watch): a repeated Stop take-over must keep an announced episode quiet
+merge: dd8fc4533f44a8d0670c25e11f11e30252058f2e Merge PR 9: crew isolation (Codex APPROVE at bcba9dac; Chip-Grok PASS)
+unproven: bcba9dacdb658976bf77dd2415cdc1265c45b072 crew guard: check wrapper payloads and commands after a leading keyword; state the scope
+unproven: 4ad5d60fec0b33026e1ebe74be89fb54229585d9 Crew isolation: spawn creates the ship branch, crew guard pins cwd and refuses ref plumbing
+merge: dc6078041281132565f5b886cf99db9152f88bb7 Merge PR #8 (carry 4 commits onto upstream-lean; Opus reviewer PASS at 89b9cbcac; Dale 8:0x PM: don't wait on Grok)
+unproven: 89b9cbcacaccc45b642129aa6cce68ef50f2831c fix(session-start): the newest event keeps its full 60 characters
+unproven: 981bd823e260fc8586c13ec10a403c43828ba318 fix: keep hold fields and the newest event visible; accept configured efforts
+unproven: a158eb8675cc62ec2fe8fa8d33bfaa64d0df52d6 fix(session-start): cap each task line at 150 characters (#4)
+unproven: fccd2fe3482cc9df9951b2a95a334f83ac507048 feat(session-start): one line per task in the fleet digest (#3)
+merge: e98dda6bd04a94f741d9cf6635a2fdd876371b67 Merge PR #7 (passed by the Opus reviewer and Chip-Grok; Dale 6:4x PM: both passes = approval)
+merge: 92a657f4ec4b45f9b5b179539b196b1ffc748e58 Merge PR #6 (passed by the Opus reviewer and Chip-Grok; Dale 6:4x PM: both passes = approval)
+keep: ece80a3543c804bd10e8f13ad28775abef9a4e94 feat(cursor): run wide; deterministic grok fallback, per-bead 3rd-launch stop, stale lock, docs-only routing, pstack version pin
+keep: 745991e8e70fab9fb35bb63e5d2c1491c42124da feat(cursor): keep the agent's exit status past the tee; daily cap on Cursor beads
+keep: cce0ab3a8a709642fc85a3999f6424a8bcb6633d feat(cursor): step 1 of the Cursor cutover: pstack launch line, label routing, Sol max
+keep: ada14efcab836915609ea325e537fef0e9c45edc fix(dispatch): accept grok xhigh in the validators
+keep: aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 feat(spawn): pass xhigh reasoning effort to grok
+unproven: 2f360c82b60815e9f07a84c12256a0fe20db0b6f feat(spawn): refuse a fresh task whose # Task section is over 2048 bytes
+unproven: b606779ed08299d160ccbb154ec7c0dc8277b9d8 feat(spawn): keep a Grok crewmate off the captain's Claude and Cursor surface
+exit: 1
+
+
+SCENARIO: Rename detection cannot hide an unproved deletion behind a proved copy
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/deletion-repository --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/deletion-proof.txt
+behind: 0
+ahead: 1
+path-ok: copy.txt
+keep: df5946861419c957bae7932c4ef170a63ed86f70 Proven copy
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/deletion-repository --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/deletion-proof.txt
+behind: 0
+ahead: 2
+path-ok: copy.txt
+path-drift: original.txt
+unproven: fd7dc009899750094506d8bef176e0f346897818 Unproven deletion resembling a rename
+keep: df5946861419c957bae7932c4ef170a63ed86f70 Proven copy
+exit: 1
+
+
+SCENARIO: Removing a proven file or changing its executable mode is drift
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/missing-patch-repository --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/missing-proof.txt
+behind: 0
+ahead: 2
+path-drift: kept.txt
+unproven: 077faa794deec5952dbf2286ccfb6bba2229e5f8 Unproven mode change
+keep: f3b214843f8eafda253a7377be88f457cc5151ee Proven addition
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/missing-patch-repository --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/missing-proof.txt
+behind: 0
+ahead: 3
+path-drift: kept.txt
+unproven: c0605811e86128583253853849fad4c2d29b82ff Delete a proven patch
+unproven: 077faa794deec5952dbf2286ccfb6bba2229e5f8 Unproven mode change
+keep: f3b214843f8eafda253a7377be88f457cc5151ee Proven addition
+exit: 1
+
+
+SCENARIO: A concurrent fork fast-forward cannot change the snapshot or report
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-main --fork main --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-main-proof.txt
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-main update-ref refs/heads/main cdbe5d0d0a3cc5beb5d97eb4ced3d81f5fb22f12
+exit: 0
+
+behind: 0
+ahead: 1
+path-ok: kept-00.txt
+path-ok: kept-01.txt
+path-ok: kept-02.txt
+path-ok: kept-03.txt
+path-ok: kept-04.txt
+path-ok: kept-05.txt
+path-ok: kept-06.txt
+path-ok: kept-07.txt
+path-ok: kept-08.txt
+path-ok: kept-09.txt
+path-ok: kept-10.txt
+path-ok: kept-11.txt
+path-ok: kept-12.txt
+path-ok: kept-13.txt
+path-ok: kept-14.txt
+path-ok: kept-15.txt
+path-ok: kept-16.txt
+path-ok: kept-17.txt
+path-ok: kept-18.txt
+path-ok: kept-19.txt
+path-ok: kept-20.txt
+path-ok: kept-21.txt
+path-ok: kept-22.txt
+path-ok: kept-23.txt
+path-ok: kept-24.txt
+path-ok: kept-25.txt
+path-ok: kept-26.txt
+path-ok: kept-27.txt
+path-ok: kept-28.txt
+path-ok: kept-29.txt
+path-ok: kept-30.txt
+path-ok: kept-31.txt
+path-ok: kept-32.txt
+path-ok: kept-33.txt
+path-ok: kept-34.txt
+path-ok: kept-35.txt
+path-ok: kept-36.txt
+path-ok: kept-37.txt
+path-ok: kept-38.txt
+path-ok: kept-39.txt
+path-ok: kept-40.txt
+path-ok: kept-41.txt
+path-ok: kept-42.txt
+path-ok: kept-43.txt
+path-ok: kept-44.txt
+path-ok: kept-45.txt
+path-ok: kept-46.txt
+path-ok: kept-47.txt
+path-ok: kept-48.txt
+path-ok: kept-49.txt
+path-ok: kept-50.txt
+path-ok: kept-51.txt
+path-ok: kept-52.txt
+path-ok: kept-53.txt
+path-ok: kept-54.txt
+path-ok: kept-55.txt
+path-ok: kept-56.txt
+path-ok: kept-57.txt
+path-ok: kept-58.txt
+path-ok: kept-59.txt
+keep: 054ba883b9d6a7805ff17acd77fa12f71e555b4f Proven files
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-main rev-parse refs/heads/main
+cdbe5d0d0a3cc5beb5d97eb4ced3d81f5fb22f12
+exit: 0
+
+The actual ref advanced after the captured snapshot; the report retained the original counts, paths and commit.
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-main --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-main-proof.txt
+behind: 0
+ahead: 2
+path-ok: kept-00.txt
+path-ok: kept-01.txt
+path-ok: kept-02.txt
+path-ok: kept-03.txt
+path-ok: kept-04.txt
+path-ok: kept-05.txt
+path-ok: kept-06.txt
+path-ok: kept-07.txt
+path-ok: kept-08.txt
+path-ok: kept-09.txt
+path-ok: kept-10.txt
+path-ok: kept-11.txt
+path-ok: kept-12.txt
+path-ok: kept-13.txt
+path-ok: kept-14.txt
+path-ok: kept-15.txt
+path-ok: kept-16.txt
+path-ok: kept-17.txt
+path-ok: kept-18.txt
+path-ok: kept-19.txt
+path-ok: kept-20.txt
+path-ok: kept-21.txt
+path-ok: kept-22.txt
+path-ok: kept-23.txt
+path-ok: kept-24.txt
+path-ok: kept-25.txt
+path-ok: kept-26.txt
+path-ok: kept-27.txt
+path-ok: kept-28.txt
+path-ok: kept-29.txt
+path-ok: kept-30.txt
+path-ok: kept-31.txt
+path-ok: kept-32.txt
+path-ok: kept-33.txt
+path-ok: kept-34.txt
+path-ok: kept-35.txt
+path-ok: kept-36.txt
+path-ok: kept-37.txt
+path-ok: kept-38.txt
+path-ok: kept-39.txt
+path-ok: kept-40.txt
+path-ok: kept-41.txt
+path-ok: kept-42.txt
+path-ok: kept-43.txt
+path-ok: kept-44.txt
+path-ok: kept-45.txt
+path-ok: kept-46.txt
+path-ok: kept-47.txt
+path-ok: kept-48.txt
+path-ok: kept-49.txt
+path-ok: kept-50.txt
+path-ok: kept-51.txt
+path-ok: kept-52.txt
+path-ok: kept-53.txt
+path-ok: kept-54.txt
+path-ok: kept-55.txt
+path-ok: kept-56.txt
+path-ok: kept-57.txt
+path-ok: kept-58.txt
+path-ok: kept-59.txt
+path-drift: later-unproven.txt
+unproven: cdbe5d0d0a3cc5beb5d97eb4ced3d81f5fb22f12 Concurrent later commit
+keep: 054ba883b9d6a7805ff17acd77fa12f71e555b4f Proven files
+exit: 1
+
+
+SCENARIO: A concurrent upstream fast-forward cannot change the snapshot or report
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-upstream --fork main --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-upstream-proof.txt
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-upstream update-ref refs/heads/upstream 85101d17d654c9343e8ac15a47cf4dc2940987e1
+exit: 0
+
+behind: 0
+ahead: 1
+path-ok: kept-00.txt
+path-ok: kept-01.txt
+path-ok: kept-02.txt
+path-ok: kept-03.txt
+path-ok: kept-04.txt
+path-ok: kept-05.txt
+path-ok: kept-06.txt
+path-ok: kept-07.txt
+path-ok: kept-08.txt
+path-ok: kept-09.txt
+path-ok: kept-10.txt
+path-ok: kept-11.txt
+path-ok: kept-12.txt
+path-ok: kept-13.txt
+path-ok: kept-14.txt
+path-ok: kept-15.txt
+path-ok: kept-16.txt
+path-ok: kept-17.txt
+path-ok: kept-18.txt
+path-ok: kept-19.txt
+path-ok: kept-20.txt
+path-ok: kept-21.txt
+path-ok: kept-22.txt
+path-ok: kept-23.txt
+path-ok: kept-24.txt
+path-ok: kept-25.txt
+path-ok: kept-26.txt
+path-ok: kept-27.txt
+path-ok: kept-28.txt
+path-ok: kept-29.txt
+path-ok: kept-30.txt
+path-ok: kept-31.txt
+path-ok: kept-32.txt
+path-ok: kept-33.txt
+path-ok: kept-34.txt
+path-ok: kept-35.txt
+path-ok: kept-36.txt
+path-ok: kept-37.txt
+path-ok: kept-38.txt
+path-ok: kept-39.txt
+path-ok: kept-40.txt
+path-ok: kept-41.txt
+path-ok: kept-42.txt
+path-ok: kept-43.txt
+path-ok: kept-44.txt
+path-ok: kept-45.txt
+path-ok: kept-46.txt
+path-ok: kept-47.txt
+path-ok: kept-48.txt
+path-ok: kept-49.txt
+path-ok: kept-50.txt
+path-ok: kept-51.txt
+path-ok: kept-52.txt
+path-ok: kept-53.txt
+path-ok: kept-54.txt
+path-ok: kept-55.txt
+path-ok: kept-56.txt
+path-ok: kept-57.txt
+path-ok: kept-58.txt
+path-ok: kept-59.txt
+keep: fe1059b3440db207feab79d53f7c74a87af4bf83 Proven files
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/concurrent-upstream rev-parse refs/heads/upstream
+85101d17d654c9343e8ac15a47cf4dc2940987e1
+exit: 0
+
+The actual ref advanced after the captured snapshot; the report retained the original counts, paths and commit.
+
+SCENARIO: Cut commits recover from the shipped bundle into a fresh checkout
+$ git clone --no-checkout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/archives/fork-cuts.bundle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/archive-consumer
+Cloning into '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/archive-consumer'...
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: will change to "main" in Git 3.0. To configure the initial branch name
+hint: to use in all of your new repositories, which will suppress this warning,
+hint: call:
+hint:
+hint: 	git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint: 	git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+error: Repository lacks these prerequisite commits:
+error: 20dcbf91520b1816663b81873ad67d0b93b3e4d6 
+error: 7df545bf74ff729ed1733f77b0aea02a9b164ac1 
+fatal: remote transport reported error
+exit: 128
+
+ERROR: git clone --no-checkout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/archives/fork-cuts.bundle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/archive-consumer: expected 0, got 128: Cloning into '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/archive-consumer'...
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: will change to "main" in Git 3.0. To configure the initial branch name
+hint: to use in all of your new repositories, which will suppress this warning,
+hint: call:
+hint:
+hint: 	git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint: 	git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+error: Repository lacks these prerequisite commits:
+error: 20dcbf91520b1816663b81873ad67d0b93b3e4d6 
+error: 7df545bf74ff729ed1733f77b0aea02a9b164ac1 
+fatal: remote transport reported error
+
+
+SCENARIO: Label routing and quota fallbacks emit the expected profiles and refusal reasons
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-dispatch-resolve.sh --labels ''
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-dispatch-resolve.sh --labels docs-only
+dispatch-resolve:
+  status: clear
+  source: label (docs-only)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-dispatch-resolve.sh --labels ep-opus
+dispatch-resolve:
+  status: clear
+  source: label (ep-opus)
+  profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-dispatch-resolve.sh --labels sol
+dispatch-resolve:
+  status: clear
+  source: label (sol)
+  profile: --harness 'codex' --model 'gpt-6.1-sol' --effort 'max'
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-dispatch-resolve.sh --labels docs-only,ep-opus
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-dispatch-resolve.sh --labels ep-opus,docs-only
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-dispatch-resolve.sh --labels sol
+error: malformed rules file: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/routing-home/config/crew-dispatch.json - each label_routes profile effort must be supported by its harness and model
+exit: 2
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-cursor-guard.sh fallback task-a
+codex no Cursor spending file in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/routing-home/usage
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-cursor-guard.sh fallback task-a
+cursor
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-cursor-guard.sh fallback task-a
+codex Cursor Models at 85% (limit 85%)
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-cursor-guard.sh fallback task-a
+codex Cursor Models at 89% (limit 85%)
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-cursor-guard.sh fallback task-a
+codex cursor_models_pct missing or not an integer in now-spending.txt
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-cursor-guard.sh fallback task-a
+codex newest Cursor spending file is 234825 h old (limit 26 h)
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-cursor-guard.sh fallback task-a
+claude Cursor Models at 89% (limit 85%); Recorded Codex usage limit
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-cursor-guard.sh fallback task-b
+codex Cursor Models at 89% (limit 85%)
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-cursor-guard.sh fallback task-a
+cursor
+exit: 0
+
+
+SCENARIO: An operator previews the nightly schedule and removal without side effects
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh install --dry-run --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/shipped-repository
+dry-run: install
+label: dev.firstmate.drift-nightly
+hour: 3
+minute: 17
+plist: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/schedule-preview/agents/dev.firstmate.drift-nightly.plist
+repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/shipped-repository
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/bin/fm-drift-nightly.sh uninstall --dry-run
+dry-run: uninstall
+absent: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/schedule-preview/agents/dev.firstmate.drift-nightly.plist
+exit: 0
+
+Both real public dry-run commands left the requested agent directory absent.

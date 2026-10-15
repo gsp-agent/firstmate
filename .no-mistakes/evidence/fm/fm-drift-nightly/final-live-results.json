@@ -1,0 +1,49 @@
+[
+  {
+    "name": "The shipped head passes exact proof; later edits to proven source, guard and manifest fail",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Rename detection cannot hide an unproved deletion behind a proved copy",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Removing a proven file or changing its executable mode is drift",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A concurrent fork fast-forward cannot change the snapshot or report",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A concurrent upstream fast-forward cannot change the snapshot or report",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Cut commits recover from the shipped bundle into a fresh checkout",
+    "result": "pass",
+    "live": true,
+    "evidence": "archive-recovery.log"
+  },
+  {
+    "name": "Label routing and quota fallbacks emit the expected profiles and refusal reasons",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "An operator previews the nightly schedule and removal without side effects",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A real Cursor catalog probe prevents an unchecked model launch",
+    "result": "pass",
+    "live": true,
+    "evidence": "cursor-catalogue-live.log"
+  }
+]

@@ -7,10 +7,10 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/bin/fm-drift-nightly.sh</string>
+    <string>/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/tools &amp; &lt;bin&gt;/fm-drift-nightly.sh</string>
     <string>check</string>
     <string>--repo</string>
-    <string>/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4YF995M5NZF0BV2E19995J9/.agent-state/live-test/product</string>
+    <string>/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M4ZEKNC14QM3J3ZZ3Q1TTCJA/.test-live/repo &amp; &lt;copy&gt; &quot;it&apos;s&quot;</string>
   </array>
   <key>StartCalendarInterval</key>
   <dict>
