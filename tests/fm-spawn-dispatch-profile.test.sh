@@ -864,6 +864,21 @@ test_cursor_fallback() {
   pass "cursor spawn falls back to claude when the bead's codex run hit its limit"
 }
 
+test_cursor_fallback_from_static_crew_harness() {
+  local rec id out status
+  id=profile-cursor-static-fallback-z6i
+  rec=$(make_spawn_case profile-cursor-static-fallback cursor "$id")
+  read_case_record "$rec"
+  printf 'cursor_models_pct=89\n' > "$HOME_DIR/cursor-usage/20261012-spending.txt"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "a config/crew-harness cursor spawn should succeed"
+  assert_contains "$out" "cursor fallback: launching $id on the codex harness" "the config/crew-harness cursor spawn skipped the usage fallback"
+  assert_contains "$(cat "$LAUNCH_LOG")" "codex " "the config/crew-harness fallback did not launch on codex"
+  assert_grep 'harness=codex' "$HOME_DIR/state/$id.meta" "the config/crew-harness fallback harness was not recorded"
+  pass "cursor chosen by config/crew-harness falls back to codex at the usage threshold"
+}
+
 test_cursor_failed_catalog_probe_blocks_spawn() {
   local rec id out status
   id=profile-cursor-catalog-unreachable-z6e
@@ -2355,6 +2370,7 @@ test_cursor_threads_model_workspace_and_omits_effort_axis
 test_cursor_crew_guard_pins_cwd_and_refuses_ref_plumbing
 test_cursor_refuses_model_absent_from_live_catalog
 test_cursor_fallback
+test_cursor_fallback_from_static_crew_harness
 test_cursor_failed_catalog_probe_blocks_spawn
 test_opencode_threads_model_and_effort_variant
 test_opencode_without_effort_keeps_launch_config_unchanged
