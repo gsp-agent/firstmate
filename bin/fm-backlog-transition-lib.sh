@@ -868,7 +868,7 @@ fm_backlog_retain_transition() {
 }
 
 fm_backlog_retire_task_record() {
-  local meta=$1 data=$2 id=$3 state=$4 helper kind= pr= prepare=0
+  local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0
   shift 4
   if [ "${1:-}" = --pr ]; then pr=${2:-}; fi
   if [ -e "$meta" ] || [ -L "$meta" ]; then

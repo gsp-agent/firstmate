@@ -35,7 +35,7 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
 }
 
 fm_task_data_backlog_references() {
-  local data=$1 id=$2 required=$3 script_dir row out text= task= first=1
+  local data=$1 id=$2 required=$3 script_dir row out text='' task='' first=1
   shift 3
   script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || return 1
   # shellcheck source=bin/fm-tasks-axi-lib.sh
