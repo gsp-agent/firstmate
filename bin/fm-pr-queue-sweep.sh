@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Sweep open pull requests in each GitHub repository that has an armed merge watch.
-# A repository is watched when a private pr-poll sidecar names it.
+# A repository is watched when a private pr-poll sidecar names it, or when
+# FM_PR_SWEEP_REPOS names it from a snapshot taken before a merged watch was retired.
 # One pass reads all open pull requests in pages of 100, newest update first.
+# Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
+# A page that does not answer is skipped and the rest of the pass still reports.
 # It reports a pull request when its newest queue event is a removal, the pull
 # request is open and not merged, and it is not back in the queue.
 # A removal re-added before this pass is no longer the newest queue event, so a
@@ -14,6 +17,7 @@
 # This file owns the seen record: a mode-600 file state/merge-queue-sweep.seen
 # whose first line is fm-merge-queue-sweep-v1 and whose later lines are event ids.
 # Usage: fm-pr-queue-sweep.sh --scan <state>
+#        fm-pr-queue-sweep.sh --repos <state>
 #        fm-pr-queue-sweep.sh --contains <state> <event>
 #        fm-pr-queue-sweep.sh --record <state> <event>
 set -u
@@ -172,9 +176,47 @@ sweep_note_repo() {
   esac
 }
 
+# FM_PR_SWEEP_REPOS is a newline-separated owner/repo list. Invalid lines are
+# ignored. The caller initializes sweep_repos.
+sweep_note_env_repos() {
+  local line owner repo
+  [ -n "${FM_PR_SWEEP_REPOS:-}" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      */*) ;;
+      *) continue ;;
+    esac
+    owner=${line%%/*}
+    repo=${line#*/}
+    case "$repo" in
+      */*) continue ;;
+    esac
+    sweep_note_repo "$owner" "$repo"
+  done <<EOF
+$FM_PR_SWEEP_REPOS
+EOF
+}
+
+# Bound one GitHub page read. A page that does not answer is a failed read.
+# timeout, then gtimeout, then the same alarm the watcher uses when neither exists.
+sweep_page_gh() {
+  local seconds=${FM_PR_SWEEP_PAGE_TIMEOUT:-30}
+  case "$seconds" in
+    ''|*[!0-9]*|0) seconds=30 ;;
+  esac
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$seconds" gh "$@"
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "$seconds" gh "$@"
+  else
+    # shellcheck disable=SC2016  # single quotes are deliberate: Perl expands its own variables.
+    perl -e 'my $t = shift; my $owned = shift; my $pid = fork; die "fork failed" unless defined $pid; if (!$pid) { setpgrp(0, 0) unless $owned; exec @ARGV } my $group = $owned ? getpgrp(0) : $pid; my $stop = sub { $SIG{HUP} = $SIG{INT} = $SIG{TERM} = "IGNORE"; kill "TERM", -$group; select undef, undef, undef, 0.2; kill "KILL", -$group; waitpid $pid, 0; exit 124 }; local $SIG{ALRM} = $stop; local $SIG{HUP} = $stop; local $SIG{INT} = $stop; local $SIG{TERM} = $stop; alarm $t; waitpid $pid, 0; exit($? >> 8)' "$seconds" 0 gh "$@"
+  fi
+}
+
 sweep_note_sidecars() {
   local state=$1 sidecar provider url host path number extra owner repo
-  sweep_repos=$'\n'
   for sidecar in "$state"/*.pr-poll; do
     [ -e "$sidecar" ] || [ -L "$sidecar" ] || continue
     [ -f "$sidecar" ] && [ ! -L "$sidecar" ] || continue
@@ -204,19 +246,21 @@ sweep_note_sidecars() {
 }
 
 # Print dequeue lines for one repository, or return 1 when a page cannot be read.
-# Nothing is printed until every fetched page has been read.
+# Nothing is printed until every fetched page has been read. A page that does
+# not answer returns 1 without printing, and the caller moves on to the next
+# repository.
 sweep_one_repo() {
   local owner=$1 repo=$2 cursor='' fields line kind rest number state merged
   local queued event_kind event reason more page_cursor saw_page collected url
   collected=
   while :; do
     if [ -z "$cursor" ]; then
-      fields=$(gh api graphql --hostname github.com \
+      fields=$(sweep_page_gh api graphql --hostname github.com \
         -f query="$SWEEP_QUERY" \
         -F owner="$owner" -F repo="$repo" -F cursor=null \
         --jq "$SWEEP_JQ" 2>/dev/null) || return 1
     else
-      fields=$(gh api graphql --hostname github.com \
+      fields=$(sweep_page_gh api graphql --hostname github.com \
         -f query="$SWEEP_QUERY" \
         -F owner="$owner" -F repo="$repo" -f cursor="$cursor" \
         --jq "$SWEEP_JQ" 2>/dev/null) || return 1
@@ -305,6 +349,8 @@ sweep_scan() {
     sweep_seen=$'\n'
   fi
   sweep_note_markers "$state"
+  sweep_repos=$'\n'
+  sweep_note_env_repos
   sweep_note_sidecars "$state"
   while IFS= read -r key || [ -n "$key" ]; do
     [ -n "$key" ] || continue
@@ -321,6 +367,14 @@ case "${1:-}" in
   --scan)
     [ "$#" -eq 2 ] || exit 0
     sweep_scan "$2"
+    exit 0
+    ;;
+  --repos)
+    [ "$#" -eq 2 ] || exit 0
+    sweep_state_ok "$2" || exit 0
+    sweep_repos=$'\n'
+    sweep_note_sidecars "$2"
+    printf '%s' "${sweep_repos#$'\n'}"
     exit 0
     ;;
   --contains)

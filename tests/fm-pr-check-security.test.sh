@@ -148,6 +148,7 @@ case "${1:-} ${2:-}" in
     case " $* " in
       *pullRequests*)
         [ "${FM_TEST_GH_SWEEP_FAIL:-0}" = 0 ] || exit 1
+        [ "${FM_TEST_GH_SWEEP_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GH_SWEEP_SLEEP"
         request_host=github.com
         cursor=null
         jq_filter=
@@ -4234,6 +4235,27 @@ test_open_queue_removals_wake_once_across_a_watched_repo() {
     || fail "a merged removal woke: $(cat "$dir/watch.out")"
   [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 14 ] \
     || fail "the sweep did not report fourteen removals: $(cat "$dir/watch.out")"
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-wake-drain.sh" > "$dir/drain.out" 2> "$dir/drain.err" \
+    || fail "open queue sweep drain failed: $(cat "$dir/drain.err")"
+  for spec in \
+    3941:merge_conflict 3950:merge_conflict 3939:manual 4006:merge_conflict \
+    4017:failed_checks 4111:merge_conflict 4172:manual 4183:merge_conflict \
+    4200:merge_conflict 4308:failed_checks
+  do
+    number=${spec%%:*}
+    reason=${spec#*:}
+    [ "$(grep -c "dequeued https://github.com/groovejones/groove-sight-platform/pull/${number} reason=${reason}$" "$dir/drain.out")" -eq 1 ] \
+      || fail "drain dropped pull ${number}: $(cat "$dir/drain.out")"
+  done
+  for number in 9002 9003 9004 9005; do
+    case "$number" in
+      9002|9003) reason= ;;
+      9004) reason='échec des vérifications' ;;
+      9005) reason='failed \"checks\"\\path\nnext\tline\rcontrol\u0001 event=not-the-id' ;;
+    esac
+    [ "$(grep -Fc "dequeued https://github.com/groovejones/groove-sight-platform/pull/${number} reason=${reason}" "$dir/drain.out")" -eq 1 ] \
+      || fail "drain dropped pull ${number}: $(cat "$dir/drain.out")"
+  done
   [ "$(file_mode "$state/merge-queue-sweep.seen")" = 600 ] \
     || fail "the seen record is not private"
   ack_watcher_cycle "$state" || fail "open queue sweep acknowledgement failed"
@@ -4426,6 +4448,114 @@ test_interrupted_template_upgrade_finishes_on_the_next_poll() {
   pass "a template upgrade interrupted after the check rewrite finishes on the next poll"
 }
 
+test_old_template_and_renumber_are_both_recovered() {
+  local dir state url rc registration_sha check_sha
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
+  url=https://github.com/o/r/pull/1
+  dir=$(make_case old-template-and-renumber)
+  state="$dir/home/state"
+  arm_previous_template_poll "$dir" "$url"
+  shift_registration_device "$state" task-a
+  ! fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "old-template renumber fixture was already valid"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "old-template renumber watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "old-template renumber did not wake on the dequeue: $(cat "$dir/watch.out")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "old-template renumber was not re-recorded from the current template"
+  cmp -s "$POLL" "$state/task-a.check.sh" \
+    || fail "old-template renumber check is not the current template"
+
+  dir=$(make_case old-template-renumber-tampered)
+  state="$dir/home/state"
+  arm_previous_template_poll "$dir" "$url"
+  shift_registration_device "$state" task-a
+  printf '# tampered\n' >> "$state/task-a.check.sh"
+  registration_sha=$(fm_pr_sha256 "$state/task-a.pr-poll-registration")
+  check_sha=$(fm_pr_sha256 "$state/task-a.check.sh")
+  : > "$dir/gh.log"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "tampered renumber watcher failed: $(cat "$dir/watch.err")"
+  case "$(cat "$dir/watch.out")" in
+    "check: rejected unauthenticated state checks:"*"task-a.check.sh"*) ;;
+    *) fail "tampered renumbered check was not refused: $(cat "$dir/watch.out")" ;;
+  esac
+  [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_sha" ] \
+    || fail "tampered renumbered check was re-recorded"
+  [ "$(fm_pr_sha256 "$state/task-a.check.sh")" = "$check_sha" ] \
+    || fail "tampered renumbered check bytes were replaced"
+  ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+    || fail "tampered renumbered check was queried"
+  pass "a renumbered watch on the previous template keeps polling, and a tampered copy stays refused"
+}
+
+write_slow_sweep_page() {  # <dir> <page> <number> <more> <cursor>
+  local dir=$1 page=$2 number=$3 more=$4 cursor=$5
+  mkdir -p "$dir/sweep"
+  # shellcheck disable=SC2016 # $number, $more, and $cursor are jq variables.
+  "$REAL_JQ" -n --argjson number "$number" --argjson more "$more" --arg cursor "$cursor" '
+    {data:{repository:{pullRequests:{
+      pageInfo:{hasNextPage:$more, endCursor:(if $more then $cursor else null end)},
+      nodes:[{number:$number, state:"OPEN", merged:false, isInMergeQueue:false,
+        timelineItems:{nodes:[{__typename:"RemovedFromMergeQueueEvent",
+          id:("evt"+($number|tostring)), reason:"failed_checks"}]}}]}}}}
+  ' > "$dir/sweep/$page.json"
+}
+
+test_sweep_page_deadline_reports_every_removal() {
+  local dir state number
+  dir=$(make_case sweep-page-deadline)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_slow_sweep_page "$dir" page1 2 true page2
+  write_slow_sweep_page "$dir" page2 3 true page3
+  write_slow_sweep_page "$dir" page3 4 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_CHECK_TIMEOUT=2 FM_TEST_GH_SWEEP_SLEEP=1 \
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "slow page sweep failed: $(cat "$dir/watch.err")"
+  for number in 2 3 4; do
+    [ "$(grep -Fxc "check: $ROOT/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/${number} reason=failed_checks" "$dir/watch.out")" -eq 1 ] \
+      || fail "a page that fit under the deadline was dropped (pull ${number}): $(cat "$dir/watch.out")"
+  done
+  pass "each sweep page has its own deadline, so a longer scan still reports every removal"
+}
+
+test_merged_only_watch_still_sweeps_its_repo() {
+  local dir state
+  dir=$(make_case merged-watch-still-sweeps)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_slow_sweep_page "$dir" page1 2 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "merged-watch sweep failed: $(cat "$dir/watch.err")"
+  assert_poll_absent "$state" task-a
+  [ "$(grep -Fxc "check: $ROOT/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/2 reason=failed_checks" "$dir/watch.out")" -eq 1 ] \
+    || fail "a repo whose only armed pull request merged was not swept: $(cat "$dir/watch.out")"
+  pass "a repository is swept after its only armed pull request merges"
+}
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -4469,6 +4599,9 @@ test_open_queue_sweep_exhausts_pages
 test_old_template_watch_polls_after_upgrade
 test_tampered_check_stays_rejected
 test_interrupted_template_upgrade_finishes_on_the_next_poll
+test_old_template_and_renumber_are_both_recovered
+test_sweep_page_deadline_reports_every_removal
+test_merged_only_watch_still_sweeps_its_repo
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations
