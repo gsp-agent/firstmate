@@ -276,6 +276,7 @@ CAPTAIN_META_LOCK=
 CAPTAIN_META_LOCK_HELD=0
 CAPTAIN_CONTROL_LOCK=
 CAPTAIN_CONTROL_LOCK_HELD=0
+CAPTAIN_TASK_ID=
 captain_hold_cleanup() {
   if [ "$CAPTAIN_META_LOCK_HELD" = 1 ]; then
     fm_lock_release "$CAPTAIN_META_LOCK" || true
@@ -317,7 +318,8 @@ validate_one_line() {  # <label> <value>
 }
 
 acquire_task_control_lock() {  # <task-id>
-  CAPTAIN_CONTROL_LOCK="$STATE/.control-$1.lock"
+  CAPTAIN_TASK_ID=$(task_identity "$1") || exit $?
+  CAPTAIN_CONTROL_LOCK="$STATE/.control-$CAPTAIN_TASK_ID.lock"
   fm_lock_acquire_wait "$CAPTAIN_CONTROL_LOCK"
   CAPTAIN_CONTROL_LOCK_HELD=1
 }
@@ -982,41 +984,13 @@ command_hold() {
     [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z) : ;;
     *) fail "FM_CAPTAIN_HOLD_NOW must be a UTC YYYY-MM-DDTHH:MM:SSZ timestamp" ;;
   esac
-  acquire_task_control_lock "$id"
   require_tasks_axi
-  if task_show "$id"; then
-    show=$TASK_SHOW_OUTPUT
-    state=$(show_field "$show" state)
-    [ "$state" != "done" ] \
-      || fail "task $id is already closed; a new captain call needs its own task"
-    existing_hold_kind=$(show_field_value "$show" hold_kind)
-    existing_held=$(show_field_value "$show" held)
-    body=$(show_field_value "$show" body)
-    if [ "$existing_hold_kind" = captain ] && body_has_current_hold_resolution "$body"; then
-      fail "task $id has a recorded resolution awaiting closure; retry answer or reconcile before re-holding"
-    fi
-    if [ "$existing_hold_kind" = captain ] && [ "$existing_held" = yes ]; then
-      preserve_hold_set=1
-      old_owner=$(body_domain_field "$body" 'Decision owner')
-      old_timeout=$(body_domain_field "$body" 'Hold timeout seconds')
-      old_reason=$(body_domain_field "$body" 'Hold reason')
-      if [ -n "$old_owner" ]; then
-        if grep -Fx -- "$(printf '%s\t%s\t%s' "$id" "$(body_hold_set_timestamp "$body")" "$old_owner")" \
-          "$STATE/hold-domain/routed.tsv" >/dev/null 2>&1; then
-          [ "${decision_owner:-$old_owner}" = "$old_owner" ] \
-            && [ "${timeout_seconds:-$old_timeout}" = "$old_timeout" ] \
-            && [ "$routing_reason" = "$old_reason" ] \
-            || fail "task $id already has a routing receipt; finish releasing it before changing its routing fields"
-        fi
-        decision_owner=${decision_owner:-$old_owner}
-        timeout_seconds=${timeout_seconds:-$old_timeout}
-      fi
-    fi
-    if [ -n "$title" ]; then
-      existing_title=$(show_field_value "$show" title)
-      [ "$existing_title" = "$title" ] || fail "existing task $id has a different title"
-    fi
-  else
+  if [ -n "$origin" ]; then
+    origin=$(task_identity "$origin") || exit $?
+  fi
+  if ! task_show "$id"; then
+    printf '%s\n' "$TASK_SHOW_OUTPUT" | grep -q '^code: NOT_FOUND$' \
+      || fail "could not read task $id before holding: $TASK_SHOW_OUTPUT"
     [ -n "$title" ] || fail "--title is required to create task $id"
     validate_one_line title "$title"
     if [ -z "$repo" ] && [ -n "$origin" ] && [ -f "$STATE/$origin.meta" ]; then
@@ -1038,6 +1012,39 @@ command_hold() {
         || fail "could not create task $id"
     fi
   fi
+  acquire_task_control_lock "$id"
+  id=$CAPTAIN_TASK_ID
+  task_show_or_fail "$id" "task $id disappeared before holding it"
+  state=$(show_field "$show" state)
+  [ "$state" != "done" ] \
+    || fail "task $id is already closed; a new captain call needs its own task"
+  existing_hold_kind=$(show_field_value "$show" hold_kind)
+  existing_held=$(show_field_value "$show" held)
+  body=$(show_field_value "$show" body)
+  if [ "$existing_hold_kind" = captain ] && body_has_current_hold_resolution "$body"; then
+    fail "task $id has a recorded resolution awaiting closure; retry answer or reconcile before re-holding"
+  fi
+  if [ "$existing_hold_kind" = captain ] && [ "$existing_held" = yes ]; then
+    preserve_hold_set=1
+    old_owner=$(body_domain_field "$body" 'Decision owner')
+    old_timeout=$(body_domain_field "$body" 'Hold timeout seconds')
+    old_reason=$(body_domain_field "$body" 'Hold reason')
+    if [ -n "$old_owner" ]; then
+      if grep -Fx -- "$(printf '%s\t%s\t%s' "$id" "$(body_hold_set_timestamp "$body")" "$old_owner")" \
+        "$STATE/hold-domain/routed.tsv" >/dev/null 2>&1; then
+        [ "${decision_owner:-$old_owner}" = "$old_owner" ] \
+          && [ "${timeout_seconds:-$old_timeout}" = "$old_timeout" ] \
+          && [ "$routing_reason" = "$old_reason" ] \
+          || fail "task $id already has a routing receipt; finish releasing it before changing its routing fields"
+      fi
+      decision_owner=${decision_owner:-$old_owner}
+      timeout_seconds=${timeout_seconds:-$old_timeout}
+    fi
+  fi
+  if [ -n "$title" ]; then
+    existing_title=$(show_field_value "$show" title)
+    [ "$existing_title" = "$title" ] || fail "existing task $id has a different title"
+  fi
   [ -n "$decision_owner" ] || decision_owner=$(meta_value "$STATE/${origin:-$id}.meta" decision_owner)
   decision_owner=${decision_owner:-captain}
   timeout_seconds=${timeout_seconds:-300}
@@ -1052,7 +1059,6 @@ command_hold() {
   [ -n "$(body_hold_set_timestamp "$(show_field_value "$show" body)")" ] \
     || fail "task $id did not retain its hold-set stamp"
   if [ -n "$origin" ]; then
-    origin=$(task_identity "$origin") || exit $?
     previous_origin=$(body_hold_origin "$(show_field_value "$show" body)")
     write_hold_origin "$id" "$(show_field "$show" body)" "$origin" || exit $?
   fi
@@ -1220,7 +1226,7 @@ route_hold() {  # <id>; caller owns the task control lock
 }
 
 command_route_due() {
-  local router ids id pending rc=0
+  local router ids id pending canonical routed_ids='' rc=0
   [ "$#" -le 1 ] || { usage >&2; exit 2; }
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   [ -f "$router" ] || return 0
@@ -1228,7 +1234,9 @@ command_route_due() {
   if [ "$#" -eq 1 ]; then
     validate_slug task-id "$1"
     acquire_task_control_lock "$1"
-    route_hold "$1"
+    id=$CAPTAIN_TASK_ID
+    route_hold "$id"
+    [ "$id" = "$1" ] || retire_hold_route "$1"
     return
   fi
   ids=$(open_task_ids) || fail "could not list holds for routing"
@@ -1242,8 +1250,13 @@ command_route_due() {
   } | LC_ALL=C sort -u)
   while IFS= read -r id; do
     [ -n "$id" ] || continue
+    canonical=$(task_identity "$id") || { rc=1; continue; }
     # Use one process per row so a failed route cannot strand later holds.
-    "$SCRIPT_DIR/fm-captain-hold.sh" route-due "$id" || rc=1
+    if ! list_has_line "$routed_ids" "$canonical"; then
+      "$SCRIPT_DIR/fm-captain-hold.sh" route-due "$canonical" || { rc=1; continue; }
+      routed_ids="$routed_ids$canonical"$'\n'
+    fi
+    [ "$id" = "$canonical" ] || retire_hold_route "$id"
   done <<< "$ids"
   return "$rc"
 }
@@ -1355,6 +1368,7 @@ command_answer() {
   validate_slug task-id "$id"
   load_decision "$decision_file"
   acquire_task_control_lock "$id"
+  id=$CAPTAIN_TASK_ID
   require_tasks_axi
   task_show "$id" || fail "captain-held task $id is absent from this home's configured backlog (data directory $DATA)"
   show=$TASK_SHOW_OUTPUT
@@ -1781,6 +1795,7 @@ command_reconcile_requests() {
     [ "${#id}" -le 128 ] \
       || { printf 'refused: %s (task id is too long)\n' "$id"; skipped=$((skipped + 1)); continue; }
     acquire_task_control_lock "$id"
+    id=$CAPTAIN_TASK_ID
     show_status=0
     show=''
     task_show "$id" || show_status=$?
@@ -1859,6 +1874,7 @@ reconcile_close() {
   [ -n "$evidence_file" ] || fail "--evidence-file is required; a moot call closes on evidence, never on assertion"
   load_decision "$evidence_file"
   acquire_task_control_lock "$id"
+  id=$CAPTAIN_TASK_ID
   reconcile_request_read "$id" \
     || fail "task $id has no pending board-created reconcile request"
   require_tasks_axi
@@ -1929,6 +1945,7 @@ reconcile_note() {
   [ "$(printf '%s' "$note" | LC_ALL=C wc -c | tr -d ' ')" -le 8192 ] \
     || fail "note file exceeds 8192 bytes"
   acquire_task_control_lock "$id"
+  id=$CAPTAIN_TASK_ID
   reconcile_request_read "$id" \
     || fail "task $id has no pending board-created reconcile request"
   require_tasks_axi

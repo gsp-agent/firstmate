@@ -4822,7 +4822,7 @@ domain_supervision_needed() (
 
 run_domain_watcher() {
   local domain_home=$1
-  fm_run_timed 60 env PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" FM_STATE_OVERRIDE="$domain_home/state" \
+  fm_run_timed "${FM_TEST_DOMAIN_WATCH_TIMEOUT:-60}" env PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" FM_STATE_OVERRIDE="$domain_home/state" \
     FM_DATA_OVERRIDE="$domain_home/data" FM_CONFIG_OVERRIDE="$domain_home/config" FM_BACKEND=tmux \
     FM_HOLD_DOMAIN_ROUTER="${FM_TEST_HOLD_DOMAIN_ROUTER:-$domain_home/router.py}" \
     HOLD_DOMAIN_HERDR="$domain_home/fakebin/herdr" HOLD_DOMAIN_TEST_LOG="$domain_home/owner.log" \
@@ -5310,6 +5310,175 @@ SH
   pass 'persistent reason, delivery and release failures allow scheduled checks before their error wake'
 )
 
+test_domain_aliases_inherit_canonical_authority() {
+  local domain_home mode show id
+  for mode in origin self new; do
+    domain_home=$(make_domain_home "domain-alias-authority-$mode")
+    cat > "$domain_home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "$#" -ge 2 ]; then
+  case "$2" in
+    o|call) set -- "$1" "fm-$2" "${@:3}" ;;
+  esac
+fi
+case "${1:-}:${2:-}" in
+  hold:fm-*|update:fm-*)
+    [ -d "$FM_HOME/state/.control-$2.lock" ] || exit 9
+    ;;
+esac
+exec "$REAL_TASKS_AXI" "$@"
+SH
+    chmod +x "$domain_home/fakebin/tasks-axi"
+    printf 'decision_owner=ep-firstmate\nproject=/fixture/gsp\n' > "$domain_home/state/fm-o.meta"
+    if [ "$mode" = origin ]; then
+      tasks_in "$domain_home" add fm-o 'Canonical origin' --kind scout --repo gsp >/dev/null || fail 'could not add alias origin'
+      run_domain "$domain_home" 2026-10-14T02:00:00Z hold call --title 'Aliased origin call' --origin o \
+        --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' \
+        > "$domain_home/hold.out" || fail 'aliased origin hold failed'
+      id=fm-call
+    else
+      if [ "$mode" = self ]; then
+        tasks_in "$domain_home" add fm-o 'Canonical self call' --kind ship --repo gsp >/dev/null || fail 'could not add alias task'
+      fi
+      run_domain "$domain_home" 2026-10-14T02:00:00Z hold o --title 'Canonical self call' \
+        --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' \
+        > "$domain_home/hold.out" || fail 'aliased self hold failed'
+      id=fm-o
+    fi
+    show=$(tasks_in "$domain_home" show "$id" --full)
+    assert_contains "$show" 'Decision owner: ep-firstmate' "$mode alias lost canonical authority"
+    assert_equals "$id" "$(cat "$domain_home/hold.out")" "$mode hold did not return its backend identity"
+    if [ "$mode" = origin ]; then
+      assert_contains "$show" 'Captain hold origin: fm-o' 'origin was not canonicalized'
+      assert_contains "$show" 'repo: gsp' 'origin alias lost project inheritance'
+    fi
+    assert_present "$domain_home/state/hold-domain/pending/$id.body" "$mode hold did not spool under the backend identity"
+    run_domain "$domain_home" 2026-10-14T02:01:00Z route-due || fail 'aliased hold did not route'
+    show=$(tasks_in "$domain_home" show "$id" --full)
+    assert_contains "$show" 'held: no' "$mode alias left an authorized technical hold waiting"
+    [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail "$mode alias prompted more than once"
+  done
+  pass 'origin, existing-task and new-task aliases inherit and route under canonical authority'
+}
+
+test_domain_aliases_share_interrupted_routing_receipts() {
+  local domain_home show before
+  domain_home=$(make_domain_home domain-alias-receipt)
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold fm-call --title 'Alias receipt' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not create receipt hold'
+  cat > "$domain_home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "$#" -ge 2 ] && [ "$2" = call ]; then set -- "$1" fm-call "${@:3}"; fi
+if [ "${1:-}" = unhold ] && [ -f "$FM_HOME/fail-unhold" ]; then exit 1; fi
+"$REAL_TASKS_AXI" "$@" || exit $?
+if [ "${1:-}" = list ]; then printf '  call,queued,fixture\n'; fi
+SH
+  chmod +x "$domain_home/fakebin/tasks-axi"
+  touch "$domain_home/fail-unhold"
+  if run_domain "$domain_home" 2026-10-14T02:01:00Z route-due call > "$domain_home/failed.out" 2>&1; then
+    fail 'aliased interrupted release succeeded'
+  fi
+  before=$(tasks_in "$domain_home" show fm-call --full)
+  assert_contains "$before" 'Resolution mode: agent-routed' 'interrupted alias release lost its resolution'
+  assert_equals fm-call "$(cut -f1 "$domain_home/state/hold-domain/routed.tsv")" 'receipt used an alias identity'
+  cp "$domain_home/state/hold-domain/pending/fm-call.body" "$domain_home/state/hold-domain/pending/call.body"
+  if run_domain "$domain_home" 2026-10-14T02:01:00Z hold call --decision-owner another-agent \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' > "$domain_home/rehold.out" 2>&1; then
+    fail 'alias re-hold bypassed the canonical routing receipt'
+  fi
+  show=$(tasks_in "$domain_home" show fm-call --full)
+  assert_equals "$before" "$show" 'refused alias re-hold changed routing authority'
+  mv "$domain_home/fail-unhold" "$domain_home/unhold-restored"
+  run_domain "$domain_home" 2026-10-14T02:02:00Z route-due || fail 'alias/canonical sweep failed'
+  run_domain "$domain_home" 2026-10-14T02:03:00Z route-due call || fail 'alias replay failed'
+  show=$(tasks_in "$domain_home" show fm-call --full)
+  assert_contains "$show" 'held: no' 'alias receipt retry left the hold active'
+  [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'alias/canonical sweep duplicated owner delivery'
+  [ "$(wc -l < "$domain_home/state/hold-domain/routed.tsv" | tr -d ' ')" = 1 ] || fail 'alias replay duplicated its receipt'
+  assert_absent "$domain_home/state/hold-domain/pending/call.body" 'alias spool survived canonical release'
+  assert_absent "$domain_home/state/hold-domain/pending/fm-call.body" 'canonical spool survived release'
+  if domain_supervision_needed "$domain_home"; then fail 'retired alias spool kept supervision alive'; fi
+  pass 'alias and canonical retries share one receipt and reject routing-authority drift'
+}
+
+test_watcher_bounds_blocked_routing() (
+  local domain_home mode fallback status pid show
+  . "$ROOT/bin/fm-wake-lib.sh"
+  for fallback in 0 1; do
+    for mode in list lock update unhold; do
+      domain_home=$(make_domain_home "domain-blocked-$mode-$fallback")
+      run_domain "$domain_home" 2026-10-14T02:00:00Z hold waiting --title 'Blocked route' \
+        --decision-owner ep-firstmate --timeout-seconds 60 \
+        --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not create blocked hold'
+      printf '%s\n' "$mode" > "$domain_home/block-mode"
+      cat > "$domain_home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = "$(cat "$FM_HOME/block-mode")" ]; then
+  sleep 30 &
+  printf '%s\n' "$$" "$!" > "$FM_HOME/blocked.pids"
+  wait "$!"
+  printf 'escaped\n' > "$FM_HOME/escaped"
+  exit 1
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+      chmod +x "$domain_home/fakebin/tasks-axi"
+      if [ "$mode" = lock ]; then
+        fm_lock_acquire_wait "$domain_home/state/.control-waiting.lock" || fail 'could not acquire blocking control lock'
+      fi
+      cat > "$domain_home/state/ordinary.check.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'checked\n' >> "$FM_HOME/scheduled.log"
+SH
+      chmod 0700 "$domain_home/state/ordinary.check.sh"
+      FM_HOME="$domain_home" bash "$ROOT/bin/fm-check-register.sh" ordinary >/dev/null || fail 'could not register bounded check'
+      status=0
+      FM_CHECK_TIMEOUT=8 FM_CHECK_FORCE_FALLBACK="$fallback" FM_TEST_DOMAIN_WATCH_TIMEOUT=25 \
+        REAL_TASKS_AXI="$TASKS_AXI_BIN" run_domain_watcher "$domain_home" > "$domain_home/watch.out" 2>&1 || status=$?
+      if [ "$mode" = lock ]; then
+        fm_lock_release "$domain_home/state/.control-waiting.lock" || fail 'could not release blocking control lock'
+      fi
+      [ "$status" = 0 ] || fail "$mode routing blocked scheduled checks past the watcher bound: $(cat "$domain_home/watch.out")"
+      assert_equals checked "$(cat "$domain_home/scheduled.log")" "$mode timeout starved the scheduled check"
+      case "$(cat "$domain_home/watch.out")" in
+        *'hold-domain routing failed: exit 124'*|*'hold-domain routing failed: exit 137'*) ;;
+        *) fail "$mode timeout was not surfaced" ;;
+      esac
+      assert_grep 'hold-domain' "$domain_home/state/.wake-queue" "$mode timeout was not durably queued"
+      assert_present "$domain_home/state/.last-watcher-beat" "$mode timeout lost the watcher beacon"
+      assert_present "$domain_home/state/hold-domain/pending/waiting.body" "$mode timeout discarded pending work"
+      domain_supervision_needed "$domain_home" || fail "$mode timeout stopped supervision"
+      assert_absent "$domain_home/escaped" "$mode blocked subprocess escaped its timeout"
+      if [ "$mode" != lock ]; then
+        assert_present "$domain_home/blocked.pids" "$mode routing did not reach the intended blocking operation"
+        while IFS= read -r pid; do
+          case "$(ps -o stat= -p "$pid" 2>/dev/null | tr -d '[:space:]')" in
+            ''|Z*) ;;
+            *) fail "$mode timeout left a routing subprocess running" ;;
+          esac
+        done < "$domain_home/blocked.pids"
+      fi
+      show=$(tasks_in "$domain_home" show waiting --full)
+      assert_contains "$show" 'held: yes' "$mode timeout released unfinished routing"
+    done
+  done
+  pass 'native and fallback watcher bounds stop blocked listing, locks, writes and releases without starving checks'
+)
+
+case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
+  timeout) test_watcher_bounds_blocked_routing; exit $? ;;
+  identity)
+    test_domain_aliases_inherit_canonical_authority
+    test_domain_aliases_share_interrupted_routing_receipts
+    test_domain_failed_rehold_preserves_routing_fields
+    exit $?
+    ;;
+esac
+
+test_domain_aliases_inherit_canonical_authority
+test_domain_aliases_share_interrupted_routing_receipts
+test_watcher_bounds_blocked_routing || exit 1
 test_domain_failed_rehold_preserves_routing_fields
 test_domain_interrupted_resolutions_block_immediate_and_periodic_routing
 test_domain_new_lifecycles_preserve_historical_decisions
