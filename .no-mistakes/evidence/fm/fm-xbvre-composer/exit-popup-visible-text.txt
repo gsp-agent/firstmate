@@ -1,0 +1,14 @@
+ ▐▛███▛█   Claude Code v2.1.302
+▝▜██████▀  Sonnet 5.5 · Claude API
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4
+
+⚠ Safe mode: all customizations are disabled (CLAUDE.md, skills, plugins, hooks, MCP, agents, and more)
+  Restart without --safe-mode to re-enable
+⚠ Remote managed settings failed to load (authentication rejected (401)) · no remote policy applied · /status for
+  details
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ /exit
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ❯ /exit                       Exit the CLI
+    /context                    Visualize current context usage as a colored grid

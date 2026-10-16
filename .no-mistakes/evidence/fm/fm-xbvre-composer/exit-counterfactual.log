@@ -1,0 +1,27 @@
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'pane', 'send-keys', 'w1:p1', 'ctrl+u']
+
+exit=0
+$ ['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/probe.sh']
+empty
+exit=0
+$ ['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/probe.sh', 'fm_backend_herdr_send_text_submit', '/exit', '3', '0.4', '1.2']
+send-failed
+exit=0
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'agent', 'get', 'w1:p1']
+{"id":"cli:agent:get","result":{"agent":{"agent":"claude","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4","pane_id":"w1:p1","revision":1,"state_change_seq":4,"tab_id":"w1:t1","terminal_id":"term_65dfc169ca5601","terminal_title":"✳ Claude Code","terminal_title_stripped":"Claude Code","workspace_id":"w1"},"type":"agent_info"}}
+
+exit=0
+$ ['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/probe.sh', '--base', 'fm_backend_herdr_send_text_submit', '/exit', '3', '0.4', '1.2']
+send-failed
+exit=0
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'agent', 'get', 'w1:p1']
+{"id":"cli:agent:get","result":{"agent":{"agent":"claude","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4","pane_id":"w1:p1","revision":1,"state_change_seq":4,"tab_id":"w1:t1","terminal_id":"term_65dfc169ca5601","terminal_title":"✳ Claude Code","terminal_title_stripped":"Claude Code","workspace_id":"w1"},"type":"agent_info"}}
+
+exit=0
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'pane', 'send-text', 'w1:p1', '/exit']
+
+exit=0
+$ ['python3', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/capture.py', 'exit-popup']
+{"label": "exit-popup", "scroll": {"max_offset_from_bottom": 166, "offset_from_bottom": 0, "viewport_rows": 59}, "results": {"base-state": {"exit": 0, "out": "pending"}, "state": {"exit": 0, "out": "pending"}, "content": {"exit": 0, "out": "/exit Exit the CLI /context Visualize current context usage as a colored grid"}}}
+
+exit=0

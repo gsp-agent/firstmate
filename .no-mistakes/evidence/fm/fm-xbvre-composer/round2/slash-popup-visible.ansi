@@ -1,0 +1,58 @@
+COMPOSER-LAB HISTORY ROW 167: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 168: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 169: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 170: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 171: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 172: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 173: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 174: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 175: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 176: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 177: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 178: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 179: earlier chat, no live composer here.
+COMPOSER-LAB HISTORY ROW 180: earlier chat, no live composer here.
+ ▐▛███▛█   Claude Code v2.1.302
+▝▜██████▀  Opus 5.5 · API Usage Billing
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4
+
+⚠ Safe mode: all customizations are disabled (CLAUDE.md, skills, plugins, hooks, MCP, agents, and more)
+  Restart without --safe-mode to re-enable
+
+▎ Auto mode is now Claude Code's default permission mode.
+▎ Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky actions
+▎ and prompt injection before executing, runs the ones it assesses as lower-risk, and blocks the rest.
+▎ https://code.claude.com/docs/en/permission-modes
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ /[0m[7m [0m
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ❯ /add-dir                    Add a new working directory
+    /autocompact                Set how full the context gets before auto-summarizing
+    /background                 Send this session to the background and free the terminal
+    /branch                     Create a branch of the current conversation at this point
+    /btw                        Ask a quick side question without interrupting the main conversation
+    /bug                        Report a bug or share your conversation
+    /cd                         Move this session to a new working directory
+    /clear                      Start a new session with empty context; previous session stays on disk
+                                (resumable with /resume)
+    /color                      Set the prompt bar color for this session
+    /compact                    Free up context by summarizing the conversation so far
+    /config                     Open settings
+    /context                    Visualize current context usage as a colored grid
+    /copy                       Copy Claude's last response to clipboard (or /copy N for the Nth-latest)
+    /design-login               Authorize design-system access for /design-sync with your claude.ai account
+    /diff                       Toggle the diff panel showing uncommitted changes
+    /effort                     Set effort level for model usage
+    /exit                       Exit the CLI
+    /export                     Export the current conversation to a file or clipboard
+    /fast                       Toggle fast mode (Opus 5.5)
+    /feedback                   Send feedback to Anthropic or report a bug
+    /focus                      Toggle focus view: just your prompt, summary, and response
+    /fork                       Copy this conversation into a new background session and keep working here
+    /goal                       Set a goal Claude checks before stopping
+    /help                       Show help and available commands
+    /hooks                      View hook configurations for tool events
+    /ide                        Manage IDE integrations and show status
+    /install-github-app         Set up Claude GitHub Actions for a repository
+    /keybindings                Open your keyboard shortcuts file

@@ -1,0 +1,59 @@
+COMPOSER-LAB HISTORY ROW 139: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 140: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 141: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 142: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 143: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 144: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 145: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 146: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 147: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 148: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 149: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 150: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 151: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 152: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 153: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 154: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 155: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 156: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 157: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 158: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 159: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 160: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 161: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 162: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 163: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 164: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 165: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 166: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 167: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 168: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 169: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 170: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 171: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 172: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 173: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 174: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 175: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 176: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 177: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 178: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 179: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 180: earlier conversation scrollback data.
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Accessing workspace:
+
+ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4
+
+ Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source
+ project, or work from your team). If not, take a moment to review what's in this folder first.
+
+ Claude Code'll be able to read, edit, and execute files here.
+
+ Security guide
+
+ ❯ No, exit
+   Yes, I trust this folder
+
+ Enter to confirm · Esc to cancel

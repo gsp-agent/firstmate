@@ -1,0 +1,59 @@
+{
+  "versions": {
+    "herdr": "herdr 0.9.1",
+    "claude": "2.1.302 (Claude Code)",
+    "session": "fm-lab-xbvre-round2-43478-30922",
+    "pane": "w1:p1",
+    "grid": "60x140, continuously drained"
+  },
+  "empty_scrolled": {
+    "base": "unknown",
+    "target": "empty",
+    "scroll": {
+      "max_offset_from_bottom": 147,
+      "offset_from_bottom": 120,
+      "viewport_rows": 59
+    }
+  },
+  "draft_guard": {
+    "state": "pending",
+    "verdict": "send-failed",
+    "retained": "UNSENT COMPOSER SAFETY DRAFT ROUND TWO"
+  },
+  "full_overlay": {
+    "state": "pending",
+    "content": "/",
+    "rows": 59,
+    "composer_row": 29,
+    "rows_below_composer": 30
+  },
+  "clear_submit": {
+    "verdict": "empty",
+    "composer": "empty",
+    "claude_present": true
+  },
+  "exit_submit": {
+    "verdict": "unknown",
+    "claude_absent": true,
+    "agent_get_exit": 1
+  },
+  "unknown_guard": {
+    "state": "unknown",
+    "content_exit": 1
+  },
+  "missing_guard": {
+    "state": "unknown",
+    "submit": "send-failed"
+  },
+  "teardown": {
+    "exit": 0,
+    "default_tripwire": "verified and retired"
+  },
+  "scope": "Real Claude Code 2.1.302 local TUI commands in safe mode with disposable writable configuration; no model/API turn or credential mutation. Every pane operation used the named lab helper. Exit unknown is expected after the agent destroys its composer; independent agent-get and the returned shell prove exit.",
+  "targeted_regressions": {
+    "command": "bin/fm-test-run.sh tests/fm-backend-herdr.test.sh tests/fm-composer-lib.test.sh",
+    "exit": 0,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M539H80Q1AK9PQ932W6F81V4/round2/targeted-regressions.log"
+  },
+  "fixture_cleanup": "Both disposable worktree directories removed after successful named-session teardown. No source or test files changed."
+}

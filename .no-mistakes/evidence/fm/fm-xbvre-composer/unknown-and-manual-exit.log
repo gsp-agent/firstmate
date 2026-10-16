@@ -1,0 +1,22 @@
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'pane', 'send-keys', 'w1:p1', 'enter']
+
+exit=0
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'agent', 'get', 'w1:p1']
+{"id":"cli:agent:get","result":{"agent":{"agent":"claude","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4","pane_id":"w1:p1","revision":2,"state_change_seq":4,"tab_id":"w1:t1","terminal_id":"term_65dfc169ca5601","workspace_id":"w1"},"type":"agent_info"}}
+
+exit=0
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'agent', 'get', 'w1:p1']
+{"id":"cli:agent:get","result":{"agent":{"agent":"claude","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4","pane_id":"w1:p1","revision":2,"state_change_seq":4,"tab_id":"w1:t1","terminal_id":"term_65dfc169ca5601","workspace_id":"w1"},"type":"agent_info"}}
+
+exit=0
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'agent', 'get', 'w1:p1']
+{"error":{"code":"agent_not_found","message":"agent target w1:p1 not found"},"id":"cli:agent:get"}
+
+exit=1
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'pane', 'run', 'w1:p1', "printf 'CURRENT SCREEN WITHOUT AN AGENT COMPOSER\n%.0s' {1..100}"]
+
+exit=0
+$ ['python3', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/capture.py', 'no-composer']
+{"label": "no-composer", "scroll": {"max_offset_from_bottom": 251, "offset_from_bottom": 0, "viewport_rows": 59}, "results": {"base-state": {"exit": 0, "out": "unknown"}, "state": {"exit": 0, "out": "unknown"}, "content": {"exit": 1, "out": ""}}}
+
+exit=0

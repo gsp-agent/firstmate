@@ -1,0 +1,14 @@
+{
+  "versions": {
+    "herdr": "herdr 0.9.1",
+    "claude": "2.1.302 (Claude Code)",
+    "session": "fm-lab-xbvre-round2-23583-27999",
+    "pane": "w2:p1",
+    "grid": "60x140, continuously drained"
+  },
+  "exception": "Traceback (most recent call last):\n  File \"/Users/dalecarman/.no-mistakes/evidence/01M539H80Q1AK9PQ932W6F81V4/round2/drive-live.py\", line 201, in <module>\n    assert empty['scroll']['offset_from_bottom'] > 0\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+  "teardown": {
+    "exit": 0,
+    "default_tripwire": "verified and retired"
+  }
+}

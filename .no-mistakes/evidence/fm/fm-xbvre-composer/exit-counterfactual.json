@@ -1,0 +1,10 @@
+{
+  "target": {
+    "verdict": "send-failed",
+    "agent_present": true
+  },
+  "base": {
+    "verdict": "send-failed",
+    "agent_present": true
+  }
+}

@@ -1,0 +1,1 @@
+/exit Exit the CLI /context Visualize current context usage as a colored grid

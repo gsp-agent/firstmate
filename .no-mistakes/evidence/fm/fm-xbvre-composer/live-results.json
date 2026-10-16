@@ -1,0 +1,41 @@
+{
+  "herdr": "0.9.1, protocol 22",
+  "claude": "2.1.302",
+  "scope": "Real Claude CLI in safe mode, isolated writable Claude configuration, existing normal login read without changing the credential store. No model turn is needed for the local slash commands. All Herdr operations routed through bin/fm-herdr-lab.sh.",
+  "pty": "nonzero 60 rows x 140 columns; drained continuously; pane viewport 59 rows",
+  "empty_scrolled": {
+    "scroll_offset": 120,
+    "base": "unknown",
+    "target": "empty"
+  },
+  "draft_scrolled": {
+    "scroll_offset": 120,
+    "target": "pending",
+    "submit_reset": "send-failed",
+    "draft_retained": "UNSENT COMPOSER SAFETY DRAFT 16OCT"
+  },
+  "popup": {
+    "target_state": "pending",
+    "expected_content": "/exit",
+    "actual_content": "/exit Exit the CLI /context Visualize current context usage as a colored grid",
+    "submit_results": {
+      "target": {
+        "verdict": "send-failed",
+        "agent_present": true
+      },
+      "base": {
+        "verdict": "send-failed",
+        "agent_present": true
+      }
+    },
+    "clear_submit": "send-failed",
+    "manual_native_enter": "Claude exited from the same pane"
+  },
+  "unknown": {
+    "after_100_lines_without_composer": "unknown",
+    "closed_pane": "unknown"
+  },
+  "targeted_regressions": "bin/fm-test-run.sh tests/fm-backend-herdr.test.sh tests/fm-composer-lib.test.sh: exit 0, no skipped scripts",
+  "unavailable": "Original private capture replay not run: captures absent from this worktree and proposed location is another clone, which this Test phase may not read. Production reset-log proof requires post-merge deployment and a real revive event outside this pre-merge lab.",
+  "cleanup": "Herdr lab teardown exited 0, its fleet-state tripwire was verified and retired, and the tracked controller exited 0. Disposable worktree files removed."
+}

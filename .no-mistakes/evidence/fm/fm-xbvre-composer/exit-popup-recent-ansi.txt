@@ -1,0 +1,180 @@
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ FM_HOME='/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-
+test/home' bash '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-te
+st/launch.sh'
+COMPOSER-LAB HISTORY ROW 001: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 002: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 003: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 004: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 005: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 006: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 007: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 008: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 009: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 010: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 011: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 012: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 013: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 014: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 015: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 016: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 017: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 018: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 019: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 020: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 021: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 022: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 023: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 024: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 025: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 026: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 027: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 028: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 029: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 030: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 031: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 032: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 033: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 034: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 035: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 036: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 037: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 038: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 039: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 040: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 041: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 042: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 043: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 044: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 045: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 046: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 047: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 048: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 049: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 050: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 051: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 052: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 053: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 054: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 055: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 056: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 057: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 058: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 059: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 060: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 061: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 062: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 063: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 064: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 065: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 066: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 067: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 068: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 069: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 070: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 071: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 072: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 073: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 074: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 075: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 076: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 077: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 078: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 079: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 080: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 081: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 082: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 083: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 084: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 085: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 086: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 087: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 088: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 089: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 090: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 091: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 092: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 093: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 094: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 095: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 096: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 097: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 098: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 099: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 100: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 101: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 102: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 103: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 104: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 105: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 106: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 107: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 108: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 109: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 110: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 111: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 112: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 113: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 114: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 115: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 116: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 117: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 118: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 119: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 120: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 121: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 122: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 123: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 124: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 125: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 126: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 127: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 128: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 129: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 130: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 131: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 132: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 133: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 134: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 135: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 136: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 137: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 138: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 139: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 140: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 141: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 142: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 143: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 144: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 145: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 146: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 147: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 148: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 149: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 150: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 151: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 152: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 153: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 154: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 155: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 156: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 157: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 158: earlier conversation scrollback data.
+COMPOSER-LAB HISTORY ROW 159: earlier conversation scrollback data.
+ ▐▛███▛█   Claude Code v2.1.302
+▝▜██████▀  Sonnet 5.5 · Claude API
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4
+
+⚠ Safe mode: all customizations are disabled (CLAUDE.md, skills, plugins, hooks, MCP, agents, and more)
+  Restart without --safe-mode to re-enable
+⚠ Remote managed settings failed to load (authentication rejected (401)) · no remote policy applied · /status for
+  details
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ /exit[0m[7m [0m
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ❯ /exit                       Exit the CLI                                       
+    /context                    Visualize current context usage as a colored grid

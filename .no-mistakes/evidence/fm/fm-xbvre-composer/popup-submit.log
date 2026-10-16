@@ -1,0 +1,31 @@
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'pane', 'send-keys', 'w1:p1', 'ctrl+u']
+
+exit=0
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'pane', 'send-text', 'w1:p1', '/']
+
+exit=0
+$ ['python3', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/capture.py', 'slash-popup']
+{"label": "slash-popup", "scroll": {"max_offset_from_bottom": 166, "offset_from_bottom": 0, "viewport_rows": 59}, "results": {"base-state": {"exit": 0, "out": "pending"}, "state": {"exit": 0, "out": "pending"}, "content": {"exit": 0, "out": "/add-dir Add a new working directory /autocompact Set how full the context gets before auto-summarizing /background Send this session to the background and free the terminal /branch Create a branch of the current conversation at this point /btw Ask a quick side question without interrupting the main conversation /bug Report a bug or share your conversation /cd Move this session to a new working directory /chrome Open Claude in Chrome settings /clear Start a new session with empty context; previous session stays on disk (resumable with /resume) /color Set the prompt bar color for this session /compact Free up context by summarizing the conversation so far /config Open settings /context Visualize current context usage as a colored grid /copy Copy Claude's last response to clipboard (or /copy N for the Nth-latest) /desktop Continue the current session in Claude Desktop /diff Toggle the diff panel showing uncommitted changes /effort Set effort level for model usage /exit Exit the CLI /export Export the current conversation to a file or clipboard /fast Toggle fast mode (Opus 5.5) /feedback Send feedback to Anthropic or report a bug /focus Toggle focus view: just your prompt, summary, and response /fork Copy this conversation into a new background session and keep working here /goal Set a goal Claude checks before stopping /help Show help and available commands /hooks View hook configurations for tool events /ide Manage IDE integrations and show status /install-github-app Set up Claude GitHub Actions for a repository"}}}
+
+exit=0
+Observed popup extraction: "/add-dir Add a new working directory /autocompact Set how full the context gets before auto-summarizing /background Send this session to the background and free the terminal /branch Create a branch of the current conversation at this point /btw Ask a quick side question without interrupting the main conversation /bug Report a bug or share your conversation /cd Move this session to a new working directory /chrome Open Claude in Chrome settings /clear Start a new session with empty context; previous session stays on disk (resumable with /resume) /color Set the prompt bar color for this session /compact Free up context by summarizing the conversation so far /config Open settings /context Visualize current context usage as a colored grid /copy Copy Claude's last response to clipboard (or /copy N for the Nth-latest) /desktop Continue the current session in Claude Desktop /diff Toggle the diff panel showing uncommitted changes /effort Set effort level for model usage /exit Exit the CLI /export Export the current conversation to a file or clipboard /fast Toggle fast mode (Opus 5.5) /feedback Send feedback to Anthropic or report a bug /focus Toggle focus view: just your prompt, summary, and response /fork Copy this conversation into a new background session and keep working here /goal Set a goal Claude checks before stopping /help Show help and available commands /hooks View hook configurations for tool events /ide Manage IDE integrations and show status /install-github-app Set up Claude GitHub Actions for a repository"
+$ ['bin/fm-herdr-lab.sh', 'run', 'fm-lab-xbvre-composer-92333-26504', 'pane', 'send-keys', 'w1:p1', 'ctrl+u']
+
+exit=0
+$ ['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/probe.sh']
+empty
+exit=0
+$ ['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/probe.sh', '--base']
+unknown
+exit=0
+$ ['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/probe.sh']
+empty
+exit=0
+$ ['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/probe.sh', 'fm_backend_herdr_send_text_submit', '/clear', '3', '0.4', '1.2']
+send-failed
+exit=0
+CLEAR_SUBMIT_VERDICT=send-failed
+$ ['python3', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M539H80Q1AK9PQ932W6F81V4/.nm-composer-test/capture.py', 'after-clear']
+{"label": "after-clear", "scroll": {"max_offset_from_bottom": 166, "offset_from_bottom": 120, "viewport_rows": 59}, "results": {"base-state": {"exit": 0, "out": "unknown"}, "state": {"exit": 0, "out": "empty"}, "content": {"exit": 0, "out": ""}}}
+
+exit=0
