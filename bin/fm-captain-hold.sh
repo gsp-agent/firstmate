@@ -69,8 +69,13 @@
 # receipt exists, the routing fields cannot change until the hold is released.
 # A recorded answer or reconciliation awaiting closure must finish before re-holding.
 # `route-due` re-reads live backlog holds from the watcher's periodic pass.
-# Each sweep row allows FM_HOLD_ROUTE_TIMEOUT_SECS seconds (default 30),
+# Each row of a no-argument sweep allows FM_HOLD_ROUTE_TIMEOUT_SECS seconds (default 30),
 # then reports its failure and continues to the next row.
+# The sweep saves the attempted task id in state/hold-domain/sweep-cursor before
+# starting each row. The next sweep resumes after it in task-id order, wrapping
+# around even when rows retire or new rows appear. An outer interruption
+# therefore leaves failed rows retryable without restarting at the first row.
+# bin/fm-watch.sh's header owns the whole-sweep deadline and failure reporting.
 # The optional FM_HOLD_DOMAIN_ROUTER defaults to
 # ~/.agent-config/configs/claude/hooks/hold-domain.py; absent installs keep
 # ordinary captain holds. Its route command alone classifies technical holds.
@@ -207,8 +212,8 @@
 # bin/fm-teardown.sh asks it before its automatic
 # backlog close and, on 0, returns the row to Queued with its deliverable
 # recorded instead (bin/fm-backlog-transition-lib.sh owns that transition), so
-# holding the very work item a question gates is safe; only `answer` with the
-# captain's words or evidence-backed `reconcile close` closes the call.
+# holding the very work item a question gates is safe; the policy named above
+# owns resolution authority.
 # bin/fm-watch.sh asks it when an ordinary
 # crew task reaches a due stale alarm - its open backlog hold need not appear in
 # the task's last status line - and on a 0 bounds repeated alarms from new pane
@@ -218,8 +223,8 @@
 # one captain call. See "record divergence" beside command_diverged below.
 #
 # Resolution records: the block written into the body names this script, the
-# decision digest, and a `Resolution mode:` of answered, released, repaired, or
-# reconciled. Records written by the retired fm-decision-hold.sh (routed,
+# decision digest, and a `Resolution mode:` of answered, released, repaired,
+# reconciled, or agent-routed. Records written by the retired fm-decision-hold.sh (routed,
 # declined, answered, repaired) are recognized everywhere a record is read, so
 # nothing already closed needs rewriting.
 #
