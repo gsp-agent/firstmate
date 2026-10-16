@@ -15,10 +15,15 @@
 # from the stored URL and refuses any record whose parts do not reconstruct that
 # exact URL.
 #
-# A validated exact merged result is retired through a private receipt only
-# after its durable wake is appended.
-# The receipt binds the terminal observation to the canonical registration and
-# lets a restart resume fixed-path removal without executing state-file bytes.
+# Poll retirement uses a private receipt bound to the canonical registration,
+# content hashes, file identities, and task/PR metadata.
+# Recovery revalidates that evidence without executing state-file bytes, removes
+# the receipt after its poll artifacts, and leaves concurrent replacements armed.
+# It preserves task metadata including pr= and pr_head= and never performs task
+# or persistent-secondmate cleanup.
+# The v1 receipt's final merged token authorizes cleanup, not a merge outcome;
+# bin/fm-watch.sh also uses that format for a closed unmerged GitHub pull request.
+# bin/fm-watch.sh owns terminal-result handling and wake ordering.
 # fm_pr_poll_retirement_ready owns discovery retention during retirement,
 # teardown, and re-arm.
 
@@ -1779,6 +1784,7 @@ fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
 # discovery until bin/fm-pr-queue-sweep.sh reports that repository queue-empty.
 # A replacement in the same repository preserves discovery unless a pending
 # receipt already owns the retirement.
+# bin/fm-teardown.sh owns the explicit --force discard exception.
 # Callers pass only repositories named by that queue-empty result.
 # Returns 2 while discovery must be retained, 1 for an invalid receipt or task
 # ID, and 0 when cleanup or replacement may proceed.

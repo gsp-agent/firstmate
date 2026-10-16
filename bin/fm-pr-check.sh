@@ -70,10 +70,9 @@ if [ "$KIND" = secondmate ]; then
   exit 1
 fi
 
-# A prior exact merged result may have queued its durable wake immediately
-# before interruption.
-# Resume only its identity-bound receipt; fm_pr_poll_retirement_ready below
-# decides whether replacement preserves repository discovery.
+# Resume only identity-bound receipts under bin/fm-pr-lib.sh's retirement
+# contract; fm_pr_poll_retirement_ready below decides whether replacement
+# preserves repository discovery.
 fm_pr_poll_retirement_recover_one "$STATE" "$ID" "$SCRIPT_DIR/fm-pr-poll.sh" || {
   echo "error: pending PR poll retirement could not be validated" >&2
   exit 1
@@ -255,7 +254,8 @@ fi
   || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE "$SCRIPT_DIR/fm-fleet-ledger.sh" pr_ready "$ID" "$URL" || true
 # The contribution observer uses the same authenticated check mechanism and
 # owns verdict freshness, required actors and external feedback separately from
-# the exact merged-state poll. Registration is local and performs no forge read.
+# the static PR poll (bin/fm-pr-poll.sh).
+# Registration is local and performs no forge read.
 if command -v jq >/dev/null 2>&1; then
   "$SCRIPT_DIR/fm-contributions.sh" arm >/dev/null \
     || printf 'contributions: observation not armed; coverage is unconfirmed\n' >&2

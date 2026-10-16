@@ -2,7 +2,7 @@
 # Sweep open pull requests in watched GitHub repositories.
 # A repository is watched when a private pr-poll sidecar names it (including
 # one retained during retirement), or when FM_PR_SWEEP_REPOS names it from a
-# snapshot taken before a merged watch was retired.
+# snapshot taken before a terminal watch was retired.
 # One pass reads all open pull requests in pages of 100, newest creation first.
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
 # A failed or timed-out page fails the scan. Repositories whose pages completed
@@ -12,9 +12,9 @@
 # A queued sighting prints no such line. The watcher then keeps that
 # repository's sidecar and snapshot until a later successful scan sees none.
 # The scan does not re-read an earlier page.
-# Once the last watch has merged, a pull request first queued after its page
-# was read is outside the watched-repository guarantee, like one queued after
-# retirement.
+# Once the last watch has merged or closed, a pull request first queued after
+# its page was read is outside the watched-repository guarantee, like one queued
+# after retirement.
 # tests/fm-pr-check-security.test.sh covers a queued sighting across two pages
 # retaining discovery until the next scan reports the removal once.
 # bin/fm-watch.sh owns publication and applies that line to retirement.

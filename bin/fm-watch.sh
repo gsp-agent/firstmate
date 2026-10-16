@@ -86,6 +86,11 @@
 #                          stamping .last-check and delivering its collected
 #                          reasons in one watcher close, so an earlier result
 #                          cannot hide a later PR result.
+#                          A validated task PR's merged result publishes its
+#                          durable merge outcome before poll retirement.
+#                          A GitHub closed result uses the same retirement path
+#                          without a merge outcome or a closed-result wake.
+#                          bin/fm-pr-lib.sh owns the receipt and recovery contract.
 #                          Completed repository results are published even
 #                          when another repository fails. Final retirement and
 #                          snapshot clearing require that repository's queue-empty
@@ -2637,10 +2642,8 @@ printf '%s\n' "$FM_WATCH_DELIVERY_IDENTITY" > "$WATCH_LOCK/pid-identity" 2>/dev/
 
 [ -e "$STATE/.last-heartbeat" ] || touch "$STATE/.last-heartbeat"
 
-# A merged poll may have queued its terminal wake and then lost the process
-# between receipt publication and fixed-path removal.
-# Repositories named by armed sidecars before any merged watch is retired.
-# The sweep reads this snapshot, so a repo whose only watch merges this cycle
+# Snapshot repositories before recovering terminal polls' retirement receipts.
+# The sweep reads this snapshot, so a repo whose only watch merges or closes
 # is still scanned. bin/fm-pr-queue-sweep.sh owns the line format.
 sweep_repo_snapshot=
 if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
@@ -2656,7 +2659,7 @@ if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; the
   wake "$reason"
 fi
 
-# Shared by both the first-notification and already-notified paths below so
+# Shared by the terminal-result paths below so
 # the retirement sequence (bin/fm-pr-lib.sh) is stated once.
 retire_merged_pr_poll() {  # <id>
   local id=$1
@@ -2873,7 +2876,7 @@ while :; do
     rejected_checks=
     contribution_check_output=
     check_sweep_output=
-    # Read the watched repositories before this cycle retires a merged watch.
+    # Read watched repositories before this cycle retires a terminal watch.
     # The startup snapshot still names a repository whose receipt was recovered
     # before this block. bin/fm-pr-queue-sweep.sh owns the line format.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
@@ -3039,7 +3042,7 @@ EOF
     # owns the line and the seen record.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
       # Pages are bounded inside the sweep. The snapshot is the repo set from
-      # before this cycle retired a merged watch. bin/fm-pr-queue-sweep.sh owns
+      # before this cycle retired a terminal watch. bin/fm-pr-queue-sweep.sh owns
       # the queue-empty line this block applies.
       FM_CHECK_UNBOUNDED=1 FM_PR_SWEEP_PAGE_TIMEOUT="$CHECK_TIMEOUT" \
         FM_PR_SWEEP_REPOS="$sweep_repo_snapshot" FM_PR_SWEEP_BEAT="$BEAT" \

@@ -52,6 +52,7 @@
 # copy is already gone and when the slot was reassigned to another task. A
 # merged or closed request still proceeds, and --force remains the explicit
 # discard. --force also proceeds past a pending repository merge-queue sweep.
+# An invalid or unsafe retirement receipt still refuses, even with --force.
 # When that watch was the repository's last, discovery stops until the next
 # armed pull request there. Work has also landed, for a normal ship task
 # whose commits are not so reachable, when its PR is merged and
