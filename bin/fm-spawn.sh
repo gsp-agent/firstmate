@@ -22,9 +22,10 @@
 #   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}`
 #   placeholders, an empty Task, an incomplete pair of Task subsections, or a
 #   `## Captain's intent` line opening with a Captain label or address.
-#   A fresh ship or scout additionally refuses a # Task body over 2048 bytes;
-#   link to the bead, PR, or file for detail instead of pasting it. Relaunches
-#   preserve existing briefs and do not apply this cap.
+#   A fresh ship/scout # Task body is limited to 2048 bytes, including both
+#   subsections; link to a bead, PR, or file for longer detail. The scaffold
+#   outside # Task is not counted, and relaunches retain their existing brief
+#   without applying this fresh-launch cap.
 #   Every ship or scout spawn renders `launch-brief.md`; for a no-mistakes ship
 #   it also carries the current `--intent` contract and the extracted captain
 #   intent. A legacy mixed Task is accepted there only under bin/fm-dod-lib.sh's
@@ -43,8 +44,10 @@
 #   already guarantees the worker's instructions match the branch. A fresh
 #   (non-relaunch) ship spawn creates and checks out that branch in the
 #   refreshed slot before the worker launches (prepare_ship_branch), so the
-#   worker only verifies it; a leftover branch of that name is moved only when
-#   its commits are already in the slot's HEAD and is otherwise resumed as it is.
+#   worker only verifies it. A branch checked out in another worktree refuses
+#   launch without detaching or changing that worktree; an available leftover
+#   branch is moved only when its commits are already in the slot's HEAD and
+#   is otherwise resumed as it is.
 #   --base-branch is the optional branch selected at intake for a ship or scout
 #   to start from and target instead of origin's default branch. A fresh launch
 #   resets its pooled copy to origin/<branch>, refusing when the project has no
@@ -485,14 +488,14 @@
 # busy turn - answering the dialog first if it renders anyway - before
 # reporting success (the rovo/kimi launch-then-confirm shape). Its busy state
 # is a screen-scrape fallback like grok and rovo, and it is crewmate/scout only.
-# cursor installs no per-task hook either: it writes state/<id>.cursor-session to
+# cursor installs no per-task busy hook: it writes state/<id>.cursor-session to
 # bind the pane to cursor's own conversation transcript (projects root, the exact
 # workspace path cursor records in .workspace-trusted, and the conversations that
 # already existed for that workspace). It is launched through the verified binary
 # resolver because `cursor` is not the CLI name. A cursor SECONDMATE instead runs
 # the tracked project-scope .cursor/hooks.json in its own home, whose stop-hook
 # park owns that home's supervision (docs/supervision-protocols/cursor.md).
-# claude is the one harness whose pre-launch setup can REFUSE the spawn: before
+# Claude's workspace-trust setup can REFUSE the spawn: before
 # any per-task state exists, and before its busy hooks are written, every
 # claude launch pre-registers the directory the pane
 # starts in - the task worktree, or the secondmate home for a --secondmate spawn -
@@ -2334,15 +2337,27 @@ launch_template() {
   # inherited CLAUDECODE cannot outrank cursor's own marker in a process that
   # only reads the environment. Cursor exposes no effort flag, so the shared
   # effort axis is deliberately omitted and stays in task metadata only.
-  # -p --output-format stream-json is tee'd (through process substitution, so
-  # the pane command keeps the agent's own exit status) to state/<id>.cursor-stream.jsonl
-  # and still runs in the pane, so it stays visible. --plugin-dir loads pstack
-  # and --approve-mcps lets its MCP servers start unattended. The second --plugin-dir is this
+  # Workers use -p --output-format stream-json, tee'd to state/<id>.cursor-stream.jsonl
+  # through process substitution to keep the agent's own exit status and visible output.
+  # Secondmates stay interactive so their project stop hook can park and resume
+  # supervision. Control-plane relaunch
+  # re-delivers the brief in a new conversation; it does not pass --resume.
+  # --plugin-dir loads pstack and --approve-mcps
+  # lets its MCP servers start unattended. The second --plugin-dir is this
   # task's crew guard (install_cursor_crew_guard, bin/fm-cursor-crew-guard.mjs):
   # a preToolUse hook that pins shell calls naming no directory to the worktree,
   # because Cursor otherwise runs them wherever the conversation's persistent
   # shell last was, and refuses git symbolic-ref and update-ref.
-  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ --plugin-dir __CURSORCREWGUARD__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)" > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?' ;;
+  cursor)
+    printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ '
+    if [ "$kind" != secondmate ]; then
+      printf '%s' '-p --output-format stream-json '
+    fi
+    printf '%s' '--trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ --plugin-dir __CURSORCREWGUARD__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+    if [ "$kind" != secondmate ]; then
+      printf '%s' ' > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?'
+    fi
+    ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
   # command exactly as it does for claude and grok (verified: a multi-line
@@ -2596,8 +2611,10 @@ cursor)
   # Re-assert Cursor's settings before every run (spawn and relaunch).
   "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
   # A bead's 3rd Cursor launch in one day is refused; given back below if the spawn fails.
-  FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
-  CURSOR_CAP_TAKEN=1
+  if [ "$KIND" != secondmate ]; then
+    FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
+    CURSOR_CAP_TAKEN=1
+  fi
   ;;
 omp)
   OMP_BIN=$(resolve_pi_executable omp) || {
@@ -4047,7 +4064,7 @@ else
     HERDR_LAUNCHER_RELATIONSHIP=launcher-home
     if [ "$KIND" = secondmate ]; then
       HERDR_LABEL_HOME=$PROJ_ABS
-      HERDR_LAUNCHER_RELATIONSHIP=other-home
+      HERDR_LAUNCHER_RELATIONSHIP='other-home'
     fi
     HERDR_PRESENTATION_JOURNAL=$(fm_backend_herdr_projection_journal_path "$STATE" "$ID")
     HERDR_PROJECTED=0
@@ -5846,7 +5863,10 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
     # shellcheck disable=SC2016
     LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX "'${TRACEPARENT+"TRACEPARENT=$TRACEPARENT"}'
   fi
-  LAUNCH="$LAUNCH_ENV_PREFIX /bin/sh -c $(shell_quote "$LAUNCH")"
+  LAUNCH_ENV_SHELL=/bin/sh
+  # Cursor's worker stream capture uses Bash process substitution.
+  [ "$HARNESS" != cursor ] || LAUNCH_ENV_SHELL=/bin/bash
+  LAUNCH="$LAUNCH_ENV_PREFIX $LAUNCH_ENV_SHELL -c $(shell_quote "$LAUNCH")"
 fi
 # Implement the launch-delivery contract in this script's header. The full
 # home-identity hash isolates equal task ids across homes, and the spawn token in

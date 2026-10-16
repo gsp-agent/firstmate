@@ -713,8 +713,10 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
   assert_contains "$launch" "> >(tee '" "cursor launch did not tee its stream-json through process substitution"
   assert_contains "$launch" "$id.cursor-stream.jsonl" "cursor stream was not teed to Firstmate state"
   assert_contains "$launch" "fm-cursor-guard.sh" "cursor launch did not run the post-run usage-limit hook"
-  assert_grep 'useHttp1ForAgent": true' "$HOME_DIR/cursor-cli-config.json" "cursor config was not re-asserted before launch"
-  assert_grep '"fast"' "$HOME_DIR/cursor-cli-config.json" "cursor config lost the fast tier"
+  jq -e '.network.useHttp1ForAgent == true' "$HOME_DIR/cursor-cli-config.json" >/dev/null \
+    || fail "cursor config was not re-asserted before launch"
+  jq -e 'any(.modelParameters["grok-4.7"][]; .id == "fast" and .value == "false")' "$HOME_DIR/cursor-cli-config.json" >/dev/null \
+    || fail "cursor config did not disable the grok-4.7 fast tier"
   assert_not_contains "$(cat "$HOME_DIR/pstack-models.mdc")" "opus" "pstack role models must never name an Opus model in Cursor"
   # The executable is RESOLVED, never named: `cursor` is not the CLI, so a
   # literal `cursor agent` command cannot run on a machine that has only the
@@ -746,18 +748,18 @@ REPLAY_RAN=
 REPLAY_OUT=
 cursor_shell_call() {  # <hook-command> <command> [working-directory]
   local hook=$1 command=$2 dir=${3-} decision
-  decision=$(jq -nc --arg c "$command" --arg d "$dir" '{tool_name:"Shell",tool_input:{command:$c,cwd:$d}}' | sh -c "$hook")
+  decision=$(jq -nc --arg c "$command" --arg d "$dir" '{tool_name:"Shell",tool_input:{command:$c,working_directory:$d}}' | sh -c "$hook")
   REPLAY_RAN=0
   REPLAY_OUT=$(printf '%s' "$decision" | jq -r '.agent_message // empty')
   [ "$(printf '%s' "$decision" | jq -r '.permission // empty')" != deny ] || return 0
-  [ -n "$dir" ] || dir=$(printf '%s' "$decision" | jq -r '.updated_input.cwd // empty')
+  [ -n "$dir" ] || dir=$(printf '%s' "$decision" | jq -r '.updated_input.working_directory // empty')
   [ -n "$dir" ] || dir=$REPLAY_CWD
   REPLAY_CWD=$dir
   REPLAY_RAN=1
   REPLAY_OUT=$(cd "$dir" && sh -c "$command" 2>&1)
 }
 
-test_cursor_crew_guard_pins_cwd_and_refuses_ref_plumbing() {
+test_cursor_crew_guard_pins_working_directory_and_refuses_ref_plumbing() {
   local rec id out status launch guard_dir hook_cmd primary baseline head_before head_after
   id=profile-cursor-crewguard-z6g
   rec=$(make_spawn_case profile-cursor-crewguard cursor "$id")
@@ -817,6 +819,58 @@ test_cursor_crew_guard_pins_cwd_and_refuses_ref_plumbing() {
     printf '# replay, guarded: scratch primary HEAD before=%s after=%s\n' "$head_before" "$head_after"
   fi
   pass "the cursor crew guard pins empty-directory calls to the worktree and a replayed symbolic-ref leaves a scratch primary's HEAD alone"
+}
+
+install_cursor_launch_probe() { # <exit-code>
+  cat > "$FAKEBIN_DIR/cursor-agent" <<SH
+#!/usr/bin/env bash
+printf '%s\\n' "\$@" > '$CASE_DIR/cursor-argv'
+printf '%s\\n' 'cursor-stream-probe'
+exit '$1'
+SH
+  chmod +x "$FAKEBIN_DIR/cursor-agent"
+}
+
+test_cursor_secondmate_stays_interactive() {
+  local rec id sm out status
+  id=profile-cursor-secondmate-interactive
+  rec=$(make_spawn_case cursor-secondmate-interactive cursor "$id")
+  read_case_record "$rec"
+  sm="$CASE_DIR/secondmate-home"
+  make_seeded_secondmate_home "$sm" "$id"
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$sm" --secondmate --harness cursor)
+  status=$?
+  expect_code 0 "$status" "Cursor secondmate should launch: $out"
+  install_cursor_launch_probe 0
+  bash "$LAUNCH_LOG" > "$CASE_DIR/launch-output" 2>&1
+  expect_code 0 $? "the generated secondmate launch must execute"
+  assert_present "$CASE_DIR/cursor-argv" "the secondmate must reach Cursor"
+  if grep -Fx -- '-p' "$CASE_DIR/cursor-argv" >/dev/null; then
+    fail "a persistent Cursor secondmate must not use headless -p"
+  fi
+  if grep -Fx -- '--output-format' "$CASE_DIR/cursor-argv" >/dev/null; then
+    fail "a persistent Cursor secondmate must not request headless stream output"
+  fi
+  assert_absent "$HOME_DIR/state/cursor-dispatch.json" "a persistent secondmate must not consume the worker launch allowance"
+  pass "Cursor secondmates use the interactive CLI without the worker launch allowance"
+}
+
+test_cursor_allowlist_launch_executes_and_preserves_exit() {
+  local rec id out status
+  id=profile-cursor-allowlist-execution
+  rec=$(make_spawn_case cursor-allowlist-execution cursor "$id")
+  read_case_record "$rec"
+  : > "$HOME_DIR/config/launch-env-allowlist"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --harness cursor)
+  status=$?
+  expect_code 0 "$status" "Cursor ship with an allowlist should launch: $out"
+  install_cursor_launch_probe 7
+  /bin/sh "$LAUNCH_LOG" > "$CASE_DIR/launch-output" 2>&1
+  status=$?
+  expect_code 7 "$status" "the allowlisted launch must preserve Cursor's exit code: $(cat "$CASE_DIR/launch-output")"
+  assert_grep 'cursor-stream-probe' "$HOME_DIR/state/$id.cursor-stream.jsonl" "the generated launch must capture Cursor's output"
+  assert_grep 'cursor-stream-probe' "$CASE_DIR/launch-output" "the generated launch must display Cursor's output"
+  pass "allowlisted Cursor launches execute and preserve output and the agent's exit code"
 }
 
 test_cursor_refuses_model_absent_from_live_catalog() {
@@ -2390,7 +2444,9 @@ test_grok_threads_model_and_reasoning_effort
 test_grok_omits_invalid_max_reasoning_effort
 test_grok_threads_xhigh_reasoning_effort
 test_cursor_threads_model_workspace_and_omits_effort_axis
-test_cursor_crew_guard_pins_cwd_and_refuses_ref_plumbing
+test_cursor_secondmate_stays_interactive
+test_cursor_allowlist_launch_executes_and_preserves_exit
+test_cursor_crew_guard_pins_working_directory_and_refuses_ref_plumbing
 test_cursor_refuses_model_absent_from_live_catalog
 test_cursor_third_launch_and_fallback
 test_cursor_failed_catalog_probe_blocks_spawn

@@ -417,10 +417,14 @@ spawn_task() {  # <id> <home> <project> [extra fm-spawn args...]; SPAWN_DEADLINE
   local id=$1 home=$2 project=$3
   shift 3
   local -a deadline_cmd=()
+  local -a delivery_args=(--mode no-mistakes --yolo off)
+  # Presentation recovery needs no ship branch. Scouts preserve the upstream
+  # fixture's detached worktrees without releasing a branch held elsewhere.
+  [ "$project" != "$RECOVERY_PROJECT_DIR" ] || delivery_args=(--scout)
   [ -z "${SPAWN_DEADLINE_SECONDS:-}" ] || deadline_cmd=(fm_run_timed "$SPAWN_DEADLINE_SECONDS")
   FM_GATE_REFUSE_BYPASS=1 FM_SPAWN_NO_GUARD=1 FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
     ${deadline_cmd[@]+"${deadline_cmd[@]}"} "$ROOT/bin/fm-spawn.sh" "$id" "$project" "sh -c 'while :; do sleep 60; done'" \
-    --mode no-mistakes --yolo off --backend herdr "$@"
+    "${delivery_args[@]}" --backend herdr "$@"
 }
 
 finish_concurrent_spawn() {  # <id> <status> <stdout> <stderr>
