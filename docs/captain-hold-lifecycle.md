@@ -556,7 +556,7 @@ The suite does not test the accepted merge-to-cleanup re-hold window or asynchro
 ### Technical routing coverage
 
 The lifecycle suite replays update-branch and EP-approved capacity holds through the public hold and route commands.
-It checks pending deadlines, exact owner delivery, durable routing evidence, repeated sweeps, new lifecycles, failed sends, and interrupted releases.
+It checks pending deadlines, exact owner delivery, durable routing evidence, repeated sweeps, new lifecycles, failed sends, and interrupted releases for both active and expired dated holds.
 It also checks that money, credentials, people, client words, production, accounts, taste, mixed asks, and human endpoints remain held.
 An answered hold never routes from its stale pending body.
 A real watcher subprocess proves the existing periodic pass routes before surfacing ordinary status signals.

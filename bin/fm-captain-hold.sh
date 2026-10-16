@@ -65,8 +65,10 @@
 # task's metadata without --origin), then captain for an undispatched call.
 # The timeout defaults to the watcher's existing 300-second check interval.
 # Explicit --timeout-seconds accepts 1..9999999 seconds. Repeating an active
-# hold preserves its owner and timeout unless explicitly changed. Once a
-# receipt exists, the routing fields cannot change until the hold is released.
+# hold preserves its owner and timeout unless explicitly changed. A matching
+# routing receipt preserves the lifecycle stamp, owner, timeout and reason
+# until unhold succeeds, even when an expired --until makes tasks-axi report
+# held=no. A future --until is refused during that release recovery.
 # A recorded answer or reconciliation awaiting closure must finish before re-holding.
 # `route-due` re-reads live backlog holds from the watcher's periodic pass.
 # Each row of a no-argument sweep allows FM_HOLD_ROUTE_TIMEOUT_SECS seconds (default 30),
