@@ -81,8 +81,9 @@
 # ordinary captain holds. Its route command alone classifies technical holds.
 # Routing state and pending bodies stay under this home's state/hold-domain,
 # keeping supervision required until the existing watcher sweeps them against
-# live backlog state. Only an exact routed.tsv receipt for this task, stamp and owner
-# permits an agent-routed resolution and unhold. The receipt remains for
+# live backlog state. Deferred holds remain pending until their --until date.
+# Only an exact routed.tsv receipt for this task, stamp and owner permits an
+# agent-routed resolution and unhold. The receipt remains for
 # retries; the resolution body records it as routing evidence, never as the
 # captain's words. This releases held work without marking the task done.
 #
@@ -1207,11 +1208,6 @@ route_hold() {  # <id>; caller owns the task control lock
     retire_hold_route "$id"
     return 0
   fi
-  until=$(show_field_value "$show" hold_until)
-  if [ -n "$until" ] && [[ "$until" > "${FM_CAPTAIN_HOLD_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" ]]; then
-    retire_hold_route "$id"
-    return 0
-  fi
   timeout=$(body_domain_field "$body" 'Hold timeout seconds')
   reason=$(body_domain_field "$body" 'Hold reason')
   # Pre-contract holds stay with the captain until explicitly held again.
@@ -1228,6 +1224,10 @@ route_hold() {  # <id>; caller owns the task control lock
   printf 'Captain hold set: %s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\n' \
     "$stamp" "$owner" "$timeout" "$reason" > "$tmp" || fail "cannot stage routing body"
   mv -f -- "$tmp" "$pending" || fail "cannot publish routing body"
+  until=$(show_field_value "$show" hold_until)
+  if [ -n "$until" ] && [[ "$until" > "${FM_CAPTAIN_HOLD_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" ]]; then
+    return 0
+  fi
   local -a args=(route --task "$id" --body-file "$pending")
   [ -z "${FM_CAPTAIN_HOLD_NOW:-}" ] || args+=(--now "$FM_CAPTAIN_HOLD_NOW")
   output=$(HOLD_DOMAIN_STATE="$STATE/hold-domain/routed.tsv" HOLD_DOMAIN_SPOOL="$STATE/hold-domain/pending" \

@@ -4730,15 +4730,64 @@ domain_supervision_needed() (
 )
 
 run_domain_watcher() {
-  local domain_home=$1
+  local domain_home=$1 now=${2:-2026-10-14T02:01:00Z}
   fm_run_timed "${FM_TEST_DOMAIN_WATCH_TIMEOUT:-60}" env PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" FM_STATE_OVERRIDE="$domain_home/state" \
     FM_DATA_OVERRIDE="$domain_home/data" FM_CONFIG_OVERRIDE="$domain_home/config" FM_BACKEND=tmux \
     FM_HOLD_DOMAIN_ROUTER="${FM_TEST_HOLD_DOMAIN_ROUTER:-$domain_home/router.py}" \
     HOLD_DOMAIN_HERDR="$domain_home/fakebin/herdr" HOLD_DOMAIN_TEST_LOG="$domain_home/owner.log" \
-    FM_CAPTAIN_HOLD_NOW=2026-10-14T02:01:00Z FM_CHECK_INTERVAL=0 FM_POLL=1 FM_SIGNAL_GRACE=1 \
+    FM_CAPTAIN_HOLD_NOW="$now" FM_CHECK_INTERVAL=0 FM_POLL=1 FM_SIGNAL_GRACE=1 \
     FM_HOME_SUMMARY_INTERVAL=999999 FM_SECONDMATE_LIVENESS_SECS=999999 \
     bash "$ROOT/bin/fm-watch.sh"
 }
+
+test_domain_deferred_holds_keep_their_routing_wake() (
+  local domain_home mode show supervised
+  . "$ROOT/tests/wake-helpers.sh"
+  for mode in fresh postponed; do
+    domain_home=$(make_domain_home "domain-deferred-$mode")
+    assert_absent "$domain_home/state/hold-domain" 'new home already has routing state'
+    if [ "$mode" = postponed ]; then
+      run_domain "$domain_home" 2098-12-31T01:00:00Z hold deferred --title 'Deferred technical call' \
+        --decision-owner ep-firstmate --timeout-seconds 60 \
+        --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+        || fail 'could not create the hold before postponing it'
+    fi
+    run_domain "$domain_home" 2098-12-31T02:00:00Z hold deferred --title 'Deferred technical call' \
+      --decision-owner ep-firstmate --timeout-seconds 60 --until 2099-01-01 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+      || fail 'could not create the deferred hold'
+    supervised=no
+    domain_supervision_needed "$domain_home" && supervised=yes
+    printf 'done: before deferred date\n' > "$domain_home/state/sentinel.status"
+    run_domain_watcher "$domain_home" 2098-12-31T23:59:59Z > "$domain_home/before.out" 2>&1 \
+      || fail "pre-date watcher failed: $(cat "$domain_home/before.out")"
+    show=$(tasks_in "$domain_home" show deferred --full)
+    assert_contains "$show" 'held: yes' 'watcher overrode the future deferral'
+    assert_absent "$domain_home/owner.log" 'owner was prompted before the deferral expired'
+    PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" FM_STATE_OVERRIDE="$domain_home/state" \
+      bash "$ROOT/bin/fm-wake-drain.sh" > "$domain_home/drain.out" 2> "$domain_home/drain.err" \
+      || fail 'could not present the pre-date watcher wake'
+    PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" \
+      ack_drain_err "$domain_home/state" "$domain_home/drain.err" > "$domain_home/ack.out" 2>&1 \
+      || fail 'could not acknowledge the pre-date watcher wake'
+    printf 'done: deferred date arrived\n' >> "$domain_home/state/sentinel.status"
+    run_domain_watcher "$domain_home" 2099-01-01T00:00:00Z > "$domain_home/due.out" 2>&1 \
+      || fail "due-date watcher failed: $(cat "$domain_home/due.out")"
+    show=$(tasks_in "$domain_home" show deferred --full)
+    assert_contains "$show" 'held: no' "$mode deferred hold was never routed by the watcher"
+    assert_equals yes "$supervised" "$mode deferred hold left supervision idle"
+    assert_contains "$show" 'state: queued' 'deferred routing completed the task'
+    assert_contains "$show" 'Resolution mode: agent-routed' 'deferred routing lost its receipt'
+    assert_not_contains "$show" 'Captain decision:' 'deferred routing invented captain words'
+    assert_grep 'agent prompt ep-firstmate Hold deferred timed out.' "$domain_home/owner.log" 'deferred routing used the wrong owner'
+    run_domain "$domain_home" 2099-01-01T00:01:00Z route-due deferred || fail 'deferred routing replay failed'
+    [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'deferred routing prompted the owner twice'
+    if domain_supervision_needed "$domain_home"; then
+      fail 'completed deferred routing kept an otherwise idle home supervised'
+    fi
+  done
+  pass 'fresh and postponed holds remain supervised, respect their date, and route once when due'
+)
 
 test_domain_failed_rehold_preserves_routing_fields() {
   local domain_home mode before after old_fields new_fields old_reason new_reason
@@ -5109,9 +5158,7 @@ ASKS
   show=$(tasks_in "$domain_home" show deferred --full)
   assert_contains "$show" 'held: yes' 'timeout overrode explicit deferral'
   assert_absent "$domain_home/owner.log" 'drift or deferral prompted an owner'
-  if domain_supervision_needed "$domain_home"; then
-    fail 'explicit deferral kept pending technical routing active'
-  fi
+  domain_supervision_needed "$domain_home" || fail 'explicit deferral discarded its future routing wake'
   pass 'money, credentials, people, client words, production, accounts, taste and human endpoints stay reserved'
 }
 
@@ -5732,6 +5779,7 @@ SH
 }
 
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
+  deferred) test_domain_deferred_holds_keep_their_routing_wake; exit $? ;;
   fairness) test_domain_interrupted_sweeps_make_fair_progress; exit $? ;;
   rows) test_domain_row_bounds_preserve_later_holds; exit $? ;;
   runtime) test_domain_runtime_metadata_aliases; exit $? ;;
@@ -5780,6 +5828,7 @@ case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
     ;;
 esac
 
+test_domain_deferred_holds_keep_their_routing_wake || exit 1
 test_domain_interrupted_sweeps_make_fair_progress || exit 1
 test_domain_row_bounds_preserve_later_holds || exit 1
 test_domain_runtime_metadata_aliases || exit 1
