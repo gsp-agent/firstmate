@@ -149,6 +149,8 @@ case "${1:-} ${2:-}" in
       *pullRequests*)
         [ "${FM_TEST_GH_SWEEP_FAIL:-0}" = 0 ] || exit 1
         request_host=github.com
+        request_owner=
+        request_repo=
         cursor=null
         jq_filter=
         while [ "$#" -gt 0 ]; do
@@ -157,13 +159,18 @@ case "${1:-} ${2:-}" in
             --hostname) shift; request_host=${1-} ;;
             -f|-F)
               shift
-              case "${1-}" in cursor=*) cursor=${1#cursor=} ;; esac
+              case "${1-}" in
+                owner=*) request_owner=${1#owner=} ;;
+                repo=*) request_repo=${1#repo=} ;;
+                cursor=*) cursor=${1#cursor=} ;;
+              esac
               ;;
           esac
           shift
         done
         [ "$request_host" = github.com ] || exit 1
         [ -n "$jq_filter" ] || exit 1
+        [ "$request_owner/$request_repo" != "${FM_TEST_GH_SWEEP_FAIL_REPO:-}" ] || exit 1
         if [ "$cursor" = page6 ] && [ -n "${FM_TEST_GH_SWEEP_REARM:-}" ]; then
           "$FM_TEST_GH_SWEEP_REARM" > "$FM_TEST_GH_SWEEP_DIR/rearm.out" \
             2> "$FM_TEST_GH_SWEEP_DIR/rearm.err" || exit 1
@@ -1551,7 +1558,7 @@ SH
 }
 
 test_teardown_removes_poll_artifacts() {
-  local dir fakebin artifact counterpart rc
+  local dir fakebin artifact counterpart rc before
   dir=$(make_case teardown-cleanup)
   fakebin="$dir/fakebin"
   fm_write_meta "$dir/home/state/task-a.meta" \
@@ -1604,10 +1611,27 @@ exit 0
 SH
   chmod +x "$fakebin/tmux"
   touch "$dir/home/state/.last-watcher-beat"
+  before=$(poll_artifact_snapshot "$dir/home/state" task-a)
+  set +e
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$fakebin:$BASE_PATH" \
+    "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "teardown bypassed a pending repository sweep"
+  grep -F 'REFUSED: pending repository merge-queue sweep; preserving task state.' "$dir/teardown.err" >/dev/null \
+    || fail "teardown refused for a reason other than its pending sweep: $(cat "$dir/teardown.err")"
+  [ "$(poll_artifact_snapshot "$dir/home/state" task-a)" = "$before" ] \
+    || fail "refused teardown changed the pending retirement artifacts"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" run_watcher_bounded "$dir/home" "$dir/fakebin" \
+    > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "teardown receipt sweep failed: $(cat "$dir/watch.err")"
+  assert_poll_absent "$dir/home/state" task-a
+  ack_watcher_cycle "$dir/home/state" || fail "teardown receipt sweep acknowledgement failed"
   FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$fakebin:$BASE_PATH" \
     "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
-    || fail "teardown could not finish a valid crash-left retirement receipt"
-  assert_poll_absent "$dir/home/state" task-a
+    || fail "teardown failed after the repository sweep: $(cat "$dir/teardown.err")"
   [ ! -e "$dir/home/state/task-a.meta" ] || fail "receipt-aware teardown left task metadata"
 
   for artifact in check.sh pr-poll; do
@@ -4705,10 +4729,13 @@ test_recovered_merged_watch_still_sweeps_its_repo() {
 }
 
 test_failed_sweep_keeps_the_repository_for_the_next_cycle() {
-  local dir state rc
+  local dir state rc before
   dir=$(make_case failed-sweep-keeps-repo)
   state="$dir/home/state"
-  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  fm_write_meta "$state/task-a.meta" \
+    window=firstmate:fm-task-a endpoint_task_id=task-a \
+    "worktree=$dir/wt" "project=$dir/project" kind=ship mode=local-only \
+    pr=https://github.com/o/r/pull/1
   seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
   write_slow_sweep_page "$dir" page1 2 false ""
   retire_contributions_observer "$dir"
@@ -4724,6 +4751,28 @@ test_failed_sweep_keeps_the_repository_for_the_next_cycle() {
   [ ! -e "$state/task-a.check.sh" ] || fail "a failed sweep left the merged poll runnable"
   [ ! -e "$state/merge-queue-sweep.seen" ] || fail "a failed sweep recorded events"
   ack_watcher_cycle "$state" || fail "failed sweep acknowledgement failed"
+  before=$(poll_artifact_snapshot "$state" task-a)
+  set +e
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "teardown discarded the repository after a failed sweep"
+  grep -F 'REFUSED: pending repository merge-queue sweep; preserving task state.' "$dir/teardown.err" >/dev/null \
+    || fail "teardown did not refuse its pending sweep: $(cat "$dir/teardown.err")"
+  [ "$(poll_artifact_snapshot "$state" task-a)" = "$before" ] \
+    || fail "teardown changed the repository's deferred retirement"
+  [ -d "$dir/wt/.git" ] || fail "refused teardown removed the task's worktree"
+  set +e
+  run_check_entry "$dir" task-a https://github.com/o/replacement/pull/3 \
+    > "$dir/rearm.out" 2> "$dir/rearm.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "rearm discarded the repository after a failed sweep"
+  [ "$(cat "$dir/rearm.err")" = 'error: pending repository merge-queue sweep; preserving task state' ] \
+    || fail "rearm did not refuse its pending sweep: $(cat "$dir/rearm.err")"
+  [ "$(poll_artifact_snapshot "$state" task-a)" = "$before" ] \
+    || fail "rearm changed the repository's deferred retirement"
   FM_TEST_GH_LOG="$dir/gh2.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
     run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
     || fail "the next sweep failed: $(cat "$dir/watch.err")"
@@ -4732,6 +4781,12 @@ test_failed_sweep_keeps_the_repository_for_the_next_cycle() {
     > "$dir/drain.out" 2> "$dir/drain.err" || fail "next sweep drain failed"
   [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
     || fail "the next good sweep lost the removal: $(cat "$dir/drain.out")"
+  FM_TEST_GH_HEAD="$(git -C "$dir/wt" rev-parse HEAD)" \
+    run_check_entry "$dir" task-a https://github.com/o/replacement/pull/3 \
+    > "$dir/rearm.out" 2> "$dir/rearm.err" \
+    || fail "rearm failed after the repository sweep: $(cat "$dir/rearm.err")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "rearm after a successful sweep left an invalid poll"
 
   dir=$(make_case sweep-page-timeout-fails)
   state="$dir/home/state"
@@ -4751,6 +4806,52 @@ SH
   [ "$rc" -ne 0 ] || fail "a timed-out sweep page exited 0"
   [ ! -s "$dir/timeout.out" ] || fail "a timed-out sweep page printed a result: $(cat "$dir/timeout.out")"
   pass "a failed sweep keeps the repository until the next sweep reports its removal"
+}
+
+test_completed_repo_removals_survive_another_repo_failure() {
+  local dir state failing success before
+  for failing in task-a task-b; do
+    dir=$(make_case "mixed-sweep-$failing")
+    state="$dir/home/state"
+    success=task-a
+    [ "$failing" != task-a ] || success=task-b
+    write_poll_meta "$state" "$success" https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" "$success" https://github.com/o/r/pull/1
+    write_poll_meta "$state" "$failing" https://github.com/o/unreadable/pull/1
+    seed_canonical_poll "$dir" "$failing" https://github.com/o/unreadable/pull/1
+    write_slow_sweep_page "$dir" page1 2 false ""
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED \
+      FM_TEST_GH_SWEEP_FAIL_REPO=o/unreadable FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "mixed sweep failed: $(cat "$dir/watch.err")"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/watch.out")" -eq 1 ] \
+      || fail "an unreadable repository suppressed a completed removal: $(cat "$dir/watch.out")"
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt2 \
+      || fail "the completed removal was not recorded after publication"
+    [ -f "$state/$failing.pr-poll" ] && [ -f "$state/$failing.pr-poll-retirement" ] \
+      || fail "the unreadable repository lost its deferred retirement"
+    [ -f "$state/$success.pr-poll" ] && [ -f "$state/$success.pr-poll-retirement" ] \
+      || fail "aggregate sweep failure was treated as success"
+    [ ! -e "$state/$failing.check.sh" ] && [ ! -e "$state/$success.check.sh" ] \
+      || fail "a mixed sweep left a merged watch runnable"
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "mixed sweep drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "the completed removal was not delivered: $(cat "$dir/drain.out")"
+    ack_watcher_cycle "$state" || fail "mixed sweep acknowledgement failed"
+    before=$(poll_artifact_snapshot "$state" "$failing")
+    FM_TEST_GH_LOG="$dir/gh2.log" FM_TEST_GH_STATE=MERGED \
+      FM_TEST_GH_SWEEP_FAIL_REPO=o/unreadable FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/retry.out" 2> "$dir/retry.err" \
+      || fail "mixed sweep retry failed: $(cat "$dir/retry.err")"
+    ! grep -F 'dequeued https://github.com/o/r/pull/2' "$dir/retry.out" >/dev/null \
+      || fail "a mixed sweep retry duplicated the completed removal"
+    [ "$(poll_artifact_snapshot "$state" "$failing")" = "$before" ] \
+      || fail "a mixed sweep retry changed the unreadable repository's retirement"
+  done
+  pass "completed repository removals are delivered once despite earlier or later repository failures"
 }
 
 test_parser_matrix
@@ -4804,6 +4905,7 @@ test_progressing_sweep_survives_rearm_past_stall_bound
 test_merged_only_watch_still_sweeps_its_repo
 test_recovered_merged_watch_still_sweeps_its_repo
 test_failed_sweep_keeps_the_repository_for_the_next_cycle
+test_completed_repo_removals_survive_another_repo_failure
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations

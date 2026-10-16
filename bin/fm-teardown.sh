@@ -1491,6 +1491,11 @@ validate_pr_poll_cleanup() {
       echo "REFUSED: invalid PR-poll retirement receipt; preserving task state." >&2
       return 1
     }
+    if [ "$FM_PR_RETIRE_PROVIDER" = github ] && [ "$FM_PR_RETIRE_HOST" = github.com ] \
+      && [ -e "$state_dir/$id.pr-poll" ]; then
+      echo "REFUSED: pending repository merge-queue sweep; preserving task state." >&2
+      return 1
+    fi
   fi
 }
 

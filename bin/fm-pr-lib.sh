@@ -1771,16 +1771,9 @@ fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
   return 0
 }
 
-# The optional fourth argument, 1, removes the runnable check and registration
-# but retains the sidecar and receipt. The watcher uses this until a queue
-# sweep of that repository exits 0. A failed or timed-out sweep leaves the
-# sidecar in place. An early recovery wake or restart must not lose the
-# repository when its last watch merged. A later call with the default, 0,
-# completes identity-bound removal. Regression coverage:
-# tests/fm-pr-check-security.test.sh, test_recovered_merged_watch_still_sweeps_its_repo.
 fm_pr_poll_retirement_recover_one() {
   local state=$1 id=$2 template=$3 receipt state_device check data registration
-  local receipt_hash receipt_identity defer_sidecar=${4:-0}
+  local receipt_hash receipt_identity swept_repos=${4:-}
   fm_pr_task_id_valid "$id" || return 1
   receipt="$state/$id.pr-poll-retirement"
   if [ ! -e "$receipt" ] && [ ! -L "$receipt" ]; then
@@ -1805,8 +1798,13 @@ fm_pr_poll_retirement_recover_one() {
     fm_pr_poll_retirement_remove_exact "$registration" "$state_device" \
       "$FM_PR_RETIRE_REG_IDENTITY" "$FM_PR_RETIRE_REG_HASH" || return 1
   fi
-  [ "$defer_sidecar" != 1 ] || return 0
   if [ -e "$data" ] || [ -L "$data" ]; then
+    if [ "$FM_PR_RETIRE_PROVIDER" = github ] && [ "$FM_PR_RETIRE_HOST" = github.com ]; then
+      case $'\n'"$swept_repos"$'\n' in
+        *$'\n'"$FM_PR_RETIRE_PATH"$'\n'*) ;;
+        *) return 0 ;;
+      esac
+    fi
     fm_pr_poll_retirement_remove_exact "$data" "$state_device" \
       "$FM_PR_RETIRE_DATA_IDENTITY" "$FM_PR_RETIRE_DATA_HASH" || return 1
   fi
@@ -1819,13 +1817,13 @@ fm_pr_poll_retirement_recover_one() {
 }
 
 fm_pr_poll_retirement_recover_all() {
-  local state=$1 template=$2 receipt id defer_sidecar=${3:-0}
+  local state=$1 template=$2 receipt id swept_repos=${3:-}
   FM_PR_POLL_RETIREMENT_REJECTED=
   for receipt in "$state"/*.pr-poll-retirement; do
     [ -e "$receipt" ] || [ -L "$receipt" ] || continue
     id=$(basename "$receipt" .pr-poll-retirement)
     if ! fm_pr_task_id_valid "$id" \
-      || ! fm_pr_poll_retirement_recover_one "$state" "$id" "$template" "$defer_sidecar"; then
+      || ! fm_pr_poll_retirement_recover_one "$state" "$id" "$template" "$swept_repos"; then
       FM_PR_POLL_RETIREMENT_REJECTED="$FM_PR_POLL_RETIREMENT_REJECTED $receipt"
     fi
   done

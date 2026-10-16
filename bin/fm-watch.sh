@@ -2648,7 +2648,7 @@ fi
 
 # Disable recovered runnable polls now, retaining repository discovery evidence
 # until the queue sweep consumes it (fm_pr_poll_retirement_recover_one).
-if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh" 1; then
+if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; then
   reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
   fm_wake_append check pr-poll-retirement "$reason" || exit 1
   touch "$STATE/.last-check"
@@ -2660,7 +2660,7 @@ fi
 retire_merged_pr_poll() {  # <id>
   local id=$1
   if fm_pr_poll_retirement_publish "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" merged; then
-    fm_pr_poll_retirement_recover_one "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" 1 \
+    fm_pr_poll_retirement_recover_one "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" \
       || triage_log "merged PR poll retirement remains recoverable for $id"
   else
     triage_log "merged PR poll retirement deferred because its canonical snapshot changed for $id"
@@ -3039,8 +3039,6 @@ EOF
       FM_CHECK_UNBOUNDED=1 FM_PR_SWEEP_PAGE_TIMEOUT="$CHECK_TIMEOUT" \
         FM_PR_SWEEP_REPOS="$sweep_repo_snapshot" FM_PR_SWEEP_BEAT="$BEAT" \
         run_check_capture "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --scan "$STATE" || exit 1
-      if [ "${FM_CHECK_STATUS:-1}" -eq 0 ]; then
-      sweep_repo_snapshot=
       sweep_raw=$FM_CHECK_RESULT
       sweep_line=
       while IFS= read -r sweep_line || [ -n "$sweep_line" ]; do
@@ -3067,11 +3065,13 @@ EOF
       done <<EOF
 $sweep_raw
 EOF
-      if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; then
-        reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
-        fm_wake_append check pr-poll-retirement "$reason" || exit 1
-        check_sweep_output="${check_sweep_output}${reason}"$'\n'
-      fi
+      if [ "${FM_CHECK_STATUS:-1}" -eq 0 ]; then
+        if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh" "$sweep_repo_snapshot"; then
+          reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
+          fm_wake_append check pr-poll-retirement "$reason" || exit 1
+          check_sweep_output="${check_sweep_output}${reason}"$'\n'
+        fi
+        sweep_repo_snapshot=
       else
         triage_log "merge-queue sweep failed; keeping the repository snapshot and deferred retirement"
       fi
