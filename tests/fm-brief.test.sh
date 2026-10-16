@@ -1547,6 +1547,23 @@ test_crewmate_scaffolds_forbid_pool_administration() {
 test_script_parses
 test_no_heredoc_in_command_substitution
 test_help_includes_entire_header
+test_decision_owner_is_explicit_and_validated() {
+  local owner_home="$TMP_ROOT/decision-owner" brief
+  mkdir -p "$owner_home/data"
+  FM_HOME="$owner_home" "$ROOT/bin/fm-brief.sh" owned sample --mode direct-PR --decision-owner ep-sample >/dev/null \
+    || fail 'brief with an owner failed'
+  brief="$owner_home/data/owned/brief.md"
+  assert_grep 'Decision owner: ep-sample' "$brief" 'brief lost the declared decision owner'
+  FM_HOME="$owner_home" "$ROOT/bin/fm-brief.sh" legacy sample --scout >/dev/null || fail 'legacy brief failed'
+  assert_grep 'Decision owner: captain' "$owner_home/data/legacy/brief.md" 'legacy brief inferred agent authority'
+  if FM_HOME="$owner_home" "$ROOT/bin/fm-brief.sh" invalid sample --scout --decision-owner '../outside' > "$owner_home/invalid.out" 2>&1; then
+    fail 'brief accepted an invalid owner'
+  fi
+  assert_absent "$owner_home/data/invalid/brief.md" 'invalid owner wrote a brief'
+  pass 'briefs name a decision owner and reject malformed endpoints before writing'
+}
+
+test_decision_owner_is_explicit_and_validated
 test_ship_modes_generate_clean_briefs
 test_forge_selection_renders_correct_cli
 test_ship_mode_is_required_and_closed_set

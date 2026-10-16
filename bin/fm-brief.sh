@@ -14,7 +14,7 @@
 # charters still use a single `{TASK}` charter fill. Firstmate may adjust other
 # sections when the task genuinely deviates (e.g. working an existing external
 # PR instead of shipping a new one).
-# Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--branch-prefix <prefix>] [--base-branch <branch>] [--forge <none|gerrit|forgejo> [--shape squash]] [--herdr-lab]
+# Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--branch-prefix <prefix>] [--base-branch <branch>] [--forge <none|gerrit|forgejo> [--shape squash]] [--herdr-lab] [--decision-owner <endpoint>]
 #        fm-brief.sh <task-id> <repo-name> --scout [--base-branch <branch>] [--herdr-lab]
 #        fm-brief.sh <task-id> --secondmate {<project>...|--no-projects}
 #   --scout writes the scout contract instead: the deliverable is a report at
@@ -81,6 +81,10 @@
 # membership pinned when its watch is armed, because the merge watch follows one
 # change.
 # It defaults to squash on gerrit and is refused without it.
+# --decision-owner names the endpoint responsible for technical hold decisions.
+# It defaults to captain for compatibility; no agent authority is inferred.
+# fm-spawn records the value in decision_owner metadata for hold inheritance.
+#
 # --upstream-consent <host>/<owner>/<repo> records the captain's one-off
 # approval for this one task to publish to that repository when it is
 # firstmate's own upstream. It renders as an `upstream-consent=` token on the
@@ -206,6 +210,7 @@ fi
 CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 case "$CONFIG" in /*) ;; *) CONFIG="$PWD/$CONFIG" ;; esac
 KIND=ship
+DECISION_OWNER=captain
 HERDR_LAB=0
 NO_PROJECTS=0
 MODE=
@@ -231,6 +236,7 @@ for a in "$@"; do
     esac
     case "$want_value" in
       mode) MODE=$a; MODE_SET=1 ;;
+      decision-owner) DECISION_OWNER=$a ;;
       branch-prefix) BRANCH_PREFIX=$a; BRANCH_PREFIX_SET=1 ;;
       base-branch) BASE_BRANCH=$a; BASE_BRANCH_SET=1 ;;
       forge) FORGE=$a; FORGE_SET=1 ;;
@@ -248,6 +254,8 @@ for a in "$@"; do
     --herdr-lab) HERDR_LAB=1 ;;
     --no-projects) NO_PROJECTS=1 ;;
     --mode) want_value=mode ;;
+    --decision-owner) want_value=decision-owner ;;
+    --decision-owner=*) DECISION_OWNER=${a#--decision-owner=} ;;
     --mode=*) MODE=${a#--mode=}; MODE_SET=1 ;;
     --branch-prefix) want_value="branch-prefix" ;;
     --branch-prefix=*) BRANCH_PREFIX=${a#--branch-prefix=}; BRANCH_PREFIX_SET=1 ;;
@@ -269,6 +277,10 @@ for a in "$@"; do
   esac
 done
 [ -z "$want_value" ] || { echo "error: --$want_value requires a value" >&2; exit 1; }
+if ! [[ "$DECISION_OWNER" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$ ]]; then
+  echo "error: --decision-owner must be an endpoint slug of at most 81 characters" >&2
+  exit 1
+fi
 
 # Ship delivery mode is an explicit per-task decision (AGENTS.md section 7). A
 # missing or invalid value stops the scaffold rather than silently defaulting.
@@ -508,6 +520,8 @@ fi
 cat > "$BRIEF" <<EOF
 You are a persistent second mate managed by the main firstmate. Work on your own; do not wait for a human.
 
+Decision owner: $DECISION_OWNER
+
 # Charter
 $SECONDMATE_CHARTER
 
@@ -629,6 +643,7 @@ IFS= read -r -d '' TASK_SECTION <<'EOF' || true
 {FIRSTMATE_SPEC}
 EOF
 TASK_SECTION=${TASK_SECTION%$'\n'}
+TASK_SECTION=$(printf 'Decision owner: %s\n\n%s' "$DECISION_OWNER" "$TASK_SECTION")
 
 # One shared string keeps the ship and scout infrastructure rule identical.
 # Rule 2 governs file edits, so it does not prohibit pool administration.
