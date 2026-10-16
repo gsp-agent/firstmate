@@ -94,6 +94,10 @@ tasks_in() {  # <home> <tasks-axi args...>
   (cd "$home" && tasks-axi "$@")
 }
 
+shown_task_body() {
+  printf '%s\n' "$1" | sed -n 's/^  body: //p' | jq -r .
+}
+
 run_captain() {  # <home> <command args...>
   local home=$1
   shift
@@ -4348,11 +4352,13 @@ SH
       assert_present "$home/before-backend-hold" "the successful retry did not reach the backend hold"
       shown=$(cat "$home/before-backend-hold")
       assert_contains "$shown" 'Captain hold origin: origin-b' "the backend hold ran before the new origin was recorded"
-      assert_not_contains "$shown" 'Captain hold origin: origin-a' "the backend hold ran with the old association"
+      assert_equals origin-b "$(shown_task_body "$shown" | sed -n 's/^Captain hold origin: //p' | head -1)" \
+        'the backend hold ran with the old association'
       shown=$(tasks_in "$home" show "$id" --full)
       assert_contains "$shown" 'held: yes' "the successful retry did not hold the task"
       assert_contains "$shown" 'Captain hold origin: origin-b' "a successful hold lost its association"
-      assert_not_contains "$shown" 'Captain hold origin: origin-a' "a successful hold retained the old association"
+      assert_equals origin-b "$(shown_task_body "$shown" | sed -n 's/^Captain hold origin: //p' | head -1)" \
+        'a successful hold retained the old association as current'
       run_captain "$home" complete origin-b "$id" >/dev/null \
         || fail "a successful hold could not complete B"
       run_captain "$home" verify origin-b >/dev/null || fail "a successful hold could not verify B"
@@ -4734,6 +4740,160 @@ run_domain_watcher() {
     bash "$ROOT/bin/fm-watch.sh"
 }
 
+test_domain_interrupted_resolutions_block_immediate_and_periodic_routing() {
+  local domain_home mode before after
+  for mode in answered released reconciled; do
+    domain_home=$(make_domain_home "domain-interrupted-$mode")
+    run_domain "$domain_home" 2026-10-14T02:00:00Z hold interrupted --title 'Interrupted captain resolution' \
+      --decision-owner ep-firstmate --timeout-seconds 60 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+      || fail 'could not hold interrupted resolution fixture'
+    cat > "$domain_home/decision.txt" <<'WORDS'
+Keep this work paused until the recorded issue is resolved.
+Finish the recorded closure before handing responsibility to another owner.
+WORDS
+    cat > "$domain_home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ -f "$FM_HOME/fail-close" ] && [ "${1:-}" = "$(cat "$FM_HOME/fail-close")" ]; then exit 91; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+    chmod +x "$domain_home/fakebin/tasks-axi"
+    if [ "$mode" = released ]; then
+      printf 'unhold\n' > "$domain_home/fail-close"
+    else
+      printf 'done\n' > "$domain_home/fail-close"
+    fi
+    case "$mode" in
+      answered)
+        if run_captain "$domain_home" answer interrupted --decision-file "$domain_home/decision.txt" > "$domain_home/close.out" 2>&1; then
+          fail 'failed answer closure reported success'
+        fi
+        ;;
+      released)
+        if run_captain "$domain_home" answer interrupted --release --decision-file "$domain_home/decision.txt" > "$domain_home/close.out" 2>&1; then
+          fail 'failed answer release reported success'
+        fi
+        ;;
+      reconciled)
+        request_reconciles "$domain_home" board interrupted || fail 'could not register reconciliation request'
+        if run_captain "$domain_home" reconcile close interrupted --evidence-file "$domain_home/decision.txt" > "$domain_home/close.out" 2>&1; then
+          fail 'failed reconciliation closure reported success'
+        fi
+        ;;
+    esac
+    before=$(tasks_in "$domain_home" show interrupted --full)
+    assert_contains "$before" 'held: yes' 'fault injection did not leave a held task'
+    assert_contains "$before" "Resolution mode: $mode" 'fault injection lost the durable resolution'
+    assert_contains "$(shown_task_body "$before")" "$(cat "$domain_home/decision.txt")" 'recorded words were changed'
+    run_domain "$domain_home" 2026-10-14T02:01:00Z route-due interrupted || fail 'interrupted resolution routing check failed'
+    run_domain "$domain_home" 2026-10-14T02:02:00Z route-due || fail 'interrupted resolution sweep failed'
+    after=$(tasks_in "$domain_home" show interrupted --full)
+    assert_equals "$before" "$after" 'periodic routing superseded a recorded captain resolution'
+    assert_absent "$domain_home/owner.log" 'a durable current resolution prompted the agent owner'
+    if run_domain "$domain_home" 2026-10-14T02:03:00Z hold interrupted \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' > "$domain_home/rehold.out" 2>&1; then
+      fail 're-holding bypassed an unfinished recorded resolution'
+    fi
+    assert_grep 'recorded resolution awaiting closure' "$domain_home/rehold.out" 'unfinished resolution refusal was unclear'
+    after=$(tasks_in "$domain_home" show interrupted --full)
+    assert_equals "$before" "$after" 'immediate routing changed the recorded decision or its archived body'
+    assert_absent "$domain_home/owner.log" 'immediate routing prompted the owner after a recorded resolution'
+    if domain_supervision_needed "$domain_home"; then
+      fail 'a resolved routing obligation kept automatic routing supervision active'
+    fi
+    mv "$domain_home/fail-close" "$domain_home/close-recovered"
+    case "$mode" in
+      answered) run_captain "$domain_home" answer interrupted --decision-file "$domain_home/decision.txt" >/dev/null || fail 'answer retry failed' ;;
+      released) run_captain "$domain_home" answer interrupted --release --decision-file "$domain_home/decision.txt" >/dev/null || fail 'answer release retry failed' ;;
+      reconciled) run_captain "$domain_home" reconcile close interrupted --evidence-file "$domain_home/decision.txt" >/dev/null || fail 'reconciliation retry failed' ;;
+    esac
+    after=$(tasks_in "$domain_home" show interrupted --full)
+    assert_contains "$(shown_task_body "$after")" "$(cat "$domain_home/decision.txt")" 'closure retry changed the recorded words'
+  done
+  pass 'unfinished answer, release and reconciliation records block immediate and periodic agent routing'
+}
+
+test_domain_new_lifecycles_preserve_historical_decisions() {
+  local domain_home historical_body show body origin
+  domain_home=$(make_domain_home domain-historical-resolution)
+  for origin in origin-a origin-b; do
+    tasks_in "$domain_home" add "$origin" "Review $origin" --kind scout --repo sample >/dev/null || fail 'could not create historical origin'
+  done
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold history --title 'A new technical decision' --origin origin-a \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold historical fixture'
+  cat > "$domain_home/decision.txt" <<'WORDS'
+Release the original work; these quoted fields are part of the decision.
+Decision owner: historical-owner
+Hold timeout seconds: 98765
+Hold reason: Keep this historical line exactly.
+Captain hold origin: historical-origin
+Captain hold set: 2000-01-01T00:00:00Z
+WORDS
+  run_captain "$domain_home" answer history --release --decision-file "$domain_home/decision.txt" >/dev/null || fail 'could not release historical lifecycle'
+  historical_body=$(shown_task_body "$(tasks_in "$domain_home" show history --full)")
+  run_domain "$domain_home" 2026-10-14T03:00:00Z hold history --origin origin-b \
+    --decision-owner ep-groove-sight-platform --timeout-seconds 60 \
+    --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?' >/dev/null || fail 'could not start a new technical lifecycle'
+  run_domain "$domain_home" 2026-10-14T03:00:59Z hold history --origin origin-b \
+    --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?' >/dev/null || fail 'could not repeat the active technical hold'
+  show=$(tasks_in "$domain_home" show history --full)
+  body=$(shown_task_body "$show")
+  assert_contains "$body" "$historical_body" 'active header rewrites stripped historical decision fields or archived body'
+  assert_equals origin-b "$(printf '%s\n' "$body" | sed -n 's/^Captain hold origin: //p' | head -1)" 'the new lifecycle lost its origin'
+  assert_absent "$domain_home/owner.log" 'the new hold routed before its own deadline'
+  run_domain "$domain_home" 2026-10-14T03:01:00Z route-due history || fail 'historical answer suppressed a new routing lifecycle'
+  run_domain "$domain_home" 2026-10-14T03:02:00Z route-due history || fail 'new routing lifecycle did not replay safely'
+  show=$(tasks_in "$domain_home" show history --full)
+  assert_contains "$show" 'held: no' 'the new technical decision was not released'
+  assert_contains "$show" 'state: queued' 'the new technical decision was marked complete'
+  assert_contains "$(shown_task_body "$show")" "$historical_body" 'routing changed the historical captain answer'
+  assert_grep 'agent prompt ep-groove-sight-platform Hold history timed out.' "$domain_home/owner.log" 'new lifecycle used a historical owner'
+  [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'new lifecycle sent duplicate owner prompts'
+  pass 'a genuinely re-held lifecycle routes once and preserves historical answers and field-like words'
+}
+
+test_domain_archival_retires_pending_only_after_a_readable_lookup() {
+  local domain_home scope rc
+  domain_home=$(make_domain_home domain-archived-routing)
+  printf '%s\n' 'backend = "markdown"' '' '[markdown]' \
+    'path = "data/backlog.md"' 'archive = "data/done-archive.md"' 'done_keep = 0' > "$domain_home/.tasks.toml"
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold archived --title 'Archived pending decision' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold archival fixture'
+  cp "$domain_home/state/hold-domain/pending/archived.body" "$domain_home/pending-before.body"
+  mv "$domain_home/data/backlog.md" "$domain_home/saved-backlog.md"
+  mkdir "$domain_home/data/backlog.md"
+  for scope in direct sweep; do
+    rc=0
+    if [ "$scope" = direct ]; then
+      run_domain "$domain_home" 2026-10-14T02:01:00Z route-due archived > "$domain_home/$scope.out" 2>&1 || rc=$?
+    else
+      run_domain "$domain_home" 2026-10-14T02:01:00Z route-due > "$domain_home/$scope.out" 2>&1 || rc=$?
+    fi
+    [ "$rc" -ne 0 ] || fail "$scope treated an unreadable backlog as confirmed task absence"
+    cmp -s "$domain_home/pending-before.body" "$domain_home/state/hold-domain/pending/archived.body" || fail "$scope discarded pending routing on a read failure"
+    domain_supervision_needed "$domain_home" || fail "$scope read failure stopped routing supervision"
+    [ -s "$domain_home/$scope.out" ] || fail "$scope read failure had no diagnostic"
+  done
+  mv "$domain_home/data/backlog.md" "$domain_home/unreadable-backlog"
+  mv "$domain_home/saved-backlog.md" "$domain_home/data/backlog.md"
+  tasks_in "$domain_home" done archived >/dev/null || fail 'could not archive pending fixture'
+  assert_grep 'archived' "$domain_home/data/done-archive.md" 'zero retention did not archive the task'
+  if tasks_in "$domain_home" show archived --full > "$domain_home/archived.out" 2>&1; then
+    fail 'zero retention left the task in the active backlog'
+  fi
+  assert_grep 'code: NOT_FOUND' "$domain_home/archived.out" 'archival did not produce confirmed absence'
+  run_domain "$domain_home" 2026-10-14T02:02:00Z route-due || fail 'global sweep did not retire the archived pending body'
+  run_domain "$domain_home" 2026-10-14T02:03:00Z route-due archived || fail 'direct archived routing replay failed'
+  assert_absent "$domain_home/state/hold-domain/pending/archived.body" 'archived task retained its routing obligation'
+  assert_absent "$domain_home/owner.log" 'archived task prompted an owner'
+  if domain_supervision_needed "$domain_home"; then
+    fail 'confirmed archival kept an otherwise idle home supervised'
+  fi
+  pass 'unreadable backlogs preserve routing supervision and confirmed zero-retention archival retires it'
+}
+
 test_domain_pending_holds_keep_supervision_after_task_retirement() {
   local domain_home show mode
   for mode in standalone retired; do
@@ -5006,6 +5166,9 @@ SH
   pass 'persistent reason, delivery and release failures allow scheduled checks before their error wake'
 )
 
+test_domain_interrupted_resolutions_block_immediate_and_periodic_routing
+test_domain_new_lifecycles_preserve_historical_decisions
+test_domain_archival_retires_pending_only_after_a_readable_lookup
 test_domain_pending_holds_keep_supervision_after_task_retirement
 test_domain_holds_route_after_timeout_and_record_evidence
 test_domain_keeps_reserved_human_and_answered_holds

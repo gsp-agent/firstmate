@@ -74,6 +74,8 @@ Repeat and edge cases:
 The optional agent-config router owns classification of technical holds and protection of human endpoints.
 Firstmate supplies the declared owner and timeout, then checks live backlog state on the watcher's existing periodic pass.
 Pending per-home routing bodies keep that supervision required even with no other work; the watcher retires answered, closed, deferred or replaced entries against live state.
+An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new hold preserves historical resolution bodies beneath its active header.
+Confirmed archival retires pending routing, while an unreadable backlog leaves it supervised and reports the read failure.
 A successful prompt transfers responsibility to the owner and releases the hold without completing the task.
 The `agent-routed` resolution records the matching receipt under `Agent routing evidence:` and never supplies captain words.
 Retries use that receipt to finish interrupted recording or release without prompting the owner again.
@@ -556,6 +558,8 @@ It also checks that money, credentials, people, client words, production, accoun
 An answered hold never routes from its stale pending body.
 A real watcher subprocess proves the existing periodic pass routes before surfacing ordinary status signals.
 Standalone holds and retirement of the last unrelated task preserve supervision until routing finishes.
+Fault-injected answer, release and reconciliation closures stay protected from immediate and periodic routing, while a new lifecycle preserves historical decisions and still routes.
+Zero-retention archival clears pending routing without treating an unreadable backlog as an absent task.
 Persistent reason drift, transport failures and release failures still allow ordinary scheduled checks to execute before the routing error surfaces.
 The portable fixture implements the router protocol; `FM_TEST_HOLD_DOMAIN_ROUTER` selects an installed agent-config router for the same cases with an isolated transport.
 `FM_TEST_HOLD_DOMAIN_ONLY=1` runs only these routing cases.
