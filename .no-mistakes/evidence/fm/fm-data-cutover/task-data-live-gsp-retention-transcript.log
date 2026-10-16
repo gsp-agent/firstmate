@@ -1,0 +1,149 @@
+
+SCENARIO: Stage a legacy GSP task with the real PR reader and retain PR-only assets through expiry
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/locked-cli.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/bin/fm-task-data.py prepare /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/state gsp-fixture-4365
+
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/locked-cli.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/state gsp-fixture-4365 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/projects/demo https://github.com/groovejones/groove-sight-platform/pull/4365
+task data gsp-fixture-4365: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/data/gsp-fixture-4365/.cleanup-hold until the next completed task
+
+exit=0
+PRODUCT STATE real-gsp-pr-only-evidence-staged
+{
+  "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/data/gsp-fixture-4365",
+  "files": {
+    ".cleanup-hold": {
+      "directory": true
+    },
+    ".cleanup-hold/bead.png": {
+      "bytes": 10,
+      "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+    },
+    ".cleanup-hold/later.png": {
+      "bytes": 11,
+      "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+    },
+    ".cleanup-hold/scratch.bin": {
+      "bytes": 13,
+      "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+    },
+    "brief.md": {
+      "bytes": 44,
+      "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+    },
+    "local.png": {
+      "bytes": 11,
+      "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+    },
+    "record": {
+      "directory": true
+    },
+    "record/data-cleanup.json": {
+      "bytes": 744,
+      "sha256": "10ec80312f88de34f1f55b793fb43d51d7b35faa18802f7d9567e9f29741d8d4"
+    },
+    "reply-all-calendar-keyboard-focus.png": {
+      "bytes": 63,
+      "sha256": "afc89a256f7fa0e55e6edf3e8cb8333059c7b615d9ec25b50a9d68053abedec2"
+    },
+    "reply-all-desktop-light.png": {
+      "bytes": 53,
+      "sha256": "a9f283fe2c6d27be22e5148670646fc714716f7b19bde7b1c1660f87f53f1d8f"
+    },
+    "reply-all-first-keyboard-focus.png": {
+      "bytes": 60,
+      "sha256": "680c623275e88b293d76ebaa5f8a92f904af122835f7485922a5146e1fc4f02c"
+    },
+    "reply-all-second-keyboard-focus.png": {
+      "bytes": 61,
+      "sha256": "67264394d8fdeddf306826c020219874a9817375436ed82c90b5dca8902b6966"
+    },
+    "row.png": {
+      "bytes": 9,
+      "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+    }
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "gsp-fixture-4365",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4365",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/data",
+          "task": "gsp-fixture-4365",
+          "legacy": true,
+          "text": "- [x] gsp-fixture-4365 - completed https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo) (done 2026-10-16)\n  [row capture](row.png)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  }
+}
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/locked-cli.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/bin/fm-task-data.py expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/state gsp-fixture-4365
+
+exit=0
+PRODUCT STATE real-gsp-pr-only-evidence-expired
+{
+  "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/data/gsp-fixture-4365",
+  "files": {
+    "brief.md": {
+      "bytes": 44,
+      "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+    },
+    "local.png": {
+      "bytes": 11,
+      "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+    },
+    "record": {
+      "directory": true
+    },
+    "record/data-cleanup.json": {
+      "bytes": 743,
+      "sha256": "b7481b5e5a5a95574e331dd23e8b427e092f342c6cc2c0ccf3788e93cba8f6dc"
+    },
+    "reply-all-calendar-keyboard-focus.png": {
+      "bytes": 63,
+      "sha256": "afc89a256f7fa0e55e6edf3e8cb8333059c7b615d9ec25b50a9d68053abedec2"
+    },
+    "reply-all-desktop-light.png": {
+      "bytes": 53,
+      "sha256": "a9f283fe2c6d27be22e5148670646fc714716f7b19bde7b1c1660f87f53f1d8f"
+    },
+    "reply-all-first-keyboard-focus.png": {
+      "bytes": 60,
+      "sha256": "680c623275e88b293d76ebaa5f8a92f904af122835f7485922a5146e1fc4f02c"
+    },
+    "reply-all-second-keyboard-focus.png": {
+      "bytes": 61,
+      "sha256": "67264394d8fdeddf306826c020219874a9817375436ed82c90b5dca8902b6966"
+    },
+    "row.png": {
+      "bytes": 9,
+      "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+    }
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "gsp-fixture-4365",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4365",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-gsp-retention/gsp-linked-evidence/data",
+          "task": "gsp-fixture-4365",
+          "legacy": true,
+          "text": "- [x] gsp-fixture-4365 - completed https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo) (done 2026-10-16)\n  [row capture](row.png)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}

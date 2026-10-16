@@ -1,0 +1,169 @@
+The first attempt restricted PATH too far and failed in setup before PR reading. This rerun uses the real GitHub reader with an invalid token only in its child environment.
+
+SCENARIO: Keep unread PR data whole, then stage the readable retry for a full recovery cycle
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/locked-cli.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/state gsp-fixture /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/projects/demo https://github.com/groovejones/groove-sight-platform/pull/4364
+
+stderr:
+warning: task data gsp-fixture retained whole for retry: unread PR https://github.com/groovejones/groove-sight-platform/pull/4364: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/bin/fm-task-data-lib.sh', 'references', 'https://github.com/groovejones/groove-sight-platform/pull/4364']' returned non-zero exit status 1.
+
+exit=0
+PRODUCT STATE unread-pr-kept-whole
+{
+  "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data/gsp-fixture",
+  "files": {
+    "bead.png": {
+      "bytes": 10,
+      "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+    },
+    "brief.md": {
+      "bytes": 44,
+      "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+    },
+    "later.png": {
+      "bytes": 11,
+      "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+    },
+    "local.png": {
+      "bytes": 11,
+      "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+    },
+    "record": {
+      "directory": true
+    },
+    "record/data-cleanup.json": {
+      "bytes": 560,
+      "sha256": "79f4495d1c823dccbb7b98e8bc5e70be76deb493c54007091c2698bc76e90a1a"
+    },
+    "row.png": {
+      "bytes": 9,
+      "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+    },
+    "scratch.bin": {
+      "bytes": 13,
+      "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+    }
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "gsp-fixture",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data",
+          "task": null
+        },
+        "unread": [
+          "https://github.com/groovejones/groove-sight-platform/pull/4364"
+        ]
+      }
+    ],
+    "complete": false
+  }
+}
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/locked-cli.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/bin/fm-task-data.py expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/state gsp-fixture
+task data gsp-fixture: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data/gsp-fixture/.cleanup-hold until the next completed task
+
+exit=0
+PRODUCT STATE readable-pr-first-retry-staged
+{
+  "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data/gsp-fixture",
+  "files": {
+    ".cleanup-hold": {
+      "directory": true
+    },
+    ".cleanup-hold/bead.png": {
+      "bytes": 10,
+      "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+    },
+    ".cleanup-hold/later.png": {
+      "bytes": 11,
+      "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+    },
+    ".cleanup-hold/row.png": {
+      "bytes": 9,
+      "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+    },
+    ".cleanup-hold/scratch.bin": {
+      "bytes": 13,
+      "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+    },
+    "brief.md": {
+      "bytes": 44,
+      "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+    },
+    "local.png": {
+      "bytes": 11,
+      "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+    },
+    "record": {
+      "directory": true
+    },
+    "record/data-cleanup.json": {
+      "bytes": 513,
+      "sha256": "eb03c0523b9259e966ae52ae1fc70b40a3e5eea0c0f12ca3c999d907e28d6ccc"
+    }
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "gsp-fixture",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data",
+          "task": null
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  }
+}
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/locked-cli.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/bin/fm-task-data.py expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/state gsp-fixture
+
+exit=0
+PRODUCT STATE readable-pr-next-cycle-expired
+{
+  "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data/gsp-fixture",
+  "files": {
+    "brief.md": {
+      "bytes": 44,
+      "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+    },
+    "local.png": {
+      "bytes": 11,
+      "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+    },
+    "record": {
+      "directory": true
+    },
+    "record/data-cleanup.json": {
+      "bytes": 512,
+      "sha256": "734d5fb64d31cf2be360b0b553017a6d030ebb1cbd813f3998ce5d1b20dd376a"
+    }
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "gsp-fixture",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live-retry/reader-retry/data",
+          "task": null
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}

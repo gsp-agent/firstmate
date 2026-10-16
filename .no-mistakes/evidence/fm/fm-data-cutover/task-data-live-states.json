@@ -1,0 +1,846 @@
+{
+  "archived-slug-prepared": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/archived-slug/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 587,
+        "sha256": "7ed2c7849294b0fe1d928c9a037a4d71deb6e7467a5657650831016ef10846dc"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      },
+      "scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/archived-slug/projects/demo",
+          "pr": "",
+          "beads": [
+            "fixture-a6x"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/archived-slug/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: demo) (done 2026-10-16)\n  [row capture](row.png)\n  Bead fixture-a6x"
+          },
+          "unread": []
+        }
+      ],
+      "complete": false
+    }
+  },
+  "archived-slug-staged": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/archived-slug/data/retired-check",
+    "files": {
+      ".cleanup-hold": {
+        "directory": true
+      },
+      ".cleanup-hold/later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      },
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 604,
+        "sha256": "e13878c4601c3a18dc098121605a394f6bcfa7e504fa4b5ad44058e195a4c45c"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/archived-slug/projects/demo",
+          "pr": "",
+          "beads": [
+            "fixture-a6x"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/archived-slug/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: demo) (done 2026-10-16)\n  [row capture](row.png)\n  Bead fixture-a6x"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    }
+  },
+  "archived-slug-expired": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/archived-slug/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 603,
+        "sha256": "4f6f73684d8123bffc10db36beac45d8dfddde0bd6cdef0c41e6711f50f80bca"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/archived-slug/projects/demo",
+          "pr": "",
+          "beads": [
+            "fixture-a6x"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/archived-slug/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: demo) (done 2026-10-16)\n  [row capture](row.png)\n  Bead fixture-a6x"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": true
+    }
+  },
+  "current-absolute-prepared": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 727,
+        "sha256": "b05cb24f7cde91f8c7d1de869a9d61d6eaa9d7440668480004cd3075b824c171"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      },
+      "scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/projects/demo",
+          "pr": "",
+          "beads": [
+            "fixture-e94"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/projects/demo) (done 2026-10-16)\n  [row capture](row.png)\n  Bead fixture-e94"
+          },
+          "unread": []
+        }
+      ],
+      "complete": false
+    }
+  },
+  "current-absolute-staged": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/data/retired-check",
+    "files": {
+      ".cleanup-hold": {
+        "directory": true
+      },
+      ".cleanup-hold/later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      },
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 744,
+        "sha256": "e7df0c33b4a072f8d88e6c4a8d83566ebd760ffb36090805ded3bf474d3d3129"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/projects/demo",
+          "pr": "",
+          "beads": [
+            "fixture-e94"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/projects/demo) (done 2026-10-16)\n  [row capture](row.png)\n  Bead fixture-e94"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    }
+  },
+  "current-absolute-expired": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 743,
+        "sha256": "f9c0436e83efb81a222627b363e4f16e6ca2a5a64e69f34b5cce37cab03a9011"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/projects/demo",
+          "pr": "",
+          "beads": [
+            "fixture-e94"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/current-absolute/projects/demo) (done 2026-10-16)\n  [row capture](row.png)\n  Bead fixture-e94"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": true
+    }
+  },
+  "retain-missing": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/retain-missing/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      },
+      "scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      }
+    },
+    "cleanup_record": null
+  },
+  "retain-active": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/retain-active/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      },
+      "scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      }
+    },
+    "cleanup_record": null
+  },
+  "retain-ambiguous": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/retain-ambiguous/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      },
+      "scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      }
+    },
+    "cleanup_record": null
+  },
+  "retain-unsupported-backend": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/retain-unsupported-backend/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      },
+      "scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      }
+    },
+    "cleanup_record": null
+  },
+  "retain-ambiguous-project": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/retain-ambiguous-project/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      },
+      "scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      }
+    },
+    "cleanup_record": null
+  },
+  "note-only-gitlab": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/note-only-gitlab/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 769,
+        "sha256": "e68c5128d42426a75bdd24e101142a3d081a51ce92b8723c81224aeb5e4d9663"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      },
+      "scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/note-only-gitlab/projects/demo",
+          "pr": "https://gitlab.example.com/group/repo/-/merge_requests/7",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/note-only-gitlab/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: demo) (done 2026-10-16)\n  [row capture](row.png)\n  Completion request https://gitlab.example.com/group/repo/-/merge_requests/7\n  Repeated link https://gitlab.example.com/group/repo/-/merge_requests/7"
+          },
+          "unread": []
+        }
+      ],
+      "complete": false
+    }
+  },
+  "note-only-gerrit": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/note-only-gerrit/data/retired-check",
+    "files": {
+      "bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 721,
+        "sha256": "77ce4c14d52a5069a8f8a1b159f93b3408ce1027bf97197b3b1f6e1c3da584a1"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      },
+      "scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/note-only-gerrit/projects/demo",
+          "pr": "https://review.internal/c/group/repo/+/7",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/note-only-gerrit/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: demo) (done 2026-10-16)\n  [row capture](row.png)\n  Completion request https://review.internal/c/group/repo/+/7\n  Repeated link https://review.internal/c/group/repo/+/7"
+          },
+          "unread": []
+        }
+      ],
+      "complete": false
+    }
+  },
+  "expiry-retained-active": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-active/data/retired-check",
+    "files": {
+      ".cleanup-hold": {
+        "directory": true
+      },
+      ".cleanup-hold/bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      ".cleanup-hold/later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 571,
+        "sha256": "1a0a7e214009b02d406c084b9aa50b8718e81827c549abb47c9cc86b06464554"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-active/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-active/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: demo) (done 2026-10-16)\n  [row capture](row.png)"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    }
+  },
+  "expiry-retained-changed-project": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-changed-project/data/retired-check",
+    "files": {
+      ".cleanup-hold": {
+        "directory": true
+      },
+      ".cleanup-hold/bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      ".cleanup-hold/later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 604,
+        "sha256": "7958dfe91bdecf2214135834018a12a9498f915a4e0f9c4c41ad9cefce21069d"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-changed-project/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-changed-project/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: demo) (done 2026-10-16)\n  [row capture](row.png)"
+          },
+          "unread": [
+            "retired-check"
+          ]
+        }
+      ],
+      "complete": true,
+      "expired": false
+    }
+  },
+  "expiry-retained-changed-pr": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-changed-pr/data/retired-check",
+    "files": {
+      ".cleanup-hold": {
+        "directory": true
+      },
+      ".cleanup-hold/bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      ".cleanup-hold/later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 594,
+        "sha256": "e47170838716f8bd06e7bc39c41b4537c395a74f48a9f9721c0a8602af4493b7"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-changed-pr/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-changed-pr/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: demo) (done 2026-10-16)\n  [row capture](row.png)"
+          },
+          "unread": [
+            "retired-check"
+          ]
+        }
+      ],
+      "complete": true,
+      "expired": false
+    }
+  },
+  "expiry-retained-ambiguous": {
+    "task_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-ambiguous/data/retired-check",
+    "files": {
+      ".cleanup-hold": {
+        "directory": true
+      },
+      ".cleanup-hold/bead.png": {
+        "bytes": 10,
+        "sha256": "0384b38f126ed967a65e7575abd4a0eab850099ac596a7e95d33d5ed161d025d"
+      },
+      ".cleanup-hold/later.png": {
+        "bytes": 11,
+        "sha256": "93f74a1165f946d167b67eb5bc138e8f98027f5286a137fcb27036dd7ff98316"
+      },
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 13,
+        "sha256": "8ecf487972e1540aaaec1448bcde6a63bcd87618c5160827db38aaf3a9babea2"
+      },
+      "brief.md": {
+        "bytes": 44,
+        "sha256": "d1511f518d809f9f0015480758094cbe9df36fefcf4abfbfb8eac75e585b30f2"
+      },
+      "local.png": {
+        "bytes": 11,
+        "sha256": "b12087da15ec21b6dfa288f279426f695073f458d29adc9c033b19ae48c95f70"
+      },
+      "record": {
+        "directory": true
+      },
+      "record/data-cleanup.json": {
+        "bytes": 577,
+        "sha256": "612f40621740f1d0c3be11ec67ef6d88f3aefbc6a9dfd3b90c94f7f1cc9183ed"
+      },
+      "row.png": {
+        "bytes": 9,
+        "sha256": "1f5e505c5c07f1362a9a82a11ec4523a12e92560dbc113ca0f7f691cc5d112ed"
+      }
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "retired-check",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-ambiguous/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5348TG7WNXJF22DMPCZ2ZJT/.task-data-validation/live/expiry-ambiguous/data",
+            "task": "retired-check",
+            "legacy": true,
+            "text": "- [x] retired-check - completed  (repo: demo) (done 2026-10-16)\n  [row capture](row.png)"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    }
+  }
+}
