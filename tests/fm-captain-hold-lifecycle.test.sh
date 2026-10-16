@@ -5254,7 +5254,7 @@ ASKS
 }
 
 test_domain_retries_failed_delivery_and_release() {
-  local domain_home show
+  local domain_home show before
   domain_home=$(make_domain_home domain-retry)
   run_domain "$domain_home" 2026-10-14T02:00:00Z hold retry --title 'Retry route' \
     --decision-owner ep-firstmate --timeout-seconds 60 \
@@ -5282,6 +5282,17 @@ SH
   assert_contains "$show" 'held: yes' 'release failure lost its hold'
   assert_contains "$show" 'Resolution mode: agent-routed' 'release failure lost its receipt'
   domain_supervision_needed "$domain_home" || fail 'failed release stopped routing supervision'
+  before=$show
+  if run_domain "$domain_home" 2026-10-14T02:02:30Z hold retry \
+    --decision-owner ep-firstmate --timeout-seconds 60 --until 2099-01-01 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' \
+    > "$domain_home/defer-routed.out" 2>&1; then
+    fail 'a routed hold accepted a future deferral before release finished'
+  fi
+  assert_grep 'already has a routing receipt; finish releasing it' "$domain_home/defer-routed.out" \
+    'routed deferral refusal did not explain the interrupted release'
+  show=$(tasks_in "$domain_home" show retry --full)
+  assert_equals "$before" "$show" 'refused deferral changed the routed hold'
   mv "$domain_home/fakebin/tasks-axi" "$domain_home/tasks-axi-failure"
   run_domain "$domain_home" 2026-10-14T02:03:00Z route-due || fail 'release retry failed'
   show=$(tasks_in "$domain_home" show retry --full)
@@ -5291,7 +5302,7 @@ SH
   if domain_supervision_needed "$domain_home"; then
     fail 'successful release retry kept pending routing work'
   fi
-  pass 'failed delivery preserves the hold and release retries consume the existing receipt once'
+  pass 'failed delivery preserves the hold, routed deferral is refused, and release retries consume the receipt once'
 }
 
 test_watcher_routes_due_holds_before_surfacing_signals() {
@@ -5870,6 +5881,7 @@ SH
 }
 
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
+  receipt-deferral) test_domain_retries_failed_delivery_and_release; exit $? ;;
   deferred) test_domain_deferred_holds_keep_their_routing_wake; exit $? ;;
   fairness) test_domain_interrupted_sweeps_make_fair_progress; exit $? ;;
   rows) test_domain_row_bounds_preserve_later_holds; exit $? ;;
