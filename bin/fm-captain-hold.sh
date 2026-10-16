@@ -1056,8 +1056,6 @@ command_hold() {
     previous_origin=$(body_hold_origin "$(show_field_value "$show" body)")
     write_hold_origin "$id" "$(show_field "$show" body)" "$origin" || exit $?
   fi
-  task_show_or_fail "$id" "task $id disappeared before recording its routing fields"
-  write_hold_domain_fields "$id" "$(show_field_value "$show" body)" "$decision_owner" "$timeout_seconds" "$routing_reason"
   if [ -n "$until" ]; then
     tasks_axi hold "$id" --reason "$stored_reason" --kind captain --until "$until" >/dev/null \
       || hold_status=$?
@@ -1073,6 +1071,9 @@ command_hold() {
     fi
     fail "could not hold task $id for the captain"
   fi
+  # A refused re-hold must leave the previous routing authority unchanged.
+  task_show_or_fail "$id" "task $id disappeared before recording its routing fields"
+  write_hold_domain_fields "$id" "$(show_field_value "$show" body)" "$decision_owner" "$timeout_seconds" "$routing_reason"
   task_show "$id" || fail "task $id disappeared while holding it"
   show=$TASK_SHOW_OUTPUT
   hold_kind=$(show_field_value "$show" hold_kind)
