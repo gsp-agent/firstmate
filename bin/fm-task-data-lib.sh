@@ -34,9 +34,30 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
   return "$rc"
 }
 
-fm_task_data_backlog_references() {
-  local data=$1 id=$2 required=$3 script_dir row out text='' task='' first=1
-  shift 3
+fm_task_data_bead_reference() { # <data> <project> <bead>
+  local data=$1 project=$2 bead=$3 owner out
+  case "$bead" in
+    .agent-config-*) owner="$HOME/.agent-config" ;;
+    gsp-*) owner="$HOME/dev/gsp-beads" ;;
+    *) owner=$project ;;
+  esac
+  if [ -n "$owner" ] && out=$(
+    unset BEADS_DIR BEADS_DB BR_DB
+    cd -- "$owner" 2>/dev/null || exit 1
+    fm_run_timed 10 br show "$bead" --json
+  ) && printf '%s\n' "$out" | jq -e --arg id "$bead" \
+      'type == "array" and length == 1 and .[0].id == $id' >/dev/null; then
+    printf '%s\n' "$out"
+    return 0
+  fi
+  case "$bead" in .agent-config-*|gsp-*) return 1 ;; esac
+  fm_backlog_row_probe "$data" "$bead" || return 1
+  fm_backlog_row_show "$data" "$bead" --full
+}
+
+fm_task_data_backlog_references() { # <data> <id> <required> <project> [bead...]
+  local data=$1 id=$2 required=$3 project=$4 script_dir row out text='' task='' unread='[]'
+  shift 4
   script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || return 1
   # shellcheck source=bin/fm-tasks-axi-lib.sh
   . "$script_dir/fm-tasks-axi-lib.sh" || return 1
@@ -45,25 +66,31 @@ fm_task_data_backlog_references() {
   fm_backlog_tasks_axi_addressing "$data" || return 1
   if [ -n "$FM_BACKLOG_AXI_FILE" ] && [ ! -e "$FM_BACKLOG_AXI_FILE" ] && [ ! -L "$FM_BACKLOG_AXI_FILE" ] \
       && [ "$required" = 0 ] && [ "$#" -eq 0 ]; then
-    printf '{"task":null,"text":""}\n'
+    printf '{"task":null,"text":"","unread":[]}\n'
     return 0
   fi
   unset TASKS_AXI_FILE
-  for row in "$id" "$@"; do
-    if fm_backlog_row_probe "$data" "$row"; then
-      out=$(fm_backlog_row_show "$data" "$row" --full) || return 1
-      [ -n "$out" ] || return 1
-      text="$text$out"$'\n'
-      [ "$first" != 1 ] || task=$id
-    elif [ "$first" != 1 ] || [ "$required" != 0 ] || [ -z "$FM_BACKLOG_AXI_FILE" ] \
-        || [ "$FM_BACKLOG_ROW_RESULT" != not_found ]; then
-      printf 'task data reference %s could not be read: %s\n' "$row" "${FM_BACKLOG_ROW_ERROR:-not found}" >&2
-      return 1
+  [ "$required" != 1 ] || task=$id
+  if fm_backlog_row_probe "$data" "$id"; then
+    task=$id
+    if out=$(fm_backlog_row_show "$data" "$id" --full) && [ -n "$out" ]; then
+      text="$out"$'\n'
+    else
+      unread=$(jq -cn --arg id "$id" '[$id]')
     fi
-    first=0
+  elif [ "$required" != 0 ] || [ -z "$FM_BACKLOG_AXI_FILE" ] \
+      || [ "$FM_BACKLOG_ROW_RESULT" != not_found ]; then
+    unread=$(jq -cn --arg id "$id" '[$id]')
+  fi
+  for row in "$@"; do
+    if out=$(fm_task_data_bead_reference "$data" "$project" "$row" 2>/dev/null) && [ -n "$out" ]; then
+      text="$text$out"$'\n'
+    else
+      unread=$(printf '%s' "$unread" | jq -c --arg id "$row" '. + [$id]')
+    fi
   done
-  printf '%s' "$text" | jq -Rs --arg task "$task" \
-    '{task: (if $task == "" then null else $task end), text: .}'
+  printf '%s' "$text" | jq -Rs --arg task "$task" --argjson unread "$unread" \
+    '{task: (if $task == "" then null else $task end), text: ., unread: $unread}'
 }
 
 fm_task_data_pr_references() {
@@ -130,7 +157,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       fm_task_data_pr_references "$2"
       ;;
     backlog-references)
-      [ "$#" -ge 4 ] || exit 1
+      [ "$#" -ge 5 ] || exit 1
       shift
       fm_task_data_backlog_references "$@"
       ;;

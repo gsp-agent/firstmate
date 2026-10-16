@@ -5739,6 +5739,76 @@ SH
   pass "fm-teardown: owning and named Bead links use the configured graph across retirement, replay, staging, expiry and unavailable-backend retries"
 }
 
+test_task_data_named_bead_resolution() {
+  local case_dir task bead variant expected
+  for variant in agent-config gsp project fallback unread; do
+    [ -z "${FM_TASK_DATA_REF_CASE:-}" ] || [ "$variant" = "$FM_TASK_DATA_REF_CASE" ] || continue
+    case_dir=$(make_case "task-data-named-$variant")
+    task="$case_dir/data/task-x1"
+    mkdir -p "$task" "$case_dir/home/.agent-config" "$case_dir/home/dev/gsp-beads"
+    case "$variant" in
+      agent-config) bead=.agent-config-ojg69; expected="$case_dir/home/.agent-config" ;;
+      gsp) bead=gsp-kstok; expected="$case_dir/home/dev/gsp-beads" ;;
+      *) bead=proof-related; expected="$case_dir/project" ;;
+    esac
+    printf 'Bead %s\n' "$bead" > "$task/brief.md"
+    printf 'linked evidence\n' > "$task/proof.png"
+    printf 'scratch\n' > "$task/discard.bin"
+    write_meta "$case_dir" local-only ship
+    seed_backlog_in_flight "$case_dir"
+    fm_test_tasks_toml "$case_dir/.tasks.toml"
+    if [ "$variant" = fallback ]; then
+      tasks-axi add "$bead" 'named evidence' --body '[capture](proof.png)' \
+        --file "$case_dir/data/backlog.md" >/dev/null
+    fi
+    cat > "$case_dir/fakebin/br" <<'PY'
+#!/usr/bin/env python3
+import json
+import os
+from pathlib import Path
+import sys
+
+assert not any(name in os.environ for name in ("BEADS_DIR", "BEADS_DB", "BR_DB"))
+assert sys.argv[1] == "show"
+assert sys.argv[2] == os.environ["REF_BEAD"]
+assert Path.cwd() == Path(os.environ["REF_OWNER"])
+if os.environ["REF_CASE"] in ("fallback", "unread") and not Path("readable").exists():
+    print("not found", file=sys.stderr)
+    sys.exit(1)
+print(json.dumps([{"id": sys.argv[2], "description": "[capture](proof.png)"}]))
+PY
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+    HOME="$case_dir/home" REF_BEAD="$bead" REF_OWNER="$expected" REF_CASE="$variant" \
+      BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong \
+      run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+      || fail "$variant named-bead teardown failed: $(cat "$case_dir/err")"
+    [ "$(backlog_row_state "$case_dir")" = 'done' ] || fail "$variant backlog close pending"
+    assert_absent "$case_dir/state/task-x1.meta" "$variant metadata not retired"
+    assert_absent "$case_dir/state/task-x1.backlog-close" "$variant pending close remains"
+    [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant bead evidence moved"
+    if [ "$variant" = unread ]; then
+      [ "$(cat "$task/discard.bin")" = scratch ] || fail "unread bead moved scratch"
+      assert_absent "$task/.cleanup-hold" "unread bead staged data"
+      assert_grep "$bead" "$case_dir/err" "unread bead missing from teardown warning"
+      jq -e --arg bead "$bead" '.complete == false and .sources[0].unread == [$bead]' \
+        "$task/record/data-cleanup.json" >/dev/null || fail "unread bead missing from cleanup record"
+      printf 'available\n' > "$case_dir/project/readable"
+      HOME="$case_dir/home" REF_BEAD="$bead" REF_OWNER="$expected" REF_CASE="$variant" \
+        PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+        "$case_dir/data" "$case_dir/state" task-x1 || fail "unread bead retry failed"
+      jq -e '.sources[0].unread == []' "$task/record/data-cleanup.json" >/dev/null \
+        || fail "readable retry kept stale unread reference"
+    fi
+    assert_present "$task/.cleanup-hold/discard.bin" "$variant scratch missed recovery cycle"
+    assert_present "$task/proof.png" "$variant retry lost evidence"
+    pass "fm-teardown: $variant named bead resolves safely and backlog closes"
+  done
+}
+
 test_task_data_reused_id() {
   local case_dir task helper
   case_dir=$(make_case task-data-reuse)
@@ -6724,10 +6794,16 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-beads ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-named-beads ]; then
+  test_task_data_named_bead_resolution
+  exit 0
+fi
+
 test_task_data_cleanup
 test_task_data_refusals
 test_task_data_references_and_guard
 test_task_data_bead_backlog_sources
+test_task_data_named_bead_resolution
 test_task_data_reused_id
 test_task_data_expired_sources
 test_task_data_symlink_targets
