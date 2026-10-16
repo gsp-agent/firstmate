@@ -5376,12 +5376,1371 @@ SH
   pass "a recorded open pull request or merge request keeps the task record until it is merged or closed"
 }
 
-test_missing_startup_source_refuses_before_cleanup
-test_unreadable_startup_source_refuses_before_cleanup
-test_missing_adapter_sibling_refuses_before_cleanup
-test_forced_child_missing_adapter_sibling_refuses_before_cleanup
-test_forced_secondmate_own_missing_adapter_sibling_refuses_before_child_cleanup
-test_retained_sources_still_reach_the_ordinary_refusal
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-aliases ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-components ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-names ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-directories ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-spellings ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retirement ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ]; then
+  test_missing_startup_source_refuses_before_cleanup
+  test_unreadable_startup_source_refuses_before_cleanup
+  test_missing_adapter_sibling_refuses_before_cleanup
+  test_forced_child_missing_adapter_sibling_refuses_before_cleanup
+  test_forced_secondmate_own_missing_adapter_sibling_refuses_before_child_cleanup
+  test_retained_sources_still_reach_the_ordinary_refusal
+fi
+test_task_data_cleanup() {
+  local case_dir task recovery rc
+  case_dir=$(make_case task-data)
+  task="$case_dir/data/task-x1"
+  recovery="$task/.cleanup-hold"
+  mkdir -p "$task/clone/.git/objects" "$task/record" "$task/proof"
+  printf 'brief\n' > "$task/brief.md"
+  printf 'report links [capture](proof/capture.png)\n' > "$task/report.md"
+  printf 'review\n' > "$task/review.txt"
+  printf 'status references status-proof.bin\n' > "$task/record/status"
+  printf 'linked from status\n' > "$task/status-proof.bin"
+  printf 'keep this image\n' > "$task/proof/capture.png"
+  printf 'repository readme\n' > "$task/clone/README.md"
+  dd if=/dev/zero of="$task/clone/.git/objects/pack" bs=1048576 count=2 2>/dev/null
+  dd if=/dev/zero of="$task/oversized.log" bs=1048576 count=2 2>/dev/null
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/dcg"
+  write_meta "$case_dir" local-only ship
+  run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err"
+  rc=$?
+  expect_code 0 "$rc" "task-data teardown"
+  assert_absent "$task/clone" "finished task clone remains in data"
+  assert_absent "$task/oversized.log" "oversized scratch log remains"
+  assert_present "$recovery/clone/.git/objects/pack" "original clone is not recoverable"
+  assert_present "$recovery/clone/README.md" "clone text was mistaken for evidence"
+  assert_present "$task/brief.md" "brief removed"
+  assert_present "$task/report.md" "report removed"
+  assert_present "$task/review.txt" "review removed"
+  assert_present "$task/record/status" "record removed"
+  assert_present "$task/status-proof.bin" "status-linked binary removed"
+  assert_present "$task/proof/capture.png" "linked binary removed"
+  PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" stage \
+    "$case_dir/data" "$case_dir/state" task-x1 "$case_dir/project" '' || fail "repeat stage failed"
+  assert_present "$recovery/oversized.log" "same task expired its own recovery"
+  mkdir -p "$case_dir/data/live-old"
+  printf 'live recovery\n' > "$case_dir/data/live-old/blob"
+  PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" stage \
+    "$case_dir/data" "$case_dir/state" live-old "$case_dir/project" '' || fail "live fixture stage failed"
+  fm_write_meta "$case_dir/state/live-old.meta" "kind=ship" "spawn_gen=live-old"
+  printf 'new link [log](oversized.log)\n' >> "$task/report.md"
+  fm_write_meta "$case_dir/state/task-next.meta" \
+    "window=firstmate:fm-task-next" "endpoint_task_id=task-next" \
+    "worktree=$case_dir/missing" "project=$case_dir/project" \
+    "kind=ship" "mode=local-only" "spawn_gen=task-next"
+  FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
+    FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+    PATH="$case_dir/fakebin:$PATH" "$TEARDOWN" task-next > "$case_dir/next.out" 2> "$case_dir/next.err" \
+    || fail "next teardown failed: $(cat "$case_dir/next.err")"
+  assert_absent "$recovery" "next completed task did not expire recovery"
+  assert_present "$case_dir/data/live-old/.cleanup-hold/blob" "next teardown expired a live task's recovery"
+  assert_present "$task/oversized.log" "newly linked recovery was deleted"
+  [ "$(wc -c < "$task/oversized.log" | tr -d ' ')" = 2097152 ] || fail "linked log bytes changed"
+  pass "fm-teardown: completed task scratch is held for one cycle and linked evidence stays"
+}
+
+test_task_data_refusals() {
+  local case_dir task rc
+  case_dir=$(make_case task-data-refusals)
+  task="$case_dir/data/task-x1"
+  mkdir -p "$task/scratch" "$case_dir/outside"
+  printf 'original\n' > "$task/scratch/blob"
+  printf 'outside\n' > "$case_dir/outside/blob"
+  write_meta "$case_dir" local-only ship
+  wt_commit_file "$case_dir" work.txt unlanded
+  if run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err"; then rc=0; else rc=$?; fi
+  expect_code 1 "$rc" "unlanded task teardown must refuse"
+  assert_present "$task/scratch/blob" "refused teardown moved task data"
+  if python3 "$ROOT/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
+      task-x1 "$case_dir/project" '' > "$case_dir/helper.out" 2> "$case_dir/helper.err"; then
+    fail "helper accepted a live task"
+  fi
+  assert_present "$task/scratch/blob" "live task scratch changed"
+  if python3 "$ROOT/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
+      ../outside "$case_dir/project" '' > "$case_dir/helper.out" 2> "$case_dir/helper.err"; then
+    fail "helper accepted path traversal"
+  fi
+  ln -s "$case_dir/outside" "$case_dir/data/escaped"
+  if python3 "$ROOT/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
+      escaped "$case_dir/project" '' > "$case_dir/helper.out" 2> "$case_dir/helper.err"; then
+    fail "helper accepted a symlink outside data"
+  fi
+  [ "$(cat "$case_dir/outside/blob")" = outside ] || fail "outside file changed"
+  mkdir -p "$case_dir/data/unsafe-record"
+  ln -s "$case_dir/outside" "$case_dir/data/unsafe-record/record"
+  printf 'scratch\n' > "$case_dir/data/unsafe-record/blob"
+  if python3 "$ROOT/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
+      unsafe-record "$case_dir/project" '' > "$case_dir/helper.out" 2> "$case_dir/helper.err"; then
+    fail "helper accepted a record directory outside the task"
+  fi
+  assert_present "$case_dir/data/unsafe-record/blob" "unsafe record moved scratch"
+  pass "fm-teardown: live data and paths outside the task directory are untouched"
+}
+
+test_task_data_references_and_guard() {
+  local case_dir task helper real_tasks
+  real_tasks=$(command -v tasks-axi)
+  case_dir=$(make_case task-data-refs)
+  task="$case_dir/data/finished"
+  helper="$ROOT/bin/fm-task-data.py"
+  mkdir -p "$task/scratch"
+  printf 'Bead demo-123\n' > "$task/brief.md"
+  printf 'PR image\n' > "$task/scratch/pr image.png"
+  printf 'bead image\n' > "$task/scratch/bead.png"
+  printf 'unlinked\n' > "$task/scratch/discard.bin"
+  fm_test_tasks_toml "$case_dir/.tasks.toml"
+  seed_backlog_in_flight "$case_dir"
+  tasks-axi add finished 'finished task' --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi add pending 'pending task' --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi add demo-123 'linked evidence' --body '[image](scratch/bead.png)' \
+    --file "$case_dir/data/backlog.md" >/dev/null
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+printf 'body: [image](scratch/pr%%20image.png)\n'
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+printf '{"hookSpecificOutput":{"permissionDecision":"deny","permissionDecisionReason":"fixture denial"}}\n'
+SH
+  chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
+    finished "$case_dir/project" https://github.com/test/repo/pull/1 || fail "reference retention failed"
+  assert_present "$task/scratch/pr image.png" "PR-linked file moved"
+  assert_present "$task/scratch/bead.png" "bead-linked file moved"
+  if PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" \
+      finished > "$case_dir/out" 2> "$case_dir/err"; then
+    fail "dcg denial was bypassed"
+  fi
+  assert_present "$task/.cleanup-hold/scratch/discard.bin" "dcg-denied file was deleted"
+  assert_grep 'dcg refused' "$case_dir/err" "denial diagnostic missing"
+  cat > "$case_dir/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+exit 1
+SH
+  chmod +x "$case_dir/fakebin/tasks-axi"
+  if PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" \
+      finished > "$case_dir/out" 2> "$case_dir/err"; then
+    fail "unreadable bead allowed deletion"
+  fi
+  assert_present "$task/.cleanup-hold/scratch/discard.bin" "unreadable references lost recovery"
+  mkdir -p "$case_dir/data/pending"
+  printf 'Bead demo-123\n' > "$case_dir/data/pending/brief.md"
+  printf 'scratch\n' > "$case_dir/data/pending/blob"
+  if PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
+      pending "$case_dir/project" '' > "$case_dir/out" 2> "$case_dir/err"; then
+    fail "unreadable bead allowed initial staging"
+  fi
+  assert_present "$case_dir/data/pending/blob" "unreadable bead moved scratch"
+  assert_present "$case_dir/data/pending/record/data-cleanup.json" "failed staging has no retry record"
+  "$real_tasks" update demo-123 --body 'no linked files' --file "$case_dir/data/backlog.md" >/dev/null
+  cat > "$case_dir/fakebin/tasks-axi" <<SH
+#!/usr/bin/env bash
+exec '$real_tasks' "\$@"
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" pending \
+    || fail "pending cleanup did not resume"
+  assert_present "$case_dir/data/pending/.cleanup-hold/blob" "resumed cleanup skipped its recovery cycle"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" pending \
+    || fail "resumed cleanup did not expire"
+  assert_absent "$case_dir/data/pending/.cleanup-hold" "resumed recovery remains"
+  pass "fm-teardown: PR and bead links survive, and dcg denial or unreadable references retain recovery"
+}
+
+write_task_data_beads_fixture() {
+  local case_dir=$1
+  mkdir -p "$case_dir/graph/.beads" "$case_dir/project/.beads"
+  cat > "$case_dir/graph/.beads/rows.json" <<'JSON'
+{
+  "proof-owner": {"status": "open", "description": "[capture](proof.png) [evidence directory](artifacts/)"},
+  "proof-related": {"status": "open", "description": "[named capture](named.png)"}
+}
+JSON
+  cat > "$case_dir/project/.beads/rows.json" <<'JSON'
+{"proof-owner": {"status": "open", "description": "Unrelated project task without attachments"}}
+JSON
+  cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "beads"
+
+[beads]
+path = "graph/.beads"
+prefix = "proof"
+TOML
+  cat > "$case_dir/project/.tasks.toml" <<'TOML'
+backend = "beads"
+
+[beads]
+path = ".beads"
+prefix = "proof"
+TOML
+  cat > "$case_dir/fakebin/tasks-axi" <<'PY'
+#!/usr/bin/env python3
+import json
+import os
+from pathlib import Path
+import sys
+import tomllib
+
+if os.environ.get("FM_TEST_BACKLOG_DOWN") == "1":
+    sys.exit(1)
+config = tomllib.loads(Path(".tasks.toml").read_text())
+assert config["backend"] == "beads"
+assert "TASKS_AXI_FILE" not in os.environ
+assert "--file" not in sys.argv
+graph = Path(config["beads"]["path"]) / "rows.json"
+rows = json.loads(graph.read_text())
+verb, task = sys.argv[1:3]
+if task not in rows:
+    print("code: NOT_FOUND")
+    sys.exit(1)
+row = rows[task]
+if verb == "done":
+    row["status"] = "closed"
+elif verb == "update":
+    row["description"] = sys.argv[sys.argv.index("--body") + 1]
+else:
+    assert verb == "show"
+if verb != "show":
+    graph.write_text(json.dumps(rows) + "\n")
+state = "done" if row["status"] == "closed" else "queued"
+print(f"task:\n  id: {task}\n  state: {state}\n  held: no\n  blocked: no")
+if "--full" in sys.argv:
+    print("body: " + json.dumps(row.get("description", "")))
+PY
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/dcg"
+}
+
+test_task_data_bead_backlog_sources() {
+  local code_root=${1:-$ROOT} case_dir task portable_path id='proof-owner' related='proof-related'
+  case_dir=$(make_case task-data-bead-backlog)
+  portable_path=$(fm_test_base_path_sans "$PATH" br)
+  if PATH="$portable_path" command -v br >/dev/null 2>&1; then
+    fail "portable Beads fixture still exposes br"
+  fi
+  write_task_data_beads_fixture "$case_dir"
+  task="$case_dir/data/$id"
+  mkdir -p "$task/artifacts" "$task/later-artifacts" "$case_dir/outside"
+  printf 'plain cleanup instructions\n' > "$task/brief.md"
+  printf 'owning Bead evidence\n' > "$task/proof.png"
+  printf 'later Bead evidence\n' > "$task/later.png"
+  printf 'scratch\n' > "$task/discard.bin"
+  printf '\000owning directory evidence\377' > "$task/artifacts/frame.bin"
+  printf '\000later directory evidence\377' > "$task/later-artifacts/frame.bin"
+  printf '\000owned directory backing\377' > "$task/backing.bin"
+  printf '\000held directory backing\377' > "$task/later-backing.bin"
+  printf 'outside directory target\n' > "$case_dir/outside/keep.bin"
+  ln -s "$task/backing.bin" "$task/artifacts/member.bin"
+  ln -s "$task/later-backing.bin" "$task/later-artifacts/member.bin"
+  ln -s "$case_dir/outside/keep.bin" "$task/artifacts/external.bin"
+  fm_write_meta "$case_dir/state/$id.meta" "project=$case_dir/project" \
+    'kind=ship' 'mode=local-only' "spawn_gen=bead-$id"
+  cat > "$case_dir/retire.sh" <<'SH'
+#!/usr/bin/env bash
+set -eu
+root=$1 case_dir=$2 id=$3 action=$4
+. "$root/bin/fm-wake-lib.sh"
+. "$root/bin/fm-tasks-axi-lib.sh"
+. "$root/bin/fm-backlog-transition-lib.sh"
+state="$case_dir/state" data="$case_dir/data"
+lock=$(fm_meta_lock_path "$state/$id.meta")
+fm_lock_acquire_wait "$lock"
+trap 'fm_lock_release "$lock"' EXIT
+if [ "$action" = retire ]; then
+  fm_backlog_close_marker_write "$state" "$id" "$data" "bead-$id" --note 'local main'
+  fm_backlog_atomic_transition retire "$state/$id.meta" "$data" "$id" "$state"
+else
+  fm_backlog_close_marker_replay "$state" "$state/$id.backlog-close" "$data"
+fi
+SH
+  FM_HOME="$case_dir" PATH="$case_dir/fakebin:$portable_path" \
+    bash "$case_dir/retire.sh" "$code_root" "$case_dir" "$id" retire \
+    > "$case_dir/retire.out" 2> "$case_dir/retire.err" || fail "Bead retirement failed: $(cat "$case_dir/retire.err")"
+  assert_absent "$case_dir/state/$id.meta" "Bead retirement did not remove metadata"
+  assert_present "$case_dir/state/$id.backlog-close" "interrupted Bead retirement lost replay"
+  FM_HOME="$case_dir" PATH="$case_dir/fakebin:$portable_path" \
+    bash "$case_dir/retire.sh" "$code_root" "$case_dir" "$id" replay \
+    > "$case_dir/replay.out" 2> "$case_dir/replay.err" || fail "Bead replay failed: $(cat "$case_dir/replay.err")"
+  assert_absent "$case_dir/state/$id.backlog-close" "Bead replay left pending completion"
+  BEADS_DIR="$case_dir/project/.beads" \
+    TASKS_AXI_FILE="$case_dir/project/backlog.md" PATH="$case_dir/fakebin:$portable_path" \
+    python3 "$code_root/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
+      "$id" "$case_dir/project" '' || fail "owning Bead staging failed"
+  [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "owning Bead-only link was staged"
+  assert_present "$task/artifacts/frame.bin" "owning Bead directory contents were staged"
+  cmp "$task/artifacts/member.bin" "$task/backing.bin" || fail "owning Bead directory symlink lost its target"
+  assert_present "$task/.cleanup-hold/later-artifacts/frame.bin" "unlinked Bead directory did not stage"
+  assert_present "$task/.cleanup-hold/later-backing.bin" "unlinked Bead directory backing did not stage"
+  assert_present "$task/.cleanup-hold/later.png" "unlinked later evidence did not stage"
+  assert_present "$task/.cleanup-hold/discard.bin" "unlinked Bead scratch did not stage"
+  jq -e --arg data "$case_dir/data" --arg id "$id" \
+    '.sources | any(.beads == [] and .backlog.data == $data and .backlog.task == $id)' \
+    "$task/record/data-cleanup.json" >/dev/null || fail "cleanup lost the owning backlog identity"
+  (cd "$case_dir" && PATH="$case_dir/fakebin:$portable_path" tasks-axi update "$id" \
+    --body '[capture](proof.png) [later capture](later.png) [evidence directory](artifacts/) [later directory](later-artifacts/)') > "$case_dir/update.log" 2>&1 \
+    || fail "owning Bead update failed"
+  if FM_TEST_BACKLOG_DOWN=1 PATH="$case_dir/fakebin:$portable_path" \
+      python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
+      > "$case_dir/down.out" 2> "$case_dir/down.err"; then
+    fail "unavailable owning backend allowed expiry"
+  fi
+  assert_present "$task/.cleanup-hold/later.png" "unavailable backend lost recoverable evidence"
+  assert_present "$task/.cleanup-hold/discard.bin" "unavailable backend deleted scratch"
+  assert_present "$task/.cleanup-hold/later-artifacts/frame.bin" "unavailable backend deleted held directory evidence"
+  BEADS_DIR="$case_dir/project/.beads" \
+    TASKS_AXI_FILE="$case_dir/project/backlog.md" PATH="$case_dir/fakebin:$portable_path" \
+    python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
+    || fail "owning Bead expiry failed"
+  [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "expiry deleted owning Bead evidence"
+  [ "$(cat "$task/later.png")" = 'later Bead evidence' ] || fail "expiry did not refresh the owning Bead's links"
+  assert_present "$task/artifacts/frame.bin" "expiry deleted owning Bead directory evidence"
+  assert_present "$task/later-artifacts/frame.bin" "expiry did not restore newly linked owning Bead directory evidence"
+  cmp "$task/later-artifacts/member.bin" "$task/later-backing.bin" || fail "held Bead directory lost its backing file"
+  [ "$(cat "$task/artifacts/external.bin")" = 'outside directory target' ] || fail "owning Bead directory changed external evidence"
+  assert_absent "$task/.cleanup-hold" "owning Bead recovery remains"
+  printf 'Bead %s\n' "$related" >> "$task/brief.md"
+  printf 'named Bead evidence\n' > "$task/named.png"
+  printf 'next scratch\n' > "$task/next.bin"
+  if FM_TEST_BACKLOG_DOWN=1 PATH="$case_dir/fakebin:$portable_path" \
+      python3 "$code_root/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
+        "$id" "$case_dir/project" '' > "$case_dir/down-stage.out" 2> "$case_dir/down-stage.err"; then
+    fail "unavailable owning backend allowed staging"
+  fi
+  assert_present "$task/next.bin" "unavailable backend moved original scratch"
+  assert_present "$task/named.png" "unavailable backend moved named evidence"
+  BEADS_DIR="$case_dir/project/.beads" PATH="$case_dir/fakebin:$portable_path" \
+    python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
+    || fail "unavailable-backend recovery did not resume"
+  [ "$(cat "$task/named.png")" = 'named Bead evidence' ] || fail "named Bead used the project default graph"
+  assert_present "$task/.cleanup-hold/next.bin" "resumed Bead cleanup omitted one-cycle recovery"
+  PATH="$case_dir/fakebin:$portable_path" \
+    python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
+    || fail "resumed Bead cleanup did not expire"
+  [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "retry lost owning Bead evidence"
+  [ "$(cat "$task/named.png")" = 'named Bead evidence' ] || fail "retry lost named Bead evidence"
+  assert_absent "$task/.cleanup-hold" "resumed Bead recovery remains"
+  pass "fm-teardown: owning and named Bead links use the configured graph across retirement, replay, staging, expiry and unavailable-backend retries"
+}
+
+test_task_data_reused_id() {
+  local case_dir task helper
+  case_dir=$(make_case task-data-reuse)
+  task="$case_dir/data/reused"
+  helper="$ROOT/bin/fm-task-data.py"
+  mkdir -p "$task"
+  printf 'old scratch\n' > "$task/old.bin"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+printf 'body: no linked files\n'
+SH
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
+    reused "$case_dir/project" https://github.com/test/repo/pull/1 || fail "initial staging failed"
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "$3" in
+  */1) printf 'body: [original](old.bin)\n' ;;
+  *) printf 'body: no linked files\n' ;;
+esac
+SH
+  printf 'new scratch\n' > "$task/new.bin"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
+    reused "$case_dir/project" https://github.com/test/repo/pull/2 || fail "reused staging failed"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" \
+    reused || fail "reused expiry failed"
+  [ "$(cat "$task/old.bin")" = 'old scratch' ] || fail "reuse lost the earlier PR's linked file"
+  assert_absent "$task/new.bin" "unlinked new scratch remains"
+  assert_absent "$task/.cleanup-hold" "reused recovery did not expire"
+  pass "fm-teardown: reusing a completed id keeps its earlier recovery's reference sources"
+}
+
+test_task_data_expired_sources() {
+  local case_dir task helper variant
+  helper="$ROOT/bin/fm-task-data.py"
+  for variant in held empty; do
+    case_dir=$(make_case "task-data-expired-$variant")
+    task="$case_dir/data/reused"
+    mkdir -p "$task"
+    printf 'Bead original-123\n' > "$task/brief.md"
+    printf 'PR proof\n' > "$task/proof.png"
+    printf 'bead proof\n' > "$task/bead-proof.png"
+    fm_test_tasks_toml "$case_dir/.tasks.toml"
+    seed_backlog_in_flight "$case_dir"
+    tasks-axi add reused 'reused task' --file "$case_dir/data/backlog.md" >/dev/null
+    tasks-axi add original-123 'original evidence' --body '[proof](bead-proof.png)' \
+      --file "$case_dir/data/backlog.md" >/dev/null
+    [ "$variant" != held ] || printf 'scratch\n' > "$task/old.bin"
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "$3" in
+  */1) printf 'body: [proof](proof.png)\n' ;;
+  *) printf 'body: no attachments\n' ;;
+esac
+SH
+    chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+    PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
+      reused "$case_dir/project" https://github.com/test/repo/pull/1 || fail "first $variant stage failed"
+    PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" reused \
+      || fail "first $variant expiry failed"
+    jq -e '.expired == true' "$task/record/data-cleanup.json" >/dev/null || fail "$variant did not expire"
+    printf 'replacement brief\n' > "$task/brief.md"
+    printf 'new scratch\n' > "$task/new.bin"
+    PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
+      reused "$case_dir/project" https://github.com/test/repo/pull/2 || fail "second $variant stage failed"
+    [ "$(cat "$task/proof.png")" = 'PR proof' ] || fail "$variant reset lost the earlier PR proof"
+    [ "$(cat "$task/bead-proof.png")" = 'bead proof' ] || fail "$variant reset lost the earlier bead proof"
+    PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" reused \
+      || fail "second $variant expiry failed"
+    assert_present "$task/proof.png" "later expiry deleted the earlier PR proof"
+    assert_present "$task/bead-proof.png" "later expiry deleted the earlier bead proof"
+    jq -e '.sources | length == 2' "$task/record/data-cleanup.json" >/dev/null || fail "reference sources were reset"
+  done
+  pass "fm-teardown: both expiry transitions preserve earlier PR and bead sources"
+}
+
+test_task_data_symlink_targets() {
+  local case_dir task action helper=${1:-$ROOT/bin/fm-task-data.py} args=()
+  case_dir=$(make_case task-data-symlinks)
+  task="$case_dir/data/finished"
+  mkdir -p "$task/backing/next" "$task/held-backing/next" "$task/frames" "$task/late-frames" \
+    "$task/captures/subdir" "$task/saved-captures/subdir" "$case_dir/outside/subdir"
+  printf 'capture\n' > "$task/captures/capture.bin"
+  printf 'frame\n' > "$task/frames/frame.bin"
+  printf 'later capture\n' > "$task/later.bin"
+  printf 'scratch\n' > "$task/discard.bin"
+  printf 'ordered capture\n' > "$task/captures/proof.bin"
+  printf 'saved ordered capture\n' > "$task/saved-captures/proof.bin"
+  printf 'unrelated capture\n' > "$task/captures/discard.bin"
+  printf 'outside\n' > "$case_dir/outside/outside.bin"
+  printf 'directory member capture\n' > "$task/backing/capture.bin"
+  printf 'nested directory capture\n' > "$task/deep.bin"
+  printf 'held directory capture\n' > "$task/held-backing/capture.bin"
+  printf 'held nested capture\n' > "$task/held-deep.bin"
+  printf 'unrelated backing scratch\n' > "$task/backing/discard.bin"
+  ln -s captures/capture.bin "$task/alias.bin"
+  ln -s alias.bin "$task/latest.png"
+  ln -s frames "$task/frames.png"
+  ln -s later.bin "$task/saved.png"
+  ln -s captures/subdir "$task/component-alias.bin"
+  ln -s component-alias.bin/../proof.bin "$task/component.png"
+  ln -s saved-captures/subdir "$task/saved-alias.bin"
+  ln -s saved-alias.bin/../proof.bin "$task/saved-component.png"
+  ln -s "$case_dir/outside/subdir" "$task/outside-alias.bin"
+  ln -s outside-alias.bin/../outside.bin "$task/escape.png"
+  ln -s "$task/backing/capture.bin" "$task/frames/member.bin"
+  ln -s "$task/backing/next" "$task/frames/directory.bin"
+  ln -s "$task/deep.bin" "$task/backing/next/nested.bin"
+  ln -s "$case_dir/outside/outside.bin" "$task/frames/external.bin"
+  ln -s "$task/frames" "$task/frames/recursive.bin"
+  ln -s late-frames "$task/saved-frames.png"
+  ln -s "$task/held-backing/capture.bin" "$task/late-frames/member.bin"
+  ln -s "$task/held-backing/next" "$task/late-frames/directory.bin"
+  ln -s "$task/held-deep.bin" "$task/held-backing/next/nested.bin"
+  ln -s "$case_dir/outside/outside.bin" "$task/late-frames/external.bin"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+printf 'body: [latest](latest.png) [frames](frames.png) [components](component.png) [outside](escape.png)\n'
+SH
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
+    finished "$case_dir/project" https://github.com/test/repo/pull/1 || fail "symlink stage failed"
+  [ "$(cat "$task/latest.png")" = capture ] || fail "linked image symlink lost its target"
+  [ -L "$task/alias.bin" ] || fail "intermediate symlink was staged"
+  [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "linked directory symlink lost its contents"
+  [ "$(cat "$task/frames.png/member.bin")" = 'directory member capture' ] \
+    || fail "retained directory member lost its backing file during staging"
+  [ "$(cat "$task/frames.png/directory.bin/nested.bin")" = 'nested directory capture' ] \
+    || fail "transitive directory member lost its backing file during staging"
+  [ "$(cat "$task/frames.png/recursive.bin/member.bin")" = 'directory member capture' ] \
+    || fail "recursive directory alias did not retain its backing file"
+  [ "$(cat "$task/frames.png/external.bin")" = outside ] || fail "retained directory link changed an external target"
+  assert_present "$task/.cleanup-hold/backing/discard.bin" "transitive retention kept unrelated backing scratch"
+  assert_present "$task/.cleanup-hold/held-backing/capture.bin" "unlinked directory backing did not stage"
+  [ -L "$task/.cleanup-hold/late-frames/member.bin" ] || fail "unlinked directory member did not stage"
+  [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "symlink followed by .. lost its target during staging"
+  [ -d "$task/captures/subdir" ] || fail "staging removed an empty traversal directory"
+  assert_present "$task/.cleanup-hold/captures/discard.bin" "traversal retained unrelated directory contents"
+  assert_present "$task/.cleanup-hold/saved-captures/proof.bin" "unlinked ordered target did not stage"
+  [ -L "$task/.cleanup-hold/saved-alias.bin" ] || fail "unlinked ordered alias did not stage"
+  assert_absent "$task/saved-captures" "unlinked empty traversal directory did not stage"
+  [ "$(cat "$task/escape.png")" = outside ] || fail "staging changed an escaped link target"
+  assert_present "$task/.cleanup-hold/later.bin" "unlinked target did not stage"
+  [ -L "$task/.cleanup-hold/saved.png" ] || fail "unlinked symlink did not stage"
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+printf 'body: [latest](latest.png) [frames](frames.png) [components](component.png) [outside](escape.png) [saved](saved.png) [saved components](saved-component.png) [saved frames](saved-frames.png)\n'
+SH
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" finished \
+    || fail "symlink expiry failed"
+  [ "$(cat "$task/saved.png")" = 'later capture' ] || fail "newly linked held symlink lost its held target"
+  [ "$(cat "$task/latest.png")" = capture ] || fail "expiry broke retained symlink chain"
+  [ "$(cat "$task/frames.png/member.bin")" = 'directory member capture' ] || fail "expiry deleted a retained directory's backing file"
+  [ "$(cat "$task/frames.png/directory.bin/nested.bin")" = 'nested directory capture' ] || fail "expiry deleted a transitive directory target"
+  [ "$(cat "$task/saved-frames.png/member.bin")" = 'held directory capture' ] || fail "expiry did not restore a held directory's backing file"
+  [ "$(cat "$task/saved-frames.png/directory.bin/nested.bin")" = 'held nested capture' ] || fail "expiry did not restore transitive held directory targets"
+  [ "$(cat "$task/saved-frames.png/external.bin")" = outside ] || fail "held directory recovery changed an external target"
+  [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "transitive cleanup escaped the task directory"
+  [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "expiry broke symlink followed by .."
+  [ "$(cat "$task/saved-component.png")" = 'saved ordered capture' ] || fail "expiry did not restore ordered held targets and traversal directories"
+  [ -L "$task/saved-alias.bin" ] || fail "expiry did not restore a required intermediate alias"
+  [ -d "$task/saved-captures/subdir" ] || fail "expiry did not restore an empty traversal directory"
+  [ "$(cat "$task/escape.png")" = outside ] || fail "expiry changed an escaped link target"
+  assert_absent "$task/captures/discard.bin" "ordered lookup retained unrelated scratch"
+  assert_absent "$task/.cleanup-hold" "symlink recovery did not expire"
+  ln -s "$task/cycle.bin" "$task/frames/cycle.bin"
+  ln -s "$task/frames/cycle.bin" "$task/cycle.bin"
+  printf 'cycle scratch\n' > "$task/cycle-scratch.bin"
+  for action in stage expire; do
+    args=()
+    [ "$action" != stage ] || args=("$case_dir/project" https://github.com/test/repo/pull/1)
+    if PATH="$case_dir/fakebin:$PATH" python3 "$helper" "$action" "$case_dir/data" "$case_dir/state" \
+        finished "${args[@]+"${args[@]}"}" > "$case_dir/cycle.out" 2> "$case_dir/cycle.err"; then
+      fail "$action accepted a cycle below a retained directory"
+    fi
+    assert_grep 'cyclic evidence symlink' "$case_dir/cycle.err" "$action lost cycle protection"
+    [ "$(cat "$task/cycle-scratch.bin")" = 'cycle scratch' ] || fail "$action moved scratch despite a retained cycle"
+    [ "$(cat "$task/frames.png/member.bin")" = 'directory member capture' ] || fail "$action changed evidence despite a retained cycle"
+  done
+  pass "fm-teardown: retained directory links preserve transitive and held targets, component order, escapes and cycle safety"
+}
+
+test_task_data_linked_directories() {
+  local helper=${1:-$ROOT/bin/fm-task-data.py} case_dir
+  case_dir=$(make_case task-data-linked-directories)
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+cat "$FM_TEST_REFERENCE_FILE"
+SH
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+  FM_TEST_REFERENCE_FILE="$case_dir/references" PATH="$case_dir/fakebin:$PATH" \
+    python3 - "$case_dir" "$helper" <<'PY' || fail "linked directory regression failed"
+from pathlib import Path
+import subprocess
+import sys
+
+case, helper = Path(sys.argv[1]), sys.argv[2]
+external = case / "outside" / "keep.bin"
+external.parent.mkdir()
+external.write_bytes(b"outside\x00\xff")
+for variant in ("local", "pr"):
+    task = case / "data" / variant
+    expected = {
+        "artifacts/frame.bin": b"frame\x00\xff",
+        "artifacts/nested/fragment.bin": b"fragment\x00\xff",
+        "backing.bin": b"directory backing\x00\xff",
+        "pieces/deep.bin": b"nested backing\x00\xff",
+        "scratch-only/evidence.bin": b"single linked file\x00\xff",
+        "saved-artifacts/frame.bin": b"held frame\x00\xff",
+        "saved-backing.bin": b"held backing\x00\xff",
+    }
+    for rel, content in expected.items():
+        path = task / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    (task / "discard.bin").write_bytes(b"unlinked scratch")
+    (task / "scratch-only/discard.bin").write_bytes(b"unlinked sibling")
+    (task / "artifacts/empty").mkdir()
+    (task / "artifacts/member.bin").symlink_to(task / "backing.bin")
+    (task / "artifacts/directory.bin").symlink_to(task / "pieces")
+    (task / "artifacts/external.bin").symlink_to(external)
+    (task / "saved-artifacts/member.bin").symlink_to(task / "saved-backing.bin")
+    (task / "saved-artifacts/external.bin").symlink_to(external)
+    report = task / "report.md"
+    references = case / "references"
+    body = ("[evidence directory](artifacts" + ("/" if variant == "local" else "")
+            + ") [single file](scratch-only/evidence.bin)")
+    (report if variant == "local" else references).write_text(body)
+    pr = "https://github.com/test/repo/pull/1" if variant == "pr" else ""
+    command = [sys.executable, helper]
+    subprocess.run(command + ["stage", str(case / "data"), str(case / "state"), variant,
+                              str(case / "project"), pr], check=True)
+    present_at_stage = {rel: (task / rel).is_file() for rel in expected
+                        if not rel.startswith("saved-")}
+    assert (task / ".cleanup-hold/saved-artifacts/frame.bin").is_file(), "unlinked directory did not stage"
+    assert (task / ".cleanup-hold/discard.bin").is_file(), "unrelated scratch did not stage"
+    assert (task / ".cleanup-hold/scratch-only/discard.bin").is_file(), "file link retained its parent's unrelated contents"
+    assert external.read_bytes() == b"outside\x00\xff", "staging changed an external target"
+    body += " [later directory](saved-artifacts)"
+    (report if variant == "local" else references).write_text(body)
+    subprocess.run(command + ["expire", str(case / "data"), str(case / "state"), variant], check=True)
+    for rel, content in expected.items():
+        path = task / rel
+        assert path.is_file(), f"{variant} linked directory evidence deleted during expiry: {rel}"
+        assert path.read_bytes() == content, f"{variant} directory evidence changed: {rel}"
+    assert all(present_at_stage.values()), f"{variant} linked directory contents moved during staging"
+    assert (task / "artifacts/empty").is_dir(), "linked empty directory was removed"
+    for link, target in (("artifacts/member.bin", "backing.bin"),
+                         ("artifacts/directory.bin/deep.bin", "pieces/deep.bin"),
+                         ("saved-artifacts/member.bin", "saved-backing.bin")):
+        assert (task / link).read_bytes() == expected[target], f"{variant} directory link broke: {link}"
+    assert (task / "saved-artifacts/external.bin").read_bytes() == external.read_bytes(), "held external link broke"
+    assert external.read_bytes() == b"outside\x00\xff", "expiry changed an external target"
+    assert not (task / ".cleanup-hold").exists(), "directory recovery did not expire"
+    assert not (task / "discard.bin").exists(), "unrelated scratch survived expiry"
+    assert not (task / "scratch-only/discard.bin").exists(), "file link retained an unrelated sibling during expiry"
+PY
+  pass "fm-teardown: local and PR directory links retain binary descendants, nested symlink targets and newly linked held contents"
+}
+
+test_task_data_reference_spellings() {
+  local helper=${1:-$ROOT/bin/fm-task-data.py} case_dir reference_source
+  for reference_source in local pr bead; do
+    case_dir=$(make_case "task-data-spellings-$reference_source")
+    if [ "$reference_source" = bead ]; then
+      write_task_data_beads_fixture "$case_dir"
+    else
+      cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+      chmod +x "$case_dir/fakebin/dcg"
+    fi
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+cat "$FM_TEST_REFERENCE_FILE"
+SH
+    chmod +x "$case_dir/fakebin/gh-axi"
+    FM_TEST_REFERENCE_FILE="$case_dir/references" PATH="$case_dir/fakebin:$PATH" \
+      python3 - "$case_dir" "$helper" "$reference_source" <<'PY' || fail "reference spelling regression failed"
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import unicodedata
+
+case, helper, source = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+probe = case / "caf\u00e9"
+probe.write_bytes(b"probe")
+alias = case / "cafe\u0301"
+sensitive = not alias.exists() or not os.path.samefile(probe, alias)
+print(f"ok - fm-teardown: {source} ordinary-path Unicode checks; normalization-sensitive filesystem: {sensitive}", flush=True)
+task = case / "data" / "proof-owner"
+external = case / "outside" / "keep.bin"
+external.parent.mkdir()
+external.write_bytes(b"outside\x00\xff")
+names = {"nfc": unicodedata.normalize("NFC", "caf\u00e9"),
+         "nfd": unicodedata.normalize("NFD", "r\u00e9sum\u00e9")}
+initial = {"proof(1).png": b"escaped capture\x00\xff",
+           "escaped-backing.bin": b"escaped alias backing\x00\xff",
+           "folder(1)/frame.bin": b"escaped directory capture\x00\xff",
+           "single/capture.png": b"single linked file\x00\xff",
+           "raw.bin": b"raw capture\x00\xff",
+           "url image.png": b"URL capture\x00\xff",
+           "html&proof.png": b"HTML capture\x00\xff"}
+later = {"later(1).png": b"held escaped capture\x00\xff",
+         "later-escaped-backing.bin": b"held escaped alias backing\x00\xff"}
+links = {"link(1).png": task / "escaped-backing.bin",
+         "later-link(1).png": task / "later-escaped-backing.bin"}
+body = (r"[capture](proof\(1\).png) [alias](link\(1\).png) [directory](folder\(1\)/) "
+        "[single file](single/capture.png) [raw](raw.bin) [URL](url%20image.png) "
+        "[HTML](html&amp;proof.png)\nScratch: " + str(external.parent))
+added = r" [later capture](later\(1\).png) [later alias](later-link\(1\).png)"
+for form, name in names.items():
+    initial[f"{name}/frame.bin"] = f"{form} capture".encode() + b"\x00\xff"
+    initial[f"{form}-backing.bin"] = f"{form} backing".encode() + b"\x00\xff"
+    later[f"later-{name}/frame.bin"] = f"held {form} capture".encode() + b"\x00\xff"
+    later[f"later-{form}-backing.bin"] = f"held {form} backing".encode() + b"\x00\xff"
+    links[f"{name}/member.bin"] = task / f"{form}-backing.bin"
+    links[f"later-{name}/member.bin"] = task / f"later-{form}-backing.bin"
+    links[f"{name}/external.bin"] = external
+    links[f"later-{name}/external.bin"] = external
+    body += f" [{form} directory]({name}/)"
+    added += f" [later {form} directory](later-{name}/)"
+for rel, content in (initial | later).items():
+    path = task / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content)
+for rel, target in links.items():
+    (task / rel).symlink_to(target)
+for rel in ("discard.bin", "single/discard.bin", "scratch/blob"):
+    path = task / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"unrelated scratch")
+(task / "brief.md").write_text("plain cleanup instructions\n")
+
+def publish(text):
+    if source == "local":
+        (task / "report.md").write_text(text)
+    elif source == "pr":
+        (case / "references").write_text(json.dumps({"body": text}))
+    else:
+        subprocess.run(["tasks-axi", "update", "proof-owner", "--body", text], cwd=case,
+                       check=True, stdout=subprocess.DEVNULL)
+
+publish(body)
+pr = "https://github.com/test/repo/pull/1" if source == "pr" else ""
+command = [sys.executable, helper]
+subprocess.run(command + ["stage", str(case / "data"), str(case / "state"), "proof-owner",
+                          str(case / "project"), pr], check=True)
+assert (task / names["nfc"] / "frame.bin").is_file(), "NFC Unicode directory evidence was staged"
+assert (task / names["nfd"] / "frame.bin").is_file(), "NFD Unicode directory evidence was staged"
+assert (task / "proof(1).png").is_file(), "Markdown-escaped filename was staged"
+for rel, content in initial.items():
+    assert (task / rel).read_bytes() == content, f"{source} initial spelling lost: {rel}"
+for rel, content in later.items():
+    assert (task / ".cleanup-hold" / rel).read_bytes() == content, f"unlinked held spelling retained early: {rel}"
+for rel in ("discard.bin", "single/discard.bin", "scratch/blob"):
+    assert (task / ".cleanup-hold" / rel).is_file(), f"{source} unrelated scratch did not stage: {rel}"
+for form, name in names.items():
+    assert (task / name / "member.bin").read_bytes() == initial[f"{form}-backing.bin"], "Unicode directory symlink broke"
+assert (task / "link(1).png").read_bytes() == initial["escaped-backing.bin"], "escaped symlink backing was staged"
+publish(body + added)
+subprocess.run(command + ["expire", str(case / "data"), str(case / "state"), "proof-owner"], check=True)
+for rel, content in (initial | later).items():
+    assert (task / rel).read_bytes() == content, f"{source} spelling lost during expiry: {rel}"
+for form, name in names.items():
+    assert (task / name / "member.bin").read_bytes() == initial[f"{form}-backing.bin"], "expiry broke an initial Unicode link"
+    assert (task / f"later-{name}/member.bin").read_bytes() == later[f"later-{form}-backing.bin"], "expiry broke a held Unicode link"
+    assert (task / f"later-{name}/external.bin").read_bytes() == b"outside\x00\xff", "expiry changed an external target"
+assert (task / "later-link(1).png").read_bytes() == later["later-escaped-backing.bin"], "expiry broke a held escaped link"
+assert external.read_bytes() == b"outside\x00\xff", "cleanup escaped its owned root"
+assert not (task / ".cleanup-hold").exists(), "spelling recovery did not expire"
+for rel in ("discard.bin", "single/discard.bin", "scratch/blob"):
+    assert not (task / rel).exists(), f"{source} unrelated scratch was retained: {rel}"
+PY
+  done
+  pass "fm-teardown: local, PR and owning-bead links preserve NFC/NFD directories and escaped Markdown through staging, held recovery and expiry"
+}
+
+test_task_data_filesystem_name_aliases() {
+  local helper=${1:-$ROOT/bin/fm-task-data.py} case_dir
+  case_dir=$(make_case task-data-name-aliases)
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+cat "$FM_TEST_REFERENCE_FILE"
+SH
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+  FM_TEST_REFERENCE_FILE="$case_dir/references" PATH="$case_dir/fakebin:$PATH" \
+    python3 - "$case_dir" "$helper" <<'PY' || fail "filesystem name alias regression failed"
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+case, helper = Path(sys.argv[1]), sys.argv[2]
+probe = case / "CaseProbe"
+probe.write_bytes(b"probe")
+if not (case / "caseprobe").exists() or not os.path.samefile(probe, case / "caseprobe"):
+    print("ok - fm-teardown: filesystem name aliases skipped on a case-sensitive filesystem")
+    sys.exit(0)
+task = case / "data" / "finished"
+external = case / "outside" / "keep.bin"
+external.parent.mkdir()
+external.write_bytes(b"external\x00\xff")
+expected = {
+    "captures/frame.bin": b"capture\x00\xff",
+    "rawcapture.bin": b"direct file\x00\xff",
+    "rawdir/pixel.bin": b"direct directory\x00\xff",
+    "frames/piece.bin": b"directory alias\x00\xff",
+    "walk/proof.bin": b"ordered prefix\x00\xff",
+    "rootcapture.bin": b"owned root\x00\xff",
+    "caf\u00e9/frame.bin": b"unicode target\x00\xff",
+    "r\u00e9sum\u00e9.bin": b"unicode reference\x00\xff",
+    "linked-original.bin": b"hardlinked capture\x00\xff",
+    "held-captures/frame.bin": b"held capture\x00\xff",
+    "held-direct.bin": b"held direct file\x00\xff",
+    "held-dir/pixel.bin": b"held direct directory\x00\xff",
+    "held-frames/piece.bin": b"held directory alias\x00\xff",
+    "held-walk/proof.bin": b"held ordered prefix\x00\xff",
+    "held-root.bin": b"held owned root\x00\xff",
+}
+for rel, content in expected.items():
+    path = task / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content)
+(task / "walk/subdir").mkdir()
+(task / "held-walk/subdir").mkdir()
+(task / "discard.bin").write_bytes(b"unlinked scratch")
+(task / "captures/discard.bin").write_bytes(b"unlinked sibling")
+os.link(task / "linked-original.bin", task / "hardlink-other.bin")
+links = {
+    "latest.png": "Captures/FRAME.BIN",
+    "sequence.png": "FRAMES",
+    "walk-alias.bin": "WALK/SUBDIR",
+    "component.png": "WALK-ALIAS.BIN/../PROOF.BIN",
+    "root.png": str(task.parent / "FINISHED" / "ROOTCAPTURE.BIN"),
+    "unicode.png": "CAFE\u0301/FRAME.BIN",
+    "hardlink.png": "LINKED-ORIGINAL.BIN",
+    "escape.png": str(case / "OUTSIDE" / "KEEP.BIN"),
+    "saved.png": "HELD-CAPTURES/FRAME.BIN",
+    "saved-frames.png": "HELD-FRAMES",
+    "held-alias.bin": "HELD-WALK/SUBDIR",
+    "saved-component.png": "HELD-ALIAS.BIN/../PROOF.BIN",
+    "saved-root.png": str(task.parent / "FINISHED" / "HELD-ROOT.BIN"),
+}
+for rel, target in links.items():
+    (task / rel).symlink_to(target)
+references = case / "references"
+body = ("[capture](latest.png) [sequence](sequence.png) [prefix](component.png) [root](root.png) "
+        "[unicode](unicode.png) [outside](escape.png) [direct](RAWCAPTURE.BIN) "
+        "[directory](RAWDIR/) [unicode direct](R\u00c9SUM\u00c9.BIN) [hardlinked](hardlink.png)")
+references.write_text(json.dumps({"body": body}))
+command = [sys.executable, helper]
+subprocess.run(command + ["stage", str(case / "data"), str(case / "state"), "finished",
+                          str(case / "project"), "https://github.com/test/repo/pull/1"], check=True)
+assert (task / "latest.png").is_file(), "filesystem alias lost its backing file during staging"
+for rel, content in expected.items():
+    if rel.startswith("held-"):
+        assert (task / ".cleanup-hold" / rel).read_bytes() == content, f"unlinked alias target did not stage: {rel}"
+    else:
+        assert (task / rel).read_bytes() == content, f"filesystem identity lost during staging: {rel}"
+assert (task / "walk/subdir").is_dir(), "aliased traversal prefix was removed"
+assert (task / ".cleanup-hold/captures/discard.bin").is_file(), "alias retention kept an unrelated sibling"
+assert (task / ".cleanup-hold/hardlink-other.bin").is_file(), "alias retention confused distinct hardlink names"
+references.write_text(json.dumps({"body": body + " [saved](saved.png) [saved frames](saved-frames.png) "
+                                 "[saved prefix](saved-component.png) [saved root](saved-root.png) "
+                                 "[held direct](HELD-DIRECT.BIN) [held directory](HELD-DIR/)"}))
+subprocess.run(command + ["expire", str(case / "data"), str(case / "state"), "finished"], check=True)
+for rel, content in expected.items():
+    assert (task / rel).read_bytes() == content, f"filesystem identity lost during expiry: {rel}"
+for rel in ("latest.png", "sequence.png/piece.bin", "component.png", "root.png", "unicode.png", "hardlink.png",
+            "saved.png", "saved-frames.png/piece.bin", "saved-component.png", "saved-root.png"):
+    assert (task / rel).is_file(), f"filesystem alias broke during expiry: {rel}"
+assert (task / "held-walk/subdir").is_dir(), "held traversal prefix was not restored"
+assert (task / "escape.png").read_bytes() == b"external\x00\xff", "external alias changed"
+assert external.read_bytes() == b"external\x00\xff", "filesystem alias cleanup escaped its root"
+assert not (task / ".cleanup-hold").exists(), "aliased recovery did not expire"
+assert not (task / "discard.bin").exists(), "unrelated scratch survived aliased expiry"
+assert not (task / "captures/discard.bin").exists(), "unrelated sibling survived aliased expiry"
+print("ok - fm-teardown: real filesystem name aliases retain direct, directory, prefix, owned-root and held evidence")
+PY
+}
+
+test_task_data_symlink_ancestor_aliases() {
+  local helper=$1 case_dir task physical alias_root captures variant data
+  for variant in fixture macos; do
+    if [ "$variant" = macos ] && [ "$(cd -P /tmp && pwd -P)" != /private/tmp ]; then
+      pass "skip: macOS /tmp ancestor alias is not present on this host"
+      continue
+    fi
+    case_dir=$(make_case "task-data-ancestor-alias-$variant")
+    if [ "$variant" = macos ]; then
+      physical=$(TMPDIR=/tmp fm_test_tmproot fm-task-data-alias)
+      alias_root="/tmp/${physical##*/}"
+    else
+      physical="$case_dir/physical"
+      alias_root="$case_dir/ancestor-alias"
+      mkdir -p "$physical/anchor/subdir"
+      ln -s "$physical/anchor/subdir" "$case_dir/alias-bridge"
+      ln -s "$case_dir/alias-bridge/../.." "$alias_root"
+    fi
+    data="$physical/data"
+    task="$data/finished"
+    captures="$task/captures"
+    mkdir -p "$captures/frames" "$captures/later-frames" "$captures/subdir" "$case_dir/outside"
+    printf 'capture\n' > "$captures/capture.bin"
+    printf 'frame\n' > "$captures/frames/frame.bin"
+    printf 'chain\n' > "$captures/chain.bin"
+    printf 'later capture\n' > "$captures/later.bin"
+    printf 'later frame\n' > "$captures/later-frames/later-frame.bin"
+    printf 'discard\n' > "$captures/discard.bin"
+    printf 'ordered capture\n' > "$captures/proof.bin"
+    printf 'data capture\n' > "$task/data.bin"
+    printf 'data discard\n' > "$task/discard-data.bin"
+    printf 'outside\n' > "$case_dir/outside/outside.bin"
+    ln -s chain.bin "$captures/bridge.bin"
+    ln -s "$alias_root/data/finished/captures/capture.bin" "$task/latest.png"
+    ln -s "$alias_root/data/finished/captures/frames" "$task/frames.png"
+    ln -s "$alias_root/data/finished/captures/bridge.bin" "$task/chained.png"
+    ln -s "$alias_root/data/finished/captures/later.bin" "$task/saved.png"
+    ln -s "$alias_root/data/finished/captures/later-frames" "$task/saved-frames.png"
+    ln -s captures/subdir "$task/component-alias.bin"
+    ln -s "$alias_root/data/finished/component-alias.bin/../proof.bin" "$task/component.png"
+    ln -s "$data" "$case_dir/data-alias"
+    ln -s "$case_dir/data-alias/finished/data.bin" "$task/latest-data.png"
+    ln -s "$case_dir/outside" "$case_dir/outside-alias"
+    ln -s "$case_dir/outside-alias/outside.bin" "$task/escape.png"
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png) [components](component.png)\n'
+SH
+    chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+    PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+      "$data" "$case_dir/state" finished "$case_dir/project" https://github.com/test/repo/pull/1 \
+      || fail "$variant alias staging failed"
+    [ "$(cat "$task/latest.png")" = capture ] || fail "$variant aliased data link lost its target during staging"
+    [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "$variant aliased directory lost its contents during staging"
+    [ "$(cat "$task/chained.png")" = chain ] || fail "$variant aliased target lost an intermediate symlink"
+    [ -L "$captures/bridge.bin" ] || fail "$variant owned intermediate symlink was staged"
+    [ "$(cat "$task/latest-data.png")" = 'data capture' ] || fail "$variant aliased data link lost its target"
+    [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "$variant ancestor alias collapsed .. before an owned symlink"
+    assert_present "$task/.cleanup-hold/captures/later.bin" "$variant unlinked data target did not stage"
+    assert_present "$task/.cleanup-hold/captures/later-frames/later-frame.bin" "$variant unlinked directory did not stage"
+    [ -L "$task/.cleanup-hold/saved.png" ] || fail "$variant unlinked image did not stage"
+    [ -L "$task/.cleanup-hold/saved-frames.png" ] || fail "$variant unlinked directory link did not stage"
+    assert_present "$task/.cleanup-hold/captures/discard.bin" "$variant unrelated scratch did not stage"
+    [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "$variant alias cleanup escaped its owned roots"
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png) [components](component.png) [saved](saved.png) [saved frames](saved-frames.png)\n'
+SH
+    PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+      "$data" "$case_dir/state" finished || fail "$variant alias expiry failed"
+    [ "$(cat "$task/latest.png")" = capture ] || fail "$variant alias expiry deleted the linked capture"
+    [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "$variant alias expiry deleted linked directory contents"
+    [ "$(cat "$task/chained.png")" = chain ] || fail "$variant alias expiry broke the symlink chain"
+    [ "$(cat "$task/latest-data.png")" = 'data capture' ] || fail "$variant alias expiry deleted linked data"
+    [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "$variant ancestor alias expiry broke ordered traversal"
+    [ "$(cat "$task/saved.png")" = 'later capture' ] || fail "$variant alias expiry did not restore the held target"
+    [ "$(cat "$task/saved-frames.png/later-frame.bin")" = 'later frame' ] || fail "$variant alias expiry did not restore held directory contents"
+    [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "$variant alias expiry escaped its owned roots"
+    assert_absent "$task/.cleanup-hold" "$variant alias data recovery remains"
+    assert_absent "$captures/discard.bin" "$variant alias lookup retained unlinked scratch"
+    assert_absent "$task/discard-data.bin" "$variant alias lookup retained unlinked data"
+    pass "fm-teardown: $variant ancestor aliases preserve owned targets and recovery paths through staging and expiry"
+  done
+}
+
+test_task_data_collision_progress() {
+  local case_dir task helper scratch
+  helper="$ROOT/bin/fm-task-data.py"
+  case_dir=$(make_case task-data-collision)
+  task="$case_dir/data/reused"
+  scratch="$task/scratch"
+  mkdir -p "$scratch"
+  printf 'first generation\n' > "$scratch/build.bin"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/dcg"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+    "$case_dir/data" "$case_dir/state" reused "$case_dir/project" '' || fail "initial stage failed"
+  mkdir -p "$scratch"
+  printf 'second generation\n' > "$scratch/build.bin"
+  if PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+      "$case_dir/data" "$case_dir/state" reused "$case_dir/project" '' > "$case_dir/out" 2> "$case_dir/err"; then
+    fail "collision overwrote a generation"
+  fi
+  jq -e '.complete == true and .expired != true' "$task/record/data-cleanup.json" >/dev/null \
+    || fail "collision disabled completed recovery"
+  [ "$(cat "$scratch/build.bin")" = 'second generation' ] || fail "replacement changed"
+  [ "$(cat "$task/.cleanup-hold/scratch/build.bin")" = 'first generation' ] || fail "first data generation changed"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+    "$case_dir/data" "$case_dir/state" reused || fail "old recovery could not expire"
+  [ "$(cat "$task/.cleanup-hold/scratch/build.bin")" = 'second generation' ] || fail "replacement data is not recoverable"
+  jq -e '.complete == true and .expired == false' "$task/record/data-cleanup.json" >/dev/null \
+    || fail "replacement missed its new recovery cycle"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+    "$case_dir/data" "$case_dir/state" reused || fail "replacement recovery could not expire"
+  assert_absent "$task/.cleanup-hold" "data collision recovery remains"
+  pass "fm-teardown: reused data scratch paths progress without overwriting either generation"
+}
+
+test_task_data_retirement_obligation() {
+  local case_dir task real_python mode
+  real_python=$(command -v python3)
+  case_dir=$(make_case task-data-record-failure)
+  task="$case_dir/data/task-x1"
+  mkdir -p "$task/scratch"
+  printf 'scratch\n' > "$task/scratch/blob"
+  write_meta "$case_dir" local-only ship
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+if [ "\${2:-}" = prepare ]; then exit 1; fi
+exec '$real_python' "\$@"
+SH
+  chmod +x "$case_dir/fakebin/python3"
+  if run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err"; then
+    fail "retirement accepted an unwritable cleanup obligation"
+  fi
+  assert_present "$case_dir/state/task-x1.meta" "record failure retired the task metadata"
+  [ "$(cat "$task/scratch/blob")" = scratch ] || fail "record failure changed original scratch"
+
+  for mode in close retain; do
+    case_dir=$(make_case "task-data-replay-$mode")
+    task="$case_dir/data/task-x1"
+    mkdir -p "$task/scratch"
+    printf 'Bead replay-123\n' > "$task/brief.md"
+    printf 'scratch\n' > "$task/scratch/blob"
+    write_meta "$case_dir" local-only ship
+    printf 'pr=https://github.com/test/repo/pull/1\n' >> "$case_dir/state/task-x1.meta"
+    seed_backlog_in_flight "$case_dir"
+    fm_test_tasks_toml "$case_dir/.tasks.toml"
+    tasks-axi add replay-123 'replay evidence' --body 'no attachments' \
+      --file "$case_dir/data/backlog.md" >/dev/null
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+printf 'body: no attachments\n'
+SH
+    chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+    cat > "$case_dir/replay.sh" <<'SH'
+#!/usr/bin/env bash
+set -eu
+root=$1 case_dir=$2 mode=$3
+. "$root/bin/fm-wake-lib.sh"
+. "$root/bin/fm-tasks-axi-lib.sh"
+. "$root/bin/fm-backlog-transition-lib.sh"
+state="$case_dir/state" data="$case_dir/data"
+lock=$(fm_meta_lock_path "$state/task-x1.meta")
+fm_lock_acquire_wait "$lock"
+flags=()
+[ "$mode" = close ] || flags=(--retain)
+gen=$(sed -n 's/^spawn_gen=//p' "$state/task-x1.meta")
+fm_backlog_close_marker_write "$state" task-x1 "$data" "$gen" "${flags[@]+"${flags[@]}"}" --note 'local main'
+fm_backlog_close_marker_replay "$state" "$state/task-x1.backlog-close" "$data"
+fm_lock_release "$lock"
+SH
+    FM_HOME="$case_dir" FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+      PATH="$case_dir/fakebin:$PATH" bash "$case_dir/replay.sh" "$ROOT" "$case_dir" "$mode" \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "$mode retirement replay failed: $(cat "$case_dir/err")"
+    assert_absent "$case_dir/state/task-x1.meta" "$mode replay left metadata"
+    jq -e '.complete == false and .sources[0].pr == "https://github.com/test/repo/pull/1" and .sources[0].beads == ["replay-123"]' \
+      "$task/record/data-cleanup.json" >/dev/null || fail "$mode replay lost the cleanup obligation or sources"
+    PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$mode replay cleanup could not resume"
+    assert_present "$task/.cleanup-hold/scratch/blob" "$mode replay did not give recovery a full cycle"
+    PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$mode replay cleanup could not expire"
+    assert_absent "$task/.cleanup-hold" "$mode replay recovery remains"
+  done
+  pass "fm-teardown: failed receipt writes preserve metadata and close/retain replay records retryable cleanup"
+}
+
+test_task_data_discovered_pr_retirement() {
+  local code_root=${1:-$ROOT} case_dir task mode real_tasks real_python rc expected
+  real_tasks=$(command -v tasks-axi)
+  real_python=$(command -v python3)
+  for mode in close retain replay-close replay-retain replay-absent replay-absent-retain direct; do
+    case_dir=$(make_case "task-data-discovered-$mode")
+    task="$case_dir/data/task-x1"
+    mkdir -p "$task/scratch"
+    printf 'PR-only evidence\n' > "$task/proof.png"
+    printf 'scratch\n' > "$task/scratch/blob"
+    write_meta "$case_dir" no-mistakes ship
+    wt_commit_file "$case_dir" feature.txt hello "add feature"
+    add_gh_pr_merged_for_head "$case_dir" "$(git -C "$case_dir/wt" rev-parse HEAD)"
+    [ "$mode" = direct ] || seed_backlog_in_flight "$case_dir"
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "${1:-} ${2:-}" in
+  "pr list") printf '%s\n' 'count: 1 (showing first 1)' 'pull_requests[1]{number,state}:' '  7,merged' ;;
+  "pr view") printf '%s\n' 'pull_request:' '  number: 7' '  state: merged' '  merged: "2026-06-26T00:00:00Z"' '  body: [proof](proof.png)' ;;
+esac
+SH
+    cat > "$case_dir/fakebin/tasks-axi" <<SH
+#!/usr/bin/env bash
+if [ "\${FM_TEST_FAIL_COMPLETION:-0}" = 1 ]; then
+  case "\${1:-}" in done|reopen) exit 1 ;; esac
+fi
+exec '$real_tasks' "\$@"
+SH
+    cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+if [ "\${FM_TEST_SKIP_STAGE:-0}" = 1 ] && [ "\${2:-}" = stage ]; then exit 1; fi
+exec '$real_python' "\$@"
+SH
+    chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/python3"
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/dcg"
+    cat > "$case_dir/transition.sh" <<'SH'
+#!/usr/bin/env bash
+set -eu
+root=$1 case_dir=$2 mode=$3
+. "$root/bin/fm-wake-lib.sh"
+. "$root/bin/fm-tasks-axi-lib.sh"
+. "$root/bin/fm-backlog-transition-lib.sh"
+state="$case_dir/state" data="$case_dir/data"
+lock=$(fm_meta_lock_path "$state/task-x1.meta")
+fm_lock_acquire_wait "$lock"
+trap 'fm_lock_release "$lock"' EXIT
+pr=https://github.com/example/repo/pull/7
+if [ "$mode" != replay ]; then
+  flags=()
+  case "$mode" in *retain) flags=(--retain) ;; esac
+  gen=$(sed -n 's/^spawn_gen=//p' "$state/task-x1.meta")
+  fm_backlog_close_marker_write "$state" task-x1 "$data" "$gen" "${flags[@]+"${flags[@]}"}" --pr "$pr"
+fi
+case "$mode" in
+  replay-absent*)
+    python3 "$root/bin/fm-task-data.py" prepare "$data" "$state" task-x1
+    fm_backlog_record_remove "$state/task-x1.meta" 'task record' "$state"
+    ;;
+esac
+if [ "$mode" = retain ]; then
+  fm_backlog_atomic_transition retain "$state/task-x1.meta" "$state/task-x1.backlog-close" \
+    "$data" task-x1 "$state" --pr "$pr"
+else
+  fm_backlog_close_marker_replay "$state" "$state/task-x1.backlog-close" "$data"
+fi
+SH
+    rc=0
+    expected=0
+    case "$mode" in
+      close|direct)
+        [ "$mode" != close ] || expected=1
+        FM_TEST_FAIL_COMPLETION=1 FM_TEST_SKIP_STAGE=1 FM_HOME="$case_dir" \
+          FM_ROOT_OVERRIDE="$code_root" FM_STATE_OVERRIDE="$case_dir/state" \
+          FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+          PATH="$case_dir/fakebin:$PATH" "$code_root/bin/fm-teardown.sh" task-x1 \
+          > "$case_dir/out" 2> "$case_dir/err" || rc=$?
+        ;;
+      *)
+        [ "$mode" != retain ] || expected=1
+        FM_TEST_FAIL_COMPLETION="$expected" FM_HOME="$case_dir" \
+          FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+          PATH="$case_dir/fakebin:$PATH" bash "$case_dir/transition.sh" "$code_root" "$case_dir" "$mode" \
+          > "$case_dir/out" 2> "$case_dir/err" || rc=$?
+        ;;
+    esac
+    expect_code "$expected" "$rc" "$mode discovered-PR retirement: $(cat "$case_dir/err")"
+    assert_absent "$case_dir/state/task-x1.meta" "$mode did not retire metadata"
+    jq -e '.complete == false and any(.sources[]; .pr == "https://github.com/example/repo/pull/7")' \
+      "$task/record/data-cleanup.json" >/dev/null || fail "$mode retirement lost the discovered PR before staging"
+    [ "$(cat "$task/proof.png")" = 'PR-only evidence' ] || fail "$mode retirement changed linked evidence"
+    case "$mode" in
+      close|retain)
+        assert_present "$case_dir/state/task-x1.backlog-close" "$mode interruption lost the replay obligation"
+        FM_HOME="$case_dir" FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+          PATH="$case_dir/fakebin:$PATH" bash "$case_dir/transition.sh" "$code_root" "$case_dir" replay \
+          > "$case_dir/replay.out" 2> "$case_dir/replay.err" || fail "$mode replay failed: $(cat "$case_dir/replay.err")"
+        ;;
+    esac
+    assert_absent "$case_dir/state/task-x1.backlog-close" "$mode replay left its pending completion"
+    PATH="$case_dir/fakebin:$PATH" python3 "$code_root/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$mode discovered-PR cleanup could not stage"
+    [ "$(cat "$task/proof.png")" = 'PR-only evidence' ] || fail "$mode replay staged PR-linked evidence"
+    assert_present "$task/.cleanup-hold/scratch/blob" "$mode replay omitted one-cycle recovery"
+    PATH="$case_dir/fakebin:$PATH" python3 "$code_root/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$mode discovered-PR cleanup could not expire"
+    [ "$(cat "$task/proof.png")" = 'PR-only evidence' ] || fail "$mode replay deleted PR-linked evidence"
+    assert_absent "$task/.cleanup-hold" "$mode recovery did not expire"
+  done
+  pass "fm-teardown: discovered PR references survive interrupted close, retain, replay and direct retirement"
+}
+
+test_task_data_forge_references() {
+  local case_dir task provider pr
+  for provider in gitlab forgejo gerrit; do
+    case_dir=$(make_case "task-data-$provider")
+    task="$case_dir/data/task-x1"
+    mkdir -p "$task"
+    printf 'description image\n' > "$task/body.png"
+    printf 'discussion image\n' > "$task/comment.png"
+    printf 'review image\n' > "$task/review.png"
+    printf 'inline image\n' > "$task/inline.png"
+    printf 'scratch\n' > "$task/discard.bin"
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/dcg"
+    case "$provider" in
+      gitlab)
+        pr=https://gitlab.example.com/group/repo/-/merge_requests/7
+        cat > "$case_dir/fakebin/glab" <<'SH'
+#!/usr/bin/env bash
+case "$1 $2" in
+  'mr view') printf '{"iid":7,"state":"merged","description":"[body](body.png)"}\n' ;;
+  'api --hostname') printf '[{"body":"[note](comment.png) [review](review.png) [inline](inline.png)"}]\n' ;;
+  *) exit 1 ;;
+esac
+SH
+        chmod +x "$case_dir/fakebin/glab"
+        ;;
+      forgejo)
+        pr=https://git.example.org/team/repo/pulls/7
+        cat > "$case_dir/fakebin/tea" <<'SH'
+#!/usr/bin/env bash
+case "$*" in
+  'login list --output json') printf '[{"name":"fixture","url":"https://git.example.org"}]\n' ;;
+  *'/pulls/7') printf '{"number":7,"state":"closed","body":"[body](body.png)"}\n' ;;
+  *'/issues/7/comments?'*) printf '[{"body":"[comment](comment.png)"}]\n' ;;
+  *'/pulls/7/reviews/10/comments?'*) printf '[{"body":"[inline](inline.png)"}]\n' ;;
+  *'/pulls/7/reviews?'*) printf '[{"id":10,"body":"[review](review.png)"}]\n' ;;
+  *) exit 1 ;;
+esac
+SH
+        chmod +x "$case_dir/fakebin/tea"
+        ;;
+      gerrit)
+        pr=https://review.internal/c/group/repo/+/7
+        cat > "$case_dir/fakebin/gerrit-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$*" = 'show 7 --host review.internal --json' ] || exit 1
+printf '{"ok":true,"changes":[{"change":7,"status":"MERGED","subject":"[body](body.png)","comments":[{"message":"[comment](comment.png) [review](review.png) [inline](inline.png)"}]}]}\n'
+SH
+        chmod +x "$case_dir/fakebin/gerrit-axi"
+        ;;
+    esac
+    if [ "$provider" = gitlab ]; then
+      write_meta "$case_dir" local-only ship
+      printf 'pr=%s\n' "$pr" >> "$case_dir/state/task-x1.meta"
+      run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+        || fail "GitLab task teardown failed: $(cat "$case_dir/err")"
+    else
+      PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" stage \
+        "$case_dir/data" "$case_dir/state" task-x1 "$case_dir/project" "$pr" \
+        || fail "$provider references refused staging"
+    fi
+    assert_present "$task/.cleanup-hold/discard.bin" "$provider scratch did not stage"
+    if [ "$provider" = gitlab ]; then
+      cat > "$case_dir/fakebin/glab" <<'SH'
+#!/usr/bin/env bash
+case "$1 $2" in
+  'mr view') printf '{"iid":7,"state":"merged","description":"[body](body.png)"}\n' ;;
+  *) printf '{"message":"unavailable"}\n' ;;
+esac
+SH
+      if PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+          "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err"; then
+        fail "unreadable GitLab notes permitted expiry"
+      fi
+      assert_present "$task/.cleanup-hold/discard.bin" "unreadable GitLab notes lost recovery"
+      cat > "$case_dir/fakebin/glab" <<'SH'
+#!/usr/bin/env bash
+case "$1 $2" in
+  'mr view') printf '{"iid":7,"state":"merged","description":"[body](body.png)"}\n' ;;
+  'api --hostname') printf '[{"body":"[note](comment.png) [review](review.png) [inline](inline.png)"}]\n' ;;
+  *) exit 1 ;;
+esac
+SH
+    fi
+    PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$provider references refused expiry"
+    assert_present "$task/body.png" "$provider lost description-linked evidence"
+    assert_present "$task/comment.png" "$provider lost comment-linked evidence"
+    assert_present "$task/review.png" "$provider lost review-linked evidence"
+    assert_present "$task/inline.png" "$provider lost inline evidence"
+    assert_absent "$task/.cleanup-hold" "$provider recovery did not expire"
+  done
+  pass "fm-teardown: GitLab, Forgejo and Gerrit references protect evidence during staging and expiry"
+}
+
+test_task_data_leaves_temporary_scratch() {
+  local helper=$1 case_dir task temporary
+  case_dir=$(make_case task-data-scope)
+  task="$case_dir/data/finished"
+  temporary="$case_dir/tmp/finished-proof"
+  mkdir -p "$task/scratch" "$temporary"
+  printf 'Scratch: %s\n' "$temporary" > "$task/report.md"
+  printf 'data bytes\n' > "$task/scratch/blob"
+  printf 'temporary bytes\n' > "$temporary/build.bin"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/dcg"
+  TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+    "$case_dir/data" "$case_dir/state" finished "$case_dir/project" '' || fail "data-only staging failed"
+  assert_present "$task/.cleanup-hold/scratch/blob" "data scratch was not staged"
+  [ "$(cat "$temporary/build.bin")" = 'temporary bytes' ] || fail "staging changed temporary scratch"
+  assert_absent "$temporary/.cleanup-hold" "staging created external recovery"
+  TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+    "$case_dir/data" "$case_dir/state" finished || fail "data-only expiry failed"
+  assert_absent "$task/.cleanup-hold" "data recovery did not expire"
+  [ "$(cat "$temporary/build.bin")" = 'temporary bytes' ] || fail "expiry changed temporary scratch"
+  assert_absent "$temporary/.cleanup-hold" "expiry created external recovery"
+  pass "fm-teardown: data cleanup leaves named and referenced TMPDIR scratch untouched"
+}
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-scope ]; then
+  test_task_data_leaves_temporary_scratch "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-aliases ]; then
+  test_task_data_symlink_ancestor_aliases "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-components ]; then
+  test_task_data_symlink_targets "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-names ]; then
+  test_task_data_filesystem_name_aliases "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-directories ]; then
+  test_task_data_linked_directories "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-spellings ]; then
+  test_task_data_reference_spellings "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-retirement ]; then
+  test_task_data_discovered_pr_retirement "${1:-$ROOT}"
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-beads ]; then
+  test_task_data_bead_backlog_sources "${1:-$ROOT}"
+  exit 0
+fi
+
+test_task_data_cleanup
+test_task_data_refusals
+test_task_data_references_and_guard
+test_task_data_bead_backlog_sources
+test_task_data_reused_id
+test_task_data_expired_sources
+test_task_data_symlink_targets
+test_task_data_linked_directories
+test_task_data_reference_spellings
+test_task_data_filesystem_name_aliases
+test_task_data_symlink_ancestor_aliases "$ROOT/bin/fm-task-data.py"
+test_task_data_collision_progress
+test_task_data_retirement_obligation
+test_task_data_discovered_pr_retirement
+test_task_data_forge_references
+test_task_data_leaves_temporary_scratch "$ROOT/bin/fm-task-data.py"
+[ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] || exit 0
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
 test_teardown_closes_a_gerrit_task_with_its_change_url_as_a_note

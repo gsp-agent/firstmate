@@ -116,8 +116,8 @@
 # session-start sweep could still close, while a journal bound to any other pane
 # - or a version 1 attempt whose workspace is still present or unreadable - may
 # name a live quarantined space and is retained for that sweep.
-# data/<id>/ is deliberately left in place: a successor spawn reads brief.md
-# from it.
+# After successful task retirement, bin/fm-task-data.py owns pruning data/<id>/
+# and one-cycle scratch recovery; brief.md remains available to successor spawns.
 # Worktree-slot ownership (teardown-slot-collision): a treehouse pool slot is
 # reused across tasks, so a stale, duplicated, or drifted worktree= record can
 # name a slot a DIFFERENT live task now holds. Cleanup kills every process under
@@ -377,6 +377,8 @@ for _teardown_source in \
   fm-nm-run-lib.sh \
   fm-wake-lib.sh \
   fm-path-lib.sh \
+  fm-task-data-lib.sh \
+  fm-task-data.py \
   fm-lease-lib.sh
 do
   teardown_require_source "$SCRIPT_DIR/$_teardown_source"
@@ -408,6 +410,8 @@ unset _teardown_source
 . "$SCRIPT_DIR/fm-pending-reply-lib.sh"
 # shellcheck source=bin/fm-nm-run-lib.sh
 . "$SCRIPT_DIR/fm-nm-run-lib.sh"
+# shellcheck source=bin/fm-task-data-lib.sh
+. "$SCRIPT_DIR/fm-task-data-lib.sh"
 if [ "$#" -lt 1 ] || ! fm_task_id_path_safe "$1"; then
   echo "error: invalid teardown request" >&2
   exit 2
@@ -3439,7 +3443,7 @@ cleanup_firstmate_home_children() {
     retire_busy_state "$sub_state" "$child_id" "$child_busy_gen" || return 1
     status_retire_presentation_task "$sub_state" "$child_id" || return 1
     fm_wake_queue_prune_task "$sub_state" "$child_id" "$child_t" 2>/dev/null || true
-    fm_backlog_atomic_transition remove "$sub_state/$child_id.meta" "task record" "$sub_state" || return 1
+    fm_backlog_atomic_transition retire "$sub_state/$child_id.meta" "$home/data" "$child_id" "$sub_state" || return 1
     rm -f "$sub_state/$child_id.turn-ended" "$sub_state/$child_id.progress" \
       "$(fm_wake_signal_seen_path "$sub_state" "$sub_state/$child_id.turn-ended")" \
       "$sub_state/$child_id.pi-ext.ts" "$sub_state/$child_id.omp-ext.ts" \
@@ -3983,12 +3987,16 @@ elif [ "$KIND" = secondmate ] && [ ! -e "$STATE" ] && [ ! -L "$STATE" ]; then
   # deletion; do not turn its confirmed absence into a false cleanup failure.
   :
 else
-  if ! fm_backlog_atomic_transition remove "$STATE/$ID.meta" "task record" "$STATE"; then
+  if ! fm_backlog_atomic_transition retire "$STATE/$ID.meta" "$DATA" "$ID" "$STATE" --pr "$PR_URL"; then
     fm_lock_release "$META_LOCK"
     META_LOCK_HELD=0
     echo "error: $ID's endpoint and local copy are cleaned up, but its task record could not be removed ($FM_BACKLOG_TRANSITION_ERROR)" >&2
     exit 1
   fi
+fi
+if [ "$KIND" != secondmate ]; then
+  fm_task_data_cleanup "$DATA" "$STATE" "$ID" "$PROJ" "$PR_URL" \
+    || echo "warning: $ID teardown completed, but task-data cleanup needs a retry" >&2
 fi
 fm_lock_release "$META_LOCK"
 META_LOCK_HELD=0
