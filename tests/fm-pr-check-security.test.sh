@@ -923,6 +923,9 @@ test_valid_recording_and_merge_derivation() {
     || fail "safe lifecycle-compatible task ID could not use the PR merge flow"
   fm_pr_poll_artifacts_valid "$dir/home/state" Task_A.1 "$POLL" \
     || fail "safe lifecycle-compatible task ID did not publish an authenticated poll"
+  ack_watcher_cycle "$dir/home/state" || fail "safe lifecycle-compatible merge acknowledgement failed"
+  FM_TEST_GH_LOG="$dir/gh.log" run_merged_poll_cycle "$dir"
+  assert_poll_absent "$dir/home/state" Task_A.1
   rm -rf "$dir/wt"
   cat > "$dir/fakebin/tmux" <<'SH'
 #!/usr/bin/env bash
@@ -932,7 +935,7 @@ SH
   touch "$dir/home/state/.last-watcher-beat"
   FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
     "$TEARDOWN" Task_A.1 --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
-    || fail "safe lifecycle-compatible task ID could not be torn down"
+    || fail "safe lifecycle-compatible task ID could not be torn down: $(cat "$dir/teardown.err")"
   [ ! -e "$dir/home/state/Task_A.1.meta" ] \
     || fail "safe lifecycle-compatible task teardown retained metadata"
 
@@ -972,10 +975,13 @@ SH
       || fail "path-safe legacy task ID could not use the PR merge flow"
     fm_pr_poll_artifacts_valid "$dir/home/state" "$id" "$POLL" \
       || fail "path-safe legacy task ID did not publish an authenticated poll"
+    ack_watcher_cycle "$dir/home/state" || fail "legacy path-safe merge acknowledgement failed"
+    FM_TEST_GH_LOG="$dir/gh.log" run_merged_poll_cycle "$dir"
+    assert_poll_absent "$dir/home/state" "$id"
     rm -rf "$dir/wt"
     FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
       "$TEARDOWN" "$id" --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
-      || fail "legacy path-safe task ID could not be torn down"
+      || fail "legacy path-safe task ID could not be torn down: $(cat "$dir/teardown.err")"
     [ ! -e "$dir/home/state/$id.meta" ] || fail "legacy task teardown retained metadata"
   done
   pass "valid direct and merge flows record exact metadata and reject multiline head metadata"
@@ -4751,6 +4757,7 @@ test_failed_sweep_keeps_the_repository_for_the_next_cycle() {
   [ ! -e "$state/task-a.check.sh" ] || fail "a failed sweep left the merged poll runnable"
   [ ! -e "$state/merge-queue-sweep.seen" ] || fail "a failed sweep recorded events"
   ack_watcher_cycle "$state" || fail "failed sweep acknowledgement failed"
+  shift_retirement_device "$state" task-a
   before=$(poll_artifact_snapshot "$state" task-a)
   set +e
   FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
@@ -4854,6 +4861,201 @@ test_completed_repo_removals_survive_another_repo_failure() {
   pass "completed repository removals are delivered once despite earlier or later repository failures"
 }
 
+test_unobserved_merge_preserves_repository_before_cleanup_or_rearm() {
+  local dir state action before rc
+  for action in cleanup rearm; do
+    dir=$(make_case "unobserved-merge-$action")
+    state="$dir/home/state"
+    write_task_meta "$dir"
+    printf 'pr=https://github.com/o/r/pull/1\n' >> "$state/task-a.meta"
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    write_slow_sweep_page "$dir" page1 2 false ""
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    before=$(poll_artifact_snapshot "$state" task-a)
+    [ ! -e "$state/task-a.pr-poll-retirement" ] || fail "unobserved merge already has a receipt"
+    set +e
+    if [ "$action" = cleanup ]; then
+      FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+        FM_TEST_GH_STATE=MERGED "$TEARDOWN" task-a --force \
+        > "$dir/refused.out" 2> "$dir/refused.err"
+    else
+      FM_TEST_GH_STATE=MERGED run_check_entry "$dir" task-a https://github.com/other/repo/pull/3 \
+        > "$dir/refused.out" 2> "$dir/refused.err"
+    fi
+    rc=$?
+    set -e
+    [ "$rc" -ne 0 ] || fail "$action removed the last watch before its merge was observed"
+    grep -F 'pending repository merge-queue sweep; preserving task state' "$dir/refused.err" >/dev/null \
+      || fail "$action refused for another reason: $(cat "$dir/refused.err")"
+    [ "$(poll_artifact_snapshot "$state" task-a)" = "$before" ] \
+      || fail "$action changed the unobserved merge's authenticated watch"
+    [ -d "$dir/wt/.git" ] || fail "$action removed the task's worktree"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "unobserved merge recovery failed: $(cat "$dir/watch.err")"
+    assert_poll_absent "$state" task-a
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "unobserved merge drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "$action lost the repository's dropped pull request: $(cat "$dir/drain.out")"
+  done
+
+  dir=$(make_case same-repository-rearm-keeps-discovery)
+  state="$dir/home/state"
+  write_task_meta "$dir"
+  printf 'pr=https://github.com/o/r/pull/1\n' >> "$state/task-a.meta"
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  FM_TEST_GH_HEAD="$(git -C "$dir/wt" rev-parse HEAD)" \
+    run_check_entry "$dir" task-a https://github.com/o/r/pull/3 \
+    > "$dir/rearm.out" 2> "$dir/rearm.err" \
+    || fail "same-repository rearm failed: $(cat "$dir/rearm.err")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" || fail "same-repository rearm left an invalid watch"
+  [ "$FM_PR_DATA_URL" = https://github.com/o/r/pull/3 ] || fail "same-repository rearm lost its replacement"
+  [ "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" = o/r ] \
+    || fail "same-repository rearm lost repository discovery"
+  pass "cleanup and cross-repository rearm preserve an unobserved merge until its repository is swept"
+}
+
+shift_retirement_device() {
+  local state=$1 id=$2 device shifted tmp registration receipt reg_hash=''
+  device=$(fm_pr_file_device "$state") || fail "could not read retirement fixture device"
+  shifted=$((device + 1))
+  registration="$state/$id.pr-poll-registration"
+  receipt="$state/$id.pr-poll-retirement"
+  tmp=$(mktemp "$state/.test-retirement-device.XXXXXX") || fail "could not stage retirement device shift"
+  if [ -f "$registration" ]; then
+    awk -v live="$device" -v shifted="$shifted" '
+      NR == 10 || NR == 11 { sub("^" live ":", shifted ":") }
+      { print }
+    ' "$registration" > "$tmp"
+    cat "$tmp" > "$registration"
+    reg_hash=$(fm_pr_sha256 "$registration") || fail "could not hash shifted registration"
+  fi
+  awk -v live="$device" -v shifted="$shifted" -v reg_hash="$reg_hash" '
+    NR == 10 || NR == 11 || NR == 13 { sub("^" live ":", shifted ":") }
+    NR == 12 && reg_hash != "" { $0 = reg_hash }
+    { print }
+  ' "$receipt" > "$tmp"
+  cat "$tmp" > "$receipt"
+  rm -f "$tmp"
+  [ "$(sed -n 10p "$receipt")" = "$shifted:$(fm_pr_file_inode "$state/$id.pr-poll")" ] \
+    || fail "retirement device shift did not preserve the sidecar inode"
+}
+
+test_retirement_survives_device_renumbering() {
+  local dir state stage before rc
+  for stage in full registration sidecar; do
+    dir=$(make_case "retirement-renumber-$stage")
+    state="$dir/home/state"
+    write_task_meta "$dir"
+    printf 'pr=https://github.com/o/r/pull/1\n' >> "$state/task-a.meta"
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    fm_pr_poll_snapshot_capture "$state" task-a "$POLL" || fail "could not snapshot retirement renumber fixture"
+    fm_pr_poll_retirement_publish "$state" task-a "$POLL" merged || fail "could not publish retirement renumber receipt"
+    case "$stage" in
+      registration) rm -f "$state/task-a.check.sh" ;;
+      sidecar)
+        fm_pr_poll_retirement_recover_one "$state" task-a "$POLL" \
+          || fail "could not defer the merged watch before its failed scan"
+        ;;
+    esac
+    shift_retirement_device "$state" task-a
+    fm_pr_poll_retirement_state_valid "$state" task-a \
+      || fail "$stage retirement did not accept unchanged inodes on the live device"
+    write_slow_sweep_page "$dir" page1 2 false ""
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    if [ "$stage" = sidecar ]; then
+      before=$(poll_artifact_snapshot "$state" task-a)
+      set +e
+      run_check_entry "$dir" task-a https://github.com/other/repo/pull/3 \
+        > "$dir/rearm.out" 2> "$dir/rearm.err"
+      rc=$?
+      set -e
+      [ "$rc" -ne 0 ] || fail "renumbered pending retirement allowed cross-repository rearm"
+      [ "$(cat "$dir/rearm.err")" = 'error: pending repository merge-queue sweep; preserving task state' ] \
+        || fail "rearm rejected the renumbered receipt: $(cat "$dir/rearm.err")"
+      set +e
+      FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+        "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err"
+      rc=$?
+      set -e
+      [ "$rc" -ne 0 ] || fail "renumbered pending retirement allowed cleanup"
+      grep -F 'REFUSED: pending repository merge-queue sweep; preserving task state.' "$dir/teardown.err" >/dev/null \
+        || fail "cleanup rejected the renumbered receipt: $(cat "$dir/teardown.err")"
+      [ "$(poll_artifact_snapshot "$state" task-a)" = "$before" ] \
+        || fail "pending retirement callers changed renumbered artifacts"
+      FM_TEST_GH_LOG="$dir/fail-gh.log" FM_TEST_GH_SWEEP_FAIL=1 \
+        run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/fail.out" 2> "$dir/fail.err" \
+        || fail "renumbered failed scan stopped monitoring: $(cat "$dir/fail.err")"
+      ! grep -F 'rejected unauthenticated PR poll retirement' "$dir/fail.out" >/dev/null \
+        || fail "renumbered failed scan rejected the retained receipt"
+      [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+        || fail "renumbered failed scan lost its repository"
+      ack_watcher_cycle "$state" || fail "renumbered failed scan acknowledgement failed"
+    fi
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "renumbered retirement watcher failed: $(cat "$dir/watch.err")"
+    assert_poll_absent "$state" task-a
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "renumbered retirement drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "$stage retirement lost a removal after renumbering: $(cat "$dir/drain.out")"
+  done
+  pass "renumbered retirement receipts keep scanning through every surviving artifact stage"
+}
+
+test_retirement_device_recovery_keeps_content_and_inode_checks() {
+  local dir state artifact mutation expected_identity expected_hash live_device field
+  for artifact in check.sh pr-poll pr-poll-registration; do
+    for mutation in replaced altered; do
+      dir=$(make_case "retirement-renumber-$artifact-$mutation")
+      state="$dir/home/state"
+      write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+      seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+      fm_pr_poll_snapshot_capture "$state" task-a "$POLL" || fail "could not snapshot changed retirement fixture"
+      fm_pr_poll_retirement_publish "$state" task-a "$POLL" merged || fail "could not publish changed retirement receipt"
+      shift_retirement_device "$state" task-a
+      fm_pr_poll_retirement_state_valid "$state" task-a || fail "changed retirement fixture was invalid before mutation"
+      case "$artifact" in
+        check.sh) expected_identity=$FM_PR_RETIRE_CHECK_IDENTITY; expected_hash=$FM_PR_RETIRE_TEMPLATE_HASH ;;
+        pr-poll) expected_identity=$FM_PR_RETIRE_DATA_IDENTITY; expected_hash=$FM_PR_RETIRE_DATA_HASH ;;
+        pr-poll-registration) expected_identity=$FM_PR_RETIRE_REG_IDENTITY; expected_hash=$FM_PR_RETIRE_REG_HASH ;;
+      esac
+      if [ "$mutation" = replaced ]; then
+        cp "$state/task-a.$artifact" "$state/.replacement"
+        chmod 0600 "$state/.replacement"
+        mv -f "$state/.replacement" "$state/task-a.$artifact"
+      else
+        printf 'altered\n' >> "$state/task-a.$artifact"
+      fi
+      ! fm_pr_poll_retirement_state_valid "$state" task-a \
+        || fail "renumber recovery accepted a $mutation $artifact"
+      live_device=$(fm_pr_file_device "$state") || fail "could not read live state device"
+      ! fm_pr_poll_retirement_remove_exact "$state/task-a.$artifact" "$live_device" "$expected_identity" "$expected_hash" \
+        || fail "exact retirement removed a $mutation $artifact"
+      [ -f "$state/task-a.$artifact" ] || fail "rejected retirement removed $artifact"
+    done
+  done
+  for field in 10 11 13; do
+    dir=$(make_case "retirement-split-device-$field")
+    state="$dir/home/state"
+    write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    fm_pr_poll_snapshot_capture "$state" task-a "$POLL" || fail "could not snapshot split-device retirement"
+    fm_pr_poll_retirement_publish "$state" task-a "$POLL" merged || fail "could not publish split-device receipt"
+    shift_retirement_device "$state" task-a
+    awk -v field="$field" 'NR == field { sub(/^[0-9]+:/, "999999999:") } { print }' \
+      "$state/task-a.pr-poll-retirement" > "$state/.split-device"
+    cat "$state/.split-device" > "$state/task-a.pr-poll-retirement"
+    ! fm_pr_poll_retirement_state_valid "$state" task-a \
+      || fail "retirement accepted inconsistent recorded devices in field $field"
+  done
+  pass "retirement device recovery still refuses replaced inodes and altered content"
+}
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -4906,6 +5108,9 @@ test_merged_only_watch_still_sweeps_its_repo
 test_recovered_merged_watch_still_sweeps_its_repo
 test_failed_sweep_keeps_the_repository_for_the_next_cycle
 test_completed_repo_removals_survive_another_repo_failure
+test_unobserved_merge_preserves_repository_before_cleanup_or_rearm
+test_retirement_survives_device_renumbering
+test_retirement_device_recovery_keeps_content_and_inode_checks
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations

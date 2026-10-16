@@ -1268,6 +1268,8 @@ fm_pr_poll_retirement_receipt_valid() {
   fm_pr_private_file_valid "$receipt" 600 "$state_device" || return 1
   fm_pr_poll_retirement_parse "$receipt" || return 1
   [ "$FM_PR_RETIRE_ID" = "$id" ] || return 1
+  [ "${FM_PR_RETIRE_DATA_IDENTITY%%:*}" = "${FM_PR_RETIRE_CHECK_IDENTITY%%:*}" ] || return 1
+  [ "${FM_PR_RETIRE_DATA_IDENTITY%%:*}" = "${FM_PR_RETIRE_REG_IDENTITY%%:*}" ] || return 1
   meta="$state/$id.meta"
   fm_pr_metadata_identity_parse "$meta" || return 1
   [ "$FM_PR_META_PROVIDER" = "$FM_PR_RETIRE_PROVIDER" ] || return 1
@@ -1596,7 +1598,7 @@ fm_pr_poll_retirement_data_valid() {
   [ "$FM_PR_DATA_PATH" = "$FM_PR_RETIRE_PATH" ] || return 1
   [ "$FM_PR_DATA_NUMBER" = "$FM_PR_RETIRE_NUMBER" ] || return 1
   [ "$data_hash" = "$FM_PR_RETIRE_DATA_HASH" ] || return 1
-  [ "$data_identity" = "$FM_PR_RETIRE_DATA_IDENTITY" ]
+  [ "$data_identity" = "$state_device:${FM_PR_RETIRE_DATA_IDENTITY#*:}" ]
 }
 
 fm_pr_poll_retirement_registration_valid() {
@@ -1618,7 +1620,7 @@ fm_pr_poll_retirement_registration_valid() {
   [ "$FM_PR_REG_DATA_IDENTITY" = "$FM_PR_RETIRE_DATA_IDENTITY" ] || return 1
   [ "$FM_PR_REG_CHECK_IDENTITY" = "$FM_PR_RETIRE_CHECK_IDENTITY" ] || return 1
   [ "$reg_hash" = "$FM_PR_RETIRE_REG_HASH" ] || return 1
-  [ "$reg_identity" = "$FM_PR_RETIRE_REG_IDENTITY" ]
+  [ "$reg_identity" = "$state_device:${FM_PR_RETIRE_REG_IDENTITY#*:}" ]
 }
 
 fm_pr_poll_retirement_check_valid() {
@@ -1629,7 +1631,7 @@ fm_pr_poll_retirement_check_valid() {
   check_hash=$(fm_pr_sha256 "$check") || return 1
   check_identity=$(fm_pr_file_identity "$check") || return 1
   [ "$check_hash" = "$FM_PR_RETIRE_TEMPLATE_HASH" ] || return 1
-  [ "$check_identity" = "$FM_PR_RETIRE_CHECK_IDENTITY" ]
+  [ "$check_identity" = "$state_device:${FM_PR_RETIRE_CHECK_IDENTITY#*:}" ]
 }
 
 fm_pr_poll_retirement_state_valid() {
@@ -1660,7 +1662,7 @@ fm_pr_poll_retirement_state_valid() {
 fm_pr_poll_retirement_remove_exact() {
   local path=$1 state_device=$2 expected_identity=$3 expected_hash=$4
   fm_pr_private_file_valid "$path" 600 "$state_device" || return 1
-  [ "$(fm_pr_file_identity "$path")" = "$expected_identity" ] || return 1
+  [ "$(fm_pr_file_identity "$path")" = "$state_device:${expected_identity#*:}" ] || return 1
   [ "$(fm_pr_sha256 "$path")" = "$expected_hash" ] || return 1
   rm -f -- "$path" || return 1
   [ ! -e "$path" ] && [ ! -L "$path" ]
@@ -1771,9 +1773,43 @@ fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
   return 0
 }
 
+fm_pr_poll_retirement_ready() {
+  local state=$1 id=$2 template=$3 swept_repos=${4:-} replacement=${5:-}
+  local provider host path
+  fm_pr_task_id_valid "$id" || return 1
+  if [ -e "$state/$id.pr-poll-retirement" ] || [ -L "$state/$id.pr-poll-retirement" ]; then
+    fm_pr_poll_retirement_state_valid "$state" "$id" || return 1
+    provider=$FM_PR_RETIRE_PROVIDER
+    host=$FM_PR_RETIRE_HOST
+    path=$FM_PR_RETIRE_PATH
+    replacement=
+  elif fm_pr_poll_artifacts_valid "$state" "$id" "$template" \
+    || fm_pr_poll_registration_device_shifted "$state" "$id" "$template" \
+    || fm_pr_poll_registration_template_upgradable "$state" "$id" "$template" \
+    || fm_pr_poll_registration_template_hash_stale "$state" "$id" "$template" \
+    || fm_pr_poll_registration_template_device_recoverable "$state" "$id" "$template"; then
+    provider=$FM_PR_DATA_PROVIDER
+    host=$FM_PR_DATA_HOST
+    path=$FM_PR_DATA_PATH
+  else
+    return 0
+  fi
+  [ -e "$state/$id.pr-poll" ] || return 0
+  [ "$provider" = github ] && [ "$host" = github.com ] || return 0
+  case $'\n'"$swept_repos"$'\n' in
+    *$'\n'"$path"$'\n'*) return 0 ;;
+  esac
+  if [ -n "$replacement" ] && fm_pr_url_parse "$replacement" \
+    && [ "$FM_PR_PROVIDER" = "$provider" ] && [ "$FM_PR_HOST" = "$host" ] \
+    && [ "$FM_PR_PATH" = "$path" ]; then
+    return 0
+  fi
+  return 2
+}
+
 fm_pr_poll_retirement_recover_one() {
   local state=$1 id=$2 template=$3 receipt state_device check data registration
-  local receipt_hash receipt_identity swept_repos=${4:-}
+  local receipt_hash receipt_identity swept_repos=${4:-} ready=0
   fm_pr_task_id_valid "$id" || return 1
   receipt="$state/$id.pr-poll-retirement"
   if [ ! -e "$receipt" ] && [ ! -L "$receipt" ]; then
@@ -1799,12 +1835,9 @@ fm_pr_poll_retirement_recover_one() {
       "$FM_PR_RETIRE_REG_IDENTITY" "$FM_PR_RETIRE_REG_HASH" || return 1
   fi
   if [ -e "$data" ] || [ -L "$data" ]; then
-    if [ "$FM_PR_RETIRE_PROVIDER" = github ] && [ "$FM_PR_RETIRE_HOST" = github.com ]; then
-      case $'\n'"$swept_repos"$'\n' in
-        *$'\n'"$FM_PR_RETIRE_PATH"$'\n'*) ;;
-        *) return 0 ;;
-      esac
-    fi
+    fm_pr_poll_retirement_ready "$state" "$id" "$template" "$swept_repos" || ready=$?
+    [ "$ready" -ne 2 ] || return 0
+    [ "$ready" -eq 0 ] || return 1
     fm_pr_poll_retirement_remove_exact "$data" "$state_device" \
       "$FM_PR_RETIRE_DATA_IDENTITY" "$FM_PR_RETIRE_DATA_HASH" || return 1
   fi

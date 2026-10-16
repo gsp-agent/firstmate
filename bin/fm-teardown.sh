@@ -1459,7 +1459,7 @@ retire_busy_state() {
 }
 
 validate_pr_poll_cleanup() {
-  local state_dir=$1 id=$2 state_device artifact has_artifact=0
+  local state_dir=$1 id=$2 state_device artifact has_artifact=0 retirement_rc=0
   fm_task_id_path_safe "$id" || return 0
   for artifact in "$state_dir/$id.check.sh" "$state_dir/$id.pr-poll" \
     "$state_dir/$id.pr-poll-registration" "$state_dir/$id.pr-poll-retirement" \
@@ -1485,18 +1485,18 @@ validate_pr_poll_cleanup() {
       return 1
     fi
   done
-  if [ -e "$state_dir/$id.pr-poll-retirement" ] \
-    || [ -L "$state_dir/$id.pr-poll-retirement" ]; then
-    fm_pr_poll_retirement_state_valid "$state_dir" "$id" || {
-      echo "REFUSED: invalid PR-poll retirement receipt; preserving task state." >&2
-      return 1
-    }
-    if [ "$FM_PR_RETIRE_PROVIDER" = github ] && [ "$FM_PR_RETIRE_HOST" = github.com ] \
-      && [ -e "$state_dir/$id.pr-poll" ]; then
+  fm_pr_poll_retirement_ready "$state_dir" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" || retirement_rc=$?
+  case "$retirement_rc" in
+    0) ;;
+    2)
       echo "REFUSED: pending repository merge-queue sweep; preserving task state." >&2
       return 1
-    fi
-  fi
+      ;;
+    *)
+      echo "REFUSED: invalid PR-poll retirement receipt; preserving task state." >&2
+      return 1
+      ;;
+  esac
 }
 
 remove_pr_poll_artifacts() {

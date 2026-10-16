@@ -77,10 +77,14 @@ fm_pr_poll_retirement_recover_one "$STATE" "$ID" "$SCRIPT_DIR/fm-pr-poll.sh" || 
   echo "error: pending PR poll retirement could not be validated" >&2
   exit 1
 }
-if [ -e "$STATE/$ID.pr-poll-retirement" ] || [ -L "$STATE/$ID.pr-poll-retirement" ]; then
-  echo "error: pending repository merge-queue sweep; preserving task state" >&2
-  exit 1
-fi
+PR_RETIREMENT_RC=0
+fm_pr_poll_retirement_ready "$STATE" "$ID" "$SCRIPT_DIR/fm-pr-poll.sh" '' "$URL" \
+  || PR_RETIREMENT_RC=$?
+case "$PR_RETIREMENT_RC" in
+  0) ;;
+  2) echo "error: pending repository merge-queue sweep; preserving task state" >&2; exit 1 ;;
+  *) echo "error: pending PR poll retirement could not be validated" >&2; exit 1 ;;
+esac
 
 # Refuse to arm a watch with no CLI on PATH to read it. The poll is silent on
 # every error by design, so a missing CLI would be indistinguishable from a
