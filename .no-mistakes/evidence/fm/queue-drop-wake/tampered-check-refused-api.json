@@ -1,0 +1,33 @@
+[
+  {
+    "at": 1792156912.312751,
+    "owner": "lab",
+    "repo": "tamperedcopy",
+    "number": 1,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {isDraft,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156913.424831,
+    "owner": "lab",
+    "repo": "tamperedcopy",
+    "number": 1,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {headRefOid,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156918.464638,
+    "owner": "lab",
+    "repo": "tamperedcopy",
+    "number": null,
+    "cursor": null,
+    "sweep": true,
+    "query": "query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}",
+    "numbers": [
+      1
+    ],
+    "order": "CREATED_AT"
+  }
+]

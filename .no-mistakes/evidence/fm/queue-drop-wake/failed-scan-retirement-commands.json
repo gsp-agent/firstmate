@@ -1,0 +1,135 @@
+[
+  {
+    "command": [
+      "bin/fm-pr-check.sh",
+      "task-a",
+      "https://github.com/lab/retry/pull/1"
+    ],
+    "status": 0,
+    "stdout": "armed: state/task-a.check.sh\n",
+    "stderr": "\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+  },
+  {
+    "command": [
+      "bin/fm-check-unregister.sh",
+      "contributions"
+    ],
+    "status": 0,
+    "stdout": "unregistered: state/contributions.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-pr-check.sh",
+      "task-a",
+      "https://github.com/other/repo/pull/3"
+    ],
+    "status": 1,
+    "stdout": "",
+    "stderr": "error: pending repository merge-queue sweep; preserving task state\n"
+  },
+  {
+    "command": [
+      "bin/fm-teardown.sh",
+      "task-a",
+      "--force"
+    ],
+    "status": 1,
+    "stdout": "",
+    "stderr": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home\nWARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\nREFUSED: pending repository merge-queue sweep; preserving task state.\n"
+  },
+  {
+    "command": [
+      "bin/fm-check-register.sh",
+      "zz-cycle-end"
+    ],
+    "status": 0,
+    "stdout": "registered: state/zz-cycle-end.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "status": 0,
+    "stdout": "check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/task-a.check.sh: merged\ncheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-pr-check.sh",
+      "task-a",
+      "https://github.com/other/repo/pull/3"
+    ],
+    "status": 1,
+    "stdout": "",
+    "stderr": "error: pending repository merge-queue sweep; preserving task state\n"
+  },
+  {
+    "command": [
+      "bin/fm-teardown.sh",
+      "task-a",
+      "--force"
+    ],
+    "status": 1,
+    "stdout": "",
+    "stderr": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nWARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.\nREFUSED: pending repository merge-queue sweep; preserving task state.\n"
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh"
+    ],
+    "status": 0,
+    "stdout": "1792156623\t1\tcheck\tmerged-task-a-https://github.com/lab/retry/pull/1\tcheck: merge landed: task-a https://github.com/lab/retry/pull/1 external\n1792156628\t2\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n",
+    "stderr": "WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 3188.1792156623.icrFXm\nWARNING: watcher still down (same stale episode; last beat: 6s ago, grace 300s) - full banner already printed this episode.\nWARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.\n"
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh",
+      "--ack-through",
+      "2",
+      "--recovery-generation",
+      "3188.1792156623.icrFXm"
+    ],
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-check-register.sh",
+      "zz-cycle-end"
+    ],
+    "status": 0,
+    "stdout": "registered: state/zz-cycle-end.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "status": 0,
+    "stdout": "check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh: lab-cycle-complete\ncheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh"
+    ],
+    "status": 0,
+    "stdout": "1792156639\t3\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n1792156639\t4\tcheck\tretry-drop\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks\n",
+    "stderr": "WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 36857.1792156639.GEXQmE\nWARNING: watcher still down (same stale episode; last beat: 4s ago, grace 300s) - full banner already printed this episode.\nWARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.\n"
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh",
+      "--ack-through",
+      "4",
+      "--recovery-generation",
+      "36857.1792156639.GEXQmE"
+    ],
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,3 @@
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unsafe-seen-retry-44879/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/unsafe-seen/pull/2 reason=failed_checks

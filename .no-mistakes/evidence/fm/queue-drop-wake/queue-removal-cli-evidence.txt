@@ -1,0 +1,200 @@
+Selected raw CLI output. Complete captures and serialized API requests are adjacent.
+The real Firstmate scripts and installed gh/glab clients ran against a local HTTPS replay endpoint.
+Historical event IDs and reasons were fetched read-only from GitHub during this run.
+Beacon tests aged the real persisted beacon by 905 seconds; no 15-minute wall-clock run is claimed.
+Device recovery tests loaded old device numbers into persisted records while preserving real live inodes.
+
+=== replay-history-first-drain ===
+$ bin/fm-wake-drain.sh
+1792156927	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay-history-11696/home/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay-history-11696/home/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+1792156928	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay-history-11696/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay-history-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156928	3	check	RFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+1792156929	4	check	RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792156930	5	check	RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792156931	6	check	RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792156931	7	check	RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792156932	8	check	RFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792156933	9	check	RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792156933	10	check	RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+1792156934	11	check	RFMQE_lADOTK2PgM8AAAABVmppb88AAAAHpS4Ieg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+
+=== replay-history-restart-before-ack-drain ===
+$ bin/fm-wake-drain.sh
+1792156927	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay-history-11696/home/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay-history-11696/home/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+1792156939	12	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay-history-11696/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay-history-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156928	3	check	RFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+1792156929	4	check	RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792156930	5	check	RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792156931	6	check	RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792156931	7	check	RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792156932	8	check	RFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792156933	9	check	RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792156933	10	check	RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+1792156934	11	check	RFMQE_lADOTK2PgM8AAAABVmppb88AAAAHpS4Ieg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+
+=== replay-history-repeat-wake ===
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay-history-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== numeric-names-typed-fields-baseline ===
+$ gh api graphql -f query=query($owner:String!,$repo:String!){repository(owner:$owner,name:$repo){id}} -F owner=true -F repo=123
+
+=== numeric-names-drain ===
+$ bin/fm-wake-drain.sh
+1792156507	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/numeric-names-83244/home/state/contributions.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/numeric-names-83244/home/state/contributions.check.sh: contributions: observation unavailable for https://github.com/true/123/pull/7
+1792156508	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/numeric-names-83244/home/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/numeric-names-83244/home/state/task-a.check.sh: dequeued https://github.com/true/123/pull/7 reason=failed_checks
+1792156509	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/numeric-names-83244/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/numeric-names-83244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156509	4	check	numeric-unarmed	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/true/123/pull/8 reason=failed_checks
+
+=== reasons-and-reentry-first-drain ===
+$ bin/fm-wake-drain.sh
+1792156515	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/contributions.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/contributions.check.sh: contributions: observation unavailable for https://github.com/lab/queue/pull/1
+1792156516	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/task-a.check.sh: dequeued https://github.com/lab/queue/pull/1 reason=failed_checks
+1792156517	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156517	4	check	quoted	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/queue/pull/4 reason=checks \"red\"\nnext\tline\\end
+1792156518	5	check	unicode	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/queue/pull/3 reason=重试 — échec
+1792156518	6	check	null	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/queue/pull/2 reason=
+
+=== reasons-and-reentry-second-event-drain ===
+$ bin/fm-wake-drain.sh
+1792156530	8	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/task-a.check.sh: dequeued https://github.com/lab/queue/pull/1 reason=manual
+1792156531	9	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== reasons-and-reentry-handled-wake ===
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== pagination-update-last-merge-drain ===
+$ bin/fm-wake-drain.sh
+1792156598	1	check	merged-task-a-https://github.com/lab/many/pull/1002	check: merge landed: task-a https://github.com/lab/many/pull/1002 external
+1792156602	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/pagination-update-last-merge-72919/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/pagination-update-last-merge-72919/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156604	3	check	moved-after-first-page	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/many/pull/2 reason=failed_checks
+
+=== failed-scan-retirement-unobserved-merge-teardown ===
+$ bin/fm-teardown.sh task-a --force
+REFUSED: pending repository merge-queue sweep; preserving task state.
+
+=== failed-scan-retirement-unobserved-merge-rearm ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+error: pending repository merge-queue sweep; preserving task state
+
+=== failed-scan-retirement-pending-receipt-teardown ===
+$ bin/fm-teardown.sh task-a --force
+REFUSED: pending repository merge-queue sweep; preserving task state.
+
+=== failed-scan-retirement-retry-drain ===
+$ bin/fm-wake-drain.sh
+1792156639	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156639	4	check	retry-drop	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+
+=== bad-seen-later-watches-bad-seen-round1 ===
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/task-b.check.sh: dequeued https://github.com/lab/other/pull/10 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== bad-seen-later-watches-bad-seen-round2 ===
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/task-b.check.sh: dequeued https://github.com/lab/other/pull/10 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== bad-seen-later-watches-seen-repaired-drain ===
+$ bin/fm-wake-drain.sh
+1792156593	6	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156594	7	check	unarmed-during-bad-seen	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retained/pull/2 reason=failed_checks
+
+=== partial-repository-failure-mixed-drain ===
+$ bin/fm-wake-drain.sh
+1792156611	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/contributions.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/contributions.check.sh: contributions: observation unavailable for https://github.com/lab/unavailable/pull/3 contributions: observation unavailable for https://github.com/lab/good/pull/1
+1792156613	2	check	merged-task-a-https://github.com/lab/good/pull/1	check: merge landed: task-a https://github.com/lab/good/pull/1 external
+1792156622	3	check	merged-task-b-https://github.com/lab/unavailable/pull/3	check: merge landed: task-b https://github.com/lab/unavailable/pull/3 external
+1792156625	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156626	5	check	good-removal	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/good/pull/2 reason=failed_checks
+
+=== partial-repository-failure-repaired-drain ===
+$ bin/fm-wake-drain.sh
+1792156636	6	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156637	7	check	retry-removal	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/unavailable/pull/4 reason=failed_checks
+
+=== old-template-device-recovery-recovery-drain ===
+$ bin/fm-wake-drain.sh
+1792156671	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/old-template-device-recovery-65068/home/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/old-template-device-recovery-65068/home/state/task-a.check.sh: dequeued https://github.com/lab/recovery/pull/1 reason=failed_checks
+1792156673	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/old-template-device-recovery-65068/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/old-template-device-recovery-65068/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== old-template-device-recovery-subsequent-merge-drain ===
+$ bin/fm-wake-drain.sh
+1792156684	3	check	merged-task-a-https://github.com/lab/recovery/pull/1	check: merge landed: task-a https://github.com/lab/recovery/pull/1 external
+1792156689	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/old-template-device-recovery-65068/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/old-template-device-recovery-65068/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== interrupted-template-device-recovery-recovery-drain ===
+$ bin/fm-wake-drain.sh
+1792156704	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/interrupted-template-device-recovery-65068/home/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/interrupted-template-device-recovery-65068/home/state/task-a.check.sh: dequeued https://github.com/lab/recovery/pull/1 reason=failed_checks
+1792156705	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/interrupted-template-device-recovery-65068/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/interrupted-template-device-recovery-65068/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== interrupted-template-device-recovery-subsequent-merge-drain ===
+$ bin/fm-wake-drain.sh
+1792156714	3	check	merged-task-a-https://github.com/lab/recovery/pull/1	check: merge landed: task-a https://github.com/lab/recovery/pull/1 external
+1792156716	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/interrupted-template-device-recovery-65068/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/interrupted-template-device-recovery-65068/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== unshipped-hash-refused-rejected-wake ===
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unshipped-hash-refused-65068/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/tampered/pull/1 reason=failed_checks
+check: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unshipped-hash-refused-65068/home/state/task-a.check.sh
+
+=== tampered-check-refused-rejected-wake ===
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/tampered-check-refused-60383/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/tamperedcopy/pull/1 reason=failed_checks
+check: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/tampered-check-refused-60383/home/state/task-a.check.sh
+
+=== retirement-device-recovery-renumbered-retirement-rearm ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+error: pending repository merge-queue sweep; preserving task state
+
+=== retirement-device-recovery-successful-retry-drain ===
+$ bin/fm-wake-drain.sh
+1792156801	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retirement-device-recovery-54711/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retirement-device-recovery-54711/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156802	4	check	retirement-retry	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retirement/pull/2 reason=failed_checks
+
+=== progressing-sweep-rearm-rearm-during-sweep ===
+$ bin/fm-watch.sh
+watcher: already running pid 29572
+
+=== progressing-sweep-rearm-completed-scan-drain ===
+$ bin/fm-wake-drain.sh
+1792156844	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-sweep-rearm-26589/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-sweep-rearm-26589/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156849	2	check	last-page-progress	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/longscan/pull/1 reason=failed_checks
+
+=== progressing-registered-checks-rearm-rearm-during-registered-checks ===
+$ bin/fm-watch.sh
+watcher: already running pid 74069
+
+=== progressing-registered-checks-rearm-completed-prefix-drain ===
+$ bin/fm-wake-drain.sh
+1792156904	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-registered-checks-rearm-60383/home/state/task-h.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-registered-checks-rearm-60383/home/state/task-h.check.sh: dequeued https://github.com/lab/slowchecks/pull/8 reason=failed_checks
+1792156905	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-registered-checks-rearm-60383/home/state/zy-custom.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-registered-checks-rearm-60383/home/state/zy-custom.check.sh: custom-progress
+1792156906	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-registered-checks-rearm-60383/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-registered-checks-rearm-60383/home/state/zz-cycle-end.check.sh: fresh-after-custom
+1792156907	4	check	unarmed-after-prefix	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/slowchecks/pull/9 reason=failed_checks
+
+=== failed-publication-retry-publication-refused ===
+$ bin/fm-watch.sh
+
+=== failed-publication-retry-publication-retry-drain ===
+$ bin/fm-wake-drain.sh
+1792156963	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/task-a.check.sh: dequeued https://github.com/lab/publication/pull/1 reason=failed_checks
+1792156965	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== failed-publication-retry-publication-handled ===
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== unsafe-seen-retry-unsafe-record-drain ===
+$ bin/fm-wake-drain.sh
+1792157447	1	check	merged-task-a-https://github.com/lab/unsafe-seen/pull/1	check: merge landed: task-a https://github.com/lab/unsafe-seen/pull/1 external
+1792157448	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unsafe-seen-retry-44879/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unsafe-seen-retry-44879/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+
+=== unsafe-seen-retry-safe-record-retry-drain ===
+$ bin/fm-wake-drain.sh
+1792157451	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unsafe-seen-retry-44879/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unsafe-seen-retry-44879/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792157451	4	check	after-unsafe-seen	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/unsafe-seen/pull/2 reason=failed_checks

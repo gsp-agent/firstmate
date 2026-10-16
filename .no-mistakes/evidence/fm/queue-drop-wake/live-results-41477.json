@@ -1,0 +1,14 @@
+[
+  {
+    "name": "progressing-sweep-rearm",
+    "result": "fail",
+    "live": true,
+    "reason": "Command '['bin/fm-watch.sh']' timed out after 35 seconds"
+  },
+  {
+    "name": "progressing-registered-checks-rearm",
+    "result": "fail",
+    "live": true,
+    "reason": ""
+  }
+]

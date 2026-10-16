@@ -1,0 +1,6 @@
+$ bin/fm-wake-drain.sh
+1792156623	1	check	merged-task-a-https://github.com/lab/retry/pull/1	check: merge landed: task-a https://github.com/lab/retry/pull/1 external
+1792156628	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 3188.1792156623.icrFXm
+WARNING: watcher still down (same stale episode; last beat: 6s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

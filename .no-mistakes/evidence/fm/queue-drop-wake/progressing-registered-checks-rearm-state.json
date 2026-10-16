@@ -1,0 +1,5 @@
+{
+  "merge-queue-sweep.seen": "fm-merge-queue-sweep-v1\nfinal-armed-removal\nunarmed-after-prefix\n",
+  ".wake-queue": "",
+  "task-a.pr-poll": "github\nhttps://github.com/lab/slowchecks/pull/1\ngithub.com\nlab/slowchecks\n1\n"
+}

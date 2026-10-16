@@ -1,0 +1,3 @@
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/interrupted-template-device-recovery-65068/home/state/task-a.check.sh: dequeued https://github.com/lab/recovery/pull/1 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/interrupted-template-device-recovery-65068/home/state/zz-cycle-end.check.sh: lab-cycle-complete

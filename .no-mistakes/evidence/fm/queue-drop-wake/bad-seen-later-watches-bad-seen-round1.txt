@@ -1,0 +1,4 @@
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/task-b.check.sh: dequeued https://github.com/lab/other/pull/10 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/bad-seen-later-watches-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete

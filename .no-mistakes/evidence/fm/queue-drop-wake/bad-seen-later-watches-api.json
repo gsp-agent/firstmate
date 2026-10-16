@@ -1,0 +1,206 @@
+[
+  {
+    "at": 1792156546.824776,
+    "owner": "lab",
+    "repo": "retained",
+    "number": 1,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {isDraft,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156547.56455,
+    "owner": "lab",
+    "repo": "retained",
+    "number": 1,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {headRefOid,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156549.198514,
+    "owner": "lab",
+    "repo": "other",
+    "number": 10,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {isDraft,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156549.767545,
+    "owner": "lab",
+    "repo": "other",
+    "number": 10,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {headRefOid,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156551.3524292,
+    "owner": "lab",
+    "repo": "other",
+    "number": 11,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {isDraft,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156551.796581,
+    "owner": "lab",
+    "repo": "other",
+    "number": 11,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {headRefOid,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156560.3545332,
+    "owner": "lab",
+    "repo": "retained",
+    "number": 1,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156564.6544151,
+    "owner": "lab",
+    "repo": "other",
+    "number": 10,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156566.2745621,
+    "owner": "lab",
+    "repo": "other",
+    "number": 11,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156567.5532632,
+    "method": "GET",
+    "path": "/api/v4/projects/group%2Fproject/merge_requests/17?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true"
+  },
+  {
+    "at": 1792156567.559519,
+    "method": "GET",
+    "path": "/api/v4/projects/group%2Fproject/merge_requests/17/approval_state"
+  },
+  {
+    "at": 1792156567.566001,
+    "owner": null,
+    "repo": null,
+    "number": null,
+    "cursor": null,
+    "sweep": false,
+    "query": "",
+    "error": "GraphQL owner and repo must be String!"
+  },
+  {
+    "at": 1792156577.388694,
+    "owner": "lab",
+    "repo": "other",
+    "number": 10,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156578.92785,
+    "owner": "lab",
+    "repo": "other",
+    "number": 11,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156580.156529,
+    "method": "GET",
+    "path": "/api/v4/projects/group%2Fproject/merge_requests/17?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true"
+  },
+  {
+    "at": 1792156580.1585011,
+    "method": "GET",
+    "path": "/api/v4/projects/group%2Fproject/merge_requests/17/approval_state"
+  },
+  {
+    "at": 1792156580.160158,
+    "owner": null,
+    "repo": null,
+    "number": null,
+    "cursor": null,
+    "sweep": false,
+    "query": "",
+    "error": "GraphQL owner and repo must be String!"
+  },
+  {
+    "at": 1792156590.2907488,
+    "owner": "lab",
+    "repo": "other",
+    "number": 10,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156591.591657,
+    "owner": "lab",
+    "repo": "other",
+    "number": 11,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156593.161103,
+    "method": "GET",
+    "path": "/api/v4/projects/group%2Fproject/merge_requests/17?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true"
+  },
+  {
+    "at": 1792156593.193377,
+    "method": "GET",
+    "path": "/api/v4/projects/group%2Fproject/merge_requests/17/approval_state"
+  },
+  {
+    "at": 1792156593.2263029,
+    "owner": null,
+    "repo": null,
+    "number": null,
+    "cursor": null,
+    "sweep": false,
+    "query": "",
+    "error": "GraphQL owner and repo must be String!"
+  },
+  {
+    "at": 1792156594.395655,
+    "owner": "lab",
+    "repo": "retained",
+    "number": null,
+    "cursor": null,
+    "sweep": true,
+    "query": "query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}",
+    "numbers": [
+      2
+    ],
+    "order": "CREATED_AT"
+  },
+  {
+    "at": 1792156594.497667,
+    "owner": "lab",
+    "repo": "other",
+    "number": null,
+    "cursor": null,
+    "sweep": true,
+    "query": "query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}",
+    "numbers": [
+      11,
+      10
+    ],
+    "order": "CREATED_AT"
+  }
+]

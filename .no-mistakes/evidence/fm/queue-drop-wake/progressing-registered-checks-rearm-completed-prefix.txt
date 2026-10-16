@@ -1,0 +1,5 @@
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-registered-checks-rearm-60383/home/state/task-h.check.sh: dequeued https://github.com/lab/slowchecks/pull/8 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-registered-checks-rearm-60383/home/state/zy-custom.check.sh: custom-progress
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/progressing-registered-checks-rearm-60383/home/state/zz-cycle-end.check.sh: fresh-after-custom
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/slowchecks/pull/9 reason=failed_checks

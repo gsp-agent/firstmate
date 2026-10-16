@@ -1,0 +1,37 @@
+{
+  "beacon_aged_seconds_per_read": 905,
+  "observations": [
+    {
+      "pr": 1,
+      "beacon_age_at_next_read": 2.691664457321167
+    },
+    {
+      "pr": 2,
+      "beacon_age_at_next_read": 1.0223972797393799
+    },
+    {
+      "pr": 3,
+      "beacon_age_at_next_read": 0.9372029304504395
+    },
+    {
+      "pr": 4,
+      "beacon_age_at_next_read": 0.9784440994262695
+    },
+    {
+      "pr": 5,
+      "beacon_age_at_next_read": 1.13981294631958
+    },
+    {
+      "pr": 6,
+      "beacon_age_at_next_read": 1.0680210590362549
+    },
+    {
+      "pr": 7,
+      "beacon_age_at_next_read": 0.9073929786682129
+    },
+    {
+      "pr": 8,
+      "beacon_age_at_next_read": 0.9391119480133057
+    }
+  ]
+}

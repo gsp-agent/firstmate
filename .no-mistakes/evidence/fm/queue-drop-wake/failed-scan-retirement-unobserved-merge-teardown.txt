@@ -1,0 +1,4 @@
+$ bin/fm-teardown.sh task-a --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-72919/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: pending repository merge-queue sweep; preserving task state.

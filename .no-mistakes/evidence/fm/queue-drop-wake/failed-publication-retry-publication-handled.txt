@@ -1,0 +1,2 @@
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete

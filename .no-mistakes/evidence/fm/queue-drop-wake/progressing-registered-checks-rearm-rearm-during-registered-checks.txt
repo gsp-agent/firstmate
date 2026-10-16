@@ -1,0 +1,2 @@
+$ bin/fm-watch.sh
+watcher: already running pid 74069

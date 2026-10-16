@@ -1,0 +1,15 @@
+$ bin/fm-wake-drain.sh
+1792156611	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/contributions.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/contributions.check.sh: contributions: observation unavailable for https://github.com/lab/unavailable/pull/3 contributions: observation unavailable for https://github.com/lab/good/pull/1
+1792156613	2	check	merged-task-a-https://github.com/lab/good/pull/1	check: merge landed: task-a https://github.com/lab/good/pull/1 external
+1792156622	3	check	merged-task-b-https://github.com/lab/unavailable/pull/3	check: merge landed: task-b https://github.com/lab/unavailable/pull/3 external
+1792156625	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete
+1792156626	5	check	good-removal	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/good/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 5 --recovery-generation 85321.1792156611.PYum0o
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no live watcher process holds this home lock (last beat: 4s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

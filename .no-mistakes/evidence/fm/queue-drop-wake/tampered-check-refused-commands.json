@@ -1,0 +1,38 @@
+[
+  {
+    "command": [
+      "bin/fm-pr-check.sh",
+      "task-a",
+      "https://github.com/lab/tamperedcopy/pull/1"
+    ],
+    "status": 0,
+    "stdout": "armed: state/task-a.check.sh\n",
+    "stderr": "\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+  },
+  {
+    "command": [
+      "bin/fm-check-unregister.sh",
+      "contributions"
+    ],
+    "status": 0,
+    "stdout": "unregistered: state/contributions.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-check-register.sh",
+      "zz-cycle-end"
+    ],
+    "status": 0,
+    "stdout": "registered: state/zz-cycle-end.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "status": 0,
+    "stdout": "check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/tampered-check-refused-60383/home/state/zz-cycle-end.check.sh: lab-cycle-complete\ncheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/tamperedcopy/pull/1 reason=failed_checks\ncheck: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/tampered-check-refused-60383/home/state/task-a.check.sh\n",
+    "stderr": ""
+  }
+]

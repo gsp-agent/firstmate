@@ -1,0 +1,2 @@
+$ bin/fm-watch.sh
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-wake-lib.sh: line 2170: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/.wake-queue.seq: Is a directory

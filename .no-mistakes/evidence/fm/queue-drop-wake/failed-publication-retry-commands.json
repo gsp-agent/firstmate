@@ -1,0 +1,111 @@
+[
+  {
+    "command": [
+      "bin/fm-pr-check.sh",
+      "task-a",
+      "https://github.com/lab/publication/pull/1"
+    ],
+    "status": 0,
+    "stdout": "armed: state/task-a.check.sh\n",
+    "stderr": "\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+  },
+  {
+    "command": [
+      "bin/fm-check-unregister.sh",
+      "contributions"
+    ],
+    "status": 0,
+    "stdout": "unregistered: state/contributions.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "status": 1,
+    "stdout": "",
+    "stderr": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-wake-lib.sh: line 2170: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/.wake-queue.seq: Is a directory\n"
+  },
+  {
+    "command": [
+      "bin/fm-check-register.sh",
+      "zz-cycle-end"
+    ],
+    "status": 0,
+    "stdout": "registered: state/zz-cycle-end.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "status": 0,
+    "stdout": "check: rearm-resurface\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh"
+    ],
+    "status": 0,
+    "stdout": "",
+    "stderr": "WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 0 --recovery-generation 57805.1792156954.55HEbO\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh",
+      "--ack-through",
+      "0",
+      "--recovery-generation",
+      "57805.1792156954.55HEbO"
+    ],
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "status": 0,
+    "stdout": "check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/task-a.check.sh: dequeued https://github.com/lab/publication/pull/1 reason=failed_checks\ncheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh"
+    ],
+    "status": 0,
+    "stdout": "1792156963\t1\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/task-a.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/task-a.check.sh: dequeued https://github.com/lab/publication/pull/1 reason=failed_checks\n1792156965\t2\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n",
+    "stderr": "WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 67980.1792156963.LJMiOc\nWARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.\nWARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.\n"
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh",
+      "--ack-through",
+      "2",
+      "--recovery-generation",
+      "67980.1792156963.LJMiOc"
+    ],
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-check-register.sh",
+      "zz-cycle-end"
+    ],
+    "status": 0,
+    "stdout": "registered: state/zz-cycle-end.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "status": 0,
+    "stdout": "check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "merge-queue-sweep.seen": "fm-merge-queue-sweep-v1\nnumeric-armed\nnumeric-unarmed\n",
+  ".wake-queue": "",
+  "task-a.pr-poll": "github\nhttps://github.com/true/123/pull/7\ngithub.com\ntrue/123\n7\n"
+}

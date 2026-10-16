@@ -1,0 +1,96 @@
+[
+  {
+    "command": [
+      "bin/fm-pr-check.sh",
+      "task-a",
+      "https://github.com/lab/good/pull/1"
+    ],
+    "status": 0,
+    "stdout": "armed: state/task-a.check.sh\n",
+    "stderr": "\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+  },
+  {
+    "command": [
+      "bin/fm-pr-check.sh",
+      "task-b",
+      "https://github.com/lab/unavailable/pull/3"
+    ],
+    "status": 0,
+    "stdout": "armed: state/task-b.check.sh\n",
+    "stderr": "WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\n"
+  },
+  {
+    "command": [
+      "bin/fm-check-register.sh",
+      "zz-cycle-end"
+    ],
+    "status": 0,
+    "stdout": "registered: state/zz-cycle-end.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "status": 0,
+    "stdout": "check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/contributions.check.sh: contributions: observation unavailable for https://github.com/lab/unavailable/pull/3\ncontributions: observation unavailable for https://github.com/lab/good/pull/1\ncheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/task-a.check.sh: merged\ncheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/task-b.check.sh: merged\ncheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete\ncheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/good/pull/2 reason=failed_checks\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh"
+    ],
+    "status": 0,
+    "stdout": "1792156611\t1\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/contributions.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/contributions.check.sh: contributions: observation unavailable for https://github.com/lab/unavailable/pull/3 contributions: observation unavailable for https://github.com/lab/good/pull/1\n1792156613\t2\tcheck\tmerged-task-a-https://github.com/lab/good/pull/1\tcheck: merge landed: task-a https://github.com/lab/good/pull/1 external\n1792156622\t3\tcheck\tmerged-task-b-https://github.com/lab/unavailable/pull/3\tcheck: merge landed: task-b https://github.com/lab/unavailable/pull/3 external\n1792156625\t4\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n1792156626\t5\tcheck\tgood-removal\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/good/pull/2 reason=failed_checks\n",
+    "stderr": "WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 5 --recovery-generation 85321.1792156611.PYum0o\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  2 task(s) in flight, but no live watcher process holds this home lock (last beat: 4s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nWARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.\n"
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh",
+      "--ack-through",
+      "5",
+      "--recovery-generation",
+      "85321.1792156611.PYum0o"
+    ],
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-check-register.sh",
+      "zz-cycle-end"
+    ],
+    "status": 0,
+    "stdout": "registered: state/zz-cycle-end.check.sh\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-watch.sh"
+    ],
+    "status": 0,
+    "stdout": "check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete\ncheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/unavailable/pull/4 reason=failed_checks\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh"
+    ],
+    "status": 0,
+    "stdout": "1792156636\t6\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/partial-repository-failure-27244/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n1792156637\t7\tcheck\tretry-removal\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/unavailable/pull/4 reason=failed_checks\n",
+    "stderr": "WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 7 --recovery-generation 28036.1792156636.DAxF6W\nWARNING: watcher still down (same stale episode; last beat: 4s ago, grace 300s) - full banner already printed this episode.\nWARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.\n"
+  },
+  {
+    "command": [
+      "bin/fm-wake-drain.sh",
+      "--ack-through",
+      "7",
+      "--recovery-generation",
+      "28036.1792156636.DAxF6W"
+    ],
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

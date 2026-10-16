@@ -1,0 +1,2 @@
+$ gh api graphql -f query=query($owner:String!,$repo:String!){repository(owner:$owner,name:$repo){id}} -F owner=true -F repo=123
+{"errors": [{"message": "GraphQL owner and repo must be String!"}]}gh: GraphQL owner and repo must be String!

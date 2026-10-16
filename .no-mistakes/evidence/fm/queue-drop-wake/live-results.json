@@ -1,0 +1,24 @@
+[
+  {
+    "name": "pagination-update-last-merge",
+    "result": "fail",
+    "live": true,
+    "reason": ""
+  },
+  {
+    "name": "failed-scan-retirement",
+    "result": "fail",
+    "live": true,
+    "reason": "CompletedProcess(args=['bin/fm-teardown.sh', 'task-a', '--force'], returncode=1, stdout='', stderr='fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-scan-retirement-27244/home\\nREFUSED: task task-a has a missing, empty, or ambiguous window endpoint; preserving task state.\\n')"
+  },
+  {
+    "name": "bad-seen-later-watches",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "partial-repository-failure",
+    "result": "pass",
+    "live": true
+  }
+]

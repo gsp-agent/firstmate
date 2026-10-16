@@ -1,0 +1,5 @@
+{
+  "merge-queue-sweep.seen": "fm-merge-queue-sweep-v1\narmed-first\nquoted\nunicode\nnull\narmed-second\n",
+  ".wake-queue": "1792156538\t10\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/zz-cycle-end.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-and-reentry-83244/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n",
+  "task-a.pr-poll": "github\nhttps://github.com/lab/queue/pull/1\ngithub.com\nlab/queue\n1\n"
+}

@@ -1,0 +1,105 @@
+{
+  "product": [
+    "bin/fm-pr-check.sh",
+    "bin/fm-pr-poll.sh",
+    "bin/fm-watch.sh",
+    "bin/fm-pr-queue-sweep.sh",
+    "bin/fm-wake-drain.sh",
+    "bin/fm-teardown.sh"
+  ],
+  "clients": "Real installed gh and glab; no CLI substitutes",
+  "remote_history": "Read-only GitHub GraphQL for ten named pull requests",
+  "isolation": "Fresh fm-lab-home marked homes inside this worktree; local HTTPS replay endpoint; isolated CLI config directories and disposable API tokens",
+  "beacon_boundary": "Actual persisted beacon mtime aged 905 seconds before successful reads; real re-arm commands kept the same watcher alive",
+  "device_boundary": "Persisted device identities changed while actual inode identities stayed unchanged on the live volume",
+  "targeted_regression": {
+    "command": "env TMPDIR=\"$PWD/.nm-live\" bash tests/fm-pr-check-security.test.sh",
+    "exit_status": 0
+  },
+  "production_mutations": false,
+  "source_changes": false,
+  "scenarios": [
+    {
+      "name": "pagination-update-last-merge",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "failed-scan-retirement",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "bad-seen-later-watches",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "partial-repository-failure",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "old-template-device-recovery",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "interrupted-template-device-recovery",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "unshipped-hash-refused",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "retirement-device-recovery",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "progressing-sweep-rearm",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "progressing-registered-checks-rearm",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "tampered-check-refused",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "replay-history",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "failed-publication-retry",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "unsafe-seen-retry",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "numeric-names",
+      "result": "pass",
+      "live": true,
+      "evidence": "numeric-names-drain.txt"
+    },
+    {
+      "name": "reasons-and-reentry",
+      "result": "pass",
+      "live": true,
+      "evidence": "reasons-and-reentry-first-drain.txt"
+    }
+  ]
+}

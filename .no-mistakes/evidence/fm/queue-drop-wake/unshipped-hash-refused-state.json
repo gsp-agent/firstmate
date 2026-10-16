@@ -1,0 +1,5 @@
+{
+  "merge-queue-sweep.seen": "fm-merge-queue-sweep-v1\nmust-not-poll\n",
+  ".wake-queue": "1792156724\t1\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unshipped-hash-refused-65068/home/state/zz-cycle-end.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unshipped-hash-refused-65068/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n1792156724\t2\tcheck\tmust-not-poll\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/tampered/pull/1 reason=failed_checks\n1792156725\t3\tcheck\tunauthenticated-state-checks\tcheck: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unshipped-hash-refused-65068/home/state/task-a.check.sh\n",
+  "task-a.pr-poll": "github\nhttps://github.com/lab/tampered/pull/1\ngithub.com\nlab/tampered\n1\n"
+}

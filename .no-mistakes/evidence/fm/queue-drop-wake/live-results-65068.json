@@ -1,0 +1,23 @@
+[
+  {
+    "name": "old-template-device-recovery",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "interrupted-template-device-recovery",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "unshipped-hash-refused",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "retirement-device-recovery",
+    "result": "fail",
+    "live": true,
+    "reason": "[Errno 13] Permission denied: '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retirement-device-recovery-65068/home/state/task-a.check.sh'"
+  }
+]

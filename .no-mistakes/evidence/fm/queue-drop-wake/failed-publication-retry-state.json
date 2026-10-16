@@ -1,0 +1,5 @@
+{
+  "merge-queue-sweep.seen": "fm-merge-queue-sweep-v1\npublish-after-retry\n",
+  ".wake-queue": "1792156974\t3\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/failed-publication-retry-11696/home/state/zz-cycle-end.check.sh: lab-cycle-complete\n",
+  "task-a.pr-poll": "github\nhttps://github.com/lab/publication/pull/1\ngithub.com\nlab/publication\n1\n"
+}

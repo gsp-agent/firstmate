@@ -1,0 +1,2 @@
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+error: pending repository merge-queue sweep; preserving task state

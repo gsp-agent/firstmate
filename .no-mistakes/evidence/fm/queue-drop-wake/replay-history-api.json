@@ -1,0 +1,113 @@
+[
+  {
+    "at": 1792156920.1520681,
+    "owner": "groovejones",
+    "repo": "groove-sight-platform",
+    "number": 4308,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {isDraft,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156921.137127,
+    "owner": "groovejones",
+    "repo": "groove-sight-platform",
+    "number": 4308,
+    "cursor": null,
+    "sweep": false,
+    "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {headRefOid,id,number}\n\t\t}\n\t}"
+  },
+  {
+    "at": 1792156927.121173,
+    "owner": "groovejones",
+    "repo": "groove-sight-platform",
+    "number": 4308,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156928.7691672,
+    "owner": "groovejones",
+    "repo": "groove-sight-platform",
+    "number": null,
+    "cursor": null,
+    "sweep": true,
+    "query": "query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}",
+    "numbers": [
+      4308,
+      4200,
+      4183,
+      4172,
+      4111,
+      4017,
+      4006,
+      3950,
+      3941,
+      3939
+    ],
+    "order": "CREATED_AT"
+  },
+  {
+    "at": 1792156938.7770538,
+    "owner": "groovejones",
+    "repo": "groove-sight-platform",
+    "number": 4308,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156939.580956,
+    "owner": "groovejones",
+    "repo": "groove-sight-platform",
+    "number": null,
+    "cursor": null,
+    "sweep": true,
+    "query": "query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}",
+    "numbers": [
+      4308,
+      4200,
+      4183,
+      4172,
+      4111,
+      4017,
+      4006,
+      3950,
+      3941,
+      3939
+    ],
+    "order": "CREATED_AT"
+  },
+  {
+    "at": 1792156945.255241,
+    "owner": "groovejones",
+    "repo": "groove-sight-platform",
+    "number": 4308,
+    "cursor": null,
+    "sweep": false,
+    "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}"
+  },
+  {
+    "at": 1792156946.490496,
+    "owner": "groovejones",
+    "repo": "groove-sight-platform",
+    "number": null,
+    "cursor": null,
+    "sweep": true,
+    "query": "query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}",
+    "numbers": [
+      4308,
+      4200,
+      4183,
+      4172,
+      4111,
+      4017,
+      4006,
+      3950,
+      3941,
+      3939
+    ],
+    "order": "CREATED_AT"
+  }
+]

@@ -1,0 +1,4 @@
+$ bin/fm-teardown.sh task-a --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retirement-device-recovery-54711/home
+WARNING: watcher still down (same stale episode; last beat: 10s ago, grace 300s) - full banner already printed this episode.
+REFUSED: pending repository merge-queue sweep; preserving task state.
