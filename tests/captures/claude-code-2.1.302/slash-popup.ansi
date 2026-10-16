@@ -1,0 +1,32 @@
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ /[0m[7m [0m
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ❯ /add-dir                    Add a new working directory
+    /autocompact                Set how full the context gets before auto-summarizing
+    /background                 Send this session to the background and free the terminal
+    /branch                     Create a branch of the current conversation at this point
+    /btw                        Ask a quick side question without interrupting the main conversation
+    /bug                        Report a bug or share your conversation
+    /cd                         Move this session to a new working directory
+    /chrome                     Open Claude in Chrome settings
+    /clear                      Start a new session with empty context; previous session stays on disk
+                                (resumable with /resume)
+    /color                      Set the prompt bar color for this session
+    /compact                    Free up context by summarizing the conversation so far
+    /config                     Open settings
+    /context                    Visualize current context usage as a colored grid
+    /copy                       Copy Claude's last response to clipboard (or /copy N for the Nth-latest)
+    /desktop                    Continue the current session in Claude Desktop
+    /diff                       Toggle the diff panel showing uncommitted changes
+    /effort                     Set effort level for model usage
+    /exit                       Exit the CLI
+    /export                     Export the current conversation to a file or clipboard
+    /fast                       Toggle fast mode (Opus 5.5)
+    /feedback                   Send feedback to Anthropic or report a bug
+    /focus                      Toggle focus view: just your prompt, summary, and response
+    /fork                       Copy this conversation into a new background session and keep working here
+    /goal                       Set a goal Claude checks before stopping
+    /help                       Show help and available commands
+    /hooks                      View hook configurations for tool events
+    /ide                        Manage IDE integrations and show status
+    /install-github-app         Set up Claude GitHub Actions for a repository
