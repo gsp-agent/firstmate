@@ -1,0 +1,307 @@
+[
+  {
+    "name": "dotted routes evidence and closes backlog",
+    "result": "pass",
+    "live": true,
+    "task": "lab-dotted-a1",
+    "files": {
+      ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "brief.md": "c49c7d5e0e9080d48eac954e23774c3ffedbb98c8567ebc39676c907024a278e",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "lab-dotted-a1",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/projects/sample",
+          "pr": "",
+          "beads": [
+            ".agent-config-d1p"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data",
+            "task": "lab-dotted-a1"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    },
+    "extra": {
+      "bead": ".agent-config-d1p",
+      "owner": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/user/.agent-config",
+      "backlog": "task:\n  id: lab-dotted-a1\n  title: Disposable validation lab-dotted-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n"
+    }
+  },
+  {
+    "name": "gsp routes evidence and closes backlog",
+    "result": "pass",
+    "live": true,
+    "task": "lab-gsp-a1",
+    "files": {
+      ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "brief.md": "d0b06ba1016747a5a1e41579896aa4fc9c362fb6dc0e971a03fd29afced1bfd8",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "lab-gsp-a1",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/projects/sample",
+          "pr": "",
+          "beads": [
+            "gsp-pze"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data",
+            "task": "lab-gsp-a1"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    },
+    "extra": {
+      "bead": "gsp-pze",
+      "owner": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/user/dev/gsp-beads",
+      "backlog": "task:\n  id: lab-gsp-a1\n  title: Disposable validation lab-gsp-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n"
+    }
+  },
+  {
+    "name": "project routes evidence and closes backlog",
+    "result": "pass",
+    "live": true,
+    "task": "lab-project-a1",
+    "files": {
+      ".cleanup-hold/decoy.png": "287c56556cd63e717b6f6ba02211c66dc18249b2d6be568e19843abe2e0018d8",
+      ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "brief.md": "fe8698d755e466d974ee213586f434c8ff22178d7200f2db1f4c10401be6b079",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "lab-project-a1",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/projects/sample",
+          "pr": "",
+          "beads": [
+            "proof-ja4"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data",
+            "task": "lab-project-a1"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    },
+    "extra": {
+      "bead": "proof-ja4",
+      "owner": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/projects/sample",
+      "backlog": "task:\n  id: lab-project-a1\n  title: Disposable validation lab-project-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n"
+    }
+  },
+  {
+    "name": "fallback routes evidence and closes backlog",
+    "result": "pass",
+    "live": true,
+    "task": "lab-fallback-a1",
+    "files": {
+      ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "brief.md": "586654fc626f82428f09f9b485a92433a3e8065d33326216fed4a46adbb0b47a",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "lab-fallback-a1",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/projects/sample",
+          "pr": "",
+          "beads": [
+            "missing-q9"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data",
+            "task": "lab-fallback-a1"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    },
+    "extra": {
+      "bead": "missing-q9",
+      "owner": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/projects/sample",
+      "backlog": "task:\n  id: lab-fallback-a1\n  title: Disposable validation lab-fallback-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n"
+    }
+  },
+  {
+    "name": "unread keeps all bytes and closes backlog",
+    "result": "pass",
+    "live": true,
+    "task": "lab-unread-a1",
+    "files": {
+      "brief.md": "22a48051ca7c8ccc1941924d45adffe5fcfbef67909e63286874a9c84581ff18",
+      "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "lab-unread-a1",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample",
+          "pr": "",
+          "beads": [
+            ".agent-config-1hb",
+            "missing-q9"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data",
+            "task": "lab-unread-a1"
+          },
+          "unread": [
+            "missing-q9"
+          ]
+        }
+      ],
+      "complete": false
+    },
+    "extra": {
+      "before_sha256": {
+        "brief.md": "22a48051ca7c8ccc1941924d45adffe5fcfbef67909e63286874a9c84581ff18",
+        "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+        "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+        "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+      },
+      "backlog": "task:\n  id: lab-unread-a1\n  title: Disposable validation lab-unread-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n",
+      "unread_warning": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 6s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nwarning: task data lab-unread-a1 retained whole for retry: unread references: missing-q9\nwarning: task data retained for recovery: unread references: missing-q9\nwarning: lab-unread-a1 teardown completed, but task-data cleanup needs a retry\n"
+    }
+  },
+  {
+    "name": "next teardown retries still-unread reference safely",
+    "result": "pass",
+    "live": true,
+    "task": "lab-unread-a1",
+    "files": {
+      "brief.md": "22a48051ca7c8ccc1941924d45adffe5fcfbef67909e63286874a9c84581ff18",
+      "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "lab-unread-a1",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample",
+          "pr": "",
+          "beads": [
+            ".agent-config-1hb",
+            "missing-q9"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data",
+            "task": "lab-unread-a1"
+          },
+          "unread": [
+            "missing-q9"
+          ]
+        }
+      ],
+      "complete": false
+    },
+    "extra": {}
+  },
+  {
+    "name": "next teardown resolves reference and starts a full recovery cycle",
+    "result": "pass",
+    "live": true,
+    "task": "lab-unread-a1",
+    "files": {
+      ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "brief.md": "22a48051ca7c8ccc1941924d45adffe5fcfbef67909e63286874a9c84581ff18",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "lab-unread-a1",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample",
+          "pr": "",
+          "beads": [
+            ".agent-config-1hb",
+            "missing-q9"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data",
+            "task": "lab-unread-a1"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    },
+    "extra": {}
+  },
+  {
+    "name": "reserved-unread keeps all bytes and closes backlog",
+    "result": "pass",
+    "live": true,
+    "task": "lab-reserved-unread-a1",
+    "files": {
+      "brief.md": "ccec041e3df35a3d1492b8f83a8a74c1e1ddadbb2438b641d85268abdb12c5d5",
+      "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "cleanup_record": {
+      "version": 1,
+      "task": "lab-reserved-unread-a1",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/projects/sample",
+          "pr": "",
+          "beads": [
+            "gsp-missing-q9"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data",
+            "task": "lab-reserved-unread-a1"
+          },
+          "unread": [
+            "gsp-missing-q9"
+          ]
+        }
+      ],
+      "complete": false
+    },
+    "extra": {
+      "before_sha256": {
+        "brief.md": "ccec041e3df35a3d1492b8f83a8a74c1e1ddadbb2438b641d85268abdb12c5d5",
+        "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+        "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+        "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+      },
+      "backlog": "task:\n  id: lab-reserved-unread-a1\n  title: Disposable validation lab-reserved-unread-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n",
+      "unread_warning": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nwarning: task data lab-reserved-unread-a1 retained whole for retry: unread references: gsp-missing-q9\nwarning: task data retained for recovery: unread references: gsp-missing-q9\nwarning: lab-reserved-unread-a1 teardown completed, but task-data cleanup needs a retry\n"
+    }
+  }
+]

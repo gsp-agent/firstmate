@@ -1,0 +1,1103 @@
+
+$ git show 8ca0dc62:bin/fm-task-data.py
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+[production source extraction omitted]
+exit: 0
+
+$ git show 8ca0dc62:bin/fm-task-data-lib.sh
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+[production source extraction omitted]
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance
+exit: 0
+
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/projects/sample
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+exit: 0
+
+$ br init --prefix .agent-config --actor local-validation
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/user/.agent-config
+Prefix set to: .agent-config
+Initialized beads workspace in ./.beads
+exit: 0
+
+$ br create 'Evidence in .agent-config' --description '[capture](proof.png)' --actor local-validation --json
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/user/.agent-config
+{"id":".agent-config-d1p","title":"Evidence in .agent-config","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T16:43:29.194340Z","created_by":"local-validation","updated_at":"2026-10-16T16:43:29.194340Z","source_repo":".agent-config","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/user/.agent-config","compaction_level":0,"original_size":0}
+exit: 0
+
+$ tasks-axi add lab-dotted-a1 'Disposable validation lab-dotted-a1' --start --body 'Disposable task for live cleanup validation' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance
+ok: added lab-dotted-a1 -> In flight
+task:
+  id: lab-dotted-a1
+  title: Disposable validation lab-dotted-a1
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: Disposable task for live cleanup validation
+help[2]:
+  - Run `tasks-axi done lab-dotted-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block lab-dotted-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data/backlog.md` to record a dependency
+exit: 0
+
+$ python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/pre-fix-bin/fm-task-data.py prepare /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/state lab-dotted-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+stderr:
+warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/pre-fix-bin/fm-task-data-lib.sh', 'backlog-references', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data', 'lab-dotted-a1', '0', '.agent-config-d1p']' returned non-zero exit status 1.
+exit: 1
+
+Isolation challenge: BEADS_DIR, BEADS_DB, BR_DB point at nonexistent paths inside this disposable case.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-teardown.sh lab-dotted-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+task data lab-dotted-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data/lab-dotted-a1/.cleanup-hold until the next completed task
+teardown lab-dotted-a1 complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/projects/gone-lab-dotted-a1, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T164336Z-70843)
+Backlog: lab-dotted-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 7s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit: 0
+
+$ tasks-axi show lab-dotted-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance
+task:
+  id: lab-dotted-a1
+  title: Disposable validation lab-dotted-a1
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Disposable task for live cleanup validation\nlocal main"
+exit: 0
+
+Observed persisted state:
+{
+  "name": "dotted routes evidence and closes backlog",
+  "result": "pass",
+  "live": true,
+  "task": "lab-dotted-a1",
+  "files": {
+    ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+    ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+    "brief.md": "c49c7d5e0e9080d48eac954e23774c3ffedbb98c8567ebc39676c907024a278e",
+    "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "lab-dotted-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/projects/sample",
+        "pr": "",
+        "beads": [
+          ".agent-config-d1p"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data",
+          "task": "lab-dotted-a1"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  },
+  "extra": {
+    "bead": ".agent-config-d1p",
+    "owner": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/user/.agent-config",
+    "backlog": "task:\n  id: lab-dotted-a1\n  title: Disposable validation lab-dotted-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n"
+  }
+}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance
+exit: 0
+
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/projects/sample
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+exit: 0
+
+$ br init --prefix gsp --actor local-validation
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/user/dev/gsp-beads
+Prefix set to: gsp
+Initialized beads workspace in ./.beads
+exit: 0
+
+$ br create 'Evidence in gsp' --description '[capture](proof.png)' --actor local-validation --json
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/user/dev/gsp-beads
+{"id":"gsp-pze","title":"Evidence in gsp","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T16:43:46.702338Z","created_by":"local-validation","updated_at":"2026-10-16T16:43:46.702338Z","source_repo":"gsp-beads","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/user/dev/gsp-beads","compaction_level":0,"original_size":0}
+exit: 0
+
+$ tasks-axi add lab-gsp-a1 'Disposable validation lab-gsp-a1' --start --body 'Disposable task for live cleanup validation' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance
+ok: added lab-gsp-a1 -> In flight
+task:
+  id: lab-gsp-a1
+  title: Disposable validation lab-gsp-a1
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: Disposable task for live cleanup validation
+help[2]:
+  - Run `tasks-axi done lab-gsp-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block lab-gsp-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data/backlog.md` to record a dependency
+exit: 0
+
+$ python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/pre-fix-bin/fm-task-data.py prepare /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/state lab-gsp-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+stderr:
+warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/pre-fix-bin/fm-task-data-lib.sh', 'backlog-references', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data', 'lab-gsp-a1', '0', 'gsp-pze']' returned non-zero exit status 1.
+exit: 1
+
+Isolation challenge: BEADS_DIR, BEADS_DB, BR_DB point at nonexistent paths inside this disposable case.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-teardown.sh lab-gsp-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+task data lab-gsp-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data/lab-gsp-a1/.cleanup-hold until the next completed task
+teardown lab-gsp-a1 complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/projects/gone-lab-gsp-a1, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T164354Z-91028)
+Backlog: lab-gsp-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 7s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit: 0
+
+$ tasks-axi show lab-gsp-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance
+task:
+  id: lab-gsp-a1
+  title: Disposable validation lab-gsp-a1
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Disposable task for live cleanup validation\nlocal main"
+exit: 0
+
+Observed persisted state:
+{
+  "name": "gsp routes evidence and closes backlog",
+  "result": "pass",
+  "live": true,
+  "task": "lab-gsp-a1",
+  "files": {
+    ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+    ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+    "brief.md": "d0b06ba1016747a5a1e41579896aa4fc9c362fb6dc0e971a03fd29afced1bfd8",
+    "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "lab-gsp-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/projects/sample",
+        "pr": "",
+        "beads": [
+          "gsp-pze"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data",
+          "task": "lab-gsp-a1"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  },
+  "extra": {
+    "bead": "gsp-pze",
+    "owner": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/user/dev/gsp-beads",
+    "backlog": "task:\n  id: lab-gsp-a1\n  title: Disposable validation lab-gsp-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n"
+  }
+}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance
+exit: 0
+
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/projects/sample
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+exit: 0
+
+$ br init --prefix proof --actor local-validation
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/projects/sample
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit: 0
+
+$ br create 'Evidence in proof' --description '[capture](proof.png)' --actor local-validation --json
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/projects/sample
+{"id":"proof-ja4","title":"Evidence in proof","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T16:44:05.300707Z","created_by":"local-validation","updated_at":"2026-10-16T16:44:05.300707Z","source_repo":"sample","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/projects/sample","compaction_level":0,"original_size":0}
+exit: 0
+
+$ tasks-axi add proof-ja4 'Disposable validation proof-ja4' --start --body '[wrong database](decoy.png)' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance
+ok: added proof-ja4 -> In flight
+task:
+  id: proof-ja4
+  title: Disposable validation proof-ja4
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "[wrong database](decoy.png)"
+help[2]:
+  - Run `tasks-axi done proof-ja4 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block proof-ja4 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data/backlog.md` to record a dependency
+exit: 0
+
+$ tasks-axi add lab-project-a1 'Disposable validation lab-project-a1' --start --body 'Disposable task for live cleanup validation' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance
+ok: added lab-project-a1 -> In flight
+task:
+  id: lab-project-a1
+  title: Disposable validation lab-project-a1
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: Disposable task for live cleanup validation
+help[2]:
+  - Run `tasks-axi done lab-project-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block lab-project-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data/backlog.md` to record a dependency
+exit: 0
+
+Isolation challenge: BEADS_DIR, BEADS_DB, BR_DB point at nonexistent paths inside this disposable case.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-teardown.sh lab-project-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+task data lab-project-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data/lab-project-a1/.cleanup-hold until the next completed task
+teardown lab-project-a1 complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/projects/gone-lab-project-a1, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T164413Z-99874)
+Backlog: lab-project-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 8s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit: 0
+
+$ tasks-axi show lab-project-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance
+task:
+  id: lab-project-a1
+  title: Disposable validation lab-project-a1
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Disposable task for live cleanup validation\nlocal main"
+exit: 0
+
+Observed persisted state:
+{
+  "name": "project routes evidence and closes backlog",
+  "result": "pass",
+  "live": true,
+  "task": "lab-project-a1",
+  "files": {
+    ".cleanup-hold/decoy.png": "287c56556cd63e717b6f6ba02211c66dc18249b2d6be568e19843abe2e0018d8",
+    ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+    ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+    "brief.md": "fe8698d755e466d974ee213586f434c8ff22178d7200f2db1f4c10401be6b079",
+    "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "lab-project-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/projects/sample",
+        "pr": "",
+        "beads": [
+          "proof-ja4"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/data",
+          "task": "lab-project-a1"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  },
+  "extra": {
+    "bead": "proof-ja4",
+    "owner": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-project/instance/projects/sample",
+    "backlog": "task:\n  id: lab-project-a1\n  title: Disposable validation lab-project-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n"
+  }
+}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance
+exit: 0
+
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/projects/sample
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+exit: 0
+
+$ br init --prefix proof --actor local-validation
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/projects/sample
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit: 0
+
+$ br create 'Evidence in proof' --description '[capture](proof.png)' --actor local-validation --json
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/projects/sample
+{"id":"proof-zjt","title":"Evidence in proof","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T16:44:29.848156Z","created_by":"local-validation","updated_at":"2026-10-16T16:44:29.848156Z","source_repo":"sample","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/projects/sample","compaction_level":0,"original_size":0}
+exit: 0
+
+$ tasks-axi add missing-q9 'Disposable validation missing-q9' --start --body '[capture](proof.png)' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance
+ok: added missing-q9 -> In flight
+task:
+  id: missing-q9
+  title: Disposable validation missing-q9
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "[capture](proof.png)"
+help[2]:
+  - Run `tasks-axi done missing-q9 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block missing-q9 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data/backlog.md` to record a dependency
+exit: 0
+
+$ tasks-axi add lab-fallback-a1 'Disposable validation lab-fallback-a1' --start --body 'Disposable task for live cleanup validation' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance
+ok: added lab-fallback-a1 -> In flight
+task:
+  id: lab-fallback-a1
+  title: Disposable validation lab-fallback-a1
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: Disposable task for live cleanup validation
+help[2]:
+  - Run `tasks-axi done lab-fallback-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block lab-fallback-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data/backlog.md` to record a dependency
+exit: 0
+
+Isolation challenge: BEADS_DIR, BEADS_DB, BR_DB point at nonexistent paths inside this disposable case.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-teardown.sh lab-fallback-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+task data lab-fallback-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data/lab-fallback-a1/.cleanup-hold until the next completed task
+teardown lab-fallback-a1 complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/projects/gone-lab-fallback-a1, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T164436Z-29783)
+Backlog: lab-fallback-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 6s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit: 0
+
+$ tasks-axi show lab-fallback-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance
+task:
+  id: lab-fallback-a1
+  title: Disposable validation lab-fallback-a1
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Disposable task for live cleanup validation\nlocal main"
+exit: 0
+
+Observed persisted state:
+{
+  "name": "fallback routes evidence and closes backlog",
+  "result": "pass",
+  "live": true,
+  "task": "lab-fallback-a1",
+  "files": {
+    ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+    ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+    "brief.md": "586654fc626f82428f09f9b485a92433a3e8065d33326216fed4a46adbb0b47a",
+    "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "lab-fallback-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/projects/sample",
+        "pr": "",
+        "beads": [
+          "missing-q9"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/data",
+          "task": "lab-fallback-a1"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  },
+  "extra": {
+    "bead": "missing-q9",
+    "owner": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-fallback/instance/projects/sample",
+    "backlog": "task:\n  id: lab-fallback-a1\n  title: Disposable validation lab-fallback-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n"
+  }
+}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+exit: 0
+
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+exit: 0
+
+$ br init --prefix proof --actor local-validation
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit: 0
+
+$ br create 'Evidence in proof' --description '[capture](proof.png)' --actor local-validation --json
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample
+{"id":"proof-qxo","title":"Evidence in proof","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T16:44:50.685181Z","created_by":"local-validation","updated_at":"2026-10-16T16:44:50.685181Z","source_repo":"sample","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample","compaction_level":0,"original_size":0}
+exit: 0
+
+$ br init --prefix .agent-config --actor local-validation
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/user/.agent-config
+Prefix set to: .agent-config
+Initialized beads workspace in ./.beads
+exit: 0
+
+$ br create 'Evidence in .agent-config' --description '[capture](proof.png)' --actor local-validation --json
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/user/.agent-config
+{"id":".agent-config-1hb","title":"Evidence in .agent-config","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T16:44:51.133383Z","created_by":"local-validation","updated_at":"2026-10-16T16:44:51.133383Z","source_repo":".agent-config","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/user/.agent-config","compaction_level":0,"original_size":0}
+exit: 0
+
+$ tasks-axi add lab-unread-a1 'Disposable validation lab-unread-a1' --start --body 'Disposable task for live cleanup validation' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+ok: added lab-unread-a1 -> In flight
+task:
+  id: lab-unread-a1
+  title: Disposable validation lab-unread-a1
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: Disposable task for live cleanup validation
+help[2]:
+  - Run `tasks-axi done lab-unread-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block lab-unread-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md` to record a dependency
+exit: 0
+
+$ python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/pre-fix-bin/fm-task-data.py prepare /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/state lab-unread-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+stderr:
+warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/pre-fix-bin/fm-task-data-lib.sh', 'backlog-references', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data', 'lab-unread-a1', '0', '.agent-config-1hb', 'missing-q9']' returned non-zero exit status 1.
+exit: 1
+
+Isolation challenge: BEADS_DIR, BEADS_DB, BR_DB point at nonexistent paths inside this disposable case.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-teardown.sh lab-unread-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+teardown lab-unread-a1 complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/gone-lab-unread-a1, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T164457Z-41350)
+Backlog: lab-unread-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 6s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: task data lab-unread-a1 retained whole for retry: unread references: missing-q9
+warning: task data retained for recovery: unread references: missing-q9
+warning: lab-unread-a1 teardown completed, but task-data cleanup needs a retry
+exit: 0
+
+$ tasks-axi show lab-unread-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+task:
+  id: lab-unread-a1
+  title: Disposable validation lab-unread-a1
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Disposable task for live cleanup validation\nlocal main"
+exit: 0
+
+Observed persisted state:
+{
+  "name": "unread keeps all bytes and closes backlog",
+  "result": "pass",
+  "live": true,
+  "task": "lab-unread-a1",
+  "files": {
+    "brief.md": "22a48051ca7c8ccc1941924d45adffe5fcfbef67909e63286874a9c84581ff18",
+    "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+    "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+    "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "lab-unread-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample",
+        "pr": "",
+        "beads": [
+          ".agent-config-1hb",
+          "missing-q9"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data",
+          "task": "lab-unread-a1"
+        },
+        "unread": [
+          "missing-q9"
+        ]
+      }
+    ],
+    "complete": false
+  },
+  "extra": {
+    "before_sha256": {
+      "brief.md": "22a48051ca7c8ccc1941924d45adffe5fcfbef67909e63286874a9c84581ff18",
+      "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "backlog": "task:\n  id: lab-unread-a1\n  title: Disposable validation lab-unread-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n",
+    "unread_warning": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 6s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nwarning: task data lab-unread-a1 retained whole for retry: unread references: missing-q9\nwarning: task data retained for recovery: unread references: missing-q9\nwarning: lab-unread-a1 teardown completed, but task-data cleanup needs a retry\n"
+  }
+}
+
+$ tasks-axi add lab-retry-still-unread-a1 'Disposable validation lab-retry-still-unread-a1' --start --body 'Disposable task for live cleanup validation' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+ok: added lab-retry-still-unread-a1 -> In flight
+task:
+  id: lab-retry-still-unread-a1
+  title: Disposable validation lab-retry-still-unread-a1
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: Disposable task for live cleanup validation
+help[2]:
+  - Run `tasks-axi done lab-retry-still-unread-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block lab-retry-still-unread-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md` to record a dependency
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-teardown.sh lab-retry-still-unread-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+task data lab-retry-still-unread-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/lab-retry-still-unread-a1/.cleanup-hold until the next completed task
+teardown lab-retry-still-unread-a1 complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/gone-lab-retry-still-unread-a1, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T164507Z-49010)
+Backlog: lab-retry-still-unread-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+WARNING: watcher still down (same stale episode; last beat: 17s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: unread references: missing-q9
+warning: lab-retry-still-unread-a1 teardown completed, but task-data cleanup needs a retry
+exit: 0
+
+$ tasks-axi show lab-retry-still-unread-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+task:
+  id: lab-retry-still-unread-a1
+  title: Disposable validation lab-retry-still-unread-a1
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Disposable task for live cleanup validation\nlocal main"
+exit: 0
+
+Observed persisted state:
+{
+  "name": "next teardown retries still-unread reference safely",
+  "result": "pass",
+  "live": true,
+  "task": "lab-unread-a1",
+  "files": {
+    "brief.md": "22a48051ca7c8ccc1941924d45adffe5fcfbef67909e63286874a9c84581ff18",
+    "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+    "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+    "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "lab-unread-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample",
+        "pr": "",
+        "beads": [
+          ".agent-config-1hb",
+          "missing-q9"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data",
+          "task": "lab-unread-a1"
+        },
+        "unread": [
+          "missing-q9"
+        ]
+      }
+    ],
+    "complete": false
+  },
+  "extra": {}
+}
+
+$ tasks-axi add missing-q9 'Disposable validation missing-q9' --start --body '[capture](proof.png)' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+ok: added missing-q9 -> In flight
+task:
+  id: missing-q9
+  title: Disposable validation missing-q9
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "[capture](proof.png)"
+help[2]:
+  - Run `tasks-axi done missing-q9 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block missing-q9 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md` to record a dependency
+exit: 0
+
+$ tasks-axi add lab-retry-readable-a1 'Disposable validation lab-retry-readable-a1' --start --body 'Disposable task for live cleanup validation' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+ok: added lab-retry-readable-a1 -> In flight
+task:
+  id: lab-retry-readable-a1
+  title: Disposable validation lab-retry-readable-a1
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: Disposable task for live cleanup validation
+help[2]:
+  - Run `tasks-axi done lab-retry-readable-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block lab-retry-readable-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md` to record a dependency
+exit: 0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-teardown.sh lab-retry-readable-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+task data lab-unread-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/lab-unread-a1/.cleanup-hold until the next completed task
+task data lab-retry-readable-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/lab-retry-readable-a1/.cleanup-hold until the next completed task
+teardown lab-retry-readable-a1 complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/gone-lab-retry-readable-a1, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T164515Z-58257)
+Backlog: lab-retry-readable-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+WARNING: watcher still down (same stale episode; last beat: 25s ago, grace 300s) - full banner already printed this episode.
+exit: 0
+
+$ tasks-axi show lab-retry-readable-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance
+task:
+  id: lab-retry-readable-a1
+  title: Disposable validation lab-retry-readable-a1
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Disposable task for live cleanup validation\nlocal main"
+exit: 0
+
+Observed persisted state:
+{
+  "name": "next teardown resolves reference and starts a full recovery cycle",
+  "result": "pass",
+  "live": true,
+  "task": "lab-unread-a1",
+  "files": {
+    ".cleanup-hold/discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+    ".cleanup-hold/nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+    "brief.md": "22a48051ca7c8ccc1941924d45adffe5fcfbef67909e63286874a9c84581ff18",
+    "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "lab-unread-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/projects/sample",
+        "pr": "",
+        "beads": [
+          ".agent-config-1hb",
+          "missing-q9"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data",
+          "task": "lab-unread-a1"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  },
+  "extra": {}
+}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance
+exit: 0
+
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/projects/sample
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+exit: 0
+
+$ br init --prefix gsp --actor local-validation
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/user/dev/gsp-beads
+Prefix set to: gsp
+Initialized beads workspace in ./.beads
+exit: 0
+
+$ br create 'Evidence in gsp' --description '[capture](proof.png)' --actor local-validation --json
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/user/dev/gsp-beads
+{"id":"gsp-1gb","title":"Evidence in gsp","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T16:45:22.310614Z","created_by":"local-validation","updated_at":"2026-10-16T16:45:22.310614Z","source_repo":"gsp-beads","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/user/dev/gsp-beads","compaction_level":0,"original_size":0}
+exit: 0
+
+$ tasks-axi add gsp-missing-q9 'Disposable validation gsp-missing-q9' --start --body '[capture](proof.png)' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance
+ok: added gsp-missing-q9 -> In flight
+task:
+  id: gsp-missing-q9
+  title: Disposable validation gsp-missing-q9
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "[capture](proof.png)"
+help[2]:
+  - Run `tasks-axi done gsp-missing-q9 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block gsp-missing-q9 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data/backlog.md` to record a dependency
+exit: 0
+
+$ tasks-axi add lab-reserved-unread-a1 'Disposable validation lab-reserved-unread-a1' --start --body 'Disposable task for live cleanup validation' --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance
+ok: added lab-reserved-unread-a1 -> In flight
+task:
+  id: lab-reserved-unread-a1
+  title: Disposable validation lab-reserved-unread-a1
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: Disposable task for live cleanup validation
+help[2]:
+  - Run `tasks-axi done lab-reserved-unread-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data/backlog.md` when it ships
+  - Run `tasks-axi block lab-reserved-unread-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data/backlog.md` to record a dependency
+exit: 0
+
+Isolation challenge: BEADS_DIR, BEADS_DB, BR_DB point at nonexistent paths inside this disposable case.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/bin/fm-teardown.sh lab-reserved-unread-a1
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS
+teardown lab-reserved-unread-a1 complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/projects/gone-lab-reserved-unread-a1, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T164524Z-62785)
+Backlog: lab-reserved-unread-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: task data lab-reserved-unread-a1 retained whole for retry: unread references: gsp-missing-q9
+warning: task data retained for recovery: unread references: gsp-missing-q9
+warning: lab-reserved-unread-a1 teardown completed, but task-data cleanup needs a retry
+exit: 0
+
+$ tasks-axi show lab-reserved-unread-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data/backlog.md
+cwd: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance
+task:
+  id: lab-reserved-unread-a1
+  title: Disposable validation lab-reserved-unread-a1
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Disposable task for live cleanup validation\nlocal main"
+exit: 0
+
+Observed persisted state:
+{
+  "name": "reserved-unread keeps all bytes and closes backlog",
+  "result": "pass",
+  "live": true,
+  "task": "lab-reserved-unread-a1",
+  "files": {
+    "brief.md": "ccec041e3df35a3d1492b8f83a8a74c1e1ddadbb2438b641d85268abdb12c5d5",
+    "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+    "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+    "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+  },
+  "cleanup_record": {
+    "version": 1,
+    "task": "lab-reserved-unread-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/projects/sample",
+        "pr": "",
+        "beads": [
+          "gsp-missing-q9"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance/data",
+          "task": "lab-reserved-unread-a1"
+        },
+        "unread": [
+          "gsp-missing-q9"
+        ]
+      }
+    ],
+    "complete": false
+  },
+  "extra": {
+    "before_sha256": {
+      "brief.md": "ccec041e3df35a3d1492b8f83a8a74c1e1ddadbb2438b641d85268abdb12c5d5",
+      "discard.bin": "87c17f66ca9e21b4de28ef95f90e98e75d5df9551416dea5e729099e769db595",
+      "nested/extra.bin": "e20fd43b05df0cd2695facea6cb385187d00b2856fcd01d1c7bb6d4280ad18b5",
+      "proof.png": "f75baa7dfa60c70cf832896dda7626f971f9742621e6a35ebc0858d077a33dec"
+    },
+    "backlog": "task:\n  id: lab-reserved-unread-a1\n  title: Disposable validation lab-reserved-unread-a1\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"Disposable task for live cleanup validation\\nlocal main\"\n",
+    "unread_warning": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-reserved-unread/instance\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nwarning: task data lab-reserved-unread-a1 retained whole for retry: unread references: gsp-missing-q9\nwarning: task data retained for recovery: unread references: gsp-missing-q9\nwarning: lab-reserved-unread-a1 teardown completed, but task-data cleanup needs a retry\n"
+  }
+}

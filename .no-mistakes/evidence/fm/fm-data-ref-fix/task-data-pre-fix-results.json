@@ -1,0 +1,17 @@
+[
+  {
+    "case": "dotted",
+    "exit": 1,
+    "stderr": "warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/pre-fix-bin/fm-task-data-lib.sh', 'backlog-references', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-dotted/instance/data', 'lab-dotted-a1', '0', '.agent-config-d1p']' returned non-zero exit status 1.\n"
+  },
+  {
+    "case": "gsp",
+    "exit": 1,
+    "stderr": "warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/pre-fix-bin/fm-task-data-lib.sh', 'backlog-references', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-gsp/instance/data', 'lab-gsp-a1', '0', 'gsp-pze']' returned non-zero exit status 1.\n"
+  },
+  {
+    "case": "unread",
+    "exit": 1,
+    "stderr": "warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/pre-fix-bin/fm-task-data-lib.sh', 'backlog-references', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52RE89MCRBDJ3XPJ4P07HTS/.test-task-data-live/validated/live-unread/instance/data', 'lab-unread-a1', '0', '.agent-config-1hb', 'missing-q9']' returned non-zero exit status 1.\n"
+  }
+]
