@@ -5445,7 +5445,8 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retirement ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy ] \
-  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-github ]; then
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-github ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-ordering ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
   test_missing_adapter_sibling_refuses_before_cleanup
@@ -6860,6 +6861,88 @@ SH
   pass "fm-teardown: legacy preparation uses the latest completed row and preserves missing or active tasks"
 }
 
+test_task_data_legacy_ordering() {
+  local case_dir task variant helper project pr row_file date first_project
+  helper="$ROOT/bin/fm-task-data.py"
+  for variant in current-undated current-older archive-undated archive-tie current-tie project-tie; do
+    case_dir=$(make_case "task-data-ordering-$variant")
+    task="$case_dir/data/task-x1"
+    project="$case_dir/projects/demo"
+    mkdir -p "$task" "$project" "$case_dir/projects/obsolete" "$case_dir/history"
+    printf 'current PR evidence\n' > "$task/current-pr-only.bin"
+    printf 'scratch\n' > "$task/discard.bin"
+    cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+    printf '# Backlog\n\n## Done\n' > "$case_dir/data/backlog.md"
+    row_file="$case_dir/history/completed.md"
+    date=' (done 2026-10-10)'
+    first_project=demo
+    [ "$variant" != archive-undated ] || date=''
+    [ "$variant" != current-older ] || first_project=obsolete
+    [ "$variant" != current-tie ] || row_file="$case_dir/data/backlog.md"
+    printf '\n- [x] task-x1 - old https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: %s)%s\n' \
+      "$first_project" "$date" >> "$row_file"
+    case "$variant" in
+      current-undated) row_file="$case_dir/data/backlog.md"; date='' ;;
+      current-older) row_file="$case_dir/data/backlog.md"; date=' (done 2026-10-01)' ;;
+      archive-undated) date=' (done 2026-10-11)' ;;
+    esac
+    pr=https://github.com/groovejones/groove-sight-platform/pull/4364
+    if [ "$variant" = project-tie ]; then
+      pr=https://github.com/groovejones/groove-sight-platform/pull/4365
+      first_project=obsolete
+    else
+      first_project=demo
+    fi
+    printf '\n- [x] task-x1 - current %s (repo: %s)%s\n' "$pr" "$first_project" "$date" >> "$row_file"
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "$1 $2 $3" in
+  'pr view 4364') printf 'body: [current](current-pr-only.bin)\n' ;;
+  'pr view 4365') printf 'body: no linked files\n' ;;
+  *) exit 2 ;;
+esac
+SH
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" prepare "$case_dir/data" "$case_dir/state" task-x1 \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "ordering $variant preparation failed"
+    case "$variant" in
+      current-undated|current-older) ;;
+      *)
+        assert_grep task-x1 "$case_dir/err" "ordering $variant did not name retained data"
+        assert_absent "$task/record/data-cleanup.json" "ordering $variant selected unprovable sources"
+        assert_absent "$task/.cleanup-hold" "ordering $variant staged ambiguous data"
+        assert_present "$task/current-pr-only.bin" "ordering $variant lost evidence"
+        assert_present "$task/discard.bin" "ordering $variant moved scratch"
+        continue
+        ;;
+    esac
+    project=$(jq -r '.sources[-1].project' "$task/record/data-cleanup.json")
+    pr=$(jq -r '.sources[-1].pr' "$task/record/data-cleanup.json")
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" stage "$case_dir/data" "$case_dir/state" task-x1 "$project" "$pr" \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "ordering $variant stage failed"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "ordering $variant expiry failed"
+    assert_present "$task/current-pr-only.bin" "ordering $variant deleted current PR-only evidence"
+    [ "$(cat "$task/current-pr-only.bin")" = 'current PR evidence' ] || fail "ordering $variant changed evidence"
+    [ "$project" = "$case_dir/projects/demo" ] || fail "ordering $variant selected archived project"
+    [ "$pr" = https://github.com/groovejones/groove-sight-platform/pull/4364 ] || fail "ordering $variant selected archived PR"
+    assert_absent "$task/.cleanup-hold" "ordering $variant did not expire unlinked scratch"
+  done
+  pass "fm-teardown: current completed rows beat archives and unprovable conflicting sources stay whole"
+}
+
 test_task_data_github_reader() {
   local case_dir task helper pr
   helper="$ROOT/bin/fm-task-data.py"
@@ -7078,6 +7161,12 @@ fi
 
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-legacy ]; then
   test_task_data_legacy_rows
+  test_task_data_legacy_ordering
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-ordering ]; then
+  test_task_data_legacy_ordering
   exit 0
 fi
 
@@ -7087,6 +7176,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-github ]; then
 fi
 
 test_task_data_legacy_rows
+test_task_data_legacy_ordering
 test_task_data_github_reader
 test_task_data_cleanup
 test_task_data_refusals
