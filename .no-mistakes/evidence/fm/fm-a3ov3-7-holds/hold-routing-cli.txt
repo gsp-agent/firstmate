@@ -1,0 +1,530 @@
+Real Firstmate CLI and installed hold-domain router; disposable markdown backlog; isolated prompt sink.
+
+$ bin/fm-captain-hold.sh hold branch --title Update branch --decision-owner ep-firstmate --timeout-seconds 60 --reason GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. [clock=2026-10-14T02:00:00Z]
+branch
+exit=0
+
+$ bin/fm-captain-hold.sh hold capacity --title Approved capacity --timeout-seconds 60 --reason ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that? [clock=2026-10-14T02:00:00Z]
+capacity
+exit=0
+
+$ bin/fm-captain-hold.sh route-due [clock=2026-10-14T02:00:59Z]
+exit=0
+
+$ bin/fm-tasks-axi.sh show branch --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: branch
+  title: Update branch
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+exit=0
+
+$ bin/fm-tasks-axi.sh show capacity --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: capacity
+  title: Approved capacity
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-groove-sight-platform\nHold timeout seconds: 60\nHold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?"
+exit=0
+
+$ bin/fm-captain-hold.sh route-due [clock=2026-10-14T02:01:00Z]
+exit=0
+
+$ bin/fm-tasks-axi.sh show branch --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: branch
+  title: Update branch
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: a08e0ab00612b0824a6f390a2cd057234b0f5f73dc8af5b7259c9516a727e133\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: branch\t2026-10-14T02:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+exit=0
+
+$ bin/fm-tasks-axi.sh show capacity --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: capacity
+  title: Approved capacity
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 2002dddd7e3a9e08c953e5c42e62a2f4631eddf8fe251b5b35be41ef6f0f9277\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: capacity\t2026-10-14T02:00:00Z\tep-groove-sight-platform\nRouted hold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?\n\nDecision owner: ep-groove-sight-platform\nHold timeout seconds: 60\nHold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?"
+exit=0
+
+$ bin/fm-captain-hold.sh route-due [clock=2026-10-14T02:02:00Z]
+exit=0
+
+$ bin/fm-captain-hold.sh hold money --title Reserved money --decision-owner ep-firstmate --timeout-seconds 60 --reason Should I spend money to buy more seats? [clock=2026-10-14T02:00:00Z]
+money
+exit=0
+
+$ bin/fm-captain-hold.sh hold credentials --title Reserved credentials --decision-owner ep-firstmate --timeout-seconds 60 --reason Could you provide the OAuth token? [clock=2026-10-14T02:00:00Z]
+credentials
+exit=0
+
+$ bin/fm-captain-hold.sh hold people --title Reserved people --decision-owner ep-firstmate --timeout-seconds 60 --reason Should I assign Ashton to the reviewer seat? [clock=2026-10-14T02:00:00Z]
+people
+exit=0
+
+$ bin/fm-captain-hold.sh hold client-words --title Reserved client-words --decision-owner ep-firstmate --timeout-seconds 60 --reason May I email the client that the rebase is complete? [clock=2026-10-14T02:00:00Z]
+client-words
+exit=0
+
+$ bin/fm-captain-hold.sh hold production --title Reserved production --decision-owner ep-firstmate --timeout-seconds 60 --reason Should I deploy this to production? [clock=2026-10-14T02:00:00Z]
+production
+exit=0
+
+$ bin/fm-captain-hold.sh hold accounts --title Reserved accounts --decision-owner ep-firstmate --timeout-seconds 60 --reason May I create a new account? [clock=2026-10-14T02:00:00Z]
+accounts
+exit=0
+
+$ bin/fm-captain-hold.sh hold taste --title Reserved taste --decision-owner ep-firstmate --timeout-seconds 60 --reason Should the capacity indicator be blue or orange? [clock=2026-10-14T02:00:00Z]
+taste
+exit=0
+
+$ bin/fm-captain-hold.sh hold mixed-production --title Reserved mixed-production --decision-owner ep-firstmate --timeout-seconds 60 --reason GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. May I deploy to production too? [clock=2026-10-14T02:00:00Z]
+mixed-production
+exit=0
+
+$ bin/fm-captain-hold.sh hold captain --title Human endpoint captain --decision-owner captain --timeout-seconds 60 --reason GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. [clock=2026-10-14T02:00:00Z]
+captain
+exit=0
+
+$ bin/fm-captain-hold.sh hold pm-dale-desk --title Human endpoint pm-dale-desk --decision-owner pm-dale-desk --timeout-seconds 60 --reason GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. [clock=2026-10-14T02:00:00Z]
+pm-dale-desk
+exit=0
+
+$ bin/fm-captain-hold.sh hold human-desk-pane --title Human endpoint human-desk-pane --decision-owner human-desk-pane --timeout-seconds 60 --reason GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. [clock=2026-10-14T02:00:00Z]
+human-desk-pane
+exit=0
+
+$ bin/fm-captain-hold.sh route-due [clock=2026-10-14T02:10:00Z]
+exit=0
+
+$ bin/fm-tasks-axi.sh show money --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: money
+  title: Reserved money
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Should I spend money to buy more seats?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Should I spend money to buy more seats?"
+exit=0
+
+$ bin/fm-tasks-axi.sh show credentials --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: credentials
+  title: Reserved credentials
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Could you provide the OAuth token?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Could you provide the OAuth token?"
+exit=0
+
+$ bin/fm-tasks-axi.sh show people --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: people
+  title: Reserved people
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Should I assign Ashton to the reviewer seat?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Should I assign Ashton to the reviewer seat?"
+exit=0
+
+$ bin/fm-tasks-axi.sh show client-words --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: client-words
+  title: Reserved client-words
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "May I email the client that the rebase is complete?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: May I email the client that the rebase is complete?"
+exit=0
+
+$ bin/fm-tasks-axi.sh show production --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: production
+  title: Reserved production
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Should I deploy this to production?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Should I deploy this to production?"
+exit=0
+
+$ bin/fm-tasks-axi.sh show accounts --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: accounts
+  title: Reserved accounts
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "May I create a new account?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: May I create a new account?"
+exit=0
+
+$ bin/fm-tasks-axi.sh show taste --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: taste
+  title: Reserved taste
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Should the capacity indicator be blue or orange?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Should the capacity indicator be blue or orange?"
+exit=0
+
+$ bin/fm-tasks-axi.sh show mixed-production --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: mixed-production
+  title: Reserved mixed-production
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. May I deploy to production too?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. May I deploy to production too?"
+exit=0
+
+$ bin/fm-tasks-axi.sh show captain --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: captain
+  title: Human endpoint captain
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: captain\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+exit=0
+
+$ bin/fm-tasks-axi.sh show pm-dale-desk --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: pm-dale-desk
+  title: Human endpoint pm-dale-desk
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: pm-dale-desk\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+exit=0
+
+$ bin/fm-tasks-axi.sh show human-desk-pane --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: human-desk-pane
+  title: Human endpoint human-desk-pane
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: human-desk-pane\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+exit=0
+
+$ bin/fm-captain-hold.sh hold answered --title Already answered --decision-owner ep-firstmate --timeout-seconds 60 --reason GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. [clock=2026-10-14T02:00:00Z]
+answered
+exit=0
+
+$ bin/fm-captain-hold.sh answer answered --decision-file .validation-holds/manual-home/decision.txt --release [clock=2026-10-14T02:00:00Z]
+released: answered
+exit=0
+
+$ bin/fm-captain-hold.sh route-due [clock=2026-10-14T02:10:00Z]
+exit=0
+
+$ bin/fm-tasks-axi.sh show answered --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: answered
+  title: Already answered
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 34c90d703af0f7ce34114c0c02cc23c1b66c2a3dd024f2b1aafc88fe7a78cbb9\nResolution mode: released\n\nCaptain decision:\nProceed with the approved branch update.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+exit=0
+
+$ bin/fm-captain-hold.sh hold drifted --title Live reason changed --decision-owner ep-firstmate --timeout-seconds 60 --reason GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. [clock=2026-10-14T02:00:00Z]
+drifted
+exit=0
+
+$ bin/fm-tasks-axi.sh hold drifted --kind captain --reason Should I deploy this to production? [clock=2026-10-14T02:00:00Z]
+ok: hold drifted -> held (captain)
+task:
+  id: drifted
+  title: Live reason changed
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Should I deploy this to production?
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+help[2]:
+  - Run `tasks-axi unhold drifted` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+exit=0
+
+$ bin/fm-captain-hold.sh route-due drifted [clock=2026-10-14T02:10:00Z]
+fm-captain-hold: task drifted has divergent hold and routing reasons; leaving the hold intact
+exit=1
+
+$ bin/fm-tasks-axi.sh show drifted --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: drifted
+  title: Live reason changed
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Should I deploy this to production?
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+exit=0
+
+$ bin/fm-captain-hold.sh hold drifted --reason Should I deploy this to production? [clock=2026-10-14T02:10:00Z]
+drifted
+exit=0
+
+$ bin/fm-captain-hold.sh route-due [clock=2026-10-14T02:11:00Z]
+exit=0
+
+$ bin/fm-captain-hold.sh hold retry --title Recover interrupted release --decision-owner ep-firstmate --timeout-seconds 60 --reason GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. [clock=2026-10-14T02:00:00Z]
+retry
+exit=0
+
+$ bin/fm-captain-hold.sh route-due retry [clock=2026-10-14T02:01:00Z]
+injected release failure
+fm-captain-hold: could not release routed hold retry
+exit=1
+
+$ bin/fm-tasks-axi.sh show retry --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: retry
+  title: Recover interrupted release
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 7e0cd39918c4d645b8387cbeb17aaa3a3746066325900940fd325b7835832ed5\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: retry\t2026-10-14T02:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+exit=0
+
+$ bin/fm-captain-hold.sh route-due [clock=2026-10-14T02:02:00Z]
+exit=0
+
+$ bin/fm-captain-hold.sh route-due [clock=2026-10-14T02:03:00Z]
+exit=0
+
+$ bin/fm-tasks-axi.sh show retry --full [clock=2026-10-14T02:00:00Z]
+task:
+  id: retry
+  title: Recover interrupted release
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 7e0cd39918c4d645b8387cbeb17aaa3a3746066325900940fd325b7835832ed5\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: retry\t2026-10-14T02:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+exit=0
