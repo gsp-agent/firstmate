@@ -45,6 +45,7 @@ import re
 import shlex
 import shutil
 import stat
+import string
 import subprocess
 import sys
 import tempfile
@@ -148,7 +149,7 @@ def references(views, sources, task_id):
     return unquote(html.unescape("\n".join(texts)))
 
 
-def linked(rel, text, directory):
+def linked(rel, text, directory, normalized, offsets):
     # Basename matching also protects relative Markdown links and escaped JSON
     # paths without guessing which directory a PR or bead used as its base.
     if not directory and (rel.name in text or json.dumps(rel.name)[1:-1] in text):
@@ -158,8 +159,9 @@ def linked(rel, text, directory):
     if directory:
         prefix = r'''(?:(?<=[/(`<"'])|:[ \t]+|(?<![\w.-])(?=''' + re.escape(name) + r"/))"
         pattern = prefix + pattern + r'''(?=/?(?:$|[\s)\]}>'",;?#]))'''
-    for match in re.finditer(pattern, unicodedata.normalize("NFD", text), re.IGNORECASE):
-        alias = rel.with_name(match.group(1))
+    for match in re.finditer(pattern, normalized, re.IGNORECASE):
+        start, end = match.span(1)
+        alias = rel.with_name(text[offsets[start]:offsets[end - 1] + 1])
         try:
             if os.path.samestat(alias.lstat(), rel.lstat()):
                 return True
@@ -181,6 +183,10 @@ def retention_paths(root, files, all_directories, repos, text):
         except ValueError:
             pass
     text = "\n".join([text, *decoded])
+    text += "\n" + re.sub(r"\\([" + re.escape(string.punctuation) + r"])", r"\1", text)
+    normalized = unicodedata.normalize("NFD", text)
+    offsets = [index for index, character in enumerate(text)
+               for _ in unicodedata.normalize("NFD", character)]
     entries = {root / rel: (root / rel).lstat() for rel in files + all_directories}
     children = {}
     for path, info in entries.items():
@@ -228,8 +234,8 @@ def retention_paths(root, files, all_directories, repos, text):
             continue
         actual = root / rel
         is_directory = stat.S_ISDIR(entries[actual].st_mode)
-        if linked(actual, text, is_directory) or (not is_directory and rel.parts[0] != HOLD
-                                                 and ordinary_evidence(actual, rel, repos)):
+        if linked(actual, text, is_directory, normalized, offsets) or (
+                not is_directory and rel.parts[0] != HOLD and ordinary_evidence(actual, rel, repos)):
             targets.add(virtual_path(actual))
             if is_directory:
                 directories.add(virtual_path(actual))

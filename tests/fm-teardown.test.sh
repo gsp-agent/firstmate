@@ -5381,6 +5381,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-components ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-names ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-directories ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-spellings ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retirement ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ]; then
   test_missing_startup_source_refuses_before_cleanup
@@ -5560,13 +5561,8 @@ SH
   pass "fm-teardown: PR and bead links survive, and dcg denial or unreadable references retain recovery"
 }
 
-test_task_data_bead_backlog_sources() {
-  local code_root=${1:-$ROOT} case_dir task portable_path id='proof-owner' related='proof-related'
-  case_dir=$(make_case task-data-bead-backlog)
-  portable_path=$(fm_test_base_path_sans "$PATH" br)
-  if PATH="$portable_path" command -v br >/dev/null 2>&1; then
-    fail "portable Beads fixture still exposes br"
-  fi
+write_task_data_beads_fixture() {
+  local case_dir=$1
   mkdir -p "$case_dir/graph/.beads" "$case_dir/project/.beads"
   cat > "$case_dir/graph/.beads/rows.json" <<'JSON'
 {
@@ -5630,6 +5626,16 @@ PY
 cat >/dev/null
 SH
   chmod +x "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/dcg"
+}
+
+test_task_data_bead_backlog_sources() {
+  local code_root=${1:-$ROOT} case_dir task portable_path id='proof-owner' related='proof-related'
+  case_dir=$(make_case task-data-bead-backlog)
+  portable_path=$(fm_test_base_path_sans "$PATH" br)
+  if PATH="$portable_path" command -v br >/dev/null 2>&1; then
+    fail "portable Beads fixture still exposes br"
+  fi
+  write_task_data_beads_fixture "$case_dir"
   task="$case_dir/data/$id"
   mkdir -p "$task/artifacts" "$task/later-artifacts" "$case_dir/outside"
   printf 'plain cleanup instructions\n' > "$task/brief.md"
@@ -6007,6 +6013,127 @@ for variant in ("local", "pr"):
     assert not (task / "scratch-only/discard.bin").exists(), "file link retained an unrelated sibling during expiry"
 PY
   pass "fm-teardown: local and PR directory links retain binary descendants, nested symlink targets and newly linked held contents"
+}
+
+test_task_data_reference_spellings() {
+  local helper=${1:-$ROOT/bin/fm-task-data.py} case_dir reference_source
+  for reference_source in local pr bead; do
+    case_dir=$(make_case "task-data-spellings-$reference_source")
+    if [ "$reference_source" = bead ]; then
+      write_task_data_beads_fixture "$case_dir"
+    else
+      cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+      chmod +x "$case_dir/fakebin/dcg"
+    fi
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+cat "$FM_TEST_REFERENCE_FILE"
+SH
+    chmod +x "$case_dir/fakebin/gh-axi"
+    FM_TEST_REFERENCE_FILE="$case_dir/references" PATH="$case_dir/fakebin:$PATH" \
+      python3 - "$case_dir" "$helper" "$reference_source" <<'PY' || fail "reference spelling regression failed"
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import unicodedata
+
+case, helper, source = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+probe = case / "caf\u00e9"
+probe.write_bytes(b"probe")
+alias = case / "cafe\u0301"
+sensitive = not alias.exists() or not os.path.samefile(probe, alias)
+print(f"ok - fm-teardown: {source} ordinary-path Unicode checks; normalization-sensitive filesystem: {sensitive}", flush=True)
+task = case / "data" / "proof-owner"
+external = case / "outside" / "keep.bin"
+external.parent.mkdir()
+external.write_bytes(b"outside\x00\xff")
+names = {"nfc": unicodedata.normalize("NFC", "caf\u00e9"),
+         "nfd": unicodedata.normalize("NFD", "r\u00e9sum\u00e9")}
+initial = {"proof(1).png": b"escaped capture\x00\xff",
+           "escaped-backing.bin": b"escaped alias backing\x00\xff",
+           "folder(1)/frame.bin": b"escaped directory capture\x00\xff",
+           "single/capture.png": b"single linked file\x00\xff",
+           "raw.bin": b"raw capture\x00\xff",
+           "url image.png": b"URL capture\x00\xff",
+           "html&proof.png": b"HTML capture\x00\xff"}
+later = {"later(1).png": b"held escaped capture\x00\xff",
+         "later-escaped-backing.bin": b"held escaped alias backing\x00\xff"}
+links = {"link(1).png": task / "escaped-backing.bin",
+         "later-link(1).png": task / "later-escaped-backing.bin"}
+body = (r"[capture](proof\(1\).png) [alias](link\(1\).png) [directory](folder\(1\)/) "
+        "[single file](single/capture.png) [raw](raw.bin) [URL](url%20image.png) "
+        "[HTML](html&amp;proof.png)\nScratch: " + str(external.parent))
+added = r" [later capture](later\(1\).png) [later alias](later-link\(1\).png)"
+for form, name in names.items():
+    initial[f"{name}/frame.bin"] = f"{form} capture".encode() + b"\x00\xff"
+    initial[f"{form}-backing.bin"] = f"{form} backing".encode() + b"\x00\xff"
+    later[f"later-{name}/frame.bin"] = f"held {form} capture".encode() + b"\x00\xff"
+    later[f"later-{form}-backing.bin"] = f"held {form} backing".encode() + b"\x00\xff"
+    links[f"{name}/member.bin"] = task / f"{form}-backing.bin"
+    links[f"later-{name}/member.bin"] = task / f"later-{form}-backing.bin"
+    links[f"{name}/external.bin"] = external
+    links[f"later-{name}/external.bin"] = external
+    body += f" [{form} directory]({name}/)"
+    added += f" [later {form} directory](later-{name}/)"
+for rel, content in (initial | later).items():
+    path = task / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content)
+for rel, target in links.items():
+    (task / rel).symlink_to(target)
+for rel in ("discard.bin", "single/discard.bin", "scratch/blob"):
+    path = task / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"unrelated scratch")
+(task / "brief.md").write_text("plain cleanup instructions\n")
+
+def publish(text):
+    if source == "local":
+        (task / "report.md").write_text(text)
+    elif source == "pr":
+        (case / "references").write_text(json.dumps({"body": text}))
+    else:
+        subprocess.run(["tasks-axi", "update", "proof-owner", "--body", text], cwd=case,
+                       check=True, stdout=subprocess.DEVNULL)
+
+publish(body)
+pr = "https://github.com/test/repo/pull/1" if source == "pr" else ""
+command = [sys.executable, helper]
+subprocess.run(command + ["stage", str(case / "data"), str(case / "state"), "proof-owner",
+                          str(case / "project"), pr], check=True)
+assert (task / names["nfc"] / "frame.bin").is_file(), "NFC Unicode directory evidence was staged"
+assert (task / names["nfd"] / "frame.bin").is_file(), "NFD Unicode directory evidence was staged"
+assert (task / "proof(1).png").is_file(), "Markdown-escaped filename was staged"
+for rel, content in initial.items():
+    assert (task / rel).read_bytes() == content, f"{source} initial spelling lost: {rel}"
+for rel, content in later.items():
+    assert (task / ".cleanup-hold" / rel).read_bytes() == content, f"unlinked held spelling retained early: {rel}"
+for rel in ("discard.bin", "single/discard.bin", "scratch/blob"):
+    assert (task / ".cleanup-hold" / rel).is_file(), f"{source} unrelated scratch did not stage: {rel}"
+for form, name in names.items():
+    assert (task / name / "member.bin").read_bytes() == initial[f"{form}-backing.bin"], "Unicode directory symlink broke"
+assert (task / "link(1).png").read_bytes() == initial["escaped-backing.bin"], "escaped symlink backing was staged"
+publish(body + added)
+subprocess.run(command + ["expire", str(case / "data"), str(case / "state"), "proof-owner"], check=True)
+for rel, content in (initial | later).items():
+    assert (task / rel).read_bytes() == content, f"{source} spelling lost during expiry: {rel}"
+for form, name in names.items():
+    assert (task / name / "member.bin").read_bytes() == initial[f"{form}-backing.bin"], "expiry broke an initial Unicode link"
+    assert (task / f"later-{name}/member.bin").read_bytes() == later[f"later-{form}-backing.bin"], "expiry broke a held Unicode link"
+    assert (task / f"later-{name}/external.bin").read_bytes() == b"outside\x00\xff", "expiry changed an external target"
+assert (task / "later-link(1).png").read_bytes() == later["later-escaped-backing.bin"], "expiry broke a held escaped link"
+assert external.read_bytes() == b"outside\x00\xff", "cleanup escaped its owned root"
+assert not (task / ".cleanup-hold").exists(), "spelling recovery did not expire"
+for rel in ("discard.bin", "single/discard.bin", "scratch/blob"):
+    assert not (task / rel).exists(), f"{source} unrelated scratch was retained: {rel}"
+PY
+  done
+  pass "fm-teardown: local, PR and owning-bead links preserve NFC/NFD directories and escaped Markdown through staging, held recovery and expiry"
 }
 
 test_task_data_filesystem_name_aliases() {
@@ -6582,6 +6709,11 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-directories ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-spellings ]; then
+  test_task_data_reference_spellings "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-retirement ]; then
   test_task_data_discovered_pr_retirement "${1:-$ROOT}"
   exit 0
@@ -6600,6 +6732,7 @@ test_task_data_reused_id
 test_task_data_expired_sources
 test_task_data_symlink_targets
 test_task_data_linked_directories
+test_task_data_reference_spellings
 test_task_data_filesystem_name_aliases
 test_task_data_symlink_ancestor_aliases "$ROOT/bin/fm-task-data.py"
 test_task_data_collision_progress
