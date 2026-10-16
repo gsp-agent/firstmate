@@ -153,6 +153,10 @@ def linked(rel, text):
     return rel.name in text or json.dumps(rel.name)[1:-1] in text
 
 
+def protected(path, text, targets):
+    return linked(path, text) or any(path == target or target in path.parents for target in targets)
+
+
 def symlink_targets(views, text):
     targets, directories = set(), set()
 
@@ -169,12 +173,16 @@ def symlink_targets(views, text):
                 return root, path, actual
         return None, path, path
 
-    for root, files, repos in views:
-        for rel in files:
+    pending_links = [(root, rel, repos) for root, files, repos in views
+                     for rel in files if (root / rel).is_symlink()]
+    while pending_links:
+        remaining = []
+        for root, rel, repos in pending_links:
             actual = root / rel
             virtual = root / (rel.relative_to(HOLD) if rel.parts[0] == HOLD else rel)
-            if not actual.is_symlink() or not (linked(rel, text) or (
+            if not (protected(virtual, text, targets) or (
                     rel.parts[0] != HOLD and ordinary_evidence(actual, rel, repos))):
+                remaining.append((root, rel, repos))
                 continue
             path = Path(virtual.anchor)
             pending = list(virtual.parts[1:])
@@ -204,6 +212,9 @@ def symlink_targets(views, text):
             owner, path, _ = locate(path)
             if owner is not None:
                 targets.add(path)
+        if len(remaining) == len(pending_links):
+            break
+        pending_links = remaining
     return targets, directories
 
 
@@ -360,13 +371,9 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         write_record(root, record)
     targets, directories = symlink_targets(views, text)
 
-    def protected(path, rel):
-        original = path / rel
-        return linked(rel, text) or any(original == target or target in original.parents for target in targets)
-
     scratch = [(path, [rel for rel in leaves if rel.parts[0] not in (HOLD, "record")
                       and not ordinary_evidence(path / rel, rel, nested_repos)
-                      and not protected(path, rel)]) for path, leaves, nested_repos in views]
+                      and not protected(path / rel, text, targets)]) for path, leaves, nested_repos in views]
     if action == "expire" and record["complete"]:
         for path, _, _ in views:
             recovery = path / HOLD
@@ -378,7 +385,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
             held_files, held_dirs, _ = inventory(recovery)
             remove = []
             for rel in held_files:
-                if protected(path, rel):
+                if protected(path / rel, text, targets):
                     destination = path / rel
                     if destination.exists() or destination.is_symlink():
                         raise ValueError(f"recovery would overwrite: {destination}")
@@ -417,7 +424,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                     for parent in leaf.parents}
         empty = [rel for rel in remaining_dirs if rel.parts[0] not in (HOLD, "record")
                  and rel not in occupied and path / rel not in directories
-                 and not protected(path, rel)]
+                 and not protected(path / rel, text, targets)]
         remove_entries(path, [], empty)
     record["complete"] = True
     write_record(root, record)

@@ -5559,27 +5559,34 @@ SH
 }
 
 test_task_data_bead_backlog_sources() {
-  local code_root=${1:-$ROOT} case_dir task id related real_br graph_db
+  local code_root=${1:-$ROOT} case_dir task portable_path id='proof-owner' related='proof-related'
   case_dir=$(make_case task-data-bead-backlog)
-  real_br=$(command -v br)
-  graph_db="$case_dir/graph/.beads/beads.db"
-  mkdir -p "$case_dir/graph"
-  git -C "$case_dir/graph" init -q
-  (cd "$case_dir/graph" && "$real_br" --db "$graph_db" init --prefix proof) \
-    > "$case_dir/init.log" 2>&1 || fail "task-data Beads graph initialization failed: $(cat "$case_dir/init.log")"
-  id=$("$real_br" --db "$graph_db" --no-auto-import --no-auto-flush create \
-    'owning cleanup task' --due +1d --description '[capture](proof.png)' --silent) \
-    || fail "owning Bead creation failed"
-  cp -R "$case_dir/graph/.beads" "$case_dir/project/.beads"
-  "$real_br" --db "$case_dir/project/.beads/beads.db" --no-auto-import --no-auto-flush \
-    update "$id" --description 'An unrelated project task with no attachments and a separate body from the owning task.' \
-    > "$case_dir/decoy.log" 2>&1 || fail "decoy graph setup failed"
+  portable_path=$(fm_test_base_path_sans "$PATH" br)
+  if PATH="$portable_path" command -v br >/dev/null 2>&1; then
+    fail "portable Beads fixture still exposes br"
+  fi
+  mkdir -p "$case_dir/graph/.beads" "$case_dir/project/.beads"
+  cat > "$case_dir/graph/.beads/rows.json" <<'JSON'
+{
+  "proof-owner": {"status": "open", "description": "[capture](proof.png)"},
+  "proof-related": {"status": "open", "description": "[named capture](named.png)"}
+}
+JSON
+  cat > "$case_dir/project/.beads/rows.json" <<'JSON'
+{"proof-owner": {"status": "open", "description": "Unrelated project task without attachments"}}
+JSON
   cat > "$case_dir/.tasks.toml" <<'TOML'
 backend = "beads"
 
 [beads]
 path = "graph/.beads"
-binary = "br"
+prefix = "proof"
+TOML
+  cat > "$case_dir/project/.tasks.toml" <<'TOML'
+backend = "beads"
+
+[beads]
+path = ".beads"
 prefix = "proof"
 TOML
   cat > "$case_dir/fakebin/tasks-axi" <<'PY'
@@ -5587,7 +5594,6 @@ TOML
 import json
 import os
 from pathlib import Path
-import subprocess
 import sys
 import tomllib
 
@@ -5597,25 +5603,21 @@ config = tomllib.loads(Path(".tasks.toml").read_text())
 assert config["backend"] == "beads"
 assert "TASKS_AXI_FILE" not in os.environ
 assert "--file" not in sys.argv
-graph = Path(config["beads"]["path"])
-command = [os.environ["FM_TEST_REAL_BR"], "--db", str(graph / "beads.db"),
-           "--no-auto-import", "--no-auto-flush"]
+graph = Path(config["beads"]["path"]) / "rows.json"
+rows = json.loads(graph.read_text())
 verb, task = sys.argv[1:3]
+if task not in rows:
+    print("code: NOT_FOUND")
+    sys.exit(1)
+row = rows[task]
 if verb == "done":
-    result = subprocess.run(command + ["close", task, "--reason", "fixture completed"],
-                            capture_output=True, text=True)
-    print(result.stdout, end="")
-    print(result.stderr, file=sys.stderr, end="")
-    sys.exit(result.returncode)
-assert verb == "show"
-result = subprocess.run(command + ["show", task, "--json"], capture_output=True, text=True)
-if result.returncode:
-    print(result.stderr, file=sys.stderr, end="")
-    sys.exit(result.returncode)
-row = json.loads(result.stdout)
-if isinstance(row, list):
-    row = row[0]
-assert row["id"] == task
+    row["status"] = "closed"
+elif verb == "update":
+    row["description"] = sys.argv[sys.argv.index("--body") + 1]
+else:
+    assert verb == "show"
+if verb != "show":
+    graph.write_text(json.dumps(rows) + "\n")
 state = "done" if row["status"] == "closed" else "queued"
 print(f"task:\n  id: {task}\n  state: {state}\n  held: no\n  blocked: no")
 if "--full" in sys.argv:
@@ -5652,17 +5654,17 @@ else
   fm_backlog_close_marker_replay "$state" "$state/$id.backlog-close" "$data"
 fi
 SH
-  FM_TEST_REAL_BR="$real_br" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+  FM_HOME="$case_dir" PATH="$case_dir/fakebin:$portable_path" \
     bash "$case_dir/retire.sh" "$code_root" "$case_dir" "$id" retire \
     > "$case_dir/retire.out" 2> "$case_dir/retire.err" || fail "Bead retirement failed: $(cat "$case_dir/retire.err")"
   assert_absent "$case_dir/state/$id.meta" "Bead retirement did not remove metadata"
   assert_present "$case_dir/state/$id.backlog-close" "interrupted Bead retirement lost replay"
-  FM_TEST_REAL_BR="$real_br" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+  FM_HOME="$case_dir" PATH="$case_dir/fakebin:$portable_path" \
     bash "$case_dir/retire.sh" "$code_root" "$case_dir" "$id" replay \
     > "$case_dir/replay.out" 2> "$case_dir/replay.err" || fail "Bead replay failed: $(cat "$case_dir/replay.err")"
   assert_absent "$case_dir/state/$id.backlog-close" "Bead replay left pending completion"
-  FM_TEST_REAL_BR="$real_br" BEADS_DIR="$case_dir/project/.beads" \
-    TASKS_AXI_FILE="$case_dir/project/backlog.md" PATH="$case_dir/fakebin:$PATH" \
+  BEADS_DIR="$case_dir/project/.beads" \
+    TASKS_AXI_FILE="$case_dir/project/backlog.md" PATH="$case_dir/fakebin:$portable_path" \
     python3 "$code_root/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
       "$id" "$case_dir/project" '' || fail "owning Bead staging failed"
   [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "owning Bead-only link was staged"
@@ -5671,42 +5673,39 @@ SH
   jq -e --arg data "$case_dir/data" --arg id "$id" \
     '.sources | any(.beads == [] and .backlog.data == $data and .backlog.task == $id)' \
     "$task/record/data-cleanup.json" >/dev/null || fail "cleanup lost the owning backlog identity"
-  "$real_br" --db "$graph_db" --no-auto-import --no-auto-flush update "$id" \
-    --description '[capture](proof.png) [later capture](later.png)' > "$case_dir/update.log" 2>&1 \
+  (cd "$case_dir" && PATH="$case_dir/fakebin:$portable_path" tasks-axi update "$id" \
+    --body '[capture](proof.png) [later capture](later.png)') > "$case_dir/update.log" 2>&1 \
     || fail "owning Bead update failed"
-  if FM_TEST_BACKLOG_DOWN=1 FM_TEST_REAL_BR="$real_br" PATH="$case_dir/fakebin:$PATH" \
+  if FM_TEST_BACKLOG_DOWN=1 PATH="$case_dir/fakebin:$portable_path" \
       python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
       > "$case_dir/down.out" 2> "$case_dir/down.err"; then
     fail "unavailable owning backend allowed expiry"
   fi
   assert_present "$task/.cleanup-hold/later.png" "unavailable backend lost recoverable evidence"
   assert_present "$task/.cleanup-hold/discard.bin" "unavailable backend deleted scratch"
-  FM_TEST_REAL_BR="$real_br" BEADS_DIR="$case_dir/project/.beads" \
-    TASKS_AXI_FILE="$case_dir/project/backlog.md" PATH="$case_dir/fakebin:$PATH" \
+  BEADS_DIR="$case_dir/project/.beads" \
+    TASKS_AXI_FILE="$case_dir/project/backlog.md" PATH="$case_dir/fakebin:$portable_path" \
     python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
     || fail "owning Bead expiry failed"
   [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "expiry deleted owning Bead evidence"
   [ "$(cat "$task/later.png")" = 'later Bead evidence' ] || fail "expiry did not refresh the owning Bead's links"
   assert_absent "$task/.cleanup-hold" "owning Bead recovery remains"
-  related=$("$real_br" --db "$graph_db" --no-auto-import --no-auto-flush create \
-    'named evidence source' --due +1d --description '[named capture](named.png)' --silent) \
-    || fail "named Bead creation failed"
   printf 'Bead %s\n' "$related" >> "$task/brief.md"
   printf 'named Bead evidence\n' > "$task/named.png"
   printf 'next scratch\n' > "$task/next.bin"
-  if FM_TEST_BACKLOG_DOWN=1 FM_TEST_REAL_BR="$real_br" PATH="$case_dir/fakebin:$PATH" \
+  if FM_TEST_BACKLOG_DOWN=1 PATH="$case_dir/fakebin:$portable_path" \
       python3 "$code_root/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
         "$id" "$case_dir/project" '' > "$case_dir/down-stage.out" 2> "$case_dir/down-stage.err"; then
     fail "unavailable owning backend allowed staging"
   fi
   assert_present "$task/next.bin" "unavailable backend moved original scratch"
   assert_present "$task/named.png" "unavailable backend moved named evidence"
-  FM_TEST_REAL_BR="$real_br" BEADS_DIR="$case_dir/project/.beads" PATH="$case_dir/fakebin:$PATH" \
+  BEADS_DIR="$case_dir/project/.beads" PATH="$case_dir/fakebin:$portable_path" \
     python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
     || fail "unavailable-backend recovery did not resume"
   [ "$(cat "$task/named.png")" = 'named Bead evidence' ] || fail "named Bead used the project default graph"
   assert_present "$task/.cleanup-hold/next.bin" "resumed Bead cleanup omitted one-cycle recovery"
-  FM_TEST_REAL_BR="$real_br" PATH="$case_dir/fakebin:$PATH" \
+  PATH="$case_dir/fakebin:$portable_path" \
     python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
     || fail "resumed Bead cleanup did not expire"
   [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "retry lost owning Bead evidence"
@@ -5800,10 +5799,11 @@ SH
 }
 
 test_task_data_symlink_targets() {
-  local case_dir task helper=${1:-$ROOT/bin/fm-task-data.py}
+  local case_dir task action helper=${1:-$ROOT/bin/fm-task-data.py} args=()
   case_dir=$(make_case task-data-symlinks)
   task="$case_dir/data/finished"
-  mkdir -p "$task/frames" "$task/captures/subdir" "$task/saved-captures/subdir" "$case_dir/outside/subdir"
+  mkdir -p "$task/backing/next" "$task/held-backing/next" "$task/frames" "$task/late-frames" \
+    "$task/captures/subdir" "$task/saved-captures/subdir" "$case_dir/outside/subdir"
   printf 'capture\n' > "$task/captures/capture.bin"
   printf 'frame\n' > "$task/frames/frame.bin"
   printf 'later capture\n' > "$task/later.bin"
@@ -5812,6 +5812,11 @@ test_task_data_symlink_targets() {
   printf 'saved ordered capture\n' > "$task/saved-captures/proof.bin"
   printf 'unrelated capture\n' > "$task/captures/discard.bin"
   printf 'outside\n' > "$case_dir/outside/outside.bin"
+  printf 'directory member capture\n' > "$task/backing/capture.bin"
+  printf 'nested directory capture\n' > "$task/deep.bin"
+  printf 'held directory capture\n' > "$task/held-backing/capture.bin"
+  printf 'held nested capture\n' > "$task/held-deep.bin"
+  printf 'unrelated backing scratch\n' > "$task/backing/discard.bin"
   ln -s captures/capture.bin "$task/alias.bin"
   ln -s alias.bin "$task/latest.png"
   ln -s frames "$task/frames.png"
@@ -5822,6 +5827,16 @@ test_task_data_symlink_targets() {
   ln -s saved-alias.bin/../proof.bin "$task/saved-component.png"
   ln -s "$case_dir/outside/subdir" "$task/outside-alias.bin"
   ln -s outside-alias.bin/../outside.bin "$task/escape.png"
+  ln -s "$task/backing/capture.bin" "$task/frames/member.bin"
+  ln -s "$task/backing/next" "$task/frames/directory.bin"
+  ln -s "$task/deep.bin" "$task/backing/next/nested.bin"
+  ln -s "$case_dir/outside/outside.bin" "$task/frames/external.bin"
+  ln -s "$task/frames" "$task/frames/recursive.bin"
+  ln -s late-frames "$task/saved-frames.png"
+  ln -s "$task/held-backing/capture.bin" "$task/late-frames/member.bin"
+  ln -s "$task/held-backing/next" "$task/late-frames/directory.bin"
+  ln -s "$task/held-deep.bin" "$task/held-backing/next/nested.bin"
+  ln -s "$case_dir/outside/outside.bin" "$task/late-frames/external.bin"
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
@@ -5836,6 +5851,16 @@ SH
   [ "$(cat "$task/latest.png")" = capture ] || fail "linked image symlink lost its target"
   [ -L "$task/alias.bin" ] || fail "intermediate symlink was staged"
   [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "linked directory symlink lost its contents"
+  [ "$(cat "$task/frames.png/member.bin")" = 'directory member capture' ] \
+    || fail "retained directory member lost its backing file during staging"
+  [ "$(cat "$task/frames.png/directory.bin/nested.bin")" = 'nested directory capture' ] \
+    || fail "transitive directory member lost its backing file during staging"
+  [ "$(cat "$task/frames.png/recursive.bin/member.bin")" = 'directory member capture' ] \
+    || fail "recursive directory alias did not retain its backing file"
+  [ "$(cat "$task/frames.png/external.bin")" = outside ] || fail "retained directory link changed an external target"
+  assert_present "$task/.cleanup-hold/backing/discard.bin" "transitive retention kept unrelated backing scratch"
+  assert_present "$task/.cleanup-hold/held-backing/capture.bin" "unlinked directory backing did not stage"
+  [ -L "$task/.cleanup-hold/late-frames/member.bin" ] || fail "unlinked directory member did not stage"
   [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "symlink followed by .. lost its target during staging"
   [ -d "$task/captures/subdir" ] || fail "staging removed an empty traversal directory"
   assert_present "$task/.cleanup-hold/captures/discard.bin" "traversal retained unrelated directory contents"
@@ -5847,12 +5872,18 @@ SH
   [ -L "$task/.cleanup-hold/saved.png" ] || fail "unlinked symlink did not stage"
   cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
-printf 'body: [latest](latest.png) [frames](frames.png) [components](component.png) [outside](escape.png) [saved](saved.png) [saved components](saved-component.png)\n'
+printf 'body: [latest](latest.png) [frames](frames.png) [components](component.png) [outside](escape.png) [saved](saved.png) [saved components](saved-component.png) [saved frames](saved-frames.png)\n'
 SH
   PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" finished \
     || fail "symlink expiry failed"
   [ "$(cat "$task/saved.png")" = 'later capture' ] || fail "newly linked held symlink lost its held target"
   [ "$(cat "$task/latest.png")" = capture ] || fail "expiry broke retained symlink chain"
+  [ "$(cat "$task/frames.png/member.bin")" = 'directory member capture' ] || fail "expiry deleted a retained directory's backing file"
+  [ "$(cat "$task/frames.png/directory.bin/nested.bin")" = 'nested directory capture' ] || fail "expiry deleted a transitive directory target"
+  [ "$(cat "$task/saved-frames.png/member.bin")" = 'held directory capture' ] || fail "expiry did not restore a held directory's backing file"
+  [ "$(cat "$task/saved-frames.png/directory.bin/nested.bin")" = 'held nested capture' ] || fail "expiry did not restore transitive held directory targets"
+  [ "$(cat "$task/saved-frames.png/external.bin")" = outside ] || fail "held directory recovery changed an external target"
+  [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "transitive cleanup escaped the task directory"
   [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "expiry broke symlink followed by .."
   [ "$(cat "$task/saved-component.png")" = 'saved ordered capture' ] || fail "expiry did not restore ordered held targets and traversal directories"
   [ -L "$task/saved-alias.bin" ] || fail "expiry did not restore a required intermediate alias"
@@ -5860,7 +5891,21 @@ SH
   [ "$(cat "$task/escape.png")" = outside ] || fail "expiry changed an escaped link target"
   assert_absent "$task/captures/discard.bin" "ordered lookup retained unrelated scratch"
   assert_absent "$task/.cleanup-hold" "symlink recovery did not expire"
-  pass "fm-teardown: linked symlinks preserve component order, traversal directories, escapes and held targets"
+  ln -s "$task/cycle.bin" "$task/frames/cycle.bin"
+  ln -s "$task/frames/cycle.bin" "$task/cycle.bin"
+  printf 'cycle scratch\n' > "$task/cycle-scratch.bin"
+  for action in stage expire; do
+    args=()
+    [ "$action" != stage ] || args=("$case_dir/project" https://github.com/test/repo/pull/1)
+    if PATH="$case_dir/fakebin:$PATH" python3 "$helper" "$action" "$case_dir/data" "$case_dir/state" \
+        finished "${args[@]+"${args[@]}"}" > "$case_dir/cycle.out" 2> "$case_dir/cycle.err"; then
+      fail "$action accepted a cycle below a retained directory"
+    fi
+    assert_grep 'cyclic evidence symlink' "$case_dir/cycle.err" "$action lost cycle protection"
+    [ "$(cat "$task/cycle-scratch.bin")" = 'cycle scratch' ] || fail "$action moved scratch despite a retained cycle"
+    [ "$(cat "$task/frames.png/member.bin")" = 'directory member capture' ] || fail "$action changed evidence despite a retained cycle"
+  done
+  pass "fm-teardown: retained directory links preserve transitive and held targets, component order, escapes and cycle safety"
 }
 
 test_task_data_symlink_ancestor_aliases() {
