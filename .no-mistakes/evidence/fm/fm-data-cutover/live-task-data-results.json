@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Both named GSP PRs are readable through the real references helper",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Pre-fix counterfactual reproduces the reported evidence deletion",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Current undated checked row beats a dated archive through stage and expiry",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Older dated current checked row beats a newer archive through stage and expiry",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Missing, active and unprovably ordered conflicting rows retain and name the whole folder",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Latest provable archive row and a real named gsp bead retain their evidence",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Duplicate possible rows for one project and PR retain all referenced evidence",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Late ambiguity or changed identity blocks cleanup; refreshed links restore recovery",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Note-only GitLab and Gerrit identities are extracted and unread remotes retain data",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A real unread PR preserves the folder and a later readable cycle retries safely",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "One-cycle recovery preserves space while staged and expires only on another completed task",
+    "result": "pass",
+    "live": true
+  }
+]

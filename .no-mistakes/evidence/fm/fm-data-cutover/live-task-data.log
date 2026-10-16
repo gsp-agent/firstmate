@@ -1,0 +1,510 @@
+Real PR 4364-only binary filename selected from the actual response: initial.title
+
+SCENARIO: Both named GSP PRs are readable through the real references helper
+$ bash bin/fm-task-data-lib.sh references https://github.com/groovejones/groove-sight-platform/pull/4364
+pull_request:
+  number: 4364
+  title: "fix(pipe): prefill deal names in contact email subjects"
+  state: merged
+  author: gsp-agent
+  draft: no
+  merged: "2026-10-16T15:33:22Z"
+PASS: real GitHub helper returned PR 4364 including full body, comments and reviews
+exit=0 response_bytes=16479 sha256=cc5aa1ecbbe5bf6d5e4f478fa38960ff88a4653c2f0acedb5803e7ca84c63453
+$ bash bin/fm-task-data-lib.sh references https://github.com/groovejones/groove-sight-platform/pull/4365
+pull_request:
+  number: 4365
+  title: "fix(pipe): render Reply all as a small outline button"
+  state: merged
+  author: gsp-agent
+  draft: no
+  merged: "2026-10-16T15:09:30Z"
+PASS: real GitHub helper returned PR 4365 including full body, comments and reviews
+exit=0 response_bytes=26634 sha256=2da5481abe9c1198c19b3a38c2bc3a0cbcf132940f8bfaa56fbae5918ed88942
+
+SCENARIO: Pre-fix counterfactual reproduces the reported evidence deletion
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/pre-fix-bin/fm-task-data.py prepare
+exit=0
+SELECTED: {"project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/projects/obsolete", "pr": "https://github.com/groovejones/groove-sight-platform/pull/4365"}
+PASS: pre-fix executable selects the archived PR despite the current checked row
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/pre-fix-bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/projects/obsolete https://github.com/groovejones/groove-sight-platform/pull/4365
+task data retired: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/data/retired/.cleanup-hold until the next completed task
+exit=0
+{
+  "home": "baseline-current-undated",
+  "phase": "after-stage",
+  "files": [
+    ".cleanup-hold/discard.bin",
+    ".cleanup-hold/initial.title",
+    "current-pr-only.bin",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/projects/obsolete",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4365",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: obsolete) (done 2026-10-10)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  }
+}
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/pre-fix-bin/fm-task-data.py expire
+exit=0
+{
+  "home": "baseline-current-undated",
+  "phase": "after-expire",
+  "files": [
+    "current-pr-only.bin",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/projects/obsolete",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4365",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/baseline-current-undated/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: obsolete) (done 2026-10-10)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+PASS: pre-fix executable deletes the binary referenced only by the current real PR
+EXPECTED BASELINE FAILURE reproduced: current PR-only evidence deleted
+
+SCENARIO: Current undated checked row beats a dated archive through stage and expiry
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+SELECTED: {"project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/projects/demo", "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364"}
+PASS: current checked row supplies the project and PR despite archive date
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/projects/demo https://github.com/groovejones/groove-sight-platform/pull/4364
+task data retired: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/data/retired/.cleanup-hold until the next completed task
+exit=0
+{
+  "home": "current-undated",
+  "phase": "after-stage",
+  "files": [
+    ".cleanup-hold/discard.bin",
+    "current-pr-only.bin",
+    "initial.title",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished https://github.com/groovejones/groove-sight-platform/pull/4364 (repo: demo)\n  [capture](current-pr-only.bin)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  }
+}
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+exit=0
+{
+  "home": "current-undated",
+  "phase": "after-expire",
+  "files": [
+    "current-pr-only.bin",
+    "initial.title",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-undated/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished https://github.com/groovejones/groove-sight-platform/pull/4364 (repo: demo)\n  [capture](current-pr-only.bin)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+PASS: actual current-PR-only binary survives both staging and expiry
+PASS: current-pr-only.bin survives both staging and expiry unchanged
+PASS: unlinked scratch expires
+
+SCENARIO: Older dated current checked row beats a newer archive through stage and expiry
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+SELECTED: {"project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/projects/demo", "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364"}
+PASS: current checked row supplies the project and PR despite archive date
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/projects/demo https://github.com/groovejones/groove-sight-platform/pull/4364
+task data retired: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/data/retired/.cleanup-hold until the next completed task
+exit=0
+{
+  "home": "current-older",
+  "phase": "after-stage",
+  "files": [
+    ".cleanup-hold/discard.bin",
+    "current-pr-only.bin",
+    "initial.title",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished https://github.com/groovejones/groove-sight-platform/pull/4364 (repo: demo) (done 2026-10-01)\n  [capture](current-pr-only.bin)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  }
+}
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+exit=0
+{
+  "home": "current-older",
+  "phase": "after-expire",
+  "files": [
+    "current-pr-only.bin",
+    "initial.title",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-older/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished https://github.com/groovejones/groove-sight-platform/pull/4364 (repo: demo) (done 2026-10-01)\n  [capture](current-pr-only.bin)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+PASS: actual current-PR-only binary survives both staging and expiry
+PASS: current-pr-only.bin survives both staging and expiry unchanged
+PASS: unlinked scratch expires
+
+SCENARIO: Missing, active and unprovably ordered conflicting rows retain and name the whole folder
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/missing-row/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/missing-row/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+stderr: warning: task data retired retained whole for retry: no completed backlog row
+exit=0
+PASS: missing-row: successful pass names the retained folder
+PASS: missing-row: every original file stays in place; no hold or cleanup record invented
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/active-row/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/active-row/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+stderr: warning: task data retired retained whole for retry: task still has a live backlog row
+exit=0
+PASS: active-row: successful pass names the retained folder
+PASS: active-row: every original file stays in place; no hold or cleanup record invented
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-undated/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-undated/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+stderr: warning: task data retired retained whole for retry: completed backlog rows have different projects or PRs with unproven order
+exit=0
+PASS: archive-undated: successful pass names the retained folder
+PASS: archive-undated: every original file stays in place; no hold or cleanup record invented
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-tied/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-tied/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+stderr: warning: task data retired retained whole for retry: completed backlog rows have different projects or PRs with unproven order
+exit=0
+PASS: archive-tied: successful pass names the retained folder
+PASS: archive-tied: every original file stays in place; no hold or cleanup record invented
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-invalid/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-invalid/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+stderr: warning: task data retired retained whole for retry: completed backlog rows have different projects or PRs with unproven order
+exit=0
+PASS: archive-invalid: successful pass names the retained folder
+PASS: archive-invalid: every original file stays in place; no hold or cleanup record invented
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-tied/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/current-tied/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+stderr: warning: task data retired retained whole for retry: completed backlog rows have different projects or PRs with unproven order
+exit=0
+PASS: current-tied: successful pass names the retained folder
+PASS: current-tied: every original file stays in place; no hold or cleanup record invented
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/project-tied/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/project-tied/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+stderr: warning: task data retired retained whole for retry: completed backlog rows have different projects or PRs with unproven order
+exit=0
+PASS: project-tied: successful pass names the retained folder
+PASS: project-tied: every original file stays in place; no hold or cleanup record invented
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/multiple-note-prs/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/multiple-note-prs/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+stderr: warning: task data retired retained whole for retry: completed backlog row has multiple PRs
+exit=0
+PASS: multiple-note-prs: successful pass names the retained folder
+PASS: multiple-note-prs: every original file stays in place; no hold or cleanup record invented
+
+SCENARIO: Latest provable archive row and a real named gsp bead retain their evidence
+$ br init --prefix gsp
+Prefix set to: gsp
+Initialized beads workspace in ./.beads
+exit=0
+$ br create 'Disposable cleanup proof' --description '[bead capture](bead-only.bin)' --json
+{"id":"gsp-gbk","title":"Disposable cleanup proof","description":"[bead capture](bead-only.bin)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T22:04:09.756881Z","created_by":"dalecarman","updated_at":"2026-10-16T22:04:09.756881Z","source_repo":"gsp-beads","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/user/dev/gsp-beads","compaction_level":0,"original_size":0}
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+PASS: latest distinct valid archive date supplies PR and named bead
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/projects/demo https://github.com/groovejones/groove-sight-platform/pull/4364
+task data retired: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/data/retired/.cleanup-hold until the next completed task
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+exit=0
+{
+  "home": "archive-and-bead",
+  "phase": "after-expire",
+  "files": [
+    "bead-only.bin",
+    "record/data-cleanup.json",
+    "row-only.bin"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364",
+        "beads": [
+          "gsp-gbk"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/archive-and-bead/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished https://github.com/groovejones/groove-sight-platform/pull/4364 (repo: demo) (done 2026-10-11)\n  [row capture](row-only.bin)\n  Bead gsp-gbk"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+PASS: real named gsp bead and completed-row evidence both survive expiry
+
+SCENARIO: Duplicate possible rows for one project and PR retain all referenced evidence
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+PASS: duplicate possible rows with identical project and PR preserve both row bodies
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/projects/demo ''
+task data retired: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/data/retired/.cleanup-hold until the next completed task
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+exit=0
+{
+  "home": "duplicate-sources",
+  "phase": "after-expire",
+  "files": [
+    "newer-row.bin",
+    "older-row.bin",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/duplicate-sources/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished  (repo: demo)\n  [older capture](older-row.bin)\n- [x] retired - finished  (repo: demo) (done 2026-10-11)\n  [newer capture](newer-row.bin)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+PASS: both unordered same-identity rows retain their evidence
+
+SCENARIO: Late ambiguity or changed identity blocks cleanup; refreshed links restore recovery
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/projects/demo ''
+stderr: warning: task data retired retained whole for retry: completed backlog rows have different projects or PRs with unproven order
+exit=0
+PASS: ambiguity appearing after preparation prevents any staging
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/projects/demo ''
+task data retired: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/data/retired/.cleanup-hold until the next completed task
+exit=0
+PASS: resolved sources permit staging
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+stderr: warning: task data retired retained whole for retry: completed row retired changed project or PR
+exit=0
+PASS: changed identity preserves the existing recovery at expiry
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+stderr: warning: task data retired retained whole for retry: completed row retired changed project or PR
+exit=0
+PASS: changed identity preserves the existing recovery at expiry
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+stderr: warning: task data retired retained whole for retry: completed backlog rows have different projects or PRs with unproven order
+exit=0
+PASS: late ambiguity preserves the existing recovery
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+exit=0
+{
+  "home": "late-conflicts",
+  "phase": "after-late-reference-restore",
+  "files": [
+    "current-pr-only.bin",
+    "discard.bin",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/late-conflicts/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished  (repo: demo)\n  [capture](current-pr-only.bin)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+PASS: a newly linked held file is restored before deletion
+
+SCENARIO: Note-only GitLab and Gerrit identities are extracted and unread remotes retain data
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gitlab/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gitlab/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+PASS: gitlab: continuation note supplies the complete PR identity
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gitlab/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gitlab/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gitlab/projects/demo https://gitlab.example.invalid/group/repo/-/merge_requests/7
+stderr: warning: task data retired retained whole for retry: unread PR https://gitlab.example.invalid/group/repo/-/merge_requests/7: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data-lib.sh', 'references', 'https://gitlab.example.invalid/group/repo/-/merge_requests/7']' returned non-zero exit status 1.
+exit=0
+PASS: gitlab: unread remote is named without failing the pass
+PASS: gitlab: note-only PR prevents pruning when the remote is unavailable
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gerrit/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gerrit/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+PASS: gerrit: continuation note supplies the complete PR identity
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gerrit/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gerrit/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/note-only-gerrit/projects/demo https://review.example.invalid/c/group/repo/+/7
+stderr: warning: task data retired retained whole for retry: unread PR https://review.example.invalid/c/group/repo/+/7: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data-lib.sh', 'references', 'https://review.example.invalid/c/group/repo/+/7']' returned non-zero exit status 1.
+exit=0
+PASS: gerrit: unread remote is named without failing the pass
+PASS: gerrit: note-only PR prevents pruning when the remote is unavailable
+
+SCENARIO: A real unread PR preserves the folder and a later readable cycle retries safely
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/projects/demo https://github.com/groovejones/groove-sight-platform/pull/4364
+stderr: warning: task data retired retained whole for retry: unread PR https://github.com/groovejones/groove-sight-platform/pull/4364: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data-lib.sh', 'references', 'https://github.com/groovejones/groove-sight-platform/pull/4364']' returned non-zero exit status 1.
+exit=0
+PASS: failed real forge read names and records the unread PR without failing the pass
+PASS: unread PR keeps the whole folder in place
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+task data retired: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/data/retired/.cleanup-hold until the next completed task
+exit=0
+PASS: next readable cycle retries staging and grants a full recovery cycle
+PASS: successful real reread clears unread state
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py expire
+exit=0
+{
+  "home": "unread-pr-retry",
+  "phase": "after-expire",
+  "files": [
+    "initial.title",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/projects/demo",
+        "pr": "https://github.com/groovejones/groove-sight-platform/pull/4364",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/unread-pr-retry/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished https://github.com/groovejones/groove-sight-platform/pull/4364 (repo: demo)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+PASS: PR-only evidence survives retry and expiry
+
+SCENARIO: One-cycle recovery preserves space while staged and expires only on another completed task
+$ du -sk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle/data/retired
+2052	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle/data/retired
+exit=0
+$ df -k /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle/data/retired
+Filesystem   1024-blocks       Used Available Capacity  iused      ifree %iused  Mounted on
+/dev/disk3s5  3902634640 3728939640 143455400    97% 31795080 1434554000    2%   /System/Volumes/Data
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle/state retired cycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle/projects/demo ''
+stderr: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data-lib.sh: line 9: fm_task_id_path_safe: command not found
+exit=1
+SCENARIO FAILED: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data-lib.sh: line 9: fm_task_id_path_safe: command not found
+
+
+LIVE RESULT: [{"name": "Both named GSP PRs are readable through the real references helper", "result": "pass", "live": true}, {"name": "Pre-fix counterfactual reproduces the reported evidence deletion", "result": "pass", "live": true}, {"name": "Current undated checked row beats a dated archive through stage and expiry", "result": "pass", "live": true}, {"name": "Older dated current checked row beats a newer archive through stage and expiry", "result": "pass", "live": true}, {"name": "Missing, active and unprovably ordered conflicting rows retain and name the whole folder", "result": "pass", "live": true}, {"name": "Latest provable archive row and a real named gsp bead retain their evidence", "result": "pass", "live": true}, {"name": "Duplicate possible rows for one project and PR retain all referenced evidence", "result": "pass", "live": true}, {"name": "Late ambiguity or changed identity blocks cleanup; refreshed links restore recovery", "result": "pass", "live": true}, {"name": "Note-only GitLab and Gerrit identities are extracted and unread remotes retain data", "result": "pass", "live": true}, {"name": "A real unread PR preserves the folder and a later readable cycle retries safely", "result": "pass", "live": true}, {"name": "One-cycle recovery preserves space while staged and expires only on another completed task", "result": "fail", "live": true, "error": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data-lib.sh: line 9: fm_task_id_path_safe: command not found\n"}]
+
+SETUP CORRECTION: The recovery-cycle driver initially omitted sourcing fm-pr-lib.sh, a dependency already sourced by fm-teardown.sh. The test driver was corrected without a product change and that scenario alone was re-driven successfully. Final evidence: recovery-cycle.log and live-task-data-results.json.

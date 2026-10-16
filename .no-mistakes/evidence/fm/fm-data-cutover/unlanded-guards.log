@@ -1,0 +1,67 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty
+exit=0
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty/projects/demo
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty/projects/demo add proof.bin
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty/projects/demo -c user.name=fixture -c user.email=fixture@example.invalid commit -q -m 'fixture baseline'
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty/projects/demo worktree add -q -b fm/task-x1 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty/work main
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty/work rev-parse HEAD
+4769b9fe13e9052a2a9cb40a2559d80ea40c2fd8
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-teardown.sh task-x1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 6s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: local-only worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty/work has work not yet merged into main and not on any remote.
+uncommitted changes present (includes tracked edits)
+Merge the branch into local main first (bin/fm-merge-local.sh after the captain approves), or push to a fork/remote, or get the captain's explicit OK to discard, then --force.
+exit=1
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-dirty/work rev-parse HEAD
+4769b9fe13e9052a2a9cb40a2559d80ea40c2fd8
+exit=0
+{"variant": "dirty", "refused": true, "head": "4769b9fe13e9052a2a9cb40a2559d80ea40c2fd8", "work_sha256": "4f979cd5661428b2985a6e68ee934f622fe030b55d125309badd796789804f7b", "task_record_retained": true, "scratch_unchanged": true, "cleanup_hold_absent": true}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed
+exit=0
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/projects/demo
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/projects/demo add proof.bin
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/projects/demo -c user.name=fixture -c user.email=fixture@example.invalid commit -q -m 'fixture baseline'
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/projects/demo worktree add -q -b fm/task-x1 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/work main
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/work add proof.bin
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/work -c user.name=fixture -c user.email=fixture@example.invalid commit -q -m 'unpushed fixture work'
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/work rev-parse HEAD
+666f860919091068df9fc66a57fb1e65afdf8581
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-teardown.sh task-x1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 8s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: local-only worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/work has work not yet merged into main and not on any remote.
+commits not yet on main:
+666f860 unpushed fixture work
+Merge the branch into local main first (bin/fm-merge-local.sh after the captain approves), or push to a fork/remote, or get the captain's explicit OK to discard, then --force.
+exit=1
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/fm-lab-unpushed/work rev-parse HEAD
+666f860919091068df9fc66a57fb1e65afdf8581
+exit=0
+{"variant": "unpushed", "refused": true, "head": "666f860919091068df9fc66a57fb1e65afdf8581", "work_sha256": "4f979cd5661428b2985a6e68ee934f622fe030b55d125309badd796789804f7b", "task_record_retained": true, "scratch_unchanged": true, "cleanup_hold_absent": true}

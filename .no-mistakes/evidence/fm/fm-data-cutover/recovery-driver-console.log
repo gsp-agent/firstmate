@@ -1,0 +1,67 @@
+Real PR 4364-only binary filename selected from the actual response: initial.title
+
+SCENARIO: One-cycle recovery preserves space while staged and expires only on another completed task
+$ du -sk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired
+2052	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired
+exit=0
+$ df -k /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired
+Filesystem   1024-blocks       Used Available Capacity  iused      ifree %iused  Mounted on
+/dev/disk3s5  3902634640 3728955800 143439252    97% 31796821 1434392520    2%   /System/Volumes/Data
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/state retired /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/state retired cycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/projects/demo ''
+task data retired: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired/.cleanup-hold until the next completed task
+exit=0
+PASS: staging renames the same inode; bytes are not reclaimed yet
+staged_bytes=2097152 staged_GiB=0.001953125 (disposable fixture only)
+$ du -sk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired
+2056	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/state retired cycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/projects/demo ''
+task data retired: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired/.cleanup-hold until the next completed task
+exit=0
+PASS: repeating the same task cleanup does not expire its own hold
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/state next-task /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/bin/fm-task-data.py prepare
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M53B462Z5XMWXCWAM0Z5M7BA/drive-task-data-command.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/state next-task cycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/projects/demo ''
+exit=0
+{
+  "home": "recovery-cycle-retry",
+  "phase": "after-next-different-task",
+  "files": [
+    "current-pr-only.bin",
+    "record/data-cleanup.json"
+  ],
+  "record": {
+    "version": 1,
+    "task": "retired",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data",
+          "task": "retired",
+          "legacy": true,
+          "text": "- [x] retired - finished  (repo: demo)\n  [capture](current-pr-only.bin)"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+PASS: next different completed task expires unlinked scratch through real dcg
+$ du -sk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired
+8	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired
+exit=0
+$ df -k /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase/live/recovery-cycle-retry/data/retired
+Filesystem   1024-blocks       Used Available Capacity  iused      ifree %iused  Mounted on
+/dev/disk3s5  3902634640 3728968712 143426328    97% 31798071 1434263280    2%   /System/Volumes/Data
+exit=0
+Retry setup correction: source fm-pr-lib.sh, as the real retirement caller does; no product change.
+
+LIVE RESULT: [{"name": "Both named GSP PRs are readable through the real references helper", "result": "pass", "live": true}, {"name": "Pre-fix counterfactual reproduces the reported evidence deletion", "result": "pass", "live": true}, {"name": "Current undated checked row beats a dated archive through stage and expiry", "result": "pass", "live": true}, {"name": "Older dated current checked row beats a newer archive through stage and expiry", "result": "pass", "live": true}, {"name": "Missing, active and unprovably ordered conflicting rows retain and name the whole folder", "result": "pass", "live": true}, {"name": "Latest provable archive row and a real named gsp bead retain their evidence", "result": "pass", "live": true}, {"name": "Duplicate possible rows for one project and PR retain all referenced evidence", "result": "pass", "live": true}, {"name": "Late ambiguity or changed identity blocks cleanup; refreshed links restore recovery", "result": "pass", "live": true}, {"name": "Note-only GitLab and Gerrit identities are extracted and unread remotes retain data", "result": "pass", "live": true}, {"name": "A real unread PR preserves the folder and a later readable cycle retries safely", "result": "pass", "live": true}, {"name": "One-cycle recovery preserves space while staged and expires only on another completed task", "result": "pass", "live": true}]

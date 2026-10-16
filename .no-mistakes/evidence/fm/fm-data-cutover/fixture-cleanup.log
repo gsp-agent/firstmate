@@ -1,0 +1,5 @@
+The recursive-removal preflight was denied; no recursive command was executed.
+Safer replacement: existing product remove_entries checks exact nonrecursive rm -f and empty-directory rmdir commands through real dcg.
+Inspected disposable root: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53B462Z5XMWXCWAM0Z5M7BA/.test-phase
+Files/symlinks: 449; directories: 336
+All disposable entries removed successfully through dcg.
