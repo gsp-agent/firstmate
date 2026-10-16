@@ -1259,6 +1259,7 @@ route_hold() {  # <id>; caller owns the task control lock
 
 command_route_due() {
   local router ids id pending row_timeout=${FM_HOLD_ROUTE_TIMEOUT_SECS:-30} row_status rc=0
+  local cursor cursor_file="$STATE/hold-domain/sweep-cursor" tmp
   [ "$#" -le 1 ] || { usage >&2; exit 2; }
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   [ -f "$router" ] || return 0
@@ -1281,8 +1282,21 @@ command_route_due() {
       printf '%s\n' "${id%.body}"
     done
   } | LC_ALL=C sort -u)
+  [ -n "$ids" ] || return 0
+  if [ -f "$cursor_file" ]; then
+    cursor=$(cat "$cursor_file") || fail "cannot read routing sweep position"
+    ids=$(printf '%s\n' "$ids" | LC_ALL=C awk -v cursor="$cursor" '
+      ("x" $0) > ("x" cursor) { print; next }
+      { earlier = earlier $0 ORS }
+      END { printf "%s", earlier }
+    ') || fail "cannot order routing sweep"
+  fi
+  (umask 077; mkdir -p "$STATE/hold-domain") || fail "cannot create routing state"
   while IFS= read -r id; do
     [ -n "$id" ] || continue
+    tmp=$(umask 077; mktemp "$STATE/hold-domain/.cursor.XXXXXX") || fail "cannot stage routing sweep position"
+    printf '%s\n' "$id" > "$tmp" || fail "cannot stage routing sweep position"
+    mv -f -- "$tmp" "$cursor_file" || fail "cannot publish routing sweep position"
     # Use one process per row so a failed route cannot strand later holds.
     row_status=0
     ( fm_exec_timed "$row_timeout" 1 "$SCRIPT_DIR/fm-captain-hold.sh" route-due "$id" ) || row_status=$?

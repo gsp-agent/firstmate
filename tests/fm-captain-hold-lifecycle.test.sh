@@ -5499,6 +5499,120 @@ SH
   pass 'blocked locks, resolution writes and releases preserve pending rows while healthy holds and scheduled checks finish'
 )
 
+test_domain_interrupted_sweeps_make_fair_progress() (
+  local home id n shown pid
+  . "$ROOT/bin/fm-wake-lib.sh"
+  . "$ROOT/tests/wake-helpers.sh"
+  home=$(make_domain_home interrupted-sweep-progress)
+  cat > "$home/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "data/done-archive.md"
+done_keep = 0
+TOML
+  for id in a b c d; do
+    run_domain "$home" 2026-10-14T02:00:00Z hold "$id" --title "Due hold $id" \
+      --decision-owner ep-firstmate --timeout-seconds 60 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not create sweep-progress holds'
+  done
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = unhold ] && [ "${2:-}" = c ] && [ -f "$FM_HOME/seed-release" ]; then exit 1; fi
+if [ -f "$FM_HOME/block-rows" ]; then
+  case "${1:-}:${2:-}" in
+    update:b|unhold:c)
+      sleep 300 &
+      printf '%s\n' "$$" "$!" >> "$FM_HOME/blocked.pids"
+      printf '%s\n' "$1:$2" >> "$FM_HOME/blocked.calls"
+      wait "$!"
+      printf 'escaped\n' > "$FM_HOME/escaped"
+      exit 1
+      ;;
+  esac
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  touch "$home/seed-release"
+  if run_domain "$home" 2026-10-14T02:01:00Z route-due c > "$home/seed.out" 2>&1; then
+    fail 'could not seed an interrupted release for sweep progress'
+  fi
+  shown=$(tasks_in "$home" show c --full)
+  assert_contains "$shown" 'Resolution mode: agent-routed' 'release fixture lost its durable resolution'
+  mv "$home/seed-release" "$home/block-rows"
+  fm_lock_acquire_wait "$home/state/.control-a.lock" || fail 'could not block the first routing row'
+  cat > "$home/state/ordinary.check.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'checked\n' >> "$FM_HOME/scheduled.log"
+SH
+  chmod 0700 "$home/state/ordinary.check.sh"
+  FM_HOME="$home" bash "$ROOT/bin/fm-check-register.sh" ordinary >/dev/null || fail 'could not register sweep-progress check'
+  for n in 1 2 3 4; do
+    if [ "$n" = 3 ]; then
+      fm_lock_release "$home/state/.control-a.lock" || fail 'could not release the retired row lock'
+      for id in a d; do tasks_in "$home" 'done' "$id" >/dev/null || fail 'could not archive an attempted row'; done
+      for id in a0 e; do
+        run_domain "$home" 2026-10-14T02:00:00Z hold "$id" --title "New due hold $id" \
+          --decision-owner ep-firstmate --timeout-seconds 60 \
+          --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not add a new routing row'
+      done
+    fi
+    FM_CHECK_TIMEOUT=70 FM_HOLD_ROUTE_TIMEOUT_SECS=30 FM_TEST_DOMAIN_WATCH_TIMEOUT=110 \
+      REAL_TASKS_AXI="$TASKS_AXI_BIN" run_domain_watcher "$home" > "$home/watch-$n.out" 2>&1 || fail 'interrupted-sweep watcher failed'
+    assert_equals "$n" "$(wc -l < "$home/scheduled.log" | tr -d ' ')" 'interrupted sweep starved ordinary scheduled checks'
+    assert_grep 'hold-domain routing failed:' "$home/watch-$n.out" 'interrupted sweep did not surface its failure'
+    assert_grep 'hold-domain' "$home/state/.wake-queue" 'interrupted sweep did not durably queue its failure'
+    assert_present "$home/state/.last-watcher-beat" 'interrupted sweep lost the watcher beacon'
+    assert_absent "$home/escaped" 'a blocked routing subprocess escaped its deadline'
+    if [ -f "$home/blocked.pids" ]; then
+      while IFS= read -r pid; do
+        case "$(ps -o stat= -p "$pid" 2>/dev/null | tr -d '[:space:]')" in ''|Z*) ;; *) fail 'interrupted sweep left a routing subprocess alive' ;; esac
+      done < "$home/blocked.pids"
+    fi
+    if [ "$n" = 1 ]; then
+      case "$(cat "$home/watch-$n.out")" in
+        *'hold-domain routing failed: exit 124'*|*'hold-domain routing failed: exit 137'*) ;;
+        *) fail 'blocked rows did not exhaust the overall sweep budget' ;;
+      esac
+      shown=$(tasks_in "$home" show d --full)
+      assert_contains "$shown" 'held: yes' 'the first sweep did not interrupt before the healthy later row'
+    elif [ "$n" = 2 ]; then
+      shown=$(tasks_in "$home" show d --full)
+      assert_contains "$shown" 'held: no' 'repeated sweep budgets starved the healthy later row'
+      for id in a b c; do assert_present "$home/state/hold-domain/pending/$id.body" 'an interrupted row lost its pending work'; done
+      assert_equals 1 "$(grep -Fc 'Hold d timed out.' "$home/owner.log")" 'repeated sweeps duplicated healthy-row delivery'
+    fi
+    PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+      bash "$ROOT/bin/fm-wake-drain.sh" > "$home/drain-$n.out" 2> "$home/drain-$n.err" || fail 'could not present the sweep failure wake'
+    PATH="$home/fakebin:$PATH" FM_HOME="$home" \
+      ack_drain_err "$home/state" "$home/drain-$n.err" > "$home/ack-$n.out" 2>&1 || fail 'could not acknowledge the sweep failure wake'
+    pass "bounded sweep $n preserves ordinary checks and cleans up interrupted routing"
+  done
+  for id in a0 e; do
+    shown=$(tasks_in "$home" show "$id" --full)
+    assert_contains "$shown" 'held: no' 'new rows stopped progressing after attempted rows retired'
+    assert_equals 1 "$(grep -Fc "Hold $id timed out." "$home/owner.log")" 'a new row was delivered more than once'
+  done
+  assert_grep update:b "$home/blocked.calls" 'resolution-write blocking was not exercised'
+  assert_grep unhold:c "$home/blocked.calls" 'release blocking was not exercised'
+  assert_absent "$home/state/hold-domain/pending/a.body" 'an archived attempted row kept retrying'
+  for id in b c; do assert_present "$home/state/hold-domain/pending/$id.body" 'a blocked row lost its recovery work'; done
+  FM_HOME="$home" bash "$ROOT/bin/fm-check-unregister.sh" ordinary >/dev/null || fail 'could not retire the ordinary check'
+  domain_supervision_needed "$home" || fail 'blocked pending rows stopped supervision'
+  mv "$home/block-rows" "$home/rows-restored"
+  run_domain "$home" 2026-10-14T02:02:00Z route-due || fail 'interrupted rows did not recover'
+  run_domain "$home" 2026-10-14T02:03:00Z route-due || fail 'completed-sweep replay failed'
+  assert_equals 5 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'recovery lost or duplicated owner delivery'
+  assert_equals "$(printf 'a0\nb\nc\nd\ne')" "$(cut -f1 "$home/state/hold-domain/routed.tsv" | LC_ALL=C sort)" 'recovery lost or duplicated canonical receipts'
+  for id in b c; do
+    shown=$(tasks_in "$home" show "$id" --full)
+    assert_contains "$shown" 'held: no' 'receipt recovery did not release a previously blocked row'
+  done
+  if domain_supervision_needed "$home"; then fail 'retired pending work kept supervision required'; fi
+  pass 'interrupted sweeps fairly route later and new holds once while blocked rows retain receipt recovery'
+)
+
 test_domain_failed_new_lifecycle_header_is_retryable() {
   local home historical shown body
   home=$(make_domain_home failed-new-header)
@@ -5618,6 +5732,7 @@ SH
 }
 
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
+  fairness) test_domain_interrupted_sweeps_make_fair_progress; exit $? ;;
   rows) test_domain_row_bounds_preserve_later_holds; exit $? ;;
   runtime) test_domain_runtime_metadata_aliases; exit $? ;;
   history) test_domain_failed_new_lifecycle_header_is_retryable; exit $? ;;
@@ -5665,6 +5780,7 @@ case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
     ;;
 esac
 
+test_domain_interrupted_sweeps_make_fair_progress || exit 1
 test_domain_row_bounds_preserve_later_holds || exit 1
 test_domain_runtime_metadata_aliases || exit 1
 test_domain_failed_new_lifecycle_header_is_retryable
