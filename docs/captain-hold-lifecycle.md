@@ -199,7 +199,7 @@ The refusal names the record and the validation reason, so the captain can repai
 ### What `--force` does not lift
 
 `--force` does not lift the deferral, because it authorizes discarding unlanded work, never the captain's question.
-Only `answer` with the captain's words or evidence-backed `reconcile close` resolves the call, by either closing the question or releasing the gated work.
+The [captain-hold policy](../.agents/skills/captain-hold-lifecycle/SKILL.md#policy) owns resolution authority, including the distinction between captain calls and technical decisions.
 `bin/fm-backlog-transition-lib.sh` owns the transition and its record, and `bin/fm-captain-hold.sh --help` owns the predicate's contract.
 
 ## Answer-time resolution
@@ -417,7 +417,7 @@ Re-holding through the wrapper with `--until` remains the durable fix rather tha
 [`bin/fm-landed-lib.sh`](../bin/fm-landed-lib.sh) owns Recently Landed's shared selection and artifact-display compatibility rules.
 A local-only landing's note is written by `tasks-axi done --note` as the last of the row's indented body lines rather than into the row title.
 The snapshot therefore reads that final line as the note as well as parsing the title, and the landing is published carrying its recorded note.
-A body that carries a captain resolution record is the captain's own prose and is never mined for that note, so a decision worded `local main` does not become a delivery artifact.
+A body that carries a lifecycle resolution record is never mined for that note, so decision text or routing evidence worded `local main` does not become a delivery artifact.
 The projection remains read-only and uses the canonical snapshot's structured fields, including the machine-written hold-set timestamp.
 
 ### Merge-to-cleanup window
@@ -434,7 +434,7 @@ The away-posture restriction on queued merges and its residual limits are owned 
 A captain call can have two records, and closing one does not close the other.
 The status-log fold is the open-decision set `bin/fm-classify-lib.sh` reads from a task's status log, where a keyed `needs-decision` or `blocked` line opens a decision.
 A `resolved [key=...]` line closes the status-log fold.
-The structured captain-held task closes only through `answer`.
+Changes to the structured captain-held task belong to the [lifecycle subcommands](#subcommands-at-a-glance).
 
 Until this guard existed, closing on the status side alone left no trace of the disagreement.
 The fold went quiet, the durable record kept saying the captain owed an answer, and nothing warned.
