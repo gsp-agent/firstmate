@@ -39,8 +39,8 @@
 # `mode=retain`, so an interrupted cleanup replays the retention rather than a
 # close. "Cannot tell" refuses before any destructive step, --force does not
 # lift the deferral (it authorizes discarding unlanded WORK, never the
-# captain's question), and bin/fm-captain-hold.sh answer stays the only act
-# that closes the call.
+# captain's question).
+# .agents/skills/captain-hold-lifecycle/SKILL.md owns resolution authority.
 # REFUSES if the worktree holds work that has not LANDED, because cleanup
 # hard-resets/removes the worktree and kills its processes. Work has landed when it is
 # reachable from any remote-tracking branch (a fork counts as a remote, so
