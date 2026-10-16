@@ -5260,11 +5260,8 @@ test_send_text_submit_claude_selected_slash_popup_is_submitted() {
     printf '{"result":{"agent":{"agent_status":"idle"}}}\n' > "$resp/7.out"
     printf '❯\n' > "$resp/8.out"
     fb=$(make_herdr_fakebin "$dir")
-    out=$(
-      export PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1
-      . "$ROOT/bin/backends/herdr.sh"
-      fm_backend_herdr_send_text_submit default:w1:p2 "$text" 3 0.01 0.01
-    )
+    out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+      bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
     [ "$out" = empty ] || fail "the selected $text popup must allow submission, got '$out'"
     enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
     [ "$enter_count" -eq 1 ] || fail "the command must receive one Enter, got $enter_count"
