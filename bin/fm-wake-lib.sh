@@ -207,7 +207,8 @@ fm_watcher_healthy() {
 # identity-matched watcher PROCESS holds this home's lock with a fresh beacon. The
 # arm layer (bin/fm-watch-arm.sh, bin/fm-claude-stop-autoarm.sh) needs exactly
 # that - it decides whether to start, attach to, or replace a real watcher
-# process, so a leftover beacon must never satisfy it. bin/fm-turnend-guard.sh
+# process, so a leftover beacon must never satisfy it. bin/fm-inbox.sh ready
+# uses it to report a consumer that can receive now. bin/fm-turnend-guard.sh
 # also keeps this strict check because it fires at the turn boundary where the
 # auto-arm brings a fresh watcher up. The pull warning (bin/fm-guard.sh) fires
 # mid-turn, where the auto-arm model runs no watcher at all, so it wants a
