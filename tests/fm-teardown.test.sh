@@ -5376,7 +5376,10 @@ SH
   pass "a recorded open pull request or merge request keeps the task record until it is merged or closed"
 }
 
-if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-aliases ]; then
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-aliases ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-components ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retirement ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
   test_missing_adapter_sibling_refuses_before_cleanup
@@ -5633,26 +5636,35 @@ SH
 }
 
 test_task_data_symlink_targets() {
-  local case_dir task helper
+  local case_dir task helper=${1:-$ROOT/bin/fm-task-data.py}
   case_dir=$(make_case task-data-symlinks)
   task="$case_dir/data/finished"
-  helper="$ROOT/bin/fm-task-data.py"
-  mkdir -p "$task/frames" "$task/captures"
+  mkdir -p "$task/frames" "$task/captures/subdir" "$task/saved-captures/subdir" "$case_dir/outside/subdir"
   printf 'capture\n' > "$task/captures/capture.bin"
   printf 'frame\n' > "$task/frames/frame.bin"
   printf 'later capture\n' > "$task/later.bin"
   printf 'scratch\n' > "$task/discard.bin"
+  printf 'ordered capture\n' > "$task/captures/proof.bin"
+  printf 'saved ordered capture\n' > "$task/saved-captures/proof.bin"
+  printf 'unrelated capture\n' > "$task/captures/discard.bin"
+  printf 'outside\n' > "$case_dir/outside/outside.bin"
   ln -s captures/capture.bin "$task/alias.bin"
   ln -s alias.bin "$task/latest.png"
   ln -s frames "$task/frames.png"
   ln -s later.bin "$task/saved.png"
+  ln -s captures/subdir "$task/component-alias.bin"
+  ln -s component-alias.bin/../proof.bin "$task/component.png"
+  ln -s saved-captures/subdir "$task/saved-alias.bin"
+  ln -s saved-alias.bin/../proof.bin "$task/saved-component.png"
+  ln -s "$case_dir/outside/subdir" "$task/outside-alias.bin"
+  ln -s outside-alias.bin/../outside.bin "$task/escape.png"
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
 SH
   cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
-printf 'body: [latest](latest.png) [frames](frames.png)\n'
+printf 'body: [latest](latest.png) [frames](frames.png) [components](component.png) [outside](escape.png)\n'
 SH
   chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
   PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
@@ -5660,18 +5672,31 @@ SH
   [ "$(cat "$task/latest.png")" = capture ] || fail "linked image symlink lost its target"
   [ -L "$task/alias.bin" ] || fail "intermediate symlink was staged"
   [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "linked directory symlink lost its contents"
+  [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "symlink followed by .. lost its target during staging"
+  [ -d "$task/captures/subdir" ] || fail "staging removed an empty traversal directory"
+  assert_present "$task/.cleanup-hold/captures/discard.bin" "traversal retained unrelated directory contents"
+  assert_present "$task/.cleanup-hold/saved-captures/proof.bin" "unlinked ordered target did not stage"
+  [ -L "$task/.cleanup-hold/saved-alias.bin" ] || fail "unlinked ordered alias did not stage"
+  assert_absent "$task/saved-captures" "unlinked empty traversal directory did not stage"
+  [ "$(cat "$task/escape.png")" = outside ] || fail "staging changed an escaped link target"
   assert_present "$task/.cleanup-hold/later.bin" "unlinked target did not stage"
   [ -L "$task/.cleanup-hold/saved.png" ] || fail "unlinked symlink did not stage"
   cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
-printf 'body: [latest](latest.png) [frames](frames.png) [saved](saved.png)\n'
+printf 'body: [latest](latest.png) [frames](frames.png) [components](component.png) [outside](escape.png) [saved](saved.png) [saved components](saved-component.png)\n'
 SH
   PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" finished \
     || fail "symlink expiry failed"
   [ "$(cat "$task/saved.png")" = 'later capture' ] || fail "newly linked held symlink lost its held target"
   [ "$(cat "$task/latest.png")" = capture ] || fail "expiry broke retained symlink chain"
+  [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "expiry broke symlink followed by .."
+  [ "$(cat "$task/saved-component.png")" = 'saved ordered capture' ] || fail "expiry did not restore ordered held targets and traversal directories"
+  [ -L "$task/saved-alias.bin" ] || fail "expiry did not restore a required intermediate alias"
+  [ -d "$task/saved-captures/subdir" ] || fail "expiry did not restore an empty traversal directory"
+  [ "$(cat "$task/escape.png")" = outside ] || fail "expiry changed an escaped link target"
+  assert_absent "$task/captures/discard.bin" "ordered lookup retained unrelated scratch"
   assert_absent "$task/.cleanup-hold" "symlink recovery did not expire"
-  pass "fm-teardown: linked symlinks preserve files, chains, directories and held targets"
+  pass "fm-teardown: linked symlinks preserve component order, traversal directories, escapes and held targets"
 }
 
 test_task_data_symlink_ancestor_aliases() {
@@ -5688,20 +5713,21 @@ test_task_data_symlink_ancestor_aliases() {
     else
       physical="$case_dir/physical"
       alias_root="$case_dir/ancestor-alias"
-      mkdir -p "$physical"
-      ln -s "$physical" "$case_dir/alias-bridge"
-      ln -s "$case_dir/alias-bridge" "$alias_root"
+      mkdir -p "$physical/anchor/subdir"
+      ln -s "$physical/anchor/subdir" "$case_dir/alias-bridge"
+      ln -s "$case_dir/alias-bridge/../.." "$alias_root"
     fi
     data="$physical/data"
     task="$data/finished"
     captures="$task/captures"
-    mkdir -p "$captures/frames" "$captures/later-frames" "$case_dir/outside"
+    mkdir -p "$captures/frames" "$captures/later-frames" "$captures/subdir" "$case_dir/outside"
     printf 'capture\n' > "$captures/capture.bin"
     printf 'frame\n' > "$captures/frames/frame.bin"
     printf 'chain\n' > "$captures/chain.bin"
     printf 'later capture\n' > "$captures/later.bin"
     printf 'later frame\n' > "$captures/later-frames/later-frame.bin"
     printf 'discard\n' > "$captures/discard.bin"
+    printf 'ordered capture\n' > "$captures/proof.bin"
     printf 'data capture\n' > "$task/data.bin"
     printf 'data discard\n' > "$task/discard-data.bin"
     printf 'outside\n' > "$case_dir/outside/outside.bin"
@@ -5711,6 +5737,8 @@ test_task_data_symlink_ancestor_aliases() {
     ln -s "$alias_root/data/finished/captures/bridge.bin" "$task/chained.png"
     ln -s "$alias_root/data/finished/captures/later.bin" "$task/saved.png"
     ln -s "$alias_root/data/finished/captures/later-frames" "$task/saved-frames.png"
+    ln -s captures/subdir "$task/component-alias.bin"
+    ln -s "$alias_root/data/finished/component-alias.bin/../proof.bin" "$task/component.png"
     ln -s "$data" "$case_dir/data-alias"
     ln -s "$case_dir/data-alias/finished/data.bin" "$task/latest-data.png"
     ln -s "$case_dir/outside" "$case_dir/outside-alias"
@@ -5721,7 +5749,7 @@ cat >/dev/null
 SH
     cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
-printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png)\n'
+printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png) [components](component.png)\n'
 SH
     chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
     PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
@@ -5732,6 +5760,7 @@ SH
     [ "$(cat "$task/chained.png")" = chain ] || fail "$variant aliased target lost an intermediate symlink"
     [ -L "$captures/bridge.bin" ] || fail "$variant owned intermediate symlink was staged"
     [ "$(cat "$task/latest-data.png")" = 'data capture' ] || fail "$variant aliased data link lost its target"
+    [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "$variant ancestor alias collapsed .. before an owned symlink"
     assert_present "$task/.cleanup-hold/captures/later.bin" "$variant unlinked data target did not stage"
     assert_present "$task/.cleanup-hold/captures/later-frames/later-frame.bin" "$variant unlinked directory did not stage"
     [ -L "$task/.cleanup-hold/saved.png" ] || fail "$variant unlinked image did not stage"
@@ -5740,7 +5769,7 @@ SH
     [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "$variant alias cleanup escaped its owned roots"
     cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
-printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png) [saved](saved.png) [saved frames](saved-frames.png)\n'
+printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png) [components](component.png) [saved](saved.png) [saved frames](saved-frames.png)\n'
 SH
     PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
       "$data" "$case_dir/state" finished || fail "$variant alias expiry failed"
@@ -5748,6 +5777,7 @@ SH
     [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "$variant alias expiry deleted linked directory contents"
     [ "$(cat "$task/chained.png")" = chain ] || fail "$variant alias expiry broke the symlink chain"
     [ "$(cat "$task/latest-data.png")" = 'data capture' ] || fail "$variant alias expiry deleted linked data"
+    [ "$(cat "$task/component.png")" = 'ordered capture' ] || fail "$variant ancestor alias expiry broke ordered traversal"
     [ "$(cat "$task/saved.png")" = 'later capture' ] || fail "$variant alias expiry did not restore the held target"
     [ "$(cat "$task/saved-frames.png/later-frame.bin")" = 'later frame' ] || fail "$variant alias expiry did not restore held directory contents"
     [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "$variant alias expiry escaped its owned roots"
@@ -5867,6 +5897,121 @@ SH
     assert_absent "$task/.cleanup-hold" "$mode replay recovery remains"
   done
   pass "fm-teardown: failed receipt writes preserve metadata and close/retain replay records retryable cleanup"
+}
+
+test_task_data_discovered_pr_retirement() {
+  local code_root=${1:-$ROOT} case_dir task mode real_tasks real_python rc expected
+  real_tasks=$(command -v tasks-axi)
+  real_python=$(command -v python3)
+  for mode in close retain replay-close replay-retain replay-absent replay-absent-retain direct; do
+    case_dir=$(make_case "task-data-discovered-$mode")
+    task="$case_dir/data/task-x1"
+    mkdir -p "$task/scratch"
+    printf 'PR-only evidence\n' > "$task/proof.png"
+    printf 'scratch\n' > "$task/scratch/blob"
+    write_meta "$case_dir" no-mistakes ship
+    wt_commit_file "$case_dir" feature.txt hello "add feature"
+    add_gh_pr_merged_for_head "$case_dir" "$(git -C "$case_dir/wt" rev-parse HEAD)"
+    [ "$mode" = direct ] || seed_backlog_in_flight "$case_dir"
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "${1:-} ${2:-}" in
+  "pr list") printf '%s\n' 'count: 1 (showing first 1)' 'pull_requests[1]{number,state}:' '  7,merged' ;;
+  "pr view") printf '%s\n' 'pull_request:' '  number: 7' '  state: merged' '  merged: "2026-06-26T00:00:00Z"' '  body: [proof](proof.png)' ;;
+esac
+SH
+    cat > "$case_dir/fakebin/tasks-axi" <<SH
+#!/usr/bin/env bash
+if [ "\${FM_TEST_FAIL_COMPLETION:-0}" = 1 ]; then
+  case "\${1:-}" in done|reopen) exit 1 ;; esac
+fi
+exec '$real_tasks' "\$@"
+SH
+    cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+if [ "\${FM_TEST_SKIP_STAGE:-0}" = 1 ] && [ "\${2:-}" = stage ]; then exit 1; fi
+exec '$real_python' "\$@"
+SH
+    chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/python3"
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/dcg"
+    cat > "$case_dir/transition.sh" <<'SH'
+#!/usr/bin/env bash
+set -eu
+root=$1 case_dir=$2 mode=$3
+. "$root/bin/fm-wake-lib.sh"
+. "$root/bin/fm-tasks-axi-lib.sh"
+. "$root/bin/fm-backlog-transition-lib.sh"
+state="$case_dir/state" data="$case_dir/data"
+lock=$(fm_meta_lock_path "$state/task-x1.meta")
+fm_lock_acquire_wait "$lock"
+trap 'fm_lock_release "$lock"' EXIT
+pr=https://github.com/example/repo/pull/7
+if [ "$mode" != replay ]; then
+  flags=()
+  case "$mode" in *retain) flags=(--retain) ;; esac
+  gen=$(sed -n 's/^spawn_gen=//p' "$state/task-x1.meta")
+  fm_backlog_close_marker_write "$state" task-x1 "$data" "$gen" "${flags[@]+"${flags[@]}"}" --pr "$pr"
+fi
+case "$mode" in
+  replay-absent*)
+    python3 "$root/bin/fm-task-data.py" prepare "$data" "$state" task-x1
+    fm_backlog_record_remove "$state/task-x1.meta" 'task record' "$state"
+    ;;
+esac
+if [ "$mode" = retain ]; then
+  fm_backlog_atomic_transition retain "$state/task-x1.meta" "$state/task-x1.backlog-close" \
+    "$data" task-x1 "$state" --pr "$pr"
+else
+  fm_backlog_close_marker_replay "$state" "$state/task-x1.backlog-close" "$data"
+fi
+SH
+    rc=0
+    expected=0
+    case "$mode" in
+      close|direct)
+        [ "$mode" != close ] || expected=1
+        FM_TEST_FAIL_COMPLETION=1 FM_TEST_SKIP_STAGE=1 FM_HOME="$case_dir" \
+          FM_ROOT_OVERRIDE="$code_root" FM_STATE_OVERRIDE="$case_dir/state" \
+          FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+          PATH="$case_dir/fakebin:$PATH" "$code_root/bin/fm-teardown.sh" task-x1 \
+          > "$case_dir/out" 2> "$case_dir/err" || rc=$?
+        ;;
+      *)
+        [ "$mode" != retain ] || expected=1
+        FM_TEST_FAIL_COMPLETION="$expected" FM_HOME="$case_dir" \
+          FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+          PATH="$case_dir/fakebin:$PATH" bash "$case_dir/transition.sh" "$code_root" "$case_dir" "$mode" \
+          > "$case_dir/out" 2> "$case_dir/err" || rc=$?
+        ;;
+    esac
+    expect_code "$expected" "$rc" "$mode discovered-PR retirement: $(cat "$case_dir/err")"
+    assert_absent "$case_dir/state/task-x1.meta" "$mode did not retire metadata"
+    jq -e '.complete == false and any(.sources[]; .pr == "https://github.com/example/repo/pull/7")' \
+      "$task/record/data-cleanup.json" >/dev/null || fail "$mode retirement lost the discovered PR before staging"
+    [ "$(cat "$task/proof.png")" = 'PR-only evidence' ] || fail "$mode retirement changed linked evidence"
+    case "$mode" in
+      close|retain)
+        assert_present "$case_dir/state/task-x1.backlog-close" "$mode interruption lost the replay obligation"
+        FM_HOME="$case_dir" FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+          PATH="$case_dir/fakebin:$PATH" bash "$case_dir/transition.sh" "$code_root" "$case_dir" replay \
+          > "$case_dir/replay.out" 2> "$case_dir/replay.err" || fail "$mode replay failed: $(cat "$case_dir/replay.err")"
+        ;;
+    esac
+    assert_absent "$case_dir/state/task-x1.backlog-close" "$mode replay left its pending completion"
+    PATH="$case_dir/fakebin:$PATH" python3 "$code_root/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$mode discovered-PR cleanup could not stage"
+    [ "$(cat "$task/proof.png")" = 'PR-only evidence' ] || fail "$mode replay staged PR-linked evidence"
+    assert_present "$task/.cleanup-hold/scratch/blob" "$mode replay omitted one-cycle recovery"
+    PATH="$case_dir/fakebin:$PATH" python3 "$code_root/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$mode discovered-PR cleanup could not expire"
+    [ "$(cat "$task/proof.png")" = 'PR-only evidence' ] || fail "$mode replay deleted PR-linked evidence"
+    assert_absent "$task/.cleanup-hold" "$mode recovery did not expire"
+  done
+  pass "fm-teardown: discovered PR references survive interrupted close, retain, replay and direct retirement"
 }
 
 test_task_data_forge_references() {
@@ -6004,6 +6149,16 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-aliases ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-components ]; then
+  test_task_data_symlink_targets "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-retirement ]; then
+  test_task_data_discovered_pr_retirement "${1:-$ROOT}"
+  exit 0
+fi
+
 test_task_data_cleanup
 test_task_data_refusals
 test_task_data_references_and_guard
@@ -6013,6 +6168,7 @@ test_task_data_symlink_targets
 test_task_data_symlink_ancestor_aliases "$ROOT/bin/fm-task-data.py"
 test_task_data_collision_progress
 test_task_data_retirement_obligation
+test_task_data_discovered_pr_retirement
 test_task_data_forge_references
 test_task_data_leaves_temporary_scratch "$ROOT/bin/fm-task-data.py"
 [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] || exit 0

@@ -3987,7 +3987,7 @@ elif [ "$KIND" = secondmate ] && [ ! -e "$STATE" ] && [ ! -L "$STATE" ]; then
   # deletion; do not turn its confirmed absence into a false cleanup failure.
   :
 else
-  if ! fm_backlog_atomic_transition retire "$STATE/$ID.meta" "$DATA" "$ID" "$STATE"; then
+  if ! fm_backlog_atomic_transition retire "$STATE/$ID.meta" "$DATA" "$ID" "$STATE" --pr "$PR_URL"; then
     fm_lock_release "$META_LOCK"
     META_LOCK_HELD=0
     echo "error: $ID's endpoint and local copy are cleaned up, but its task record could not be removed ($FM_BACKLOG_TRANSITION_ERROR)" >&2

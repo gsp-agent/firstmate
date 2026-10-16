@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Retain task evidence and hold scratch until the next completed task.
 
-Usage: fm-task-data.py prepare DATA STATE ID
+Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py stage DATA STATE ID PROJECT PR
        fm-task-data.py expire DATA STATE ID
 The caller must hold STATE/.meta-ID.lock, the lock also used by spawn.
@@ -141,28 +141,20 @@ def linked(rel, text):
 
 
 def symlink_targets(views, text):
-    targets = set()
+    targets, directories = set(), set()
 
     def locate(path):
-        for _ in range(40):
-            for root, _, _ in views:
-                if path == root or root in path.parents:
-                    rel = path.relative_to(root)
-                    if rel.parts and rel.parts[0] == HOLD:
-                        rel = rel.relative_to(HOLD)
-                        path = root / rel
-                    actual = path
-                    if not actual.exists() and not actual.is_symlink():
-                        actual = root / HOLD / rel
-                    return root, path, actual
-            for ancestor in (*reversed(path.parents), path):
-                if ancestor.is_symlink():
-                    path = Path(os.path.abspath(ancestor.parent / os.readlink(ancestor))).joinpath(
-                        *path.relative_to(ancestor).parts)
-                    break
-            else:
-                return None
-        raise ValueError(f"cyclic evidence ancestor alias: {path}")
+        for root, _, _ in views:
+            if path == root or root in path.parents:
+                rel = path.relative_to(root)
+                if rel.parts and rel.parts[0] == HOLD:
+                    rel = rel.relative_to(HOLD)
+                    path = root / rel
+                actual = path
+                if not actual.exists() and not actual.is_symlink():
+                    actual = root / HOLD / rel
+                return root, path, actual
+        return None, path, path
 
     for root, files, repos in views:
         for rel in files:
@@ -171,32 +163,40 @@ def symlink_targets(views, text):
             if not actual.is_symlink() or not (linked(rel, text) or (
                     rel.parts[0] != HOLD and ordinary_evidence(actual, rel, repos))):
                 continue
-            path = virtual
-            for _ in range(40):
-                found = locate(path)
-                if found is None:
-                    break
-                owner, path, _ = found
-                targets.add(path)
-                relative = path.relative_to(owner)
-                for length in range(1, len(relative.parts) + 1):
-                    prefix = owner.joinpath(*relative.parts[:length])
-                    _, prefix, source = locate(prefix)
-                    if source.is_symlink():
-                        targets.add(prefix)
-                        tail = relative.parts[length:]
-                        path = Path(os.path.abspath(prefix.parent / os.readlink(source))).joinpath(*tail)
-                        break
+            path = Path(virtual.anchor)
+            pending = list(virtual.parts[1:])
+            followed = 0
+            while pending:
+                part = pending.pop(0)
+                if part == "..":
+                    path = path.parent
+                    continue
+                owner, path, source = locate(path / part)
+                if source.is_symlink():
+                    if owner is not None:
+                        targets.add(path)
+                    followed += 1
+                    if followed > 40:
+                        raise ValueError(f"cyclic evidence symlink: {actual}")
+                    target = Path(os.readlink(source))
+                    if target.is_absolute():
+                        path = Path(target.anchor)
+                        pending = list(target.parts[1:]) + pending
+                    else:
+                        path = path.parent
+                        pending = list(target.parts) + pending
                 else:
-                    break
-            else:
-                raise ValueError(f"cyclic evidence symlink: {actual}")
-    return targets
+                    if owner is not None and pending:
+                        directories.add(path)
+            owner, path, _ = locate(path)
+            if owner is not None:
+                targets.add(path)
+    return targets, directories
 
 
-def safe_parent(root, relative):
+def safe_directory(root, relative):
     parent = root
-    for part in relative.parts[:-1]:
+    for part in relative.parts:
         parent = parent / part
         if parent.is_symlink() or (parent.exists() and not parent.is_dir()):
             raise ValueError(f"unsafe recovery parent: {parent}")
@@ -205,7 +205,7 @@ def safe_parent(root, relative):
 
 
 def write_record(root, record):
-    safe_parent(root, Path(RECEIPT))
+    safe_directory(root, Path(RECEIPT).parent)
     path = root / RECEIPT
     if path.is_symlink() or (path.exists() and path.stat().st_nlink != 1):
         raise ValueError(f"unsafe cleanup record: {path}")
@@ -258,13 +258,16 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         raise ValueError("invalid task id")
     data, state = real_directory(data), real_directory(state)
     meta = state / f"{task_id}.meta"
+    values = None
     if action == "prepare":
-        if meta.is_symlink() or not meta.is_file():
-            raise ValueError("missing or unsafe retiring task record")
-        values = dict(line.split("=", 1) for line in meta.read_text().splitlines() if "=" in line)
-        if values.get("kind") == "secondmate":
-            return
-        project, pr = (values.get(key, "") for key in ("project", "pr"))
+        if meta.exists() or meta.is_symlink():
+            if meta.is_symlink() or not meta.is_file():
+                raise ValueError("unsafe retiring task record")
+            values = dict(line.split("=", 1) for line in meta.read_text().splitlines() if "=" in line)
+            if values.get("kind") == "secondmate":
+                return
+            project = values.get("project", "")
+            pr = pr or values.get("pr", "")
     elif meta.exists() or meta.is_symlink():
         raise ValueError(f"task is still live: {task_id}")
     root = data / task_id
@@ -295,6 +298,11 @@ def cleanup(action, data, state, task_id, project="", pr=""):
             return
     elif action == "expire":
         return
+    if action == "prepare" and values is None:
+        if record is None:
+            raise ValueError("missing retiring task record and cleanup sources")
+        project = record["sources"][-1]["project"]
+        pr = pr or record["sources"][-1]["pr"]
     hold = root / HOLD
     if hold.is_symlink() or (hold.exists() and not hold.is_dir()):
         raise ValueError("unsafe recovery directory")
@@ -324,7 +332,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         text = references(views, record["sources"])
     finally:
         write_record(root, record)
-    targets = symlink_targets(views, text)
+    targets, directories = symlink_targets(views, text)
 
     def protected(path, rel):
         original = path / rel
@@ -338,6 +346,9 @@ def cleanup(action, data, state, task_id, project="", pr=""):
             recovery = path / HOLD
             if not recovery.exists():
                 continue
+            for directory in sorted(directories):
+                if path == directory or path in directory.parents:
+                    safe_directory(path, directory.relative_to(path))
             held_files, held_dirs, _ = inventory(recovery)
             remove = []
             for rel in held_files:
@@ -345,7 +356,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                     destination = path / rel
                     if destination.exists() or destination.is_symlink():
                         raise ValueError(f"recovery would overwrite: {destination}")
-                    safe_parent(path, rel)
+                    safe_directory(path, rel.parent)
                     (recovery / rel).rename(destination)
                 else:
                     remove.append(rel)
@@ -371,7 +382,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         if leaves:
             recovery.mkdir(exist_ok=True)
         for rel in leaves:
-            safe_parent(recovery, rel)
+            safe_directory(recovery, rel.parent)
             (path / rel).rename(recovery / rel)
         if not path.exists():
             continue
@@ -379,7 +390,8 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         occupied = {parent for leaf in remaining_files if leaf.parts[0] not in (HOLD, "record")
                     for parent in leaf.parents}
         empty = [rel for rel in remaining_dirs if rel.parts[0] not in (HOLD, "record")
-                 and rel not in occupied]
+                 and rel not in occupied and path / rel not in directories
+                 and not protected(path, rel)]
         remove_entries(path, [], empty)
     record["complete"] = True
     write_record(root, record)
@@ -392,9 +404,13 @@ if __name__ == "__main__":
         sys.exit(0)
     try:
         if (len(sys.argv) < 2 or sys.argv[1] not in ("prepare", "stage", "expire")
-                or len(sys.argv) != (7 if sys.argv[1] == "stage" else 5)):
+                or len(sys.argv) not in ({5, 6} if sys.argv[1] == "prepare"
+                                        else {7} if sys.argv[1] == "stage" else {5})):
             raise ValueError(__doc__)
-        cleanup(*sys.argv[1:])
+        if sys.argv[1] == "prepare" and len(sys.argv) == 6:
+            cleanup(*sys.argv[1:5], pr=sys.argv[5])
+        else:
+            cleanup(*sys.argv[1:])
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         print(f"warning: task data retained for recovery: {error}", file=sys.stderr)
         sys.exit(1)
