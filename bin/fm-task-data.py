@@ -16,9 +16,15 @@ Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
 the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
 Backlog sources retain their home addressing in the cleanup record.
-Named .agent-config-* and gsp-* beads use ~/.agent-config and ~/dev/gsp-beads.
-Other named beads try the task project before the owning Firstmate backlog.
-Unavailable references retain all data for retry without blocking retirement.
+Named .agent-config-* and gsp-* beads use br from ~/.agent-config and
+~/dev/gsp-beads, respectively; other named beads try br from the task project
+before the owning Firstmate backlog.
+These br reads clear BEADS_DIR, BEADS_DB, and BR_DB so inherited addressing
+cannot select a different database.
+Unread task or bead ids appear in teardown warnings and each source's unread
+list in record/data-cleanup.json; prepare still permits the backlog close.
+Stage and expiry retain all data without moving or deleting it while any
+reference is unreadable; the next successful teardown of a different task retries.
 Paths mentioned in these sources or retained evidence override the size/type limit.
 File references conservatively match basenames; directory references use path/link
 syntax and protect all descendants, including symlinks below a linked directory.
