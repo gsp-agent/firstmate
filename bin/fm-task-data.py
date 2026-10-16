@@ -9,19 +9,24 @@ Prepare records the obligation before retirement; stage and expire refuse live t
 Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
 
-Keep report.md, brief.md, record/, and .txt/.md/.log/.json files up to 1 MiB.
-Nested repositories are scratch, except for files named in evidence references.
-Read the recorded forge request with its comments/reviews and beads named in the
-brief through gh-axi and br. Unavailable references retain all data for retry.
+Keep brief.md, report.md, status, findings, review, and record/ regardless of size.
+Also keep .txt/.md/.log/.json files up to 1 MiB outside nested repositories.
+Other nested-repository files are scratch unless referenced.
+Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion
+through fm-task-data-lib.sh, and beads named in retained task evidence through br.
+Unavailable references retain all data for retry.
 Paths mentioned in these sources or retained evidence override the size/type
 limit. Matching a basename conservatively also retains ambiguous references.
+Retained symlinks protect targets within validated task/temporary roots, including
+through ancestor aliases such as macOS /tmp -> /private/tmp, without widening those roots.
 
 Scratch moves to DATA/ID/.cleanup-hold with its relative paths intact; no bytes
 are copied. record/data-cleanup.json records the recovery, not a second task
 record. The next successful teardown of a DIFFERENT task expires the hold, after
 refreshing references and restoring newly linked files to their original paths.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
-DATA/ID/<relative-path>. Never overwrite a new file at that path.
+<relative-path> under the same original directory (DATA/ID or a recorded temporary
+directory). Never overwrite a new file at that path.
 An interrupted move resumes at the next cycle and receives a full new cycle.
 Repeated staging never expires its own hold. Active task ids are skipped.
 Reusing a finished id retains the reference sources of its earlier recovery.
@@ -286,8 +291,8 @@ def guard_command(args):
 
 
 def remove_entries(root, files, directories):
-    # Commands name only leaves under the validated hold. Symlinks are unlinked,
-    # never traversed, and rmdir refuses a directory that changed or is nonempty.
+    # Commands name only validated leaves or empty directories. Symlinks are
+    # unlinked, never traversed, and rmdir refuses changed or nonempty directories.
     for offset in range(0, len(files), 128):
         paths = []
         for rel in files[offset:offset + 128]:

@@ -4807,9 +4807,9 @@ agy)
 esac
 
 # Per-task temp root: /tmp/fm-<id>/ with Go's build temp nested at gotmp/. Go won't
-# create GOTMPDIR, so mkdir before it is used; fm-teardown removes the whole root.
-# Nested (not a bare /tmp/fm-<id>/gotmp) so other per-task temp can live alongside
-# later, and teardown cleans one deterministic path. GOTMPDIR (not TMPDIR) is the
+# create GOTMPDIR, so mkdir before it is used; fm-teardown.sh delegates ship/scout
+# cleanup and recovery to fm-task-data.py.
+# Other per-task temp can live alongside gotmp/. GOTMPDIR (not TMPDIR) is the
 # targeted knob: TMPDIR is too broad (affects every program's temp, not just Go's).
 # The root is private (0700) because its path is predictable under a shared
 # /tmp: a root that already exists is reused only as a real directory owned by
