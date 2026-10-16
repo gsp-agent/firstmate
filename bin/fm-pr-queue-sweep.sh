@@ -346,10 +346,10 @@ EOF
 
 sweep_scan() {
   local state=$1 path key owner repo repo_out failed=0
-  sweep_state_ok "$state" || return 0
+  sweep_state_ok "$state" || return 1
   path=$(sweep_seen_path "$state")
   if [ -e "$path" ] || [ -L "$path" ]; then
-    sweep_seen_load "$path" "$state" || return 0
+    sweep_seen_load "$path" "$state" || return 1
   else
     sweep_seen=$'\n'
   fi
@@ -372,7 +372,7 @@ EOF
 
 case "${1:-}" in
   --scan)
-    [ "$#" -eq 2 ] || exit 0
+    [ "$#" -eq 2 ] || exit 1
     sweep_scan "$2"
     exit $?
     ;;

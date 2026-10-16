@@ -3003,21 +3003,22 @@ EOF
           continue
         fi
         publish_dequeue=1
-        sweep_contains=1
         if [ -n "$dequeue_event" ]; then
           sweep_contains=0
           "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --contains "$STATE" "$dequeue_event" \
             || sweep_contains=$?
-          if [ "$sweep_contains" -eq 0 ]; then
-            publish_dequeue=0
-          fi
+          case "$sweep_contains" in
+            0) publish_dequeue=0 ;;
+            1) ;;
+            *) exit 1 ;;
+          esac
         fi
         if [ "$publish_dequeue" -eq 1 ]; then
           fm_wake_append check "$c" "$reason" || exit 1
         fi
         if [ -n "$dequeue_event" ]; then
           fm_pr_poll_dequeue_record "$STATE" "$id" "$url" "$dequeue_event" || exit 1
-          if [ "$publish_dequeue" -eq 1 ] && [ "$sweep_contains" -eq 1 ]; then
+          if [ "$publish_dequeue" -eq 1 ]; then
             "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --record "$STATE" "$dequeue_event" || exit 1
           fi
         fi
@@ -3057,7 +3058,11 @@ EOF
         sweep_contains=0
         "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --contains "$STATE" "$sweep_event" \
           || sweep_contains=$?
-        [ "$sweep_contains" -eq 1 ] || continue
+        case "$sweep_contains" in
+          0) continue ;;
+          1) ;;
+          *) FM_CHECK_STATUS=$sweep_contains; continue ;;
+        esac
         sweep_reason="check: $SCRIPT_DIR/fm-pr-queue-sweep.sh: $sweep_visible"
         fm_wake_append check "$sweep_event" "$sweep_reason" || exit 1
         "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --record "$STATE" "$sweep_event" || exit 1

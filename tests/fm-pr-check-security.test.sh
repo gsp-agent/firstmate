@@ -173,6 +173,9 @@ case "${1:-} ${2:-}" in
         [ "$request_host" = github.com ] || exit 1
         [ -n "$jq_filter" ] || exit 1
         [ "$request_owner/$request_repo" != "${FM_TEST_GH_SWEEP_FAIL_REPO:-}" ] || exit 1
+        if [ -n "${FM_TEST_GH_SWEEP_CORRUPT_SEEN:-}" ]; then
+          printf 'malformed\n' > "$FM_TEST_GH_SWEEP_CORRUPT_SEEN" || exit 1
+        fi
         if [ "${FM_TEST_GH_SWEEP_MUTATING:-0}" = 1 ]; then
           set -o pipefail
           "$FM_TEST_REAL_JQ" --arg query "$request_query" --arg cursor "$cursor" '
@@ -4259,7 +4262,7 @@ write_queue_sweep_pages() {
 }
 
 test_open_queue_removals_wake_once_across_a_watched_repo() {
-  local dir state url spec number reason target
+  local dir state url spec number reason target rc
   url=https://github.com/groovejones/groove-sight-platform/pull/4308
   dir=$(make_case open-queue-removals)
   state="$dir/home/state"
@@ -4350,13 +4353,19 @@ test_open_queue_removals_wake_once_across_a_watched_repo() {
   target="$dir/seen-target"
   printf 'kept\n' > "$target"
   ln -s "$target" "$state/merge-queue-sweep.seen"
+  rc=0
   FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
     FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=evt4308 \
     FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
     run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/link.out" 2> "$dir/link.err" \
-    || fail "symlink seen record failed the watcher: $(cat "$dir/link.err")"
+    || rc=$?
+  [ "$rc" -eq 1 ] || fail "an armed poll ignored its deduplication lookup error (rc=$rc): $(cat "$dir/link.err")"
   ! grep -F 'fm-pr-queue-sweep.sh: dequeued ' "$dir/link.out" >/dev/null \
     || fail "an unsafe seen record still swept: $(cat "$dir/link.out")"
+  [ ! -e "$state/task-a.pr-poll-queue-dropped" ] \
+    || fail "an armed poll recorded an unverified removal"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "a deduplication lookup error stopped the armed watch"
   [ "$(cat "$target")" = kept ] || fail "an unsafe seen record was followed"
   [ -L "$state/merge-queue-sweep.seen" ] || fail "an unsafe seen record was replaced"
 
@@ -4842,6 +4851,74 @@ SH
   pass "a failed sweep keeps the repository until the next sweep reports its removal"
 }
 
+test_seen_record_errors_keep_repository_discovery() {
+  local dir state seen fault corrupt_seen rc invalid_state
+  for fault in unreadable malformed unsafe lookup; do
+    dir=$(make_case "seen-record-$fault")
+    state="$dir/home/state"
+    seen="$state/merge-queue-sweep.seen"
+    write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    write_slow_sweep_page "$dir" page1 2 false ""
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    printf 'fm-merge-queue-sweep-v1\n' > "$seen"
+    chmod 0600 "$seen"
+    corrupt_seen=
+    case "$fault" in
+      unreadable) chmod 0000 "$seen" ;;
+      malformed) printf 'fm-merge-queue-sweep-v1\ninvalid event\n' > "$seen" ;;
+      unsafe) chmod 0644 "$seen" ;;
+      lookup) corrupt_seen=$seen ;;
+    esac
+    if [ "$fault" != lookup ]; then
+      rc=0
+      FM_TEST_GH_LOG="$dir/scan-gh.log" PATH="$dir/fakebin:$BASE_PATH" \
+        "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$state" \
+        > "$dir/scan.out" 2> "$dir/scan.err" || rc=$?
+      [ "$rc" -eq 1 ] || fail "$fault seen record did not fail the scan (rc=$rc)"
+      [ ! -s "$dir/scan.out" ] || fail "$fault seen record produced scan output"
+    fi
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      FM_TEST_GH_SWEEP_CORRUPT_SEEN="$corrupt_seen" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/fail.out" 2> "$dir/fail.err" \
+      || fail "$fault seen record interrupted merge delivery: $(cat "$dir/fail.err")"
+    [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+      || fail "$fault seen record retired the repository before publication"
+    [ ! -e "$state/task-a.check.sh" ] || fail "$fault seen record left a merged poll runnable"
+    ! grep -F 'dequeued https://github.com/o/r/pull/2' "$dir/fail.out" >/dev/null \
+      || fail "$fault seen record published an unverified removal"
+    rc=0
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt2 || rc=$?
+    [ "$rc" -eq 2 ] || fail "$fault seen record lost its lookup failure (rc=$rc)"
+    ack_watcher_cycle "$state" || fail "$fault seen record merge acknowledgement failed"
+    chmod 0600 "$seen"
+    printf 'fm-merge-queue-sweep-v1\n' > "$seen"
+    FM_TEST_GH_LOG="$dir/retry-gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/retry.out" 2> "$dir/retry.err" \
+      || fail "$fault seen record recovery failed: $(cat "$dir/retry.err")"
+    assert_poll_absent "$state" task-a
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "$fault seen record recovery drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "$fault seen record lost the removal on retry: $(cat "$dir/drain.out")"
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt2 \
+      || fail "$fault seen record recovery did not record the delivered removal"
+  done
+  ln -s "$state" "$dir/state-link"
+  for invalid_state in "$dir/missing-state" "$dir/state-link"; do
+    rc=0
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$invalid_state" \
+      > "$dir/invalid.out" 2> "$dir/invalid.err" || rc=$?
+    [ "$rc" -eq 1 ] || fail "an invalid state directory was a successful scan (rc=$rc)"
+    [ ! -s "$dir/invalid.out" ] || fail "an invalid state directory produced scan output"
+  done
+  rc=0
+  "$ROOT/bin/fm-pr-queue-sweep.sh" --scan > "$dir/invalid.out" 2> "$dir/invalid.err" || rc=$?
+  [ "$rc" -eq 1 ] || fail "a scan without its state directory succeeded (rc=$rc)"
+  pass "seen record errors preserve repository discovery until a removal is delivered"
+}
+
 test_completed_repo_removals_survive_another_repo_failure() {
   local dir state failing success before
   for failing in task-a task-b; do
@@ -5171,6 +5248,7 @@ test_progressing_sweep_survives_rearm_past_stall_bound
 test_merged_only_watch_still_sweeps_its_repo
 test_recovered_merged_watch_still_sweeps_its_repo
 test_failed_sweep_keeps_the_repository_for_the_next_cycle
+test_seen_record_errors_keep_repository_discovery
 test_completed_repo_removals_survive_another_repo_failure
 test_unobserved_merge_preserves_repository_before_cleanup_or_rearm
 test_retirement_survives_device_renumbering
