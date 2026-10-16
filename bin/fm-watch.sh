@@ -3003,6 +3003,12 @@ EOF
           check_sweep_output="${check_sweep_output}${reason}"$'\n'
           continue
         fi
+        if [ "$is_pr_poll" -eq 1 ] && [ "$out" = closed ]; then
+          # Same retirement receipt as a merge. No merge outcome is reported.
+          retire_merged_pr_poll "$id"
+          pr_poll_control_release || exit 1
+          continue
+        fi
         publish_dequeue=1
         if [ -n "$dequeue_event" ]; then
           sweep_contains=0

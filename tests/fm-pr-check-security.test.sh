@@ -313,11 +313,22 @@ case "${1:-} ${2:-}" in
         exit $?
         ;;
     esac
-    printf '%s\n' \
-      "state=${FM_TEST_GH_GRAPHQL_STATE:-MERGED}" \
-      "merged=${FM_TEST_GH_GRAPHQL_MERGED:-true}" \
-      "queued=${FM_TEST_GH_GRAPHQL_QUEUED:-false}" \
-      'base=main'
+    # The merge outcome query asks for the queue and the base. The teardown
+    # record query asks for state and merged only, and rejects any extra line.
+    case " $* " in
+      *isInMergeQueue*|*baseRefName*)
+        printf '%s\n' \
+          "state=${FM_TEST_GH_GRAPHQL_STATE:-MERGED}" \
+          "merged=${FM_TEST_GH_GRAPHQL_MERGED:-true}" \
+          "queued=${FM_TEST_GH_GRAPHQL_QUEUED:-false}" \
+          'base=main'
+        ;;
+      *)
+        printf '%s\n' \
+          "state=${FM_TEST_GH_GRAPHQL_STATE:-MERGED}" \
+          "merged=${FM_TEST_GH_GRAPHQL_MERGED:-true}"
+        ;;
+    esac
     exit 0
     ;;
   "pr view")
@@ -1156,7 +1167,9 @@ test_static_poll_contract() {
   dir=$(make_case poll-contract)
   make_poll_fixture "$dir"
 
-  for state in OPEN CLOSED EMPTY MALFORMED; do
+  out=$(FM_TEST_GH_STATE=CLOSED run_poll "$dir")
+  [ "$out" = closed ] || fail "static poll did not emit exactly one closed line"
+  for state in OPEN EMPTY MALFORMED; do
     case "$state" in
       EMPTY) value= ;;
       MALFORMED) value='not-a-state' ;;
@@ -1703,7 +1716,7 @@ SH
   before=$(poll_artifact_snapshot "$dir/home/state" task-a)
   set +e
   FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$fakebin:$BASE_PATH" \
-    "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err"
+    "$TEARDOWN" task-a > "$dir/teardown.out" 2> "$dir/teardown.err"
   rc=$?
   set -e
   [ "$rc" -ne 0 ] || fail "teardown bypassed a pending repository sweep"
@@ -2992,15 +3005,12 @@ test_external_merge_transition_retires_only_terminal_poll() {
   add_stop_custom_check "$dir"
   before=$(poll_artifact_snapshot "$state" task-a)
 
-  for label in open-green open-red closed-unmerged forge-error malformed; do
+  for label in open-green open-red forge-error malformed; do
     rm -f "$state/.last-check"
     set +e
     case "$label" in
       open-green|open-red)
         FM_TEST_GH_STATE=OPEN run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/$label.out" 2> "$dir/$label.err"
-        ;;
-      closed-unmerged)
-        FM_TEST_GH_STATE=CLOSED run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/$label.out" 2> "$dir/$label.err"
         ;;
       forge-error)
         FM_TEST_GH_FAIL=1 run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/$label.out" 2> "$dir/$label.err"
@@ -3025,7 +3035,7 @@ test_external_merge_transition_retires_only_terminal_poll() {
   [ "$rc" -eq 0 ] || fail "external merged transition failed: $(cat "$dir/merged.err")"
   case "$(cat "$dir/merged.out")" in check:*task-a.check.sh:*merged) ;; *) fail "external merge did not preserve its notification" ;; esac
   assert_poll_absent "$state" task-a
-  pass "open/red, closed-unmerged, malformed, and forge errors remain armed until an exact merged transition"
+  pass "open/red, malformed, and forge errors remain armed until an exact merged transition"
 }
 
 test_retirement_refuses_replacement_and_nonterminal_results() {
@@ -4984,7 +4994,7 @@ test_failed_sweep_keeps_the_repository_for_the_next_cycle() {
   before=$(poll_artifact_snapshot "$state" task-a)
   set +e
   FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
-    "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err"
+    "$TEARDOWN" task-a > "$dir/teardown.out" 2> "$dir/teardown.err"
   rc=$?
   set -e
   [ "$rc" -ne 0 ] || fail "teardown discarded the repository after a failed sweep"
@@ -5168,7 +5178,7 @@ test_unobserved_merge_preserves_repository_before_cleanup_or_rearm() {
     set +e
     if [ "$action" = cleanup ]; then
       FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
-        FM_TEST_GH_STATE=MERGED "$TEARDOWN" task-a --force \
+        FM_TEST_GH_STATE=MERGED "$TEARDOWN" task-a \
         > "$dir/refused.out" 2> "$dir/refused.err"
     else
       FM_TEST_GH_STATE=MERGED run_check_entry "$dir" task-a https://github.com/other/repo/pull/3 \
@@ -5269,7 +5279,7 @@ test_retirement_survives_device_renumbering() {
         || fail "rearm rejected the renumbered receipt: $(cat "$dir/rearm.err")"
       set +e
       FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
-        "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err"
+        "$TEARDOWN" task-a > "$dir/teardown.out" 2> "$dir/teardown.err"
       rc=$?
       set -e
       [ "$rc" -ne 0 ] || fail "renumbered pending retirement allowed cleanup"
@@ -5454,6 +5464,93 @@ SH
   pass "a queued sighting keeps discovery until the next sweep sees the removal"
 }
 
+prepare_closed_teardown_case() {
+  local dir=$1 state
+  state="$dir/home/state"
+  fm_write_meta "$state/task-a.meta" \
+    'window=firstmate:fm-task-a' \
+    'endpoint_task_id=task-a' \
+    "worktree=$dir/missing-worktree" \
+    "project=$dir/project" \
+    'kind=ship' \
+    'mode=local-only' \
+    'pr=https://github.com/o/r/pull/18'
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/18
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  cat > "$dir/fakebin/tmux" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+  chmod +x "$dir/fakebin/tmux"
+  touch "$state/.last-watcher-beat"
+}
+
+test_closed_pull_request_teardown_follows_an_empty_sweep() {
+  local dir state
+  dir=$(make_case closed-unmerged-empty-sweep)
+  state="$dir/home/state"
+  prepare_closed_teardown_case "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=CLOSED \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "closed pull request watcher failed: $(cat "$dir/watch.err")"
+  ! grep -F ': merged' "$dir/watch.out" >/dev/null \
+    || fail "a closed pull request was reported as merged: $(cat "$dir/watch.out")"
+  assert_poll_absent "$state" task-a
+  ack_watcher_cycle "$state" || fail "closed pull request acknowledgement failed"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    FM_TEST_GH_GRAPHQL_STATE=CLOSED FM_TEST_GH_GRAPHQL_MERGED=false \
+    "$TEARDOWN" task-a > "$dir/teardown.out" 2> "$dir/teardown.err" \
+    || fail "normal teardown failed after the empty sweep: $(cat "$dir/teardown.err")"
+  [ ! -e "$state/task-a.meta" ] || fail "normal teardown left task metadata"
+  pass "a closed unmerged pull request is retired by an empty sweep and normal teardown succeeds"
+}
+
+test_force_discards_closed_watch_with_or_without_a_sweep() {
+  local dir state rc
+  dir=$(make_case closed-unmerged-force-without-sweep)
+  state="$dir/home/state"
+  prepare_closed_teardown_case "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=CLOSED FM_TEST_GH_SWEEP_FAIL=1 \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "closed pull request with a failed sweep exited: $(cat "$dir/watch.err")"
+  [ ! -e "$state/task-a.check.sh" ] || fail "a closed pull request left its watch polling"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+    || fail "a failed sweep retired the closed pull request's repository"
+  ack_watcher_cycle "$state" || fail "failed-sweep close acknowledgement failed"
+  set +e
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    FM_TEST_GH_GRAPHQL_STATE=CLOSED FM_TEST_GH_GRAPHQL_MERGED=false \
+    "$TEARDOWN" task-a > "$dir/refused.out" 2> "$dir/refused.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "normal teardown skipped the pending sweep"
+  grep -F 'REFUSED: pending repository merge-queue sweep; preserving task state.' "$dir/refused.err" >/dev/null \
+    || fail "normal teardown refused for another reason: $(cat "$dir/refused.err")"
+  [ -f "$state/task-a.pr-poll" ] || fail "refused teardown removed repository discovery"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    FM_TEST_GH_GRAPHQL_STATE=CLOSED FM_TEST_GH_GRAPHQL_MERGED=false \
+    "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
+    || fail "--force failed without a sweep: $(cat "$dir/teardown.err")"
+  [ ! -e "$state/task-a.pr-poll" ] || fail "--force left the sidecar"
+  [ ! -e "$state/task-a.meta" ] || fail "--force left task metadata"
+
+  dir=$(make_case closed-unmerged-force-with-sweep)
+  state="$dir/home/state"
+  prepare_closed_teardown_case "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=CLOSED \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "closed pull request sweep exited: $(cat "$dir/watch.err")"
+  ack_watcher_cycle "$state" || fail "swept close acknowledgement failed"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    FM_TEST_GH_GRAPHQL_STATE=CLOSED FM_TEST_GH_GRAPHQL_MERGED=false \
+    "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
+    || fail "--force failed after an empty sweep: $(cat "$dir/teardown.err")"
+  [ ! -e "$state/task-a.pr-poll" ] || fail "--force left the sidecar after the sweep"
+  [ ! -e "$state/task-a.meta" ] || fail "--force left task metadata after the sweep"
+  pass "--force discards a closed watch with or without a completed sweep"
+}
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -5528,3 +5625,5 @@ test_bootstrap_leaves_unauthenticated_checks
 test_custom_snapshot_cleanup_on_signal
 test_returned_custom_check_descendants_are_drained
 test_teardown_removes_poll_artifacts
+test_closed_pull_request_teardown_follows_an_empty_sweep
+test_force_discards_closed_watch_with_or_without_a_sweep

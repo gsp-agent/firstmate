@@ -51,7 +51,9 @@
 # is still open, or when its forge state cannot be read, including when the
 # copy is already gone and when the slot was reassigned to another task. A
 # merged or closed request still proceeds, and --force remains the explicit
-# discard. Work has also landed, for a normal ship task
+# discard. --force also proceeds past a pending repository merge-queue sweep.
+# When that watch was the repository's last, discovery stops until the next
+# armed pull request there. Work has also landed, for a normal ship task
 # whose commits are not so reachable, when its PR is merged and
 # GitHub reports a PR head that contains the current local work, or its content is
 # already present in the up-to-date default branch. This recognizes the common
@@ -1489,6 +1491,8 @@ validate_pr_poll_cleanup() {
   case "$retirement_rc" in
     0) ;;
     2)
+      # --force is the explicit discard of this task, including its last watch.
+      [ "$FORCE" = "--force" ] && return 0
       echo "REFUSED: pending repository merge-queue sweep; preserving task state." >&2
       return 1
       ;;

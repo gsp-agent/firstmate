@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Static watcher program for a validated pull request, merge request, or Gerrit
 # change poll sidecar.
-# It emits exactly one merged line for a merged change. An unmerged GitHub
-# pull request outside the merge queue emits
+# It emits exactly one merged line for a merged change.
+# A closed unmerged GitHub pull request emits exactly one closed line.
+# An open GitHub pull request outside the merge queue emits
 # a `dequeued <url> reason=<escaped-text> event=<id>` line for its latest
 # unreported removal. The reason is GitHub's text with JSON string escaping
 # and no surrounding quotes. Every other reading, including every error,
@@ -166,6 +167,7 @@ EOF
   GH_POLL_QUEUED=$queued
   GH_POLL_REASON=$reason
   GH_POLL_EVENT=$event
+  GH_POLL_STATE=$state
 }
 
 github_poll() {
@@ -173,6 +175,10 @@ github_poll() {
   github_read_poll || return 0
   if [ "$GH_POLL_MERGED" = true ]; then
     printf '%s\n' merged
+    return 0
+  fi
+  if [ "$GH_POLL_STATE" = CLOSED ]; then
+    printf '%s\n' closed
     return 0
   fi
   if [ "$GH_POLL_QUEUED" = true ]; then
