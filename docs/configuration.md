@@ -1245,8 +1245,8 @@ The combination `docs-only` and `ep-opus` is refused so the bead can be relabele
 
 ### Cursor launch controls
 
-`cursor_fallback` and `pstack_version` configure [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh), whose header owns spending-file freshness, plugin compatibility, usage-limit markers, and daily launch accounting.
-An explicit Cursor ship or scout selection can fall back to Grok before launch; the reason is printed and recorded with the task.
+`cursor_fallback` and `pstack_version` configure [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh), whose header owns fallback selection, spending-file freshness, plugin compatibility, usage-limit markers, and daily launch accounting.
+An explicit Cursor ship or scout selection can switch harnesses before launch; the reason is printed and recorded with the task.
 Cursor launches that proceed invoke [`fm-cursor-assert.sh`](../bin/fm-cursor-assert.sh), whose header owns the per-user Cursor settings and pstack role rules reasserted on each launch.
 The [Cursor adapter reference](../.agents/skills/harness-adapters/references/harness/cursor.md) owns harness-specific operating guidance.
 
