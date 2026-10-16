@@ -151,6 +151,7 @@ case "${1:-} ${2:-}" in
         request_host=github.com
         request_owner=
         request_repo=
+        request_query=
         cursor=null
         jq_filter=
         while [ "$#" -gt 0 ]; do
@@ -162,6 +163,7 @@ case "${1:-} ${2:-}" in
               case "${1-}" in
                 owner=*) request_owner=${1#owner=} ;;
                 repo=*) request_repo=${1#repo=} ;;
+                query=*) request_query=${1#query=} ;;
                 cursor=*) cursor=${1#cursor=} ;;
               esac
               ;;
@@ -171,6 +173,31 @@ case "${1:-} ${2:-}" in
         [ "$request_host" = github.com ] || exit 1
         [ -n "$jq_filter" ] || exit 1
         [ "$request_owner/$request_repo" != "${FM_TEST_GH_SWEEP_FAIL_REPO:-}" ] || exit 1
+        if [ "${FM_TEST_GH_SWEEP_MUTATING:-0}" = 1 ]; then
+          set -o pipefail
+          "$FM_TEST_REAL_JQ" --arg query "$request_query" --arg cursor "$cursor" '
+            ($query | capture("orderBy\\s*:\\s*\\{(?<body>[^}]+)\\}").body) as $order |
+            ($order | capture("field\\s*:\\s*(?<field>[A-Z_]+)").field) as $field |
+            ($order | capture("direction\\s*:\\s*(?<direction>ASC|DESC)").direction) as $direction |
+            ($query | capture("first\\s*:\\s*(?<count>[0-9]+)").count | tonumber) as $count |
+            ({CREATED_AT:"createdAt", UPDATED_AT:"updatedAt"}[$field] // error("unsupported order")) as $key |
+            map(if $cursor != "null" and .number == 2 then
+              .updatedAt = 1000 | .isInMergeQueue = false |
+              .timelineItems.nodes = [{__typename:"RemovedFromMergeQueueEvent",id:"evt2",reason:"failed_checks"}]
+            else . end) |
+            sort_by(.[$key]) | (if $direction == "DESC" then reverse else . end) |
+            . as $pulls |
+            (if $cursor == "null" then 0 else
+              (map(.number) | index($cursor | ltrimstr("cursor") | tonumber)) + 1
+            end) as $start |
+            .[$start:($start + $count)] as $page |
+            {data:{repository:{pullRequests:{nodes:$page,pageInfo:{
+              hasNextPage:($start + ($page | length) < ($pulls | length)),
+              endCursor:(if ($page | length) > 0 then "cursor"+($page[-1].number | tostring) else null end)
+            }}}}}
+          ' "$FM_TEST_GH_SWEEP_DIR/pulls.json" | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+          exit $?
+        fi
         if [ "$cursor" = page6 ] && [ -n "${FM_TEST_GH_SWEEP_REARM:-}" ]; then
           "$FM_TEST_GH_SWEEP_REARM" > "$FM_TEST_GH_SWEEP_DIR/rearm.out" \
             2> "$FM_TEST_GH_SWEEP_DIR/rearm.err" || exit 1
@@ -5056,6 +5083,42 @@ test_retirement_device_recovery_keeps_content_and_inode_checks() {
   pass "retirement device recovery still refuses replaced inodes and altered content"
 }
 
+test_sweep_keeps_later_removal_in_place_after_an_update() {
+  local dir state armed_state
+  for armed_state in OPEN MERGED; do
+    dir=$(make_case "sweep-updated-later-pull-$armed_state")
+    state="$dir/home/state"
+    write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    mkdir -p "$dir/sweep"
+    "$REAL_JQ" -n '[range(2;103) | {
+      number:., createdAt:., updatedAt:., state:"OPEN", merged:false,
+      isInMergeQueue:true, timelineItems:{nodes:[]}
+    }]' > "$dir/sweep/pulls.json"
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE="$armed_state" \
+      FM_TEST_GH_SWEEP_DIR="$dir/sweep" FM_TEST_GH_SWEEP_MUTATING=1 \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "updated later-page sweep failed: $(cat "$dir/watch.err")"
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "updated later-page sweep drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "an update moved the later removal out of the sweep: $(cat "$dir/drain.out")"
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt2 \
+      || fail "the later-page removal was not durably recorded"
+    if [ "$armed_state" = MERGED ]; then
+      assert_poll_absent "$state" task-a
+      [ -z "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" ] \
+        || fail "the completed sweep did not retire the repository's last watch"
+    else
+      fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+        || fail "the updated later-page sweep retired an unmerged watch"
+    fi
+  done
+  pass "a later-page removal remains discoverable after an update, even when the last armed pull request merges"
+}
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -5096,6 +5159,7 @@ test_queue_drop_reason_is_preserved
 test_verified_queue_drop_wakes_once
 test_open_queue_removals_wake_once_across_a_watched_repo
 test_open_queue_sweep_exhausts_pages
+test_sweep_keeps_later_removal_in_place_after_an_update
 test_old_template_watch_polls_after_upgrade
 test_tampered_check_stays_rejected
 test_unshipped_template_hash_is_refused

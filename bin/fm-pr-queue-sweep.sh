@@ -2,7 +2,7 @@
 # Sweep open pull requests in each GitHub repository that has an armed merge watch.
 # A repository is watched when a private pr-poll sidecar names it, or when
 # FM_PR_SWEEP_REPOS names it from a snapshot taken before a merged watch was retired.
-# One pass reads all open pull requests in pages of 100, newest update first.
+# One pass reads all open pull requests in pages of 100, newest creation first.
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
 # A failed or timed-out page fails the scan. Repositories whose pages completed
 # may still print their removals. The watcher keeps its repository snapshot and
@@ -34,7 +34,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 SWEEP_SEEN_VERSION=fm-merge-queue-sweep-v1
 # shellcheck disable=SC2016
-SWEEP_QUERY='query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:UPDATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}'
+SWEEP_QUERY='query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}'
 # shellcheck disable=SC2016
 SWEEP_JQ='(.data.repository.pullRequests) as $p | if $p == null or ($p.pageInfo | type) != "object" then error("no page") else (($p.nodes // [])[] | . as $pr | (($pr.timelineItems.nodes // []) | last // {}) as $e | (["pr", ($pr.number | tostring), ($pr.state // ""), ($pr.merged | tostring), ($pr.isInMergeQueue | tostring), (if $e.__typename == "RemovedFromMergeQueueEvent" then "removed" elif $e.__typename == "AddedToMergeQueueEvent" then "added" else "" end), (if (($e.id // "") | test("^[A-Za-z0-9_+/=-]{0,256}$")) then ($e.id // "") else "" end)] | @tsv) + "\t" + (($e.reason // "") | tojson | .[1:-1])), (["page", (if $p.pageInfo.hasNextPage == true then "true" else "false" end), ($p.pageInfo.endCursor // "")] | @tsv) end'
 
