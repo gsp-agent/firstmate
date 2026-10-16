@@ -74,6 +74,7 @@ Repeat and edge cases:
 The optional agent-config router owns classification of technical holds and protection of human endpoints.
 Firstmate reconciles task and origin backend identities with runtime metadata aliases for authority lookup and the task control lock, and uses the canonical backend identity for routing bodies and receipts.
 It checks live backlog state on the watcher's existing periodic pass, whose tracked check subprocess bounds the whole routing sweep; each row also has a deadline so a blocked row preserves its pending work without starving healthy later rows.
+The sweep saves its position before each row starts and the next pass resumes after that attempt, wrapping in task-id order even when rows retire or new rows appear.
 The routing sweep defaults to 90 seconds under the existing watcher check runner, and an explicit `FM_CHECK_TIMEOUT` still supplies that runner's deadline.
 Pending per-home routing bodies keep that supervision required even with no other work; the watcher retires answered, closed, deferred or replaced entries against live state.
 An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new stamp separates the previous body from the current header before the backend hold, so a failed header publication preserves historical words and permits retry without reusing historical authority.
