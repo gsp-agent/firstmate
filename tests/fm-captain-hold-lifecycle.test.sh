@@ -4809,6 +4809,70 @@ run_domain() {
     FM_CAPTAIN_HOLD_NOW="$now" run_captain "$domain_home" "$@"
 }
 
+domain_supervision_needed() (
+  . "$ROOT/bin/fm-supervision-lib.sh"
+  fm_supervision_needed "$1/state"
+)
+
+run_domain_watcher() {
+  local domain_home=$1
+  fm_run_timed 60 env PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" FM_STATE_OVERRIDE="$domain_home/state" \
+    FM_DATA_OVERRIDE="$domain_home/data" FM_CONFIG_OVERRIDE="$domain_home/config" FM_BACKEND=tmux \
+    FM_HOLD_DOMAIN_ROUTER="${FM_TEST_HOLD_DOMAIN_ROUTER:-$domain_home/router.py}" \
+    HOLD_DOMAIN_HERDR="$domain_home/fakebin/herdr" HOLD_DOMAIN_TEST_LOG="$domain_home/owner.log" \
+    FM_CAPTAIN_HOLD_NOW=2026-10-14T02:01:00Z FM_CHECK_INTERVAL=0 FM_POLL=1 FM_SIGNAL_GRACE=1 \
+    FM_HOME_SUMMARY_INTERVAL=999999 FM_SECONDMATE_LIVENESS_SECS=999999 \
+    bash "$ROOT/bin/fm-watch.sh"
+}
+
+test_domain_pending_holds_keep_supervision_after_task_retirement() {
+  local domain_home show mode
+  for mode in standalone retired; do
+    domain_home=$(make_domain_home "domain-continuity-$mode")
+    if domain_supervision_needed "$domain_home"; then
+      fail 'empty home unexpectedly needs supervision'
+    fi
+    if [ "$mode" = retired ]; then
+      write_origin_meta "$domain_home" unrelated
+      domain_supervision_needed "$domain_home" || fail 'in-flight task did not require supervision'
+    fi
+    run_domain "$domain_home" 2026-10-14T02:00:00Z hold continuity --title 'Pending owner decision' \
+      --decision-owner ep-firstmate --timeout-seconds 60 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+      || fail 'could not hold continuity fixture'
+    if [ "$mode" = retired ]; then
+      mv "$domain_home/state/unrelated.meta" "$domain_home/unrelated.retired-meta"
+    fi
+    domain_supervision_needed "$domain_home" || fail "$mode pending hold left supervision idle"
+    mkdir -p "$domain_home/guard-root/bin"
+    cp "$ROOT/AGENTS.md" "$domain_home/guard-root/AGENTS.md"
+    printf 'guard-fixture\n' > "$domain_home/guard-root/.fm-secondmate-home"
+    if PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" \
+      FM_ROOT_OVERRIDE="$domain_home/guard-root" \
+      FM_STATE_OVERRIDE="$domain_home/state" FM_CONFIG_OVERRIDE="$domain_home/config" \
+      bash "$ROOT/bin/fm-turnend-guard.sh" <<< '{}' > "$domain_home/guard.out" 2>&1; then
+      fail "$mode pending hold allowed an unsupervised stop"
+    fi
+    assert_grep '1 hold route(s) pending' "$domain_home/guard.out" 'stop guard lost the pending routing reason'
+    PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" FM_GUARD_READ_ONLY=1 \
+      FM_ROOT_OVERRIDE="$domain_home/guard-root" \
+      FM_STATE_OVERRIDE="$domain_home/state" FM_CONFIG_OVERRIDE="$domain_home/config" \
+      bash "$ROOT/bin/fm-guard.sh" > "$domain_home/pull-guard.out" 2>&1 || fail 'pull guard failed'
+    assert_grep '1 hold route(s) pending' "$domain_home/pull-guard.out" 'pull guard lost the pending routing reason'
+    printf 'done: continuity watcher stop\n' > "$domain_home/state/sentinel.status"
+    run_domain_watcher "$domain_home" > "$domain_home/watch.out" 2>&1 \
+      || fail "continuity watcher failed: $(cat "$domain_home/watch.out")"
+    show=$(tasks_in "$domain_home" show continuity --full)
+    assert_contains "$show" 'held: no' "$mode pending hold did not release"
+    assert_contains "$show" 'state: queued' 'routing marked work complete'
+    [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'continuity retry duplicated the owner prompt'
+    if domain_supervision_needed "$domain_home"; then
+      fail 'finished routing kept an otherwise idle home supervised'
+    fi
+  done
+  pass 'standalone pending holds keep supervision and route after the last unrelated task retires'
+}
+
 test_domain_holds_route_after_timeout_and_record_evidence() {
   local domain_home show id
   domain_home=$(make_domain_home domain-replay)
@@ -4880,6 +4944,9 @@ ASKS
     assert_contains "$show" 'held: yes' 'reserved hold was released'
     assert_not_contains "$show" 'Resolution mode:' 'reserved hold gained a resolution'
   done
+  if domain_supervision_needed "$domain_home"; then
+    fail 'reserved or human-owned asks left pending routing work'
+  fi
   run_domain "$domain_home" 2026-10-14T02:00:00Z hold answered --title 'Answered before timeout' \
     --decision-owner ep-firstmate --timeout-seconds 60 \
     --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold answered fixture'
@@ -4887,6 +4954,14 @@ ASKS
   run_captain "$domain_home" answer answered --decision-file "$domain_home/answer.txt" --release >/dev/null || fail 'answer failed'
   run_domain "$domain_home" 2026-10-14T02:10:00Z route-due || fail 'answered sweep failed'
   assert_absent "$domain_home/owner.log" 'stale pending body routed an answered hold'
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold closed --title 'Closed outside the hold wrapper' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold closed fixture'
+  tasks_in "$domain_home" done closed >/dev/null || fail 'could not close pending fixture'
+  run_domain "$domain_home" 2026-10-14T02:10:00Z route-due || fail 'closed spool sweep failed'
+  if domain_supervision_needed "$domain_home"; then
+    fail 'answered or closed stale spool kept supervision active'
+  fi
   run_domain "$domain_home" 2026-10-14T02:00:00Z hold changed --title 'Changed live reason' \
     --decision-owner ep-firstmate --timeout-seconds 60 \
     --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold drift fixture'
@@ -4897,13 +4972,24 @@ ASKS
   show=$(tasks_in "$domain_home" show changed --full)
   assert_contains "$show" 'held: yes' 'divergent live reason released a hold'
   assert_grep 'divergent hold and routing reasons' "$domain_home/drift.out" 'reason mismatch lost its diagnostic'
+  domain_supervision_needed "$domain_home" || fail 'reason drift discarded pending routing work'
+  run_domain "$domain_home" 2026-10-14T02:10:00Z hold changed \
+    --reason 'Should I deploy to production?' >/dev/null || fail 'could not replace drifted hold'
+  if domain_supervision_needed "$domain_home"; then
+    fail 'a reserved replacement kept the technical routing entry'
+  fi
   run_domain "$domain_home" 2026-10-14T02:00:00Z hold deferred --title 'Deferred technical call' \
-    --decision-owner ep-firstmate --timeout-seconds 60 --until 2099-01-01 \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
     --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold deferred fixture'
+  run_domain "$domain_home" 2026-10-14T02:00:01Z hold deferred --until 2099-01-01 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not defer pending routing'
   run_domain "$domain_home" 2026-10-14T02:10:00Z route-due deferred || fail 'deferred route check failed'
   show=$(tasks_in "$domain_home" show deferred --full)
   assert_contains "$show" 'held: yes' 'timeout overrode explicit deferral'
   assert_absent "$domain_home/owner.log" 'drift or deferral prompted an owner'
+  if domain_supervision_needed "$domain_home"; then
+    fail 'explicit deferral kept pending technical routing active'
+  fi
   pass 'money, credentials, people, client words, production, accounts, taste and human endpoints stay reserved'
 }
 
@@ -4913,6 +4999,7 @@ test_domain_retries_failed_delivery_and_release() {
   run_domain "$domain_home" 2026-10-14T02:00:00Z hold retry --title 'Retry route' \
     --decision-owner ep-firstmate --timeout-seconds 60 \
     --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold retry'
+  mv "$domain_home/state/hold-domain/pending/retry.body" "$domain_home/prior-pending.body"
   touch "$domain_home/owner.log.fail"
   if run_domain "$domain_home" 2026-10-14T02:01:00Z route-due > "$domain_home/failed.out" 2>&1; then
     fail 'failed delivery was reported successful'
@@ -4920,6 +5007,7 @@ test_domain_retries_failed_delivery_and_release() {
   show=$(tasks_in "$domain_home" show retry --full)
   assert_contains "$show" 'held: yes' 'failed delivery released the hold'
   assert_not_contains "$show" 'Resolution mode:' 'failed delivery gained a resolution'
+  domain_supervision_needed "$domain_home" || fail 'failed delivery stopped routing supervision'
   mv "$domain_home/owner.log.fail" "$domain_home/delivery-recovered"
   cat > "$domain_home/fakebin/tasks-axi" <<'SH'
 #!/usr/bin/env bash
@@ -4933,12 +5021,16 @@ SH
   show=$(tasks_in "$domain_home" show retry --full)
   assert_contains "$show" 'held: yes' 'release failure lost its hold'
   assert_contains "$show" 'Resolution mode: agent-routed' 'release failure lost its receipt'
+  domain_supervision_needed "$domain_home" || fail 'failed release stopped routing supervision'
   mv "$domain_home/fakebin/tasks-axi" "$domain_home/tasks-axi-failure"
   run_domain "$domain_home" 2026-10-14T02:03:00Z route-due || fail 'release retry failed'
   show=$(tasks_in "$domain_home" show retry --full)
   assert_contains "$show" 'held: no' 'release retry did not converge'
   [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'release retry prompted the owner twice'
   [ "$(printf '%s' "$show" | grep -o 'Resolution mode: agent-routed' | wc -l | tr -d ' ')" = 1 ] || fail 'release retry duplicated the record'
+  if domain_supervision_needed "$domain_home"; then
+    fail 'successful release retry kept pending routing work'
+  fi
   pass 'failed delivery preserves the hold and release retries consume the existing receipt once'
 }
 
@@ -4949,13 +5041,7 @@ test_watcher_routes_due_holds_before_surfacing_signals() {
     --decision-owner ep-firstmate --timeout-seconds 60 \
     --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold watcher fixture'
   printf 'done: synthetic watcher stop\n' > "$domain_home/state/sentinel.status"
-  fm_run_timed 30 env PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" FM_STATE_OVERRIDE="$domain_home/state" \
-    FM_DATA_OVERRIDE="$domain_home/data" FM_CONFIG_OVERRIDE="$domain_home/config" FM_BACKEND=tmux \
-    FM_HOLD_DOMAIN_ROUTER="${FM_TEST_HOLD_DOMAIN_ROUTER:-$domain_home/router.py}" \
-    HOLD_DOMAIN_HERDR="$domain_home/fakebin/herdr" HOLD_DOMAIN_TEST_LOG="$domain_home/owner.log" \
-    FM_CAPTAIN_HOLD_NOW=2026-10-14T02:01:00Z FM_CHECK_INTERVAL=1 FM_POLL=1 FM_SIGNAL_GRACE=1 \
-    FM_HOME_SUMMARY_INTERVAL=999999 FM_SECONDMATE_LIVENESS_SECS=999999 \
-    bash "$ROOT/bin/fm-watch.sh" > "$domain_home/watch.out" 2>&1 || fail "watcher failed: $(cat "$domain_home/watch.out")"
+  run_domain_watcher "$domain_home" > "$domain_home/watch.out" 2>&1 || fail "watcher failed: $(cat "$domain_home/watch.out")"
   show=$(tasks_in "$domain_home" show watched --full)
   assert_contains "$show" 'held: no' 'periodic watcher pass left the technical hold waiting'
   assert_grep 'agent prompt ep-firstmate Hold watched timed out.' "$domain_home/owner.log" 'watcher never routed the due hold'
@@ -4963,10 +5049,60 @@ test_watcher_routes_due_holds_before_surfacing_signals() {
   pass 'the existing watcher periodic pass routes due holds before normal signal delivery'
 }
 
+test_watcher_routing_failures_do_not_starve_scheduled_checks() (
+  local domain_home mode n
+  . "$ROOT/tests/wake-helpers.sh"
+  for mode in drift delivery release; do
+    domain_home=$(make_domain_home "domain-failed-check-$mode")
+    run_domain "$domain_home" 2026-10-14T02:00:00Z hold failed --title 'Failing route' \
+      --decision-owner ep-firstmate --timeout-seconds 60 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold check fixture'
+    case "$mode" in
+      drift) tasks_in "$domain_home" hold failed --kind captain --reason 'Should I deploy to production?' >/dev/null || fail 'could not drift check fixture' ;;
+      delivery) touch "$domain_home/owner.log.fail" ;;
+      release)
+        cat > "$domain_home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = unhold ]; then exit 1; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+        chmod +x "$domain_home/fakebin/tasks-axi"
+        ;;
+    esac
+    cat > "$domain_home/state/ordinary.check.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'checked\n' >> "$FM_HOME/scheduled.log"
+SH
+    chmod 0700 "$domain_home/state/ordinary.check.sh"
+    FM_HOME="$domain_home" bash "$ROOT/bin/fm-check-register.sh" ordinary >/dev/null || fail 'could not register ordinary check'
+    for n in 1 2; do
+      REAL_TASKS_AXI="$TASKS_AXI_BIN" run_domain_watcher "$domain_home" > "$domain_home/watch-$n.out" 2>&1 \
+        || fail "failed-route watcher exited unexpectedly: $(cat "$domain_home/watch-$n.out")"
+      [ "$(wc -l < "$domain_home/scheduled.log" | tr -d ' ')" = "$n" ] \
+        || fail "$mode routing failure starved an ordinary scheduled check: $(cat "$domain_home/watch-$n.out")"
+      assert_grep 'check: hold-domain routing failed:' "$domain_home/watch-$n.out" 'routing error did not surface after scheduled checks'
+      assert_grep 'hold-domain' "$domain_home/state/.wake-queue" 'routing error was not durable'
+      PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" FM_STATE_OVERRIDE="$domain_home/state" \
+        bash "$ROOT/bin/fm-wake-drain.sh" > "$domain_home/drain-$n.out" 2> "$domain_home/drain-$n.err" \
+        || fail 'could not present the routing error wake'
+      PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" \
+        ack_drain_err "$domain_home/state" "$domain_home/drain-$n.err" > "$domain_home/ack-$n.out" 2>&1 \
+        || fail 'could not acknowledge the routing error wake'
+    done
+    case "$mode" in
+      release) [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'release failure re-prompted the owner' ;;
+      *) assert_absent "$domain_home/owner.log" 'failed route delivered an owner prompt' ;;
+    esac
+  done
+  pass 'persistent reason, delivery and release failures allow scheduled checks before their error wake'
+)
+
+test_domain_pending_holds_keep_supervision_after_task_retirement
 test_domain_holds_route_after_timeout_and_record_evidence
 test_domain_keeps_reserved_human_and_answered_holds
 test_domain_retries_failed_delivery_and_release
 test_watcher_routes_due_holds_before_surfacing_signals
+test_watcher_routing_failures_do_not_starve_scheduled_checks || exit 1
 [ "${FM_TEST_HOLD_DOMAIN_ONLY:-0}" != 1 ] || exit 0
 test_hold_reason_round_trips_awkward_characters
 test_hold_origins_precede_backend_holds
