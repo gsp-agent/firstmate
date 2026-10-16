@@ -76,7 +76,7 @@ Firstmate reconciles task and origin backend identities with runtime metadata al
 It checks live backlog state on the watcher's existing periodic pass, whose tracked check subprocess bounds the whole routing sweep; each row also has a deadline so a blocked row preserves its pending work without starving healthy later rows.
 Repeated passes resume after interrupted attempts so later holds make progress even as rows retire or new rows appear.
 [`bin/fm-watch.sh`](../bin/fm-watch.sh)'s header owns the whole-sweep deadline and failure-notification order.
-Pending per-home routing bodies keep that supervision required even with no other work; the watcher retires answered, closed, deferred or replaced entries against live state.
+Pending per-home routing bodies keep that supervision required even with no other work; deferred entries remain pending without invoking the router before their date, while the watcher retires answered, closed or replaced entries against live state.
 An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new stamp separates the previous body from the current header before the backend hold, so a failed header publication preserves historical words and permits retry without reusing historical authority.
 Confirmed archival retires pending routing, while an unreadable backlog leaves it supervised and reports the read failure.
 A successful prompt transfers responsibility to the owner and releases the hold without completing the task.
@@ -561,6 +561,7 @@ It also checks that money, credentials, people, client words, production, accoun
 An answered hold never routes from its stale pending body.
 A real watcher subprocess proves the existing periodic pass routes before surfacing ordinary status signals.
 Standalone holds and retirement of the last unrelated task preserve supervision until routing finishes.
+Fresh deferred holds and postponements preserve supervision, remain unrouted before their date, and route once through the watcher when due.
 Fault-injected answer, release and reconciliation closures stay protected from immediate and periodic routing, while a new lifecycle preserves historical decisions and still routes.
 Zero-retention archival clears pending routing without treating an unreadable backlog as an absent task.
 Persistent reason drift, transport failures and release failures still allow ordinary scheduled checks to execute before the routing error surfaces.
