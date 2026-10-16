@@ -1,0 +1,7 @@
+$ bin/fm-wake-drain.sh
+
+STDERR:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 0 --recovery-generation 16097.1792125577.2Psj4I
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+
+exit=0

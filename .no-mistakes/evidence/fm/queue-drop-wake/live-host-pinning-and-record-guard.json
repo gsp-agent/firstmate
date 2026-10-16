@@ -1,0 +1,68 @@
+[
+  {
+    "args": [
+      "api",
+      "graphql",
+      "--hostname",
+      "github.com",
+      "-f",
+      "query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}",
+      "-F",
+      "owner=groovejones",
+      "-F",
+      "repo=groove-sight-platform",
+      "-F",
+      "number=4017",
+      "--jq",
+      ".data.repository.pullRequest | ((.timelineItems.nodes // []) | last // {}) as $event | \"state=\" + (.state // \"\"), \"merged=\" + (.merged | tostring), \"queued=\" + (.isInMergeQueue | tostring), \"reason=\" + (($event.reason // \"\") | tojson | .[1:-1]), \"event=\" + (($event.id // \"\") | if test(\"^[A-Za-z0-9_+/=-]{0,256}$\") then . else \"\" end)"
+    ],
+    "rc": 0,
+    "seconds": 0.712,
+    "stdout": "state=OPEN\nmerged=false\nqueued=false\nreason=failed_checks\nevent=RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "api",
+      "graphql",
+      "--hostname",
+      "github.com",
+      "-f",
+      "query=query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:UPDATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}",
+      "-F",
+      "owner=groovejones",
+      "-F",
+      "repo=groove-sight-platform",
+      "-F",
+      "cursor=null",
+      "--jq",
+      "(.data.repository.pullRequests) as $p | if $p == null or ($p.pageInfo | type) != \"object\" then error(\"no page\") else (($p.nodes // [])[] | . as $pr | (($pr.timelineItems.nodes // []) | last // {}) as $e | ([\"pr\", ($pr.number | tostring), ($pr.state // \"\"), ($pr.merged | tostring), ($pr.isInMergeQueue | tostring), (if $e.__typename == \"RemovedFromMergeQueueEvent\" then \"removed\" elif $e.__typename == \"AddedToMergeQueueEvent\" then \"added\" else \"\" end), (if (($e.id // \"\") | test(\"^[A-Za-z0-9_+/=-]{0,256}$\")) then ($e.id // \"\") else \"\" end)] | @tsv) + \"\\t\" + (($e.reason // \"\") | tojson | .[1:-1])), ([\"page\", (if $p.pageInfo.hasNextPage == true then \"true\" else \"false\" end), ($p.pageInfo.endCursor // \"\")] | @tsv) end"
+    ],
+    "rc": 0,
+    "seconds": 1.072,
+    "stdout": "pr\t4357\tOPEN\tfalse\tfalse\t\t\t\npr\t4354\tOPEN\tfalse\tfalse\tremoved\tRFMQE_lADOTK2PgM8AAAABXlCYYs8AAAAHxxxQqA\tmerge_conflict\npr\t4356\tOPEN\tfalse\tfalse\t\t\t\npr\t4353\tOPEN\tfalse\tfalse\t\t\t\npr\t4352\tOPEN\tfalse\tfalse\t\t\t\npr\t3816\tOPEN\tfalse\tfalse\t\t\t\npr\t3966\tOPEN\tfalse\tfalse\t\t\t\npr\t4114\tOPEN\tfalse\tfalse\t\t\t\npr\t4259\tOPEN\tfalse\tfalse\t\t\t\npr\t4266\tOPEN\tfalse\tfalse\t\t\t\npr\t4264\tOPEN\tfalse\tfalse\t\t\t\npr\t4147\tOPEN\tfalse\tfalse\t\t\t\npr\t4250\tOPEN\tfalse\tfalse\t\t\t\npr\t4246\tOPEN\tfalse\tfalse\t\t\t\npr\t4172\tOPEN\tfalse\tfalse\tremoved\tRFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA\tmanual\npr\t4200\tOPEN\tfalse\tfalse\tremoved\tRFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA\tmerge_conflict\npr\t4205\tOPEN\tfalse\tfalse\t\t\t\npr\t4183\tOPEN\tfalse\tfalse\tremoved\tRFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw\tmerge_conflict\npr\t4195\tOPEN\tfalse\tfalse\t\t\t\npr\t4111\tOPEN\tfalse\tfalse\tremoved\tRFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg\tmerge_conflict\npr\t4162\tOPEN\tfalse\tfalse\t\t\t\npr\t4149\tOPEN\tfalse\tfalse\t\t\t\npr\t4148\tOPEN\tfalse\tfalse\t\t\t\npr\t4138\tOPEN\tfalse\tfalse\t\t\t\npr\t3950\tOPEN\tfalse\tfalse\tremoved\tRFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA\tmerge_conflict\npr\t4013\tOPEN\tfalse\tfalse\t\t\t\npr\t4017\tOPEN\tfalse\tfalse\tremoved\tRFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A\tfailed_checks\npr\t4006\tOPEN\tfalse\tfalse\tremoved\tRFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg\tmerge_conflict\npr\t3977\tOPEN\tfalse\tfalse\t\t\t\npr\t3941\tOPEN\tfalse\tfalse\tremoved\tRFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g\tmerge_conflict\npr\t3766\tOPEN\tfalse\tfalse\t\t\t\npr\t3740\tOPEN\tfalse\tfalse\t\t\t\npage\tfalse\tY3Vyc29yOnYyOpK0MjAyNi0xMC0wNFQxNToxMTozNlrPAAAAARpAG0Y=\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "api",
+      "graphql",
+      "--hostname",
+      "github.com",
+      "-f",
+      "query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged}}}",
+      "-F",
+      "owner=groovejones",
+      "-F",
+      "repo=groove-sight-platform",
+      "-F",
+      "number=4017",
+      "--jq",
+      ".data.repository.pullRequest | \"state=\" + (.state // \"\"), \"merged=\" + (.merged | tostring)"
+    ],
+    "rc": 0,
+    "seconds": 0.413,
+    "stdout": "state=OPEN\nmerged=false\n",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,6 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/tampered-device-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/tampered-device-home
+
+STDERR:
+
+exit=0

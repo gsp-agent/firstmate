@@ -1,0 +1,6 @@
+ok - open pull requests removed from a watched queue wake once
+ok - the queue sweep reads every page of open pull requests
+ok - real page progress keeps a long sweep alive through a concurrent rearm
+ok - a repository is swept after its only armed pull request merges
+ok - a recovered merged watch retains its repository through the first completed sweep
+Remaining queue regressions complete

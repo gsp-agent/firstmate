@@ -1,0 +1,5 @@
+$ .test-phase/seed-poll.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/interrupted-device-home/state legacy https://github.com/groovejones/groove-sight-platform/pull/4017 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/historical-poll.sh
+
+STDERR:
+
+exit=0

@@ -1,0 +1,30 @@
+{
+  "completed_new_sweep": true,
+  "stdout": "",
+  "stderr": "",
+  "authenticated_poll_api_reads": [
+    {
+      "args": [
+        "api",
+        "graphql",
+        "--hostname",
+        "github.com",
+        "-f",
+        "query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}",
+        "-F",
+        "owner=groovejones",
+        "-F",
+        "repo=groove-sight-platform",
+        "-F",
+        "number=4017",
+        "--jq",
+        ".data.repository.pullRequest | ((.timelineItems.nodes // []) | last // {}) as $event | \"state=\" + (.state // \"\"), \"merged=\" + (.merged | tostring), \"queued=\" + (.isInMergeQueue | tostring), \"reason=\" + (($event.reason // \"\") | tojson | .[1:-1]), \"event=\" + (($event.id // \"\") | if test(\"^[A-Za-z0-9_+/=-]{0,256}$\") then . else \"\" end)"
+      ],
+      "rc": 0,
+      "seconds": 1.221,
+      "stdout": "state=OPEN\nmerged=false\nqueued=false\nreason=failed_checks\nevent=RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A\n",
+      "stderr": ""
+    }
+  ],
+  "registration": "fm-pr-poll-registration-v2\nlegacy\ngithub\nhttps://github.com/groovejones/groove-sight-platform/pull/4017\ngithub.com\ngroovejones/groove-sight-platform\n4017\n238aaca585549adb242ec2f918ddc00ac8d25dbd9f9f412efac912337a6fe1b2\n7b8ab2b3d375c7d0139295331545eb127757004cf9b2e9442bd1ea246e2f2496\n16777234:3183238475\n16777234:3183238476\n"
+}

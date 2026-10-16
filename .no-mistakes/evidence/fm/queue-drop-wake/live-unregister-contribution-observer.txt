@@ -1,0 +1,6 @@
+$ bin/fm-check-unregister.sh contributions
+unregistered: state/contributions.check.sh
+
+STDERR:
+
+exit=0

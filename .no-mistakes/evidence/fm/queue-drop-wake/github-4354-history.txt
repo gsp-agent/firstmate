@@ -1,0 +1,16 @@
+data:
+  repository:
+    pullRequest:
+      number: 4354
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[2]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABXlCYYs8AAAAHxwPhzA
+            createdAt: "2026-10-16T03:12:53Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABXlCYYs8AAAAHxxxQqA
+            reason: merge_conflict
+            createdAt: "2026-10-16T03:34:29Z"

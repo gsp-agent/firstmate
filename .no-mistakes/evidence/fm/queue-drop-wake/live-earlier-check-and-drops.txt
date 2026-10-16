@@ -1,0 +1,16 @@
+$ bin/fm-watch.sh
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/earlier-check-home/state/a-notice.check.sh: local-notice-before-PR
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/earlier-check-home/state/later-pr.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4354 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+check: contributions later-pr a65b0bb49fc0eb2f7e3d24dd30e3cdb016be85bee6610481310aab700f4fa012
+
+STDERR:
+
+exit=0

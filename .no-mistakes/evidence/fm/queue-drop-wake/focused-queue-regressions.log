@@ -1,0 +1,13 @@
+ok - a GitHub PR stays bound to github.com despite an enterprise GH_HOST
+ok - recurring earlier mail timeouts and dequeues complete every check without repeating handled drops
+ok - GitHub removal reasons preserve long text, quotes, delimiters, Unicode, and escaped control characters
+ok - a verified queue drop wakes once, a merge stays a merge, and a bad read stays silent
+ok - open pull requests removed from a watched queue wake once
+ok - the queue sweep reads every page of open pull requests
+ok - a watch armed on the previous template keeps polling after the template changes
+ok - a tampered check copy stays rejected
+ok - an interrupted template upgrade keeps polling with unchanged or renumbered devices
+ok - interrupted template recovery refuses a replaced check or sidecar
+ok - a renumbered watch on the previous template keeps polling, and a tampered copy stays refused
+ok - each sweep page has its own deadline, so a longer scan still reports every removal
+not ok - the long sweep lost pull 2: 1792126298	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/tmp/fm-pr-check-security.twMvJ0/sweep-progress-liveness/home/state/z-stop.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/tmp/fm-pr-check-security.twMvJ0/sweep-progress-liveness/home/state/z-stop.check.sh: stop-cycle

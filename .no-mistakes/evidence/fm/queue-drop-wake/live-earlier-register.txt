@@ -1,0 +1,6 @@
+$ bin/fm-check-register.sh a-notice
+registered: state/a-notice.check.sh
+
+STDERR:
+
+exit=0

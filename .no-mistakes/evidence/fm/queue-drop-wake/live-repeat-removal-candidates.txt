@@ -1,0 +1,38 @@
+data:
+  repository:
+    p502080:
+      number: 502080
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[2]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOAEVQ_M71O5uGzwAAAAWuTCrk
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOAEVQ_M71O5uGzwAAAAWuTW1e
+            reason: failed_checks
+    p560630:
+      number: 560630
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[2]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOAEVQ_M8AAAABP-NjBs8AAAAHJwa_gg
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOAEVQ_M8AAAABP-NjBs8AAAAHJwdAWA
+            reason: manual
+    p569879:
+      number: 569879
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[2]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOAEVQ_M8AAAABUzh53c8AAAAHk2_pWQ
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOAEVQ_M8AAAABUzh53c8AAAAHk6sqDQ
+            reason: checks_timed_out

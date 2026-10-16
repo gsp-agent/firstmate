@@ -1,0 +1,5 @@
+$ bin/fm-pr-poll.sh --validated github https://github.com/groovejones/groove-sight-platform/pull/4017 github.com groovejones/groove-sight-platform 4017
+
+STDERR:
+
+exit=0

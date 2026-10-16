@@ -1,0 +1,5 @@
+$ bin/fm-wake-drain.sh --ack-through 11 --recovery-generation 96932.1792125628.lRs7OZ
+
+STDERR:
+
+exit=0

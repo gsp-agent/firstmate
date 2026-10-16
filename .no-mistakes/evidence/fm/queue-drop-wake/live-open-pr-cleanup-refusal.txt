@@ -1,0 +1,6 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/host-pin-home-2
+WARNING: watcher still down (same stale episode; last beat: 168s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+REFUSED: task pinned records https://github.com/groovejones/groove-sight-platform/pull/4017 and that pull request or merge request is still open.
+The task record stays so the request can still be merged.
+Merge or close it, or get the captain's explicit OK to discard, then --force.

@@ -1,0 +1,16 @@
+data:
+  repository:
+    pullRequest:
+      number: 574696
+      state: MERGED
+      merged: true
+      isInMergeQueue: false
+      timelineItems:
+        nodes[2]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOAEVQ_M8AAAABXly5cc8AAAAHx2LN4g
+            createdAt: "2026-10-16T04:36:46Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOAEVQ_M8AAAABXly5cc8AAAAHx2k8UQ
+            reason: merged
+            createdAt: "2026-10-16T04:42:23Z"

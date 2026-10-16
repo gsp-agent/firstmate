@@ -1,0 +1,6 @@
+Completed a new sweep: True
+STDOUT:
+
+STDERR:
+
+exit=-15 (TERM after completed quiet sweep)

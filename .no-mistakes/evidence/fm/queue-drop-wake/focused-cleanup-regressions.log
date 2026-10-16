@@ -1,0 +1,3 @@
+ok - teardown closes a landed GitLab task with its merge request URL as a note and a GitHub task with --pr
+ok - an open or unreadable recorded request keeps the task record when the copy is gone or reassigned
+Focused cleanup cases complete

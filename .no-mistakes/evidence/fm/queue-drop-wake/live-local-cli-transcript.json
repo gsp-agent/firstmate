@@ -1,0 +1,247 @@
+[
+  {
+    "command": [
+      "bin/fm-dispatch-resolve.sh",
+      "--labels",
+      "docs-only"
+    ],
+    "stdin": null,
+    "stdout": "dispatch-resolve:\n  status: clear\n  source: label (docs-only)\n  profile: --harness 'codex' --model 'gpt-6.1-sol' --effort 'max'\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-dispatch-resolve.sh",
+      "--labels",
+      "ep-opus"
+    ],
+    "stdin": null,
+    "stdout": "dispatch-resolve:\n  status: clear\n  source: label (ep-opus)\n  profile: --harness 'claude' --model 'opus' --effort 'xhigh'\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-dispatch-resolve.sh",
+      "--labels",
+      "unmatched"
+    ],
+    "stdin": null,
+    "stdout": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'cursor' --model 'cursor-grok-4.6-high'\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-dispatch-resolve.sh",
+      "--labels",
+      "docs-only,ep-opus"
+    ],
+    "stdin": null,
+    "stdout": "dispatch-resolve:\n  status: refused\n  reason: labels docs-only and ep-opus conflict\n",
+    "stderr": "dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)\n",
+    "exit": 1
+  },
+  {
+    "command": [
+      "bin/fm-role.sh",
+      "report"
+    ],
+    "stdin": null,
+    "stdout": "fm-role: user (default)\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-role.sh",
+      "check",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92"
+    ],
+    "stdin": null,
+    "stdout": "refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate\n",
+    "stderr": "",
+    "exit": 1
+  },
+  {
+    "command": [
+      "bin/fm-role.sh",
+      "check",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92",
+      "upstream-consent",
+      "github.com/example/wrong"
+    ],
+    "stdin": null,
+    "stdout": "refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate\n",
+    "stderr": "",
+    "exit": 1
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "fallback",
+      "demo"
+    ],
+    "stdin": null,
+    "stdout": "cursor\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "fallback",
+      "demo"
+    ],
+    "stdin": null,
+    "stdout": "codex Cursor Models at 89% (limit 85%)\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "fallback",
+      "demo"
+    ],
+    "stdin": null,
+    "stdout": "claude Cursor Models at 89% (limit 85%); Codex usage exhausted\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "fallback",
+      "demo"
+    ],
+    "stdin": null,
+    "stdout": "grok pstack plugin version is '0.15.22', not the pinned 0.15.21\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "take",
+      "demo"
+    ],
+    "stdin": null,
+    "stdout": "",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "take",
+      "demo"
+    ],
+    "stdin": null,
+    "stdout": "",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "take",
+      "demo"
+    ],
+    "stdin": null,
+    "stdout": "",
+    "stderr": "cursor guard: refused demo, already launched 2 times today (2026-10-15); write blocked: instead of a 3rd run\n",
+    "exit": 1
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "give",
+      "demo"
+    ],
+    "stdin": null,
+    "stdout": "",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "take",
+      "demo"
+    ],
+    "stdin": null,
+    "stdout": "",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-cursor-guard.sh",
+      "take",
+      "another"
+    ],
+    "stdin": null,
+    "stdout": "",
+    "stderr": "cursor guard: removed a stale lock older than 60 s at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/local-cli/state/cursor-dispatch.lock\n",
+    "exit": 0
+  },
+  {
+    "command": [
+      "bin/fm-cursor-assert.sh"
+    ],
+    "stdin": null,
+    "stdout": "",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "node",
+      "bin/fm-cursor-crew-guard.mjs",
+      "--worktree",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/local-cli"
+    ],
+    "stdin": "{\"tool_name\": \"Shell\", \"tool_input\": {\"command\": \"git status\"}}",
+    "stdout": "{\"permission\":\"allow\",\"updated_input\":{\"command\":\"git status\",\"cwd\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/local-cli\"}}\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "node",
+      "bin/fm-cursor-crew-guard.mjs",
+      "--worktree",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/local-cli"
+    ],
+    "stdin": "{\"tool_name\": \"Shell\", \"tool_input\": {\"command\": \"if true; then env git update-ref refs/heads/a HEAD; fi\"}}",
+    "stdout": "{\"permission\":\"deny\",\"user_message\":\"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`.\",\"agent_message\":\"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`.\"}\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "node",
+      "bin/fm-cursor-crew-guard.mjs",
+      "--worktree",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/local-cli"
+    ],
+    "stdin": "{\"tool_name\": \"Shell\", \"tool_input\": {\"command\": \"git branch --show-current\"}}",
+    "stdout": "{\"permission\":\"allow\",\"updated_input\":{\"command\":\"git branch --show-current\",\"cwd\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/local-cli\"}}\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "command": [
+      "node",
+      "bin/fm-cursor-crew-guard.mjs",
+      "--worktree",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/local-cli"
+    ],
+    "stdin": "{\"tool_name\": \"Shell\", \"tool_input\": {\"command\": \"git switch -c test\"}}",
+    "stdout": "{\"permission\":\"allow\",\"updated_input\":{\"command\":\"git switch -c test\",\"cwd\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/local-cli\"}}\n",
+    "stderr": "",
+    "exit": 0
+  }
+]

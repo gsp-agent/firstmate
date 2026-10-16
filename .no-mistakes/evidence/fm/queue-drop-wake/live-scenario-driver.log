@@ -1,0 +1,8 @@
+Repeated real GitHub sweep: no duplicate removal notifications
+Earlier custom-check notification did not suppress later real queue drops
+Last armed PR merged: real repository drops delivered before final retirement
+Crash receipt recovery: real repository drops delivered before final retirement
+legacy-device: recovered device/hash registration in place and delivered real failed_checks removal
+interrupted-device: recovered device/hash registration in place and delivered real failed_checks removal
+Tampered legacy poll rejected and never executed
+Live core scenarios complete

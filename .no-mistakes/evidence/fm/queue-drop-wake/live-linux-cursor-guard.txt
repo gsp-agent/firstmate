@@ -1,0 +1,13 @@
+Linux
+stat (GNU coreutils) 9.1
+Copyright (C) 2022 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by Michael Meskes.
+jq-1.8.1
+Fresh spending file: cursor
+Stale spending file: codex newest Cursor spending file is 234844 h old (limit 26 h)
+cursor guard: removed a stale lock older than 60 s at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/.test-phase/linux-live-home/state/cursor-dispatch.lock
+Launch accounting after stale-lock recovery: {"day":"2026-10-15","beads":{"linux-demo":1}}

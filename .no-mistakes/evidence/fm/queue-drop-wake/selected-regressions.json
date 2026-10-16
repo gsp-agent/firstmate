@@ -1,0 +1,23 @@
+{
+  "tests/fm-pr-check-security.test.sh": [
+    "test_github_poll_uses_the_pr_host",
+    "test_dequeue_sweep_reaches_later_checks",
+    "test_queue_drop_reason_is_preserved",
+    "test_verified_queue_drop_wakes_once",
+    "test_open_queue_removals_wake_once_across_a_watched_repo",
+    "test_open_queue_sweep_exhausts_pages",
+    "test_old_template_watch_polls_after_upgrade",
+    "test_tampered_check_stays_rejected",
+    "test_interrupted_template_upgrade_finishes_on_the_next_poll",
+    "test_interrupted_template_upgrade_refuses_replaced_artifacts",
+    "test_old_template_and_renumber_are_both_recovered",
+    "test_sweep_page_deadline_reports_every_removal",
+    "test_progressing_sweep_survives_rearm_past_stall_bound",
+    "test_merged_only_watch_still_sweeps_its_repo",
+    "test_recovered_merged_watch_still_sweeps_its_repo"
+  ],
+  "tests/fm-teardown.test.sh": [
+    "test_teardown_closes_a_gitlab_task_with_its_merge_request_url_as_a_note",
+    "test_recorded_request_refuses_when_the_copy_is_gone_or_reassigned"
+  ]
+}

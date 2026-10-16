@@ -1,0 +1,25 @@
+$ bin/fm-wake-drain.sh
+1792125628	1	check	contribution-9787c945023a0162ce247e346f40fced4d1db173329d119af99912969522b60e	check: contributions merged 9787c945023a0162ce247e346f40fced4d1db173329d119af99912969522b60e
+1792125630	2	check	merged-merged-https://github.com/groovejones/groove-sight-platform/pull/4308	check: merge landed: merged https://github.com/groovejones/groove-sight-platform/pull/4308 external
+1792125633	3	check	RFMQE_lADOTK2PgM8AAAABXlCYYs8AAAAHxxxQqA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4354 reason=merge_conflict
+1792125634	4	check	RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792125635	5	check	RFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+1792125636	6	check	RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792125637	7	check	RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792125637	8	check	RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792125638	9	check	RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792125639	10	check	RFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792125639	11	check	RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51C1DWAJZ71NFCZJ46PQH92/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+
+STDERR:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 11 --recovery-generation 96932.1792125628.lRs7OZ
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 9s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+exit=0

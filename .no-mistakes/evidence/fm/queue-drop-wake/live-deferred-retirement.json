@@ -1,0 +1,7 @@
+{
+  "after_recovery": {
+    "repository_sidecar_retained": true,
+    "receipt_retained": true,
+    "runnable_merged_poll_removed": true
+  }
+}

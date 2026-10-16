@@ -1,0 +1,23 @@
+data:
+  repository:
+    pullRequest:
+      number: 4308
+      state: MERGED
+      merged: true
+      isInMergeQueue: false
+      timelineItems:
+        nodes[4]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHuieu1g
+            createdAt: "2026-10-14T02:09:50Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHujf8MA
+            reason: failed_checks
+            createdAt: "2026-10-14T02:32:46Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHukIckQ
+            createdAt: "2026-10-14T02:47:18Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHulOGHA
+            reason: merged
+            createdAt: "2026-10-14T03:12:38Z"
