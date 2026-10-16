@@ -1,0 +1,394 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-remote-job-reap-orphans.sh",
+        "--dry-run"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "dcg",
+        "--version"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "br",
+        "create",
+        "Disposable evidence",
+        "--description",
+        "[bead capture](bead-proof.bin)",
+        "--json"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "-q",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/clone"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "finished"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "outage-cycle"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "expiry-cycle"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "br",
+        "list",
+        "--json"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "pending"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "pending-retry"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "pending-expire"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "replacement"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "python3",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-task-data.py",
+        "expire",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+        "replacement"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 1
+    },
+    {
+      "argv": [
+        "python3",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-task-data.py",
+        "expire",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+        "replacement"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 1
+    },
+    {
+      "argv": [
+        "python3",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-task-data.py",
+        "stage",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+        "live",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+        ""
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 1
+    },
+    {
+      "argv": [
+        "git",
+        "init",
+        "-q",
+        "-b",
+        "main",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "git",
+        "commit",
+        "--allow-empty",
+        "-qm",
+        "baseline"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "-qb",
+        "work"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "git",
+        "commit",
+        "--allow-empty",
+        "-qm",
+        "unlanded work"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "unlanded"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 1
+    },
+    {
+      "argv": [
+        "br",
+        "--no-auto-flush",
+        "--no-auto-import",
+        "--json",
+        "show",
+        "check-s3u"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-data"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-data"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-data-next"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-data-later"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-temporary"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-temporary"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-temporary-next"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-temporary-later"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "unsafe-record"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 1
+    }
+  ],
+  "observations": {
+    "disk": {
+      "baseline_bytes": 9477595,
+      "staged_bytes": 9478247,
+      "final_bytes": 5246,
+      "reclaimed_bytes": 9473001
+    },
+    "receipt": {
+      "version": 1,
+      "task": "finished",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+          "pr": "https://localhost/team/repo/-/merge_requests/7",
+          "beads": [
+            "check-s3u"
+          ]
+        }
+      ],
+      "complete": true,
+      "temporary": [
+        {
+          "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/finished-proof",
+          "device": 16777234,
+          "inode": 3185395859
+        }
+      ],
+      "expired": true
+    },
+    "api_requests": [],
+    "api_description": "[PR capture](pr-proof.png) [latest](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png) [newly linked](late-proof.bin) [saved](saved.png) [saved frames](saved-frames.png)",
+    "api_notes": [
+      {
+        "id": 3,
+        "body": "[discussion capture](comment-proof.bin)"
+      }
+    ],
+    "bead": [
+      {
+        "id": "check-s3u",
+        "title": "Disposable evidence",
+        "description": "[bead capture](bead-proof.bin)",
+        "status": "open",
+        "priority": 2,
+        "issue_type": "task",
+        "created_at": "2026-10-16T08:16:48.565985Z",
+        "created_by": "dalecarman",
+        "updated_at": "2026-10-16T08:16:48.565985Z",
+        "source_repo": "sample",
+        "source_repo_path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+        "compaction_level": 0,
+        "original_size": 0
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "Finishing a task stages clone, large data and recorded temporary scratch with intact recovery; linked and bounded text evidence remains",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "A different completed task expires recovery through installed dcg and reclaims bytes while restoring newly linked evidence",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "A real dcg timeout leaves remaining recovery intact; the next allowed completion retries without any policy bypass",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "Aliased file, directory and chained-symlink targets stay readable through staging and expiry; escaping links never traverse outside owned roots",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "Real glab reads MR descriptions and discussion and real br reads bead links; an API outage preserves recovery until a later retry",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "Unavailable bead data leaves originals untouched and records a retry; later completions stage then expire them",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "Unrelated and live task scratch is excluded, symlink replacements refuse, and newly live ownership prevents expiry",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "Attempting cleanup of unlanded work refuses and preserves both task records and original scratch",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "Reusing a finished task ID and data or temporary pathname keeps both generations recoverable and expires them on separate later cycles",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "An escaping recovery-record directory prevents retirement and leaves task records and original data intact",
+      "result": "pass",
+      "live": true
+    }
+  ],
+  "notes": [
+    "Real macOS /tmp versus /private/tmp alias regression passed in the targeted automated group (uses mocked reference/guard dependencies; supplemental, not the live alias proof).",
+    "Previous helper 86fa1306 reproduced the ancestor-alias failure.",
+    "No product source or permanent tests were modified."
+  ]
+}

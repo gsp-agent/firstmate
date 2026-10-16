@@ -1,0 +1,106 @@
+Continuing the same disposable live scenario after a real dcg evaluation-timeout denial. No guard policy or product source changed.
+
+$ br list --json
+{"issues":[{"id":"check-s3u","title":"Disposable evidence","description":"[bead capture](bead-proof.bin)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T08:16:48.565985Z","created_by":"dalecarman","updated_at":"2026-10-16T08:16:48.565985Z","source_repo":"sample","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample","compaction_level":0,"original_size":0,"dependency_count":0,"dependent_count":0}],"total":1,"limit":0,"offset":0,"has_more":false}
+exit=0
+The actual retry command and successful expiry are in live-task-cleanup-retry.log; checking its persisted outcome before continuing.
+VERIFIED: different task completion expires both recovery areas
+VERIFIED: empty recorded temporary root is reclaimed
+VERIFIED: newly linked held file is restored to its original path
+VERIFIED: aliased evidence reads after expiry: latest.png
+VERIFIED: aliased evidence reads after expiry: frames.png/frame.bin
+VERIFIED: aliased evidence reads after expiry: chained.png
+VERIFIED: aliased evidence reads after expiry: saved.png
+VERIFIED: aliased evidence reads after expiry: saved-frames.png/later-frame.bin
+VERIFIED: aliased evidence reads after expiry: latest-data.png
+VERIFIED: unlinked temporary build is reclaimed
+VERIFIED: unlinked clone payload and large log are reclaimed
+VERIFIED: any conservatively retained clone metadata is below 1 KiB
+Measured lifecycle bytes: {"baseline_bytes": 9477595, "staged_bytes": 9478247, "final_bytes": 5246, "reclaimed_bytes": 9473001}
+PASS: A different completed task expires recovery through installed dcg and reclaims bytes while restoring newly linked evidence
+PASS: A real dcg timeout leaves remaining recovery intact; the next allowed completion retries without any policy bypass
+PASS: Aliased file, directory and chained-symlink targets stay readable through staging and expiry; escaping links never traverse outside owned roots
+PASS: Real glab reads MR descriptions and discussion and real br reads bead links; an API outage preserves recovery until a later retry
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh pending
+teardown pending complete (window firstmate:fm-pending, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-pending)
+Backlog: pending just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move pending to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 626s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: Command '['br', '--no-auto-flush', '--no-auto-import', '--json', 'show', 'check-s3u']' returned non-zero exit status 3.
+warning: pending teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: unreadable bead is reported at retirement
+VERIFIED: unreadable bead leaves original scratch unmoved
+VERIFIED: retirement completed with durable cleanup obligation
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh pending-retry
+task data pending: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/pending/.cleanup-hold until the next completed task
+teardown pending-retry complete (window firstmate:fm-pending-retry, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-pending-retry)
+Backlog: pending-retry just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move pending-retry to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 638s ago, grace 300s) - full banner already printed this episode.
+exit=0
+VERIFIED: later completion resumes interrupted staging
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh pending-expire
+teardown pending-expire complete (window firstmate:fm-pending-expire, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-pending-expire)
+Backlog: pending-expire just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move pending-expire to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 650s ago, grace 300s) - full banner already printed this episode.
+exit=0
+VERIFIED: resumed staging receives a full cycle before expiry
+PASS: Unavailable bead data leaves originals untouched and records a retry; later completions stage then expire them
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh replacement
+task data replacement: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/replacement/.cleanup-hold until the next completed task
+teardown replacement complete (window firstmate:fm-replacement, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-replacement)
+Backlog: replacement just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move replacement to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 656s ago, grace 300s) - full banner already printed this episode.
+exit=0
+
+$ python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-task-data.py expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state replacement
+warning: task data retained for recovery: not a real directory: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+exit=1
+VERIFIED: temporary symlink replacement refuses before removal
+VERIFIED: replaced directory retains original recovery
+VERIFIED: replacement escape leaves outside bytes unchanged
+
+$ python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-task-data.py expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state replacement
+warning: task data retained for recovery: temporary recovery belongs to a live task: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+exit=1
+VERIFIED: new live task prevents expiry of its temporary directory
+VERIFIED: live owner preserves recovery bytes
+
+$ python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-task-data.py stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state live /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample ''
+warning: task data retained for recovery: task is still live: live
+exit=1
+PASS: Unrelated and live task scratch is excluded, symlink replacements refuse, and newly live ownership prevents expiry
+
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy
+exit=0
+
+$ git commit --allow-empty -qm baseline
+exit=0
+
+$ git checkout -qb work
+exit=0
+
+$ git commit --allow-empty -qm 'unlanded work'
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh unlanded
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 664s ago, grace 300s) - full banner already printed this episode.
+REFUSED: cannot determine default branch for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample; expected origin/HEAD, main, or master.
+exit=1
+VERIFIED: unlanded work refuses cleanup
+VERIFIED: refusal keeps the task record unchanged
+VERIFIED: refusal never invokes task data pruning
+PASS: Attempting cleanup of unlanded work refuses and preserves both task records and original scratch
+
+$ br --no-auto-flush --no-auto-import --json show check-s3u
+[{"id":"check-s3u","title":"Disposable evidence","description":"[bead capture](bead-proof.bin)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T08:16:48.565985Z","created_by":"dalecarman","updated_at":"2026-10-16T08:16:48.565985Z","source_repo":"sample","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample","compaction_level":0,"original_size":0}]
+exit=0
+All disposable product scenarios passed.

@@ -1,0 +1,109 @@
+Real cleanup lifecycle: reuse of the same task ID and path must retain both generations and eventually reclaim each.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh reuse-data
+task data reuse-data: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-data/.cleanup-hold until the next completed task
+teardown reuse-data complete (window firstmate:fm-reuse-data, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-reuse-data)
+Backlog: reuse-data just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move reuse-data to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 721s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: temporary recovery belongs to a live task: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+warning: reuse-data teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: data: first generation is recoverable
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh reuse-data
+teardown reuse-data complete (window firstmate:fm-reuse-data, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-reuse-data)
+Backlog: reuse-data just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move reuse-data to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 727s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: temporary recovery belongs to a live task: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+warning: task data retained for recovery: recovery collision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-data/.cleanup-hold/scratch/build.bin
+warning: reuse-data teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: data: same task does not expire its own original
+VERIFIED: data: second generation is not overwritten
+VERIFIED: data: collision leaves earlier recovery complete
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh reuse-data-next
+task data reuse-data: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-data/.cleanup-hold until the next completed task
+teardown reuse-data-next complete (window firstmate:fm-reuse-data-next, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-reuse-data-next)
+Backlog: reuse-data-next just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move reuse-data-next to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 734s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: temporary recovery belongs to a live task: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+warning: reuse-data-next teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: data: next task expires old generation then stages replacement
+VERIFIED: data: replacement retains original path mapping in recovery
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh reuse-data-later
+teardown reuse-data-later complete (window firstmate:fm-reuse-data-later, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-reuse-data-later)
+Backlog: reuse-data-later just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move reuse-data-later to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 741s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: temporary recovery belongs to a live task: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+warning: reuse-data-later teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: data: second full cycle expires recovery
+PASS: data path collision preserves both generations and advances across later task completions
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh reuse-temporary
+task data reuse-temporary: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-temporary/.cleanup-hold until the next completed task
+teardown reuse-temporary complete (window firstmate:fm-reuse-temporary, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-reuse-temporary)
+Backlog: reuse-temporary just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move reuse-temporary to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 749s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: temporary recovery belongs to a live task: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+warning: reuse-temporary teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: temporary: first generation is recoverable
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh reuse-temporary
+teardown reuse-temporary complete (window firstmate:fm-reuse-temporary, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-reuse-temporary)
+Backlog: reuse-temporary just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move reuse-temporary to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 755s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: temporary recovery belongs to a live task: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+warning: task data retained for recovery: recovery collision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/reuse-temporary-build/.cleanup-hold/build.bin
+warning: reuse-temporary teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: temporary: same task does not expire its own original
+VERIFIED: temporary: second generation is not overwritten
+VERIFIED: temporary: collision leaves earlier recovery complete
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh reuse-temporary-next
+task data reuse-temporary: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-temporary/.cleanup-hold until the next completed task
+teardown reuse-temporary-next complete (window firstmate:fm-reuse-temporary-next, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-reuse-temporary-next)
+Backlog: reuse-temporary-next just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move reuse-temporary-next to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 769s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: temporary recovery belongs to a live task: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+warning: reuse-temporary-next teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: temporary: next task expires old generation then stages replacement
+VERIFIED: temporary: replacement retains original path mapping in recovery
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh reuse-temporary-later
+teardown reuse-temporary-later complete (window firstmate:fm-reuse-temporary-later, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-reuse-temporary-later)
+Backlog: reuse-temporary-later just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move reuse-temporary-later to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 775s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: temporary recovery belongs to a live task: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof
+warning: reuse-temporary-later teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: temporary: second full cycle expires recovery
+VERIFIED: empty temporary scratch root is reclaimed after reused-path recovery
+PASS: temporary path collision preserves both generations and advances across later task completions
+PASS: Reusing a finished task ID and data or temporary pathname keeps both generations recoverable and expires them on separate later cycles
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh unsafe-record
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 786s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: unsafe record directory
+error: unsafe-record's endpoint and local copy are cleaned up, but its task record could not be removed (task-data cleanup could not be recorded for unsafe-record)
+exit=1
+VERIFIED: unsafe recovery record refuses task retirement
+VERIFIED: task retirement refusal preserves its original record
+VERIFIED: task retirement refusal preserves original scratch
+VERIFIED: unsafe receipt parent never overwrites an outside file
+PASS: An escaping recovery-record directory prevents retirement and leaves task records and original data intact

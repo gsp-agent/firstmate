@@ -1,0 +1,89 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-data"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-data"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-data-next"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-data-later"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-temporary"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-temporary"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-temporary-next"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "reuse-temporary-later"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "unsafe-record"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 1
+    }
+  ],
+  "observations": {},
+  "scenarios": [
+    {
+      "name": "Reusing a finished task ID and data or temporary pathname keeps both generations recoverable and expires them on separate later cycles",
+      "result": "pass",
+      "live": true
+    },
+    {
+      "name": "An escaping recovery-record directory prevents retirement and leaves task records and original data intact",
+      "result": "pass",
+      "live": true
+    }
+  ]
+}

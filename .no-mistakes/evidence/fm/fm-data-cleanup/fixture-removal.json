@@ -1,0 +1,1439 @@
+{
+  "disposal_only_hook_timeout_ms": 2000,
+  "global_configuration_changed": false,
+  "live_product_validation_used_original_budget": true,
+  "commands": [
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/pre-r11",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "fm-task-data.py"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/pre-r11",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "fm-task-data-lib.sh"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp",
+      "args": [
+        "rmdir",
+        "--",
+        "pre-r11"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "args": [
+        "rmdir",
+        "--",
+        ".fm-cleanup-test-tmp"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "ancestor-alias"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "data-alias"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "alias-bridge"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "dcg.toml"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        ".fm-lab-home"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "beads.db"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        ".br-db-openers-77de05b74d98e885068549cd.lock"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        ".write.lock"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "last-touched"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "issues.jsonl"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "beads.db-fsqlite-ns-gate"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "beads.db-fsqlite-ns-use"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "metadata.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "config.yaml"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        ".br-db-write-3969a49473cfda0942fcd945.lock"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        ".gitignore"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "beads.db-wal-cert"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        ".br-jsonl-write-24b1046c6cef5b490e396e62.lock"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "beads.db.fsqlite-migration-state"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "beads.db-shm"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "beads.db-wal"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        ".sync.lock"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "beads.db-wal-cert-head"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads/.br_history",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "issues.20261016_081648_586942000.jsonl"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads/.br_history",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "issues.20261016_081648_586942000.jsonl.meta.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "config"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "HEAD"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "description"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/info",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "exclude"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "commit-msg.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-rebase.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "sendemail-validate.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-commit.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "applypatch-msg.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "fsmonitor-watchman.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-receive.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "prepare-commit-msg.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "post-update.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-merge-commit.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-applypatch.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-push.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "update.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "push-to-checkout.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        ".guard-watcher-stale-banner"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        ".last-watcher-beat"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "new-owner.meta"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "unsafe-record.meta"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "home-summary.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "unlanded.meta"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "live.meta"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "config"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "HEAD"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "description"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "index"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "COMMIT_EDITMSG"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/objects/4b",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "825dc642cb6eb9a060e54bf8d69288fbee4904"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/objects/3a",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "1b5af623b4305474b1d43f2d42df8a0598a552"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/objects/de",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "cb0f0caa6db389ffd6e23b8c4842d711874fef"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/info",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "exclude"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/logs",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "HEAD"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/logs/refs/heads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "work"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/logs/refs/heads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "main"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "commit-msg.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-rebase.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "sendemail-validate.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-commit.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "applypatch-msg.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "fsmonitor-watchman.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-receive.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "prepare-commit-msg.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "post-update.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-merge-commit.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-applypatch.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pre-push.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "update.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/hooks",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "push-to-checkout.sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/refs/heads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "work"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/refs/heads",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "main"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/smoke",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "report.md"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/smoke",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "brief.md"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/smoke/record",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "data-cleanup.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/unsafe-record",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "record"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/unsafe-record",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "scratch.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "saved-frames.png"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "frames.png"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "late-proof.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "review.txt"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "report.md"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "latest-data.png"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "saved.png"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "latest.png"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pr-proof.png"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "chained.png"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "small-unlinked.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "bead-proof.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "status-proof.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "brief.md"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "comment-proof.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "escape.png"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "data.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/record",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "data-cleanup.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/record",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "status"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/clone/.git",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "description"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/unlanded",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "scratch.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/replacement",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "report.md"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/replacement/record",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "data-cleanup.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-data",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "report.md"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-data/record",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "data-cleanup.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-temporary",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "report.md"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-temporary/record",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "data-cleanup.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/pending",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "brief.md"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/pending/record",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "data-cleanup.json"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/xdg-config/dcg",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "pending_exceptions.jsonl"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/finished-unclaimed",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "blob"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/finished-proof",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "chain.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/finished-proof",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "bridge.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/finished-proof",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "later.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/finished-proof",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "capture.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/finished-proof/later-frames",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "later-frame.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/finished-proof/frames",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "frame.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof/.cleanup-hold",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "build.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/outside",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "outside.bin"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/glab",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "aliases.yml"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/glab",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "config.yml"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/glab",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "config.lock"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/unrelated",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "blob"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/live-proof",
+      "args": [
+        "rm",
+        "-f",
+        "--",
+        "blob"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/objects",
+      "args": [
+        "rmdir",
+        "--",
+        "pack",
+        "info"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git/refs",
+      "args": [
+        "rmdir",
+        "--",
+        "heads",
+        "tags"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/logs/refs",
+      "args": [
+        "rmdir",
+        "--",
+        "heads"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.beads",
+      "args": [
+        "rmdir",
+        "--",
+        ".br_history"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample/.git",
+      "args": [
+        "rmdir",
+        "--",
+        "objects",
+        "info",
+        "hooks",
+        "refs"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/objects",
+      "args": [
+        "rmdir",
+        "--",
+        "4b",
+        "pack",
+        "info",
+        "3a",
+        "de"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/logs",
+      "args": [
+        "rmdir",
+        "--",
+        "refs"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git/refs",
+      "args": [
+        "rmdir",
+        "--",
+        "heads",
+        "tags"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/clone",
+      "args": [
+        "rmdir",
+        "--",
+        ".git"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+      "args": [
+        "rmdir",
+        "--",
+        ".beads",
+        ".git"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy/.git",
+      "args": [
+        "rmdir",
+        "--",
+        "objects",
+        "info",
+        "logs",
+        "hooks",
+        "refs"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/smoke",
+      "args": [
+        "rmdir",
+        "--",
+        "record"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished",
+      "args": [
+        "rmdir",
+        "--",
+        "record",
+        "clone"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/replacement",
+      "args": [
+        "rmdir",
+        "--",
+        "record"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-data",
+      "args": [
+        "rmdir",
+        "--",
+        "record"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/reuse-temporary",
+      "args": [
+        "rmdir",
+        "--",
+        "record"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/pending",
+      "args": [
+        "rmdir",
+        "--",
+        "record"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects",
+      "args": [
+        "rmdir",
+        "--",
+        "sample"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/state",
+      "args": [
+        "rmdir",
+        "--",
+        "terminal-outcomes"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/unlanded-copy",
+      "args": [
+        "rmdir",
+        "--",
+        ".git"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data",
+      "args": [
+        "rmdir",
+        "--",
+        "smoke",
+        "unsafe-record",
+        "finished",
+        "unlanded",
+        "replacement",
+        "reuse-data",
+        "reuse-temporary",
+        "pending"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home",
+      "args": [
+        "rmdir",
+        "--",
+        "config",
+        "projects",
+        "state",
+        "unlanded-copy",
+        "data"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/xdg-config",
+      "args": [
+        "rmdir",
+        "--",
+        "dcg"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/finished-proof",
+      "args": [
+        "rmdir",
+        "--",
+        "later-frames",
+        "frames"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/replacement-proof",
+      "args": [
+        "rmdir",
+        "--",
+        ".cleanup-hold"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data",
+      "args": [
+        "rmdir",
+        "--",
+        "home",
+        "xdg-config",
+        "finished-unclaimed",
+        "finished-proof",
+        "replacement-proof",
+        "outside",
+        "xdg-data",
+        "glab",
+        "xdg-cache",
+        "xdg-state",
+        "unrelated",
+        "live-proof"
+      ]
+    },
+    {
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "args": [
+        "rmdir",
+        "--",
+        ".fm-live-task-data"
+      ]
+    }
+  ]
+}

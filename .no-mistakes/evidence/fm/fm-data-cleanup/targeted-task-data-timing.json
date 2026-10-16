@@ -1,0 +1,31 @@
+{
+  "families": [
+    {
+      "count": 1,
+      "duration_ms": 54342,
+      "failed": 0,
+      "name": "pr-forge"
+    }
+  ],
+  "finished_at": "2026-10-16T08:12:08Z",
+  "run_id": "fm-test-run-1792138273986-82005",
+  "scripts": [
+    {
+      "duration_ms": 54342,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "pr-forge",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-teardown.test.sh"
+    }
+  ],
+  "selection": "scripts;jobs=1",
+  "started_at": "2026-10-16T08:11:13Z",
+  "summary": {
+    "duration_ms": 54437,
+    "failed": 0,
+    "skipped_gate": 0,
+    "total": 1
+  }
+}

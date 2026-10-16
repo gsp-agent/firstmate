@@ -1,0 +1,28 @@
+Continuing the same disposable live scenario after a real dcg evaluation-timeout denial. No guard policy or product source changed.
+
+$ br list --json
+{"issues":[{"id":"check-s3u","title":"Disposable evidence","description":"[bead capture](bead-proof.bin)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T08:16:48.565985Z","created_by":"dalecarman","updated_at":"2026-10-16T08:16:48.565985Z","source_repo":"sample","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample","compaction_level":0,"original_size":0,"dependency_count":0,"dependent_count":0}],"total":1,"limit":0,"offset":0,"has_more":false}
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh retry-after-guard-denial
+teardown retry-after-guard-denial complete (window firstmate:fm-retry-after-guard-denial, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-retry-after-guard-denial)
+Backlog: retry-after-guard-denial just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move retry-after-guard-denial to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: 541s ago, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit=0
+VERIFIED: different task completion expires both recovery areas
+VERIFIED: empty recorded temporary root is reclaimed
+VERIFIED: newly linked held file is restored to its original path
+VERIFIED: aliased evidence reads after expiry: latest.png
+VERIFIED: aliased evidence reads after expiry: frames.png/frame.bin
+VERIFIED: aliased evidence reads after expiry: chained.png
+VERIFIED: aliased evidence reads after expiry: saved.png
+VERIFIED: aliased evidence reads after expiry: saved-frames.png/later-frame.bin
+VERIFIED: aliased evidence reads after expiry: latest-data.png
+VERIFIED: unlinked temporary build is reclaimed

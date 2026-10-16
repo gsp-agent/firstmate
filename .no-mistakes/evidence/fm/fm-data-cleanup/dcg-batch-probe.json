@@ -1,0 +1,62 @@
+[
+  {
+    "paths": 1,
+    "trial": 1,
+    "characters": 157,
+    "elapsed_ms": 198.4,
+    "exit": 0,
+    "decision": "allow (silent hook response)",
+    "response": {},
+    "command": "rmdir -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/info"
+  },
+  {
+    "paths": 1,
+    "trial": 2,
+    "characters": 157,
+    "elapsed_ms": 141.1,
+    "exit": 0,
+    "decision": "allow (silent hook response)",
+    "response": {},
+    "command": "rmdir -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/info"
+  },
+  {
+    "paths": 1,
+    "trial": 3,
+    "characters": 157,
+    "elapsed_ms": 115.3,
+    "exit": 0,
+    "decision": "allow (silent hook response)",
+    "response": {},
+    "command": "rmdir -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/info"
+  },
+  {
+    "paths": 5,
+    "trial": 1,
+    "characters": 735,
+    "elapsed_ms": 133.4,
+    "exit": 0,
+    "decision": "allow (silent hook response)",
+    "response": {},
+    "command": "rmdir -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/info /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/hooks /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/build /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone"
+  },
+  {
+    "paths": 5,
+    "trial": 2,
+    "characters": 735,
+    "elapsed_ms": 133.2,
+    "exit": 0,
+    "decision": "allow (silent hook response)",
+    "response": {},
+    "command": "rmdir -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/info /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/hooks /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/build /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone"
+  },
+  {
+    "paths": 5,
+    "trial": 3,
+    "characters": 735,
+    "elapsed_ms": 122.3,
+    "exit": 0,
+    "decision": "allow (silent hook response)",
+    "response": {},
+    "command": "rmdir -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/info /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/hooks /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/build /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone"
+  }
+]

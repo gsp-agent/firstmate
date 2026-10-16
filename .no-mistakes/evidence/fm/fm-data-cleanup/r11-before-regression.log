@@ -1,0 +1,4 @@
+Previous helper: 86fa1306 (parent of R11 fix). Executing current alias regression against that helper.
+task data finished: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.x6gnI7/task-data-ancestor-alias-fixture/data/finished/.cleanup-hold until the next completed task
+cat: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.x6gnI7/task-data-ancestor-alias-fixture/data/finished/latest.png: No such file or directory
+not ok - fixture aliased temporary link lost its target during staging

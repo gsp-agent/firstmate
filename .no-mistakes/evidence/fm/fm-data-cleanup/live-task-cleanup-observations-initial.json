@@ -1,0 +1,80 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-remote-job-reap-orphans.sh",
+        "--dry-run"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "dcg",
+        "--version"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "br",
+        "create",
+        "Disposable evidence",
+        "--description",
+        "[bead capture](bead-proof.bin)",
+        "--json"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "-q",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample",
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/clone"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "finished"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "outage-cycle"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh",
+        "expiry-cycle"
+      ],
+      "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4",
+      "exit": 0
+    }
+  ],
+  "observations": {
+    "disk": {
+      "baseline_bytes": 9477595,
+      "staged_bytes": 9478247
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Finishing a task stages clone, large data and recorded temporary scratch with intact recovery; linked and bounded text evidence remains",
+      "result": "pass",
+      "live": true
+    }
+  ]
+}

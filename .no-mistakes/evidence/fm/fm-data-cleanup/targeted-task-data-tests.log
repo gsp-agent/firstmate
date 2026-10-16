@@ -1,0 +1,43 @@
+Command: FM_TEARDOWN_TEST_GROUP=task-data FM_TEST_MACHINE_GATE= TMPDIR=<worktree>/.fm-cleanup-test-tmp bin/fm-test-run.sh tests/fm-teardown.test.sh --json /Users/dalecarman/.no-mistakes/evidence/01M51QXPD56TVZ2QJZNGZSV4K4/targeted-task-data-timing.json
+FM_TEST_BEGIN 2026-10-16T08:11:14Z tests/fm-teardown.test.sh family=pr-forge expected_gate_skip=none
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data/data/task-x1/.cleanup-hold until the next completed task
+task data live-old: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data/data/live-old/.cleanup-hold until the next completed task
+ok - fm-teardown: completed task scratch is held for one cycle and linked evidence stays
+ok - fm-teardown: live data and paths outside the task directory are untouched
+task data finished: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-refs/data/finished/.cleanup-hold until the next completed task
+task data pending: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-refs/data/pending/.cleanup-hold until the next completed task
+ok - fm-teardown: PR and bead links survive, and dcg denial or unreadable references retain recovery
+task data reused: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-reuse/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-reuse/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: reusing a completed id keeps its earlier recovery's reference sources
+task data reused: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-expired-held/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-expired-held/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-expired-empty/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: both expiry transitions preserve earlier PR and bead sources
+task data finished: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-symlinks/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: linked symlinks preserve files, chains, directories and held targets
+task data finished: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-ancestor-alias-fixture/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: fixture ancestor aliases preserve owned targets and recovery paths through staging and expiry
+task data finished: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-ancestor-alias-macos/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: macos ancestor aliases preserve owned targets and recovery paths through staging and expiry
+task data reused: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-collision-data/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-collision-data/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-collision-temporary/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-collision-temporary/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: reused data and temporary scratch paths progress without overwriting either generation
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-replay-close/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-replay-retain/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: failed receipt writes preserve metadata and close/retain replay records retryable cleanup
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-forgejo/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-gerrit/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: GitLab, Forgejo and Gerrit references protect evidence during staging and expiry
+ok - fm-teardown: owned temporary and data scratch share guarded recovery, without touching unrelated or live paths
+task data finished: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-temporary-symlink/data/finished/.cleanup-hold until the next completed task
+task data finished: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-temporary-replaced/data/finished/.cleanup-hold until the next completed task
+task data finished: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-cleanup-test-tmp/fm-teardown-tests.UYVJ8A/task-data-temporary-live/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: temporary recovery refuses symlink escapes, replaced directories and newly live owners
+FM_TEST_END 2026-10-16T08:12:08Z tests/fm-teardown.test.sh exit=0 duration_ms=54342 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=54437
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=54342 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-teardown.test.sh duration_ms=54342
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M51QXPD56TVZ2QJZNGZSV4K4/targeted-task-data-timing.json

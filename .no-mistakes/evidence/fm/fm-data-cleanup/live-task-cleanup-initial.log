@@ -1,0 +1,96 @@
+Real Firstmate cleanup CLI; real git, br, glab and dcg. Synthetic MR data is served only on loopback; no production credentials are used.
+VERIFIED: home was minted by fm-lab-home.sh
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-remote-job-reap-orphans.sh --dry-run
+exit=0
+VERIFIED: no remote orphan worker would be touched
+Real executable git: /opt/homebrew/bin/git
+Real executable br: /Users/dalecarman/.local/bin/br
+Real executable glab: /opt/homebrew/bin/glab
+Real executable dcg: /Users/dalecarman/.local/bin/dcg
+Real executable tmux: /opt/homebrew/bin/tmux
+
+$ dcg --version
+
+  ╭─────────────────────────────────────────╮
+  │  🛡  Destructive Command Guard               │
+  │     dcg v0.4.2                           │
+  │                                         │
+  │  Built: 2026-10-06 00:06:26Z            │
+  │  Rustc: 1.100.0-nightly                 │
+  │  Target: aarch64-apple-darwin           │
+  │                                         │
+  │  Protecting your code from destructive ops  │
+  ╰─────────────────────────────────────────╯
+
+exit=0
+
+$ br create 'Disposable evidence' --description '[bead capture](bead-proof.bin)' --json
+{"id":"check-s3u","title":"Disposable evidence","description":"[bead capture](bead-proof.bin)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T08:16:48.565985Z","created_by":"dalecarman","updated_at":"2026-10-16T08:16:48.565985Z","source_repo":"sample","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample","compaction_level":0,"original_size":0}
+exit=0
+
+$ git clone -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/projects/sample /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/clone
+warning: You appear to have cloned an empty repository.
+exit=0
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh finished
+task data finished: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold until the next completed task
+teardown finished complete (window firstmate:fm-finished, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-finished)
+Backlog: finished just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move finished to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit=0
+VERIFIED: original is recoverable without byte changes: home/data/finished/.cleanup-hold/clone/build/large.bin
+VERIFIED: scratch left its original location: home/data/finished/clone/build/large.bin
+VERIFIED: original is recoverable without byte changes: home/data/finished/.cleanup-hold/oversized.log
+VERIFIED: scratch left its original location: home/data/finished/oversized.log
+VERIFIED: original is recoverable without byte changes: finished-proof/.cleanup-hold/discard.bin
+VERIFIED: scratch left its original location: finished-proof/discard.bin
+VERIFIED: original is recoverable without byte changes: recorded-tmp/.cleanup-hold/build.bin
+VERIFIED: scratch left its original location: recorded-tmp/build.bin
+VERIFIED: evidence remains in place: brief.md
+VERIFIED: evidence remains in place: report.md
+VERIFIED: evidence remains in place: review.txt
+VERIFIED: evidence remains in place: small-unlinked.json
+VERIFIED: evidence remains in place: record/status
+VERIFIED: evidence remains in place: pr-proof.png
+VERIFIED: evidence remains in place: comment-proof.bin
+VERIFIED: evidence remains in place: bead-proof.bin
+VERIFIED: evidence remains in place: status-proof.bin
+VERIFIED: aliased evidence reads after staging: latest.png
+VERIFIED: aliased evidence reads after staging: frames.png/frame.bin
+VERIFIED: aliased evidence reads after staging: chained.png
+VERIFIED: aliased evidence reads after staging: latest-data.png
+VERIFIED: unlinked evidence link starts in recovery
+VERIFIED: its unlinked target starts in temporary recovery
+VERIFIED: unrelated temporary bytes are unchanged
+VERIFIED: live-task temporary bytes are unchanged
+VERIFIED: task-shaped name without evidence is insufficient ownership
+VERIFIED: symlink escape target remains unchanged
+PASS: Finishing a task stages clone, large data and recorded temporary scratch with intact recovery; linked and bounded text evidence remains
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh outage-cycle
+teardown outage-cycle complete (window firstmate:fm-outage-cycle, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-outage-cycle)
+Backlog: outage-cycle just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move outage-cycle to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 9s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-task-data-lib.sh', 'references', 'https://localhost/team/repo/-/merge_requests/7']' returned non-zero exit status 1.
+warning: outage-cycle teardown completed, but task-data cleanup needs a retry
+exit=0
+VERIFIED: reference outage is reported by teardown
+VERIFIED: reference outage retains prior recovery
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/bin/fm-teardown.sh expiry-cycle
+teardown expiry-cycle complete (window firstmate:fm-expiry-cycle, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/missing-expiry-cycle)
+Backlog: expiry-cycle just finished (this home keeps no markdown backlog at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/backlog.md - move expiry-cycle to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home
+WARNING: watcher still down (same stale episode; last beat: 39s ago, grace 300s) - full banner already printed this episode.
+warning: task data retained for recovery: dcg refused cleanup: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by dcg\n\nTip: dcg explain \"rmdir -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/info /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git/hooks /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/build /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone/.git /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51QXPD56TVZ2QJZNGZSV4K4/.fm-live-task-data/home/data/finished/.cleanup-hold/clone\"\n\nReason: dcg could not finish evaluating this command within 200ms (spent 214ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging.\n\nExplanation: dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n             \n             Ways through, in order of preference:\n             - Split the command into smaller commands and run them separately.\n             - Approve this one command with the allow-once code below.\n             - Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.\n\nRule: core.limits:evaluation-timeout\n\nIf this is a false positive: dcg allow-once 99401\n\nIf this operation is truly needed, ask the user for explicit permission and have them run the command manually.","allowOnceCode":"99401","allowOnceFullHash":"06eeaa02ff38765e63c0b6709f69e720e00ffe40e114f6f50b7a5e25633f6689","ruleId":"core.limits:evaluation-timeout","packId":"core.limits","remediation":{"safeAlternative":"Use 'git clean -n' first to preview what would be deleted.","explanation":"dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n\nWays through, in order of preference:\n- Split the command into smaller commands and run them separately.\n- Approve this one command with the allow-once code below.\n- Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.","allowOnceCommand":"dcg allow-once 99401"}}}
+warning: expiry-cycle teardown completed, but task-data cleanup needs a retry
+exit=0
