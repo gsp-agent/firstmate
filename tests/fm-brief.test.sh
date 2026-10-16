@@ -1455,9 +1455,12 @@ test_branch_prefix_value_is_validated() {
 test_branch_prefix_command_is_shell_safe() {
   local home id prefix marker brief command repo
   home="$TMP_ROOT/branch-prefix-shell-safe-home"
-  marker="$TMP_ROOT/branch-prefix-shell-safe-marker"
+  repo="$TMP_ROOT/branch-prefix-shell-safe-repo"
+  marker="$repo/branch-prefix-shell-safe-marker"
   id='brief-branch-safe-g3'
-  prefix="\$(touch\${IFS}$marker)"
+  # Absolute fixture paths can contain dot-prefixed directories forbidden in refs.
+  # shellcheck disable=SC2016 # The prefix must contain literal command substitution.
+  prefix='$(touch${IFS}branch-prefix-shell-safe-marker)'
   mkdir -p "$home/data"
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode local-only --branch-prefix "$prefix" >/dev/null 2>&1 \
     || fail "a ref-format-valid metacharacter prefix should scaffold safely"
@@ -1465,7 +1468,6 @@ test_branch_prefix_command_is_shell_safe() {
   # shellcheck disable=SC2016 # The sed expression intentionally contains literal backticks.
   command=$(sed -n 's/^1\. First action: confirm you are on your branch: `\([^`]*\)`\..*$/\1/p' "$brief")
   [ -n "$command" ] || fail "generated brief exposed no branch check command"
-  repo="$TMP_ROOT/branch-prefix-shell-safe-repo"
   git init -q "$repo" || fail "could not initialize shell-safety fixture repository"
   ( cd "$repo" && git checkout -q -b "$prefix$id" ) || fail "could not create the literal configured branch"
   ( cd "$repo" && eval "$command" ) || fail "generated branch check failed on the literal configured branch"
