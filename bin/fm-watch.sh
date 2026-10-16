@@ -2639,7 +2639,7 @@ if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-
 fi
 
 # Finish only identity-bound retirement receipts before any check can run.
-if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; then
+if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh" 1; then
   reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
   fm_wake_append check pr-poll-retirement "$reason" || exit 1
   touch "$STATE/.last-check"
@@ -2651,7 +2651,7 @@ fi
 retire_merged_pr_poll() {  # <id>
   local id=$1
   if fm_pr_poll_retirement_publish "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" merged; then
-    fm_pr_poll_retirement_recover_one "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" \
+    fm_pr_poll_retirement_recover_one "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" 1 \
       || triage_log "merged PR poll retirement remains recoverable for $id"
   else
     triage_log "merged PR poll retirement deferred because its canonical snapshot changed for $id"
@@ -3027,7 +3027,7 @@ EOF
       # before this cycle retired a merged watch. Drop it after this pass so a
       # later cycle does not keep scanning a repository that no longer has one.
       FM_CHECK_UNBOUNDED=1 FM_PR_SWEEP_PAGE_TIMEOUT="$CHECK_TIMEOUT" \
-        FM_PR_SWEEP_REPOS="$sweep_repo_snapshot" \
+        FM_PR_SWEEP_REPOS="$sweep_repo_snapshot" FM_PR_SWEEP_BEAT="$BEAT" \
         run_check_capture "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --scan "$STATE" || exit 1
       sweep_repo_snapshot=
       sweep_raw=$FM_CHECK_RESULT
@@ -3056,6 +3056,11 @@ EOF
       done <<EOF
 $sweep_raw
 EOF
+      if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; then
+        reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
+        fm_wake_append check pr-poll-retirement "$reason" || exit 1
+        check_sweep_output="${check_sweep_output}${reason}"$'\n'
+      fi
     fi
     if [ -n "$rejected_checks" ]; then
       reason="check: rejected unauthenticated state checks:$rejected_checks"

@@ -942,19 +942,25 @@ fm_pr_poll_registration_rerecord_template() {  # <state> <id> <template>
 # registration still records the previous hash. This proves that is the only
 # difference. A check that is not the current template stays refused.
 fm_pr_poll_registration_template_hash_stale() {  # <state> <id> <template>
-  local state=$1 id=$2 template=$3 receipt data_identity check_identity current_hash
+  local state=$1 id=$2 template=$3 receipt data_identity check_identity current_hash state_device recorded_device
+  FM_PR_POLL_REARM_DATA_IDENTITY=
+  FM_PR_POLL_REARM_CHECK_IDENTITY=
   fm_pr_task_id_valid "$id" || return 1
   [ -f "$state/$id.pr-poll-registration" ] || return 1
   receipt="$state/$id.pr-poll-retirement"
   [ ! -e "$receipt" ] && [ ! -L "$receipt" ] || return 1
   fm_pr_poll_artifacts_content_valid "$state" "$id" "$template" current-template || return 1
+  state_device=$(fm_pr_file_device "$state") || return 1
   data_identity=$(fm_pr_file_identity "$state/$id.pr-poll") || return 1
   check_identity=$(fm_pr_file_identity "$state/$id.check.sh") || return 1
-  [ "$FM_PR_REG_DATA_IDENTITY" = "$data_identity" ] || return 1
-  [ "$FM_PR_REG_CHECK_IDENTITY" = "$check_identity" ] || return 1
+  recorded_device=${FM_PR_REG_DATA_IDENTITY%%:*}
+  [ "${FM_PR_REG_CHECK_IDENTITY%%:*}" = "$recorded_device" ] || return 1
+  [ "$data_identity" = "$state_device:${FM_PR_REG_DATA_IDENTITY#*:}" ] || return 1
+  [ "$check_identity" = "$state_device:${FM_PR_REG_CHECK_IDENTITY#*:}" ] || return 1
   current_hash=$(fm_pr_sha256 "$template") || return 1
   [ "$current_hash" != "$FM_PR_REG_TEMPLATE_HASH" ] || return 1
-  return 0
+  FM_PR_POLL_REARM_DATA_IDENTITY=$data_identity
+  FM_PR_POLL_REARM_CHECK_IDENTITY=$check_identity
 }
 
 # Rewrite a stalled template registration
@@ -975,8 +981,8 @@ fm_pr_poll_registration_rerecord_template_hash() {  # <state> <id> <template>
   path=$FM_PR_REG_PATH
   number=$FM_PR_REG_NUMBER
   data_hash=$FM_PR_REG_DATA_HASH
-  data_identity=$FM_PR_REG_DATA_IDENTITY
-  check_identity=$FM_PR_REG_CHECK_IDENTITY
+  data_identity=$FM_PR_POLL_REARM_DATA_IDENTITY
+  check_identity=$FM_PR_POLL_REARM_CHECK_IDENTITY
   template_hash=$(fm_pr_sha256 "$template") || return 1
   state_device=$(fm_pr_file_device "$state") || return 1
   reg_hash=$(fm_pr_sha256 "$registration") || return 1
@@ -995,8 +1001,8 @@ fm_pr_poll_registration_rerecord_template_hash() {  # <state> <id> <template>
     || [ "$FM_PR_REG_DATA_IDENTITY" != "$data_identity" ] \
     || [ "$FM_PR_REG_CHECK_IDENTITY" != "$check_identity" ] \
     || ! fm_pr_poll_registration_template_hash_stale "$state" "$id" "$template" \
-    || [ "$FM_PR_REG_DATA_IDENTITY" != "$data_identity" ] \
-    || [ "$FM_PR_REG_CHECK_IDENTITY" != "$check_identity" ] \
+    || [ "$FM_PR_POLL_REARM_DATA_IDENTITY" != "$data_identity" ] \
+    || [ "$FM_PR_POLL_REARM_CHECK_IDENTITY" != "$check_identity" ] \
     || [ "$(fm_pr_sha256 "$state/$id.check.sh")" != "$template_hash" ] \
     || [ "$(fm_pr_file_identity "$state/$id.check.sh")" != "$check_identity" ] \
     || [ "$(fm_pr_sha256 "$registration")" != "$reg_hash" ] \
@@ -1739,7 +1745,7 @@ fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
 
 fm_pr_poll_retirement_recover_one() {
   local state=$1 id=$2 template=$3 receipt state_device check data registration
-  local receipt_hash receipt_identity
+  local receipt_hash receipt_identity defer_sidecar=${4:-0}
   fm_pr_task_id_valid "$id" || return 1
   receipt="$state/$id.pr-poll-retirement"
   if [ ! -e "$receipt" ] && [ ! -L "$receipt" ]; then
@@ -1764,6 +1770,7 @@ fm_pr_poll_retirement_recover_one() {
     fm_pr_poll_retirement_remove_exact "$registration" "$state_device" \
       "$FM_PR_RETIRE_REG_IDENTITY" "$FM_PR_RETIRE_REG_HASH" || return 1
   fi
+  [ "$defer_sidecar" != 1 ] || return 0
   if [ -e "$data" ] || [ -L "$data" ]; then
     fm_pr_poll_retirement_remove_exact "$data" "$state_device" \
       "$FM_PR_RETIRE_DATA_IDENTITY" "$FM_PR_RETIRE_DATA_HASH" || return 1
@@ -1777,13 +1784,13 @@ fm_pr_poll_retirement_recover_one() {
 }
 
 fm_pr_poll_retirement_recover_all() {
-  local state=$1 template=$2 receipt id
+  local state=$1 template=$2 receipt id defer_sidecar=${3:-0}
   FM_PR_POLL_RETIREMENT_REJECTED=
   for receipt in "$state"/*.pr-poll-retirement; do
     [ -e "$receipt" ] || [ -L "$receipt" ] || continue
     id=$(basename "$receipt" .pr-poll-retirement)
     if ! fm_pr_task_id_valid "$id" \
-      || ! fm_pr_poll_retirement_recover_one "$state" "$id" "$template"; then
+      || ! fm_pr_poll_retirement_recover_one "$state" "$id" "$template" "$defer_sidecar"; then
       FM_PR_POLL_RETIREMENT_REJECTED="$FM_PR_POLL_RETIREMENT_REJECTED $receipt"
     fi
   done

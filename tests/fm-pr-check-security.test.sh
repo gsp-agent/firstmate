@@ -148,7 +148,6 @@ case "${1:-} ${2:-}" in
     case " $* " in
       *pullRequests*)
         [ "${FM_TEST_GH_SWEEP_FAIL:-0}" = 0 ] || exit 1
-        [ "${FM_TEST_GH_SWEEP_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GH_SWEEP_SLEEP"
         request_host=github.com
         cursor=null
         jq_filter=
@@ -165,6 +164,11 @@ case "${1:-} ${2:-}" in
         done
         [ "$request_host" = github.com ] || exit 1
         [ -n "$jq_filter" ] || exit 1
+        if [ "$cursor" = page6 ] && [ -n "${FM_TEST_GH_SWEEP_REARM:-}" ]; then
+          "$FM_TEST_GH_SWEEP_REARM" > "$FM_TEST_GH_SWEEP_DIR/rearm.out" \
+            2> "$FM_TEST_GH_SWEEP_DIR/rearm.err" || exit 1
+        fi
+        [ "${FM_TEST_GH_SWEEP_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GH_SWEEP_SLEEP"
         if [ -z "${FM_TEST_GH_SWEEP_DIR:-}" ]; then
           printf '%s\n' '{"data":{"repository":{"pullRequests":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}}}' \
             | "$FM_TEST_REAL_JQ" -r "$jq_filter"
@@ -2858,7 +2862,8 @@ test_retirement_crash_recovery() {
   set -e
   [ "$rc" -eq 0 ] || fail "template-update recovery watcher failed: $(cat "$dir/restart.err")"
   case "$(cat "$dir/restart.out")" in check:*z-stop.check.sh:*stop-cycle) ;; *) fail "template-update recovery did not reach the control check" ;; esac
-  [ ! -s "$dir/gh.log" ] || fail "template-update migration rebuilt and queried the retired poll"
+  ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+    || fail "template-update migration rebuilt and queried the retired poll"
   ! grep "$(printf '\tcheck\ttask-a.check.sh\t')" "$state/.wake-queue" >/dev/null 2>&1 \
     || fail "template-update recovery left the handled terminal wake queued"
   assert_poll_absent "$state" task-a
@@ -4416,36 +4421,76 @@ test_tampered_check_stays_rejected() {
 }
 
 test_interrupted_template_upgrade_finishes_on_the_next_poll() {
-  local dir state url check_identity rc
+  local dir state url check_identity rc device
   local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
   url=https://github.com/o/r/pull/1
-  dir=$(make_case interrupted-template-upgrade)
-  state="$dir/home/state"
-  arm_previous_template_poll "$dir" "$url"
-  check_identity=$(fm_pr_file_identity "$state/task-a.check.sh")
-  cat "$POLL" > "$state/task-a.check.sh"
-  [ "$(fm_pr_file_identity "$state/task-a.check.sh")" = "$check_identity" ] \
-    || fail "interrupted upgrade fixture replaced the check file"
-  cmp -s "$POLL" "$state/task-a.check.sh" \
-    || fail "interrupted upgrade fixture did not leave the current template in place"
-  ! fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
-    || fail "interrupted upgrade fixture was already valid"
-  retire_contributions_observer "$dir"
-  add_stop_custom_check "$dir"
-  set +e
-  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
-    FM_TEST_GH_POLL_REASON=failed_checks \
-    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
-  rc=$?
-  set -e
-  [ "$rc" -eq 0 ] || fail "interrupted-template watcher failed: $(cat "$dir/watch.err")"
-  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
-    || fail "interrupted template upgrade did not wake on the dequeue: $(cat "$dir/watch.out")"
-  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
-    || fail "interrupted template upgrade did not finish the registration"
-  [ "$(fm_pr_file_identity "$state/task-a.check.sh")" = "$check_identity" ] \
-    || fail "interrupted template upgrade replaced the check file"
-  pass "a template upgrade interrupted after the check rewrite finishes on the next poll"
+  for device in unchanged renumbered; do
+    dir=$(make_case "interrupted-template-upgrade-$device")
+    state="$dir/home/state"
+    arm_previous_template_poll "$dir" "$url"
+    [ "$device" = unchanged ] || shift_registration_device "$state" task-a
+    check_identity=$(fm_pr_file_identity "$state/task-a.check.sh")
+    cat "$POLL" > "$state/task-a.check.sh"
+    [ "$(fm_pr_file_identity "$state/task-a.check.sh")" = "$check_identity" ] \
+      || fail "interrupted upgrade fixture replaced the check file"
+    cmp -s "$POLL" "$state/task-a.check.sh" \
+      || fail "interrupted upgrade fixture did not leave the current template in place"
+    ! fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+      || fail "interrupted upgrade fixture was already valid"
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    set +e
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+      FM_TEST_GH_POLL_REASON=failed_checks \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+    rc=$?
+    set -e
+    [ "$rc" -eq 0 ] || fail "interrupted-template watcher failed: $(cat "$dir/watch.err")"
+    [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+      || fail "interrupted template upgrade did not wake on the dequeue: $(cat "$dir/watch.out")"
+    fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+      || fail "interrupted template upgrade did not finish the registration"
+    [ "$(fm_pr_file_identity "$state/task-a.check.sh")" = "$check_identity" ] \
+      || fail "interrupted template upgrade replaced the check file"
+    ack_watcher_cycle "$state" || fail "interrupted upgrade acknowledgement failed"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/merged.out" 2> "$dir/merged.err" \
+      || fail "recovered template watch stopped polling: $(cat "$dir/merged.err")"
+    grep -F 'task-a.check.sh: merged' "$dir/merged.out" >/dev/null \
+      || fail "recovered template watch missed its merge: $(cat "$dir/merged.out")"
+    assert_poll_absent "$state" task-a
+  done
+  pass "an interrupted template upgrade keeps polling with unchanged or renumbered devices"
+}
+
+test_interrupted_template_upgrade_refuses_replaced_artifacts() {
+  local dir state artifact registration_hash check_hash
+  for artifact in task-a.check.sh task-a.pr-poll; do
+    dir=$(make_case "interrupted-template-replaced-$artifact")
+    state="$dir/home/state"
+    arm_previous_template_poll "$dir" https://github.com/o/r/pull/1
+    shift_registration_device "$state" task-a
+    cat "$POLL" > "$state/task-a.check.sh"
+    cp "$state/$artifact" "$dir/replacement"
+    chmod 0600 "$dir/replacement"
+    mv -f "$dir/replacement" "$state/$artifact"
+    registration_hash=$(fm_pr_sha256 "$state/task-a.pr-poll-registration")
+    check_hash=$(fm_pr_sha256 "$state/task-a.check.sh")
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "replaced interrupted upgrade failed: $(cat "$dir/watch.err")"
+    grep -F 'rejected unauthenticated state checks:' "$dir/watch.out" >/dev/null \
+      || fail "interrupted upgrade accepted a replaced $artifact: $(cat "$dir/watch.out")"
+    [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_hash" ] \
+      || fail "replaced artifact registration was rewritten"
+    [ "$(fm_pr_sha256 "$state/task-a.check.sh")" = "$check_hash" ] \
+      || fail "replaced artifact check was rewritten"
+    ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+      || fail "replaced artifact was polled"
+  done
+  pass "interrupted template recovery refuses a replaced check or sidecar"
 }
 
 test_old_template_and_renumber_are_both_recovered() {
@@ -4538,6 +4583,37 @@ test_sweep_page_deadline_reports_every_removal() {
   pass "each sweep page has its own deadline, so a longer scan still reports every removal"
 }
 
+test_progressing_sweep_survives_rearm_past_stall_bound() {
+  local dir state page started
+  dir=$(make_case sweep-progress-liveness)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  for page in 1 2 3 4 5; do
+    write_slow_sweep_page "$dir" "page$page" "$((page+1))" true "page$((page+1))"
+  done
+  write_slow_sweep_page "$dir" page6 7 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  started=$(date +%s)
+  FM_WATCHER_STALE_GRACE=3 FM_WATCHER_STALL_BOUND=3 \
+    FM_TEST_CHECK_TIMEOUT=3 FM_TEST_GH_SWEEP_SLEEP=1 FM_TEST_GH_SWEEP_REARM="$WATCH" \
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "progressing scan was interrupted: $(cat "$dir/watch.err")"
+  [ "$(( $(date +%s) - started ))" -gt 3 ] || fail "the sweep did not cross its stall bound"
+  grep -F 'watcher: already running pid ' "$dir/sweep/rearm.out" >/dev/null \
+    || fail "rearm evicted the progressing scan: $(cat "$dir/sweep/rearm.out")"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "progressing sweep drain failed"
+  for page in 2 3 4 5 6 7; do
+    [ "$(grep -Fc "dequeued https://github.com/o/r/pull/$page reason=failed_checks" "$dir/drain.out")" -eq 1 ] \
+      || fail "the long sweep lost pull $page: $(cat "$dir/drain.out")"
+  done
+  pass "real page progress keeps a long sweep alive through a concurrent rearm"
+}
+
 test_merged_only_watch_still_sweeps_its_repo() {
   local dir state
   dir=$(make_case merged-watch-still-sweeps)
@@ -4554,6 +4630,42 @@ test_merged_only_watch_still_sweeps_its_repo() {
   [ "$(grep -Fxc "check: $ROOT/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/2 reason=failed_checks" "$dir/watch.out")" -eq 1 ] \
     || fail "a repo whose only armed pull request merged was not swept: $(cat "$dir/watch.out")"
   pass "a repository is swept after its only armed pull request merges"
+}
+
+test_recovered_merged_watch_still_sweeps_its_repo() {
+  local dir state
+  dir=$(make_case recovered-merged-watch-still-sweeps)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_slow_sweep_page "$dir" page1 2 false ""
+  fm_pr_poll_snapshot_capture "$state" task-a "$POLL" || fail "could not snapshot the merged watch"
+  fm_pr_poll_retirement_publish "$state" task-a "$POLL" merged || fail "could not publish the retirement receipt"
+  (
+    export FM_STATE_OVERRIDE="$state" FM_HOME="$dir/home"
+    . "$ROOT/bin/fm-wake-lib.sh"
+    fm_wake_append check "$state/task-a.check.sh" "check: $state/task-a.check.sh: merged"
+  ) || fail "could not queue the merged wake"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/recovery.out" 2> "$dir/recovery.err" \
+    || fail "receipt recovery failed: $(cat "$dir/recovery.err")"
+  grep -F 'check: rearm-resurface' "$dir/recovery.out" >/dev/null \
+    || fail "receipt recovery did not resurface its queued wake"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+    || fail "receipt recovery lost the repository before its sweep"
+  [ ! -e "$state/task-a.check.sh" ] || fail "receipt recovery left a merged poll runnable"
+  ack_watcher_cycle "$state" || fail "recovered merge acknowledgement failed"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "post-recovery sweep failed: $(cat "$dir/watch.err")"
+  assert_poll_absent "$state" task-a
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "post-recovery sweep drain failed"
+  [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+    || fail "receipt recovery lost the dropped pull request: $(cat "$dir/drain.out")"
+  pass "a recovered merged watch retains its repository through the first completed sweep"
 }
 
 test_parser_matrix
@@ -4599,9 +4711,12 @@ test_open_queue_sweep_exhausts_pages
 test_old_template_watch_polls_after_upgrade
 test_tampered_check_stays_rejected
 test_interrupted_template_upgrade_finishes_on_the_next_poll
+test_interrupted_template_upgrade_refuses_replaced_artifacts
 test_old_template_and_renumber_are_both_recovered
 test_sweep_page_deadline_reports_every_removal
+test_progressing_sweep_survives_rearm_past_stall_bound
 test_merged_only_watch_still_sweeps_its_repo
+test_recovered_merged_watch_still_sweeps_its_repo
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations

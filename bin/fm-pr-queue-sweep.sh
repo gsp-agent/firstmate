@@ -326,6 +326,7 @@ EOF
       true|false) ;;
       *) return 1 ;;
     esac
+    [ -z "${FM_PR_SWEEP_BEAT:-}" ] || touch "$FM_PR_SWEEP_BEAT"
     if [ "$more" = false ]; then
       printf '%s' "$collected"
       return 0
@@ -356,7 +357,8 @@ sweep_scan() {
     [ -n "$key" ] || continue
     owner=${key%%/*}
     repo=${key#*/}
-    repo_out=$(sweep_one_repo "$owner" "$repo") || continue
+    repo_out=$(sweep_one_repo "$owner" "$repo") || repo_out=
+    [ -z "${FM_PR_SWEEP_BEAT:-}" ] || touch "$FM_PR_SWEEP_BEAT"
     [ -z "$repo_out" ] || printf '%s\n' "$repo_out"
   done <<EOF
 $sweep_repos
