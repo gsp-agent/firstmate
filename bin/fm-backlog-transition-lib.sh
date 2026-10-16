@@ -868,13 +868,12 @@ fm_backlog_retain_transition() {
 }
 
 fm_backlog_retire_task_record() {
-  local meta=$1 data=$2 id=$3 state=$4 helper kind tasktmp
+  local meta=$1 data=$2 id=$3 state=$4 helper kind
   if [ -e "$meta" ] || [ -L "$meta" ]; then
     fm_backlog_record_present "$meta" "task record" "$state" || return 1
     [ "$meta" = "$state/$id.meta" ] || return 1
     kind=$(sed -n 's/^kind=//p' "$meta" | tail -1)
-    tasktmp=$(sed -n 's/^tasktmp=//p' "$meta" | tail -1)
-    if [ "$kind" != secondmate ] && { [ -e "$data/$id" ] || [ -L "$data/$id" ] || [ -n "$tasktmp" ]; }; then
+    if [ "$kind" != secondmate ] && { [ -e "$data/$id" ] || [ -L "$data/$id" ]; }; then
       helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
       if ! python3 "$helper" prepare "$data" "$state" "$id"; then
         FM_BACKLOG_TRANSITION_ERROR="task-data cleanup could not be recorded for $id"

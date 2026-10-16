@@ -17,7 +17,7 @@ through fm-task-data-lib.sh, and beads named in retained task evidence through b
 Unavailable references retain all data for retry.
 Paths mentioned in these sources or retained evidence override the size/type
 limit. Matching a basename conservatively also retains ambiguous references.
-Retained symlinks protect targets within validated task/temporary roots, including
+Retained symlinks protect targets within the validated task directory, including
 through ancestor aliases such as macOS /tmp -> /private/tmp, without widening those roots.
 
 Scratch moves to DATA/ID/.cleanup-hold with its relative paths intact; no bytes
@@ -25,17 +25,10 @@ are copied. record/data-cleanup.json records the recovery, not a second task
 record. The next successful teardown of a DIFFERENT task expires the hold, after
 refreshing references and restoring newly linked files to their original paths.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
-<relative-path> under the same original directory (DATA/ID or a recorded temporary
-directory). Never overwrite a new file at that path.
+DATA/ID/<relative-path>. Never overwrite a new file at that path.
 An interrupted move resumes at the next cycle and receives a full new cycle.
 Repeated staging never expires its own hold. Active task ids are skipped.
 Reusing a finished id retains the reference sources of its earlier recovery.
-Temporary directories require a task/bead name and an absolute reference in task
-evidence, or the task's recorded tasktmp path. Named scratch must be an immediate
-TMPDIR child; recorded tasktmp must be below TMPDIR or the spawn-owned /tmp/fm-ID.
-Only directories owned by this user qualify; live-task paths and symlinks never qualify.
-Their scratch stays in each original directory's .cleanup-hold, with absolute
-original paths recorded in the same receipt for recovery and later expiry.
 
 Expiry checks each exact, nonrecursive rm/rmdir command through dcg's Bash hook
 before executing it. A denial, unknown response, missing dcg, or command failure
@@ -201,58 +194,6 @@ def symlink_targets(views, text):
     return targets
 
 
-def temporary_directories(root, state, task_id, text, tasktmp=""):
-    supplied_base = Path(os.environ.get("TMPDIR") or tempfile.gettempdir())
-    base = real_directory(supplied_base.resolve())
-    names = {task_id}
-    names.update(re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", text))
-    names.update(name.rsplit("-", 1)[-1] for name in tuple(names))
-    paths = list(base.iterdir())
-    if tasktmp:
-        recorded = Path(tasktmp)
-        if recorded.is_absolute() and recorded.exists() and not recorded.is_symlink():
-            default = Path(f"/tmp/fm-{task_id}").resolve()
-            if recorded == Path(f"/tmp/fm-{task_id}"):
-                recorded = default
-            recorded = real_directory(recorded)
-            if recorded not in paths and (base in recorded.parents or recorded == default):
-                paths.append(recorded)
-    result = []
-    for path in paths:
-        named = any(path.name == name or path.name.startswith(tuple(name + sep for sep in "-._"))
-                    for name in names)
-        recorded = bool(tasktmp) and path == Path(tasktmp).resolve()
-        mentioned = str(path) in text or str(supplied_base / path.name) in text
-        if not recorded and not (named and mentioned):
-            continue
-        if temporary_live(path, state, task_id):
-            continue
-        if (path == root or path in root.parents or root in path.parents
-                or path == state or path in state.parents or state in path.parents
-                or path.is_symlink() or not path.is_dir() or path.stat().st_uid != os.getuid()):
-            continue
-        real_directory(path)
-        info = path.stat()
-        result.append({"path": str(path), "device": info.st_dev, "inode": info.st_ino})
-    return result
-
-
-def temporary_live(path, state, task_id):
-    for meta in state.glob("*.meta"):
-        if meta.name == f"{task_id}.meta":
-            continue
-        values = dict(line.split("=", 1) for line in meta.read_text().splitlines() if "=" in line)
-        original = values.get("tasktmp", "")
-        for name in (meta.stem, meta.stem.rsplit("-", 1)[-1]):
-            if path.name == name or path.name.startswith(tuple(name + sep for sep in "-._")):
-                return True
-        if original:
-            other = Path(original).resolve()
-            if path == other or path in other.parents or other in path.parents:
-                return True
-    return False
-
-
 def safe_parent(root, relative):
     parent = root
     for part in relative.parts[:-1]:
@@ -317,25 +258,18 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         raise ValueError("invalid task id")
     data, state = real_directory(data), real_directory(state)
     meta = state / f"{task_id}.meta"
-    tasktmp = ""
     if action == "prepare":
         if meta.is_symlink() or not meta.is_file():
             raise ValueError("missing or unsafe retiring task record")
         values = dict(line.split("=", 1) for line in meta.read_text().splitlines() if "=" in line)
         if values.get("kind") == "secondmate":
             return
-        project, pr, tasktmp = (values.get(key, "") for key in ("project", "pr", "tasktmp"))
+        project, pr = (values.get(key, "") for key in ("project", "pr"))
     elif meta.exists() or meta.is_symlink():
         raise ValueError(f"task is still live: {task_id}")
     root = data / task_id
-    temporary = []
     if not root.exists() and not root.is_symlink():
-        if action == "expire":
-            return
-        temporary = temporary_directories(root, state, task_id, "", tasktmp)
-        if not temporary:
-            return
-        root.mkdir()
+        return
     root = real_directory(root)
     receipt = root / RECEIPT
     if receipt.parent.is_symlink() or (receipt.parent.exists() and not receipt.parent.is_dir()):
@@ -350,18 +284,13 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                 or record.get("task") != task_id
                 or not isinstance(record.get("complete"), bool)
                 or not isinstance(record.get("sources"), list) or not record["sources"]
-                or not isinstance(record.get("expired", False), bool)
-                or not isinstance(record.get("temporary", []), list)):
+                or not isinstance(record.get("expired", False), bool)):
             raise ValueError("invalid cleanup record")
         for source in record["sources"]:
             if (not isinstance(source, dict) or not isinstance(source.get("project"), str)
                     or not isinstance(source.get("pr"), str) or not isinstance(source.get("beads"), list)
                     or any(not isinstance(bead, str) for bead in source["beads"])):
                 raise ValueError("invalid reference source")
-        for item in record.get("temporary", []):
-            if (not isinstance(item, dict) or not isinstance(item.get("path"), str)
-                    or not isinstance(item.get("device"), int) or not isinstance(item.get("inode"), int)):
-                raise ValueError("invalid temporary recovery")
         if action == "expire" and record.get("expired"):
             return
     elif action == "expire":
@@ -376,7 +305,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if record is None:
         record = {"version": 1, "task": task_id, "sources": [], "complete": False}
     if record.get("expired"):
-        record.update(complete=False, expired=False, temporary=[])
+        record.update(complete=False, expired=False)
     if action in ("prepare", "stage"):
         source = next((item for item in record["sources"]
                        if item["project"] == project and item["pr"] == pr), None)
@@ -385,36 +314,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         record["sources"].append(source or {"project": project, "pr": pr, "beads": []})
         record["sources"][-1]["beads"] = sorted(set(record["sources"][-1]["beads"]) | set(
             re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", local)))
-        temporary += temporary_directories(root, state, task_id, local, tasktmp)
-        known = {item["path"]: item for item in record.get("temporary", [])}
-        for item in temporary:
-            if item["path"] not in known:
-                path = Path(item["path"]) / HOLD
-                if path.exists() or path.is_symlink():
-                    raise ValueError(f"unowned temporary recovery: {path}")
-                known[item["path"]] = item
-        record["temporary"] = list(known.values())
     views = [(root, files, repos)]
-    base = real_directory(Path(os.environ.get("TMPDIR") or tempfile.gettempdir()).resolve())
-    for item in record.get("temporary", []):
-        path = Path(item["path"])
-        if ((base not in path.parents and path != Path(f"/tmp/fm-{task_id}").resolve())
-                or path == root or path in root.parents or root in path.parents
-                or path == state or path in state.parents or state in path.parents):
-            raise ValueError("temporary recovery escapes its root")
-        if not path.exists() and not path.is_symlink():
-            continue
-        path = real_directory(path)
-        info = path.stat()
-        if (info.st_uid != os.getuid() or (info.st_dev, info.st_ino) != (item["device"], item["inode"])):
-            raise ValueError(f"temporary recovery directory changed: {path}")
-        if temporary_live(path, state, task_id):
-            raise ValueError(f"temporary recovery belongs to a live task: {path}")
-        recovery = path / HOLD
-        if recovery.is_symlink() or (recovery.exists() and not recovery.is_dir()):
-            raise ValueError(f"unsafe temporary recovery: {recovery}")
-        leaves, _, nested_repos = inventory(path)
-        views.append((path, leaves, nested_repos))
     write_record(root, record)
     if action == "prepare":
         return
@@ -451,9 +351,6 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                     remove.append(rel)
             remove_entries(recovery, remove, held_dirs)
             guard_command(["rmdir", "--", str(recovery)])
-            if path != root and not any(path.iterdir()):
-                guard_command(["rmdir", "--", str(path)])
-                record["temporary"] = [item for item in record.get("temporary", []) if item["path"] != str(path)]
         if not any(leaves for _, leaves in scratch):
             record["expired"] = True
             write_record(root, record)

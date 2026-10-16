@@ -102,7 +102,7 @@ Untracked files and directories whose names begin with `scratchpad` are also git
 
 - `bin/fm-spawn.sh` owns the base task-metadata fields it emits, while the runtime-backend section below owns backend-specific fields and selector interpretation.
 
-- After ship or scout retirement, [`bin/fm-task-data.py`'s header and `--help`](../bin/fm-task-data.py) own automatic clone/scratch pruning, evidence retention, temporary-directory eligibility, one-cycle recovery, and guarded expiry.
+- After ship or scout retirement, [`bin/fm-task-data.py`'s header and `--help`](../bin/fm-task-data.py) own automatic clone/scratch pruning, evidence retention, one-cycle recovery, and guarded expiry.
 
 - `bin/fm-contributions.sh` owns durable published-contribution records under each task, observation bounds, equivalent triage-label configuration, and the authenticated contribution check.
 

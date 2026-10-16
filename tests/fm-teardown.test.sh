@@ -5675,14 +5675,13 @@ SH
 }
 
 test_task_data_symlink_ancestor_aliases() {
-  local helper=$1 case_dir task physical alias_root temporary variant
+  local helper=$1 case_dir task physical alias_root captures variant data
   for variant in fixture macos; do
     if [ "$variant" = macos ] && [ "$(cd -P /tmp && pwd -P)" != /private/tmp ]; then
       pass "skip: macOS /tmp ancestor alias is not present on this host"
       continue
     fi
     case_dir=$(make_case "task-data-ancestor-alias-$variant")
-    task="$case_dir/data/finished"
     if [ "$variant" = macos ]; then
       physical=$(TMPDIR=/tmp fm_test_tmproot fm-task-data-alias)
       alias_root="/tmp/${physical##*/}"
@@ -5693,25 +5692,26 @@ test_task_data_symlink_ancestor_aliases() {
       ln -s "$physical" "$case_dir/alias-bridge"
       ln -s "$case_dir/alias-bridge" "$alias_root"
     fi
-    temporary="$physical/tmp/finished-proof"
-    mkdir -p "$task" "$temporary/frames" "$temporary/later-frames" "$case_dir/outside"
-    printf 'Temporary scratch: %s\n' "$temporary" > "$task/report.md"
-    printf 'capture\n' > "$temporary/capture.bin"
-    printf 'frame\n' > "$temporary/frames/frame.bin"
-    printf 'chain\n' > "$temporary/chain.bin"
-    printf 'later capture\n' > "$temporary/later.bin"
-    printf 'later frame\n' > "$temporary/later-frames/later-frame.bin"
-    printf 'discard\n' > "$temporary/discard.bin"
+    data="$physical/data"
+    task="$data/finished"
+    captures="$task/captures"
+    mkdir -p "$captures/frames" "$captures/later-frames" "$case_dir/outside"
+    printf 'capture\n' > "$captures/capture.bin"
+    printf 'frame\n' > "$captures/frames/frame.bin"
+    printf 'chain\n' > "$captures/chain.bin"
+    printf 'later capture\n' > "$captures/later.bin"
+    printf 'later frame\n' > "$captures/later-frames/later-frame.bin"
+    printf 'discard\n' > "$captures/discard.bin"
     printf 'data capture\n' > "$task/data.bin"
     printf 'data discard\n' > "$task/discard-data.bin"
     printf 'outside\n' > "$case_dir/outside/outside.bin"
-    ln -s chain.bin "$temporary/bridge.bin"
-    ln -s "$alias_root/tmp/finished-proof/capture.bin" "$task/latest.png"
-    ln -s "$alias_root/tmp/finished-proof/frames" "$task/frames.png"
-    ln -s "$alias_root/tmp/finished-proof/bridge.bin" "$task/chained.png"
-    ln -s "$alias_root/tmp/finished-proof/later.bin" "$task/saved.png"
-    ln -s "$alias_root/tmp/finished-proof/later-frames" "$task/saved-frames.png"
-    ln -s "$case_dir/data" "$case_dir/data-alias"
+    ln -s chain.bin "$captures/bridge.bin"
+    ln -s "$alias_root/data/finished/captures/capture.bin" "$task/latest.png"
+    ln -s "$alias_root/data/finished/captures/frames" "$task/frames.png"
+    ln -s "$alias_root/data/finished/captures/bridge.bin" "$task/chained.png"
+    ln -s "$alias_root/data/finished/captures/later.bin" "$task/saved.png"
+    ln -s "$alias_root/data/finished/captures/later-frames" "$task/saved-frames.png"
+    ln -s "$data" "$case_dir/data-alias"
     ln -s "$case_dir/data-alias/finished/data.bin" "$task/latest-data.png"
     ln -s "$case_dir/outside" "$case_dir/outside-alias"
     ln -s "$case_dir/outside-alias/outside.bin" "$task/escape.png"
@@ -5724,26 +5724,26 @@ SH
 printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png)\n'
 SH
     chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
-    TMPDIR="$physical/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
-      "$case_dir/data" "$case_dir/state" finished "$case_dir/project" https://github.com/test/repo/pull/1 \
+    PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+      "$data" "$case_dir/state" finished "$case_dir/project" https://github.com/test/repo/pull/1 \
       || fail "$variant alias staging failed"
-    [ "$(cat "$task/latest.png")" = capture ] || fail "$variant aliased temporary link lost its target during staging"
+    [ "$(cat "$task/latest.png")" = capture ] || fail "$variant aliased data link lost its target during staging"
     [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "$variant aliased directory lost its contents during staging"
     [ "$(cat "$task/chained.png")" = chain ] || fail "$variant aliased target lost an intermediate symlink"
-    [ -L "$temporary/bridge.bin" ] || fail "$variant owned intermediate symlink was staged"
+    [ -L "$captures/bridge.bin" ] || fail "$variant owned intermediate symlink was staged"
     [ "$(cat "$task/latest-data.png")" = 'data capture' ] || fail "$variant aliased data link lost its target"
-    assert_present "$temporary/.cleanup-hold/later.bin" "$variant unlinked temporary target did not stage"
-    assert_present "$temporary/.cleanup-hold/later-frames/later-frame.bin" "$variant unlinked directory did not stage"
+    assert_present "$task/.cleanup-hold/captures/later.bin" "$variant unlinked data target did not stage"
+    assert_present "$task/.cleanup-hold/captures/later-frames/later-frame.bin" "$variant unlinked directory did not stage"
     [ -L "$task/.cleanup-hold/saved.png" ] || fail "$variant unlinked image did not stage"
     [ -L "$task/.cleanup-hold/saved-frames.png" ] || fail "$variant unlinked directory link did not stage"
-    assert_present "$temporary/.cleanup-hold/discard.bin" "$variant unrelated scratch did not stage"
+    assert_present "$task/.cleanup-hold/captures/discard.bin" "$variant unrelated scratch did not stage"
     [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "$variant alias cleanup escaped its owned roots"
     cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
 printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png) [saved](saved.png) [saved frames](saved-frames.png)\n'
 SH
-    TMPDIR="$physical/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
-      "$case_dir/data" "$case_dir/state" finished || fail "$variant alias expiry failed"
+    PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+      "$data" "$case_dir/state" finished || fail "$variant alias expiry failed"
     [ "$(cat "$task/latest.png")" = capture ] || fail "$variant alias expiry deleted the linked capture"
     [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "$variant alias expiry deleted linked directory contents"
     [ "$(cat "$task/chained.png")" = chain ] || fail "$variant alias expiry broke the symlink chain"
@@ -5751,64 +5751,47 @@ SH
     [ "$(cat "$task/saved.png")" = 'later capture' ] || fail "$variant alias expiry did not restore the held target"
     [ "$(cat "$task/saved-frames.png/later-frame.bin")" = 'later frame' ] || fail "$variant alias expiry did not restore held directory contents"
     [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "$variant alias expiry escaped its owned roots"
-    assert_absent "$temporary/.cleanup-hold" "$variant alias temporary recovery remains"
     assert_absent "$task/.cleanup-hold" "$variant alias data recovery remains"
-    assert_absent "$temporary/discard.bin" "$variant alias lookup retained unlinked scratch"
+    assert_absent "$captures/discard.bin" "$variant alias lookup retained unlinked scratch"
     assert_absent "$task/discard-data.bin" "$variant alias lookup retained unlinked data"
     pass "fm-teardown: $variant ancestor aliases preserve owned targets and recovery paths through staging and expiry"
   done
 }
 
 test_task_data_collision_progress() {
-  local case_dir task helper scratch variant
+  local case_dir task helper scratch
   helper="$ROOT/bin/fm-task-data.py"
-  for variant in data temporary; do
-    case_dir=$(make_case "task-data-collision-$variant")
-    task="$case_dir/data/reused"
-    mkdir -p "$task" "$case_dir/tmp"
-    scratch="$task/scratch"
-    if [ "$variant" = temporary ]; then
-      scratch="$case_dir/tmp/reused-build"
-      printf 'Scratch directory: %s\n' "$scratch" > "$task/report.md"
-    fi
-    mkdir -p "$scratch"
-    printf 'first generation\n' > "$scratch/build.bin"
-    cat > "$case_dir/fakebin/dcg" <<'SH'
+  case_dir=$(make_case task-data-collision)
+  task="$case_dir/data/reused"
+  scratch="$task/scratch"
+  mkdir -p "$scratch"
+  printf 'first generation\n' > "$scratch/build.bin"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
 SH
-    chmod +x "$case_dir/fakebin/dcg"
-    TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
-      "$case_dir/data" "$case_dir/state" reused "$case_dir/project" '' || fail "$variant initial stage failed"
-    mkdir -p "$scratch"
-    printf 'second generation\n' > "$scratch/build.bin"
-    if TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
-        "$case_dir/data" "$case_dir/state" reused "$case_dir/project" '' > "$case_dir/out" 2> "$case_dir/err"; then
-      fail "$variant collision overwrote a generation"
-    fi
-    jq -e '.complete == true and .expired != true' "$task/record/data-cleanup.json" >/dev/null \
-      || fail "$variant collision disabled completed recovery"
-    [ "$(cat "$scratch/build.bin")" = 'second generation' ] || fail "$variant replacement changed"
-    if [ "$variant" = data ]; then
-      [ "$(cat "$task/.cleanup-hold/scratch/build.bin")" = 'first generation' ] || fail "first data generation changed"
-    else
-      [ "$(cat "$scratch/.cleanup-hold/build.bin")" = 'first generation' ] || fail "first temporary generation changed"
-    fi
-    TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
-      "$case_dir/data" "$case_dir/state" reused || fail "$variant old recovery could not expire"
-    if [ "$variant" = data ]; then
-      [ "$(cat "$task/.cleanup-hold/scratch/build.bin")" = 'second generation' ] || fail "replacement data is not recoverable"
-    else
-      [ "$(cat "$scratch/.cleanup-hold/build.bin")" = 'second generation' ] || fail "replacement temporary data is not recoverable"
-    fi
-    jq -e '.complete == true and .expired == false' "$task/record/data-cleanup.json" >/dev/null \
-      || fail "$variant replacement missed its new recovery cycle"
-    TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
-      "$case_dir/data" "$case_dir/state" reused || fail "$variant replacement recovery could not expire"
-    assert_absent "$task/.cleanup-hold" "data collision recovery remains"
-    [ "$variant" != temporary ] || assert_absent "$scratch" "temporary collision recovery remains"
-  done
-  pass "fm-teardown: reused data and temporary scratch paths progress without overwriting either generation"
+  chmod +x "$case_dir/fakebin/dcg"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+    "$case_dir/data" "$case_dir/state" reused "$case_dir/project" '' || fail "initial stage failed"
+  mkdir -p "$scratch"
+  printf 'second generation\n' > "$scratch/build.bin"
+  if PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+      "$case_dir/data" "$case_dir/state" reused "$case_dir/project" '' > "$case_dir/out" 2> "$case_dir/err"; then
+    fail "collision overwrote a generation"
+  fi
+  jq -e '.complete == true and .expired != true' "$task/record/data-cleanup.json" >/dev/null \
+    || fail "collision disabled completed recovery"
+  [ "$(cat "$scratch/build.bin")" = 'second generation' ] || fail "replacement changed"
+  [ "$(cat "$task/.cleanup-hold/scratch/build.bin")" = 'first generation' ] || fail "first data generation changed"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+    "$case_dir/data" "$case_dir/state" reused || fail "old recovery could not expire"
+  [ "$(cat "$task/.cleanup-hold/scratch/build.bin")" = 'second generation' ] || fail "replacement data is not recoverable"
+  jq -e '.complete == true and .expired == false' "$task/record/data-cleanup.json" >/dev/null \
+    || fail "replacement missed its new recovery cycle"
+  PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+    "$case_dir/data" "$case_dir/state" reused || fail "replacement recovery could not expire"
+  assert_absent "$task/.cleanup-hold" "data collision recovery remains"
+  pass "fm-teardown: reused data scratch paths progress without overwriting either generation"
 }
 
 test_task_data_retirement_obligation() {
@@ -5984,139 +5967,37 @@ SH
   pass "fm-teardown: GitLab, Forgejo and Gerrit references protect evidence during staging and expiry"
 }
 
-test_task_data_temporary_scratch() {
-  local case_dir task temporary recorded bead_tmp unrelated live unclaimed escaped next
-  case_dir=$(make_case task-data-temporary)
-  task="$case_dir/data/task-x1"
-  temporary="$case_dir/tmp/task-x1-proof"
-  recorded="$case_dir/tmp/recorded-scratch"
-  bead_tmp="$case_dir/tmp/bch8g-proof"
-  unrelated="$case_dir/tmp/unrelated"
-  live="$case_dir/tmp/task-x1-live-scratch"
-  unclaimed="$case_dir/tmp/task-x1-unclaimed"
-  escaped="$case_dir/tmp/task-x1-escape"
-  mkdir -p "$task/scratch" "$temporary/nested" "$recorded" "$bead_tmp" "$unrelated" "$live" "$unclaimed" "$case_dir/outside"
+test_task_data_leaves_temporary_scratch() {
+  local helper=$1 case_dir task temporary
+  case_dir=$(make_case task-data-scope)
+  task="$case_dir/data/finished"
+  temporary="$case_dir/tmp/finished-proof"
+  mkdir -p "$task/scratch" "$temporary"
+  printf 'Scratch: %s\n' "$temporary" > "$task/report.md"
   printf 'data bytes\n' > "$task/scratch/blob"
-  printf 'temporary bytes\n' > "$temporary/nested/build.bin"
-  printf 'capture\n' > "$temporary/capture.bin"
-  ln -s capture.bin "$temporary/latest.png"
-  ln -s "$case_dir/outside" "$temporary/escape"
-  printf 'recorded bytes\n' > "$recorded/build.bin"
-  printf 'bead bytes\n' > "$bead_tmp/build.bin"
-  printf 'unrelated bytes\n' > "$unrelated/blob"
-  printf 'live bytes\n' > "$live/blob"
-  printf 'unclaimed bytes\n' > "$unclaimed/blob"
-  printf 'outside bytes\n' > "$case_dir/outside/blob"
-  ln -s "$case_dir/outside" "$escaped"
-  printf 'Bead ac-bch8g\nTask scratch: %s\nBead scratch: %s\nOther paths: %s %s %s\n[image](latest.png)\n' \
-    "$temporary" "$bead_tmp" "$unrelated" "$live" "$escaped" > "$task/report.md"
-  write_meta "$case_dir" local-only ship
-  printf 'tasktmp=%s\n' "$recorded" >> "$case_dir/state/task-x1.meta"
-  fm_write_meta "$case_dir/state/task-other.meta" "kind=ship" "spawn_gen=other" "tasktmp=$live"
-  cat > "$case_dir/fakebin/br" <<'SH'
-#!/usr/bin/env bash
-printf '{"description":"no attachments"}\n'
-SH
-  cat > "$case_dir/fakebin/dcg" <<SH
-#!/usr/bin/env bash
-cat >> '$case_dir/guard.jsonl'
-printf '\n' >> '$case_dir/guard.jsonl'
-if [ -e '$case_dir/deny' ]; then
-  printf '{"hookSpecificOutput":{"permissionDecision":"deny"}}\n'
-fi
-SH
-  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
-  TMPDIR="$case_dir/tmp" run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
-    || fail "temporary teardown failed: $(cat "$case_dir/err")"
-  assert_present "$task/.cleanup-hold/scratch/blob" "data scratch was not staged alongside temporary scratch"
-  [ "$(cat "$temporary/.cleanup-hold/nested/build.bin")" = 'temporary bytes' ] || fail "temporary original bytes are not recoverable"
-  [ "$(cat "$recorded/.cleanup-hold/build.bin")" = 'recorded bytes' ] || fail "recorded tasktmp bypassed recovery"
-  [ "$(cat "$bead_tmp/.cleanup-hold/build.bin")" = 'bead bytes' ] || fail "bead-owned temporary scratch did not stage"
-  [ "$(cat "$temporary/latest.png")" = capture ] || fail "temporary retained symlink lost its target"
-  jq -e --arg original "$temporary" '.temporary | any(.[]; .path == $original)' \
-    "$task/record/data-cleanup.json" >/dev/null || fail "recovery lost the original temporary path"
-  [ "$(cat "$unrelated/blob")" = 'unrelated bytes' ] || fail "unrelated temporary scratch changed"
-  [ "$(cat "$live/blob")" = 'live bytes' ] || fail "live-task temporary scratch changed"
-  [ "$(cat "$unclaimed/blob")" = 'unclaimed bytes' ] || fail "a name alone claimed temporary scratch"
-  [ "$(cat "$case_dir/outside/blob")" = 'outside bytes' ] || fail "temporary symlink escaped its root"
-  next='task-next'
-  fm_write_meta "$case_dir/state/$next.meta" \
-    "window=firstmate:fm-$next" "endpoint_task_id=$next" "worktree=$case_dir/missing" \
-    "project=$case_dir/project" "kind=ship" "mode=local-only" "spawn_gen=$next"
-  touch "$case_dir/deny"
-  TMPDIR="$case_dir/tmp" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
-    FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
-    PATH="$case_dir/fakebin:$PATH" "$TEARDOWN" "$next" > "$case_dir/next.out" 2> "$case_dir/next.err" \
-    || fail "denied expiry prevented unrelated teardown"
-  assert_present "$task/.cleanup-hold/scratch/blob" "dcg denial lost data recovery"
-  assert_present "$temporary/.cleanup-hold/nested/build.bin" "dcg denial lost temporary recovery"
-  mv "$case_dir/deny" "$case_dir/denied"
-  fm_write_meta "$case_dir/state/$next.meta" \
-    "window=firstmate:fm-$next" "endpoint_task_id=$next" "worktree=$case_dir/missing" \
-    "project=$case_dir/project" "kind=ship" "mode=local-only" "spawn_gen=$next-retry"
-  TMPDIR="$case_dir/tmp" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
-    FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
-    PATH="$case_dir/fakebin:$PATH" "$TEARDOWN" "$next" > "$case_dir/next.out" 2> "$case_dir/next.err" \
-    || fail "temporary expiry retry failed: $(cat "$case_dir/next.err")"
-  assert_absent "$task/.cleanup-hold" "data recovery did not expire"
-  assert_absent "$temporary/.cleanup-hold" "temporary recovery did not expire"
-  assert_absent "$temporary/nested" "temporary build directory survived expiry"
-  assert_absent "$recorded" "empty recorded tasktmp survived expiry"
-  assert_absent "$bead_tmp" "empty bead scratch survived expiry"
-  [ "$(cat "$temporary/latest.png")" = capture ] || fail "temporary expiry broke the linked image"
-  [ "$(cat "$live/blob")" = 'live bytes' ] || fail "expiry changed live scratch"
-  [ "$(cat "$case_dir/outside/blob")" = 'outside bytes' ] || fail "expiry traversed a symlink"
-  jq -se --arg target "$temporary/.cleanup-hold/nested/build.bin" \
-    'any(.[]; .tool_name == "Bash" and (.tool_input.command | contains($target)))' \
-    "$case_dir/guard.jsonl" >/dev/null || fail "temporary expiry did not pass its exact deletion through dcg"
-  pass "fm-teardown: owned temporary and data scratch share guarded recovery, without touching unrelated or live paths"
-}
-
-test_task_data_temporary_replacement_refuses() {
-  local case_dir task temporary variant
-  for variant in symlink replaced live; do
-    case_dir=$(make_case "task-data-temporary-$variant")
-    task="$case_dir/data/finished"
-    temporary="$case_dir/tmp/finished-proof"
-    mkdir -p "$task" "$temporary" "$case_dir/outside"
-    printf 'Scratch: %s\n' "$temporary" > "$task/report.md"
-    printf 'original\n' > "$temporary/build.bin"
-    printf 'outside\n' > "$case_dir/outside/blob"
-    cat > "$case_dir/fakebin/dcg" <<'SH'
+  printf 'temporary bytes\n' > "$temporary/build.bin"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
 SH
-    chmod +x "$case_dir/fakebin/dcg"
-    TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" stage \
-      "$case_dir/data" "$case_dir/state" finished "$case_dir/project" '' || fail "$variant temporary stage failed"
-    case "$variant" in
-      symlink)
-        mv "$temporary" "$case_dir/tmp/original"
-        ln -s "$case_dir/outside" "$temporary"
-        ;;
-      replaced)
-        mv "$temporary" "$case_dir/tmp/original"
-        mkdir "$temporary"
-        printf 'replacement\n' > "$temporary/blob"
-        ;;
-      live)
-        fm_write_meta "$case_dir/state/another.meta" "kind=ship" "spawn_gen=another" "tasktmp=$temporary"
-        ;;
-    esac
-    if TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
-        "$case_dir/data" "$case_dir/state" finished > "$case_dir/out" 2> "$case_dir/err"; then
-      fail "$variant temporary recovery accepted an ownership change"
-    fi
-    [ "$(cat "$case_dir/outside/blob")" = outside ] || fail "$variant changed outside data"
-    if [ "$variant" = live ]; then
-      [ "$(cat "$temporary/.cleanup-hold/build.bin")" = original ] || fail "live recovery changed"
-    else
-      [ "$(cat "$case_dir/tmp/original/.cleanup-hold/build.bin")" = original ] || fail "$variant lost original recovery"
-    fi
-    [ "$variant" != replaced ] || [ "$(cat "$temporary/blob")" = replacement ] || fail "replacement data changed"
-  done
-  pass "fm-teardown: temporary recovery refuses symlink escapes, replaced directories and newly live owners"
+  chmod +x "$case_dir/fakebin/dcg"
+  TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+    "$case_dir/data" "$case_dir/state" finished "$case_dir/project" '' || fail "data-only staging failed"
+  assert_present "$task/.cleanup-hold/scratch/blob" "data scratch was not staged"
+  [ "$(cat "$temporary/build.bin")" = 'temporary bytes' ] || fail "staging changed temporary scratch"
+  assert_absent "$temporary/.cleanup-hold" "staging created external recovery"
+  TMPDIR="$case_dir/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+    "$case_dir/data" "$case_dir/state" finished || fail "data-only expiry failed"
+  assert_absent "$task/.cleanup-hold" "data recovery did not expire"
+  [ "$(cat "$temporary/build.bin")" = 'temporary bytes' ] || fail "expiry changed temporary scratch"
+  assert_absent "$temporary/.cleanup-hold" "expiry created external recovery"
+  pass "fm-teardown: data cleanup leaves named and referenced TMPDIR scratch untouched"
 }
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-scope ]; then
+  test_task_data_leaves_temporary_scratch "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
 
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-aliases ]; then
   test_task_data_symlink_ancestor_aliases "${1:-$ROOT/bin/fm-task-data.py}"
@@ -6133,8 +6014,7 @@ test_task_data_symlink_ancestor_aliases "$ROOT/bin/fm-task-data.py"
 test_task_data_collision_progress
 test_task_data_retirement_obligation
 test_task_data_forge_references
-test_task_data_temporary_scratch
-test_task_data_temporary_replacement_refuses
+test_task_data_leaves_temporary_scratch "$ROOT/bin/fm-task-data.py"
 [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] || exit 0
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
