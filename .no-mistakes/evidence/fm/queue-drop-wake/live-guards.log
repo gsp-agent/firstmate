@@ -1,0 +1,11 @@
+PASS: A shipped old poll and stored device mismatch recover with unchanged inodes and deliver an actual GitHub removal
+PASS: An unshipped template hash stays refused after a stored device change
+PASS: Completed slow checks refresh liveness, rearming retains the running process, and the later real PR removal is delivered
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/evidence/01M53A6E4TERYTKTS6MTXY5YEA/run-live-guards.py", line 157, in <module>
+    cmd(d, args, d.name + '-cleanup')
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dalecarman/.no-mistakes/evidence/01M53A6E4TERYTKTS6MTXY5YEA/run-live-guards.py", line 25, in cmd
+    assert not p.returncode, (args[:2], p.returncode, p.stdout, p.stderr)
+           ^^^^^^^^^^^^^^^^
+AssertionError: ([PosixPath('/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-teardown.sh'), 'task-a'], 1, '', 'fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-closed-normal\nREFUSED: task task-a has a missing, empty, or ambiguous window endpoint; preserving task state.\n')

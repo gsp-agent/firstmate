@@ -1,0 +1,6 @@
+1792188880	10	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live/live-notifications/state/z-stop.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live/live-notifications/state/z-stop.check.sh: stop-cycle
+
+STDERR:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 10 --recovery-generation 61797.1792188880.VTrV7d
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

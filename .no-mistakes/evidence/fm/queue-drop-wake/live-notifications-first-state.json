@@ -1,0 +1,28 @@
+{
+  "task-a.pr-poll-registration": "fm-pr-poll-registration-v2\ntask-a\ngithub\nhttps://github.com/groovejones/groove-sight-platform/pull/4200\ngithub.com\ngroovejones/groove-sight-platform\n4200\na789b2252bbb826fa1a69664b916ba21e95e5c452a0a0596fca6fd7434808bd0\n66dd5009cb6f0f0b8d5bbf88b521059e2c70a238c3d75b24562cefc298a84687\n16777234:3195838064\n16777234:3195838065\n",
+  "task-a.pr-poll-queue-dropped": "fm-pr-poll-queue-dropped-v1\nhttps://github.com/groovejones/groove-sight-platform/pull/4200\nRFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA\n",
+  "task-a.pr-poll": "github\nhttps://github.com/groovejones/groove-sight-platform/pull/4200\ngithub.com\ngroovejones/groove-sight-platform\n4200\n",
+  "files": [
+    ".guard-watcher-stale-banner",
+    ".heartbeat-streak",
+    ".inactive-outcome-reconcile",
+    ".last-check",
+    ".last-heartbeat",
+    ".last-watcher-beat",
+    ".secondmate-liveness-tick",
+    ".wake-queue",
+    ".wake-queue.seq",
+    ".watch-deliveries.log",
+    ".watcher-down",
+    "home-summary.json",
+    "merge-queue-sweep.seen",
+    "task-a.check.sh",
+    "task-a.meta",
+    "task-a.pr-poll",
+    "task-a.pr-poll-queue-dropped",
+    "task-a.pr-poll-registration",
+    "terminal-outcomes",
+    "z-stop.check-trust",
+    "z-stop.check.sh"
+  ]
+}

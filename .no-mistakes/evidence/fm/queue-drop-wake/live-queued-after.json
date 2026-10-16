@@ -1,0 +1,301 @@
+{
+  "data": {
+    "repository": {
+      "pullRequests": {
+        "nodes": [
+          {
+            "number": 3740,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 3766,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 3941,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "RemovedFromMergeQueueEvent",
+                  "id": "RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g",
+                  "reason": "merge_conflict"
+                }
+              ]
+            }
+          },
+          {
+            "number": 3950,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "RemovedFromMergeQueueEvent",
+                  "id": "RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA",
+                  "reason": "merge_conflict"
+                }
+              ]
+            }
+          },
+          {
+            "number": 3966,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 3977,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4006,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "RemovedFromMergeQueueEvent",
+                  "id": "RFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg",
+                  "reason": "merge_conflict"
+                }
+              ]
+            }
+          },
+          {
+            "number": 4013,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4017,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "RemovedFromMergeQueueEvent",
+                  "id": "RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A",
+                  "reason": "failed_checks"
+                }
+              ]
+            }
+          },
+          {
+            "number": 4111,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "RemovedFromMergeQueueEvent",
+                  "id": "RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg",
+                  "reason": "merge_conflict"
+                }
+              ]
+            }
+          },
+          {
+            "number": 4114,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4138,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4147,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4148,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4149,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4162,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4172,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "RemovedFromMergeQueueEvent",
+                  "id": "RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA",
+                  "reason": "manual"
+                }
+              ]
+            }
+          },
+          {
+            "number": 4183,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "RemovedFromMergeQueueEvent",
+                  "id": "RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw",
+                  "reason": "merge_conflict"
+                }
+              ]
+            }
+          },
+          {
+            "number": 4195,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4200,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "RemovedFromMergeQueueEvent",
+                  "id": "RFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA",
+                  "reason": "merge_conflict"
+                }
+              ]
+            }
+          },
+          {
+            "number": 4205,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4246,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4250,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4259,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4264,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4266,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4361,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4370,
+            "isInMergeQueue": true,
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "AddedToMergeQueueEvent",
+                  "id": "ATMQE_lADOTK2PgM8AAAABXwh0ps8AAAAHzAs4DA"
+                }
+              ]
+            }
+          },
+          {
+            "number": 4372,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4374,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4375,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4376,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4377,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          },
+          {
+            "number": 4378,
+            "isInMergeQueue": false,
+            "timelineItems": {
+              "nodes": []
+            }
+          }
+        ]
+      }
+    }
+  }
+}

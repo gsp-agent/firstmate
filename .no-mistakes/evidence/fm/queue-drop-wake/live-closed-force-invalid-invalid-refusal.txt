@@ -1,0 +1,5 @@
+
+STDERR:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-closed-force-invalid
+WARNING: watcher still down (same stale episode; last beat: 9s ago, grace 300s) - full banner already printed this episode.
+REFUSED: invalid PR-poll retirement receipt; preserving task state.

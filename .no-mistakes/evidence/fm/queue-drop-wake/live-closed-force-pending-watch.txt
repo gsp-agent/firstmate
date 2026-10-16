@@ -1,0 +1,3 @@
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-closed-force-pending/state/z-stop.check.sh: stop-cycle
+
+STDERR:

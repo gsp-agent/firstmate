@@ -1,0 +1,6 @@
+#!/opt/homebrew/opt/python@3.14/bin/python3.14
+import os, sys
+args = sys.argv[1:]
+if args and args[0].endswith('/fm-remote-job-reap-orphans.sh'):
+    args.append('--dry-run')
+os.execv('/opt/homebrew/bin/bash', ['/opt/homebrew/bin/bash'] + args)

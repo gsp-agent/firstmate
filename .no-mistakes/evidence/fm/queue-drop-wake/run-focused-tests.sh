@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -eu
+cd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA
+EVIDENCE=/Users/dalecarman/.no-mistakes/evidence/01M53A6E4TERYTKTS6MTXY5YEA
+export TMPDIR="$PWD/.queue-validation-tmp"
+# The machine-wide admission script writes outside this assigned worktree.
+export FM_TEST_MACHINE_GATE=
+phase_queue_validation() {
+  test_sweep_repos_added_after_startup_stay_separate
+  test_retained_sweep_repos_stay_one_entry
+  test_verified_queue_drop_wakes_once
+  test_queue_drop_reason_is_preserved
+  test_github_identity_fields_stay_strings
+  test_open_queue_removals_wake_once_across_a_watched_repo
+  test_queued_sighting_keeps_discovery_until_the_next_sweep
+  test_sweep_keeps_later_removal_in_place_after_an_update
+  test_seen_record_errors_do_not_block_later_watches
+  test_seen_record_errors_keep_repository_discovery
+  test_failed_sweep_keeps_the_repository_for_the_next_cycle
+  test_completed_repo_removals_survive_another_repo_failure
+  test_unobserved_merge_preserves_repository_before_cleanup_or_rearm
+  test_retirement_survives_device_renumbering
+  test_retirement_device_recovery_keeps_content_and_inode_checks
+  test_old_template_and_renumber_are_both_recovered
+  test_unshipped_template_hash_is_refused
+  test_interrupted_template_upgrade_finishes_on_the_next_poll
+  test_sweep_page_deadline_reports_every_removal
+  test_progressing_sweep_survives_rearm_past_stall_bound
+  test_slow_registered_polls_survive_rearm
+  test_closed_pull_request_teardown_follows_an_empty_sweep
+  test_force_discards_closed_watch_with_or_without_a_sweep
+}
+export -f phase_queue_validation
+export FM_TEST_ONLY=phase_queue_validation
+bin/fm-test-run.sh tests/fm-pr-check-security.test.sh --per-script-timeout-secs 900 --json "$EVIDENCE/focused-tests-timing.json"

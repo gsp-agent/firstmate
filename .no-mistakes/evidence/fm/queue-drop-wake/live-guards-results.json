@@ -1,0 +1,8 @@
+[
+  {
+    "name": "A real closed-unmerged PR retires after an empty scan; force discards pending discovery but still refuses an invalid receipt",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-closed-normal-cleanup.txt; live-closed-force-pending-normal-refusal.txt; live-closed-force-pending-cleanup.txt; live-closed-force-swept-cleanup.txt; live-closed-force-invalid-invalid-refusal.txt"
+  }
+]

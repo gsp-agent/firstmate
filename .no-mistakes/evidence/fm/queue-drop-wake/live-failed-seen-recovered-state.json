@@ -1,0 +1,24 @@
+{
+  "task-a.pr-poll-merge-notified": "fm-pr-poll-merge-notified-v1\ngithub\ngithub.com\ngroovejones/groove-sight-platform\n4308\n",
+  "files": [
+    ".guard-watcher-stale-banner",
+    ".heartbeat-streak",
+    ".inactive-outcome-reconcile",
+    ".last-check",
+    ".last-heartbeat",
+    ".last-watcher-beat",
+    ".secondmate-liveness-tick",
+    ".wake-queue",
+    ".wake-queue.seq",
+    ".watch-deliveries.log",
+    ".watch-triage.log",
+    ".watcher-down",
+    "home-summary.json",
+    "merge-queue-sweep.seen",
+    "task-a.meta",
+    "task-a.pr-poll-merge-notified",
+    "terminal-outcomes",
+    "z-stop.check-trust",
+    "z-stop.check.sh"
+  ]
+}

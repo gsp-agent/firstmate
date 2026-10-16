@@ -1,0 +1,14 @@
+Normal cleanup after an empty sweep
+teardown task-a complete (window fm-lab:fm-task-a, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-closed-normal/already-removed-copy)
+
+Normal cleanup while the sweep is pending
+REFUSED: pending repository merge-queue sweep; preserving task state.
+
+Force cleanup while the sweep is pending
+teardown task-a complete (window fm-lab:fm-task-a, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-closed-force-pending/already-removed-copy)
+
+Force cleanup after an empty sweep
+teardown task-a complete (window fm-lab:fm-task-a, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-closed-force-swept/already-removed-copy)
+
+Force cleanup with an invalid receipt
+REFUSED: invalid PR-poll retirement receipt; preserving task state.

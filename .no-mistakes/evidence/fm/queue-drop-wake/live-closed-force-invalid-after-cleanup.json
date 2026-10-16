@@ -1,0 +1,5 @@
+{
+  "task-a.meta": "window=fm-lab:fm-task-a\nproject=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-closed-force-invalid/project\nkind=ship\nmode=local-only\nworktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-closed-force-invalid/already-removed-copy\npr=https://github.com/gsp-agent/firstmate/pull/24\npr_head=f5991717db76f6dd29433c66c25fccef86738819\n",
+  "task-a.pr-poll-retirement": "invalid-receipt\n",
+  "task-a.pr-poll": "github\nhttps://github.com/gsp-agent/firstmate/pull/24\ngithub.com\ngsp-agent/firstmate\n24\n"
+}

@@ -1,0 +1,11 @@
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-check-liveness/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live-guards/live-check-liveness/state/z-stop.check.sh: stop-cycle
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+
+STDERR:

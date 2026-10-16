@@ -1,0 +1,2 @@
+PASS: real gh successfully scans the numeric repository xcatliu/123
+PASS: 18 real GitHub pages took 57.471s at a 5s per-page bound, refreshed liveness, and still reported all GSP removals

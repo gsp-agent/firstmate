@@ -1,0 +1,12 @@
+{
+  "task-a.pr-poll-merge-notified": "fm-pr-poll-merge-notified-v1\ngithub\ngithub.com\ngroovejones/groove-sight-platform\n4308\n",
+  "task-a.pr-poll-retirement": "fm-pr-poll-retirement-v1\ntask-a\ngithub\nhttps://github.com/groovejones/groove-sight-platform/pull/4308\ngithub.com\ngroovejones/groove-sight-platform\n4308\na74da2325873c24d89c0daafc628400eec0782389cf0746ffad059706d570809\n66dd5009cb6f0f0b8d5bbf88b521059e2c70a238c3d75b24562cefc298a84687\n16777234:3195983929\n16777234:3195983930\n2273eb0f06688043c6507f9acb6538bcf50e54e911b6a44845f9601ed2ba1445\n16777234:3195983931\nmerged\n",
+  "task-a.pr-poll": "github\nhttps://github.com/groovejones/groove-sight-platform/pull/4308\ngithub.com\ngroovejones/groove-sight-platform\n4308\n",
+  "queuedBefore": [
+    4370
+  ],
+  "queuedAfter": [
+    4370
+  ],
+  "sidecarRetained": true
+}

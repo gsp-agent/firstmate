@@ -1,0 +1,10 @@
+GitHub current removal: #4200 reason=merge_conflict
+GitHub current removal: #4183 reason=merge_conflict
+GitHub current removal: #4172 reason=manual
+GitHub current removal: #4111 reason=merge_conflict
+GitHub current removal: #4017 reason=failed_checks
+GitHub current removal: #4006 reason=merge_conflict
+GitHub current removal: #3950 reason=merge_conflict
+GitHub current removal: #3941 reason=merge_conflict
+PASS: Repositories armed after startup remain one first-seen line each through failed sweeps and successful rebuilding
+All live product checks passed.

@@ -1,0 +1,5 @@
+[2026-10-16T17:16:08-0500] merge-queue sweep failed; keeping the repository snapshot and deferred retirement
+[2026-10-16T17:16:19-0500] merge-queue sweep failed; keeping the repository snapshot and deferred retirement
+[2026-10-16T17:16:27-0500] merge-queue sweep failed; keeping the repository snapshot and deferred retirement
+[2026-10-16T17:16:34-0500] merge-queue sweep failed; keeping the repository snapshot and deferred retirement
+[2026-10-16T17:16:44-0500] merge-queue sweep failed; keeping the repository snapshot and deferred retirement

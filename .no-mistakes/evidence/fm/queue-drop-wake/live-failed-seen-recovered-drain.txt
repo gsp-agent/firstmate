@@ -1,0 +1,14 @@
+1792188914	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live/live-failed-seen/state/z-stop.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/.queue-validation-tmp/live/live-failed-seen/state/z-stop.check.sh: stop-cycle
+1792188916	5	check	RFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+1792188918	6	check	RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792188920	7	check	RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792188920	8	check	RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792188921	9	check	RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792188922	10	check	RFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792188923	11	check	RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792188923	12	check	RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53A6E4TERYTKTS6MTXY5YEA/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+
+STDERR:
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 12 --recovery-generation 87217.1792188914.zLQQJV
+WARNING: watcher still down (same stale episode; last beat: 10s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

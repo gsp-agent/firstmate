@@ -1,0 +1,1 @@
+PASS: A real closed-unmerged PR retires after an empty scan; force discards pending discovery but still refuses an invalid receipt
