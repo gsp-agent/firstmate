@@ -2198,6 +2198,7 @@ run_check_capture() {
   FM_CHECK_STATUS=$rc
   FM_CHECK_RESULT=$(cat "$FM_CHECK_OUTPUT" 2>/dev/null || true)
   fm_check_output_cleanup
+  touch "$BEAT"
 }
 
 FM_CAPTURE_OUTPUT=

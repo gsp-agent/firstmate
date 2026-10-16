@@ -235,6 +235,11 @@ case "${1:-} ${2:-}" in
           esac
           shift
         done
+        if [ "$poll_number" = "${FM_TEST_GH_POLL_REARM_NUMBER:-}" ] \
+          && [ -n "${FM_TEST_GH_POLL_REARM:-}" ]; then
+          "$FM_TEST_GH_POLL_REARM" > "$FM_TEST_GH_LOG.rearm.out" \
+            2> "$FM_TEST_GH_LOG.rearm.err" || exit 1
+        fi
         if [ -n "${FM_TEST_GH_POLL_RESPONSES:-}" ]; then
           "$FM_TEST_REAL_JQ" --arg number "$poll_number" '.[$number]' "$FM_TEST_GH_POLL_RESPONSES" \
             | "$FM_TEST_REAL_JQ" -r "$jq_filter"
@@ -4761,6 +4766,47 @@ test_progressing_sweep_survives_rearm_past_stall_bound() {
   pass "real page progress keeps a long sweep alive through a concurrent rearm"
 }
 
+test_slow_registered_polls_survive_rearm() {
+  local dir state number started
+  dir=$(make_case registered-poll-progress-liveness)
+  state="$dir/home/state"
+  for number in 1 2 3 4 5 6 7 8; do
+    write_poll_meta "$state" "task-$number" "https://github.com/o/r/pull/$number"
+    seed_canonical_poll "$dir" "task-$number" "https://github.com/o/r/pull/$number"
+  done
+  "$REAL_JQ" -n '[range(1;9) | {
+    key:tostring,
+    value:{data:{repository:{pullRequest:{
+      state:"OPEN", merged:false, isInMergeQueue:(. != 8),
+      timelineItems:{nodes:(if . == 8 then [{id:"evt8",reason:"failed_checks"}] else [] end)}
+    }}}}
+  }] | from_entries' > "$dir/poll-responses.json"
+  write_slow_sweep_page "$dir" page1 9 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  started=$(date +%s)
+  FM_WATCHER_STALE_GRACE=6 FM_WATCHER_STALL_BOUND=6 FM_TEST_CHECK_TIMEOUT=20 \
+    FM_TEST_GH_SLEEP=1 FM_TEST_GH_POLL_REARM="$WATCH" FM_TEST_GH_POLL_REARM_NUMBER=8 \
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "slow registered polls were interrupted: $(cat "$dir/watch.err")"
+  [ "$(( $(date +%s) - started ))" -gt 6 ] || fail "the registered polls did not cross their stall bound"
+  grep -F 'watcher: already running pid ' "$dir/gh.log.rearm.out" >/dev/null \
+    || fail "rearm evicted the progressing registered polls: $(cat "$dir/gh.log.rearm.out")"
+  for number in 1 2 3 4 5 6 7 8; do
+    [ "$(grep -Fc "number=$number " "$dir/gh.log")" -eq 1 ] \
+      || fail "the collected checks skipped or repeated pull $number"
+  done
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "slow registered poll drain failed"
+  for number in 8 9; do
+    [ "$(grep -Fc "dequeued https://github.com/o/r/pull/$number reason=failed_checks" "$dir/drain.out")" -eq 1 ] \
+      || fail "the long registered-check sweep lost pull $number: $(cat "$dir/drain.out")"
+  done
+  pass "completed registered polls keep the watcher alive through rearm and deliver the final removal"
+}
+
 test_merged_only_watch_still_sweeps_its_repo() {
   local dir state
   dir=$(make_case merged-watch-still-sweeps)
@@ -5291,6 +5337,7 @@ test_interrupted_template_upgrade_refuses_replaced_artifacts
 test_old_template_and_renumber_are_both_recovered
 test_sweep_page_deadline_reports_every_removal
 test_progressing_sweep_survives_rearm_past_stall_bound
+test_slow_registered_polls_survive_rearm
 test_merged_only_watch_still_sweeps_its_repo
 test_recovered_merged_watch_still_sweeps_its_repo
 test_failed_sweep_keeps_the_repository_for_the_next_cycle
