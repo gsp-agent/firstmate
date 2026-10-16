@@ -34,6 +34,38 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
   return "$rc"
 }
 
+fm_task_data_backlog_references() {
+  local data=$1 id=$2 required=$3 script_dir row out text= task= first=1
+  shift 3
+  script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || return 1
+  # shellcheck source=bin/fm-tasks-axi-lib.sh
+  . "$script_dir/fm-tasks-axi-lib.sh" || return 1
+  # shellcheck source=bin/fm-backlog-transition-lib.sh
+  . "$script_dir/fm-backlog-transition-lib.sh" || return 1
+  fm_backlog_tasks_axi_addressing "$data" || return 1
+  if [ -n "$FM_BACKLOG_AXI_FILE" ] && [ ! -e "$FM_BACKLOG_AXI_FILE" ] && [ ! -L "$FM_BACKLOG_AXI_FILE" ] \
+      && [ "$required" = 0 ] && [ "$#" -eq 0 ]; then
+    printf '{"task":null,"text":""}\n'
+    return 0
+  fi
+  unset TASKS_AXI_FILE
+  for row in "$id" "$@"; do
+    if fm_backlog_row_probe "$data" "$row"; then
+      out=$(fm_backlog_row_show "$data" "$row" --full) || return 1
+      [ -n "$out" ] || return 1
+      text="$text$out"$'\n'
+      [ "$first" != 1 ] || task=$id
+    elif [ "$first" != 1 ] || [ "$required" != 0 ] || [ -z "$FM_BACKLOG_AXI_FILE" ] \
+        || [ "$FM_BACKLOG_ROW_RESULT" != not_found ]; then
+      printf 'task data reference %s could not be read: %s\n' "$row" "${FM_BACKLOG_ROW_ERROR:-not found}" >&2
+      return 1
+    fi
+    first=0
+  done
+  printf '%s' "$text" | jq -Rs --arg task "$task" \
+    '{task: (if $task == "" then null else $task end), text: .}'
+}
+
 fm_task_data_pr_references() {
   local script_dir project_url encoded login endpoint page rows review review_ids review_page comments
   script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || return 1
@@ -92,6 +124,16 @@ fm_task_data_pr_references() {
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   set -o pipefail
-  [ "$#" -eq 2 ] && [ "$1" = references ] || exit 1
-  fm_task_data_pr_references "$2"
+  case "${1:-}" in
+    references)
+      [ "$#" -eq 2 ] || exit 1
+      fm_task_data_pr_references "$2"
+      ;;
+    backlog-references)
+      [ "$#" -ge 4 ] || exit 1
+      shift
+      fm_task_data_backlog_references "$@"
+      ;;
+    *) exit 1 ;;
+  esac
 fi

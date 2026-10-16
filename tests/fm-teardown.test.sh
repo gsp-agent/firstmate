@@ -5379,7 +5379,8 @@ SH
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-aliases ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-components ] \
-  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retirement ]; then
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retirement ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
   test_missing_adapter_sibling_refuses_before_cleanup
@@ -5484,7 +5485,8 @@ test_task_data_refusals() {
 }
 
 test_task_data_references_and_guard() {
-  local case_dir task helper
+  local case_dir task helper real_tasks
+  real_tasks=$(command -v tasks-axi)
   case_dir=$(make_case task-data-refs)
   task="$case_dir/data/finished"
   helper="$ROOT/bin/fm-task-data.py"
@@ -5493,20 +5495,22 @@ test_task_data_references_and_guard() {
   printf 'PR image\n' > "$task/scratch/pr image.png"
   printf 'bead image\n' > "$task/scratch/bead.png"
   printf 'unlinked\n' > "$task/scratch/discard.bin"
+  fm_test_tasks_toml "$case_dir/.tasks.toml"
+  seed_backlog_in_flight "$case_dir"
+  tasks-axi add finished 'finished task' --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi add pending 'pending task' --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi add demo-123 'linked evidence' --body '[image](scratch/bead.png)' \
+    --file "$case_dir/data/backlog.md" >/dev/null
   cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
 printf 'body: [image](scratch/pr%%20image.png)\n'
-SH
-  cat > "$case_dir/fakebin/br" <<'SH'
-#!/usr/bin/env bash
-printf '{"description":"[image](scratch/bead.png)"}\n'
 SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
 printf '{"hookSpecificOutput":{"permissionDecision":"deny","permissionDecisionReason":"fixture denial"}}\n'
 SH
-  chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
   PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
     finished "$case_dir/project" https://github.com/test/repo/pull/1 || fail "reference retention failed"
   assert_present "$task/scratch/pr image.png" "PR-linked file moved"
@@ -5517,10 +5521,11 @@ SH
   fi
   assert_present "$task/.cleanup-hold/scratch/discard.bin" "dcg-denied file was deleted"
   assert_grep 'dcg refused' "$case_dir/err" "denial diagnostic missing"
-  cat > "$case_dir/fakebin/br" <<'SH'
+  cat > "$case_dir/fakebin/tasks-axi" <<'SH'
 #!/usr/bin/env bash
 exit 1
 SH
+  chmod +x "$case_dir/fakebin/tasks-axi"
   if PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" \
       finished > "$case_dir/out" 2> "$case_dir/err"; then
     fail "unreadable bead allowed deletion"
@@ -5535,9 +5540,10 @@ SH
   fi
   assert_present "$case_dir/data/pending/blob" "unreadable bead moved scratch"
   assert_present "$case_dir/data/pending/record/data-cleanup.json" "failed staging has no retry record"
-  cat > "$case_dir/fakebin/br" <<'SH'
+  "$real_tasks" update demo-123 --body 'no linked files' --file "$case_dir/data/backlog.md" >/dev/null
+  cat > "$case_dir/fakebin/tasks-axi" <<SH
 #!/usr/bin/env bash
-printf '{"description":"no linked files"}\n'
+exec '$real_tasks' "\$@"
 SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
@@ -5550,6 +5556,163 @@ SH
     || fail "resumed cleanup did not expire"
   assert_absent "$case_dir/data/pending/.cleanup-hold" "resumed recovery remains"
   pass "fm-teardown: PR and bead links survive, and dcg denial or unreadable references retain recovery"
+}
+
+test_task_data_bead_backlog_sources() {
+  local code_root=${1:-$ROOT} case_dir task id related real_br graph_db
+  case_dir=$(make_case task-data-bead-backlog)
+  real_br=$(command -v br)
+  graph_db="$case_dir/graph/.beads/beads.db"
+  mkdir -p "$case_dir/graph"
+  git -C "$case_dir/graph" init -q
+  (cd "$case_dir/graph" && "$real_br" --db "$graph_db" init --prefix proof) \
+    > "$case_dir/init.log" 2>&1 || fail "task-data Beads graph initialization failed: $(cat "$case_dir/init.log")"
+  id=$("$real_br" --db "$graph_db" --no-auto-import --no-auto-flush create \
+    'owning cleanup task' --due +1d --description '[capture](proof.png)' --silent) \
+    || fail "owning Bead creation failed"
+  cp -R "$case_dir/graph/.beads" "$case_dir/project/.beads"
+  "$real_br" --db "$case_dir/project/.beads/beads.db" --no-auto-import --no-auto-flush \
+    update "$id" --description 'An unrelated project task with no attachments and a separate body from the owning task.' \
+    > "$case_dir/decoy.log" 2>&1 || fail "decoy graph setup failed"
+  cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "beads"
+
+[beads]
+path = "graph/.beads"
+binary = "br"
+prefix = "proof"
+TOML
+  cat > "$case_dir/fakebin/tasks-axi" <<'PY'
+#!/usr/bin/env python3
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tomllib
+
+if os.environ.get("FM_TEST_BACKLOG_DOWN") == "1":
+    sys.exit(1)
+config = tomllib.loads(Path(".tasks.toml").read_text())
+assert config["backend"] == "beads"
+assert "TASKS_AXI_FILE" not in os.environ
+assert "--file" not in sys.argv
+graph = Path(config["beads"]["path"])
+command = [os.environ["FM_TEST_REAL_BR"], "--db", str(graph / "beads.db"),
+           "--no-auto-import", "--no-auto-flush"]
+verb, task = sys.argv[1:3]
+if verb == "done":
+    result = subprocess.run(command + ["close", task, "--reason", "fixture completed"],
+                            capture_output=True, text=True)
+    print(result.stdout, end="")
+    print(result.stderr, file=sys.stderr, end="")
+    sys.exit(result.returncode)
+assert verb == "show"
+result = subprocess.run(command + ["show", task, "--json"], capture_output=True, text=True)
+if result.returncode:
+    print(result.stderr, file=sys.stderr, end="")
+    sys.exit(result.returncode)
+row = json.loads(result.stdout)
+if isinstance(row, list):
+    row = row[0]
+assert row["id"] == task
+state = "done" if row["status"] == "closed" else "queued"
+print(f"task:\n  id: {task}\n  state: {state}\n  held: no\n  blocked: no")
+if "--full" in sys.argv:
+    print("body: " + json.dumps(row.get("description", "")))
+PY
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/dcg"
+  task="$case_dir/data/$id"
+  mkdir -p "$task"
+  printf 'plain cleanup instructions\n' > "$task/brief.md"
+  printf 'owning Bead evidence\n' > "$task/proof.png"
+  printf 'later Bead evidence\n' > "$task/later.png"
+  printf 'scratch\n' > "$task/discard.bin"
+  fm_write_meta "$case_dir/state/$id.meta" "project=$case_dir/project" \
+    'kind=ship' 'mode=local-only' "spawn_gen=bead-$id"
+  cat > "$case_dir/retire.sh" <<'SH'
+#!/usr/bin/env bash
+set -eu
+root=$1 case_dir=$2 id=$3 action=$4
+. "$root/bin/fm-wake-lib.sh"
+. "$root/bin/fm-tasks-axi-lib.sh"
+. "$root/bin/fm-backlog-transition-lib.sh"
+state="$case_dir/state" data="$case_dir/data"
+lock=$(fm_meta_lock_path "$state/$id.meta")
+fm_lock_acquire_wait "$lock"
+trap 'fm_lock_release "$lock"' EXIT
+if [ "$action" = retire ]; then
+  fm_backlog_close_marker_write "$state" "$id" "$data" "bead-$id" --note 'local main'
+  fm_backlog_atomic_transition retire "$state/$id.meta" "$data" "$id" "$state"
+else
+  fm_backlog_close_marker_replay "$state" "$state/$id.backlog-close" "$data"
+fi
+SH
+  FM_TEST_REAL_BR="$real_br" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+    bash "$case_dir/retire.sh" "$code_root" "$case_dir" "$id" retire \
+    > "$case_dir/retire.out" 2> "$case_dir/retire.err" || fail "Bead retirement failed: $(cat "$case_dir/retire.err")"
+  assert_absent "$case_dir/state/$id.meta" "Bead retirement did not remove metadata"
+  assert_present "$case_dir/state/$id.backlog-close" "interrupted Bead retirement lost replay"
+  FM_TEST_REAL_BR="$real_br" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+    bash "$case_dir/retire.sh" "$code_root" "$case_dir" "$id" replay \
+    > "$case_dir/replay.out" 2> "$case_dir/replay.err" || fail "Bead replay failed: $(cat "$case_dir/replay.err")"
+  assert_absent "$case_dir/state/$id.backlog-close" "Bead replay left pending completion"
+  FM_TEST_REAL_BR="$real_br" BEADS_DIR="$case_dir/project/.beads" \
+    TASKS_AXI_FILE="$case_dir/project/backlog.md" PATH="$case_dir/fakebin:$PATH" \
+    python3 "$code_root/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
+      "$id" "$case_dir/project" '' || fail "owning Bead staging failed"
+  [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "owning Bead-only link was staged"
+  assert_present "$task/.cleanup-hold/later.png" "unlinked later evidence did not stage"
+  assert_present "$task/.cleanup-hold/discard.bin" "unlinked Bead scratch did not stage"
+  jq -e --arg data "$case_dir/data" --arg id "$id" \
+    '.sources | any(.beads == [] and .backlog.data == $data and .backlog.task == $id)' \
+    "$task/record/data-cleanup.json" >/dev/null || fail "cleanup lost the owning backlog identity"
+  "$real_br" --db "$graph_db" --no-auto-import --no-auto-flush update "$id" \
+    --description '[capture](proof.png) [later capture](later.png)' > "$case_dir/update.log" 2>&1 \
+    || fail "owning Bead update failed"
+  if FM_TEST_BACKLOG_DOWN=1 FM_TEST_REAL_BR="$real_br" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
+      > "$case_dir/down.out" 2> "$case_dir/down.err"; then
+    fail "unavailable owning backend allowed expiry"
+  fi
+  assert_present "$task/.cleanup-hold/later.png" "unavailable backend lost recoverable evidence"
+  assert_present "$task/.cleanup-hold/discard.bin" "unavailable backend deleted scratch"
+  FM_TEST_REAL_BR="$real_br" BEADS_DIR="$case_dir/project/.beads" \
+    TASKS_AXI_FILE="$case_dir/project/backlog.md" PATH="$case_dir/fakebin:$PATH" \
+    python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
+    || fail "owning Bead expiry failed"
+  [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "expiry deleted owning Bead evidence"
+  [ "$(cat "$task/later.png")" = 'later Bead evidence' ] || fail "expiry did not refresh the owning Bead's links"
+  assert_absent "$task/.cleanup-hold" "owning Bead recovery remains"
+  related=$("$real_br" --db "$graph_db" --no-auto-import --no-auto-flush create \
+    'named evidence source' --due +1d --description '[named capture](named.png)' --silent) \
+    || fail "named Bead creation failed"
+  printf 'Bead %s\n' "$related" >> "$task/brief.md"
+  printf 'named Bead evidence\n' > "$task/named.png"
+  printf 'next scratch\n' > "$task/next.bin"
+  if FM_TEST_BACKLOG_DOWN=1 FM_TEST_REAL_BR="$real_br" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$code_root/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
+        "$id" "$case_dir/project" '' > "$case_dir/down-stage.out" 2> "$case_dir/down-stage.err"; then
+    fail "unavailable owning backend allowed staging"
+  fi
+  assert_present "$task/next.bin" "unavailable backend moved original scratch"
+  assert_present "$task/named.png" "unavailable backend moved named evidence"
+  FM_TEST_REAL_BR="$real_br" BEADS_DIR="$case_dir/project/.beads" PATH="$case_dir/fakebin:$PATH" \
+    python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
+    || fail "unavailable-backend recovery did not resume"
+  [ "$(cat "$task/named.png")" = 'named Bead evidence' ] || fail "named Bead used the project default graph"
+  assert_present "$task/.cleanup-hold/next.bin" "resumed Bead cleanup omitted one-cycle recovery"
+  FM_TEST_REAL_BR="$real_br" PATH="$case_dir/fakebin:$PATH" \
+    python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
+    || fail "resumed Bead cleanup did not expire"
+  [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "retry lost owning Bead evidence"
+  [ "$(cat "$task/named.png")" = 'named Bead evidence' ] || fail "retry lost named Bead evidence"
+  assert_absent "$task/.cleanup-hold" "resumed Bead recovery remains"
+  pass "fm-teardown: owning and named Bead links use the configured graph across retirement, replay, staging, expiry and unavailable-backend retries"
 }
 
 test_task_data_reused_id() {
@@ -5598,6 +5761,11 @@ test_task_data_expired_sources() {
     printf 'Bead original-123\n' > "$task/brief.md"
     printf 'PR proof\n' > "$task/proof.png"
     printf 'bead proof\n' > "$task/bead-proof.png"
+    fm_test_tasks_toml "$case_dir/.tasks.toml"
+    seed_backlog_in_flight "$case_dir"
+    tasks-axi add reused 'reused task' --file "$case_dir/data/backlog.md" >/dev/null
+    tasks-axi add original-123 'original evidence' --body '[proof](bead-proof.png)' \
+      --file "$case_dir/data/backlog.md" >/dev/null
     [ "$variant" != held ] || printf 'scratch\n' > "$task/old.bin"
     cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
@@ -5610,11 +5778,7 @@ case "$3" in
   *) printf 'body: no attachments\n' ;;
 esac
 SH
-    cat > "$case_dir/fakebin/br" <<'SH'
-#!/usr/bin/env bash
-printf '{"description":"[proof](bead-proof.png)"}\n'
-SH
-    chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/br"
+    chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
     PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage "$case_dir/data" "$case_dir/state" \
       reused "$case_dir/project" https://github.com/test/repo/pull/1 || fail "first $variant stage failed"
     PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire "$case_dir/data" "$case_dir/state" reused \
@@ -5853,19 +6017,18 @@ SH
     write_meta "$case_dir" local-only ship
     printf 'pr=https://github.com/test/repo/pull/1\n' >> "$case_dir/state/task-x1.meta"
     seed_backlog_in_flight "$case_dir"
+    fm_test_tasks_toml "$case_dir/.tasks.toml"
+    tasks-axi add replay-123 'replay evidence' --body 'no attachments' \
+      --file "$case_dir/data/backlog.md" >/dev/null
     cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
-SH
-    cat > "$case_dir/fakebin/br" <<'SH'
-#!/usr/bin/env bash
-printf '{"description":"no attachments"}\n'
 SH
     cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
 printf 'body: no attachments\n'
 SH
-    chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/br" "$case_dir/fakebin/gh-axi"
+    chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
     cat > "$case_dir/replay.sh" <<'SH'
 #!/usr/bin/env bash
 set -eu
@@ -6159,9 +6322,15 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-retirement ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-beads ]; then
+  test_task_data_bead_backlog_sources "${1:-$ROOT}"
+  exit 0
+fi
+
 test_task_data_cleanup
 test_task_data_refusals
 test_task_data_references_and_guard
+test_task_data_bead_backlog_sources
 test_task_data_reused_id
 test_task_data_expired_sources
 test_task_data_symlink_targets

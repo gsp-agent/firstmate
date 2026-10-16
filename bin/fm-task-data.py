@@ -12,8 +12,9 @@ mounts, and special files refuse before any move or removal.
 Keep brief.md, report.md, status, findings, review, and record/ regardless of size.
 Also keep .txt/.md/.log/.json files up to 1 MiB outside nested repositories.
 Other nested-repository files are scratch unless referenced.
-Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion
-through fm-task-data-lib.sh, and beads named in retained task evidence through br.
+Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
+the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
+Backlog sources retain their home addressing in the cleanup record.
 Unavailable references retain all data for retry.
 Paths mentioned in these sources or retained evidence override the size/type
 limit. Matching a basename conservatively also retains ambiguous references.
@@ -117,7 +118,22 @@ def local_references(root, files, repos):
     return "\n".join(texts)
 
 
-def references(views, sources):
+def backlog_references(source, task_id):
+    backlog = source["backlog"]
+    response = json.loads(read_command([
+        "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
+        "backlog-references", backlog["data"], task_id,
+        "1" if backlog["task"] is not None else "0", *source["beads"],
+    ], str(Path(backlog["data"]).parent)))
+    if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
+            or response.get("task") not in (None, task_id)
+            or (backlog["task"] is not None and response.get("task") != task_id)):
+        raise ValueError("invalid backlog reference response")
+    backlog["task"] = response["task"]
+    return response["text"]
+
+
+def references(views, sources, task_id):
     texts = [local_references(*view) for view in views]
     local = "\n".join(texts)
     beads = set(re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", local))
@@ -127,10 +143,7 @@ def references(views, sources):
         if pr:
             texts.append(read_command(["bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
                                        "references", pr], project))
-        for bead in source["beads"]:
-            if not Path(project).is_dir():
-                raise ValueError(f"cannot locate the bead's project: {project}")
-            texts.append(read_command(["br", "--no-auto-flush", "--no-auto-import", "--json", "show", bead], project))
+        texts.append(backlog_references(source, task_id))
     return unquote(html.unescape("\n".join(texts)))
 
 
@@ -294,6 +307,12 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                     or not isinstance(source.get("pr"), str) or not isinstance(source.get("beads"), list)
                     or any(not isinstance(bead, str) for bead in source["beads"])):
                 raise ValueError("invalid reference source")
+            if "backlog" in source:
+                backlog = source["backlog"]
+                if (not isinstance(backlog, dict) or not isinstance(backlog.get("data"), str)
+                        or not Path(backlog["data"]).is_absolute()
+                        or "task" not in backlog or backlog["task"] not in (None, task_id)):
+                    raise ValueError("invalid backlog source")
         if action == "expire" and record.get("expired"):
             return
     elif action == "expire":
@@ -316,20 +335,27 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         record.update(complete=False, expired=False)
     if action in ("prepare", "stage"):
         source = next((item for item in record["sources"]
-                       if item["project"] == project and item["pr"] == pr), None)
+                       if item["project"] == project and item["pr"] == pr
+                       and item.get("backlog", {"data": str(data)})["data"] == str(data)), None)
         if source:
             record["sources"].remove(source)
         record["sources"].append(source or {"project": project, "pr": pr, "beads": []})
         record["sources"][-1]["beads"] = sorted(set(record["sources"][-1]["beads"]) | set(
             re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", local)))
+    for source in record["sources"]:
+        source.setdefault("backlog", {"data": str(data), "task": None})
     views = [(root, files, repos)]
     write_record(root, record)
     if action == "prepare":
+        try:
+            backlog_references(record["sources"][-1], task_id)
+        finally:
+            write_record(root, record)
         return
     if shutil.which("dcg") is None:
         raise ValueError("dcg is unavailable")
     try:
-        text = references(views, record["sources"])
+        text = references(views, record["sources"], task_id)
     finally:
         write_record(root, record)
     targets, directories = symlink_targets(views, text)
