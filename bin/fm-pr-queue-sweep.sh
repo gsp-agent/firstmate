@@ -7,11 +7,16 @@
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
 # A failed or timed-out page fails the scan. Repositories whose pages completed
 # may still print their removals.
-# A completed repository prints `queue-empty <owner>/<repo>` only when none of
-# its open pull requests were in the merge queue.
+# A completed repository prints `queue-empty <owner>/<repo>` only when no page
+# saw an open pull request in the merge queue.
 # A queued sighting prints no such line. The watcher then keeps that
 # repository's sidecar and snapshot until a later successful scan sees none.
 # The scan does not re-read an earlier page.
+# Once the last watch has merged, a pull request first queued after its page
+# was read is outside the watched-repository guarantee, like one queued after
+# retirement.
+# tests/fm-pr-check-security.test.sh covers a queued sighting across two pages
+# retaining discovery until the next scan reports the removal once.
 # bin/fm-watch.sh owns publication and applies that line to retirement.
 # There is no deadline around the complete scan.
 # When FM_PR_SWEEP_BEAT names the watcher's liveness beacon, each completed

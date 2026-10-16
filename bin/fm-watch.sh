@@ -2647,8 +2647,8 @@ if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-
   sweep_repo_snapshot=$("$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
 fi
 
-# Disable recovered runnable polls now, retaining repository discovery evidence
-# until the queue sweep consumes it (fm_pr_poll_retirement_recover_one).
+# Disable recovered runnable polls now; fm_pr_poll_retirement_ready in
+# bin/fm-pr-lib.sh owns retention of repository discovery evidence.
 if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; then
   reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
   fm_wake_append check pr-poll-retirement "$reason" || exit 1
