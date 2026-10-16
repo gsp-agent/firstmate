@@ -5379,6 +5379,8 @@ SH
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-aliases ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-components ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-names ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-directories ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retirement ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ]; then
   test_missing_startup_source_refuses_before_cleanup
@@ -5568,7 +5570,7 @@ test_task_data_bead_backlog_sources() {
   mkdir -p "$case_dir/graph/.beads" "$case_dir/project/.beads"
   cat > "$case_dir/graph/.beads/rows.json" <<'JSON'
 {
-  "proof-owner": {"status": "open", "description": "[capture](proof.png)"},
+  "proof-owner": {"status": "open", "description": "[capture](proof.png) [evidence directory](artifacts/)"},
   "proof-related": {"status": "open", "description": "[named capture](named.png)"}
 }
 JSON
@@ -5629,11 +5631,19 @@ cat >/dev/null
 SH
   chmod +x "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/dcg"
   task="$case_dir/data/$id"
-  mkdir -p "$task"
+  mkdir -p "$task/artifacts" "$task/later-artifacts" "$case_dir/outside"
   printf 'plain cleanup instructions\n' > "$task/brief.md"
   printf 'owning Bead evidence\n' > "$task/proof.png"
   printf 'later Bead evidence\n' > "$task/later.png"
   printf 'scratch\n' > "$task/discard.bin"
+  printf '\000owning directory evidence\377' > "$task/artifacts/frame.bin"
+  printf '\000later directory evidence\377' > "$task/later-artifacts/frame.bin"
+  printf '\000owned directory backing\377' > "$task/backing.bin"
+  printf '\000held directory backing\377' > "$task/later-backing.bin"
+  printf 'outside directory target\n' > "$case_dir/outside/keep.bin"
+  ln -s "$task/backing.bin" "$task/artifacts/member.bin"
+  ln -s "$task/later-backing.bin" "$task/later-artifacts/member.bin"
+  ln -s "$case_dir/outside/keep.bin" "$task/artifacts/external.bin"
   fm_write_meta "$case_dir/state/$id.meta" "project=$case_dir/project" \
     'kind=ship' 'mode=local-only' "spawn_gen=bead-$id"
   cat > "$case_dir/retire.sh" <<'SH'
@@ -5668,13 +5678,17 @@ SH
     python3 "$code_root/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
       "$id" "$case_dir/project" '' || fail "owning Bead staging failed"
   [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "owning Bead-only link was staged"
+  assert_present "$task/artifacts/frame.bin" "owning Bead directory contents were staged"
+  cmp "$task/artifacts/member.bin" "$task/backing.bin" || fail "owning Bead directory symlink lost its target"
+  assert_present "$task/.cleanup-hold/later-artifacts/frame.bin" "unlinked Bead directory did not stage"
+  assert_present "$task/.cleanup-hold/later-backing.bin" "unlinked Bead directory backing did not stage"
   assert_present "$task/.cleanup-hold/later.png" "unlinked later evidence did not stage"
   assert_present "$task/.cleanup-hold/discard.bin" "unlinked Bead scratch did not stage"
   jq -e --arg data "$case_dir/data" --arg id "$id" \
     '.sources | any(.beads == [] and .backlog.data == $data and .backlog.task == $id)' \
     "$task/record/data-cleanup.json" >/dev/null || fail "cleanup lost the owning backlog identity"
   (cd "$case_dir" && PATH="$case_dir/fakebin:$portable_path" tasks-axi update "$id" \
-    --body '[capture](proof.png) [later capture](later.png)') > "$case_dir/update.log" 2>&1 \
+    --body '[capture](proof.png) [later capture](later.png) [evidence directory](artifacts/) [later directory](later-artifacts/)') > "$case_dir/update.log" 2>&1 \
     || fail "owning Bead update failed"
   if FM_TEST_BACKLOG_DOWN=1 PATH="$case_dir/fakebin:$portable_path" \
       python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
@@ -5683,12 +5697,17 @@ SH
   fi
   assert_present "$task/.cleanup-hold/later.png" "unavailable backend lost recoverable evidence"
   assert_present "$task/.cleanup-hold/discard.bin" "unavailable backend deleted scratch"
+  assert_present "$task/.cleanup-hold/later-artifacts/frame.bin" "unavailable backend deleted held directory evidence"
   BEADS_DIR="$case_dir/project/.beads" \
     TASKS_AXI_FILE="$case_dir/project/backlog.md" PATH="$case_dir/fakebin:$portable_path" \
     python3 "$code_root/bin/fm-task-data.py" expire "$case_dir/data" "$case_dir/state" "$id" \
     || fail "owning Bead expiry failed"
   [ "$(cat "$task/proof.png")" = 'owning Bead evidence' ] || fail "expiry deleted owning Bead evidence"
   [ "$(cat "$task/later.png")" = 'later Bead evidence' ] || fail "expiry did not refresh the owning Bead's links"
+  assert_present "$task/artifacts/frame.bin" "expiry deleted owning Bead directory evidence"
+  assert_present "$task/later-artifacts/frame.bin" "expiry did not restore newly linked owning Bead directory evidence"
+  cmp "$task/later-artifacts/member.bin" "$task/later-backing.bin" || fail "held Bead directory lost its backing file"
+  [ "$(cat "$task/artifacts/external.bin")" = 'outside directory target' ] || fail "owning Bead directory changed external evidence"
   assert_absent "$task/.cleanup-hold" "owning Bead recovery remains"
   printf 'Bead %s\n' "$related" >> "$task/brief.md"
   printf 'named Bead evidence\n' > "$task/named.png"
@@ -5906,6 +5925,197 @@ SH
     [ "$(cat "$task/frames.png/member.bin")" = 'directory member capture' ] || fail "$action changed evidence despite a retained cycle"
   done
   pass "fm-teardown: retained directory links preserve transitive and held targets, component order, escapes and cycle safety"
+}
+
+test_task_data_linked_directories() {
+  local helper=${1:-$ROOT/bin/fm-task-data.py} case_dir
+  case_dir=$(make_case task-data-linked-directories)
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+cat "$FM_TEST_REFERENCE_FILE"
+SH
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+  FM_TEST_REFERENCE_FILE="$case_dir/references" PATH="$case_dir/fakebin:$PATH" \
+    python3 - "$case_dir" "$helper" <<'PY' || fail "linked directory regression failed"
+from pathlib import Path
+import subprocess
+import sys
+
+case, helper = Path(sys.argv[1]), sys.argv[2]
+external = case / "outside" / "keep.bin"
+external.parent.mkdir()
+external.write_bytes(b"outside\x00\xff")
+for variant in ("local", "pr"):
+    task = case / "data" / variant
+    expected = {
+        "artifacts/frame.bin": b"frame\x00\xff",
+        "artifacts/nested/fragment.bin": b"fragment\x00\xff",
+        "backing.bin": b"directory backing\x00\xff",
+        "pieces/deep.bin": b"nested backing\x00\xff",
+        "scratch-only/evidence.bin": b"single linked file\x00\xff",
+        "saved-artifacts/frame.bin": b"held frame\x00\xff",
+        "saved-backing.bin": b"held backing\x00\xff",
+    }
+    for rel, content in expected.items():
+        path = task / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    (task / "discard.bin").write_bytes(b"unlinked scratch")
+    (task / "scratch-only/discard.bin").write_bytes(b"unlinked sibling")
+    (task / "artifacts/empty").mkdir()
+    (task / "artifacts/member.bin").symlink_to(task / "backing.bin")
+    (task / "artifacts/directory.bin").symlink_to(task / "pieces")
+    (task / "artifacts/external.bin").symlink_to(external)
+    (task / "saved-artifacts/member.bin").symlink_to(task / "saved-backing.bin")
+    (task / "saved-artifacts/external.bin").symlink_to(external)
+    report = task / "report.md"
+    references = case / "references"
+    body = ("[evidence directory](artifacts" + ("/" if variant == "local" else "")
+            + ") [single file](scratch-only/evidence.bin)")
+    (report if variant == "local" else references).write_text(body)
+    pr = "https://github.com/test/repo/pull/1" if variant == "pr" else ""
+    command = [sys.executable, helper]
+    subprocess.run(command + ["stage", str(case / "data"), str(case / "state"), variant,
+                              str(case / "project"), pr], check=True)
+    present_at_stage = {rel: (task / rel).is_file() for rel in expected
+                        if not rel.startswith("saved-")}
+    assert (task / ".cleanup-hold/saved-artifacts/frame.bin").is_file(), "unlinked directory did not stage"
+    assert (task / ".cleanup-hold/discard.bin").is_file(), "unrelated scratch did not stage"
+    assert (task / ".cleanup-hold/scratch-only/discard.bin").is_file(), "file link retained its parent's unrelated contents"
+    assert external.read_bytes() == b"outside\x00\xff", "staging changed an external target"
+    body += " [later directory](saved-artifacts)"
+    (report if variant == "local" else references).write_text(body)
+    subprocess.run(command + ["expire", str(case / "data"), str(case / "state"), variant], check=True)
+    for rel, content in expected.items():
+        path = task / rel
+        assert path.is_file(), f"{variant} linked directory evidence deleted during expiry: {rel}"
+        assert path.read_bytes() == content, f"{variant} directory evidence changed: {rel}"
+    assert all(present_at_stage.values()), f"{variant} linked directory contents moved during staging"
+    assert (task / "artifacts/empty").is_dir(), "linked empty directory was removed"
+    for link, target in (("artifacts/member.bin", "backing.bin"),
+                         ("artifacts/directory.bin/deep.bin", "pieces/deep.bin"),
+                         ("saved-artifacts/member.bin", "saved-backing.bin")):
+        assert (task / link).read_bytes() == expected[target], f"{variant} directory link broke: {link}"
+    assert (task / "saved-artifacts/external.bin").read_bytes() == external.read_bytes(), "held external link broke"
+    assert external.read_bytes() == b"outside\x00\xff", "expiry changed an external target"
+    assert not (task / ".cleanup-hold").exists(), "directory recovery did not expire"
+    assert not (task / "discard.bin").exists(), "unrelated scratch survived expiry"
+    assert not (task / "scratch-only/discard.bin").exists(), "file link retained an unrelated sibling during expiry"
+PY
+  pass "fm-teardown: local and PR directory links retain binary descendants, nested symlink targets and newly linked held contents"
+}
+
+test_task_data_filesystem_name_aliases() {
+  local helper=${1:-$ROOT/bin/fm-task-data.py} case_dir
+  case_dir=$(make_case task-data-name-aliases)
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+cat "$FM_TEST_REFERENCE_FILE"
+SH
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+  FM_TEST_REFERENCE_FILE="$case_dir/references" PATH="$case_dir/fakebin:$PATH" \
+    python3 - "$case_dir" "$helper" <<'PY' || fail "filesystem name alias regression failed"
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+case, helper = Path(sys.argv[1]), sys.argv[2]
+probe = case / "CaseProbe"
+probe.write_bytes(b"probe")
+if not (case / "caseprobe").exists() or not os.path.samefile(probe, case / "caseprobe"):
+    print("ok - fm-teardown: filesystem name aliases skipped on a case-sensitive filesystem")
+    sys.exit(0)
+task = case / "data" / "finished"
+external = case / "outside" / "keep.bin"
+external.parent.mkdir()
+external.write_bytes(b"external\x00\xff")
+expected = {
+    "captures/frame.bin": b"capture\x00\xff",
+    "rawcapture.bin": b"direct file\x00\xff",
+    "rawdir/pixel.bin": b"direct directory\x00\xff",
+    "frames/piece.bin": b"directory alias\x00\xff",
+    "walk/proof.bin": b"ordered prefix\x00\xff",
+    "rootcapture.bin": b"owned root\x00\xff",
+    "caf\u00e9/frame.bin": b"unicode target\x00\xff",
+    "r\u00e9sum\u00e9.bin": b"unicode reference\x00\xff",
+    "linked-original.bin": b"hardlinked capture\x00\xff",
+    "held-captures/frame.bin": b"held capture\x00\xff",
+    "held-direct.bin": b"held direct file\x00\xff",
+    "held-dir/pixel.bin": b"held direct directory\x00\xff",
+    "held-frames/piece.bin": b"held directory alias\x00\xff",
+    "held-walk/proof.bin": b"held ordered prefix\x00\xff",
+    "held-root.bin": b"held owned root\x00\xff",
+}
+for rel, content in expected.items():
+    path = task / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content)
+(task / "walk/subdir").mkdir()
+(task / "held-walk/subdir").mkdir()
+(task / "discard.bin").write_bytes(b"unlinked scratch")
+(task / "captures/discard.bin").write_bytes(b"unlinked sibling")
+os.link(task / "linked-original.bin", task / "hardlink-other.bin")
+links = {
+    "latest.png": "Captures/FRAME.BIN",
+    "sequence.png": "FRAMES",
+    "walk-alias.bin": "WALK/SUBDIR",
+    "component.png": "WALK-ALIAS.BIN/../PROOF.BIN",
+    "root.png": str(task.parent / "FINISHED" / "ROOTCAPTURE.BIN"),
+    "unicode.png": "CAFE\u0301/FRAME.BIN",
+    "hardlink.png": "LINKED-ORIGINAL.BIN",
+    "escape.png": str(case / "OUTSIDE" / "KEEP.BIN"),
+    "saved.png": "HELD-CAPTURES/FRAME.BIN",
+    "saved-frames.png": "HELD-FRAMES",
+    "held-alias.bin": "HELD-WALK/SUBDIR",
+    "saved-component.png": "HELD-ALIAS.BIN/../PROOF.BIN",
+    "saved-root.png": str(task.parent / "FINISHED" / "HELD-ROOT.BIN"),
+}
+for rel, target in links.items():
+    (task / rel).symlink_to(target)
+references = case / "references"
+body = ("[capture](latest.png) [sequence](sequence.png) [prefix](component.png) [root](root.png) "
+        "[unicode](unicode.png) [outside](escape.png) [direct](RAWCAPTURE.BIN) "
+        "[directory](RAWDIR/) [unicode direct](R\u00c9SUM\u00c9.BIN) [hardlinked](hardlink.png)")
+references.write_text(json.dumps({"body": body}))
+command = [sys.executable, helper]
+subprocess.run(command + ["stage", str(case / "data"), str(case / "state"), "finished",
+                          str(case / "project"), "https://github.com/test/repo/pull/1"], check=True)
+assert (task / "latest.png").is_file(), "filesystem alias lost its backing file during staging"
+for rel, content in expected.items():
+    if rel.startswith("held-"):
+        assert (task / ".cleanup-hold" / rel).read_bytes() == content, f"unlinked alias target did not stage: {rel}"
+    else:
+        assert (task / rel).read_bytes() == content, f"filesystem identity lost during staging: {rel}"
+assert (task / "walk/subdir").is_dir(), "aliased traversal prefix was removed"
+assert (task / ".cleanup-hold/captures/discard.bin").is_file(), "alias retention kept an unrelated sibling"
+assert (task / ".cleanup-hold/hardlink-other.bin").is_file(), "alias retention confused distinct hardlink names"
+references.write_text(json.dumps({"body": body + " [saved](saved.png) [saved frames](saved-frames.png) "
+                                 "[saved prefix](saved-component.png) [saved root](saved-root.png) "
+                                 "[held direct](HELD-DIRECT.BIN) [held directory](HELD-DIR/)"}))
+subprocess.run(command + ["expire", str(case / "data"), str(case / "state"), "finished"], check=True)
+for rel, content in expected.items():
+    assert (task / rel).read_bytes() == content, f"filesystem identity lost during expiry: {rel}"
+for rel in ("latest.png", "sequence.png/piece.bin", "component.png", "root.png", "unicode.png", "hardlink.png",
+            "saved.png", "saved-frames.png/piece.bin", "saved-component.png", "saved-root.png"):
+    assert (task / rel).is_file(), f"filesystem alias broke during expiry: {rel}"
+assert (task / "held-walk/subdir").is_dir(), "held traversal prefix was not restored"
+assert (task / "escape.png").read_bytes() == b"external\x00\xff", "external alias changed"
+assert external.read_bytes() == b"external\x00\xff", "filesystem alias cleanup escaped its root"
+assert not (task / ".cleanup-hold").exists(), "aliased recovery did not expire"
+assert not (task / "discard.bin").exists(), "unrelated scratch survived aliased expiry"
+assert not (task / "captures/discard.bin").exists(), "unrelated sibling survived aliased expiry"
+print("ok - fm-teardown: real filesystem name aliases retain direct, directory, prefix, owned-root and held evidence")
+PY
 }
 
 test_task_data_symlink_ancestor_aliases() {
@@ -6362,6 +6572,16 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-components ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-names ]; then
+  test_task_data_filesystem_name_aliases "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-directories ]; then
+  test_task_data_linked_directories "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-retirement ]; then
   test_task_data_discovered_pr_retirement "${1:-$ROOT}"
   exit 0
@@ -6379,6 +6599,8 @@ test_task_data_bead_backlog_sources
 test_task_data_reused_id
 test_task_data_expired_sources
 test_task_data_symlink_targets
+test_task_data_linked_directories
+test_task_data_filesystem_name_aliases
 test_task_data_symlink_ancestor_aliases "$ROOT/bin/fm-task-data.py"
 test_task_data_collision_progress
 test_task_data_retirement_obligation

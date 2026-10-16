@@ -48,6 +48,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from urllib.parse import unquote
 
 
@@ -147,42 +148,99 @@ def references(views, sources, task_id):
     return unquote(html.unescape("\n".join(texts)))
 
 
-def linked(rel, text):
+def linked(rel, text, directory):
     # Basename matching also protects relative Markdown links and escaped JSON
     # paths without guessing which directory a PR or bead used as its base.
-    return rel.name in text or json.dumps(rel.name)[1:-1] in text
+    if not directory and (rel.name in text or json.dumps(rel.name)[1:-1] in text):
+        return True
+    name = unicodedata.normalize("NFD", rel.name)
+    pattern = "(" + re.escape(name) + ")"
+    if directory:
+        prefix = r'''(?:(?<=[/(`<"'])|:[ \t]+|(?<![\w.-])(?=''' + re.escape(name) + r"/))"
+        pattern = prefix + pattern + r'''(?=/?(?:$|[\s)\]}>'",;?#]))'''
+    for match in re.finditer(pattern, unicodedata.normalize("NFD", text), re.IGNORECASE):
+        alias = rel.with_name(match.group(1))
+        try:
+            if os.path.samestat(alias.lstat(), rel.lstat()):
+                return True
+        except (FileNotFoundError, NotADirectoryError):
+            pass
+    return False
 
 
-def protected(path, text, targets):
-    return linked(path, text) or any(path == target or target in path.parents for target in targets)
+def protected(path, targets):
+    return path in targets or any(parent in targets for parent in path.parents)
 
 
-def symlink_targets(views, text):
+def retention_paths(root, files, all_directories, repos, text):
     targets, directories = set(), set()
+    decoded = []
+    for match in re.finditer(r'"(?:[^"\\]|\\.)*"', text):
+        try:
+            decoded.append(json.loads(match.group()))
+        except ValueError:
+            pass
+    text = "\n".join([text, *decoded])
+    entries = {root / rel: (root / rel).lstat() for rel in files + all_directories}
+    children = {}
+    for path, info in entries.items():
+        children.setdefault(path.parent, {})[path.name] = (path, info)
+    root_info = root.lstat()
+
+    def inventory_path(path):
+        siblings = children.get(path.parent, {})
+        if path.name not in siblings:
+            try:
+                info = path.lstat()
+            except (FileNotFoundError, NotADirectoryError):
+                return path
+            candidates = sorted(siblings.values(), key=lambda item:
+                                unicodedata.normalize("NFD", item[0].name).casefold()
+                                != unicodedata.normalize("NFD", path.name).casefold())
+            for entry, entry_info in candidates:
+                if os.path.samestat(info, entry_info):
+                    return entry
+        return path
+
+    def virtual_path(path):
+        rel = path.relative_to(root)
+        if rel.parts and rel.parts[0] == HOLD:
+            rel = rel.relative_to(HOLD)
+        return root / rel
 
     def locate(path):
-        for root, _, _ in views:
-            if path == root or root in path.parents:
-                rel = path.relative_to(root)
-                if rel.parts and rel.parts[0] == HOLD:
-                    rel = rel.relative_to(HOLD)
-                    path = root / rel
-                actual = path
-                if not actual.exists() and not actual.is_symlink():
-                    actual = root / HOLD / rel
-                return root, path, actual
+        if path == root or root in path.parents:
+            path = virtual_path(inventory_path(path))
+            actual = path
+            if not actual.exists() and not actual.is_symlink():
+                actual = root / HOLD / path.relative_to(root)
+            actual = inventory_path(actual)
+            return root, virtual_path(actual), actual
+        try:
+            if os.path.samestat(path.lstat(), root_info):
+                return root, root, root
+        except (FileNotFoundError, NotADirectoryError):
+            pass
         return None, path, path
 
-    pending_links = [(root, rel, repos) for root, files, repos in views
-                     for rel in files if (root / rel).is_symlink()]
+    for rel in files + all_directories:
+        if rel == Path(HOLD):
+            continue
+        actual = root / rel
+        is_directory = stat.S_ISDIR(entries[actual].st_mode)
+        if linked(actual, text, is_directory) or (not is_directory and rel.parts[0] != HOLD
+                                                 and ordinary_evidence(actual, rel, repos)):
+            targets.add(virtual_path(actual))
+            if is_directory:
+                directories.add(virtual_path(actual))
+
+    pending_links = [root / rel for rel in files if (root / rel).is_symlink()]
     while pending_links:
         remaining = []
-        for root, rel, repos in pending_links:
-            actual = root / rel
-            virtual = root / (rel.relative_to(HOLD) if rel.parts[0] == HOLD else rel)
-            if not (protected(virtual, text, targets) or (
-                    rel.parts[0] != HOLD and ordinary_evidence(actual, rel, repos))):
-                remaining.append((root, rel, repos))
+        for actual in pending_links:
+            virtual = virtual_path(actual)
+            if not protected(virtual, targets):
+                remaining.append(actual)
                 continue
             path = Path(virtual.anchor)
             pending = list(virtual.parts[1:])
@@ -338,7 +396,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         raise ValueError("unsafe recovery directory")
     if hold.exists() and record is None:
         raise ValueError("unowned recovery directory")
-    files, _, repos = inventory(root)
+    files, all_directories, repos = inventory(root)
     local = unquote(html.unescape(local_references(root, files, repos)))
     if record is None:
         record = {"version": 1, "task": task_id, "sources": [], "complete": False}
@@ -369,11 +427,10 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         text = references(views, record["sources"], task_id)
     finally:
         write_record(root, record)
-    targets, directories = symlink_targets(views, text)
+    targets, directories = retention_paths(root, files, all_directories, repos, text)
 
     scratch = [(path, [rel for rel in leaves if rel.parts[0] not in (HOLD, "record")
-                      and not ordinary_evidence(path / rel, rel, nested_repos)
-                      and not protected(path / rel, text, targets)]) for path, leaves, nested_repos in views]
+                      and not protected(path / rel, targets)]) for path, leaves, _ in views]
     if action == "expire" and record["complete"]:
         for path, _, _ in views:
             recovery = path / HOLD
@@ -385,7 +442,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
             held_files, held_dirs, _ = inventory(recovery)
             remove = []
             for rel in held_files:
-                if protected(path / rel, text, targets):
+                if protected(path / rel, targets):
                     destination = path / rel
                     if destination.exists() or destination.is_symlink():
                         raise ValueError(f"recovery would overwrite: {destination}")
@@ -424,7 +481,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                     for parent in leaf.parents}
         empty = [rel for rel in remaining_dirs if rel.parts[0] not in (HOLD, "record")
                  and rel not in occupied and path / rel not in directories
-                 and not protected(path / rel, text, targets)]
+                 and not protected(path / rel, targets)]
         remove_entries(path, [], empty)
     record["complete"] = True
     write_record(root, record)
