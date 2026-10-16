@@ -165,6 +165,13 @@ case "${1:-} ${2:-}" in
     # pull request the outcome query has never described.
     case " $* " in
       *pullRequests*)
+        if [ -n "${FM_TEST_GH_LOG_SWEEP_REPOS:-}" ]; then
+          {
+            printf 'sweep-repos-begin\n'
+            printf '%s\n' "${FM_PR_SWEEP_REPOS-}"
+            printf 'sweep-repos-end\n'
+          } >> "$FM_TEST_GH_LOG"
+        fi
         [ "${FM_TEST_GH_SWEEP_FAIL:-0}" = 0 ] || exit 1
         request_host=github.com
         request_owner=
@@ -5551,6 +5558,106 @@ test_force_discards_closed_watch_with_or_without_a_sweep() {
   pass "--force discards a closed watch with or without a completed sweep"
 }
 
+# The sweep collapses its own repository set after it starts. Growth is the
+# list inherited from the watcher, across many checks of one process.
+add_counted_stop_check() {  # <dir> <passes>
+  local dir=$1 passes=$2 state
+  state="$dir/home/state"
+  cat > "$state/z-stop.check.sh" <<EOF
+#!/usr/bin/env bash
+count_file='$dir/passes'
+count=0
+if [ -f "\$count_file" ]; then
+  count=\$(cat "\$count_file")
+fi
+case "\$count" in
+  ''|*[!0-9]*) count=0 ;;
+esac
+count=\$((count + 1))
+printf '%s\n' "\$count" > "\$count_file"
+if [ "\$count" -ge $passes ]; then
+  printf 'stop-cycle\n'
+fi
+EOF
+  chmod 0700 "$state/z-stop.check.sh"
+  FM_HOME="$dir/home" "$REGISTER" z-stop >/dev/null \
+    || fail "could not register the counted stop check"
+}
+
+assert_logged_sweep_union() {  # <log> <want> <why>
+  local log=$1 want=$2 why=$3 raw got begins
+  begins=$(grep -c '^sweep-repos-begin$' "$log" || true)
+  [ "$begins" -ge 12 ] || fail "$why: the sweep inherited the repository list $begins times"
+  raw=$(awk '
+    $0 == "sweep-repos-begin" { buf = ""; capture = 1; next }
+    $0 == "sweep-repos-end" { if (capture) last = buf; capture = 0; next }
+    capture { buf = buf $0 "\n" }
+    END { printf "%s", last }
+  ' "$log")
+  got=$(printf '%s\n' "$raw" | awk 'NF')
+  [ "$got" = "$want" ] || fail "$why: got $(printf '%q' "$got") want $(printf '%q' "$want")"
+}
+
+test_retained_sweep_repos_stay_one_entry() {
+  local dir state listed passes=6
+  dir=$(make_case retained-sweep-repo-union)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/zeta/pull/1
+  write_poll_meta "$state" task-b https://github.com/o/alpha/pull/2
+  seed_canonical_poll "$dir" task-a https://github.com/o/zeta/pull/1
+  seed_canonical_poll "$dir" task-b https://github.com/o/alpha/pull/2
+  listed=$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")
+  [ "$listed" = $'o/zeta\no/alpha' ] \
+    || fail "retained repositories were not first seen as o/zeta then o/alpha: $listed"
+  mkdir -p "$dir/sweep"
+  "$REAL_JQ" -n '
+    {data:{repository:{pullRequests:{
+      pageInfo:{hasNextPage:false, endCursor:null},
+      nodes:[{number:9, state:"OPEN", merged:false, isInMergeQueue:true,
+        timelineItems:{nodes:[]}}]}}}}
+  ' > "$dir/sweep/page1.json"
+  add_counted_stop_check "$dir" "$passes"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_LOG_SWEEP_REPOS=1 \
+    FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "retained queued sweep watcher failed: $(cat "$dir/watch.err")"
+  [ "$(cat "$dir/passes")" -eq "$passes" ] \
+    || fail "retained queued sweep did not complete $passes checks"
+  expect_stop_cycle "$dir/watch.out" "a retained queued repository woke"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-b.pr-poll" ] \
+    || fail "a retained queued repository dropped a sidecar"
+  assert_logged_sweep_union "$dir/gh.log" "$listed" "retained queued repositories"
+
+  dir=$(make_case failing-sweep-repo-union)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/zeta/pull/1
+  write_poll_meta "$state" task-b https://github.com/o/alpha/pull/2
+  seed_canonical_poll "$dir" task-a https://github.com/o/zeta/pull/1
+  seed_canonical_poll "$dir" task-b https://github.com/o/alpha/pull/2
+  listed=$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")
+  [ "$listed" = $'o/zeta\no/alpha' ] \
+    || fail "failing-sweep repositories were not first seen as o/zeta then o/alpha: $listed"
+  add_counted_stop_check "$dir" "$passes"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_LOG_SWEEP_REPOS=1 \
+    FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_FAIL=1 \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "failing sweep watcher failed: $(cat "$dir/watch.err")"
+  [ "$(cat "$dir/passes")" -eq "$passes" ] \
+    || fail "failing sweep did not complete $passes checks"
+  expect_stop_cycle "$dir/watch.out" "a failing sweep woke"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-b.pr-poll" ] \
+    || fail "a failing sweep dropped a sidecar"
+  assert_logged_sweep_union "$dir/gh.log" "$listed" "failing sweep repositories"
+  pass "many checks leave one first-seen repository entry when a repo stays queued and when the sweep fails"
+}
+
+if [ -n "${FM_TEST_ONLY:-}" ]; then
+  "$FM_TEST_ONLY"
+  exit $?
+fi
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -5627,3 +5734,4 @@ test_returned_custom_check_descendants_are_drained
 test_teardown_removes_poll_artifacts
 test_closed_pull_request_teardown_follows_an_empty_sweep
 test_force_discards_closed_watch_with_or_without_a_sweep
+test_retained_sweep_repos_stay_one_entry

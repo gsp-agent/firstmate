@@ -2881,8 +2881,17 @@ while :; do
     # before this block. bin/fm-pr-queue-sweep.sh owns the line format.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
       sweep_listed=$("$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
+      # Keep one line per repository, in first-seen order, or this list grows until the sweep cannot run.
       if [ -n "$sweep_listed" ]; then
-        sweep_repo_snapshot="${sweep_repo_snapshot}"$'\n'"${sweep_listed}"
+        while IFS= read -r sweep_repo || [ -n "$sweep_repo" ]; do
+          [ -n "$sweep_repo" ] || continue
+          case $'\n'"${sweep_repo_snapshot}"$'\n' in
+            *$'\n'"${sweep_repo}"$'\n'*) ;;
+            *) sweep_repo_snapshot="${sweep_repo_snapshot}${sweep_repo}"$'\n' ;;
+          esac
+        done <<EOF
+$sweep_listed
+EOF
       fi
     fi
     for c in "$STATE"/*.check.sh; do
@@ -3098,9 +3107,12 @@ EOF
         while IFS= read -r sweep_repo || [ -n "$sweep_repo" ]; do
           [ -n "$sweep_repo" ] || continue
           case $'\n'"$sweep_queue_empty"$'\n' in
-            *$'\n'"$sweep_repo"$'\n'*) ;;
-            *) sweep_kept="${sweep_kept}${sweep_repo}"$'\n' ;;
+            *$'\n'"$sweep_repo"$'\n'*) continue ;;
           esac
+          case $'\n'"${sweep_kept}"$'\n' in
+            *$'\n'"${sweep_repo}"$'\n'*) continue ;;
+          esac
+          sweep_kept="${sweep_kept}${sweep_repo}"$'\n'
         done <<EOF
 $sweep_repo_snapshot
 EOF
