@@ -4878,7 +4878,7 @@ test_domain_archival_retires_pending_only_after_a_readable_lookup() {
   done
   mv "$domain_home/data/backlog.md" "$domain_home/unreadable-backlog"
   mv "$domain_home/saved-backlog.md" "$domain_home/data/backlog.md"
-  tasks_in "$domain_home" done archived >/dev/null || fail 'could not archive pending fixture'
+  tasks_in "$domain_home" 'done' archived >/dev/null || fail 'could not archive pending fixture'
   assert_grep 'archived' "$domain_home/data/done-archive.md" 'zero retention did not archive the task'
   if tasks_in "$domain_home" show archived --full > "$domain_home/archived.out" 2>&1; then
     fail 'zero retention left the task in the active backlog'
@@ -5026,7 +5026,7 @@ ASKS
   run_domain "$domain_home" 2026-10-14T02:00:00Z hold closed --title 'Closed outside the hold wrapper' \
     --decision-owner ep-firstmate --timeout-seconds 60 \
     --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold closed fixture'
-  tasks_in "$domain_home" done closed >/dev/null || fail 'could not close pending fixture'
+  tasks_in "$domain_home" 'done' closed >/dev/null || fail 'could not close pending fixture'
   run_domain "$domain_home" 2026-10-14T02:10:00Z route-due || fail 'closed spool sweep failed'
   if domain_supervision_needed "$domain_home"; then
     fail 'answered or closed stale spool kept supervision active'

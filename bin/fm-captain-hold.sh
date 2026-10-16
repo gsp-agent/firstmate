@@ -1136,7 +1136,7 @@ route_hold() {  # <id>; caller owns the task control lock
   else
     fail "could not read task $id for routing: $TASK_SHOW_OUTPUT"
   fi
-  if [ "$(show_field_value "$show" state)" = done ]; then
+  if [ "$(show_field_value "$show" state)" = 'done' ]; then
     retire_hold_route "$id"
     return 0
   fi
