@@ -2101,6 +2101,7 @@ procevent_surface_queued() {
 run_check_process() {
   local c=$1
   shift
+  [ "${FM_CHECK_CAPTURE_STDERR:-0}" != 1 ] || exec 2>&1
   # The merge-queue sweep bounds each GitHub page itself. An outer deadline
   # would kill the rest of a scan that is already making progress.
   if [ "${FM_CHECK_UNBOUNDED:-0}" = 1 ]; then
@@ -2886,10 +2887,13 @@ while :; do
   # CHECK_INTERVAL, so most cycles skip this block and fall straight through.
   if [ "$(age_of "$STATE/.last-check")" -ge "$CHECK_INTERVAL" ]; then
     hold_route_reason=
-    if [ -d "$STATE/hold-domain" ] && ! hold_route_output=$(FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
-      "$SCRIPT_DIR/fm-captain-hold.sh" route-due 2>&1); then
-      hold_route_reason="check: hold-domain routing failed: $hold_route_output"
-      fm_wake_append check hold-domain "$hold_route_reason" || exit 1
+    if [ -d "$STATE/hold-domain" ]; then
+      FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CHECK_CAPTURE_STDERR=1 \
+        run_check_capture "$SCRIPT_DIR/fm-captain-hold.sh" route-due || exit 1
+      if [ "$FM_CHECK_STATUS" -ne 0 ]; then
+        hold_route_reason="check: hold-domain routing failed: exit $FM_CHECK_STATUS${FM_CHECK_RESULT:+: $FM_CHECK_RESULT}"
+        fm_wake_append check hold-domain "$hold_route_reason" || exit 1
+      fi
     fi
     rejected_checks=
     contribution_check_output=
@@ -3146,11 +3150,9 @@ EOF
     fi
     touch "$STATE/.last-check"
     check_sweep_output="${check_sweep_output}${contribution_check_output}"
+    [ -z "$hold_route_reason" ] || check_sweep_output="${check_sweep_output}${hold_route_reason}"$'\n'
     if [ -n "$check_sweep_output" ]; then
       wake "${check_sweep_output%$'\n'}"
-    fi
-    if [ -n "$hold_route_reason" ]; then
-      wake "$hold_route_reason"
     fi
   fi
 

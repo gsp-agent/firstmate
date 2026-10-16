@@ -72,7 +72,8 @@ Repeat and edge cases:
 ### Technical hold routing
 
 The optional agent-config router owns classification of technical holds and protection of human endpoints.
-Firstmate supplies the declared owner and timeout, then checks live backlog state on the watcher's existing periodic pass.
+Firstmate resolves task and origin backend identities before looking up the declared owner or taking the task control lock, and uses the canonical task identity for routing bodies and receipts.
+It checks live backlog state on the watcher's existing periodic pass, whose tracked check subprocess bounds the whole routing sweep and preserves pending work on timeout.
 Pending per-home routing bodies keep that supervision required even with no other work; the watcher retires answered, closed, deferred or replaced entries against live state.
 An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new hold preserves historical resolution bodies beneath its active header.
 Confirmed archival retires pending routing, while an unreadable backlog leaves it supervised and reports the read failure.
@@ -561,6 +562,8 @@ Standalone holds and retirement of the last unrelated task preserve supervision 
 Fault-injected answer, release and reconciliation closures stay protected from immediate and periodic routing, while a new lifecycle preserves historical decisions and still routes.
 Zero-retention archival clears pending routing without treating an unreadable backlog as an absent task.
 Persistent reason drift, transport failures and release failures still allow ordinary scheduled checks to execute before the routing error surfaces.
+Native and fallback watcher bounds cover blocked listing, control locks, body writes and release, terminate blocked subprocesses, and preserve pending work and scheduled checks.
+Origin and task aliases preserve authority inheritance, canonical locking and receipt identity, including new tasks and retries after interrupted release.
 The portable fixture implements the router protocol; `FM_TEST_HOLD_DOMAIN_ROUTER` selects an installed agent-config router for the same cases with an isolated transport.
 `FM_TEST_HOLD_DOMAIN_ONLY=1` runs only these routing cases.
 
