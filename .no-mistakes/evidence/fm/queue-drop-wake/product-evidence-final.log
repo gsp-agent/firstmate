@@ -1,0 +1,851 @@
+
+===== Queue-drop baseline, replay and event deduplication =====
+Source: live-queue-transcript.log
+Real product: bin/fm-watch.sh -> installed gh -> isolated HTTPS GraphQL endpoint -> fm-wake-drain.sh.
+No mocked product executable or production credentials; all homes are marked disposable labs inside the worktree.
+
+=== replay ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150839	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 24824.1792150839.KBDnMo
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bash .nm-live/base-fm-pr-poll.sh --validated github https://github.com/groovejones/groove-sight-platform/pull/4308 github.com groovejones/groove-sight-platform 4308
+exit=0
+BASELINE: open #4308 is outside the queue with failed_checks; the base poll emitted no notification.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+$ bin/fm-watch.sh
+exit=0
+check: rearm-resurface
+$ bin/fm-wake-drain.sh
+exit=0
+1792150849	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+1792150850	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792150851	4	check	evt4200	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+1792150852	5	check	evt4183	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792150854	6	check	evt4172	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792150855	7	check	evt4111	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792150856	8	check	evt4017	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792150857	9	check	evt4006	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792150859	10	check	evt3950	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792150860	11	check	evt3941	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+1792150861	12	check	evt3939	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 12 --recovery-generation 29601.1792150849.TVObpn
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-wake-drain.sh
+exit=0
+1792150849	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+1792150850	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792150851	4	check	evt4200	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+1792150852	5	check	evt4183	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792150854	6	check	evt4172	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792150855	7	check	evt4111	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792150856	8	check	evt4017	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792150857	9	check	evt4006	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792150859	10	check	evt3950	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792150860	11	check	evt3941	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+1792150861	12	check	evt3939	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 12 --recovery-generation 29601.1792150849.TVObpn
+WARNING: watcher still down (same stale episode; last beat: 7s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150879	13	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 13 --recovery-generation 41868.1792150879.msNMgW
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Replay #4308 and all nine stranded pull requests; every PR and reason reaches the durable drain once across a restart
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150889	14	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 14 --recovery-generation 46359.1792150889.xcSXjI
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=ci_failure
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150901	15	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=ci_failure
+1792150903	16	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 16 --recovery-generation 50612.1792150901.dMLi7y
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150914	17	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 17 --recovery-generation 55779.1792150914.JFOEDR
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Re-added and already handled removals stay quiet; a distinct later removal wakes again
+
+===== Reason escaping, pagination and failed-scan retries =====
+Source: live-queue-continuation.log
+Continuation after diagnosing the probe mismatch: installed gh sanitizes U+0001 to literal ^A even in its raw API response; all other reason escaping is checked unchanged.
+
+=== reasons-verified ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-verified/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/4 reason=failed \"checks\"\\path\nnext\tline\rcontrol^A event=not-the-id
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/3 reason=échec des vérifications
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/2 reason=
+$ bin/fm-wake-drain.sh
+exit=0
+1792151155	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-verified/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons-verified/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792151157	2	check	reason4	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/4 reason=failed \"checks\"\\path\nnext\tline\rcontrol^A event=not-the-id
+1792151159	3	check	reason3	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/3 reason=échec des vérifications
+1792151161	4	check	reason2	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/2 reason=
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 73119.1792151155.AXeewJ
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 12s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Null, Unicode, quoted and multiline removal reasons arrive with exactly one escaping pass; merged and re-added PRs stay quiet
+
+=== pagination ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/pagination/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/pagination/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/pages/pull/1 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792151195	1	check	merged-task-a-https://github.com/lab/pages/pull/2000	check: merge landed: task-a https://github.com/lab/pages/pull/2000 external
+1792151205	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/pagination/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/pagination/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792151209	3	check	evt-page11	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/pages/pull/1 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 94160.1792151195.SYQild
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 4s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: 11 pages / 1,001 open PRs; page-11 removal observed after page 1; last merged watch retired only after delivery.
+OBSERVED: A PR updated after page 1 remains discoverable beyond 1,000 open PRs when the repository’s last armed PR merges
+
+=== retry-page-failure ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-failure/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-failure/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151226	1	check	merged-task-a-https://github.com/lab/retry/pull/1	check: merge landed: task-a https://github.com/lab/retry/pull/1 external
+1792151231	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-failure/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-failure/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 29028.1792151226.MXim3E
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: failed scan retained the last repository sidecar and its retirement receipt.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-failure/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792151243	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-failure/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-failure/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792151245	4	check	evt-retry	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 38428.1792151243.xwEJZZ
+WARNING: watcher still down (same stale episode; last beat: 4s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Last merged watch survives page-failure and the next successful scan delivers the unarmed removal before retirement
+
+=== retry-page-timeout ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-timeout/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-timeout/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151256	1	check	merged-task-a-https://github.com/lab/retry/pull/1	check: merge landed: task-a https://github.com/lab/retry/pull/1 external
+1792151260	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-timeout/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-timeout/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 58002.1792151256.x6cd0i
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: failed scan retained the last repository sidecar and its retirement receipt.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-timeout/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792151267	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-timeout/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-page-timeout/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792151268	4	check	evt-retry	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 67159.1792151267.BB98WK
+WARNING: watcher still down (same stale episode; last beat: 4s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Last merged watch survives page-timeout and the next successful scan delivers the unarmed removal before retirement
+
+=== retry-malformed-seen ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-malformed-seen/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-malformed-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151280	1	check	merged-task-a-https://github.com/lab/retry/pull/1	check: merge landed: task-a https://github.com/lab/retry/pull/1 external
+1792151285	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-malformed-seen/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-malformed-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 82217.1792151280.w0jECH
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: failed scan retained the last repository sidecar and its retirement receipt.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-malformed-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792151295	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-malformed-seen/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-malformed-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792151296	4	check	evt-retry	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 95476.1792151295.zNVT6i
+WARNING: watcher still down (same stale episode; last beat: 4s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Last merged watch survives malformed-seen and the next successful scan delivers the unarmed removal before retirement
+
+=== retry-unreadable-seen ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unreadable-seen/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unreadable-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151308	1	check	merged-task-a-https://github.com/lab/retry/pull/1	check: merge landed: task-a https://github.com/lab/retry/pull/1 external
+1792151311	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unreadable-seen/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unreadable-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 11473.1792151308.ldzUlh
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: failed scan retained the last repository sidecar and its retirement receipt.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unreadable-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792151320	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unreadable-seen/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unreadable-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792151321	4	check	evt-retry	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 22691.1792151321.O5i5qO
+WARNING: watcher still down (same stale episode; last beat: 6s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Last merged watch survives unreadable-seen and the next successful scan delivers the unarmed removal before retirement
+
+=== retry-unsafe-seen ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unsafe-seen/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unsafe-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151340	1	check	merged-task-a-https://github.com/lab/retry/pull/1	check: merge landed: task-a https://github.com/lab/retry/pull/1 external
+1792151348	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unsafe-seen/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unsafe-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 39392.1792151341.EZeJq0
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: failed scan retained the last repository sidecar and its retirement receipt.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unsafe-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792151361	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unsafe-seen/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/retry-unsafe-seen/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792151362	4	check	evt-retry	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/retry/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 55236.1792151361.tLDK4s
+WARNING: watcher still down (same stale episode; last beat: 6s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Last merged watch survives unsafe-seen and the next successful scan delivers the unarmed removal before retirement
+
+=== later-polls ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/task-a.check.sh: dequeued https://github.com/lab/one/pull/1 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151377	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/task-a.check.sh: dequeued https://github.com/lab/one/pull/1 reason=failed_checks
+1792151378	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 76203.1792151377.QtCNUt
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/task-a.check.sh: dequeued https://github.com/lab/one/pull/1 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151386	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/task-a.check.sh: dequeued https://github.com/lab/one/pull/1 reason=failed_checks
+1792151389	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/later-polls/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 84600.1792151386.aSRUFn
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+API RESULT: unrelated lab/two pull #9 was read in both cycles despite the malformed seen record.
+OBSERVED: A malformed seen record fails the sweep while a later unrelated merge watch continues polling in the same cycle and after restart
+
+=== completed-repo ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/completed-repo/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/completed-repo/state/task-b.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/completed-repo/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/a/pull/2 reason=failed_checks
+bin/fm-watch.sh: child setpgid (99926 to 99926): Operation not permitted
+$ bin/fm-wake-drain.sh
+exit=0
+1792151404	1	check	merged-task-a-https://github.com/lab/a/pull/1	check: merge landed: task-a https://github.com/lab/a/pull/1 external
+1792151412	2	check	merged-task-b-https://github.com/lab/b/pull/1	check: merge landed: task-b https://github.com/lab/b/pull/1 external
+1792151416	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/completed-repo/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/completed-repo/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792151417	4	check	evt-a	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/a/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 93648.1792151405.OXD8Pj
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no live watcher process holds this home lock (last beat: 7s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/completed-repo/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/b/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792151435	5	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/completed-repo/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/completed-repo/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792151436	6	check	evt-b	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/b/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 6 --recovery-generation 22745.1792151435.qOusJa
+WARNING: watcher still down (same stale episode; last beat: 7s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A completed repository publishes its removal even when another repository fails; the failed repository is retried
+
+===== Shipped-template and device identity recovery =====
+Source: live-recovery-transcript.log
+Real watch recovery and cleanup interfaces, with isolated persisted protocol records and the installed gh CLI.
+
+=== template-previous ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/task-a.check.sh: dequeued https://github.com/lab/template/pull/1 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151024	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/task-a.check.sh: dequeued https://github.com/lab/template/pull/1 reason=failed_checks
+1792151027	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 58351.1792151024.fRFVVB
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 4s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: current template hash and both live device/inode identities were recorded together.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151046	3	check	merged-task-a-https://github.com/lab/template/pull/1	check: merge landed: task-a https://github.com/lab/template/pull/1 external
+1792151053	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-previous/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 79167.1792151046.TMnGPA
+WARNING: watcher still down (same stale episode; last beat: 5s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A previous shipped-template watch recovers, delivers its removal, and keeps polling through merge
+
+=== template-renumbered ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/task-a.check.sh: dequeued https://github.com/lab/template/pull/1 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151079	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/task-a.check.sh: dequeued https://github.com/lab/template/pull/1 reason=failed_checks
+1792151082	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 4595.1792151079.yZlS1H
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 5s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: current template hash and both live device/inode identities were recorded together.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151103	3	check	merged-task-a-https://github.com/lab/template/pull/1	check: merge landed: task-a https://github.com/lab/template/pull/1 external
+1792151111	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-renumbered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 27502.1792151103.LYJev3
+WARNING: watcher still down (same stale episode; last beat: 6s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A renumbered shipped-template watch recovers, delivers its removal, and keeps polling through merge
+
+=== template-interrupted-renumbered ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/task-a.check.sh: dequeued https://github.com/lab/template/pull/1 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151141	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/task-a.check.sh: dequeued https://github.com/lab/template/pull/1 reason=failed_checks
+1792151145	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 57434.1792151141.jQQPST
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 5s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: current template hash and both live device/inode identities were recorded together.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792151170	3	check	merged-task-a-https://github.com/lab/template/pull/1	check: merge landed: task-a https://github.com/lab/template/pull/1 external
+1792151183	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-interrupted-renumbered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 83593.1792151170.8Qqlh3
+WARNING: watcher still down (same stale episode; last beat: 8s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A interrupted-renumbered shipped-template watch recovers, delivers its removal, and keeps polling through merge
+
+=== template-tampered ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-tampered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/template/pull/1 reason=failed_checks
+check: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-tampered/state/task-a.check.sh
+OBSERVED: A tampered watch is rejected without polling or rewriting its authenticated artifacts
+
+=== template-unshipped ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-unshipped/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/template/pull/1 reason=failed_checks
+check: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-unshipped/state/task-a.check.sh
+OBSERVED: A unshipped watch is rejected without polling or rewriting its authenticated artifacts
+
+=== template-unshipped-renumbered ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-unshipped-renumbered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/template/pull/1 reason=failed_checks
+check: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/template-unshipped-renumbered/state/task-a.check.sh
+OBSERVED: A unshipped-renumbered watch is rejected without polling or rewriting its authenticated artifacts
+
+===== Retirement boundaries and production-timeout behavior =====
+Source: live-final-transcript.log
+
+=== final-unobserved-merge-boundary ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+exit=1
+error: pending repository merge-queue sweep; preserving task state
+$ bin/fm-teardown.sh task-a
+exit=1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-unobserved-merge-boundary
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: pending repository merge-queue sweep; preserving task state.
+PERSISTED RESULT: cleanup and cross-repository re-arm both refused at the shared sweep boundary; task artifacts retained byte-for-byte.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-unobserved-merge-boundary/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-unobserved-merge-boundary/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/boundary/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792152211	1	check	merged-task-a-https://github.com/lab/boundary/pull/1	check: merge landed: task-a https://github.com/lab/boundary/pull/1 external
+1792152216	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-unobserved-merge-boundary/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-unobserved-merge-boundary/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792152217	3	check	evt-boundary	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/boundary/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 36592.1792152211.KyzsUK
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 6s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Cleanup and cross-repository replacement before the watcher observes a merge retain discovery until the unarmed drop is delivered
+
+=== final-receipt-full ===
+$ bin/fm-watch.sh
+exit=0
+check: rearm-resurface
+$ bin/fm-wake-drain.sh
+exit=0
+1792152230	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-full/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-full/state/task-a.check.sh: merged
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 58590.1792152231.RWJ58V
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-full/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/receipt/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792152244	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-full/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-full/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792152245	3	check	evt-receipt	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/receipt/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 68633.1792152244.9ynn0u
+WARNING: watcher still down (same stale episode; last beat: 4s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A renumbered full retirement retains discovery through recovery and removes exactly the authenticated artifacts after delivering the drop
+
+=== final-receipt-registration ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-registration/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/receipt/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792152262	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-registration/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-registration/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792152262	2	check	evt-receipt	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/receipt/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 76560.1792152262.343sfx
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A renumbered registration retirement retains discovery through recovery and removes exactly the authenticated artifacts after delivering the drop
+
+=== final-receipt-sidecar ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+exit=1
+error: pending repository merge-queue sweep; preserving task state
+$ bin/fm-teardown.sh task-a
+exit=1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-sidecar
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: pending repository merge-queue sweep; preserving task state.
+PERSISTED RESULT: cleanup and cross-repository re-arm both refused at the shared sweep boundary; task artifacts retained byte-for-byte.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-sidecar/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792152293	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-sidecar/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-sidecar/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 94169.1792152294.SN93LM
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 4s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-sidecar/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/receipt/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792152316	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-sidecar/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-sidecar/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792152318	3	check	evt-receipt	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/receipt/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 19864.1792152317.Yjen5H
+WARNING: watcher still down (same stale episode; last beat: 9s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A renumbered sidecar retirement retains discovery through recovery and removes exactly the authenticated artifacts after delivering the drop
+
+=== default-liveness-registered ===
+TEST INPUT: the existing beacon is aged by 1,200 seconds while a real check is executing; the production stall bound remains 900 seconds.
+BEFORE RE-ARM: completed-check beacon age=2.2 seconds
+$ bin/fm-watch.sh
+exit=0
+watcher: already running pid 61661
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-registered/state/task-3.check.sh: dequeued https://github.com/lab/default-liveness/pull/3 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-registered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792152354	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-registered/state/task-3.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-registered/state/task-3.check.sh: dequeued https://github.com/lab/default-liveness/pull/3 reason=failed_checks
+1792152356	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-registered/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-registered/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 61661.1792152354.v8IcVH
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  3 task(s) in flight, but no live watcher process holds this home lock (last beat: 4s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: With the production 900-second stall bound, completed registered checks refresh an expired beacon, preserve the same watcher during re-arm, and deliver the final removal
+
+=== default-liveness-custom ===
+BEFORE RE-ARM: completed-check beacon age=3.676 seconds
+$ bin/fm-watch.sh
+exit=0
+watcher: already running pid 92742
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-custom/state/task-final.check.sh: dequeued https://github.com/lab/default-liveness/pull/1 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-custom/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792152385	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-custom/state/task-final.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-custom/state/task-final.check.sh: dequeued https://github.com/lab/default-liveness/pull/1 reason=failed_checks
+1792152389	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-custom/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-custom/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 92742.1792152386.DSw3E2
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 5s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: With the production 900-second stall bound, completed custom checks refresh an expired beacon, preserve the same watcher during re-arm, and deliver the final removal
+
+=== default-liveness-pages ===
+TEST INPUT: the existing beacon is aged by 1,200 seconds while a real check is executing; the production stall bound remains 900 seconds.
+BEFORE RE-ARM: completed-check beacon age=0.819 seconds
+$ bin/fm-watch.sh
+exit=0
+watcher: already running pid 26668
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-pages/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/default-liveness/pull/1 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792152415	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-pages/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-liveness-pages/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792152421	2	check	evt-default	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/default-liveness/pull/1 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 26668.1792152415.vnDhXk
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 5s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: With the production 900-second stall bound, completed pages checks refresh an expired beacon, preserve the same watcher during re-arm, and deliver the final removal
+
+=== default-page-deadlines ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-page-deadlines/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/page-deadlines/pull/1 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792152444	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-page-deadlines/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/default-page-deadlines/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792152493	2	check	evt-page-deadlines	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/page-deadlines/pull/1 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 43450.1792152444.JbzFKW
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 4s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+API RESULT: 32 successful pages over 47.5 seconds; each has the production 30-second page deadline, and the final removal was delivered.
+OBSERVED: A live scan longer than the production 30-second check deadline completes all 32 pages and delivers the last-page removal
+
+===== Retained-sidecar content and inode tamper guards =====
+Source: live-receipt-guards-final.log
+
+=== final-receipt-guard-content ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+exit=1
+error: pending PR poll retirement could not be validated
+$ bin/fm-teardown.sh task-a
+exit=1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-guard-content
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: invalid PR-poll retirement receipt; preserving task state.
+$ bin/fm-watch.sh
+exit=0
+check: rejected unauthenticated PR poll retirement receipts: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-guard-content/state/task-a.pr-poll-retirement
+OBSERVED: A retained renumbered receipt with changed sidecar content stays refused by re-arm, cleanup and watcher recovery without deleting the sidecar
+
+=== final-receipt-guard-inode ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+exit=1
+error: pending PR poll retirement could not be validated
+$ bin/fm-teardown.sh task-a
+exit=1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-guard-inode
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: invalid PR-poll retirement receipt; preserving task state.
+$ bin/fm-watch.sh
+exit=0
+check: rejected unauthenticated PR poll retirement receipts: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-guard-inode/state/task-a.pr-poll-retirement
+OBSERVED: A retained renumbered receipt with changed sidecar inode stays refused by re-arm, cleanup and watcher recovery without deleting the sidecar
+
+===== Relay completion liveness through the real poller and curl =====
+
+=== relay-liveness ===
+RELAY INPUT: a real fm-x-poll.sh HTTP request is active; age the existing beacon by 1,200 seconds, then return HTTP 204.
+AFTER REAL RELAY CHECK: beacon age=0.429 seconds; production stall bound=900 seconds.
+$ bin/fm-watch.sh
+exit=0
+watcher: already running pid 19485
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/relay-liveness/state/y-final.check.sh: dequeued https://github.com/lab/relay-liveness/pull/1 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/relay-liveness/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792153102	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/relay-liveness/state/y-final.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/relay-liveness/state/y-final.check.sh: dequeued https://github.com/lab/relay-liveness/pull/1 reason=failed_checks
+1792153102	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/relay-liveness/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/relay-liveness/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 19485.1792153102.7bchsc
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A real Relay poll renews the expired existing beacon before the next PR check; re-arm keeps the same watcher and the final removal reaches the drain
+
+===== Deduplication record fails between API read and publication =====
+
+=== publication-lookup ===
+TEST INPUT: the initially readable seen record becomes malformed during the real GitHub CLI page read, before publication lookup.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-pr-queue-sweep.sh --contains .nm-live/publication-lookup/state evt-publication
+exit=2
+$ bin/fm-wake-drain.sh
+exit=0
+1792153421	1	check	merged-task-a-https://github.com/lab/publication-lookup/pull/1	check: merge landed: task-a https://github.com/lab/publication-lookup/pull/1 external
+1792153429	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 65598.1792153421.0Xf2mo
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 4s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: publication lookup status 2 preserved the repository sidecar and pending retirement after the otherwise successful API page.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/publication-lookup/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792153444	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792153445	4	check	evt-publication	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/publication-lookup/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 80851.1792153444.CKwJRn
+WARNING: watcher still down (same stale episode; last beat: 4s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A deduplication lookup error after the API read preserves discovery; the next readable scan publishes the removal before retiring the last merged watch

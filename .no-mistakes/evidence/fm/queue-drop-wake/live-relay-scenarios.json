@@ -1,0 +1,9 @@
+[
+  {
+    "name": "A real Relay poll renews the expired existing beacon before the next PR check; re-arm keeps the same watcher and the final removal reaches the drain",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  }
+]

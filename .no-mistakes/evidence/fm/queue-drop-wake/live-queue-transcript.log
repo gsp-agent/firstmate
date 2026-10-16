@@ -1,0 +1,134 @@
+Real product: bin/fm-watch.sh -> installed gh -> isolated HTTPS GraphQL endpoint -> fm-wake-drain.sh.
+No mocked product executable or production credentials; all homes are marked disposable labs inside the worktree.
+
+=== replay ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150839	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 24824.1792150839.KBDnMo
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bash .nm-live/base-fm-pr-poll.sh --validated github https://github.com/groovejones/groove-sight-platform/pull/4308 github.com groovejones/groove-sight-platform 4308
+exit=0
+BASELINE: open #4308 is outside the queue with failed_checks; the base poll emitted no notification.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+$ bin/fm-watch.sh
+exit=0
+check: rearm-resurface
+$ bin/fm-wake-drain.sh
+exit=0
+1792150849	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+1792150850	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792150851	4	check	evt4200	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+1792150852	5	check	evt4183	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792150854	6	check	evt4172	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792150855	7	check	evt4111	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792150856	8	check	evt4017	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792150857	9	check	evt4006	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792150859	10	check	evt3950	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792150860	11	check	evt3941	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+1792150861	12	check	evt3939	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 12 --recovery-generation 29601.1792150849.TVObpn
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-wake-drain.sh
+exit=0
+1792150849	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+1792150850	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792150851	4	check	evt4200	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+1792150852	5	check	evt4183	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792150854	6	check	evt4172	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792150855	7	check	evt4111	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792150856	8	check	evt4017	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792150857	9	check	evt4006	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792150859	10	check	evt3950	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792150860	11	check	evt3941	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+1792150861	12	check	evt3939	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 12 --recovery-generation 29601.1792150849.TVObpn
+WARNING: watcher still down (same stale episode; last beat: 7s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150879	13	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 13 --recovery-generation 41868.1792150879.msNMgW
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Replay #4308 and all nine stranded pull requests; every PR and reason reaches the durable drain once across a restart
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150889	14	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 14 --recovery-generation 46359.1792150889.xcSXjI
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=ci_failure
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150901	15	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/gsp-vt2lz-p2.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=ci_failure
+1792150903	16	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 16 --recovery-generation 50612.1792150901.dMLi7y
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-wake-drain.sh
+exit=0
+1792150914	17	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/replay/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 17 --recovery-generation 55779.1792150914.JFOEDR
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: Re-added and already handled removals stay quiet; a distinct later removal wakes again
+
+=== reasons ===
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/4 reason=failed \"checks\"\\path\nnext\tline\rcontrol^A event=not-the-id
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/3 reason=échec des vérifications
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/2 reason=
+$ bin/fm-wake-drain.sh
+exit=0
+1792150928	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/reasons/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792150929	2	check	reason4	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/4 reason=failed \"checks\"\\path\nnext\tline\rcontrol^A event=not-the-id
+1792150930	3	check	reason3	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/3 reason=échec des vérifications
+1792150932	4	check	reason2	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/reasons/pull/2 reason=
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 60528.1792150928.mGxctH
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 6s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+LIVE DRIVER FAILURE: AssertionError('missing or duplicate: dequeued https://github.com/lab/reasons/pull/4 reason=failed \\"checks\\"\\\\path\\nnext\\tline\\rcontrol\\u0001 event=not-the-id')

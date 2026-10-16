@@ -1,0 +1,15 @@
+ok - recurring earlier mail timeouts and dequeues complete every check without repeating handled drops
+ok - GitHub removal reasons preserve long text, quotes, delimiters, Unicode, and escaped control characters
+ok - a verified queue drop wakes once, a merge stays a merge, and a bad read stays silent
+ok - open pull requests removed from a watched queue wake once
+ok - seen record errors leave later GitHub and GitLab watches polling across restarts
+ok - the queue sweep reads every page of open pull requests
+ok - a later-page removal remains discoverable after an update, even when the last armed pull request merges
+ok - a watch armed on the previous template keeps polling after the template changes
+ok - a tampered check copy stays rejected
+ok - a registration whose template hash was never shipped stays refused
+ok - an interrupted template upgrade keeps polling with unchanged or renumbered devices
+ok - interrupted template recovery refuses a replaced check or sidecar
+ok - a renumbered watch on the previous template keeps polling, and a tampered copy stays refused
+ok - each sweep page has its own deadline, so a longer scan still reports every removal
+not ok - rearm evicted the progressing scan: 

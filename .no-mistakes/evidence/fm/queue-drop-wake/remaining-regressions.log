@@ -1,0 +1,10 @@
+ok - real page progress keeps a long sweep alive through a concurrent rearm
+ok - completed registered polls keep the watcher alive through rearm and deliver the final removal
+ok - a repository is swept after its only armed pull request merges
+ok - a recovered merged watch retains its repository through the first completed sweep
+ok - a failed sweep keeps the repository until the next sweep reports its removal
+ok - seen record errors preserve repository discovery until a removal is delivered
+ok - completed repository removals are delivered once despite earlier or later repository failures
+ok - cleanup and cross-repository rearm preserve an unobserved merge until its repository is swept
+ok - renumbered retirement receipts keep scanning through every surviving artifact stage
+ok - retirement device recovery still refuses replaced inodes and altered content

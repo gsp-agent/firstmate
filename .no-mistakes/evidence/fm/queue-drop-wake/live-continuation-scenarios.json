@@ -1,0 +1,65 @@
+[
+  {
+    "name": "Null, Unicode, quoted and multiline removal reasons arrive with exactly one escaping pass; merged and re-added PRs stay quiet",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A PR updated after page 1 remains discoverable beyond 1,000 open PRs when the repository’s last armed PR merges",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Last merged watch survives page-failure and the next successful scan delivers the unarmed removal before retirement",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Last merged watch survives page-timeout and the next successful scan delivers the unarmed removal before retirement",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Last merged watch survives malformed-seen and the next successful scan delivers the unarmed removal before retirement",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Last merged watch survives unreadable-seen and the next successful scan delivers the unarmed removal before retirement",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Last merged watch survives unsafe-seen and the next successful scan delivers the unarmed removal before retirement",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A malformed seen record fails the sweep while a later unrelated merge watch continues polling in the same cycle and after restart",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A completed repository publishes its removal even when another repository fails; the failed repository is retried",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  }
+]

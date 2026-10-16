@@ -1,0 +1,3 @@
+ok - real page progress keeps a long sweep alive through a concurrent rearm
+ok - completed registered polls keep the watcher alive through rearm and deliver the final removal
+tests/.nm-pr-queue-liveness-final.sh: line 5323: unexpected EOF while looking for matching `"'

@@ -1,0 +1,21 @@
+[
+  {
+    "type": "page",
+    "repo": "lab/receipt",
+    "cursor": null,
+    "order": "CREATED_AT",
+    "at": 1792152294.8713589,
+    "status": 503
+  },
+  {
+    "type": "page",
+    "repo": "lab/receipt",
+    "cursor": null,
+    "order": "CREATED_AT",
+    "at": 1792152318.329692,
+    "numbers": [
+      2
+    ],
+    "status": 200
+  }
+]

@@ -1,0 +1,40 @@
+
+=== final-receipt-guard-content ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+exit=1
+error: pending PR poll retirement could not be validated
+$ bin/fm-teardown.sh task-a
+exit=1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-guard-content
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: invalid PR-poll retirement receipt; preserving task state.
+$ bin/fm-watch.sh
+exit=0
+check: rejected unauthenticated PR poll retirement receipts: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-guard-content/state/task-a.pr-poll-retirement
+OBSERVED: A retained renumbered receipt with changed sidecar content stays refused by re-arm, cleanup and watcher recovery without deleting the sidecar
+
+=== final-receipt-guard-inode ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+exit=1
+error: pending PR poll retirement could not be validated
+$ bin/fm-teardown.sh task-a
+exit=1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-guard-inode
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: invalid PR-poll retirement receipt; preserving task state.
+$ bin/fm-watch.sh
+exit=0
+check: rejected unauthenticated PR poll retirement receipts: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/final-receipt-guard-inode/state/task-a.pr-poll-retirement
+OBSERVED: A retained renumbered receipt with changed sidecar inode stays refused by re-arm, cleanup and watcher recovery without deleting the sidecar

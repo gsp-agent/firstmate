@@ -1,0 +1,2 @@
+ok - real page progress keeps a long sweep alive through a concurrent rearm
+ok - completed registered polls keep the watcher alive through rearm and deliver the final removal

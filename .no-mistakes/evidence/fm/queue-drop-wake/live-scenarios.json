@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Replay #4308 and all nine stranded pull requests; every PR and reason reaches the durable drain once across a restart",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "Re-added and already handled removals stay quiet; a distinct later removal wakes again",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  }
+]

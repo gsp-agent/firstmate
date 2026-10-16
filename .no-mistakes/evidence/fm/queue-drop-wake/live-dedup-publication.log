@@ -1,0 +1,35 @@
+
+=== publication-lookup ===
+TEST INPUT: the initially readable seen record becomes malformed during the real GitHub CLI page read, before publication lookup.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh: lab-cycle-complete
+$ bin/fm-pr-queue-sweep.sh --contains .nm-live/publication-lookup/state evt-publication
+exit=2
+$ bin/fm-wake-drain.sh
+exit=0
+1792153421	1	check	merged-task-a-https://github.com/lab/publication-lookup/pull/1	check: merge landed: task-a https://github.com/lab/publication-lookup/pull/1 external
+1792153429	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh: lab-cycle-complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 65598.1792153421.0Xf2mo
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 4s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+PERSISTED RESULT: publication lookup status 2 preserved the repository sidecar and pending retirement after the otherwise successful API page.
+$ bin/fm-watch.sh
+exit=0
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh: lab-cycle-complete
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/publication-lookup/pull/2 reason=failed_checks
+$ bin/fm-wake-drain.sh
+exit=0
+1792153444	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/publication-lookup/state/zz-lab-cycle.check.sh: lab-cycle-complete
+1792153445	4	check	evt-publication	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/lab/publication-lookup/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 80851.1792153444.CKwJRn
+WARNING: watcher still down (same stale episode; last beat: 4s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+OBSERVED: A deduplication lookup error after the API read preserves discovery; the next readable scan publishes the removal before retiring the last merged watch

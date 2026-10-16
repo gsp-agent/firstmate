@@ -1,0 +1,256 @@
+{
+  "base": "20dcbf91520b1816663b81873ad67d0b93b3e4d6",
+  "target": "5f094887163ef62876a755b1880b30dec7ce0770",
+  "product": "Real fm-watch.sh and fm-wake-drain.sh with installed gh 2.102.0, a disposable HTTPS GraphQL endpoint, and marked lab homes inside the run worktree.",
+  "scenarios": [
+    {
+      "name": "Replay #4308 and all nine stranded pull requests; every PR and reason reaches the durable drain once across a restart",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "Re-added and already handled removals stay quiet; a distinct later removal wakes again",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "Null, Unicode, quoted and multiline removal reasons arrive with exactly one escaping pass; merged and re-added PRs stay quiet",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-continuation.log",
+      "reason": ""
+    },
+    {
+      "name": "A PR updated after page 1 remains discoverable beyond 1,000 open PRs when the repository’s last armed PR merges",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-continuation.log",
+      "reason": ""
+    },
+    {
+      "name": "Last merged watch survives page-failure and the next successful scan delivers the unarmed removal before retirement",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-continuation.log",
+      "reason": ""
+    },
+    {
+      "name": "Last merged watch survives page-timeout and the next successful scan delivers the unarmed removal before retirement",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-continuation.log",
+      "reason": ""
+    },
+    {
+      "name": "Last merged watch survives malformed-seen and the next successful scan delivers the unarmed removal before retirement",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-continuation.log",
+      "reason": ""
+    },
+    {
+      "name": "Last merged watch survives unreadable-seen and the next successful scan delivers the unarmed removal before retirement",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-continuation.log",
+      "reason": ""
+    },
+    {
+      "name": "Last merged watch survives unsafe-seen and the next successful scan delivers the unarmed removal before retirement",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-continuation.log",
+      "reason": ""
+    },
+    {
+      "name": "A malformed seen record fails the sweep while a later unrelated merge watch continues polling in the same cycle and after restart",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-continuation.log",
+      "reason": ""
+    },
+    {
+      "name": "A completed repository publishes its removal even when another repository fails; the failed repository is retried",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-queue-continuation.log",
+      "reason": ""
+    },
+    {
+      "name": "A previous shipped-template watch recovers, delivers its removal, and keeps polling through merge",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-recovery-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A renumbered shipped-template watch recovers, delivers its removal, and keeps polling through merge",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-recovery-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A interrupted-renumbered shipped-template watch recovers, delivers its removal, and keeps polling through merge",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-recovery-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A tampered watch is rejected without polling or rewriting its authenticated artifacts",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-recovery-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A unshipped watch is rejected without polling or rewriting its authenticated artifacts",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-recovery-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A unshipped-renumbered watch is rejected without polling or rewriting its authenticated artifacts",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-recovery-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "Cleanup and cross-repository replacement before the watcher observes a merge retain discovery until the unarmed drop is delivered",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-final-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A renumbered full retirement retains discovery through recovery and removes exactly the authenticated artifacts after delivering the drop",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-final-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A renumbered registration retirement retains discovery through recovery and removes exactly the authenticated artifacts after delivering the drop",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-final-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A renumbered sidecar retirement retains discovery through recovery and removes exactly the authenticated artifacts after delivering the drop",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-final-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "With the production 900-second stall bound, completed registered checks refresh an expired beacon, preserve the same watcher during re-arm, and deliver the final removal",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-final-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "With the production 900-second stall bound, completed custom checks refresh an expired beacon, preserve the same watcher during re-arm, and deliver the final removal",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-final-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "With the production 900-second stall bound, completed pages checks refresh an expired beacon, preserve the same watcher during re-arm, and deliver the final removal",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-final-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A live scan longer than the production 30-second check deadline completes all 32 pages and delivers the last-page removal",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-final-transcript.log",
+      "reason": ""
+    },
+    {
+      "name": "A retained renumbered receipt with changed sidecar content stays refused by re-arm, cleanup and watcher recovery without deleting the sidecar",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-receipt-guards-final.log",
+      "reason": ""
+    },
+    {
+      "name": "A retained renumbered receipt with changed sidecar inode stays refused by re-arm, cleanup and watcher recovery without deleting the sidecar",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-receipt-guards-final.log",
+      "reason": ""
+    },
+    {
+      "name": "A real Relay poll renews the expired existing beacon before the next PR check; re-arm keeps the same watcher and the final removal reaches the drain",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-relay-liveness.log",
+      "reason": ""
+    },
+    {
+      "name": "A deduplication lookup error after the API read preserves discovery; the next readable scan publishes the removal before retiring the last merged watch",
+      "result": "pass",
+      "live": true,
+      "evidence": "live-dedup-publication.log",
+      "reason": ""
+    }
+  ],
+  "setup_corrections": [
+    "The installed gh sanitizes U+0001 to literal ^A even in raw API output; the reason assertion follows the actual CLI input, preserving Unicode, quotes and multiline escaping.",
+    "Cleanup requires a full tmux session:window endpoint and worktree identity in task metadata; corrected disposable metadata before re-driving the boundary.",
+    "Shortened 3/4/6-second artificial stall limits caused valid command startup to look stalled. Final live liveness checks use the production 900-second bound and age only the existing lab beacon. The two regression tests now expire and observe that same beacon between each completed read.",
+    "A transient runner was rewritten while its prior process was finishing. The final stable runner supersedes that setup-only EOF error."
+  ],
+  "regression_proof": {
+    "current": [
+      "test_progressing_sweep_survives_rearm_past_stall_bound: pass",
+      "test_slow_registered_polls_survive_rearm: pass"
+    ],
+    "current_evidence": "liveness-proof.log",
+    "prior_watcher": "0bf9a0fc",
+    "prior_result": "expected failure: a completed poll left the next poll beacon expired",
+    "prior_evidence": "pre-r35-proof.log"
+  },
+  "test_result": "Final targeted selectors passed; the same final liveness regression fails as expected on the pre-R35 watcher.",
+  "intentional_source_change": "tests/fm-pr-check-security.test.sh: expire the existing beacon between reads at the production 900-second stall bound, observe freshness after each completion, and retain final-removal and re-arm assertions.",
+  "targeted_test_file": "tests/fm-pr-check-security.test.sh",
+  "targeted_test_selectors": [
+    "test_dequeue_sweep_reaches_later_checks",
+    "test_queue_drop_reason_is_preserved",
+    "test_verified_queue_drop_wakes_once",
+    "test_open_queue_removals_wake_once_across_a_watched_repo",
+    "test_seen_record_errors_do_not_block_later_watches",
+    "test_open_queue_sweep_exhausts_pages",
+    "test_sweep_keeps_later_removal_in_place_after_an_update",
+    "test_old_template_watch_polls_after_upgrade",
+    "test_tampered_check_stays_rejected",
+    "test_unshipped_template_hash_is_refused",
+    "test_interrupted_template_upgrade_finishes_on_the_next_poll",
+    "test_interrupted_template_upgrade_refuses_replaced_artifacts",
+    "test_old_template_and_renumber_are_both_recovered",
+    "test_sweep_page_deadline_reports_every_removal",
+    "test_progressing_sweep_survives_rearm_past_stall_bound",
+    "test_slow_registered_polls_survive_rearm",
+    "test_merged_only_watch_still_sweeps_its_repo",
+    "test_recovered_merged_watch_still_sweeps_its_repo",
+    "test_failed_sweep_keeps_the_repository_for_the_next_cycle",
+    "test_seen_record_errors_keep_repository_discovery",
+    "test_completed_repo_removals_survive_another_repo_failure",
+    "test_unobserved_merge_preserves_repository_before_cleanup_or_rearm",
+    "test_retirement_survives_device_renumbering",
+    "test_retirement_device_recovery_keeps_content_and_inode_checks"
+  ],
+  "cleanup": "All disposable labs, API servers and temporary selection scripts were removed; git status shows only the intentional tests/fm-pr-check-security.test.sh repair. Existing .agent-state material was preserved."
+}

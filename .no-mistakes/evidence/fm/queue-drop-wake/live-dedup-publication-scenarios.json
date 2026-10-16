@@ -1,0 +1,9 @@
+[
+  {
+    "name": "A deduplication lookup error after the API read preserves discovery; the next readable scan publishes the removal before retiring the last merged watch",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  }
+]

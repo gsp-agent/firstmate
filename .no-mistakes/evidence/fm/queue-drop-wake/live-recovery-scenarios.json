@@ -1,0 +1,44 @@
+[
+  {
+    "name": "A previous shipped-template watch recovers, delivers its removal, and keeps polling through merge",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A renumbered shipped-template watch recovers, delivers its removal, and keeps polling through merge",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A interrupted-renumbered shipped-template watch recovers, delivers its removal, and keeps polling through merge",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A tampered watch is rejected without polling or rewriting its authenticated artifacts",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A unshipped watch is rejected without polling or rewriting its authenticated artifacts",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A unshipped-renumbered watch is rejected without polling or rewriting its authenticated artifacts",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  }
+]

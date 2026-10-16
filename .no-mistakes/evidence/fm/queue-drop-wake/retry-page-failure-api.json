@@ -1,0 +1,28 @@
+[
+  {
+    "type": "poll",
+    "repo": "lab/retry",
+    "number": 1,
+    "at": 1792151225.978256,
+    "status": 200
+  },
+  {
+    "type": "page",
+    "repo": "lab/retry",
+    "cursor": null,
+    "order": "CREATED_AT",
+    "at": 1792151232.070299,
+    "status": 503
+  },
+  {
+    "type": "page",
+    "repo": "lab/retry",
+    "cursor": null,
+    "order": "CREATED_AT",
+    "at": 1792151244.719906,
+    "numbers": [
+      2
+    ],
+    "status": 200
+  }
+]

@@ -1,0 +1,120 @@
+diff --git a/tests/fm-pr-check-security.test.sh b/tests/fm-pr-check-security.test.sh
+index d75fbb9c..93a78363 100755
+--- a/tests/fm-pr-check-security.test.sh
++++ b/tests/fm-pr-check-security.test.sh
+@@ -140,6 +140,14 @@ SH
+   cat > "$fakebin/gh" <<'SH'
+ #!/usr/bin/env bash
+ printf '%s\n' "$*" >> "$FM_TEST_GH_LOG"
++test_beacon_fresh() {
++  local modified
++  case "$(uname -s)" in
++    Darwin) modified=$(/usr/bin/stat -f %m "$1") || return 1 ;;
++    *) modified=$(stat -c %Y "$1") || return 1 ;;
++  esac
++  [ "$(( $(date +%s) - modified ))" -lt 900 ]
++}
+ case "${1:-} ${2:-}" in
+   "api graphql")
+     # The merge script's four-line outcome query stays on the branch below.
+@@ -201,6 +209,14 @@ case "${1:-} ${2:-}" in
+           ' "$FM_TEST_GH_SWEEP_DIR/pulls.json" | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+           exit $?
+         fi
++        if [ "${FM_TEST_GH_SWEEP_EXPIRE_BEAT:-0}" = 1 ]; then
++          test_beacon_fresh "$FM_PR_SWEEP_BEAT" \
++            || printf 'stale-beacon sweep\n' >> "$FM_TEST_GH_LOG"
++          if [ "$cursor" != page6 ]; then
++            touch -t 200001010000 "$FM_PR_SWEEP_BEAT" || exit 1
++            printf 'expired-beacon sweep\n' >> "$FM_TEST_GH_LOG"
++          fi
++        fi
+         if [ "$cursor" = page6 ] && [ -n "${FM_TEST_GH_SWEEP_REARM:-}" ]; then
+           "$FM_TEST_GH_SWEEP_REARM" > "$FM_TEST_GH_SWEEP_DIR/rearm.out" \
+             2> "$FM_TEST_GH_SWEEP_DIR/rearm.err" || exit 1
+@@ -235,6 +251,14 @@ case "${1:-} ${2:-}" in
+           esac
+           shift
+         done
++        if [ "${FM_TEST_GH_POLL_EXPIRE_BEAT:-0}" = 1 ]; then
++          test_beacon_fresh "$FM_PR_POLL_STATE/.last-watcher-beat" \
++            || printf 'stale-beacon poll\n' >> "$FM_TEST_GH_LOG"
++          if [ "$poll_number" != "${FM_TEST_GH_POLL_REARM_NUMBER:-}" ]; then
++            touch -t 200001010000 "$FM_PR_POLL_STATE/.last-watcher-beat" || exit 1
++            printf 'expired-beacon poll\n' >> "$FM_TEST_GH_LOG"
++          fi
++        fi
+         if [ "$poll_number" = "${FM_TEST_GH_POLL_REARM_NUMBER:-}" ] \
+           && [ -n "${FM_TEST_GH_POLL_REARM:-}" ]; then
+           "$FM_TEST_GH_POLL_REARM" > "$FM_TEST_GH_LOG.rearm.out" \
+@@ -4734,7 +4758,7 @@ test_sweep_page_deadline_reports_every_removal() {
+ }
+ 
+ test_progressing_sweep_survives_rearm_past_stall_bound() {
+-  local dir state page started
++  local dir state page
+   dir=$(make_case sweep-progress-liveness)
+   state="$dir/home/state"
+   write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+@@ -4745,18 +4769,21 @@ test_progressing_sweep_survives_rearm_past_stall_bound() {
+   write_slow_sweep_page "$dir" page6 7 false ""
+   retire_contributions_observer "$dir"
+   add_stop_custom_check "$dir"
+-  started=$(date +%s)
+-  # Page six includes a synchronous watcher rearm as well as the API delay.
+-  # Keep its deadline separate from the three-second stall bound.
+-  FM_WATCHER_STALE_GRACE=3 FM_WATCHER_STALL_BOUND=3 \
++  # Expire the existing beacon before each page leading to rearm completes.
++  # Every page must renew it before the next read, using the production stall
++  # bound so a valid page's own launch overhead cannot cause eviction.
++  FM_WATCHER_STALE_GRACE=900 FM_WATCHER_STALL_BOUND=900 FM_TEST_GH_SWEEP_EXPIRE_BEAT=1 \
+     FM_TEST_CHECK_TIMEOUT=10 FM_TEST_GH_SWEEP_SLEEP=1 FM_TEST_GH_SWEEP_REARM="$WATCH" \
+     FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+     FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+     run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+     || fail "progressing scan was interrupted: $(cat "$dir/watch.err")"
+-  [ "$(( $(date +%s) - started ))" -gt 3 ] || fail "the sweep did not cross its stall bound"
++  [ "$(grep -Fxc 'expired-beacon sweep' "$dir/gh.log")" -eq 5 ] \
++    || fail "completed sweep pages did not renew every expired beacon"
++  ! grep -Fx 'stale-beacon sweep' "$dir/gh.log" >/dev/null \
++    || fail "a completed page left the next read's beacon expired"
+   grep -F 'watcher: already running pid ' "$dir/sweep/rearm.out" >/dev/null \
+-    || fail "rearm evicted the progressing scan: $(cat "$dir/sweep/rearm.out")"
++    || fail "rearm evicted the progressing scan: $(cat "$dir/sweep/rearm.out" "$dir/sweep/rearm.err")"
+   FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+     > "$dir/drain.out" 2> "$dir/drain.err" || fail "progressing sweep drain failed"
+   for page in 2 3 4 5 6 7; do
+@@ -4767,7 +4794,7 @@ test_progressing_sweep_survives_rearm_past_stall_bound() {
+ }
+ 
+ test_slow_registered_polls_survive_rearm() {
+-  local dir state number started
++  local dir state number
+   dir=$(make_case registered-poll-progress-liveness)
+   state="$dir/home/state"
+   for number in 1 2 3 4 5 6 7 8; do
+@@ -4784,16 +4811,20 @@ test_slow_registered_polls_survive_rearm() {
+   write_slow_sweep_page "$dir" page1 9 false ""
+   retire_contributions_observer "$dir"
+   add_stop_custom_check "$dir"
+-  started=$(date +%s)
+-  FM_WATCHER_STALE_GRACE=6 FM_WATCHER_STALL_BOUND=6 FM_TEST_CHECK_TIMEOUT=20 \
++  # Each poll leading to rearm completes after its beacon has expired.
++  # Every next poll must see completion progress at the production stall bound.
++  FM_WATCHER_STALE_GRACE=900 FM_WATCHER_STALL_BOUND=900 FM_TEST_GH_POLL_EXPIRE_BEAT=1 FM_TEST_CHECK_TIMEOUT=20 \
+     FM_TEST_GH_SLEEP=1 FM_TEST_GH_POLL_REARM="$WATCH" FM_TEST_GH_POLL_REARM_NUMBER=8 \
+     FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
+     FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+     run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+     || fail "slow registered polls were interrupted: $(cat "$dir/watch.err")"
+-  [ "$(( $(date +%s) - started ))" -gt 6 ] || fail "the registered polls did not cross their stall bound"
++  [ "$(grep -Fxc 'expired-beacon poll' "$dir/gh.log")" -eq 7 ] \
++    || fail "completed registered polls did not renew every expired beacon"
++  ! grep -Fx 'stale-beacon poll' "$dir/gh.log" >/dev/null \
++    || fail "a completed poll left the next poll's beacon expired"
+   grep -F 'watcher: already running pid ' "$dir/gh.log.rearm.out" >/dev/null \
+-    || fail "rearm evicted the progressing registered polls: $(cat "$dir/gh.log.rearm.out")"
++    || fail "rearm evicted the progressing registered polls: $(cat "$dir/gh.log.rearm.out" "$dir/gh.log.rearm.err")"
+   for number in 1 2 3 4 5 6 7 8; do
+     [ "$(grep -Fc "number=$number " "$dir/gh.log")" -eq 1 ] \
+       || fail "the collected checks skipped or repeated pull $number"

@@ -1,0 +1,5 @@
+
+=== reason-cli-probe ===
+Installed gh raw response: '{"data": {"repository": {"pullRequest": {"number": 1, "state": "OPEN", "merged": false, "isInMergeQueue": false, "createdAt": 1, "updatedAt": 1, "isDraft": false, "headRefOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "timelineItems": {"nodes": [{"__typename": "RemovedFromMergeQueueEvent", "id": "evt-probe", "reason": "failed \\"checks\\"\\\\path\\nnext\\tline\\rcontrol^A"}]}}}}}'
+Installed gh --jq tojson response: '"failed \\"checks\\"\\\\path\\nnext\\tline\\rcontrol^A"\n'
+Installed jq, same raw gh response: '"failed \\"checks\\"\\\\path\\nnext\\tline\\rcontrol^A"\n'

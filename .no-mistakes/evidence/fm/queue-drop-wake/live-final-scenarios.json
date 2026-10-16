@@ -1,0 +1,58 @@
+[
+  {
+    "name": "Cleanup and cross-repository replacement before the watcher observes a merge retain discovery until the unarmed drop is delivered",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A renumbered full retirement retains discovery through recovery and removes exactly the authenticated artifacts after delivering the drop",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A renumbered registration retirement retains discovery through recovery and removes exactly the authenticated artifacts after delivering the drop",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A renumbered sidecar retirement retains discovery through recovery and removes exactly the authenticated artifacts after delivering the drop",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "With the production 900-second stall bound, completed registered checks refresh an expired beacon, preserve the same watcher during re-arm, and deliver the final removal",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "With the production 900-second stall bound, completed custom checks refresh an expired beacon, preserve the same watcher during re-arm, and deliver the final removal",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "With the production 900-second stall bound, completed pages checks refresh an expired beacon, preserve the same watcher during re-arm, and deliver the final removal",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A live scan longer than the production 30-second check deadline completes all 32 pages and delivers the last-page removal",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  }
+]

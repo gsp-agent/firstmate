@@ -1,0 +1,16 @@
+[
+  {
+    "name": "A retained renumbered receipt with changed sidecar content stays refused by re-arm, cleanup and watcher recovery without deleting the sidecar",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  },
+  {
+    "name": "A retained renumbered receipt with changed sidecar inode stays refused by re-arm, cleanup and watcher recovery without deleting the sidecar",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-queue-transcript.log",
+    "reason": ""
+  }
+]

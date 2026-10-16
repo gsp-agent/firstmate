@@ -1,0 +1,11 @@
+Continuation after correcting the disposable task metadata to include a concrete window and worktree identity required by the normal cleanup entrypoint.
+
+=== unobserved-merge-boundary-verified ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+exit=1
+error: pending repository merge-queue sweep; preserving task state
+$ bin/fm-teardown.sh task-a
+exit=1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/unobserved-merge-boundary-verified
+REFUSED: tmux endpoint 'fm-task-a' is malformed or does not belong to task task-a; preserving task state.
+RECOVERY DRIVER FAILURE: AssertionError()

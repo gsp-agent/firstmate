@@ -1,0 +1,10 @@
+
+=== receipt-guard-content ===
+$ bin/fm-pr-check.sh task-a https://github.com/other/repo/pull/3
+exit=1
+error: pending PR poll retirement could not be validated
+$ bin/fm-teardown.sh task-a
+exit=1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51YY81T7RNEF2SS370MNK77/.nm-live/receipt-guard-content
+REFUSED: tmux endpoint 'fm-task-a' is malformed or does not belong to task task-a; preserving task state.
+RECEIPT GUARD FAILURE: AssertionError()
