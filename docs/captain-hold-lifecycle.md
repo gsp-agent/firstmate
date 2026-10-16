@@ -34,6 +34,7 @@ It never reads report bodies, review artifacts, terminal output, or chat.
 | Subcommand | What it does | Details |
 | --- | --- | --- |
 | `hold` | Creates or reuses a task and holds it for the captain. | [Creating a hold](#creating-a-hold-hold) |
+| `route-due` | Transfers an expired technical hold to its declared agent owner. | [Technical hold routing](#technical-hold-routing) |
 | `answer` | Records the captain's exact words and resolves the call. | [Answering a call](#answering-a-call-answer) |
 | `complete` | Records the reviewed captain-held task ids in the originating task's metadata. | [Recording a reviewed inventory](#recording-a-reviewed-inventory-complete) |
 | `verify` | Read-only check that scout teardown runs before removing source state. | [Checking before scout teardown](#checking-before-scout-teardown-verify) |
@@ -52,8 +53,8 @@ It works in this order:
 1. It uses an existing task, or creates one when nothing exists to hold.
 2. It records the task's UTC hold-set timestamp as the leading line of the task body.
 3. When `--origin` is supplied, it records the origin on the task, replacing any previous association.
-4. It invokes the underlying tasks-axi hold operation.
-5. It verifies the hold and timestamp.
+4. It records the routing fields, invokes the underlying tasks-axi hold operation, and verifies the hold and timestamp.
+5. It asks the optional hold-domain router to classify the hold and route it when due.
 
 Publishing the stamp first ensures a snapshot cannot observe a newly captain-held task without the timestamp that defines its age.
 
@@ -67,6 +68,18 @@ Repeat and edge cases:
   If that write fails, the backend hold is not attempted.
 - The reason may contain parentheses, semicolons, quotes, and line breaks.
   [`bin/fm-hold-reason-lib.sh`](../bin/fm-hold-reason-lib.sh) owns the storage encoding and compatibility rules; [`bin/fm-tasks-axi.sh --help`](../bin/fm-tasks-axi.sh) owns the public read commands and output contract.
+
+### Technical hold routing
+
+The optional agent-config router owns classification of technical holds and protection of human endpoints.
+Firstmate supplies the declared owner and timeout, then checks live backlog state on the watcher's existing periodic pass.
+Its per-home routing state prevents the router's global sweep from acting on an answered or replaced hold.
+A successful prompt transfers responsibility to the owner and releases the hold without completing the task.
+The `agent-routed` resolution records the matching receipt under `Agent routing evidence:` and never supplies captain words.
+Retries use that receipt to finish interrupted recording or release without prompting the owner again.
+An absent router preserves ordinary captain-hold behavior.
+[`bin/fm-captain-hold.sh --help`](../bin/fm-captain-hold.sh) owns the routing fields, defaults, paths, timeout, and retry contract.
+[`bin/fm-brief.sh --help`](../bin/fm-brief.sh) owns decision-owner declaration at dispatch.
 
 ### Answering a call (`answer`)
 
@@ -534,6 +547,16 @@ The suite does not test the accepted merge-to-cleanup re-hold window or asynchro
 - Hold-set stamping precedes visible hold state, preserves an active lifecycle's timestamp, and resets after release.
 - Interrupted answer closure retains the stamp until close and restores resolution-first ordering on retry.
 - Deferral through `--until` leaves `captain_actionable` false until due.
+
+### Technical routing coverage
+
+The lifecycle suite replays update-branch and EP-approved capacity holds through the public hold and route commands.
+It checks pending deadlines, exact owner delivery, durable routing evidence, repeated sweeps, new lifecycles, failed sends, and interrupted releases.
+It also checks that money, credentials, people, client words, production, accounts, taste, mixed asks, and human endpoints remain held.
+An answered hold never routes from its stale pending body.
+A real watcher subprocess proves the existing periodic pass routes before surfacing ordinary status signals.
+The portable fixture implements the router protocol; `FM_TEST_HOLD_DOMAIN_ROUTER` selects an installed agent-config router for the same cases with an isolated transport.
+`FM_TEST_HOLD_DOMAIN_ONLY=1` runs only these routing cases.
 
 ### Legacy paths
 

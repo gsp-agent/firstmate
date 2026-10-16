@@ -1279,6 +1279,7 @@ spawn_remote_secondmate() {
     echo "project=$root"
     echo "harness=$harness"
     echo "kind=secondmate"
+    echo "decision_owner=captain"
     echo "mode=secondmate"
     echo "yolo=off"
     echo "tasktmp="
@@ -3333,6 +3334,17 @@ fi
   echo "error: task $ID has no brief at inaccessible data path $BRIEF" >&2
   exit 1
 }
+# The brief owns the declared decision endpoint. Legacy briefs stay with the
+# captain; relaunch preserves the original dispatch's authority.
+DECISION_OWNER=$(sed -n 's/^Decision owner: //p' "$BRIEF")
+if [ "$RELAUNCH" -eq 1 ]; then
+  DECISION_OWNER=$(fm_meta_get "$RELAUNCH_META" decision_owner)
+fi
+DECISION_OWNER=${DECISION_OWNER:-captain}
+if ! [[ "$DECISION_OWNER" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$ ]]; then
+  echo "error: $BRIEF must name one valid Decision owner endpoint" >&2
+  exit 1
+fi
 if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   if fm_brief_task_placeholders_present "$BRIEF"; then
     echo "error: $BRIEF still contains {TASK} or {FIRSTMATE_SPEC}; fill ## Captain's intent and ## Firstmate spec before spawn" >&2
@@ -3382,7 +3394,7 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   BRIEF_TMP="$DATA/$ID/.launch-brief.md.${BASHPID:-$$}"
   {
     fm_brief_worker_role "$STATE" "$ID" "$FM_ROOT" &&
-      printf '\n' &&
+      printf '\nDecision owner for this dispatch: %s\n\n' "$DECISION_OWNER" &&
       cat "$SOURCE_BRIEF" &&
       if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
         fm_brief_intent_overlay "$CAPTAIN_INTENT"
@@ -5405,7 +5417,7 @@ SPAWN_META_PATH=$SPAWN_META_TMP
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness kind mode yolo branch tasktmp base_branch upstream_consent model effort account account_provider busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
+      split("window endpoint_task_id worktree project harness kind decision_owner mode yolo branch tasktmp base_branch upstream_consent model effort account account_provider busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -5418,6 +5430,7 @@ preserve_relaunch_meta() {
   echo "project=$PROJ_ABS"
   echo "harness=$HARNESS"
   echo "kind=$KIND"
+  echo "decision_owner=$DECISION_OWNER"
   [ -z "$MODE" ] || echo "mode=$MODE"
   [ -z "$YOLO" ] || echo "yolo=$YOLO"
   [ -z "${BRANCH:-}" ] || echo "branch=$BRANCH"

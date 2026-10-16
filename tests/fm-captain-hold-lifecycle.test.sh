@@ -3,6 +3,8 @@
 # is simply a task waiting on the captain", its completion gate, its recorded
 # answers, the record-divergence guard over its two records, and the legacy
 # compatibility for pre-collapse decision identities.
+# FM_TEST_HOLD_DOMAIN_ONLY=1 selects the routing cases. Set
+# FM_TEST_HOLD_DOMAIN_ROUTER to exercise an installed router with fake transport.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -14,6 +16,7 @@ set -u
 TEARDOWN="$ROOT/bin/fm-teardown.sh"
 BEARINGS="$ROOT/bin/fm-bearings-snapshot.sh"
 TMP_ROOT=$(fm_test_tmproot fm-captain-hold)
+export FM_HOLD_DOMAIN_ROUTER="$TMP_ROOT/no-router.py"
 TASKS_AXI_BIN=$(command -v tasks-axi || true)
 
 command -v jq >/dev/null 2>&1 || { echo "skip: jq not found"; exit 0; }
@@ -4640,6 +4643,240 @@ SH
   pass "marked hold reasons round-trip through public reads, fleet, startup, and return without changing other fields"
 }
 
+make_domain_home() {
+  local domain_home
+  domain_home=$(make_home "$1")
+  cat > "$domain_home/router.py" <<'PY'
+import argparse
+import datetime
+import os
+import pathlib
+import subprocess
+
+parser = argparse.ArgumentParser()
+parser.add_argument("command", choices=["route"])
+parser.add_argument("--task", required=True)
+parser.add_argument("--body-file", required=True)
+parser.add_argument("--now", required=True)
+args = parser.parse_args()
+fields = dict(line.split(": ", 1) for line in pathlib.Path(args.body_file).read_text().splitlines())
+assert set(fields) == {"Captain hold set", "Decision owner", "Hold timeout seconds", "Hold reason"}
+owner = fields["Decision owner"]
+reasons = {
+    "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.",
+    "ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?",
+}
+if fields["Hold reason"] not in reasons:
+    print("kept")
+elif owner in {"captain", "dale", "pm-dale-desk", "human-desk-pane"}:
+    print("not-routed owner-is-dale")
+    raise SystemExit(2)
+else:
+    stamp = fields["Captain hold set"]
+    receipt = "\t".join([args.task, stamp, owner]) + "\n"
+    state = pathlib.Path(os.environ["HOLD_DOMAIN_STATE"])
+    existing = state.read_text() if state.exists() else ""
+    deadline = datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00")) + datetime.timedelta(seconds=int(fields["Hold timeout seconds"]))
+    now = datetime.datetime.fromisoformat(args.now.replace("Z", "+00:00"))
+    if receipt in existing.splitlines(keepends=True):
+        print("already-routed " + owner)
+    elif now < deadline:
+        spool = pathlib.Path(os.environ["HOLD_DOMAIN_SPOOL"])
+        spool.mkdir(parents=True, exist_ok=True)
+        (spool / (args.task + ".body")).write_text(pathlib.Path(args.body_file).read_text())
+        print("pending")
+    else:
+        result = subprocess.run([os.environ["HOLD_DOMAIN_HERDR"], "agent", "prompt", owner,
+            "Hold %s timed out. You own this decision. Resolve it without Dale. %s" % (args.task, fields["Hold reason"])])
+        if result.returncode:
+            print("route-failed")
+            raise SystemExit(1)
+        state.parent.mkdir(parents=True, exist_ok=True)
+        with state.open("a") as output:
+            output.write(receipt)
+        print("routed " + owner)
+PY
+  cat > "$domain_home/fakebin/herdr" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-} ${2:-}" = 'agent list' ]; then
+  printf '%s\n' '{"result":{"agents":[{"name":"pm-dale-desk","pane_id":"human-desk-pane"}]}}'
+  exit 0
+fi
+[ ! -f "$HOLD_DOMAIN_TEST_LOG.fail" ] || exit 1
+printf '%s\n' "$*" >> "$HOLD_DOMAIN_TEST_LOG"
+printf 'prompt accepted\n'
+SH
+  chmod +x "$domain_home/fakebin/herdr"
+  printf '%s\n' "$domain_home"
+}
+
+run_domain() {
+  local domain_home=$1 now=$2
+  shift 2
+  FM_HOLD_DOMAIN_ROUTER="${FM_TEST_HOLD_DOMAIN_ROUTER:-$domain_home/router.py}" \
+    HOLD_DOMAIN_HERDR="$domain_home/fakebin/herdr" HOLD_DOMAIN_TEST_LOG="$domain_home/owner.log" \
+    FM_CAPTAIN_HOLD_NOW="$now" run_captain "$domain_home" "$@"
+}
+
+test_domain_holds_route_after_timeout_and_record_evidence() {
+  local domain_home show id
+  domain_home=$(make_domain_home domain-replay)
+  mkdir -p "$domain_home/parent/state"
+  printf 'router-mate\n' > "$domain_home/.fm-secondmate-home"
+  printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$domain_home/parent" > "$domain_home/.fm-secondmate-parent"
+  printf 'decision_owner=ep-groove-sight-platform\n' > "$domain_home/state/capacity.meta"
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold branch --title 'Update branch' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+    || fail 'could not record update-branch replay'
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold capacity --title 'Approved capacity' --timeout-seconds 60 \
+    --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?' >/dev/null \
+    || fail 'could not record capacity replay'
+  assert_absent "$domain_home/owner.log" 'creation routed a not-yet-due hold'
+  run_domain "$domain_home" 2026-10-14T02:00:59Z route-due || fail 'pre-deadline sweep failed'
+  assert_absent "$domain_home/owner.log" 'hold routed before its timeout'
+  run_domain "$domain_home" 2026-10-14T02:01:00Z route-due || fail 'due sweep failed'
+  for id in branch capacity; do
+    show=$(tasks_in "$domain_home" show "$id" --full)
+    assert_contains "$show" 'held: no' "$id still waits on Dale"
+    assert_contains "$show" 'state: queued' "$id was closed instead of releasing work"
+    assert_contains "$show" 'Resolution mode: agent-routed' "$id lost its routing record"
+    assert_contains "$show" 'Agent routing evidence:' "$id lost routing provenance"
+    assert_not_contains "$show" 'Captain decision:' 'routing invented captain words'
+  done
+  assert_grep 'agent prompt ep-firstmate Hold branch timed out.' "$domain_home/owner.log" 'wrong branch decision owner'
+  assert_grep 'agent prompt ep-groove-sight-platform Hold capacity timed out.' "$domain_home/owner.log" 'dispatch owner was not inherited'
+  [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 2 ] || fail 'expected exactly two owner prompts'
+  run_domain "$domain_home" 2026-10-14T02:02:00Z route-due || fail 'repeated sweep failed'
+  [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 2 ] || fail 'sweep replay duplicated a prompt'
+  [ "$(grep -c '^resolved ' "$domain_home/parent/state/router-mate.status")" = 2 ] || fail 'sweep replay duplicated a parent resolution'
+  run_domain "$domain_home" 2026-10-14T03:00:00Z hold branch --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+    || fail 'could not start a new hold lifecycle'
+  run_domain "$domain_home" 2026-10-14T03:01:00Z route-due || fail 'new lifecycle did not route'
+  [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 3 ] || fail 'new lifecycle reused a prior receipt'
+  pass 'both measured technical holds release to their owners once per lifecycle without captain words'
+}
+
+test_domain_keeps_reserved_human_and_answered_holds() {
+  local domain_home reason n=0 show owner
+  domain_home=$(make_domain_home domain-reserved)
+  while IFS= read -r reason; do
+    n=$((n + 1))
+    run_domain "$domain_home" 2026-10-14T02:00:00Z hold "reserved-$n" --title "Reserved ask $n" \
+      --decision-owner ep-firstmate --timeout-seconds 60 --reason "$reason" >/dev/null \
+      || fail 'reserved ask was refused'
+  done <<'ASKS'
+Should I spend money to buy more seats?
+Could you provide the OAuth token?
+Should I assign Ashton to the reviewer seat?
+May I email the client that the rebase is complete?
+Should I deploy this to production?
+May I create a new account?
+Should the capacity indicator be blue or orange?
+GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. May I deploy to production too?
+ASKS
+  for owner in captain pm-dale-desk human-desk-pane; do
+    run_domain "$domain_home" 2026-10-14T02:00:00Z hold "$owner" --title "Human owner $owner" \
+      --decision-owner "$owner" --timeout-seconds 60 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+      || fail 'human-owned hold was refused'
+  done
+  run_domain "$domain_home" 2026-10-14T02:10:00Z route-due || fail 'reserved sweep failed'
+  assert_absent "$domain_home/owner.log" 'reserved or human-owned ask reached an agent'
+  for owner in reserved-1 reserved-2 reserved-3 reserved-4 reserved-5 reserved-6 reserved-7 reserved-8 captain pm-dale-desk human-desk-pane; do
+    show=$(tasks_in "$domain_home" show "$owner" --full)
+    assert_contains "$show" 'held: yes' 'reserved hold was released'
+    assert_not_contains "$show" 'Resolution mode:' 'reserved hold gained a resolution'
+  done
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold answered --title 'Answered before timeout' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold answered fixture'
+  printf 'Proceed\n' > "$domain_home/answer.txt"
+  run_captain "$domain_home" answer answered --decision-file "$domain_home/answer.txt" --release >/dev/null || fail 'answer failed'
+  run_domain "$domain_home" 2026-10-14T02:10:00Z route-due || fail 'answered sweep failed'
+  assert_absent "$domain_home/owner.log" 'stale pending body routed an answered hold'
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold changed --title 'Changed live reason' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold drift fixture'
+  tasks_in "$domain_home" hold changed --kind captain --reason 'Should I deploy to production?' >/dev/null || fail 'could not change live reason'
+  if run_domain "$domain_home" 2026-10-14T02:10:00Z route-due changed > "$domain_home/drift.out" 2>&1; then
+    fail 'stale technical routing fields overrode a production ask'
+  fi
+  show=$(tasks_in "$domain_home" show changed --full)
+  assert_contains "$show" 'held: yes' 'divergent live reason released a hold'
+  assert_grep 'divergent hold and routing reasons' "$domain_home/drift.out" 'reason mismatch lost its diagnostic'
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold deferred --title 'Deferred technical call' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --until 2099-01-01 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold deferred fixture'
+  run_domain "$domain_home" 2026-10-14T02:10:00Z route-due deferred || fail 'deferred route check failed'
+  show=$(tasks_in "$domain_home" show deferred --full)
+  assert_contains "$show" 'held: yes' 'timeout overrode explicit deferral'
+  assert_absent "$domain_home/owner.log" 'drift or deferral prompted an owner'
+  pass 'money, credentials, people, client words, production, accounts, taste and human endpoints stay reserved'
+}
+
+test_domain_retries_failed_delivery_and_release() {
+  local domain_home show
+  domain_home=$(make_domain_home domain-retry)
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold retry --title 'Retry route' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold retry'
+  touch "$domain_home/owner.log.fail"
+  if run_domain "$domain_home" 2026-10-14T02:01:00Z route-due > "$domain_home/failed.out" 2>&1; then
+    fail 'failed delivery was reported successful'
+  fi
+  show=$(tasks_in "$domain_home" show retry --full)
+  assert_contains "$show" 'held: yes' 'failed delivery released the hold'
+  assert_not_contains "$show" 'Resolution mode:' 'failed delivery gained a resolution'
+  mv "$domain_home/owner.log.fail" "$domain_home/delivery-recovered"
+  cat > "$domain_home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = unhold ]; then exit 1; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$domain_home/fakebin/tasks-axi"
+  if run_domain "$domain_home" 2026-10-14T02:02:00Z route-due > "$domain_home/release.out" 2>&1; then
+    fail 'failed unhold was reported successful'
+  fi
+  show=$(tasks_in "$domain_home" show retry --full)
+  assert_contains "$show" 'held: yes' 'release failure lost its hold'
+  assert_contains "$show" 'Resolution mode: agent-routed' 'release failure lost its receipt'
+  mv "$domain_home/fakebin/tasks-axi" "$domain_home/tasks-axi-failure"
+  run_domain "$domain_home" 2026-10-14T02:03:00Z route-due || fail 'release retry failed'
+  show=$(tasks_in "$domain_home" show retry --full)
+  assert_contains "$show" 'held: no' 'release retry did not converge'
+  [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'release retry prompted the owner twice'
+  [ "$(printf '%s' "$show" | grep -o 'Resolution mode: agent-routed' | wc -l | tr -d ' ')" = 1 ] || fail 'release retry duplicated the record'
+  pass 'failed delivery preserves the hold and release retries consume the existing receipt once'
+}
+
+test_watcher_routes_due_holds_before_surfacing_signals() {
+  local domain_home show
+  domain_home=$(make_domain_home domain-watcher)
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold watched --title 'Watcher timeout' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold watcher fixture'
+  printf 'done: synthetic watcher stop\n' > "$domain_home/state/sentinel.status"
+  fm_run_timed 30 env PATH="$domain_home/fakebin:$PATH" FM_HOME="$domain_home" FM_STATE_OVERRIDE="$domain_home/state" \
+    FM_DATA_OVERRIDE="$domain_home/data" FM_CONFIG_OVERRIDE="$domain_home/config" FM_BACKEND=tmux \
+    FM_HOLD_DOMAIN_ROUTER="${FM_TEST_HOLD_DOMAIN_ROUTER:-$domain_home/router.py}" \
+    HOLD_DOMAIN_HERDR="$domain_home/fakebin/herdr" HOLD_DOMAIN_TEST_LOG="$domain_home/owner.log" \
+    FM_CAPTAIN_HOLD_NOW=2026-10-14T02:01:00Z FM_CHECK_INTERVAL=1 FM_POLL=1 FM_SIGNAL_GRACE=1 \
+    FM_HOME_SUMMARY_INTERVAL=999999 FM_SECONDMATE_LIVENESS_SECS=999999 \
+    bash "$ROOT/bin/fm-watch.sh" > "$domain_home/watch.out" 2>&1 || fail "watcher failed: $(cat "$domain_home/watch.out")"
+  show=$(tasks_in "$domain_home" show watched --full)
+  assert_contains "$show" 'held: no' 'periodic watcher pass left the technical hold waiting'
+  assert_grep 'agent prompt ep-firstmate Hold watched timed out.' "$domain_home/owner.log" 'watcher never routed the due hold'
+  assert_grep 'signal:' "$domain_home/watch.out" 'watcher did not reach its normal signal path'
+  pass 'the existing watcher periodic pass routes due holds before normal signal delivery'
+}
+
+test_domain_holds_route_after_timeout_and_record_evidence
+test_domain_keeps_reserved_human_and_answered_holds
+test_domain_retries_failed_delivery_and_release
+test_watcher_routes_due_holds_before_surfacing_signals
+[ "${FM_TEST_HOLD_DOMAIN_ONLY:-0}" != 1 ] || exit 0
 test_hold_reason_round_trips_awkward_characters
 test_hold_origins_precede_backend_holds
 test_historical_self_inventory_has_workable_repair

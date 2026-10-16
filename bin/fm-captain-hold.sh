@@ -21,7 +21,9 @@
 #
 # Usage:
 #   fm-captain-hold.sh hold <task-id> --reason <reason> \
-#     [--title <title>] [--repo <repo>] [--origin <origin-id>] [--until YYYY-MM-DD]
+#     [--title <title>] [--repo <repo>] [--origin <origin-id>] [--until YYYY-MM-DD] \
+#     [--decision-owner <endpoint>] [--timeout-seconds <seconds>]
+#   fm-captain-hold.sh route-due [<task-id>]
 #   fm-captain-hold.sh answer <task-id> --decision-file <path> [--release]
 #   fm-captain-hold.sh answers [<legacy-origin> | --any-origin] --source <provenance>   (keyed answers on stdin)
 #   fm-captain-hold.sh reconcile-requests --source-id <source-id> --source <provenance>   (task ids on stdin)
@@ -56,6 +58,25 @@
 # `--until` records the captain's own deferral date through `tasks-axi hold
 # --until`, so a "revisit later" answer is stored as a date instead of a live
 # card.
+# Each new hold records Decision owner, Hold timeout seconds and Hold reason.
+# Routing uses a plain, whitespace-normalized reason; the backlog annotation
+# keeps its reversible encoding.
+# The owner defaults to the origin task's decision_owner metadata (or this
+# task's metadata without --origin), then captain for an undispatched call.
+# The timeout defaults to the watcher's existing 300-second check interval.
+# Explicit --timeout-seconds accepts 1..9999999 seconds. Repeating an active
+# hold preserves its owner and timeout unless explicitly changed. Once a
+# receipt exists, the routing fields cannot change until the hold is released.
+# `route-due` re-reads live backlog holds from the watcher's periodic pass.
+# The optional FM_HOLD_DOMAIN_ROUTER defaults to
+# ~/.agent-config/configs/claude/hooks/hold-domain.py; absent installs keep
+# ordinary captain holds. Its route command alone classifies technical holds.
+# Routing state and pending bodies stay under this home's state/hold-domain,
+# isolated from agent-config's global sweep so a stale body cannot outlive an
+# answer. Only an exact routed.tsv receipt for this task, stamp and owner
+# permits an agent-routed resolution and unhold. The receipt remains for
+# retries; the resolution body records it as routing evidence, never as the
+# captain's words. This releases held work without marking the task done.
 #
 # `answer` records the captain's exact words and resolves the call in the same
 # act. It requires a non-empty captain decision file of at most 8192 bytes and
@@ -466,6 +487,7 @@ body_has_resolution_record() {  # <task-body>
     *"Resolution recorded by fm-captain-hold."*"Captain decision:"*) return 0 ;;
     *"Resolution recorded by fm-decision-hold."*"Captain decision:"*) return 0 ;;
     *"Resolution recorded by fm-captain-hold."*"Reconciliation evidence:"*) return 0 ;;
+    *"Resolution recorded by fm-captain-hold."*"Agent routing evidence:"*) return 0 ;;
   esac
   return 1
 }
@@ -517,6 +539,7 @@ closed_answer_replay_mode_compatible() {  # <mode> <task-body>
 resolution_block() {  # <mode>
   local label='Captain decision:'
   [ "$1" != reconciled ] || label='Reconciliation evidence:'
+  [ "$1" != agent-routed ] || label='Agent routing evidence:'
   printf 'Resolution recorded by fm-captain-hold.\nDecision digest: %s\nResolution mode: %s\n\n%s\n%s\n' \
     "$DECISION_DIGEST" "$1" "$label" "$DECISION_TEXT"
 }
@@ -903,6 +926,7 @@ verify_entry_durable() {  # <origin-or-empty> <entry>; prints "<id> <how> <origi
 command_hold() {
   local id=${1:-} title='' reason='' repo='' origin='' until='' show state existing_title body='' hold_kind hold_set occurrence
   local existing_hold_kind='' existing_held='' preserve_hold_set=0 stored_reason previous_origin='' hold_status=0
+  local decision_owner='' timeout_seconds='' old_owner old_timeout old_reason routing_reason
   [ "$#" -ge 1 ] || { usage >&2; exit 2; }
   shift
   while [ "$#" -gt 0 ]; do
@@ -912,6 +936,8 @@ command_hold() {
       --repo) shift; repo=${1:-} ;;
       --origin) shift; origin=${1:-} ;;
       --until) shift; until=${1:-} ;;
+      --decision-owner) shift; decision_owner=${1:-}; validate_decision_owner "$decision_owner" ;;
+      --timeout-seconds) shift; timeout_seconds=${1:-}; validate_hold_timeout "$timeout_seconds" ;;
       *) usage >&2; exit 2 ;;
     esac
     shift
@@ -920,6 +946,7 @@ command_hold() {
   [ -n "$reason" ] || fail "reason must not be empty"
   # bin/fm-hold-reason-lib.sh owns the storage constraint and reversible encoding.
   stored_reason=$(fm_hold_reason_encode "$reason") || fail "could not encode the hold reason"
+  routing_reason=$(printf '%s' "$reason" | perl -0777 -pe 's/\s+/ /g; s/^ | $//g')
   if [ -n "$origin" ]; then
     validate_slug origin-id "$origin"
   fi
@@ -945,6 +972,21 @@ command_hold() {
     existing_held=$(show_field_value "$show" held)
     if [ "$existing_hold_kind" = captain ] && [ "$existing_held" = yes ]; then
       preserve_hold_set=1
+      body=$(show_field_value "$show" body)
+      old_owner=$(body_domain_field "$body" 'Decision owner')
+      old_timeout=$(body_domain_field "$body" 'Hold timeout seconds')
+      old_reason=$(body_domain_field "$body" 'Hold reason')
+      if [ -n "$old_owner" ]; then
+        if grep -Fx -- "$(printf '%s\t%s\t%s' "$id" "$(body_hold_set_timestamp "$body")" "$old_owner")" \
+          "$STATE/hold-domain/routed.tsv" >/dev/null 2>&1; then
+          [ "${decision_owner:-$old_owner}" = "$old_owner" ] \
+            && [ "${timeout_seconds:-$old_timeout}" = "$old_timeout" ] \
+            && [ "$routing_reason" = "$old_reason" ] \
+            || fail "task $id already has a routing receipt; finish releasing it before changing its routing fields"
+        fi
+        decision_owner=${decision_owner:-$old_owner}
+        timeout_seconds=${timeout_seconds:-$old_timeout}
+      fi
     fi
     if [ -n "$title" ]; then
       existing_title=$(show_field_value "$show" title)
@@ -972,6 +1014,11 @@ command_hold() {
         || fail "could not create task $id"
     fi
   fi
+  [ -n "$decision_owner" ] || decision_owner=$(meta_value "$STATE/${origin:-$id}.meta" decision_owner)
+  decision_owner=${decision_owner:-captain}
+  timeout_seconds=${timeout_seconds:-300}
+  validate_decision_owner "$decision_owner"
+  validate_hold_timeout "$timeout_seconds"
   # Publish the timestamp before the captain-hold annotation. A concurrent
   # snapshot may see the harmless stamp by itself, but can never see a newly
   # held task without the timestamp that defines this hold lifecycle's age.
@@ -985,6 +1032,8 @@ command_hold() {
     previous_origin=$(body_hold_origin "$(show_field_value "$show" body)")
     write_hold_origin "$id" "$(show_field "$show" body)" "$origin" || exit $?
   fi
+  task_show_or_fail "$id" "task $id disappeared before recording its routing fields"
+  write_hold_domain_fields "$id" "$(show_field_value "$show" body)" "$decision_owner" "$timeout_seconds" "$routing_reason"
   if [ -n "$until" ]; then
     tasks_axi hold "$id" --reason "$stored_reason" --kind captain --until "$until" >/dev/null \
       || hold_status=$?
@@ -1008,7 +1057,130 @@ command_hold() {
   [ -n "$(body_hold_set_timestamp "$(show_field_value "$show" body)")" ] \
     || fail "task $id lost its hold-set stamp while being held"
   publish_parent_hold "$id" "$occurrence" needs-decision "$reason"
+  route_hold "$id"
   printf '%s\n' "$id"
+}
+
+validate_decision_owner() {
+  case "$1" in
+    ''|[!A-Za-z0-9]*|*[!A-Za-z0-9._-]*) fail "decision owner must be an endpoint slug" ;;
+  esac
+  [ "${#1}" -le 81 ] || fail "decision owner must be at most 81 characters"
+}
+
+validate_hold_timeout() {
+  case "$1" in
+    ''|0*|*[!0-9]*) fail "hold timeout must be 1..9999999 seconds" ;;
+  esac
+  [ "${#1}" -le 7 ] || fail "hold timeout must be 1..9999999 seconds"
+}
+
+body_domain_field() {  # <decoded-body> <field>
+  printf '%s\n' "$1" | sed -n "s/^$2: //p" | head -1
+}
+
+write_hold_domain_fields() {  # <id> <decoded-body> <owner> <timeout> <one-line-reason>
+  local id=$1 body=$2 owner=$3 timeout=$4 reason=$5 stamp rest tmp
+  stamp=$(body_hold_set_timestamp "$body")
+  [ -n "$stamp" ] || fail "task $id has no hold-set stamp for routing"
+  rest=$(printf '%s\n' "$body" | sed 1d | awk '
+    !/^Decision owner: / && !/^Hold timeout seconds: / && !/^Hold reason: /' \
+    | awk 'NF || started { started = 1; print }')
+  tmp=$(umask 077; mktemp "${TMPDIR:-/tmp}/fm-hold-domain.XXXXXX") || fail "cannot stage routing fields"
+  printf 'Captain hold set: %s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\n\n%s\n' \
+    "$stamp" "$owner" "$timeout" "$reason" "$rest" > "$tmp"
+  if ! tasks_axi update "$id" --body-file "$tmp" >/dev/null; then
+    rm -f -- "$tmp"
+    fail "could not record hold routing fields for $id"
+  fi
+  rm -f -- "$tmp"
+}
+
+route_hold() {  # <id>; caller owns the task control lock
+  local id=$1 router show body stamp owner timeout reason live_reason tmp output result rc=0 receipt occurrence until
+  router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
+  [ -f "$router" ] || return 0
+  task_show_or_fail "$id" "task $id disappeared before routing"
+  [ "$(show_field_value "$show" state)" != "done" ] || return 0
+  body=$(show_field_value "$show" body)
+  stamp=$(body_hold_set_timestamp "$body")
+  owner=$(body_domain_field "$body" 'Decision owner')
+  if [ "$(show_field_value "$show" hold_kind)" != captain ]; then
+    # A crash after unhold still owes normalization and the parent resolution.
+    [ "$(recorded_resolution_mode "$body" || true)" = agent-routed ] || return 0
+    occurrence=$(resolution_record_count "$body")
+    remove_interrupted_answer_stamp "$id"
+    publish_parent_resolution_then_retire "$id" "$occurrence" "agent-routed to $owner"
+    return 0
+  fi
+  [ -n "$stamp" ] || return 0
+  until=$(show_field_value "$show" hold_until)
+  if [ -n "$until" ] && [[ "$until" > "${FM_CAPTAIN_HOLD_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" ]]; then
+    return 0
+  fi
+  timeout=$(body_domain_field "$body" 'Hold timeout seconds')
+  reason=$(body_domain_field "$body" 'Hold reason')
+  # Pre-contract holds stay with the captain until explicitly held again.
+  [ -n "$owner" ] && [ -n "$timeout" ] && [ -n "$reason" ] || return 0
+  live_reason=$(show_field_value "$(printf '%s\n' "$show" | fm_hold_reason_decode_stream)" hold_reason)
+  live_reason=$(printf '%s' "$live_reason" | perl -0777 -pe 's/\s+/ /g; s/^ | $//g')
+  [ "$live_reason" = "$reason" ] || fail "task $id has divergent hold and routing reasons; leaving the hold intact"
+  mkdir -p "$STATE/hold-domain"
+  tmp=$(umask 077; mktemp "${TMPDIR:-/tmp}/fm-hold-route.XXXXXX") || fail "cannot stage routing body"
+  printf 'Captain hold set: %s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\n' \
+    "$stamp" "$owner" "$timeout" "$reason" > "$tmp"
+  local -a args=(route --task "$id" --body-file "$tmp")
+  [ -z "${FM_CAPTAIN_HOLD_NOW:-}" ] || args+=(--now "$FM_CAPTAIN_HOLD_NOW")
+  output=$(HOLD_DOMAIN_STATE="$STATE/hold-domain/routed.tsv" HOLD_DOMAIN_SPOOL="$STATE/hold-domain/pending" \
+    python3 "$router" "${args[@]}" 2>&1) || rc=$?
+  rm -f -- "$tmp"
+  result=${output##*$'\n'}
+  case "$rc:$result" in
+    0:pending|0:kept|'2:not-routed owner-is-dale') return 0 ;;
+  esac
+  if [ "$rc" -ne 0 ]; then
+    printf 'fm-captain-hold: route %s failed: %s\n' "$id" "$output" >&2
+    return 1
+  fi
+  case "$result" in
+    "routed $owner"|"already-routed $owner") ;;
+    *) fail "unexpected hold-domain route result for $id: $output" ;;
+  esac
+  receipt=$(printf '%s\t%s\t%s' "$id" "$stamp" "$owner")
+  grep -Fx -- "$receipt" "$STATE/hold-domain/routed.tsv" >/dev/null \
+    || fail "routing $id returned no matching receipt"
+  DECISION_TEXT=$(printf 'Hold-domain receipt: %s\nRouted hold reason: %s' "$receipt" "$reason")
+  DECISION_DIGEST=$(sha256_text "$DECISION_TEXT")
+  occurrence=$(resolution_record_count "$body")
+  if [ "$(recorded_resolution_mode "$body" || true)" != agent-routed ] \
+    || [ "$(recorded_decision_digest "$body" || true)" != "$DECISION_DIGEST" ]; then
+    write_resolution_record "$id" agent-routed "$(show_field "$show" body)"
+    occurrence=$((occurrence + 1))
+  fi
+  tasks_axi unhold "$id" >/dev/null || fail "could not release routed hold $id"
+  remove_interrupted_answer_stamp "$id"
+  publish_parent_resolution_then_retire "$id" "$occurrence" "agent-routed to $owner"
+}
+
+command_route_due() {
+  local router ids id rc=0
+  [ "$#" -le 1 ] || { usage >&2; exit 2; }
+  router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
+  [ -f "$router" ] || return 0
+  require_tasks_axi
+  if [ "$#" -eq 1 ]; then
+    validate_slug task-id "$1"
+    acquire_task_control_lock "$1"
+    route_hold "$1"
+    return
+  fi
+  ids=$(open_task_ids) || fail "could not list holds for routing"
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    # Use one process per row so a failed route cannot strand later holds.
+    "$SCRIPT_DIR/fm-captain-hold.sh" route-due "$id" || rc=1
+  done <<< "$ids"
+  return "$rc"
 }
 
 # Record a resolution block beneath any leading active hold-set stamp,
@@ -1888,9 +2060,10 @@ EOF
 # two comma-separated listing fields are read - both are slugs that precede any
 # quoted title - so a title containing commas or quotes cannot shift them.
 open_task_ids() {
-  local data
+  local data listing
   data=$(fm_backlog_data_absolute "$DATA") || return 1
-  fm_backlog_row_list "$data" 2>/dev/null | awk -F, '
+  listing=$(fm_backlog_row_list "$data" 2>/dev/null) || return 1
+  printf '%s\n' "$listing" | awk -F, '
     /^  [A-Za-z0-9._-]+,/ {
       id = $1
       sub(/^ +/, "", id)
@@ -2040,6 +2213,7 @@ command_open() {  # <task-id> [--identity] [--distinguish-absent]
 
 case "${1:-}" in
   hold) shift; command_hold "$@" ;;
+  route-due) shift; command_route_due "$@" ;;
   answer) shift; command_answer "$@" ;;
   answers) shift; command_answers "$@" ;;
   reconcile-requests) shift; command_reconcile_requests "$@" ;;
