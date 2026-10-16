@@ -2877,7 +2877,7 @@ while :; do
   if [ "$(age_of "$STATE/.last-check")" -ge "$CHECK_INTERVAL" ]; then
     hold_route_reason=
     if [ -d "$STATE/hold-domain" ]; then
-      FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CHECK_CAPTURE_STDERR=1 \
+      CHECK_TIMEOUT=${FM_CHECK_TIMEOUT:-90} FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CHECK_CAPTURE_STDERR=1 \
         run_check_capture "$SCRIPT_DIR/fm-captain-hold.sh" route-due || exit 1
       if [ "$FM_CHECK_STATUS" -ne 0 ]; then
         hold_route_reason="check: hold-domain routing failed: exit $FM_CHECK_STATUS${FM_CHECK_RESULT:+: $FM_CHECK_RESULT}"

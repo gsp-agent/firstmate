@@ -1042,6 +1042,21 @@ else
   fi
 fi
 
+spawn_decision_owner() {
+  local brief=$1 meta=$2 owner=''
+  if [ "$RELAUNCH" -eq 1 ]; then
+    owner=$(fm_meta_get "$meta" decision_owner)
+  elif [ -f "$brief" ]; then
+    owner=$(sed -n 's/^Decision owner: //p' "$brief")
+  fi
+  owner=${owner:-captain}
+  if ! [[ "$owner" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$ ]]; then
+    echo "error: $brief must name one valid Decision owner endpoint" >&2
+    return 1
+  fi
+  printf '%s' "$owner"
+}
+
 spawn_remote_secondmate() {
   local id=$1 remote host root home harness positional model effort backend out rc meta tmp
   local remote_backend remote_target remote_harness remote_herdr_session registry_lock remote_lock remote_generation
@@ -1150,6 +1165,11 @@ spawn_remote_secondmate() {
       echo "error: existing metadata for $id does not identify this remote secondmate route" >&2
       return 1
     fi
+  fi
+  if ! DECISION_OWNER=$(spawn_decision_owner "$DATA/$id/brief.md" "$meta"); then
+    fm_lock_release "$registry_lock" || true
+    fm_lock_release "$SPAWN_TASK_LOCK" || true
+    return 1
   fi
   # Gate the host before anything is published or transferred, so a host that
   # cannot hold a durable Herdr endpoint refuses here rather than half-way
@@ -1286,7 +1306,7 @@ spawn_remote_secondmate() {
     echo "project=$root"
     echo "harness=$harness"
     echo "kind=secondmate"
-    echo "decision_owner=captain"
+    echo "decision_owner=$DECISION_OWNER"
     echo "mode=secondmate"
     echo "yolo=off"
     echo "tasktmp="
@@ -3330,15 +3350,7 @@ fi
 }
 # The brief owns the declared decision endpoint. Legacy briefs stay with the
 # captain; relaunch preserves the original dispatch's authority.
-DECISION_OWNER=$(sed -n 's/^Decision owner: //p' "$BRIEF")
-if [ "$RELAUNCH" -eq 1 ]; then
-  DECISION_OWNER=$(fm_meta_get "$RELAUNCH_META" decision_owner)
-fi
-DECISION_OWNER=${DECISION_OWNER:-captain}
-if ! [[ "$DECISION_OWNER" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$ ]]; then
-  echo "error: $BRIEF must name one valid Decision owner endpoint" >&2
-  exit 1
-fi
+DECISION_OWNER=$(spawn_decision_owner "$BRIEF" "$STATE/$ID.meta") || exit 1
 if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   if fm_brief_task_placeholders_present "$BRIEF"; then
     echo "error: $BRIEF still contains {TASK} or {FIRSTMATE_SPEC}; fill ## Captain's intent and ## Firstmate spec before spawn" >&2
