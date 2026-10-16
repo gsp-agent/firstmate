@@ -1,0 +1,146 @@
+Real public readiness CLI against disposable marked FM_HOME directories.
+Source: target adaf37f6; baseline inbox executable from base 20dcbf91.
+The primary session lock uses a live, Claude-named Perl fixture process; no harness login or real fleet state is used.
+The watcher is the real bin/fm-watch.sh process, with its real singleton lock and process identity.
+Disposable root: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi
+Baseline dependency scripts are linked to this worktree; the readiness dependencies used here retain the same behavioral contract across the range.
+
+CASE: baseline: stale 3603-second beacon, no watcher, old rewake record
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/incident settings={"FM_SUPERVISION_MODEL": "autoarm"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/baseline/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/incident","observed_at":"2026-10-16T08:42:10Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":3603},"posture":{"state":"present"},"can_receive":true}
+
+CASE: target: identical stale 3603-second beacon is refused
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/incident settings={"FM_SUPERVISION_MODEL": "autoarm"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/incident","observed_at":"2026-10-16T08:42:10Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":3603},"posture":{"state":"present"},"can_receive":false}
+
+CASE: fresh beacon without watcher: autoarm
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/incident settings={"FM_SUPERVISION_MODEL": "autoarm"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/incident","observed_at":"2026-10-16T08:42:10Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":false}
+
+CASE: fresh beacon without watcher: extension
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/incident settings={"FM_SUPERVISION_MODEL": "extension"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/incident","observed_at":"2026-10-16T08:42:10Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":false}
+
+CASE: fresh beacon without watcher: persistent
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/incident settings={"FM_SUPERVISION_MODEL": "persistent"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/incident","observed_at":"2026-10-16T08:42:10Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":false}
+
+REAL WATCHER PID: 22121
+RECORDED WATCHER PID: 22121
+RECORDED WATCHER HOME: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher
+
+CASE: fresh beacon with real watcher: None
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:10Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":true}
+
+CASE: fresh beacon with real watcher: autoarm
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={"FM_SUPERVISION_MODEL": "autoarm"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"can_receive":true}
+
+CASE: fresh beacon with real watcher: extension
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={"FM_SUPERVISION_MODEL": "extension"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"can_receive":true}
+
+CASE: fresh beacon with real watcher: persistent
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={"FM_SUPERVISION_MODEL": "persistent"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"can_receive":true}
+
+Watcher deliberately stopped with SIGSTOP to prevent beacon refresh during age checks; its PID and identity remain live.
+
+CASE: 120-second beacon outside guard grace 60
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={"FM_GUARD_GRACE": "60"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":120},"posture":{"state":"present"},"can_receive":false}
+
+CASE: same 120-second beacon inside guard grace 300
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={"FM_GUARD_GRACE": "300"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":120},"posture":{"state":"present"},"can_receive":true}
+
+CASE: explicit watcher grace 60 overrides guard grace 300
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={"FM_WATCHER_STALE_GRACE": "60", "FM_GUARD_GRACE": "300"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":120},"posture":{"state":"present"},"can_receive":false}
+
+CASE: explicit watcher grace 300 overrides guard grace 60
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={"FM_WATCHER_STALE_GRACE": "300", "FM_GUARD_GRACE": "60"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":120},"posture":{"state":"present"},"can_receive":true}
+
+CASE: default 300-second grace rejects age 500
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":500},"posture":{"state":"present"},"can_receive":false}
+
+CASE: poll-derived grace 660 accepts age 500 with poll 600
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={"FM_POLL": "600"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":500},"posture":{"state":"present"},"can_receive":true}
+
+CASE: poll-derived grace rejects age at its 660-second boundary
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={"FM_POLL": "600"}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:11Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":661},"posture":{"state":"present"},"can_receive":false}
+
+CASE: foreign live watcher lock and fresh beacon are refused
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/foreign-home settings={}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/foreign-home","observed_at":"2026-10-16T08:42:12Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":false}
+
+CASE: live watcher PID with mismatched identity is refused
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:12Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":false}
+
+CASE: restored real watcher identity is accepted
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:12Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":true}
+
+Real watcher exited; exit status: -15
+
+CASE: fresh leftover beacon after watcher exit is refused
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/live-watcher settings={}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/live-watcher","observed_at":"2026-10-16T08:42:12Z","lock":{"state":"held","pid":21260,"live_harness":true},"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":false}
+
+CASE: missing beacon reports null age
+FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi/no-beacon settings={}
+COMMAND: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/bin/fm-inbox.sh ready
+EXIT: 0
+{"schema":"fm-primary-ready.v1","home":".nm-readiness-live-y9_52rvi/no-beacon","observed_at":"2026-10-16T08:42:12Z","lock":{"state":"free","pid":null,"live_harness":false},"wake_consumer":{"state":"down","reason":"no-beacon","beacon_age_seconds":null},"posture":{"state":"present"},"can_receive":false}
+
+All target readiness outputs matched the independent expected state and can_receive values.
+Cleanup: owned watcher and primary-lock fixture processes stopped and reaped.
+Disposable root remains only until inspected and removed by the invoking test phase: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51WFJ7ZYXYJW6YTC662ED4H/.nm-readiness-live-y9_52rvi
+
+Final teardown verified: all disposable homes, the extracted baseline executable, and suite temporary roots removed; no test-owned watcher or fixture processes remained; worktree is clean.

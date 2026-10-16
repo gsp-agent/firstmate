@@ -1,0 +1,28 @@
+Command: TMPDIR=<worktree-local disposable root> FM_TEST_MACHINE_GATE= FM_TEST_SKIP_ORPHAN_REAP=1 bash bin/fm-test-run.sh tests/fm-inbox.test.sh
+Machine-line override prevents intentional user-state writes outside the workspace. All fixture state is under the disposable root.
+
+FM_TEST_BEGIN 2026-10-16T08:39:17Z tests/fm-inbox.test.sh family=unclassified expected_gate_skip=none
+ok - plain note, list, and wake stay on the historical human path
+ok - plain note keeps exit 1 for a saved-but-unannounced failure
+ok - the same request id returns the original note as a distinguishable replay
+ok - a crash between recording the request id and publishing the note reuses the original id
+ok - saved-but-unannounced notes are repairable without creating a second note
+ok - repair and replay do not wake firstmate for an already-acknowledged note
+ok - receipts JSON is bounded by fixed bounds and discloses what it omitted
+ok - notes that predate the announcement marker are unknown, not re-announced
+ok - the reply channel is durable and its cursor is a strict order
+ok - the reply cursor never goes backwards when the sequence counter is lost
+ok - a reply without a valid sequence is reported as malformed
+ok - a non-UTF-8 note does not break the receipts view
+ready 3603-second regression: {"schema":"fm-primary-ready.v1","home":"fm-inbox.aKZPVM/ready-holder","observed_at":"2026-10-16T08:39:27Z","lock":{"state":"held","pid":91760,"live_harness":true},"wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":3603},"posture":{"state":"present"},"can_receive":false}
+ready live-watcher regression: {"schema":"fm-primary-ready.v1","home":"fm-inbox.aKZPVM/ready-watcher","observed_at":"2026-10-16T08:39:29Z","lock":{"state":"held","pid":91760,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"can_receive":true}
+ok - readiness requires a fresh beacon and a live watcher belonging to the inspected home
+ok - empty bodies and unsafe request ids are refused
+ok - a note body that opens with a double dash is queued as text
+ok - drain --ack still moves the note to handled
+FM_TEST_END 2026-10-16T08:39:31Z tests/fm-inbox.test.sh exit=0 duration_ms=14168 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=14267
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=14168 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-inbox.test.sh duration_ms=14168
+
+Exit status: 0
