@@ -2885,12 +2885,11 @@ while :; do
   # never run until the fleet went quiet. Checks are due only every
   # CHECK_INTERVAL, so most cycles skip this block and fall straight through.
   if [ "$(age_of "$STATE/.last-check")" -ge "$CHECK_INTERVAL" ]; then
+    hold_route_reason=
     if [ -d "$STATE/hold-domain" ] && ! hold_route_output=$(FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
       "$SCRIPT_DIR/fm-captain-hold.sh" route-due 2>&1); then
-      touch "$STATE/.last-check"
-      reason="check: hold-domain routing failed: $hold_route_output"
-      fm_wake_append check hold-domain "$reason" || exit 1
-      wake "$reason"
+      hold_route_reason="check: hold-domain routing failed: $hold_route_output"
+      fm_wake_append check hold-domain "$hold_route_reason" || exit 1
     fi
     rejected_checks=
     contribution_check_output=
@@ -3149,6 +3148,9 @@ EOF
     check_sweep_output="${check_sweep_output}${contribution_check_output}"
     if [ -n "$check_sweep_output" ]; then
       wake "${check_sweep_output%$'\n'}"
+    fi
+    if [ -n "$hold_route_reason" ]; then
+      wake "$hold_route_reason"
     fi
   fi
 

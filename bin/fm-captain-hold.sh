@@ -72,8 +72,8 @@
 # ~/.agent-config/configs/claude/hooks/hold-domain.py; absent installs keep
 # ordinary captain holds. Its route command alone classifies technical holds.
 # Routing state and pending bodies stay under this home's state/hold-domain,
-# isolated from agent-config's global sweep so a stale body cannot outlive an
-# answer. Only an exact routed.tsv receipt for this task, stamp and owner
+# keeping supervision required until the existing watcher sweeps them against
+# live backlog state. Only an exact routed.tsv receipt for this task, stamp and owner
 # permits an agent-routed resolution and unhold. The receipt remains for
 # retries; the resolution body records it as routing evidence, never as the
 # captain's words. This releases held work without marking the task done.
@@ -1096,47 +1096,67 @@ write_hold_domain_fields() {  # <id> <decoded-body> <owner> <timeout> <one-line-
   rm -f -- "$tmp"
 }
 
+retire_hold_route() {
+  rm -f -- "$STATE/hold-domain/pending/$1.body" || fail "could not retire hold routing for $1"
+}
+
 route_hold() {  # <id>; caller owns the task control lock
-  local id=$1 router show body stamp owner timeout reason live_reason tmp output result rc=0 receipt occurrence until
+  local id=$1 router show body stamp owner timeout reason live_reason tmp pending output result rc=0 receipt occurrence until
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   [ -f "$router" ] || return 0
   task_show_or_fail "$id" "task $id disappeared before routing"
-  [ "$(show_field_value "$show" state)" != "done" ] || return 0
+  if [ "$(show_field_value "$show" state)" = done ]; then
+    retire_hold_route "$id"
+    return 0
+  fi
   body=$(show_field_value "$show" body)
   stamp=$(body_hold_set_timestamp "$body")
   owner=$(body_domain_field "$body" 'Decision owner')
   if [ "$(show_field_value "$show" hold_kind)" != captain ]; then
     # A crash after unhold still owes normalization and the parent resolution.
-    [ "$(recorded_resolution_mode "$body" || true)" = agent-routed ] || return 0
+    if [ "$(recorded_resolution_mode "$body" || true)" != agent-routed ]; then
+      retire_hold_route "$id"
+      return 0
+    fi
     occurrence=$(resolution_record_count "$body")
     remove_interrupted_answer_stamp "$id"
     publish_parent_resolution_then_retire "$id" "$occurrence" "agent-routed to $owner"
+    retire_hold_route "$id"
     return 0
   fi
-  [ -n "$stamp" ] || return 0
+  if [ -z "$stamp" ]; then
+    retire_hold_route "$id"
+    return 0
+  fi
   until=$(show_field_value "$show" hold_until)
   if [ -n "$until" ] && [[ "$until" > "${FM_CAPTAIN_HOLD_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" ]]; then
+    retire_hold_route "$id"
     return 0
   fi
   timeout=$(body_domain_field "$body" 'Hold timeout seconds')
   reason=$(body_domain_field "$body" 'Hold reason')
   # Pre-contract holds stay with the captain until explicitly held again.
-  [ -n "$owner" ] && [ -n "$timeout" ] && [ -n "$reason" ] || return 0
+  if [ -z "$owner" ] || [ -z "$timeout" ] || [ -z "$reason" ]; then
+    retire_hold_route "$id"
+    return 0
+  fi
   live_reason=$(show_field_value "$(printf '%s\n' "$show" | fm_hold_reason_decode_stream)" hold_reason)
   live_reason=$(printf '%s' "$live_reason" | perl -0777 -pe 's/\s+/ /g; s/^ | $//g')
   [ "$live_reason" = "$reason" ] || fail "task $id has divergent hold and routing reasons; leaving the hold intact"
-  mkdir -p "$STATE/hold-domain"
-  tmp=$(umask 077; mktemp "${TMPDIR:-/tmp}/fm-hold-route.XXXXXX") || fail "cannot stage routing body"
+  (umask 077; mkdir -p "$STATE/hold-domain/pending") || fail "cannot create routing spool"
+  pending="$STATE/hold-domain/pending/$id.body"
+  tmp=$(umask 077; mktemp "$STATE/hold-domain/pending/.route.XXXXXX") || fail "cannot stage routing body"
   printf 'Captain hold set: %s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\n' \
-    "$stamp" "$owner" "$timeout" "$reason" > "$tmp"
-  local -a args=(route --task "$id" --body-file "$tmp")
+    "$stamp" "$owner" "$timeout" "$reason" > "$tmp" || fail "cannot stage routing body"
+  mv -f -- "$tmp" "$pending" || fail "cannot publish routing body"
+  local -a args=(route --task "$id" --body-file "$pending")
   [ -z "${FM_CAPTAIN_HOLD_NOW:-}" ] || args+=(--now "$FM_CAPTAIN_HOLD_NOW")
   output=$(HOLD_DOMAIN_STATE="$STATE/hold-domain/routed.tsv" HOLD_DOMAIN_SPOOL="$STATE/hold-domain/pending" \
     python3 "$router" "${args[@]}" 2>&1) || rc=$?
-  rm -f -- "$tmp"
   result=${output##*$'\n'}
   case "$rc:$result" in
-    0:pending|0:kept|'2:not-routed owner-is-dale') return 0 ;;
+    0:pending) return 0 ;;
+    0:kept|'2:not-routed owner-is-dale') retire_hold_route "$id"; return 0 ;;
   esac
   if [ "$rc" -ne 0 ]; then
     printf 'fm-captain-hold: route %s failed: %s\n' "$id" "$output" >&2
@@ -1160,10 +1180,11 @@ route_hold() {  # <id>; caller owns the task control lock
   tasks_axi unhold "$id" >/dev/null || fail "could not release routed hold $id"
   remove_interrupted_answer_stamp "$id"
   publish_parent_resolution_then_retire "$id" "$occurrence" "agent-routed to $owner"
+  retire_hold_route "$id"
 }
 
 command_route_due() {
-  local router ids id rc=0
+  local router ids id pending rc=0
   [ "$#" -le 1 ] || { usage >&2; exit 2; }
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   [ -f "$router" ] || return 0
@@ -1175,6 +1196,14 @@ command_route_due() {
     return
   fi
   ids=$(open_task_ids) || fail "could not list holds for routing"
+  ids=$({
+    printf '%s\n' "$ids"
+    for pending in "$STATE"/hold-domain/pending/*.body; do
+      [ -f "$pending" ] || continue
+      id=${pending##*/}
+      printf '%s\n' "${id%.body}"
+    done
+  } | LC_ALL=C sort -u)
   while IFS= read -r id; do
     [ -n "$id" ] || continue
     # Use one process per row so a failed route cannot strand later holds.
