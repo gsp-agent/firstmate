@@ -103,7 +103,7 @@ fm_task_data_pr_references() {
   fm_pr_url_parse "$1" || return 1
   case "$FM_PR_PROVIDER" in
     github)
-      gh-axi pr view "$FM_PR_URL" --full --comments --reviews
+      gh-axi pr view "$FM_PR_NUMBER" --repo "$FM_PR_PATH" --hostname "$FM_PR_HOST" --full --comments --reviews
       ;;
     gitlab)
       project_url="https://$FM_PR_HOST/$FM_PR_PATH"
@@ -152,6 +152,15 @@ fm_task_data_pr_references() {
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   set -o pipefail
   case "${1:-}" in
+    backlog-location)
+      [ "$#" -eq 2 ] || exit 1
+      # shellcheck source=bin/fm-tasks-axi-lib.sh
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-tasks-axi-lib.sh" || exit 1
+      # shellcheck source=bin/fm-backlog-transition-lib.sh
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-backlog-transition-lib.sh" || exit 1
+      fm_backlog_tasks_axi_addressing "$2" || exit 1
+      jq -cn --arg root "$FM_BACKLOG_AXI_ROOT" --arg file "$FM_BACKLOG_AXI_FILE" '{root: $root, file: $file}'
+      ;;
     references)
       [ "$#" -eq 2 ] || exit 1
       fm_task_data_pr_references "$2"
