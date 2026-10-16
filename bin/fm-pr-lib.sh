@@ -15,10 +15,17 @@
 # from the stored URL and refuses any record whose parts do not reconstruct that
 # exact URL.
 #
-# A validated exact merged result is retired through a private receipt only
-# after its durable wake is appended.
-# The receipt binds the terminal observation to the canonical registration and
-# lets a restart finish fixed-path removal without executing state-file bytes.
+# Poll retirement uses a private receipt bound to the canonical registration,
+# content hashes, file identities, and task/PR metadata.
+# Recovery revalidates that evidence without executing state-file bytes, removes
+# the receipt after its poll artifacts, and leaves concurrent replacements armed.
+# It preserves task metadata including pr= and pr_head= and never performs task
+# or persistent-secondmate cleanup.
+# The v1 receipt's final merged token authorizes cleanup, not a merge outcome;
+# bin/fm-watch.sh also uses that format for a closed unmerged GitHub pull request.
+# bin/fm-watch.sh owns terminal-result handling and wake ordering.
+# fm_pr_poll_retirement_ready owns discovery retention during retirement,
+# teardown, and re-arm.
 
 FM_PR_PROVIDER=
 FM_PR_URL=
@@ -703,8 +710,15 @@ fm_pr_poll_artifacts_valid() {
 # recorded file identities name the live sidecar and check. Success alone is
 # never authentication. On success FM_PR_DATA_*, FM_PR_REG_*, and FM_PR_META_*
 # hold the parsed records.
+# The fourth argument selects how the check is compared with the template.
+# strict, the default, requires the check to match the template and the
+# recorded template hash. prior-template skips only the byte comparison; the
+# check hash must still equal the recorded template hash, so a tampered copy
+# fails there too. current-template requires the check to match the template
+# and does not require the recorded hash, which is the stalled registration
+# left when a rewrite replaced the check and died before its rename.
 fm_pr_poll_artifacts_content_valid() {
-  local state=$1 id=$2 template=$3 state_device check data registration meta data_hash template_hash
+  local state=$1 id=$2 template=$3 mode=${4:-strict} state_device check data registration meta data_hash template_hash current_hash
   fm_pr_task_id_valid "$id" || return 1
   [ -d "$state" ] && [ ! -L "$state" ] || return 1
   state_device=$(fm_pr_file_device "$state") || return 1
@@ -717,7 +731,9 @@ fm_pr_poll_artifacts_content_valid() {
   fm_pr_private_file_valid "$registration" 600 "$state_device" || return 1
   [ -f "$meta" ] && [ ! -L "$meta" ] || return 1
   [ "$(fm_pr_file_link_count "$meta")" = 1 ] || return 1
-  cmp -s "$template" "$check" || return 1
+  if [ "$mode" != prior-template ]; then
+    cmp -s "$template" "$check" || return 1
+  fi
   fm_pr_poll_data_parse "$data" || return 1
   data_hash=$(fm_pr_sha256 "$data") || return 1
   template_hash=$(fm_pr_sha256 "$check") || return 1
@@ -729,7 +745,12 @@ fm_pr_poll_artifacts_content_valid() {
   [ "$FM_PR_REG_PATH" = "$FM_PR_DATA_PATH" ] || return 1
   [ "$FM_PR_REG_NUMBER" = "$FM_PR_DATA_NUMBER" ] || return 1
   [ "$FM_PR_REG_DATA_HASH" = "$data_hash" ] || return 1
-  [ "$FM_PR_REG_TEMPLATE_HASH" = "$template_hash" ] || return 1
+  if [ "$mode" = current-template ]; then
+    current_hash=$(fm_pr_sha256 "$template") || return 1
+    [ "$template_hash" = "$current_hash" ] || return 1
+  else
+    [ "$FM_PR_REG_TEMPLATE_HASH" = "$template_hash" ] || return 1
+  fi
   fm_pr_metadata_identity_parse "$meta" || return 1
   [ "$FM_PR_META_PROVIDER" = "$FM_PR_DATA_PROVIDER" ] || return 1
   [ "$FM_PR_META_URL" = "$FM_PR_DATA_URL" ] || return 1
@@ -820,6 +841,326 @@ fm_pr_poll_registration_rerecord_device() {  # <state> <id> <template>
     rm -f -- "$tmp"
     return 1
   fi
+  fm_pr_poll_artifacts_valid "$state" "$id" "$template"
+}
+
+# True when the hash is one complete line of fm-pr-poll-shipped.sha256 beside
+# the template. That file is the committed allowlist of prior poll-template
+# content hashes; any other recorded hash stays refused.
+fm_pr_poll_template_hash_shipped() {  # <template> <hash>
+  local template=$1 hash=$2 list line
+  case "$hash" in
+    *[!0-9a-f]*|'') return 1 ;;
+  esac
+  [ "${#hash}" -eq 64 ] || return 1
+  list=${template%/*}/fm-pr-poll-shipped.sha256
+  [ -f "$list" ] && [ ! -L "$list" ] || return 1
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ "$line" = "$hash" ] && return 0
+  done < "$list"
+  return 1
+}
+
+# A poll armed on an older copy of the template fails the strict byte
+# comparison after that template changes. This proves that is the only
+# difference: data, registration, and meta validate, the live check and sidecar
+# are still the file objects the registration recorded, the check's hash
+# equals the recorded template hash, and that hash is one this repository
+# shipped. A tampered, replaced, re-moded, relinked, or retired artifact fails
+# a proof here and stays refused. Success is not authentication against the
+# current template.
+fm_pr_poll_registration_template_upgradable() {  # <state> <id> <template>
+  local state=$1 id=$2 template=$3 receipt data_identity check_identity current_hash
+  fm_pr_task_id_valid "$id" || return 1
+  [ -f "$state/$id.pr-poll-registration" ] || return 1
+  receipt="$state/$id.pr-poll-retirement"
+  [ ! -e "$receipt" ] && [ ! -L "$receipt" ] || return 1
+  fm_pr_poll_artifacts_content_valid "$state" "$id" "$template" prior-template || return 1
+  data_identity=$(fm_pr_file_identity "$state/$id.pr-poll") || return 1
+  check_identity=$(fm_pr_file_identity "$state/$id.check.sh") || return 1
+  [ "$FM_PR_REG_DATA_IDENTITY" = "$data_identity" ] || return 1
+  [ "$FM_PR_REG_CHECK_IDENTITY" = "$check_identity" ] || return 1
+  current_hash=$(fm_pr_sha256 "$template") || return 1
+  [ "$current_hash" != "$FM_PR_REG_TEMPLATE_HASH" ] || return 1
+  cmp -s "$template" "$state/$id.check.sh" && return 1
+  fm_pr_poll_template_hash_shipped "$template" "$FM_PR_REG_TEMPLATE_HASH"
+}
+
+# Rewrite an upgradable poll (fm_pr_poll_registration_template_upgradable) so
+# its check copy is the current template and its registration records that
+# template hash. The check file object is kept, so the recorded check identity
+# does not change. The caller holds the task's control lock and poll
+# publication lock. The proof is repeated just before the bytes are replaced.
+# A failed registration rewrite restores the previous check bytes. Success
+# means the strict fm_pr_poll_artifacts_valid accepts the result.
+fm_pr_poll_registration_rerecord_template() {  # <state> <id> <template>
+  local state=$1 id=$2 template=$3 state_device check registration backup tmp
+  local id_line provider url host path number data_hash new_hash data_identity check_identity
+  local reg_hash reg_identity
+  fm_pr_poll_registration_template_upgradable "$state" "$id" "$template" || return 1
+  check="$state/$id.check.sh"
+  registration="$state/$id.pr-poll-registration"
+  id_line=$FM_PR_REG_ID
+  provider=$FM_PR_REG_PROVIDER
+  url=$FM_PR_REG_URL
+  host=$FM_PR_REG_HOST
+  path=$FM_PR_REG_PATH
+  number=$FM_PR_REG_NUMBER
+  data_hash=$FM_PR_REG_DATA_HASH
+  data_identity=$FM_PR_REG_DATA_IDENTITY
+  check_identity=$FM_PR_REG_CHECK_IDENTITY
+  state_device=$(fm_pr_file_device "$state") || return 1
+  new_hash=$(fm_pr_sha256 "$template") || return 1
+  reg_hash=$(fm_pr_sha256 "$registration") || return 1
+  reg_identity=$(fm_pr_file_identity "$registration") || return 1
+  backup=$(mktemp "$state/.fm-pr-poll-check.XXXXXX") || return 1
+  if ! cat -- "$check" > "$backup"; then
+    rm -f -- "$backup"
+    return 1
+  fi
+  if ! fm_pr_poll_registration_template_upgradable "$state" "$id" "$template" \
+    || [ "$(fm_pr_sha256 "$registration")" != "$reg_hash" ] \
+    || [ "$(fm_pr_file_identity "$registration")" != "$reg_identity" ] \
+    || [ "$(fm_pr_file_identity "$check")" != "$check_identity" ] \
+    || ! cat -- "$template" > "$check" \
+    || ! cmp -s "$template" "$check" \
+    || [ "$(fm_pr_sha256 "$check")" != "$new_hash" ] \
+    || [ "$(fm_pr_file_identity "$check")" != "$check_identity" ] \
+    || ! fm_pr_private_file_valid "$check" 600 "$state_device"; then
+    cat -- "$backup" > "$check"
+    rm -f -- "$backup"
+    return 1
+  fi
+  tmp=$(mktemp "$state/.fm-pr-poll-registration.XXXXXX") || {
+    cat -- "$backup" > "$check"
+    rm -f -- "$backup"
+    return 1
+  }
+  if ! printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n' \
+      fm-pr-poll-registration-v2 "$id_line" "$provider" "$url" "$host" "$path" "$number" \
+      "$data_hash" "$new_hash" "$data_identity" "$check_identity" > "$tmp" \
+    || ! chmod 0600 "$tmp" \
+    || ! fm_pr_private_file_valid "$tmp" 600 "$state_device" \
+    || ! fm_pr_poll_registration_parse "$tmp" \
+    || [ "$FM_PR_REG_ID" != "$id" ] \
+    || [ "$FM_PR_REG_URL" != "$url" ] \
+    || [ "$FM_PR_REG_DATA_HASH" != "$data_hash" ] \
+    || [ "$FM_PR_REG_TEMPLATE_HASH" != "$new_hash" ] \
+    || [ "$FM_PR_REG_DATA_IDENTITY" != "$data_identity" ] \
+    || [ "$FM_PR_REG_CHECK_IDENTITY" != "$check_identity" ] \
+    || [ "$(fm_pr_sha256 "$registration")" != "$reg_hash" ] \
+    || [ "$(fm_pr_file_identity "$registration")" != "$reg_identity" ] \
+    || [ "$(fm_pr_file_identity "$check")" != "$check_identity" ] \
+    || ! fm_pr_regular_destination_on_device_or_absent "$registration" "$state_device" \
+    || ! mv -f -- "$tmp" "$registration"; then
+    rm -f -- "$tmp"
+    cat -- "$backup" > "$check"
+    rm -f -- "$backup"
+    return 1
+  fi
+  rm -f -- "$backup"
+  fm_pr_poll_artifacts_valid "$state" "$id" "$template"
+}
+
+# A template rewrite can replace the check and die before the registration
+# rename. The check then already matches the current template while the
+# registration still records the previous hash and may name a renumbered
+# device. Recovery requires that recorded hash to be one this repository
+# shipped, and unchanged check and sidecar inodes on the live state device,
+# with both recorded identities naming the same prior device.
+# A replaced artifact, an unshipped hash, or a check unlike the current
+# template stays refused.
+# On success FM_PR_POLL_REARM_DATA_IDENTITY and
+# FM_PR_POLL_REARM_CHECK_IDENTITY hold the live identities.
+fm_pr_poll_registration_template_hash_stale() {  # <state> <id> <template>
+  local state=$1 id=$2 template=$3 receipt data_identity check_identity current_hash state_device recorded_device
+  FM_PR_POLL_REARM_DATA_IDENTITY=
+  FM_PR_POLL_REARM_CHECK_IDENTITY=
+  fm_pr_task_id_valid "$id" || return 1
+  [ -f "$state/$id.pr-poll-registration" ] || return 1
+  receipt="$state/$id.pr-poll-retirement"
+  [ ! -e "$receipt" ] && [ ! -L "$receipt" ] || return 1
+  fm_pr_poll_artifacts_content_valid "$state" "$id" "$template" current-template || return 1
+  state_device=$(fm_pr_file_device "$state") || return 1
+  data_identity=$(fm_pr_file_identity "$state/$id.pr-poll") || return 1
+  check_identity=$(fm_pr_file_identity "$state/$id.check.sh") || return 1
+  recorded_device=${FM_PR_REG_DATA_IDENTITY%%:*}
+  [ "${FM_PR_REG_CHECK_IDENTITY%%:*}" = "$recorded_device" ] || return 1
+  [ "$data_identity" = "$state_device:${FM_PR_REG_DATA_IDENTITY#*:}" ] || return 1
+  [ "$check_identity" = "$state_device:${FM_PR_REG_CHECK_IDENTITY#*:}" ] || return 1
+  current_hash=$(fm_pr_sha256 "$template") || return 1
+  [ "$current_hash" != "$FM_PR_REG_TEMPLATE_HASH" ] || return 1
+  fm_pr_poll_template_hash_shipped "$template" "$FM_PR_REG_TEMPLATE_HASH" || return 1
+  FM_PR_POLL_REARM_DATA_IDENTITY=$data_identity
+  FM_PR_POLL_REARM_CHECK_IDENTITY=$check_identity
+}
+
+# Rewrite a stalled template registration
+# (fm_pr_poll_registration_template_hash_stale) so it records the current
+# template hash and both live file identities in one rename. The check is
+# already that template, so its bytes and file object stay as they are. The
+# caller holds the task's control lock and poll publication lock. The proof is
+# repeated just before the rename. Success means the strict
+# fm_pr_poll_artifacts_valid accepts the result.
+fm_pr_poll_registration_rerecord_template_hash() {  # <state> <id> <template>
+  local state=$1 id=$2 template=$3 state_device registration tmp reg_hash reg_identity
+  local id_line provider url host path number data_hash template_hash data_identity check_identity
+  fm_pr_poll_registration_template_hash_stale "$state" "$id" "$template" || return 1
+  registration="$state/$id.pr-poll-registration"
+  id_line=$FM_PR_REG_ID
+  provider=$FM_PR_REG_PROVIDER
+  url=$FM_PR_REG_URL
+  host=$FM_PR_REG_HOST
+  path=$FM_PR_REG_PATH
+  number=$FM_PR_REG_NUMBER
+  data_hash=$FM_PR_REG_DATA_HASH
+  data_identity=$FM_PR_POLL_REARM_DATA_IDENTITY
+  check_identity=$FM_PR_POLL_REARM_CHECK_IDENTITY
+  template_hash=$(fm_pr_sha256 "$template") || return 1
+  state_device=$(fm_pr_file_device "$state") || return 1
+  reg_hash=$(fm_pr_sha256 "$registration") || return 1
+  reg_identity=$(fm_pr_file_identity "$registration") || return 1
+  tmp=$(mktemp "$state/.fm-pr-poll-registration.XXXXXX") || return 1
+  if ! printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n' \
+      fm-pr-poll-registration-v2 "$id_line" "$provider" "$url" "$host" "$path" "$number" \
+      "$data_hash" "$template_hash" "$data_identity" "$check_identity" > "$tmp" \
+    || ! chmod 0600 "$tmp" \
+    || ! fm_pr_private_file_valid "$tmp" 600 "$state_device" \
+    || ! fm_pr_poll_registration_parse "$tmp" \
+    || [ "$FM_PR_REG_ID" != "$id" ] \
+    || [ "$FM_PR_REG_URL" != "$url" ] \
+    || [ "$FM_PR_REG_DATA_HASH" != "$data_hash" ] \
+    || [ "$FM_PR_REG_TEMPLATE_HASH" != "$template_hash" ] \
+    || [ "$FM_PR_REG_DATA_IDENTITY" != "$data_identity" ] \
+    || [ "$FM_PR_REG_CHECK_IDENTITY" != "$check_identity" ] \
+    || ! fm_pr_poll_registration_template_hash_stale "$state" "$id" "$template" \
+    || [ "$FM_PR_POLL_REARM_DATA_IDENTITY" != "$data_identity" ] \
+    || [ "$FM_PR_POLL_REARM_CHECK_IDENTITY" != "$check_identity" ] \
+    || [ "$(fm_pr_sha256 "$state/$id.check.sh")" != "$template_hash" ] \
+    || [ "$(fm_pr_file_identity "$state/$id.check.sh")" != "$check_identity" ] \
+    || [ "$(fm_pr_sha256 "$registration")" != "$reg_hash" ] \
+    || [ "$(fm_pr_file_identity "$registration")" != "$reg_identity" ] \
+    || ! fm_pr_regular_destination_on_device_or_absent "$registration" "$state_device" \
+    || ! mv -f -- "$tmp" "$registration"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+  fm_pr_poll_artifacts_valid "$state" "$id" "$template"
+}
+
+# A poll can fail both device-shift and template-upgrade recovery when the
+# template changed and the volume was renumbered together. This proves that
+# pair is the only difference: the check hash equals the recorded template
+# hash, both recorded identities share one device that is not the live device,
+# each live inode matches its recorded inode, the current template hash differs
+# from the recorded hash, that hash is one this repository shipped, and the
+# check is not the current template. A tampered, replaced, re-moded, relinked,
+# unshipped, or retired artifact fails a proof here and stays refused. Success
+# is not authentication against the current
+# template. On success FM_PR_POLL_REARM_DATA_IDENTITY and
+# FM_PR_POLL_REARM_CHECK_IDENTITY hold the live identities.
+fm_pr_poll_registration_template_device_recoverable() {  # <state> <id> <template>
+  local state=$1 id=$2 template=$3 state_device recorded_device receipt
+  local data_identity check_identity current_hash
+  FM_PR_POLL_REARM_DATA_IDENTITY=
+  FM_PR_POLL_REARM_CHECK_IDENTITY=
+  fm_pr_task_id_valid "$id" || return 1
+  [ -f "$state/$id.pr-poll-registration" ] || return 1
+  receipt="$state/$id.pr-poll-retirement"
+  [ ! -e "$receipt" ] && [ ! -L "$receipt" ] || return 1
+  fm_pr_poll_artifacts_content_valid "$state" "$id" "$template" prior-template || return 1
+  state_device=$(fm_pr_file_device "$state") || return 1
+  data_identity=$(fm_pr_file_identity "$state/$id.pr-poll") || return 1
+  check_identity=$(fm_pr_file_identity "$state/$id.check.sh") || return 1
+  recorded_device=${FM_PR_REG_DATA_IDENTITY%%:*}
+  [ "${FM_PR_REG_CHECK_IDENTITY%%:*}" = "$recorded_device" ] || return 1
+  [ "$recorded_device" != "$state_device" ] || return 1
+  [ "$data_identity" = "$state_device:${FM_PR_REG_DATA_IDENTITY#*:}" ] || return 1
+  [ "$check_identity" = "$state_device:${FM_PR_REG_CHECK_IDENTITY#*:}" ] || return 1
+  current_hash=$(fm_pr_sha256 "$template") || return 1
+  [ "$current_hash" != "$FM_PR_REG_TEMPLATE_HASH" ] || return 1
+  cmp -s "$template" "$state/$id.check.sh" && return 1
+  fm_pr_poll_template_hash_shipped "$template" "$FM_PR_REG_TEMPLATE_HASH" || return 1
+  FM_PR_POLL_REARM_DATA_IDENTITY=$data_identity
+  FM_PR_POLL_REARM_CHECK_IDENTITY=$check_identity
+}
+
+# Rewrite a poll that changed template and device together
+# (fm_pr_poll_registration_template_device_recoverable). The check file object
+# is kept and replaced with the current template. The registration records that
+# template hash and the live device identities. The caller holds the task's
+# control lock and poll publication lock. The proof is repeated just before the
+# check bytes are replaced. A failed registration rewrite restores the previous
+# check bytes. Success means the strict fm_pr_poll_artifacts_valid accepts the
+# result.
+fm_pr_poll_registration_rerecord_template_device() {  # <state> <id> <template>
+  local state=$1 id=$2 template=$3 state_device check registration backup tmp
+  local id_line provider url host path number data_hash new_hash data_identity check_identity
+  local reg_hash reg_identity
+  fm_pr_poll_registration_template_device_recoverable "$state" "$id" "$template" || return 1
+  check="$state/$id.check.sh"
+  registration="$state/$id.pr-poll-registration"
+  id_line=$FM_PR_REG_ID
+  provider=$FM_PR_REG_PROVIDER
+  url=$FM_PR_REG_URL
+  host=$FM_PR_REG_HOST
+  path=$FM_PR_REG_PATH
+  number=$FM_PR_REG_NUMBER
+  data_hash=$FM_PR_REG_DATA_HASH
+  data_identity=$FM_PR_POLL_REARM_DATA_IDENTITY
+  check_identity=$FM_PR_POLL_REARM_CHECK_IDENTITY
+  state_device=$(fm_pr_file_device "$state") || return 1
+  new_hash=$(fm_pr_sha256 "$template") || return 1
+  reg_hash=$(fm_pr_sha256 "$registration") || return 1
+  reg_identity=$(fm_pr_file_identity "$registration") || return 1
+  backup=$(mktemp "$state/.fm-pr-poll-check.XXXXXX") || return 1
+  if ! cat -- "$check" > "$backup"; then
+    rm -f -- "$backup"
+    return 1
+  fi
+  if ! fm_pr_poll_registration_template_device_recoverable "$state" "$id" "$template" \
+    || [ "$FM_PR_POLL_REARM_DATA_IDENTITY" != "$data_identity" ] \
+    || [ "$FM_PR_POLL_REARM_CHECK_IDENTITY" != "$check_identity" ] \
+    || [ "$(fm_pr_sha256 "$registration")" != "$reg_hash" ] \
+    || [ "$(fm_pr_file_identity "$registration")" != "$reg_identity" ] \
+    || [ "$(fm_pr_file_identity "$check")" != "$check_identity" ] \
+    || ! cat -- "$template" > "$check" \
+    || ! cmp -s "$template" "$check" \
+    || [ "$(fm_pr_sha256 "$check")" != "$new_hash" ] \
+    || [ "$(fm_pr_file_identity "$check")" != "$check_identity" ] \
+    || ! fm_pr_private_file_valid "$check" 600 "$state_device"; then
+    cat -- "$backup" > "$check"
+    rm -f -- "$backup"
+    return 1
+  fi
+  tmp=$(mktemp "$state/.fm-pr-poll-registration.XXXXXX") || {
+    cat -- "$backup" > "$check"
+    rm -f -- "$backup"
+    return 1
+  }
+  if ! printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n' \
+      fm-pr-poll-registration-v2 "$id_line" "$provider" "$url" "$host" "$path" "$number" \
+      "$data_hash" "$new_hash" "$data_identity" "$check_identity" > "$tmp" \
+    || ! chmod 0600 "$tmp" \
+    || ! fm_pr_private_file_valid "$tmp" 600 "$state_device" \
+    || ! fm_pr_poll_registration_parse "$tmp" \
+    || [ "$FM_PR_REG_ID" != "$id" ] \
+    || [ "$FM_PR_REG_URL" != "$url" ] \
+    || [ "$FM_PR_REG_DATA_HASH" != "$data_hash" ] \
+    || [ "$FM_PR_REG_TEMPLATE_HASH" != "$new_hash" ] \
+    || [ "$FM_PR_REG_DATA_IDENTITY" != "$data_identity" ] \
+    || [ "$FM_PR_REG_CHECK_IDENTITY" != "$check_identity" ] \
+    || [ "$(fm_pr_sha256 "$registration")" != "$reg_hash" ] \
+    || [ "$(fm_pr_file_identity "$registration")" != "$reg_identity" ] \
+    || [ "$(fm_pr_file_identity "$check")" != "$check_identity" ] \
+    || ! fm_pr_regular_destination_on_device_or_absent "$registration" "$state_device" \
+    || ! mv -f -- "$tmp" "$registration"; then
+    rm -f -- "$tmp"
+    cat -- "$backup" > "$check"
+    rm -f -- "$backup"
+    return 1
+  fi
+  rm -f -- "$backup"
   fm_pr_poll_artifacts_valid "$state" "$id" "$template"
 }
 
@@ -934,6 +1275,8 @@ fm_pr_poll_retirement_receipt_valid() {
   fm_pr_private_file_valid "$receipt" 600 "$state_device" || return 1
   fm_pr_poll_retirement_parse "$receipt" || return 1
   [ "$FM_PR_RETIRE_ID" = "$id" ] || return 1
+  [ "${FM_PR_RETIRE_DATA_IDENTITY%%:*}" = "${FM_PR_RETIRE_CHECK_IDENTITY%%:*}" ] || return 1
+  [ "${FM_PR_RETIRE_DATA_IDENTITY%%:*}" = "${FM_PR_RETIRE_REG_IDENTITY%%:*}" ] || return 1
   meta="$state/$id.meta"
   fm_pr_metadata_identity_parse "$meta" || return 1
   [ "$FM_PR_META_PROVIDER" = "$FM_PR_RETIRE_PROVIDER" ] || return 1
@@ -952,7 +1295,7 @@ fm_pr_github_read_record_with_gh() {  # <owner> <repo> <number>
   FM_PR_RECORD_MERGED=
 
   # shellcheck disable=SC2016  # GraphQL variables are literal query syntax.
-  if ! fields=$(gh api graphql \
+  if ! fields=$(gh api graphql --hostname github.com \
     -f query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged}}}' \
     -F "owner=$owner" -F "repo=$repo" -F "number=$number" \
     --jq '.data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring)' \
@@ -987,7 +1330,7 @@ fm_pr_github_read_record_with_gh_axi() {  # <owner> <repo> <number>
   local owner=$1 repo=$2 number=$3 output state
   FM_PR_RECORD_STATE=
   FM_PR_RECORD_MERGED=
-  if ! output=$(gh-axi pr view "$number" --repo "$owner/$repo" 2>/dev/null); then
+  if ! output=$(gh-axi pr view "$number" --repo "$owner/$repo" --hostname github.com 2>/dev/null); then
     return 1
   fi
   if ! state=$(printf '%s\n' "$output" | awk '
@@ -1262,7 +1605,7 @@ fm_pr_poll_retirement_data_valid() {
   [ "$FM_PR_DATA_PATH" = "$FM_PR_RETIRE_PATH" ] || return 1
   [ "$FM_PR_DATA_NUMBER" = "$FM_PR_RETIRE_NUMBER" ] || return 1
   [ "$data_hash" = "$FM_PR_RETIRE_DATA_HASH" ] || return 1
-  [ "$data_identity" = "$FM_PR_RETIRE_DATA_IDENTITY" ]
+  [ "$data_identity" = "$state_device:${FM_PR_RETIRE_DATA_IDENTITY#*:}" ]
 }
 
 fm_pr_poll_retirement_registration_valid() {
@@ -1284,7 +1627,7 @@ fm_pr_poll_retirement_registration_valid() {
   [ "$FM_PR_REG_DATA_IDENTITY" = "$FM_PR_RETIRE_DATA_IDENTITY" ] || return 1
   [ "$FM_PR_REG_CHECK_IDENTITY" = "$FM_PR_RETIRE_CHECK_IDENTITY" ] || return 1
   [ "$reg_hash" = "$FM_PR_RETIRE_REG_HASH" ] || return 1
-  [ "$reg_identity" = "$FM_PR_RETIRE_REG_IDENTITY" ]
+  [ "$reg_identity" = "$state_device:${FM_PR_RETIRE_REG_IDENTITY#*:}" ]
 }
 
 fm_pr_poll_retirement_check_valid() {
@@ -1295,7 +1638,7 @@ fm_pr_poll_retirement_check_valid() {
   check_hash=$(fm_pr_sha256 "$check") || return 1
   check_identity=$(fm_pr_file_identity "$check") || return 1
   [ "$check_hash" = "$FM_PR_RETIRE_TEMPLATE_HASH" ] || return 1
-  [ "$check_identity" = "$FM_PR_RETIRE_CHECK_IDENTITY" ]
+  [ "$check_identity" = "$state_device:${FM_PR_RETIRE_CHECK_IDENTITY#*:}" ]
 }
 
 fm_pr_poll_retirement_state_valid() {
@@ -1326,7 +1669,7 @@ fm_pr_poll_retirement_state_valid() {
 fm_pr_poll_retirement_remove_exact() {
   local path=$1 state_device=$2 expected_identity=$3 expected_hash=$4
   fm_pr_private_file_valid "$path" 600 "$state_device" || return 1
-  [ "$(fm_pr_file_identity "$path")" = "$expected_identity" ] || return 1
+  [ "$(fm_pr_file_identity "$path")" = "$state_device:${expected_identity#*:}" ] || return 1
   [ "$(fm_pr_sha256 "$path")" = "$expected_hash" ] || return 1
   rm -f -- "$path" || return 1
   [ ! -e "$path" ] && [ ! -L "$path" ]
@@ -1397,9 +1740,91 @@ fm_pr_poll_retirement_publish() {
   fm_pr_poll_retirement_receipt_valid "$state" "$id" || return 1
 }
 
+# A missing marker is success. A symlink or directory is refused so removal
+# does not follow it. Format owner: bin/fm-pr-poll.sh.
+fm_pr_poll_dequeue_marker_remove() {  # <state> <id>
+  local state=$1 id=$2 path
+  fm_pr_task_id_valid "$id" || return 1
+  path="$state/$id.pr-poll-queue-dropped"
+  [ -e "$path" ] || [ -L "$path" ] || return 0
+  [ -f "$path" ] && [ ! -L "$path" ] || return 1
+  rm -f -- "$path"
+}
+
+# Format owner: bin/fm-pr-poll.sh. Call only after the departure's wake is
+# durably queued; otherwise an interrupted poll could consume an undelivered
+# event. The marker identifies the published removal, not a poll attempt.
+fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
+  local state=$1 id=$2 url=$3 event=$4 marker tmp state_device
+  fm_pr_task_id_valid "$id" || return 1
+  [ -n "$url" ] || return 1
+  [ -d "$state" ] && [ ! -L "$state" ] || return 1
+  state_device=$(fm_pr_file_device "$state") || return 1
+  case "$event" in
+    ''|*[!A-Za-z0-9_+/=-]*) return 1 ;;
+  esac
+  [ "${#event}" -le 256 ] || return 1
+  marker="$state/$id.pr-poll-queue-dropped"
+  fm_pr_regular_destination_on_device_or_absent "$marker" "$state_device" || return 1
+  umask 077
+  tmp=$(mktemp "$state/.fm-pr-poll-queue.XXXXXX") || return 1
+  if ! printf '%s\n' fm-pr-poll-queue-dropped-v1 "$url" "$event" > "$tmp" \
+    || ! chmod 0600 "$tmp" \
+    || ! fm_pr_private_file_valid "$tmp" 600 "$state_device" \
+    || ! fm_pr_regular_destination_on_device_or_absent "$marker" "$state_device" \
+    || ! mv -f -- "$tmp" "$marker" \
+    || ! fm_pr_private_file_valid "$marker" 600 "$state_device"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+  return 0
+}
+
+# Retiring or replacing an authenticated GitHub sidecar must preserve repository
+# discovery until bin/fm-pr-queue-sweep.sh reports that repository queue-empty.
+# A replacement in the same repository preserves discovery unless a pending
+# receipt already owns the retirement.
+# bin/fm-teardown.sh owns the explicit --force discard exception.
+# Callers pass only repositories named by that queue-empty result.
+# Returns 2 while discovery must be retained, 1 for an invalid receipt or task
+# ID, and 0 when cleanup or replacement may proceed.
+fm_pr_poll_retirement_ready() {
+  local state=$1 id=$2 template=$3 swept_repos=${4:-} replacement=${5:-}
+  local provider host path
+  fm_pr_task_id_valid "$id" || return 1
+  if [ -e "$state/$id.pr-poll-retirement" ] || [ -L "$state/$id.pr-poll-retirement" ]; then
+    fm_pr_poll_retirement_state_valid "$state" "$id" || return 1
+    provider=$FM_PR_RETIRE_PROVIDER
+    host=$FM_PR_RETIRE_HOST
+    path=$FM_PR_RETIRE_PATH
+    replacement=
+  elif fm_pr_poll_artifacts_valid "$state" "$id" "$template" \
+    || fm_pr_poll_registration_device_shifted "$state" "$id" "$template" \
+    || fm_pr_poll_registration_template_upgradable "$state" "$id" "$template" \
+    || fm_pr_poll_registration_template_hash_stale "$state" "$id" "$template" \
+    || fm_pr_poll_registration_template_device_recoverable "$state" "$id" "$template"; then
+    provider=$FM_PR_DATA_PROVIDER
+    host=$FM_PR_DATA_HOST
+    path=$FM_PR_DATA_PATH
+  else
+    return 0
+  fi
+  [ -e "$state/$id.pr-poll" ] || return 0
+  [ "$provider" = github ] && [ "$host" = github.com ] || return 0
+  case $'\n'"$swept_repos"$'\n' in
+    *$'\n'"$path"$'\n'*) return 0 ;;
+  esac
+  if [ -n "$replacement" ] && fm_pr_url_parse "$replacement" \
+    && [ "$FM_PR_PROVIDER" = "$provider" ] && [ "$FM_PR_HOST" = "$host" ] \
+    && [ "$FM_PR_PATH" = "$path" ]; then
+    return 0
+  fi
+  return 2
+}
+
 fm_pr_poll_retirement_recover_one() {
   local state=$1 id=$2 template=$3 receipt state_device check data registration
-  local receipt_hash receipt_identity
+  local receipt_hash receipt_identity swept_repos=${4:-} ready=0
   fm_pr_task_id_valid "$id" || return 1
   receipt="$state/$id.pr-poll-retirement"
   if [ ! -e "$receipt" ] && [ ! -L "$receipt" ]; then
@@ -1410,6 +1835,7 @@ fm_pr_poll_retirement_recover_one() {
     return 1
   fi
   state_device=$(fm_pr_file_device "$state") || return 1
+  fm_pr_poll_dequeue_marker_remove "$state" "$id" || return 1
   check="$state/$id.check.sh"
   data="$state/$id.pr-poll"
   registration="$state/$id.pr-poll-registration"
@@ -1424,6 +1850,9 @@ fm_pr_poll_retirement_recover_one() {
       "$FM_PR_RETIRE_REG_IDENTITY" "$FM_PR_RETIRE_REG_HASH" || return 1
   fi
   if [ -e "$data" ] || [ -L "$data" ]; then
+    fm_pr_poll_retirement_ready "$state" "$id" "$template" "$swept_repos" || ready=$?
+    [ "$ready" -ne 2 ] || return 0
+    [ "$ready" -eq 0 ] || return 1
     fm_pr_poll_retirement_remove_exact "$data" "$state_device" \
       "$FM_PR_RETIRE_DATA_IDENTITY" "$FM_PR_RETIRE_DATA_HASH" || return 1
   fi
@@ -1436,13 +1865,13 @@ fm_pr_poll_retirement_recover_one() {
 }
 
 fm_pr_poll_retirement_recover_all() {
-  local state=$1 template=$2 receipt id
+  local state=$1 template=$2 receipt id swept_repos=${3:-}
   FM_PR_POLL_RETIREMENT_REJECTED=
   for receipt in "$state"/*.pr-poll-retirement; do
     [ -e "$receipt" ] || [ -L "$receipt" ] || continue
     id=$(basename "$receipt" .pr-poll-retirement)
     if ! fm_pr_task_id_valid "$id" \
-      || ! fm_pr_poll_retirement_recover_one "$state" "$id" "$template"; then
+      || ! fm_pr_poll_retirement_recover_one "$state" "$id" "$template" "$swept_repos"; then
       FM_PR_POLL_RETIREMENT_REJECTED="$FM_PR_POLL_RETIREMENT_REJECTED $receipt"
     fi
   done
@@ -1450,8 +1879,8 @@ fm_pr_poll_retirement_recover_all() {
 }
 
 # --- merge-notification canonical-identity marker ----------------------------
-# A merged-PR poll retires (fm_pr_poll_retirement_recover_one) in the same
-# watcher cycle that detects it, which is normally enough on its own to stop a
+# Retirement (fm_pr_poll_retirement_recover_one) removes the merged poll's
+# runnable check in the detecting watcher cycle, which normally stops a
 # duplicate detection: the check.sh is gone, so nothing re-polls it. The
 # exception is the same poll re-registered after its merge was already
 # surfaced. Its retirement state is scoped to one registration, so this marker
