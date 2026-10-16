@@ -5443,7 +5443,9 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-directories ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-spellings ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retirement ] \
-  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ]; then
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-github ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
   test_missing_adapter_sibling_refuses_before_cleanup
@@ -6689,6 +6691,139 @@ SH
   pass "fm-teardown: discovered PR references survive interrupted close, retain, replay and direct retirement"
 }
 
+test_task_data_legacy_rows() {
+  local case_dir task variant helper project pr
+  helper="$ROOT/bin/fm-task-data.py"
+  for variant in archive current missing active; do
+    case_dir=$(make_case "task-data-legacy-$variant")
+    task="$case_dir/data/task-x1"
+    project="$case_dir/projects/demo"
+    pr=https://github.com/groovejones/groove-sight-platform/pull/4365
+    mkdir -p "$task" "$project" "$case_dir/history"
+    printf 'retired task\n' > "$task/brief.md"
+    printf 'row evidence\n' > "$task/row.png"
+    printf 'named evidence\n' > "$task/bead.png"
+    printf 'PR evidence\n' > "$task/pr.png"
+    printf 'scratch\n' > "$task/discard.bin"
+    cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+    printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+    if [ "$variant" != missing ]; then
+      cat > "$case_dir/history/completed.md" <<'MD'
+## Archived 2026-10-10
+- [x] task-x1 - old attempt https://github.com/test/old/pull/1 (repo: obsolete) (done 2026-10-10)
+  Bead old-ref
+
+## Archived 2026-10-11
+- [x] task-x1 - finished https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo) (done 2026-10-11)
+  Bead proof-related; [capture](row.png)
+MD
+    fi
+    if [ "$variant" = current ]; then
+      printf '%s\n' '- [x] task-x1 - newest https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo) (done 2026-10-12)' \
+        '  Bead proof-related; [capture](row.png)' >> "$case_dir/data/backlog.md"
+    elif [ "$variant" = active ]; then
+      printf '# Backlog\n\n## In flight\n- [ ] task-x1 - reused (repo: demo)\n' > "$case_dir/data/backlog.md"
+    fi
+    cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+[ "$PWD" = "$REF_PROJECT" ] && [ "$1 $2" = 'show proof-related' ] || exit 1
+printf '[{"id":"proof-related","description":"[capture](bead.png)"}]\n'
+SH
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2 $3" = 'pr view 4365' ] || exit 2
+printf 'body: [capture](pr.png)\n'
+SH
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" prepare "$case_dir/data" "$case_dir/state" task-x1 \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "legacy $variant prepare failed: $(cat "$case_dir/err")"
+    if [ "$variant" = missing ] || [ "$variant" = active ]; then
+      assert_grep task-x1 "$case_dir/err" "legacy $variant did not name retained task"
+      assert_present "$task/discard.bin" "legacy $variant moved scratch"
+      assert_absent "$task/record/data-cleanup.json" "legacy $variant invented cleanup sources"
+      assert_absent "$task/.cleanup-hold" "legacy $variant staged without a completed row"
+      continue
+    fi
+    jq -e --arg project "$project" --arg pr "$pr" \
+      '.sources[-1] | .project == $project and .pr == $pr and .beads == ["proof-related"]' \
+      "$task/record/data-cleanup.json" >/dev/null || fail "legacy $variant chose stale or incomplete sources"
+    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" stage "$case_dir/data" "$case_dir/state" task-x1 "$project" "$pr" \
+      || fail "legacy $variant stage failed"
+    assert_present "$task/row.png" "legacy $variant lost completed-row evidence"
+    assert_present "$task/bead.png" "legacy $variant lost named-bead evidence"
+    assert_present "$task/pr.png" "legacy $variant lost PR evidence"
+    assert_present "$task/.cleanup-hold/discard.bin" "legacy $variant did not stage scratch"
+    printf 'later evidence\n' > "$task/.cleanup-hold/later.png"
+    printf '  [later capture](later.png)\n' >> "$case_dir/history/completed.md"
+    if [ "$variant" = current ]; then
+      printf '  [later capture](later.png)\n' >> "$case_dir/data/backlog.md"
+    fi
+    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
+      || fail "legacy $variant expiry failed"
+    assert_present "$task/later.png" "legacy $variant did not refresh completed-row references"
+    assert_absent "$task/.cleanup-hold" "legacy $variant hold did not expire"
+  done
+  pass "fm-teardown: legacy preparation uses the latest completed row and preserves missing or active tasks"
+}
+
+test_task_data_github_reader() {
+  local case_dir task helper pr
+  helper="$ROOT/bin/fm-task-data.py"
+  case_dir=$(make_case task-data-github-reader)
+  task="$case_dir/data/task-x1"
+  pr=https://github.com/groovejones/groove-sight-platform/pull/4364
+  mkdir -p "$task"
+  printf 'PR evidence\n' > "$task/proof.png"
+  printf 'scratch\n' > "$task/discard.bin"
+  cat > "$case_dir/fakebin/gh-axi" <<'PY'
+#!/usr/bin/env python3
+import os
+import sys
+from pathlib import Path
+args = sys.argv[1:]
+assert args[:3] == ["pr", "view", "4364"], args
+assert args[args.index("--repo") + 1] == "groovejones/groove-sight-platform", args
+assert args[args.index("--hostname") + 1] == "github.com", args
+assert all(flag in args for flag in ("--full", "--comments", "--reviews")), args
+if not Path(os.environ["REF_READY"]).exists():
+    sys.exit(2)
+print("body: [capture](proof.png)")
+PY
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+  REF_READY="$case_dir/ready" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+    "$case_dir/data" "$case_dir/state" task-x1 "$case_dir/project" "$pr" \
+    > "$case_dir/out" 2> "$case_dir/err" || fail "unread PR failed the cleanup pass"
+  assert_present "$task/discard.bin" "unread PR moved original scratch"
+  assert_absent "$task/.cleanup-hold" "unread PR created a hold"
+  assert_grep "$pr" "$case_dir/err" "unread PR diagnostic omitted the URL"
+  jq -e --arg pr "$pr" '.sources[-1].unread | index($pr) != null' \
+    "$task/record/data-cleanup.json" >/dev/null || fail "unread PR was not recorded"
+  touch "$case_dir/ready"
+  REF_READY="$case_dir/ready" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+    "$case_dir/data" "$case_dir/state" task-x1 || fail "readable PR did not retry"
+  assert_present "$task/proof.png" "readable PR evidence was staged"
+  assert_present "$task/.cleanup-hold/discard.bin" "PR retry omitted the recovery cycle"
+  jq -e '.sources[-1].unread == []' "$task/record/data-cleanup.json" >/dev/null \
+    || fail "readable PR retained stale unread state"
+  pass "fm-teardown: GitHub reads use explicit PR identity and unread PRs preserve data without failing the pass"
+}
+
 test_task_data_forge_references() {
   local case_dir task provider pr
   for provider in gitlab forgejo gerrit; do
@@ -6859,6 +6994,18 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-named-beads ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-legacy ]; then
+  test_task_data_legacy_rows
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-github ]; then
+  test_task_data_github_reader
+  exit 0
+fi
+
+test_task_data_legacy_rows
+test_task_data_github_reader
 test_task_data_cleanup
 test_task_data_refusals
 test_task_data_references_and_guard
