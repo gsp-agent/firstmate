@@ -102,6 +102,8 @@ Untracked files and directories whose names begin with `scratchpad` are also git
 
 - `bin/fm-spawn.sh` owns the base task-metadata fields it emits, while the runtime-backend section below owns backend-specific fields and selector interpretation.
 
+- After ship or scout retirement, [`bin/fm-task-data.py`'s header and `--help`](../bin/fm-task-data.py) own automatic clone/scratch pruning, evidence retention, one-cycle recovery, and guarded expiry.
+
 - `bin/fm-contributions.sh` owns durable published-contribution records under each task, observation bounds, equivalent triage-label configuration, and the authenticated contribution check.
 
 - The producing PR and Relay helpers own the fields they append, [`bin/fm-classify-lib.sh`](../bin/fm-classify-lib.sh) owns status-event vocabulary, optional emission-time syntax, and legacy unknown-time handling, and `bin/fm-crew-state.sh` owns current-state reconciliation.
@@ -1245,8 +1247,8 @@ The combination `docs-only` and `ep-opus` is refused so the bead can be relabele
 
 ### Cursor launch controls
 
-`cursor_fallback` and `pstack_version` configure [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh), whose header owns spending-file freshness, plugin compatibility, usage-limit markers, and daily launch accounting.
-An explicit Cursor ship or scout selection can fall back to Codex, Claude, or Grok before launch; the reason is printed and recorded with the task.
+`cursor_fallback` and `pstack_version` configure [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh), whose header owns fallback selection, spending-file freshness, plugin compatibility, usage-limit markers, and daily launch accounting.
+An explicit Cursor ship or scout selection can switch harnesses before launch; the reason is printed and recorded with the task.
 Cursor launches that proceed invoke [`fm-cursor-assert.sh`](../bin/fm-cursor-assert.sh), whose header owns the per-user Cursor settings and pstack role rules reasserted on each launch.
 These writes affect subsequent Cursor sessions on the same user account, rather than only the task's workspace.
 [`fm-spawn.sh`](../bin/fm-spawn.sh) owns the worker print-mode launch, interactive secondmate launch, plugin loading, named-model catalog refusal, and stream capture, with regression coverage in [`fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) and [`fm-cursor-guard.test.sh`](../tests/fm-cursor-guard.test.sh).
