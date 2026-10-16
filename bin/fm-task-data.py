@@ -211,7 +211,7 @@ def completed_source(data, task_id):
         if len(project.parts) != 1 or str(project) in (".", ".."):
             raise ValueError("completed backlog row has an ambiguous project path")
         project = data.parent / "projects" / project
-    prs = set(re.findall(r"https://[^\s<>\"']+/(?:pulls?|merge_requests)/\d+|https://[^\s<>\"']+/c/[^\s<>\"']+/\+/\d+", title))
+    prs = set(re.findall(r"https://[^\s<>\"']+/(?:pulls?|merge_requests)/\d+|https://[^\s<>\"']+/c/[^\s<>\"']+/\+/\d+", text))
     if len(prs) > 1:
         raise ValueError("completed backlog row has multiple PRs")
     if len(text.encode()) > LIMIT:
