@@ -1,0 +1,65 @@
+FM_TEST_BEGIN 2026-10-16T09:16:57Z tests/fm-captain-hold-lifecycle.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - unfinished answer, release and reconciliation records block immediate and periodic agent routing
+ok - a genuinely re-held lifecycle routes once and preserves historical answers and field-like words
+ok - unreadable backlogs preserve routing supervision and confirmed zero-retention archival retires it
+ok - standalone pending holds keep supervision and route after the last unrelated task retires
+ok - both measured technical holds release to their owners once per lifecycle without captain words
+ok - money, credentials, people, client words, production, accounts, taste and human endpoints stay reserved
+not ok - tests/fm-captain-hold-lifecycle.test.sh exceeded the per-script bound of 600s and was terminated
+FM_TEST_END 2026-10-16T09:26:58Z tests/fm-captain-hold-lifecycle.test.sh exit=124 duration_ms=600359 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T09:26:58Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-brief: scaffolds leave the worker role scope to the launch boundary and keep the secondmate contract
+ok - fm-brief.sh: bash -n succeeds
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/toolchain-temp/fm-brief.BGhv5E/heredoc-in-substitution.sh:2
+ok - fm-brief.sh: no heredoc is nested inside a command substitution (Bash 3.2 parse-safe)
+ok - fm-brief.sh: --help renders the complete header
+ok - briefs name a decision owner and reject malformed endpoints before writing
+ok - fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly
+ok - fm-brief.sh: --forge forgejo names tea in Rule 3, the direct-PR DOD, and the draft read-back, marks the delivery contract, and the closed set refuses everything else
+ok - fm-brief.sh: ship --mode is required and closed-set validated
+ok - fm-brief.sh: the explicit ship mode wins over the registered posture
+ok - fm-brief.sh: --yolo and scout/secondmate --mode are refused, never silently dropped
+ok - fm-brief.sh: faster paths use configured authority without stacked review
+ok - fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright
+ok - fm-brief.sh: no-mistakes DOD detects a green PR from the drive call, not a status poll
+ok - fm-brief.sh: PR-based done requires a non-draft PR; a deliberate draft declares a wait
+ok - fm-brief.sh: no-mistakes ask-user findings use one event plus a verbatim snapshot
+ok - fm-brief.sh: ship project-memory wording bounds edits to corrections of wrong information
+ok - fm-brief.sh: --herdr-lab emits the complete hard safety contract
+ok - fm-brief.sh: --herdr-lab uses its quoted Firstmate-owned helper path
+ok - fm-brief.sh: ship and scout scaffolds make omitted Herdr intent fail-visible
+ok - fm-brief.sh: the documented {TASK} and {FIRSTMATE_SPEC} fills cannot corrupt the Herdr safety gate
+ok - fm-brief.sh: Herdr lab contract covers scouts and rejects secondmate misuse
+ok - fm-brief.sh: --no-projects scaffolds a project-less charter and guards misuse
+ok - fm-brief.sh: marked requests avoid generic acknowledgements and preserve material reporting
+ok - fm-brief.sh: relative directory inputs ignore CDPATH, render stable absolute charter paths, or fail loudly
+ok - fm-brief.sh: custom pause verb renders in every scaffold
+ok - fm-brief.sh: ship and scout scaffolds declare a validation-round pause once, then hold it
+ok - fm-brief.sh: investigation and visual-review completions load the shared decision policy
+ok - fm-brief: scout and secondmate code paths still scaffold well-formed briefs
+ok - fm-brief.sh: scout Lavish hosting follows the bootstrap lavish-axi floor
+ok - fm-brief: workers end the turn on a decision, wait in one bounded shell command, and never poll
+ok - fm-brief: without config/wait-no-turns the brief and drive text stay as they were
+ok - fm-brief.sh: the home brief include lands last on ship and scout, verbatim, and fails closed
+ok - fm-brief.sh: --base-branch records the base, targets the PR at it, and is refused where no PR carries it
+ok - fm-brief.sh: --branch-prefix omitted defaults every ship mode to fm/<task-id>
+ok - fm-brief.sh: a --branch-prefix override renders identically across every generated section
+ok - fm-brief.sh: an empty --branch-prefix override resolves to a bare <task-id> branch
+ok - fm-brief.sh: --branch-prefix is refused on scout and secondmate scaffolds
+ok - fm-brief.sh: --branch-prefix value is validated against embedded spaces and a leading dash
+not ok - a ref-format-valid metacharacter prefix should scaffold safely
+FM_TEST_END 2026-10-16T09:28:39Z tests/fm-brief.test.sh exit=1 duration_ms=101548 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T09:28:40Z tests/fm-spawn-worktree-settle.test.sh family=backend-dispatch expected_gate_skip=none
+ok - a single transient stale pane_current_path read is not accepted as the worktree
+ok - an already-settled pane confirms on the next read, not a whole extra cycle
+ok - a transient primary-checkout pane read is not accepted as the worktree
+ok - a pane stuck on the primary checkout fails loudly at the deadline
+# all fm-spawn-worktree-settle tests passed
+FM_TEST_END 2026-10-16T09:29:46Z tests/fm-spawn-worktree-settle.test.sh exit=0 duration_ms=66239 gate_skip=false
+FM_TEST_SUMMARY total=3 failed=2 skipped_gate=0 duration_ms=768684
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=66239 failed=0
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=701907 failed=2
+FM_TEST_SLOWEST rank=1 script=tests/fm-captain-hold-lifecycle.test.sh duration_ms=600359
+FM_TEST_SLOWEST rank=2 script=tests/fm-brief.test.sh duration_ms=101548
+FM_TEST_SLOWEST rank=3 script=tests/fm-spawn-worktree-settle.test.sh duration_ms=66239
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M51TNXPWD65TJT4SFREF5TCF/focused-tests.json

@@ -1,0 +1,1048 @@
+Actual Firstmate public CLI + real tasks-axi + installed hold-domain router.
+All homes, backlog files, receipts, clocks and failure injection are disposable.
+The Herdr transport is an explicit local protocol sink; no real agent, branch, worker seat, production state or credential is changed.
+This transcript proves local routing and release, not owner execution of branch/capacity work.
+
+
+=== upstream-lean baseline: both measured technical holds remain waiting ===
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/baseline
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/baseline
+[exit 0]
+context: isolated home=baseline, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/baseline-code/bin/fm-captain-hold.sh hold branch --title branch --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+branch
+[exit 0]
+context: isolated home=baseline, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/baseline-code/bin/fm-captain-hold.sh hold capacity --title capacity --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?'
+capacity
+[exit 0]
+context: isolated home=baseline, clock=2026-10-16T09:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/baseline-code/bin/fm-watch.sh
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/baseline/state/sentinel.status
+[exit 0]
+context: isolated home=baseline, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/baseline-code/bin/fm-tasks-axi.sh show branch --full
+task:
+  id: branch
+  title: branch
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z"
+[exit 0]
+context: isolated home=baseline, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/baseline-code/bin/fm-tasks-axi.sh show capacity --full
+task:
+  id: capacity
+  title: capacity
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z"
+[exit 0]
+BASELINE: 0/2 owner prompt dispatches; both tasks still held.
+
+=== due technical holds release once through the existing watcher and retain owner evidence ===
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/technical
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/technical
+[exit 0]
+context: isolated home=technical, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold branch --title branch --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+branch
+[exit 0]
+context: isolated home=technical, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold capacity --title capacity --origin owner-source --timeout-seconds 60 --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?'
+capacity
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/technical/state
+needed=true pending=2 inflight=0 checks=0 sources=0
+[exit 0]
+context: isolated home=technical, clock=2026-10-16T09:00:59Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+context: isolated home=technical, clock=2026-10-16T09:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-watch.sh
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/technical/state/sentinel.status
+[exit 0]
+context: isolated home=technical, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show branch --full
+task:
+  id: branch
+  title: branch
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 9dbe634498953d6c7547bbc17c7c2eaaab7dfa49c3a15a52739d14375ecdb928\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: branch\t2026-10-16T09:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+context: isolated home=technical, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show capacity --full
+task:
+  id: capacity
+  title: capacity
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 2cb1f8f8e23df6cc6b3050ee482aee836a8a158fe0914996d2c5eb659ee18967\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: capacity\t2026-10-16T09:00:00Z\tep-groove-sight-platform\nRouted hold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?\n\nDecision owner: ep-groove-sight-platform\nHold timeout seconds: 60\nHold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?\n\nCaptain hold origin: owner-source\n\nOrigin: owner-source"
+[exit 0]
+context: isolated home=technical, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+DELIVERED TO ISOLATED TRANSPORT: [{"owner": "ep-firstmate", "message": "Hold branch timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."}, {"owner": "ep-groove-sight-platform", "message": "Hold capacity timed out. You own this decision. Resolve it without Dale. ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?"}]
+PERSISTED ROUTING RECEIPTS:
+branch	2026-10-16T09:00:00Z	ep-firstmate
+capacity	2026-10-16T09:00:00Z	ep-groove-sight-platform
+
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/technical/state
+needed=false pending=0 inflight=0 checks=0 sources=0
+[exit 0]
+TARGET: 2/2 owner prompt dispatches, one per lifecycle; work released, not completed.
+
+=== money, credentials, people, client words, production, accounts, taste, mixed asks and human endpoints remain held ===
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/reserved
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/reserved
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold reserved-0 --title reserved-0 --decision-owner ep-firstmate --timeout-seconds 60 --reason 'Should I spend money to buy more seats?'
+reserved-0
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold reserved-1 --title reserved-1 --decision-owner ep-firstmate --timeout-seconds 60 --reason 'Could you provide the OAuth token?'
+reserved-1
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold reserved-2 --title reserved-2 --decision-owner ep-firstmate --timeout-seconds 60 --reason 'Should I assign Ashton to the reviewer seat?'
+reserved-2
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold reserved-3 --title reserved-3 --decision-owner ep-firstmate --timeout-seconds 60 --reason 'May I email the client that the rebase is complete?'
+reserved-3
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold reserved-4 --title reserved-4 --decision-owner ep-firstmate --timeout-seconds 60 --reason 'Should I deploy this to production?'
+reserved-4
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold reserved-5 --title reserved-5 --decision-owner ep-firstmate --timeout-seconds 60 --reason 'May I create a new account?'
+reserved-5
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold reserved-6 --title reserved-6 --decision-owner ep-firstmate --timeout-seconds 60 --reason 'Should the capacity indicator be blue or orange?'
+reserved-6
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold reserved-7 --title reserved-7 --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. May I deploy to production too?'
+reserved-7
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold captain --title captain --decision-owner captain --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+captain
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold pm-dale-desk --title pm-dale-desk --decision-owner pm-dale-desk --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+pm-dale-desk
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold human-desk-pane --title human-desk-pane --decision-owner human-desk-pane --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+human-desk-pane
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show reserved-0 --full
+task:
+  id: reserved-0
+  title: reserved-0
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Should I spend money to buy more seats?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Should I spend money to buy more seats?"
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show reserved-1 --full
+task:
+  id: reserved-1
+  title: reserved-1
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Could you provide the OAuth token?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Could you provide the OAuth token?"
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show reserved-2 --full
+task:
+  id: reserved-2
+  title: reserved-2
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Should I assign Ashton to the reviewer seat?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Should I assign Ashton to the reviewer seat?"
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show reserved-3 --full
+task:
+  id: reserved-3
+  title: reserved-3
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "May I email the client that the rebase is complete?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: May I email the client that the rebase is complete?"
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show reserved-4 --full
+task:
+  id: reserved-4
+  title: reserved-4
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Should I deploy this to production?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Should I deploy this to production?"
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show reserved-5 --full
+task:
+  id: reserved-5
+  title: reserved-5
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "May I create a new account?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: May I create a new account?"
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show reserved-6 --full
+task:
+  id: reserved-6
+  title: reserved-6
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Should the capacity indicator be blue or orange?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Should the capacity indicator be blue or orange?"
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show reserved-7 --full
+task:
+  id: reserved-7
+  title: reserved-7
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. May I deploy to production too?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. May I deploy to production too?"
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show captain --full
+task:
+  id: captain
+  title: captain
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: captain\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show pm-dale-desk --full
+task:
+  id: pm-dale-desk
+  title: pm-dale-desk
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: pm-dale-desk\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+context: isolated home=reserved, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show human-desk-pane --full
+task:
+  id: human-desk-pane
+  title: human-desk-pane
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: human-desk-pane\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/reserved/state
+needed=false pending=0 inflight=0 checks=0 sources=0
+[exit 0]
+Protected asks and human endpoints: 11/11 remain held; no owner dispatch.
+
+=== interrupted answers, releases and reconciliations preserve recorded words and reject rerouting ===
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-answered
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-answered
+[exit 0]
+context: isolated home=interrupted-answered, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold interrupted --title interrupted --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+interrupted
+[exit 0]
+context: isolated home=interrupted-answered, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh answer interrupted --decision-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-answered/decision.txt
+injected storage operation failure
+fm-captain-hold: could not close answered captain-held task interrupted
+[exit 1]
+context: isolated home=interrupted-answered, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show interrupted --full
+task:
+  id: interrupted
+  title: interrupted
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 1de61018c4864acbb669a70c6f681735db62b3a11cb03ac95312fd0a03efe998\nResolution mode: answered\n\nCaptain decision:\nKeep this work paused until the recorded issue is resolved.\nFinish the recorded closure before handing responsibility to another owner.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+context: isolated home=interrupted-answered, clock=2026-10-16T09:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due interrupted
+
+[exit 0]
+context: isolated home=interrupted-answered, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+context: isolated home=interrupted-answered, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold interrupted --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+fm-captain-hold: task interrupted has a recorded resolution awaiting closure; retry answer or reconcile before re-holding
+[exit 1]
+context: isolated home=interrupted-answered, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show interrupted --full
+task:
+  id: interrupted
+  title: interrupted
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 1de61018c4864acbb669a70c6f681735db62b3a11cb03ac95312fd0a03efe998\nResolution mode: answered\n\nCaptain decision:\nKeep this work paused until the recorded issue is resolved.\nFinish the recorded closure before handing responsibility to another owner.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-answered/state
+needed=false pending=0 inflight=0 checks=0 sources=0
+[exit 0]
+context: isolated home=interrupted-answered, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh answer interrupted --decision-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-answered/decision.txt
+answered: interrupted
+[exit 0]
+context: isolated home=interrupted-answered, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show interrupted --full
+task:
+  id: interrupted
+  title: interrupted
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 1de61018c4864acbb669a70c6f681735db62b3a11cb03ac95312fd0a03efe998\nResolution mode: answered\n\nCaptain decision:\nKeep this work paused until the recorded issue is resolved.\nFinish the recorded closure before handing responsibility to another owner.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-released
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-released
+[exit 0]
+context: isolated home=interrupted-released, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold interrupted --title interrupted --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+interrupted
+[exit 0]
+context: isolated home=interrupted-released, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh answer interrupted --decision-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-released/decision.txt --release
+injected storage operation failure
+fm-captain-hold: could not close answered captain-held task interrupted
+[exit 1]
+context: isolated home=interrupted-released, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show interrupted --full
+task:
+  id: interrupted
+  title: interrupted
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 1de61018c4864acbb669a70c6f681735db62b3a11cb03ac95312fd0a03efe998\nResolution mode: released\n\nCaptain decision:\nKeep this work paused until the recorded issue is resolved.\nFinish the recorded closure before handing responsibility to another owner.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+context: isolated home=interrupted-released, clock=2026-10-16T09:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due interrupted
+
+[exit 0]
+context: isolated home=interrupted-released, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+context: isolated home=interrupted-released, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold interrupted --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+fm-captain-hold: task interrupted has a recorded resolution awaiting closure; retry answer or reconcile before re-holding
+[exit 1]
+context: isolated home=interrupted-released, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show interrupted --full
+task:
+  id: interrupted
+  title: interrupted
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 1de61018c4864acbb669a70c6f681735db62b3a11cb03ac95312fd0a03efe998\nResolution mode: released\n\nCaptain decision:\nKeep this work paused until the recorded issue is resolved.\nFinish the recorded closure before handing responsibility to another owner.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-released/state
+needed=false pending=0 inflight=0 checks=0 sources=0
+[exit 0]
+context: isolated home=interrupted-released, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh answer interrupted --decision-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-released/decision.txt --release
+released: interrupted
+[exit 0]
+context: isolated home=interrupted-released, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show interrupted --full
+task:
+  id: interrupted
+  title: interrupted
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 1de61018c4864acbb669a70c6f681735db62b3a11cb03ac95312fd0a03efe998\nResolution mode: released\n\nCaptain decision:\nKeep this work paused until the recorded issue is resolved.\nFinish the recorded closure before handing responsibility to another owner.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-reconciled
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-reconciled
+[exit 0]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold interrupted --title interrupted --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+interrupted
+[exit 0]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh bind disposable-board
+bound: disposable-board -> (any)
+[exit 0]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh reconcile-requests --source-id disposable-board --source 'disposable captured board result'
+reconcile: interrupted
+reconcile-requests: created=1 skipped=0
+[exit 0]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh reconcile close interrupted --evidence-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-reconciled/decision.txt
+injected storage operation failure
+fm-captain-hold: could not close reconciled captain-held task interrupted
+[exit 1]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show interrupted --full
+task:
+  id: interrupted
+  title: interrupted
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 1de61018c4864acbb669a70c6f681735db62b3a11cb03ac95312fd0a03efe998\nResolution mode: reconciled\n\nReconciliation evidence:\nKeep this work paused until the recorded issue is resolved.\nFinish the recorded closure before handing responsibility to another owner.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due interrupted
+
+[exit 0]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold interrupted --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+fm-captain-hold: task interrupted has a recorded resolution awaiting closure; retry answer or reconcile before re-holding
+[exit 1]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show interrupted --full
+task:
+  id: interrupted
+  title: interrupted
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 1de61018c4864acbb669a70c6f681735db62b3a11cb03ac95312fd0a03efe998\nResolution mode: reconciled\n\nReconciliation evidence:\nKeep this work paused until the recorded issue is resolved.\nFinish the recorded closure before handing responsibility to another owner.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-reconciled/state
+needed=false pending=0 inflight=0 checks=0 sources=0
+[exit 0]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh reconcile close interrupted --evidence-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/interrupted-reconciled/decision.txt
+reconciled: interrupted
+[exit 0]
+context: isolated home=interrupted-reconciled, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show interrupted --full
+task:
+  id: interrupted
+  title: interrupted
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 1de61018c4864acbb669a70c6f681735db62b3a11cb03ac95312fd0a03efe998\nResolution mode: reconciled\n\nReconciliation evidence:\nKeep this work paused until the recorded issue is resolved.\nFinish the recorded closure before handing responsibility to another owner.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+
+=== a genuinely new hold routes once while preserving historical field-like decision words ===
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/historical
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/historical
+[exit 0]
+context: isolated home=historical, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold history --title history --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+history
+[exit 0]
+context: isolated home=historical, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh answer history --release --decision-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/historical/decision.txt
+released: history
+[exit 0]
+context: isolated home=historical, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show history --full
+task:
+  id: history
+  title: history
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: d988e1975dd6e809cf940b1dd41ec9ec5a8c13aa36e53d1be2409795072fab15\nResolution mode: released\n\nCaptain decision:\nRelease this work.\nDecision owner: historical-owner\nHold timeout seconds: 98765\nHold reason: Preserve this line exactly.\nCaptain hold origin: historical-origin\nCaptain hold set: 2000-01-01T00:00:00Z\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+context: isolated home=historical, clock=2026-10-16T10:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold history --title history --decision-owner ep-groove-sight-platform --timeout-seconds 60 --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?'
+history
+[exit 0]
+context: isolated home=historical, clock=2026-10-16T10:00:59Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold history --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?'
+history
+[exit 0]
+context: isolated home=historical, clock=2026-10-16T10:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+context: isolated home=historical, clock=2026-10-16T10:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+context: isolated home=historical, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show history --full
+task:
+  id: history
+  title: history
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 99882c7025d9c64fb7ebc31143c3c5715002c2b47f19b4d1c6d8d9937a7754fe\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: history\t2026-10-16T10:00:00Z\tep-groove-sight-platform\nRouted hold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?\n\nDecision owner: ep-groove-sight-platform\nHold timeout seconds: 60\nHold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?\n\nResolution recorded by fm-captain-hold.\nDecision digest: d988e1975dd6e809cf940b1dd41ec9ec5a8c13aa36e53d1be2409795072fab15\nResolution mode: released\n\nCaptain decision:\nRelease this work.\nDecision owner: historical-owner\nHold timeout seconds: 98765\nHold reason: Preserve this line exactly.\nCaptain hold origin: historical-origin\nCaptain hold set: 2000-01-01T00:00:00Z\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+
+=== unreadable backlog preserves pending work; confirmed zero-retention archival retires it ===
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/archival
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/archival
+[exit 0]
+context: isolated home=archival, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold archived --title archived --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+archived
+[exit 0]
+context: isolated home=archival, clock=2026-10-16T09:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due archived
+fm-captain-hold: could not read task archived for routing: error: "EISDIR: illegal operation on a directory, read"
+code: UNKNOWN
+[exit 1]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/archival/state
+needed=true pending=1 inflight=0 checks=0 sources=0
+[exit 0]
+context: isolated home=archival, clock=2026-10-16T09:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+fm-captain-hold: could not list holds for routing
+[exit 1]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/archival/state
+needed=true pending=1 inflight=0 checks=0 sources=0
+[exit 0]
+context: isolated home=archival, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh done archived
+ok: done archived -> Done; pruned 1
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+[exit 0]
+context: isolated home=archival, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show archived --full
+error: "Task \"archived\" not found in this backlog"
+code: NOT_FOUND
+help[1]: Run `tasks-axi list` to see existing tasks
+[exit 1]
+context: isolated home=archival, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+context: isolated home=archival, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due archived
+
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/archival/state
+needed=false pending=0 inflight=0 checks=0 sources=0
+[exit 0]
+
+=== transport and unhold failures retain supervision and retry without duplicate delivery ===
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/retry
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/retry
+[exit 0]
+context: isolated home=retry, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold retry --title retry --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+retry
+[exit 0]
+context: isolated home=retry, clock=2026-10-16T09:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+fm-captain-hold: route retry failed: isolated transport unavailable
+route-failed
+[exit 1]
+context: isolated home=retry, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show retry --full
+task:
+  id: retry
+  title: retry
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/retry/state
+needed=true pending=1 inflight=0 checks=0 sources=0
+[exit 0]
+context: isolated home=retry, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+injected storage operation failure
+fm-captain-hold: could not release routed hold retry
+[exit 1]
+context: isolated home=retry, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show retry --full
+task:
+  id: retry
+  title: retry
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 7037f98f46a5544d99dd1d32305a3416edb09eac8bf9531852459c8b4a43e71e\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: retry\t2026-10-16T09:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/retry/state
+needed=true pending=1 inflight=0 checks=0 sources=0
+[exit 0]
+context: isolated home=retry, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+context: isolated home=retry, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show retry --full
+task:
+  id: retry
+  title: retry
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 7037f98f46a5544d99dd1d32305a3416edb09eac8bf9531852459c8b4a43e71e\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: retry\t2026-10-16T09:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/retry/state
+needed=false pending=0 inflight=0 checks=0 sources=0
+[exit 0]
+
+=== changed reasons and explicit deferral prevent routing; a routing error still permits scheduled checks ===
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/guards
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/guards
+[exit 0]
+context: isolated home=guards, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold drift --title drift --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+drift
+[exit 0]
+context: isolated home=guards, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh hold drift --kind captain --reason 'Should I deploy this to production?'
+ok: hold drift -> held (captain)
+task:
+  id: drift
+  title: drift
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Should I deploy this to production?
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+help[2]:
+  - Run `tasks-axi unhold drift` to resume dispatch
+  - Run `tasks-axi ready --include-held` to review paused work
+[exit 0]
+context: isolated home=guards, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due drift
+fm-captain-hold: task drift has divergent hold and routing reasons; leaving the hold intact
+[exit 1]
+context: isolated home=guards, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show drift --full
+task:
+  id: drift
+  title: drift
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: Should I deploy this to production?
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/supervision.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/guards/state
+needed=true pending=1 inflight=0 checks=0 sources=0
+[exit 0]
+context: isolated home=guards, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-check-register.sh ordinary
+registered: state/ordinary.check.sh
+[exit 0]
+context: isolated home=guards, clock=2026-10-16T09:01:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-watch.sh
+check: hold-domain routing failed: fm-captain-hold: task drift has divergent hold and routing reasons; leaving the hold intact
+[exit 0]
+INDEPENDENT CHECK OUTPUT:
+scheduled check ran
+
+context: isolated home=guards, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold drift --reason 'Should I deploy this to production?'
+drift
+[exit 0]
+context: isolated home=guards, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold deferred --title deferred --decision-owner ep-firstmate --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+deferred
+[exit 0]
+context: isolated home=guards, clock=2026-10-16T09:00:59Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh hold deferred --until 2099-01-01 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+deferred
+[exit 0]
+context: isolated home=guards, clock=2026-10-16T09:02:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-captain-hold.sh route-due deferred
+
+[exit 0]
+context: isolated home=guards, clock=2026-10-16T09:00:00Z
+$ /opt/homebrew/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/bin/fm-tasks-axi.sh show deferred --full
+task:
+  id: deferred
+  title: deferred
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: 2099-01-01
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-16T09:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+[exit 0]

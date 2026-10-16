@@ -1,0 +1,12 @@
+upstream-lean absolute exit=1
+error: --branch-prefix and task id must form a valid git branch (got '$(touch${IFS}/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/prefix-diagnostic/marker)upstream-lean-absolute')
+
+upstream-lean local exit=0
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/prefix-diagnostic/data/upstream-lean-local/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})
+
+target absolute exit=1
+error: --branch-prefix and task id must form a valid git branch (got '$(touch${IFS}/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/prefix-diagnostic/marker)target-absolute')
+
+target local exit=0
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51TNXPWD65TJT4SFREF5TCF/.nm-hold-test/prefix-diagnostic/data/target-local/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})
+

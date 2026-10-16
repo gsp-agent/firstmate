@@ -1,0 +1,34 @@
+[
+  {
+    "name": "upstream-lean baseline: both measured technical holds remain waiting",
+    "result": "pass"
+  },
+  {
+    "name": "due technical holds release once through the existing watcher and retain owner evidence",
+    "result": "pass"
+  },
+  {
+    "name": "money, credentials, people, client words, production, accounts, taste, mixed asks and human endpoints remain held",
+    "result": "pass"
+  },
+  {
+    "name": "interrupted answers, releases and reconciliations preserve recorded words and reject rerouting",
+    "result": "pass"
+  },
+  {
+    "name": "a genuinely new hold routes once while preserving historical field-like decision words",
+    "result": "pass"
+  },
+  {
+    "name": "unreadable backlog preserves pending work; confirmed zero-retention archival retires it",
+    "result": "pass"
+  },
+  {
+    "name": "transport and unhold failures retain supervision and retry without duplicate delivery",
+    "result": "pass"
+  },
+  {
+    "name": "changed reasons and explicit deferral prevent routing; a routing error still permits scheduled checks",
+    "result": "pass"
+  }
+]
