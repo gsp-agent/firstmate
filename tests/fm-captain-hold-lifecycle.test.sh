@@ -5163,18 +5163,25 @@ ASKS
 }
 
 test_domain_retries_failed_delivery_and_release() {
-  local domain_home show before
-  domain_home=$(make_domain_home domain-retry)
+  local domain_home show before mode=${1:-active} held=yes receipt pending
+  domain_home=$(make_domain_home "domain-retry-$mode")
   run_domain "$domain_home" 2026-10-14T02:00:00Z hold retry --title 'Retry route' \
     --decision-owner ep-firstmate --timeout-seconds 60 \
     --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold retry'
+  if [ "$mode" = expired ]; then
+    run_domain "$domain_home" 2026-10-14T02:00:01Z hold retry --until 2000-01-01 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+      || fail 'could not create the expired dated hold'
+    held=no
+  fi
   mv "$domain_home/state/hold-domain/pending/retry.body" "$domain_home/prior-pending.body"
   touch "$domain_home/owner.log.fail"
   if run_domain "$domain_home" 2026-10-14T02:01:00Z route-due > "$domain_home/failed.out" 2>&1; then
     fail 'failed delivery was reported successful'
   fi
   show=$(tasks_in "$domain_home" show retry --full)
-  assert_contains "$show" 'held: yes' 'failed delivery released the hold'
+  assert_contains "$show" "held: $held" 'failed delivery changed the hold activity'
+  assert_contains "$show" 'hold_kind: captain' 'failed delivery lost the captain hold'
   assert_not_contains "$show" 'Resolution mode:' 'failed delivery gained a resolution'
   domain_supervision_needed "$domain_home" || fail 'failed delivery stopped routing supervision'
   mv "$domain_home/owner.log.fail" "$domain_home/delivery-recovered"
@@ -5188,10 +5195,14 @@ SH
     fail 'failed unhold was reported successful'
   fi
   show=$(tasks_in "$domain_home" show retry --full)
-  assert_contains "$show" 'held: yes' 'release failure lost its hold'
+  assert_contains "$show" "held: $held" 'release failure changed the hold activity'
+  assert_contains "$show" 'hold_kind: captain' 'release failure lost its hold'
   assert_contains "$show" 'Resolution mode: agent-routed' 'release failure lost its receipt'
   domain_supervision_needed "$domain_home" || fail 'failed release stopped routing supervision'
   before=$show
+  receipt=$(cat "$domain_home/state/hold-domain/routed.tsv")
+  pending=$(cat "$domain_home/state/hold-domain/pending/retry.body")
+  assert_equals "$(printf 'retry\t2026-10-14T02:00:00Z\tep-firstmate')" "$receipt" 'delivery changed the original lifecycle receipt'
   if run_domain "$domain_home" 2026-10-14T02:02:30Z hold retry \
     --decision-owner ep-firstmate --timeout-seconds 60 --until 2099-01-01 \
     --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' \
@@ -5202,16 +5213,60 @@ SH
     'routed deferral refusal did not explain the interrupted release'
   show=$(tasks_in "$domain_home" show retry --full)
   assert_equals "$before" "$show" 'refused deferral changed the routed hold'
+  assert_equals "$receipt" "$(cat "$domain_home/state/hold-domain/routed.tsv")" 'refused deferral changed the routing receipt'
+  assert_equals "$pending" "$(cat "$domain_home/state/hold-domain/pending/retry.body")" 'refused deferral changed pending routing'
+  if [ "$mode" = expired ]; then
+    if run_domain "$domain_home" 2026-10-14T02:02:40Z hold retry --until 2000-01-01 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' \
+      > "$domain_home/retry-routed.out" 2>&1; then
+      fail 're-hold hid the failed release'
+    fi
+    assert_grep 'could not release routed hold retry' "$domain_home/retry-routed.out" 'unchanged expired re-hold did not retry release'
+    show=$(tasks_in "$domain_home" show retry --full)
+    assert_contains "$show" 'Captain hold set: 2026-10-14T02:00:00Z' 'expired retry changed the lifecycle stamp'
+    assert_contains "$show" 'Decision owner: ep-firstmate' 'expired retry changed the owner'
+    assert_contains "$show" 'Hold timeout seconds: 60' 'expired retry changed the timeout'
+    assert_equals "$receipt" "$(cat "$domain_home/state/hold-domain/routed.tsv")" 'expired retry changed the routing receipt'
+    assert_equals "$pending" "$(cat "$domain_home/state/hold-domain/pending/retry.body")" 'expired retry changed pending routing'
+  fi
   mv "$domain_home/fakebin/tasks-axi" "$domain_home/tasks-axi-failure"
   run_domain "$domain_home" 2026-10-14T02:03:00Z route-due || fail 'release retry failed'
   show=$(tasks_in "$domain_home" show retry --full)
   assert_contains "$show" 'held: no' 'release retry did not converge'
+  assert_contains "$show" 'state: queued' 'release retry completed the task'
+  assert_not_contains "$show" 'Captain decision:' 'release retry invented captain words'
+  assert_equals "$receipt" "$(cat "$domain_home/state/hold-domain/routed.tsv")" 'release retry changed the routing receipt'
   [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'release retry prompted the owner twice'
   [ "$(printf '%s' "$show" | grep -o 'Resolution mode: agent-routed' | wc -l | tr -d ' ')" = 1 ] || fail 'release retry duplicated the record'
   if domain_supervision_needed "$domain_home"; then
     fail 'successful release retry kept pending routing work'
   fi
-  pass 'failed delivery preserves the hold, routed deferral is refused, and release retries consume the receipt once'
+  if [ "$mode" = expired ]; then
+    run_domain "$domain_home" 2026-10-14T03:00:00Z hold retry --until 2099-01-01 \
+      --decision-owner ep-firstmate --timeout-seconds 60 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+      || fail 'completed lifecycle prevented a new deferred hold'
+    run_domain "$domain_home" 2026-10-14T03:00:30Z hold retry --until 2099-01-01 \
+      --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+      || fail 'pre-delivery deferral retry failed'
+    show=$(tasks_in "$domain_home" show retry --full)
+    assert_contains "$show" 'Captain hold set: 2026-10-14T03:00:00Z' 'pre-delivery retry changed the new lifecycle stamp'
+    assert_contains "$show" 'held: yes' 'new deferral was released prematurely'
+    assert_equals "$receipt" "$(cat "$domain_home/state/hold-domain/routed.tsv")" 'pre-delivery deferral changed the prior receipt'
+    [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'pre-delivery deferral prompted the owner'
+    run_domain "$domain_home" 2099-01-01T00:00:00Z route-due retry || fail 'new deferred lifecycle did not release'
+    run_domain "$domain_home" 2099-01-01T00:01:00Z route-due || fail 'new lifecycle replay failed'
+    show=$(tasks_in "$domain_home" show retry --full)
+    assert_contains "$show" 'held: no' 'new lifecycle did not release'
+    assert_contains "$show" 'state: queued' 'routing completed the new lifecycle task'
+    assert_not_contains "$show" 'Captain decision:' 'routing invented captain words'
+    [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 2 ] || fail 'new lifecycle did not route exactly once'
+    [ "$(wc -l < "$domain_home/state/hold-domain/routed.tsv" | tr -d ' ')" = 2 ] || fail 'new lifecycle lost or duplicated a receipt'
+    if domain_supervision_needed "$domain_home"; then
+      fail 'new lifecycle replay kept pending routing work'
+    fi
+  fi
+  pass "$mode failed delivery preserves the hold, routed deferral is refused, and release retries consume the receipt once"
 }
 
 test_watcher_routes_due_holds_before_surfacing_signals() {
@@ -5790,7 +5845,11 @@ SH
 }
 
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
-  receipt-deferral) test_domain_retries_failed_delivery_and_release; exit $? ;;
+  receipt-deferral)
+    test_domain_retries_failed_delivery_and_release expired || exit 1
+    test_domain_retries_failed_delivery_and_release
+    exit $?
+    ;;
   deferred) test_domain_deferred_holds_keep_their_routing_wake; exit $? ;;
   fairness) test_domain_interrupted_sweeps_make_fair_progress; exit $? ;;
   rows) test_domain_row_bounds_preserve_later_holds; exit $? ;;
@@ -5857,6 +5916,7 @@ test_domain_pending_holds_keep_supervision_after_task_retirement
 test_domain_holds_route_after_timeout_and_record_evidence
 test_domain_keeps_reserved_human_and_answered_holds
 test_domain_retries_failed_delivery_and_release
+test_domain_retries_failed_delivery_and_release expired
 test_watcher_routes_due_holds_before_surfacing_signals
 test_watcher_routing_failures_do_not_starve_scheduled_checks || exit 1
 [ "${FM_TEST_HOLD_DOMAIN_ONLY:-0}" != 1 ] || exit 0

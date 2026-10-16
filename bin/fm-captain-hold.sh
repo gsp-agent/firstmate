@@ -1059,8 +1059,8 @@ command_hold() {
   if [ "$existing_hold_kind" = captain ] && body_has_current_hold_resolution "$body"; then
     fail "task $id has a recorded resolution awaiting closure; retry answer or reconcile before re-holding"
   fi
-  if [ "$existing_hold_kind" = captain ] && [ "$existing_held" = yes ]; then
-    preserve_hold_set=1
+  if [ "$existing_hold_kind" = captain ]; then
+    [ "$existing_held" != yes ] || preserve_hold_set=1
     old_owner=$(body_domain_field "$body" 'Decision owner')
     old_timeout=$(body_domain_field "$body" 'Hold timeout seconds')
     old_reason=$(body_domain_field "$body" 'Hold reason')
@@ -1072,9 +1072,12 @@ command_hold() {
           && [ "$routing_reason" = "$old_reason" ] \
           && [[ ! "$until" > "$hold_set" ]] \
           || fail "task $id already has a routing receipt; finish releasing it before changing its routing fields"
+        preserve_hold_set=1
       fi
-      decision_owner=${decision_owner:-$old_owner}
-      timeout_seconds=${timeout_seconds:-$old_timeout}
+      if [ "$preserve_hold_set" = 1 ]; then
+        decision_owner=${decision_owner:-$old_owner}
+        timeout_seconds=${timeout_seconds:-$old_timeout}
+      fi
     fi
   fi
   if [ -n "$title" ]; then
