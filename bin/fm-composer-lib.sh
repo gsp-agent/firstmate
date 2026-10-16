@@ -550,7 +550,7 @@ fm_composer_strip_braille() {
 # for the shared inbox confirmation read. One shared policy (previously three
 # per-backend variables that had drifted to 20/20/200) keeps stale scrollback
 # (startup banners, old transcript boxes) out of those candidate sets. tmux
-# and Herdr adapter composer reads use their visible viewports instead; Herdr
+# and Herdr adapter composer reads use complete current screens instead; Herdr
 # also uses this value as the minimum Ctrl+U clear budget after a refused proof.
 FM_COMPOSER_CAPTURE_LINES=${FM_COMPOSER_CAPTURE_LINES:-20}
 
