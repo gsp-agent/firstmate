@@ -840,8 +840,8 @@ fm_pr_poll_registration_rerecord_device() {  # <state> <id> <template>
 }
 
 # True when the hash is one complete line of fm-pr-poll-shipped.sha256 beside
-# the template. That file lists the sha256 of every committed bin/fm-pr-poll.sh.
-# Any other recorded hash stays refused.
+# the template. That file is the committed allowlist of prior poll-template
+# content hashes; any other recorded hash stays refused.
 fm_pr_poll_template_hash_shipped() {  # <template> <hash>
   local template=$1 hash=$2 list line
   case "$hash" in

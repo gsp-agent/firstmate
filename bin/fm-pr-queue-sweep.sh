@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Sweep open pull requests in each GitHub repository that has an armed merge watch.
-# A repository is watched when a private pr-poll sidecar names it, or when
-# FM_PR_SWEEP_REPOS names it from a snapshot taken before a merged watch was retired.
+# Sweep open pull requests in watched GitHub repositories.
+# A repository is watched when a private pr-poll sidecar names it (including
+# one retained during retirement), or when FM_PR_SWEEP_REPOS names it from a
+# snapshot taken before a merged watch was retired.
 # One pass reads all open pull requests in pages of 100, newest creation first.
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
 # A failed or timed-out page fails the scan. Repositories whose pages completed
