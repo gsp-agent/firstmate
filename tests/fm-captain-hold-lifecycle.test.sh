@@ -4831,6 +4831,59 @@ run_domain_watcher() {
     bash "$ROOT/bin/fm-watch.sh"
 }
 
+test_domain_failed_rehold_preserves_routing_fields() {
+  local domain_home mode before after old_fields new_fields old_reason new_reason
+  local initial_args=() changed_args=()
+  old_reason='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+  new_reason='ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?'
+  for mode in owner-only all-fields; do
+    domain_home=$(make_domain_home "domain-failed-rehold-$mode")
+    initial_args=()
+    changed_args=(--decision-owner ep-new --reason "$old_reason")
+    if [ "$mode" = all-fields ]; then
+      initial_args=(--origin origin-a)
+      changed_args=(--decision-owner ep-new --timeout-seconds 120 --reason "$new_reason" --origin origin-b)
+    fi
+    run_domain "$domain_home" 2026-10-14T02:00:00Z hold rehold --title 'Failed re-hold' \
+      --decision-owner ep-old --timeout-seconds 60 --reason "$old_reason" \
+      ${initial_args[@]+"${initial_args[@]}"} >/dev/null || fail 'could not establish the original routing fields'
+    before=$(tasks_in "$domain_home" show rehold --full)
+    old_fields=$(shown_task_body "$before" \
+      | grep -E '^(Decision owner|Hold timeout seconds|Hold reason|Captain hold origin):' | LC_ALL=C sort)
+    cat > "$domain_home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = hold ] && [ "${2:-}" = rehold ]; then
+  : > "$FM_HOME/hold-refused"
+  exit 9
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+    chmod +x "$domain_home/fakebin/tasks-axi"
+    if run_domain "$domain_home" 2026-10-14T02:00:30Z hold rehold "${changed_args[@]}" \
+      > "$domain_home/failed.out" 2>&1; then
+      fail "$mode re-hold succeeded despite the backend failure"
+    fi
+    assert_present "$domain_home/hold-refused" 'the failed re-hold did not reach the backend'
+    after=$(tasks_in "$domain_home" show rehold --full)
+    new_fields=$(shown_task_body "$after" \
+      | grep -E '^(Decision owner|Hold timeout seconds|Hold reason|Captain hold origin):' | LC_ALL=C sort)
+    assert_equals "$old_fields" "$new_fields" "$mode failed re-hold changed prior routing fields"
+    assert_contains "$after" 'held: yes' 'the failed re-hold released the original hold'
+    run_domain "$domain_home" 2026-10-14T02:00:59Z route-due rehold || fail 'pre-deadline retry failed'
+    assert_absent "$domain_home/owner.log" 'a failed re-hold prompted an owner before the original deadline'
+    run_domain "$domain_home" 2026-10-14T02:01:00Z route-due rehold || fail 'original routing failed after a refused re-hold'
+    after=$(tasks_in "$domain_home" show rehold --full)
+    assert_contains "$after" 'held: no' 'the original hold did not release at its unchanged deadline'
+    assert_equals "agent prompt ep-old Hold rehold timed out. You own this decision. Resolve it without Dale. $old_reason" \
+      "$(cat "$domain_home/owner.log")" 'a refused re-hold changed the owner or reason of the eventual prompt'
+    assert_equals "$(printf 'rehold\t2026-10-14T02:00:00Z\tep-old')" \
+      "$(cat "$domain_home/state/hold-domain/routed.tsv")" 'a refused re-hold changed the routing receipt'
+    run_domain "$domain_home" 2026-10-14T02:02:00Z route-due rehold || fail 'replayed routing failed'
+    [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'a refused re-hold caused duplicate routing'
+  done
+  pass 'failed re-holds preserve owner, timeout, reason and origin before routing once to the original owner'
+}
+
 test_domain_interrupted_resolutions_block_immediate_and_periodic_routing() {
   local domain_home mode before after
   for mode in answered released reconciled; do
@@ -5257,6 +5310,7 @@ SH
   pass 'persistent reason, delivery and release failures allow scheduled checks before their error wake'
 )
 
+test_domain_failed_rehold_preserves_routing_fields
 test_domain_interrupted_resolutions_block_immediate_and_periodic_routing
 test_domain_new_lifecycles_preserve_historical_decisions
 test_domain_archival_retires_pending_only_after_a_readable_lookup
