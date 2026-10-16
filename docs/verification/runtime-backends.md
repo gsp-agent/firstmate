@@ -1298,11 +1298,11 @@ The pre-Enter payload proof then judged the typed command unsent, pressed Ctrl+U
 Every Herdr adapter composer read retains a complete screen height so a popup cannot hide the composer.
 The current capture source is documented under "Scrolled Herdr composer capture" below.
 The shared inbox pending-line confirmation read (`bin/fm-task-inbox-lib.sh`) stays a bounded tail on every backend, herdr included; its payloads are task lines, not slash commands, so the popup shape does not arise there.
-The popup rows sit below the composer's closing rule, which is a structural edge row, so the shared classifier still selects only the composer and the menu rows never read as typed text.
+The shared classifier's popup matcher in `bin/fm-composer-lib.sh` owns selection when a menu item repeats the composer glyph; `tests/fm-composer-lib.test.sh` covers the captured Claude Code 2.1.302 popups and preserves lower drafts.
 Verified live in the lab: with the popup up the state read answers `pending` (previously `empty`) and the payload proof returns `/exit` (previously empty), the submit presses Enter, and the Claude process exits, leaving the shell prompt.
 Growing the window only adds rows above the composer, so the bottom-most-shape selection, the footer zone, and every previously passing verdict are unchanged.
 
-Portable regressions (they fail against the bounded-tail reads and pass against the viewport reads):
+Portable regressions (they fail against the short bounded-tail reads and pass with a complete current screen):
 
 ```sh
 tests/fm-backend-herdr.test.sh
