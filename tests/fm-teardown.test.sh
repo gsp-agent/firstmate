@@ -6862,9 +6862,9 @@ SH
 }
 
 test_task_data_legacy_ordering() {
-  local case_dir task variant helper project pr row_file date first_project
+  local case_dir task variant helper project pr row_file date first_project first_pr
   helper="$ROOT/bin/fm-task-data.py"
-  for variant in current-undated current-older archive-undated archive-tie current-tie project-tie; do
+  for variant in current-undated current-older archive-undated archive-tie current-tie project-tie archive-invalid same-source-undated; do
     case_dir=$(make_case "task-data-ordering-$variant")
     task="$case_dir/data/task-x1"
     project="$case_dir/projects/demo"
@@ -6881,15 +6881,23 @@ TOML
     row_file="$case_dir/history/completed.md"
     date=' (done 2026-10-10)'
     first_project=demo
+    first_pr=https://github.com/groovejones/groove-sight-platform/pull/4365
     [ "$variant" != archive-undated ] || date=''
+    [ "$variant" != archive-invalid ] || date=' (done 2026-99-99)'
     [ "$variant" != current-older ] || first_project=obsolete
     [ "$variant" != current-tie ] || row_file="$case_dir/data/backlog.md"
-    printf '\n- [x] task-x1 - old https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: %s)%s\n' \
-      "$first_project" "$date" >> "$row_file"
+    if [ "$variant" = same-source-undated ]; then
+      date=''
+      first_pr=https://github.com/groovejones/groove-sight-platform/pull/4364
+      printf 'older row evidence\n' > "$task/old-row-only.bin"
+    fi
+    printf '\n- [x] task-x1 - old %s (repo: %s)%s\n' \
+      "$first_pr" "$first_project" "$date" >> "$row_file"
+    [ "$variant" != same-source-undated ] || printf '  [older capture](old-row-only.bin)\n' >> "$row_file"
     case "$variant" in
       current-undated) row_file="$case_dir/data/backlog.md"; date='' ;;
       current-older) row_file="$case_dir/data/backlog.md"; date=' (done 2026-10-01)' ;;
-      archive-undated) date=' (done 2026-10-11)' ;;
+      archive-undated|archive-invalid|same-source-undated) date=' (done 2026-10-11)' ;;
     esac
     pr=https://github.com/groovejones/groove-sight-platform/pull/4364
     if [ "$variant" = project-tie ]; then
@@ -6916,7 +6924,7 @@ SH
       python3 "$helper" prepare "$case_dir/data" "$case_dir/state" task-x1 \
       > "$case_dir/out" 2> "$case_dir/err" || fail "ordering $variant preparation failed"
     case "$variant" in
-      current-undated|current-older) ;;
+      current-undated|current-older|same-source-undated) ;;
       *)
         assert_grep task-x1 "$case_dir/err" "ordering $variant did not name retained data"
         assert_absent "$task/record/data-cleanup.json" "ordering $variant selected unprovable sources"
@@ -6928,9 +6936,32 @@ SH
     esac
     project=$(jq -r '.sources[-1].project' "$task/record/data-cleanup.json")
     pr=$(jq -r '.sources[-1].pr' "$task/record/data-cleanup.json")
+    cp "$case_dir/data/backlog.md" "$case_dir/ordering-backlog.md"
+    if [ "$variant" = current-undated ]; then
+      printf '\n- [x] task-x1 - conflict https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo)\n' \
+        >> "$case_dir/data/backlog.md"
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+        python3 "$helper" stage "$case_dir/data" "$case_dir/state" task-x1 "$project" "$pr" \
+        > "$case_dir/out" 2> "$case_dir/err" || fail "ambiguous row refresh failed staging pass"
+      assert_grep task-x1 "$case_dir/err" "ambiguous staging did not name retained data"
+      assert_absent "$task/.cleanup-hold" "ambiguous row refresh staged data"
+      assert_present "$task/discard.bin" "ambiguous row refresh moved scratch"
+      cp "$case_dir/ordering-backlog.md" "$case_dir/data/backlog.md"
+    fi
     FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
       python3 "$helper" stage "$case_dir/data" "$case_dir/state" task-x1 "$project" "$pr" \
       > "$case_dir/out" 2> "$case_dir/err" || fail "ordering $variant stage failed"
+    assert_present "$task/current-pr-only.bin" "ordering $variant staged current PR-only evidence"
+    if [ "$variant" = current-undated ]; then
+      printf '\n- [x] task-x1 - conflict https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo)\n' \
+        >> "$case_dir/data/backlog.md"
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+        python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
+        > "$case_dir/out" 2> "$case_dir/err" || fail "ambiguous row refresh failed expiry pass"
+      assert_grep task-x1 "$case_dir/err" "ambiguous expiry did not name retained data"
+      assert_present "$task/.cleanup-hold/discard.bin" "ambiguous row refresh expired recovery"
+      cp "$case_dir/ordering-backlog.md" "$case_dir/data/backlog.md"
+    fi
     FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
       python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
       > "$case_dir/out" 2> "$case_dir/err" || fail "ordering $variant expiry failed"
@@ -6939,6 +6970,7 @@ SH
     [ "$project" = "$case_dir/projects/demo" ] || fail "ordering $variant selected archived project"
     [ "$pr" = https://github.com/groovejones/groove-sight-platform/pull/4364 ] || fail "ordering $variant selected archived PR"
     assert_absent "$task/.cleanup-hold" "ordering $variant did not expire unlinked scratch"
+    [ "$variant" != same-source-undated ] || assert_present "$task/old-row-only.bin" "unordered same-source rows lost earlier evidence"
   done
   pass "fm-teardown: current completed rows beat archives and unprovable conflicting sources stay whole"
 }

@@ -8,6 +8,9 @@ The caller must hold STATE/.meta-ID.lock, the lock also used by spawn.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
 Without metadata or a cleanup record, prepare reads the latest completed markdown
 backlog row, including the configured archive (legacy mode needs tomllib).
+Checked rows in the current backlog take precedence over archived rows.
+Within that source, completion dates order rows; missing or tied dates cannot
+resolve different projects or PRs, so those folders remain whole.
 PR identity and named beads come from the entire selected row, including its
 continuation notes; multiple distinct PRs retain the whole folder.
 Named repositories resolve below the backlog home's projects/; absolute repo
@@ -64,6 +67,7 @@ An unread PR is named in the warning and record, retains the whole folder, and
 does not fail the cleanup pass; later cleanup retries it before moving any data.
 """
 
+from datetime import date
 import html
 import json
 import os
@@ -201,12 +205,29 @@ def completed_source(data, task_id):
             end = index + 1
             while end < len(lines) and (not lines[end] or lines[end].startswith("  ")):
                 end += 1
-            dates = re.findall(r"\((?:merged|reported|done|closed) (\d{4}-\d{2}-\d{2})\)", match[4])
-            candidates.append((dates[-1] if dates else "", path == backlog, index,
-                               match[4], "\n".join(lines[index:end])))
+            dates = set(re.findall(r"\((?:merged|reported|done|closed) (\d{4}-\d{2}-\d{2})\)", match[4]))
+            try:
+                completed = date.fromisoformat(next(iter(dates))).isoformat() if len(dates) == 1 else ""
+            except ValueError:
+                completed = ""
+            candidates.append((path == backlog, completed, match[4], "\n".join(lines[index:end])))
     if not candidates:
         raise ValueError("no completed backlog row")
-    _, _, _, title, text = max(candidates)
+    candidates = [row for row in candidates if row[0]] or candidates
+    latest = max(row[1] for row in candidates)
+    sources = [completed_row_source(data, title, text)
+               for _, completed, title, text in candidates if not completed or completed == latest]
+    if len({(source["project"], source["pr"]) for source in sources}) > 1:
+        raise ValueError("completed backlog rows have different projects or PRs with unproven order")
+    source = sources[-1]
+    source["text"] = "\n".join(item["text"] for item in sources)
+    if len(source["text"].encode()) > LIMIT:
+        raise ValueError("completed backlog evidence exceeds 1 MiB")
+    source["beads"] = sorted({bead for item in sources for bead in item["beads"]})
+    return source
+
+
+def completed_row_source(data, title, text):
     repos = re.findall(r"\((?:[^()]*\+\s*)?repo:\s*([^)]+)\)", title)
     if not repos:
         raise ValueError("completed backlog row has no project")
