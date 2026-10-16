@@ -4262,7 +4262,7 @@ write_queue_sweep_pages() {
 }
 
 test_open_queue_removals_wake_once_across_a_watched_repo() {
-  local dir state url spec number reason target rc
+  local dir state url spec number reason
   url=https://github.com/groovejones/groove-sight-platform/pull/4308
   dir=$(make_case open-queue-removals)
   state="$dir/home/state"
@@ -4344,32 +4344,77 @@ test_open_queue_removals_wake_once_across_a_watched_repo() {
   [ ! -e "$state/merge-queue-sweep.seen" ] \
     || fail "an unreadable sweep recorded events"
 
-  dir=$(make_case open-queue-removals-symlink)
-  state="$dir/home/state"
-  write_queue_sweep_pages "$dir"
-  write_poll_meta "$state" task-a "$url"
-  seed_canonical_poll "$dir" task-a "$url"
-  add_stop_custom_check "$dir"
-  target="$dir/seen-target"
-  printf 'kept\n' > "$target"
-  ln -s "$target" "$state/merge-queue-sweep.seen"
-  rc=0
-  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
-    FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=evt4308 \
-    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
-    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/link.out" 2> "$dir/link.err" \
-    || rc=$?
-  [ "$rc" -eq 1 ] || fail "an armed poll ignored its deduplication lookup error (rc=$rc): $(cat "$dir/link.err")"
-  ! grep -F 'fm-pr-queue-sweep.sh: dequeued ' "$dir/link.out" >/dev/null \
-    || fail "an unsafe seen record still swept: $(cat "$dir/link.out")"
-  [ ! -e "$state/task-a.pr-poll-queue-dropped" ] \
-    || fail "an armed poll recorded an unverified removal"
-  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
-    || fail "a deduplication lookup error stopped the armed watch"
-  [ "$(cat "$target")" = kept ] || fail "an unsafe seen record was followed"
-  [ -L "$state/merge-queue-sweep.seen" ] || fail "an unsafe seen record was replaced"
-
   pass "open pull requests removed from a watched queue wake once"
+}
+
+test_seen_record_errors_do_not_block_later_watches() {
+  local dir state seen fault round target rc
+  for fault in unreadable malformed symlink; do
+    dir=$(make_case "later-watches-seen-$fault")
+    state="$dir/home/state"
+    seen="$state/merge-queue-sweep.seen"
+    write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    write_poll_meta "$state" task-b https://github.com/o/r/pull/3
+    seed_canonical_poll "$dir" task-b https://github.com/o/r/pull/3
+    write_poll_meta "$state" task-c https://gitlab.example/group/subgroup/project/-/merge_requests/17
+    seed_canonical_poll "$dir" task-c https://gitlab.example/group/subgroup/project/-/merge_requests/17
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    case "$fault" in
+      unreadable)
+        printf 'fm-merge-queue-sweep-v1\n' > "$seen"
+        chmod 0000 "$seen"
+        ;;
+      malformed)
+        printf 'malformed\n' > "$seen"
+        chmod 0600 "$seen"
+        ;;
+      symlink)
+        target="$dir/seen-target"
+        printf 'kept\n' > "$target"
+        ln -s "$target" "$seen"
+        ;;
+    esac
+    for round in 1 2; do
+      cat > "$dir/poll-responses.json" <<JSON
+{
+  "1": {"data": {"repository": {"pullRequest": {
+    "state": "OPEN", "merged": false, "isInMergeQueue": false,
+    "timelineItems": {"nodes": [{"id": "drop-a-$round", "reason": "failed_checks"}]}
+  }}}},
+  "3": {"data": {"repository": {"pullRequest": {
+    "state": "OPEN", "merged": false, "isInMergeQueue": true,
+    "timelineItems": {"nodes": []}
+  }}}}
+}
+JSON
+      FM_TEST_GH_LOG="$dir/gh-$round.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
+        FM_TEST_GLAB_LOG="$dir/glab-$round.log" FM_TEST_GLAB_STATE=opened \
+        run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch-$round.out" 2> "$dir/watch-$round.err" \
+        || fail "$fault seen record blocked later watches in round $round: $(cat "$dir/watch-$round.err")"
+      [ "$(grep -Fc 'number=3' "$dir/gh-$round.log")" -eq 1 ] \
+        || fail "$fault seen record starved the later GitHub watch in round $round"
+      [ "$(grep -Fxc 'mr view 17 -R https://gitlab.example/group/subgroup/project' "$dir/glab-$round.log")" -eq 1 ] \
+        || fail "$fault seen record starved the later GitLab watch in round $round"
+      [ "$(grep -Fxc "check: $state/task-a.check.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks" "$dir/watch-$round.out")" -eq 1 ] \
+        || fail "$fault seen record suppressed the armed removal in round $round"
+      [ "$(grep -Fxc "check: $state/z-stop.check.sh: stop-cycle" "$dir/watch-$round.out")" -eq 1 ] \
+        || fail "$fault seen record skipped the final check in round $round"
+      ! grep -F 'fm-pr-queue-sweep.sh: dequeued ' "$dir/watch-$round.out" >/dev/null \
+        || fail "$fault seen record produced a sweep removal in round $round"
+      rc=0
+      "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$state" \
+        > "$dir/scan.out" 2> "$dir/scan.err" || rc=$?
+      [ "$rc" -eq 1 ] || fail "$fault seen record stopped failing the sweep (rc=$rc)"
+      if [ "$fault" = symlink ]; then
+        [ "$(cat "$target")" = kept ] || fail "an unsafe seen record was followed"
+        [ -L "$seen" ] || fail "an unsafe seen record was replaced"
+      fi
+      ack_watcher_cycle "$state" || fail "$fault seen record round $round acknowledgement failed"
+    done
+  done
+  pass "seen record errors leave later GitHub and GitLab watches polling across restarts"
 }
 
 test_open_queue_sweep_exhausts_pages() {
@@ -5235,6 +5280,7 @@ test_dequeue_sweep_reaches_later_checks
 test_queue_drop_reason_is_preserved
 test_verified_queue_drop_wakes_once
 test_open_queue_removals_wake_once_across_a_watched_repo
+test_seen_record_errors_do_not_block_later_watches
 test_open_queue_sweep_exhausts_pages
 test_sweep_keeps_later_removal_in_place_after_an_update
 test_old_template_watch_polls_after_upgrade
