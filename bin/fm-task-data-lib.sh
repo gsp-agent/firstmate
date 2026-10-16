@@ -33,3 +33,65 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
   python3 "$helper" stage "$data" "$state" "$id" "$project" "$pr" || rc=1
   return "$rc"
 }
+
+fm_task_data_pr_references() {
+  local script_dir project_url encoded login endpoint page rows review review_ids review_page comments
+  script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || return 1
+  if ! declare -F fm_pr_url_parse >/dev/null 2>&1; then
+    # shellcheck source=bin/fm-pr-lib.sh
+    . "$script_dir/fm-pr-lib.sh" || return 1
+  fi
+  fm_pr_url_parse "$1" || return 1
+  case "$FM_PR_PROVIDER" in
+    github)
+      gh-axi pr view "$FM_PR_URL" --full --comments --reviews
+      ;;
+    gitlab)
+      project_url="https://$FM_PR_HOST/$FM_PR_PATH"
+      GITLAB_HOST="$FM_PR_HOST" glab mr view "$FM_PR_NUMBER" -R "$project_url" -F json \
+        | jq -ce --argjson number "$FM_PR_NUMBER" 'if type == "object" and .iid == $number and (.state | type) == "string" and has("description") and (.description == null or (.description | type) == "string") then . else error("unreadable merge request") end' \
+        || return 1
+      encoded=$(printf '%s' "$FM_PR_PATH" | jq -sRr @uri) || return 1
+      glab api --hostname "$FM_PR_HOST" --paginate \
+        "projects/$encoded/merge_requests/$FM_PR_NUMBER/notes?per_page=100" \
+        | jq -sce 'if length > 0 and all(.[]; type == "array" and all(.[]; (.body | type) == "string")) then . else error("unreadable merge request notes") end'
+      ;;
+    forgejo)
+      login=$(fm_pr_forgejo_login "$FM_PR_HOST") || return 1
+      tea api --login "$login" --repo "$FM_PR_PATH" "/repos/{owner}/{repo}/pulls/$FM_PR_NUMBER" \
+        | jq -ce --argjson number "$FM_PR_NUMBER" 'if type == "object" and .number == $number and (.state | type) == "string" and (.body | type) == "string" then . else error("unreadable pull request") end' \
+        || return 1
+      for endpoint in "issues/$FM_PR_NUMBER/comments" "pulls/$FM_PR_NUMBER/reviews"; do
+        page=1
+        while :; do
+          rows=$(tea api --login "$login" --repo "$FM_PR_PATH" \
+            "/repos/{owner}/{repo}/$endpoint?limit=100&page=$page") || return 1
+          printf '%s\n' "$rows" | jq -ce 'if type == "array" and all(.[]; (.body | type) == "string") then . else error("unreadable pull request discussion") end' || return 1
+          if [ "$endpoint" = "pulls/$FM_PR_NUMBER/reviews" ]; then
+            review_ids=$(printf '%s' "$rows" | jq -r '.[] | if (.id | type) == "number" and .id > 0 and .id == (.id | floor) then .id else error("invalid review identity") end') || return 1
+            for review in $review_ids; do
+              review_page=1
+              while :; do
+                comments=$(tea api --login "$login" --repo "$FM_PR_PATH" "/repos/{owner}/{repo}/pulls/$FM_PR_NUMBER/reviews/$review/comments?limit=100&page=$review_page") || return 1
+                printf '%s\n' "$comments" | jq -ce 'if type == "array" and all(.[]; (.body | type) == "string") then . else error("unreadable review comments") end' || return 1
+                [ "$(printf '%s' "$comments" | jq length)" -lt 100 ] && break
+                review_page=$((review_page + 1))
+              done
+            done
+          fi
+          [ "$(printf '%s' "$rows" | jq length)" -lt 100 ] && break
+          page=$((page + 1))
+        done
+      done
+      ;;
+    gerrit)
+      fm_pr_gerrit_read_change "$FM_PR_HOST" "$FM_PR_NUMBER"
+      ;;
+  esac
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  set -o pipefail
+  [ "$#" -eq 2 ] && [ "$1" = references ] || exit 1
+  fm_task_data_pr_references "$2"
+fi
