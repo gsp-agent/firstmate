@@ -4596,8 +4596,10 @@ test_progressing_sweep_survives_rearm_past_stall_bound() {
   retire_contributions_observer "$dir"
   add_stop_custom_check "$dir"
   started=$(date +%s)
+  # Page six includes a synchronous watcher rearm as well as the API delay.
+  # Keep its deadline separate from the three-second stall bound.
   FM_WATCHER_STALE_GRACE=3 FM_WATCHER_STALL_BOUND=3 \
-    FM_TEST_CHECK_TIMEOUT=3 FM_TEST_GH_SWEEP_SLEEP=1 FM_TEST_GH_SWEEP_REARM="$WATCH" \
+    FM_TEST_CHECK_TIMEOUT=10 FM_TEST_GH_SWEEP_SLEEP=1 FM_TEST_GH_SWEEP_REARM="$WATCH" \
     FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
     FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
     run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \

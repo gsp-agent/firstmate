@@ -4,7 +4,10 @@
 # FM_PR_SWEEP_REPOS names it from a snapshot taken before a merged watch was retired.
 # One pass reads all open pull requests in pages of 100, newest update first.
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
-# A page that does not answer is skipped and the rest of the pass still reports.
+# A failed page suppresses that repository's results; other repositories are
+# still checked. There is no deadline around the complete scan.
+# When FM_PR_SWEEP_BEAT names the watcher's liveness beacon, each completed
+# page and repository attempt refreshes it so a progressing scan stays alive.
 # It reports a pull request when its newest queue event is a removal, the pull
 # request is open and not merged, and it is not back in the queue.
 # A removal re-added before this pass is no longer the newest queue event, so a
@@ -245,10 +248,8 @@ sweep_note_sidecars() {
   done
 }
 
-# Print dequeue lines for one repository, or return 1 when a page cannot be read.
-# Nothing is printed until every fetched page has been read. A page that does
-# not answer returns 1 without printing, and the caller moves on to the next
-# repository.
+# Buffer until pagination completes so a failed later page cannot publish a
+# partial repository result; the header owns failed-read behavior.
 sweep_one_repo() {
   local owner=$1 repo=$2 cursor='' fields line kind rest number state merged
   local queued event_kind event reason more page_cursor saw_page collected url

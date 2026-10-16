@@ -939,8 +939,12 @@ fm_pr_poll_registration_rerecord_template() {  # <state> <id> <template>
 
 # A template rewrite can replace the check and die before the registration
 # rename. The check then already matches the current template while the
-# registration still records the previous hash. This proves that is the only
-# difference. A check that is not the current template stays refused.
+# registration still records the previous hash and may name a renumbered
+# device. Recovery requires unchanged check and sidecar inodes on the live
+# state device, with both recorded identities naming the same prior device.
+# A replaced artifact or a check unlike the current template stays refused.
+# On success FM_PR_POLL_REARM_DATA_IDENTITY and
+# FM_PR_POLL_REARM_CHECK_IDENTITY hold the live identities.
 fm_pr_poll_registration_template_hash_stale() {  # <state> <id> <template>
   local state=$1 id=$2 template=$3 receipt data_identity check_identity current_hash state_device recorded_device
   FM_PR_POLL_REARM_DATA_IDENTITY=
@@ -965,10 +969,11 @@ fm_pr_poll_registration_template_hash_stale() {  # <state> <id> <template>
 
 # Rewrite a stalled template registration
 # (fm_pr_poll_registration_template_hash_stale) so it records the current
-# template hash. The check is already that template, so its bytes and file
-# object stay as they are. The caller holds the task's control lock and poll
-# publication lock. The proof is repeated just before the rename. Success
-# means the strict fm_pr_poll_artifacts_valid accepts the result.
+# template hash and both live file identities in one rename. The check is
+# already that template, so its bytes and file object stay as they are. The
+# caller holds the task's control lock and poll publication lock. The proof is
+# repeated just before the rename. Success means the strict
+# fm_pr_poll_artifacts_valid accepts the result.
 fm_pr_poll_registration_rerecord_template_hash() {  # <state> <id> <template>
   local state=$1 id=$2 template=$3 state_device registration tmp reg_hash reg_identity
   local id_line provider url host path number data_hash template_hash data_identity check_identity
@@ -1743,6 +1748,12 @@ fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
   return 0
 }
 
+# The optional fourth argument, 1, removes the runnable check and registration
+# but retains the sidecar and receipt. The watcher uses this until its queue
+# sweep consumes the repository snapshot: an early recovery wake or restart
+# must not lose the repository when its last watch merged. A later call with
+# the default, 0, completes identity-bound removal. Regression coverage:
+# tests/fm-pr-check-security.test.sh, test_recovered_merged_watch_still_sweeps_its_repo.
 fm_pr_poll_retirement_recover_one() {
   local state=$1 id=$2 template=$3 receipt state_device check data registration
   local receipt_hash receipt_identity defer_sidecar=${4:-0}

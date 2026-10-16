@@ -86,6 +86,12 @@
 #                          stamping .last-check and delivering its collected
 #                          reasons in one watcher close, so an earlier result
 #                          cannot hide a later PR result.
+#                          Before startup retirement recovery and each check
+#                          block, snapshot watched GitHub repositories for
+#                          bin/fm-pr-queue-sweep.sh. Defer final retirement
+#                          through fm_pr_poll_retirement_recover_one so that
+#                          discovery evidence survives until the scan consumes
+#                          the snapshot, even across an earlier recovery close.
 #   check: process-event result captured: <keys>
 #                          a durably captured process-to-event result is queued
 #                          and has not been surfaced yet; reported once per
@@ -195,8 +201,7 @@ WATCH_HOME_EXISTED=0
 . "$SCRIPT_DIR/fm-procevent-lib.sh"
 # Single owner of durable merge-outcome publication, shared with
 # bin/fm-pr-merge.sh so self and poll origins use the same role-routed outcome.
-# The watcher still owns immediate delivery of its actionable poll result and
-# poll retirement.
+# The watcher owns collected check-sweep delivery and poll retirement.
 # This library is a canonical lint root in its own right, and it reaches the
 # wake queue, PR identity, and secondmate parent libraries. Keep it an analysis
 # boundary here for the same reason as the transition and inbox owners above and
@@ -2638,7 +2643,8 @@ if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-
   sweep_repo_snapshot=$("$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
 fi
 
-# Finish only identity-bound retirement receipts before any check can run.
+# Disable recovered runnable polls now, retaining repository discovery evidence
+# until the queue sweep consumes it (fm_pr_poll_retirement_recover_one).
 if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh" 1; then
   reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
   fm_wake_append check pr-poll-retirement "$reason" || exit 1
