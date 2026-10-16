@@ -5313,13 +5313,28 @@ SH
 
 test_watcher_bounds_blocked_routing() (
   local domain_home mode fallback status pid show
+  local modes=("$@")
+  [ "${#modes[@]}" -gt 0 ] || modes=(list lock update unhold)
   . "$ROOT/bin/fm-wake-lib.sh"
   for fallback in 0 1; do
-    for mode in list lock update unhold; do
+    for mode in "${modes[@]}"; do
       domain_home=$(make_domain_home "domain-blocked-$mode-$fallback")
       run_domain "$domain_home" 2026-10-14T02:00:00Z hold waiting --title 'Blocked route' \
         --decision-owner ep-firstmate --timeout-seconds 60 \
         --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not create blocked hold'
+      if [ "$mode" = unhold ]; then
+        cat > "$domain_home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = unhold ]; then exit 1; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+        chmod +x "$domain_home/fakebin/tasks-axi"
+        if run_domain "$domain_home" 2026-10-14T02:01:00Z route-due waiting > "$domain_home/seed.out" 2>&1; then
+          fail 'could not seed an interrupted release'
+        fi
+        show=$(tasks_in "$domain_home" show waiting --full)
+        assert_contains "$show" 'Resolution mode: agent-routed' 'release fixture did not record the transfer'
+      fi
       printf '%s\n' "$mode" > "$domain_home/block-mode"
       cat > "$domain_home/fakebin/tasks-axi" <<'SH'
 #!/usr/bin/env bash
@@ -5343,7 +5358,7 @@ SH
       chmod 0700 "$domain_home/state/ordinary.check.sh"
       FM_HOME="$domain_home" bash "$ROOT/bin/fm-check-register.sh" ordinary >/dev/null || fail 'could not register bounded check'
       status=0
-      FM_CHECK_TIMEOUT=8 FM_CHECK_FORCE_FALLBACK="$fallback" FM_TEST_DOMAIN_WATCH_TIMEOUT=25 \
+      FM_CHECK_TIMEOUT=20 FM_CHECK_FORCE_FALLBACK="$fallback" FM_TEST_DOMAIN_WATCH_TIMEOUT=45 \
         REAL_TASKS_AXI="$TASKS_AXI_BIN" run_domain_watcher "$domain_home" > "$domain_home/watch.out" 2>&1 || status=$?
       if [ "$mode" = lock ]; then
         fm_lock_release "$domain_home/state/.control-waiting.lock" || fail 'could not release blocking control lock'
@@ -5372,10 +5387,275 @@ SH
       assert_contains "$show" 'held: yes' "$mode timeout released unfinished routing"
     done
   done
-  pass 'native and fallback watcher bounds stop blocked listing, locks, writes and releases without starving checks'
+  pass "native and fallback watcher bounds stop blocked ${modes[*]} without starving checks"
 )
 
+test_domain_runtime_metadata_aliases() (
+  local home mode spelling id shown status
+  . "$ROOT/bin/fm-wake-lib.sh"
+  for mode in origin self self-origin; do
+    for spelling in o fm-o; do
+      home=$(make_domain_home "runtime-$mode-$spelling")
+      tasks_in "$home" add fm-o 'Runtime alias' --kind ship --repo gsp >/dev/null || fail 'could not add runtime task'
+      printf 'endpoint_task_id=o\ndecision_owner=ep-runtime\nproject=/fixture/gsp\n' > "$home/state/o.meta"
+      cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "$#" -ge 2 ] && [ "$2" = o ]; then set -- "$1" fm-o "${@:3}"; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+      chmod +x "$home/fakebin/tasks-axi"
+      case "$mode" in
+        origin)
+          id=call
+          run_domain "$home" 2026-10-14T02:00:00Z hold call --title 'Runtime origin call' --origin "$spelling" \
+            --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'runtime origin hold failed'
+          ;;
+        self)
+          id=fm-o
+          run_domain "$home" 2026-10-14T02:00:00Z hold "$spelling" --timeout-seconds 60 \
+            --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'runtime self hold failed'
+          ;;
+        self-origin)
+          id=fm-o
+          run_domain "$home" 2026-10-14T02:00:00Z hold "$spelling" --origin "$spelling" --timeout-seconds 60 \
+            --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'runtime self-origin hold failed'
+          ;;
+      esac
+      shown=$(tasks_in "$home" show "$id" --full)
+      assert_contains "$shown" 'Decision owner: ep-runtime' "$mode/$spelling lost runtime authority"
+      if [ "$mode" = origin ]; then
+        assert_contains "$shown" 'repo: gsp' 'runtime origin lost project inheritance'
+      else
+        fm_lock_acquire_wait "$home/state/.control-o.lock" || fail 'could not acquire runtime control lock'
+        status=0
+        fm_run_timed 8 env PATH="$home/fakebin:$PATH" REAL_TASKS_AXI="$TASKS_AXI_BIN" \
+          FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+          FM_HOLD_DOMAIN_ROUTER="$home/router.py" HOLD_DOMAIN_HERDR="$home/fakebin/herdr" \
+          HOLD_DOMAIN_TEST_LOG="$home/owner.log" FM_CAPTAIN_HOLD_NOW=2026-10-14T02:01:00Z \
+          bash "$ROOT/bin/fm-captain-hold.sh" route-due fm-o > "$home/locked.out" 2>&1 || status=$?
+        fm_lock_release "$home/state/.control-o.lock" || fail 'could not release runtime control lock'
+        expect_code 124 "$status" 'canonical routing must wait on the runtime control lock'
+        assert_absent "$home/owner.log" 'canonical routing bypassed the runtime control lock'
+      fi
+      run_domain "$home" 2026-10-14T02:01:00Z route-due "$id" || fail 'runtime authority did not route'
+      run_domain "$home" 2026-10-14T02:02:00Z route-due "$id" || fail 'runtime receipt replay failed'
+      assert_equals "$id" "$(cut -f1 "$home/state/hold-domain/routed.tsv")" 'receipt used runtime alias instead of backend identity'
+      [ "$(wc -l < "$home/owner.log" | tr -d ' ')" = 1 ] || fail 'runtime alias duplicated its owner prompt'
+    done
+  done
+  pass 'runtime aliases retain project and owner inheritance and share lifecycle locks with canonical routing'
+)
+
+test_domain_row_bounds_preserve_later_holds() (
+  local home mode shown pid
+  . "$ROOT/bin/fm-wake-lib.sh"
+  for mode in lock update unhold; do
+    home=$(make_domain_home "row-bound-$mode")
+    for pid in a b; do
+      run_domain "$home" 2026-10-14T02:00:00Z hold "$pid" --title "Due hold $pid" \
+        --decision-owner ep-firstmate --timeout-seconds 60 \
+        --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not create two due holds'
+    done
+    printf '%s\n' "$mode" > "$home/block-mode"
+    cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${2:-}" = a ] && [ "${1:-}" = "$(cat "$FM_HOME/block-mode")" ]; then
+  sleep 90 &
+  printf '%s\n' "$$" "$!" > "$FM_HOME/blocked.pids"
+  wait "$!"
+  exit 1
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+    chmod +x "$home/fakebin/tasks-axi"
+    if [ "$mode" = lock ]; then fm_lock_acquire_wait "$home/state/.control-a.lock" || fail 'could not lock first row'; fi
+    cat > "$home/state/ordinary.check.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'checked\n' >> "$FM_HOME/scheduled.log"
+SH
+    chmod 0700 "$home/state/ordinary.check.sh"
+    FM_HOME="$home" bash "$ROOT/bin/fm-check-register.sh" ordinary >/dev/null || fail 'could not register row-bound check'
+    FM_CHECK_TIMEOUT=90 FM_HOLD_ROUTE_TIMEOUT_SECS=30 FM_TEST_DOMAIN_WATCH_TIMEOUT=130 \
+      REAL_TASKS_AXI="$TASKS_AXI_BIN" run_domain_watcher "$home" > "$home/watch.out" 2>&1 || fail 'row-bound watcher failed'
+    if [ "$mode" = lock ]; then fm_lock_release "$home/state/.control-a.lock" || fail 'could not release first row'; fi
+    shown=$(tasks_in "$home" show b --full)
+    assert_contains "$shown" 'held: no' "$mode on the first row starved the healthy second row"
+    assert_equals checked "$(cat "$home/scheduled.log")" "$mode blocked ordinary scheduled checks"
+    assert_grep 'hold-domain routing failed:' "$home/watch.out" 'row failure was not surfaced'
+    assert_present "$home/state/hold-domain/pending/a.body" 'failed row lost its pending work'
+    domain_supervision_needed "$home" || fail 'failed row stopped supervision'
+    if [ "$mode" != lock ]; then
+      assert_present "$home/blocked.pids" 'row did not reach the intended blocking command'
+      while IFS= read -r pid; do
+        case "$(ps -o stat= -p "$pid" 2>/dev/null | tr -d '[:space:]')" in ''|Z*) ;; *) fail 'row timeout left a blocked process alive' ;; esac
+      done < "$home/blocked.pids"
+    fi
+    printf 'none\n' > "$home/block-mode"
+    run_domain "$home" 2026-10-14T02:02:00Z route-due || fail 'pending row did not recover'
+    [ "$(wc -l < "$home/owner.log" | tr -d ' ')" = 2 ] || fail 'row retry duplicated delivery or lost an owner'
+    [ "$(wc -l < "$home/state/hold-domain/routed.tsv" | tr -d ' ')" = 2 ] || fail 'row retry duplicated receipts'
+    pass "blocked $mode permits the healthy later hold, scheduled checks and a single recovery delivery"
+  done
+  pass 'blocked locks, resolution writes and releases preserve pending rows while healthy holds and scheduled checks finish'
+)
+
+test_domain_failed_new_lifecycle_header_is_retryable() {
+  local home historical shown body
+  home=$(make_domain_home failed-new-header)
+  run_domain "$home" 2026-10-14T02:00:00Z hold history --title 'Historical answer' \
+    --decision-owner ep-old --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null || fail 'could not hold historical call'
+  printf 'Release the old call.\nDecision owner: quoted-owner\nHold reason: quoted history\n' > "$home/decision.txt"
+  run_captain "$home" answer history --release --decision-file "$home/decision.txt" >/dev/null || fail 'could not record historical release'
+  historical=$(shown_task_body "$(tasks_in "$home" show history --full)")
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = hold ] && [ "${2:-}" = history ]; then : > "$FM_HOME/backend-held"; fi
+if [ "${1:-}" = update ] && [ -f "$FM_HOME/backend-held" ] && [ ! -f "$FM_HOME/allow-header" ]; then
+  previous=
+  for argument in "$@"; do
+    if [ "$previous" = --body-file ] && grep -Fx 'Decision owner: ep-new' "$argument" >/dev/null; then
+      cp "$argument" "$FM_HOME/refused-header.body"
+      exit 9
+    fi
+    previous=$argument
+  done
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  if run_domain "$home" 2026-10-14T03:00:00Z hold history --decision-owner ep-new --timeout-seconds 60 \
+    --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?' > "$home/failed.out" 2>&1; then
+    fail 'failed header publication reported success'
+  fi
+  assert_present "$home/refused-header.body" 'failure did not follow a successful backend re-hold'
+  shown=$(tasks_in "$home" show history --full)
+  assert_contains "$shown" 'held: yes' 'backend re-hold did not succeed'
+  body=$(shown_task_body "$shown")
+  assert_contains "$body" "$historical" 'failed publication changed historical captain words'
+  run_domain "$home" 2026-10-14T03:01:00Z route-due history || fail 'partial-header sweep failed'
+  assert_absent "$home/owner.log" 'partial new header routed from historical authority'
+  touch "$home/allow-header"
+  run_domain "$home" 2026-10-14T03:00:30Z hold history --decision-owner ep-new --timeout-seconds 60 \
+    --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?' >/dev/null \
+    || fail 'header failure stranded a historical answer as a current resolution'
+  run_domain "$home" 2026-10-14T03:01:00Z route-due history || fail 'new lifecycle did not route after header retry'
+  run_domain "$home" 2026-10-14T03:02:00Z route-due history || fail 'new lifecycle replay failed'
+  assert_equals "$(printf 'history\t2026-10-14T03:00:00Z\tep-new')" "$(cat "$home/state/hold-domain/routed.tsv")" 'header retry changed the lifecycle stamp or owner'
+  body=$(shown_task_body "$(tasks_in "$home" show history --full)")
+  assert_contains "$body" "$historical" 'new lifecycle changed historical captain words'
+  [ "$(wc -l < "$home/owner.log" | tr -d ' ')" = 1 ] || fail 'header retry duplicated delivery'
+  pass 'a failed routing-header write preserves history and permits the new lifecycle to retry safely'
+}
+
+test_domain_remote_dispatch_preserves_owner() {
+  local home code source name shown
+  home=$(make_domain_home remote-owner)
+  code="$home/code"
+  mkdir -p "$code/bin" "$home/data/o"
+  for source in "$ROOT"/bin/*; do
+    name=${source##*/}
+    case "$name" in fm-on.sh|fm-remote-inherit-push.sh|fm-procevent-remote-reply.sh|fm-home-summary-refresh.sh) continue ;; esac
+    ln -s "$source" "$code/bin/$name"
+  done
+  for name in fm-remote-inherit-push.sh fm-procevent-remote-reply.sh fm-home-summary-refresh.sh; do
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$code/bin/$name"
+    chmod +x "$code/bin/$name"
+  done
+  cat > "$code/bin/fm-on.sh" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FM_HOME/transport.log"
+case "${2:-}:${3:-}" in
+  fm-remote-doctor.sh:*|fm-remote-secondmate-control.sh:sync) exit 0 ;;
+  fm-remote-secondmate-control.sh:launch)
+    printf 'backend=herdr\ntarget=fm-remote:w1:p1\nherdr_session=fm-remote\nharness=codex\n'
+    ;;
+  *) exit 99 ;;
+esac
+SH
+  chmod +x "$code/bin/fm-on.sh"
+  printf -- '- o - Remote fixture (host: fake-host; root: %s; home: %s; scope: fixture; projects: gsp; added 2026-10-14)\n' \
+    "$home/remote-code" "$home/remote-home" > "$home/data/secondmates.md"
+  printf 'Decision owner: ep-remote\n' > "$home/data/o/brief.md"
+  PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_ROOT_OVERRIDE="$code" FM_SPAWN_NO_GUARD=1 \
+    bash "$code/bin/fm-spawn.sh" o --secondmate --harness codex > "$home/spawn.out" 2>&1 \
+    || fail "isolated remote dispatch failed: $(cat "$home/spawn.out")"
+  assert_grep 'decision_owner=ep-remote' "$home/state/o.meta" 'remote dispatch discarded the declared owner'
+  PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_ROOT_OVERRIDE="$code" FM_SPAWN_NO_GUARD=1 \
+    bash "$code/bin/fm-spawn.sh" o --secondmate --harness codex > "$home/redispatch.out" 2>&1 \
+    || fail "isolated remote redispatch failed: $(cat "$home/redispatch.out")"
+  assert_grep 'decision_owner=ep-remote' "$home/state/o.meta" 'remote redispatch changed the declared authority'
+  tasks_in "$home" add fm-o 'Remote origin' --kind secondmate --repo gsp >/dev/null || fail 'could not add remote backend row'
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "$#" -ge 2 ] && [ "$2" = o ]; then set -- "$1" fm-o "${@:3}"; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  run_domain "$home" 2026-10-14T02:00:00Z hold call --title 'Remote origin decision' --origin fm-o \
+    --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+    || fail 'remote origin hold failed'
+  shown=$(tasks_in "$home" show call --full)
+  assert_contains "$shown" 'Decision owner: ep-remote' 'remote origin lost its dispatched authority'
+  run_domain "$home" 2026-10-14T02:01:00Z route-due call || fail 'remote-origin decision did not route'
+  [ "$(wc -l < "$home/owner.log" | tr -d ' ')" = 1 ] || fail 'remote-origin decision duplicated delivery'
+  shown=$(cat "$home/state/o.meta")
+  : > "$home/transport.log"
+  printf 'Decision owner: invalid endpoint\n' > "$home/data/o/brief.md"
+  if PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_ROOT_OVERRIDE="$code" FM_SPAWN_NO_GUARD=1 \
+    bash "$code/bin/fm-spawn.sh" o --secondmate --harness codex > "$home/invalid.out" 2>&1; then
+    fail 'invalid remote decision owner was accepted'
+  fi
+  assert_equals "$shown" "$(cat "$home/state/o.meta")" 'invalid owner changed remote metadata'
+  [ ! -s "$home/transport.log" ] || fail 'invalid owner reached the remote transport'
+  printf -- '- legacy - Legacy fixture (host: fake-host; root: %s; home: %s; scope: fixture; projects: gsp; added 2026-10-14)\n' \
+    "$home/legacy-code" "$home/legacy-home" >> "$home/data/secondmates.md"
+  PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_ROOT_OVERRIDE="$code" FM_SPAWN_NO_GUARD=1 \
+    bash "$code/bin/fm-spawn.sh" legacy --secondmate --harness codex > "$home/legacy.out" 2>&1 \
+    || fail 'legacy remote dispatch without a declaration failed'
+  assert_grep 'decision_owner=captain' "$home/state/legacy.meta" 'legacy remote dispatch lost the captain default'
+  pass 'repeated remote dispatch preserves declared authority for canonical-origin holds'
+}
+
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
+  rows) test_domain_row_bounds_preserve_later_holds; exit $? ;;
+  runtime) test_domain_runtime_metadata_aliases; exit $? ;;
+  history) test_domain_failed_new_lifecycle_header_is_retryable; exit $? ;;
+  remote) test_domain_remote_dispatch_preserves_owner; exit $? ;;
+  guards)
+    test_domain_aliases_share_interrupted_routing_receipts
+    test_domain_failed_rehold_preserves_routing_fields
+    test_domain_interrupted_resolutions_block_immediate_and_periodic_routing
+    test_domain_new_lifecycles_preserve_historical_decisions
+    exit $?
+    ;;
+  ownership)
+    test_domain_runtime_metadata_aliases || exit 1
+    test_domain_failed_new_lifecycle_header_is_retryable
+    test_domain_remote_dispatch_preserves_owner
+    test_domain_aliases_share_interrupted_routing_receipts
+    test_domain_failed_rehold_preserves_routing_fields
+    test_domain_interrupted_resolutions_block_immediate_and_periodic_routing
+    test_domain_new_lifecycles_preserve_historical_decisions
+    exit $?
+    ;;
+  timing)
+    test_domain_row_bounds_preserve_later_holds || exit 1
+    test_watcher_bounds_blocked_routing unhold || exit 1
+    exit 0
+    ;;
+  repairs)
+    test_domain_row_bounds_preserve_later_holds || exit 1
+    test_watcher_bounds_blocked_routing unhold || exit 1
+    test_domain_runtime_metadata_aliases || exit 1
+    test_domain_failed_new_lifecycle_header_is_retryable
+    test_domain_remote_dispatch_preserves_owner
+    test_domain_aliases_share_interrupted_routing_receipts
+    test_domain_failed_rehold_preserves_routing_fields
+    test_domain_interrupted_resolutions_block_immediate_and_periodic_routing
+    test_domain_new_lifecycles_preserve_historical_decisions
+    exit $?
+    ;;
   timeout) test_watcher_bounds_blocked_routing; exit $? ;;
   identity)
     test_domain_aliases_inherit_canonical_authority
@@ -5385,6 +5665,10 @@ case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
     ;;
 esac
 
+test_domain_row_bounds_preserve_later_holds || exit 1
+test_domain_runtime_metadata_aliases || exit 1
+test_domain_failed_new_lifecycle_header_is_retryable
+test_domain_remote_dispatch_preserves_owner
 test_domain_aliases_inherit_canonical_authority
 test_domain_aliases_share_interrupted_routing_receipts
 test_watcher_bounds_blocked_routing || exit 1

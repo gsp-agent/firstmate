@@ -72,10 +72,11 @@ Repeat and edge cases:
 ### Technical hold routing
 
 The optional agent-config router owns classification of technical holds and protection of human endpoints.
-Firstmate resolves task and origin backend identities before looking up the declared owner or taking the task control lock, and uses the canonical task identity for routing bodies and receipts.
-It checks live backlog state on the watcher's existing periodic pass, whose tracked check subprocess bounds the whole routing sweep and preserves pending work on timeout.
+Firstmate reconciles task and origin backend identities with runtime metadata aliases for authority lookup and the task control lock, and uses the canonical backend identity for routing bodies and receipts.
+It checks live backlog state on the watcher's existing periodic pass, whose tracked check subprocess bounds the whole routing sweep; each row also has a deadline so a blocked row preserves its pending work without starving healthy later rows.
+The routing sweep defaults to 90 seconds under the existing watcher check runner, and an explicit `FM_CHECK_TIMEOUT` still supplies that runner's deadline.
 Pending per-home routing bodies keep that supervision required even with no other work; the watcher retires answered, closed, deferred or replaced entries against live state.
-An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new hold preserves historical resolution bodies beneath its active header.
+An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new stamp separates the previous body from the current header before the backend hold, so a failed header publication preserves historical words and permits retry without reusing historical authority.
 Confirmed archival retires pending routing, while an unreadable backlog leaves it supervised and reports the read failure.
 A successful prompt transfers responsibility to the owner and releases the hold without completing the task.
 The `agent-routed` resolution records the matching receipt under `Agent routing evidence:` and never supplies captain words.
@@ -563,7 +564,10 @@ Fault-injected answer, release and reconciliation closures stay protected from i
 Zero-retention archival clears pending routing without treating an unreadable backlog as an absent task.
 Persistent reason drift, transport failures and release failures still allow ordinary scheduled checks to execute before the routing error surfaces.
 Native and fallback watcher bounds cover blocked listing, control locks, body writes and release, terminate blocked subprocesses, and preserve pending work and scheduled checks.
-Origin and task aliases preserve authority inheritance, canonical locking and receipt identity, including new tasks and retries after interrupted release.
+Origin and task aliases preserve authority inheritance, shared control locks and canonical receipt identity, including new tasks and retries after interrupted release.
+Runtime-named metadata supplies the same authority and control lock for alias, canonical and self-origin holds, while routing bodies and receipts retain backend identity.
+Two-hold fixtures block the first row's control lock, resolution write or release and prove that the later row and ordinary checks still finish, with pending work retained and no duplicate delivery on retry.
+An interrupted new lifecycle header preserves the historical answer and retries safely; repeated isolated remote dispatch preserves the declared owner and rejects invalid declarations before transport.
 The portable fixture implements the router protocol; `FM_TEST_HOLD_DOMAIN_ROUTER` selects an installed agent-config router for the same cases with an isolated transport.
 `FM_TEST_HOLD_DOMAIN_ONLY=1` runs only these routing cases.
 

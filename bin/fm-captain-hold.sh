@@ -69,6 +69,8 @@
 # receipt exists, the routing fields cannot change until the hold is released.
 # A recorded answer or reconciliation awaiting closure must finish before re-holding.
 # `route-due` re-reads live backlog holds from the watcher's periodic pass.
+# Each sweep row allows FM_HOLD_ROUTE_TIMEOUT_SECS seconds (default 30),
+# then reports its failure and continues to the next row.
 # The optional FM_HOLD_DOMAIN_ROUTER defaults to
 # ~/.agent-config/configs/claude/hooks/hold-domain.py; absent installs keep
 # ordinary captain holds. Its route command alone classifies technical holds.
@@ -277,6 +279,8 @@ CAPTAIN_META_LOCK_HELD=0
 CAPTAIN_CONTROL_LOCK=
 CAPTAIN_CONTROL_LOCK_HELD=0
 CAPTAIN_TASK_ID=
+CAPTAIN_RUNTIME_ID=
+HOLD_HISTORY_HEADER='Previous task body:'
 captain_hold_cleanup() {
   if [ "$CAPTAIN_META_LOCK_HELD" = 1 ]; then
     fm_lock_release "$CAPTAIN_META_LOCK" || true
@@ -319,7 +323,8 @@ validate_one_line() {  # <label> <value>
 
 acquire_task_control_lock() {  # <task-id>
   CAPTAIN_TASK_ID=$(task_identity "$1") || exit $?
-  CAPTAIN_CONTROL_LOCK="$STATE/.control-$CAPTAIN_TASK_ID.lock"
+  CAPTAIN_RUNTIME_ID=$(task_runtime_identity "$CAPTAIN_TASK_ID") || exit $?
+  CAPTAIN_CONTROL_LOCK="$STATE/.control-$CAPTAIN_RUNTIME_ID.lock"
   fm_lock_acquire_wait "$CAPTAIN_CONTROL_LOCK"
   CAPTAIN_CONTROL_LOCK_HELD=1
 }
@@ -835,6 +840,10 @@ write_hold_set_stamp() {  # <task-id> <shown-body> <timestamp> <preserve-existin
   fi
   new_body=$(printf 'Captain hold set: %s' "$hold_set")
   if [ -n "$body" ]; then
+    case "$body" in
+      "$HOLD_HISTORY_HEADER"$'\n'*) ;;
+      *) body=$(printf '%s\n%s' "$HOLD_HISTORY_HEADER" "$body") ;;
+    esac
     new_body=$(printf '%s\n\n%s' "$new_body" "$body")
   fi
   tmp=$(umask 077; mktemp "${TMPDIR:-/tmp}/fm-captain-hold-stamp.XXXXXX") \
@@ -866,6 +875,25 @@ task_identity() {
     fail "could not resolve the backend identity of $id"
   fi
   printf '%s' "$id"
+}
+
+task_runtime_identity() {
+  local canonical=$1 meta candidate backend
+  if [ -f "$STATE/$canonical.meta" ]; then
+    printf '%s' "$canonical"
+    return
+  fi
+  for meta in "$STATE"/*.meta; do
+    [ -f "$meta" ] || continue
+    candidate=${meta##*/}
+    candidate=${candidate%.meta}
+    backend=$(task_identity "$candidate") || return $?
+    if [ "$backend" = "$canonical" ]; then
+      printf '%s' "$candidate"
+      return
+    fi
+  done
+  printf '%s' "$canonical"
 }
 
 write_hold_origin() {  # <task-id> <shown-body> <origin-or-empty>
@@ -949,7 +977,7 @@ verify_entry_durable() {  # <origin-or-empty> <entry>; prints "<id> <how> <origi
 command_hold() {
   local id=${1:-} title='' reason='' repo='' origin='' until='' show state existing_title body='' hold_kind hold_set occurrence
   local existing_hold_kind='' existing_held='' preserve_hold_set=0 stored_reason previous_origin='' hold_status=0
-  local decision_owner='' timeout_seconds='' old_owner old_timeout old_reason routing_reason
+  local decision_owner='' timeout_seconds='' old_owner old_timeout old_reason routing_reason origin_runtime=''
   [ "$#" -ge 1 ] || { usage >&2; exit 2; }
   shift
   while [ "$#" -gt 0 ]; do
@@ -987,14 +1015,15 @@ command_hold() {
   require_tasks_axi
   if [ -n "$origin" ]; then
     origin=$(task_identity "$origin") || exit $?
+    origin_runtime=$(task_runtime_identity "$origin") || exit $?
   fi
   if ! task_show "$id"; then
     printf '%s\n' "$TASK_SHOW_OUTPUT" | grep -q '^code: NOT_FOUND$' \
       || fail "could not read task $id before holding: $TASK_SHOW_OUTPUT"
     [ -n "$title" ] || fail "--title is required to create task $id"
     validate_one_line title "$title"
-    if [ -z "$repo" ] && [ -n "$origin" ] && [ -f "$STATE/$origin.meta" ]; then
-      repo=$(meta_value "$STATE/$origin.meta" project)
+    if [ -z "$repo" ] && [ -n "$origin_runtime" ] && [ -f "$STATE/$origin_runtime.meta" ]; then
+      repo=$(meta_value "$STATE/$origin_runtime.meta" project)
       repo=${repo%/}
       repo=${repo##*/}
     fi
@@ -1045,7 +1074,7 @@ command_hold() {
     existing_title=$(show_field_value "$show" title)
     [ "$existing_title" = "$title" ] || fail "existing task $id has a different title"
   fi
-  [ -n "$decision_owner" ] || decision_owner=$(meta_value "$STATE/${origin:-$id}.meta" decision_owner)
+  [ -n "$decision_owner" ] || decision_owner=$(meta_value "$STATE/${origin_runtime:-$CAPTAIN_RUNTIME_ID}.meta" decision_owner)
   decision_owner=${decision_owner:-captain}
   timeout_seconds=${timeout_seconds:-300}
   validate_decision_owner "$decision_owner"
@@ -1107,7 +1136,10 @@ validate_hold_timeout() {
 }
 
 body_domain_field() {  # <decoded-body> <field>
-  printf '%s\n' "$1" | sed -n "s/^$2: //p" | head -1
+  printf '%s\n' "$1" | awk -v history="$HOLD_HISTORY_HEADER" -v field="$2: " '
+    $0 == history { exit }
+    index($0, field) == 1 { print substr($0, length(field) + 1); exit }
+  '
 }
 
 write_hold_domain_fields() {  # <id> <decoded-body> <owner> <timeout> <one-line-reason>
@@ -1226,7 +1258,7 @@ route_hold() {  # <id>; caller owns the task control lock
 }
 
 command_route_due() {
-  local router ids id pending canonical routed_ids='' rc=0
+  local router ids id pending row_timeout=${FM_HOLD_ROUTE_TIMEOUT_SECS:-30} row_status rc=0
   [ "$#" -le 1 ] || { usage >&2; exit 2; }
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   [ -f "$router" ] || return 0
@@ -1239,6 +1271,7 @@ command_route_due() {
     [ "$id" = "$1" ] || retire_hold_route "$1"
     return
   fi
+  case "$row_timeout" in ''|0*|*[!0-9]*) fail 'FM_HOLD_ROUTE_TIMEOUT_SECS must be positive whole seconds' ;; esac
   ids=$(open_task_ids) || fail "could not list holds for routing"
   ids=$({
     printf '%s\n' "$ids"
@@ -1250,13 +1283,13 @@ command_route_due() {
   } | LC_ALL=C sort -u)
   while IFS= read -r id; do
     [ -n "$id" ] || continue
-    canonical=$(task_identity "$id") || { rc=1; continue; }
     # Use one process per row so a failed route cannot strand later holds.
-    if ! list_has_line "$routed_ids" "$canonical"; then
-      "$SCRIPT_DIR/fm-captain-hold.sh" route-due "$canonical" || { rc=1; continue; }
-      routed_ids="$routed_ids$canonical"$'\n'
+    row_status=0
+    ( fm_exec_timed "$row_timeout" 1 "$SCRIPT_DIR/fm-captain-hold.sh" route-due "$id" ) || row_status=$?
+    if [ "$row_status" -ne 0 ]; then
+      printf 'fm-captain-hold: routing row %s failed (exit %s)\n' "$id" "$row_status" >&2
+      rc=1
     fi
-    [ "$id" = "$canonical" ] || retire_hold_route "$id"
   done <<< "$ids"
   return "$rc"
 }
