@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Each collected poll renews the existing beacon; re-arm preserves the progressing watcher and final armed and unarmed drops are delivered",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/collected-check-liveness"
+  }
+]

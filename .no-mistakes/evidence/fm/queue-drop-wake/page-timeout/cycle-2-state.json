@@ -1,0 +1,14 @@
+{
+  "cycle": 2,
+  "watched_repositories": [
+    "other/repo"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll-merge-notified",
+    "task-b.pr-poll",
+    "task-b.pr-poll-registration"
+  ],
+  "notifications": [
+    "1792164421\t4\tcheck\tpending-drop\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=failed_checks"
+  ]
+}

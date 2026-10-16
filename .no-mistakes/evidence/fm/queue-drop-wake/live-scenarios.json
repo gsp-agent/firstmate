@@ -1,16 +1,38 @@
 [
   {
-    "name": "Replay #4308 and all nine stranded pull requests; every PR and reason reaches the durable drain once across a restart",
+    "name": "Actual #4308 and nine stranded PR removal histories wake once, survive an interrupted drain, and allow a later removal",
     "result": "pass",
     "live": true,
-    "evidence": "live-queue-transcript.log",
-    "reason": ""
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/historical-replay"
   },
   {
-    "name": "Re-added and already handled removals stay quiet; a distinct later removal wakes again",
+    "name": "A queued sighting retains the last merged watch across restart; the next sweep reports the inter-page removal once and retires it",
     "result": "pass",
     "live": true,
-    "evidence": "live-queue-transcript.log",
-    "reason": ""
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/interpage-retirement"
+  },
+  {
+    "name": "Numeric owner and repository identities stay strings in the real gh CLI for armed polling and both sweep pages",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/numeric-identities"
+  },
+  {
+    "name": "page-error: a failed scan retains discovery, a later independent watch still polls, and retry reports the removal",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/page-error"
+  },
+  {
+    "name": "page-timeout: a failed scan retains discovery, a later independent watch still polls, and retry reports the removal",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/page-timeout"
+  },
+  {
+    "name": "malformed-seen: a failed scan retains discovery, a later independent watch still polls, and retry reports the removal",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/malformed-seen"
   }
 ]

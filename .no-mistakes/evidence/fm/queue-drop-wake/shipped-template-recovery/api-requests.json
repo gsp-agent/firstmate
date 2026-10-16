@@ -1,0 +1,26 @@
+[
+  {
+    "scenario": "shipped-template-recovery",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 1,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "shipped-template-recovery",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": []
+  }
+]

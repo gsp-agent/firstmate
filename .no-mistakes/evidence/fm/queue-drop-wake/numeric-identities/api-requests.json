@@ -1,0 +1,43 @@
+[
+  {
+    "scenario": "numeric-identities",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 7,
+      "owner": "123",
+      "repo": "123"
+    }
+  },
+  {
+    "scenario": "numeric-identities",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "123",
+      "repo": "123"
+    },
+    "queued": [],
+    "returned": [
+      7
+    ]
+  },
+  {
+    "scenario": "numeric-identities",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "123",
+      "repo": "123"
+    },
+    "queued": [],
+    "returned": [
+      8
+    ]
+  }
+]

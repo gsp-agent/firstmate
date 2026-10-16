@@ -1,0 +1,11 @@
+1792164555	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/tampered-template-refused/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/tampered-template-refused/state/z-lab-cycle.check.sh: lab cycle complete
+1792164556	2	check	unauthenticated-state-checks	check: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/tampered-template-refused/state/task-a.check.sh
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 69318.1792164555.ouTjNW
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

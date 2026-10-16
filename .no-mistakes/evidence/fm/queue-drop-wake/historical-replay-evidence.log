@@ -1,0 +1,276 @@
+Read-only GitHub event-history capture
+
+[github-history.txt]
+data:
+  repository:
+    pr3941:
+      number: 3941
+      url: "https://github.com/groovejones/groove-sight-platform/pull/3941"
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[2]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnQRK7g
+            createdAt: "2026-10-07T14:35:43Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g
+            reason: merge_conflict
+            createdAt: "2026-10-07T19:34:26Z"
+    pr3950:
+      number: 3950
+      url: "https://github.com/groovejones/groove-sight-platform/pull/3950"
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[6]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABVoYikc8AAAAHnepSNw
+            createdAt: "2026-10-07T18:05:31Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHn-AoFQ
+            reason: merge_conflict
+            createdAt: "2026-10-08T04:18:14Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABVoYikc8AAAAHoSQoog
+            createdAt: "2026-10-08T09:03:49Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHoxcXjA
+            reason: manual
+            createdAt: "2026-10-08T15:19:38Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABVoYikc8AAAAHo2HRNQ
+            createdAt: "2026-10-08T16:20:22Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA
+            reason: merge_conflict
+            createdAt: "2026-10-08T23:08:21Z"
+    pr3939:
+      number: 3939
+      url: "https://github.com/groovejones/groove-sight-platform/pull/3939"
+      state: CLOSED
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[4]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABVmppb88AAAAHnUm_MQ
+            createdAt: "2026-10-07T15:39:10Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABVmppb88AAAAHnocQ8Q
+            reason: merge_conflict
+            createdAt: "2026-10-07T20:34:25Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABVmppb88AAAAHpBPN4w
+            createdAt: "2026-10-08T19:04:02Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABVmppb88AAAAHpS4Ieg
+            reason: manual
+            createdAt: "2026-10-09T00:30:47Z"
+    pr4006:
+      number: 4006
+      url: "https://github.com/groovejones/groove-sight-platform/pull/4006"
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[2]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHoJw8vg
+            createdAt: "2026-10-08T07:17:34Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg
+            reason: merge_conflict
+            createdAt: "2026-10-08T17:51:54Z"
+    pr4017:
+      number: 4017
+      url: "https://github.com/groovejones/groove-sight-platform/pull/4017"
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[2]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHoQkraw
+            createdAt: "2026-10-08T08:42:33Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A
+            reason: failed_checks
+            createdAt: "2026-10-08T17:51:54Z"
+    pr4111:
+      number: 4111
+      url: "https://github.com/groovejones/groove-sight-platform/pull/4111"
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[6]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHp5NO5A
+            createdAt: "2026-10-09T12:56:15Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqFx_Aw
+            reason: failed_checks
+            createdAt: "2026-10-09T15:50:35Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqF0pUw
+            createdAt: "2026-10-09T15:51:14Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqSB-QQ
+            reason: failed_checks
+            createdAt: "2026-10-09T19:08:46Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqSFMnA
+            createdAt: "2026-10-09T19:09:39Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg
+            reason: merge_conflict
+            createdAt: "2026-10-09T22:08:31Z"
+    pr4172:
+      number: 4172
+      url: "https://github.com/groovejones/groove-sight-platform/pull/4172"
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[6]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqf1OSQ
+            createdAt: "2026-10-09T23:48:56Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqmwDMg
+            reason: invalid_merge_commit
+            createdAt: "2026-10-10T03:21:08Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqm3EeQ
+            createdAt: "2026-10-10T03:25:07Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqxldeQ
+            reason: failed_checks
+            createdAt: "2026-10-10T09:40:36Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqywfRQ
+            createdAt: "2026-10-10T10:19:32Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA
+            reason: manual
+            createdAt: "2026-10-10T10:24:09Z"
+    pr4183:
+      number: 4183
+      url: "https://github.com/groovejones/groove-sight-platform/pull/4183"
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[4]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABWPAUss8AAAAHqmpwMA
+            createdAt: "2026-10-10T03:17:29Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHqxJSZw
+            reason: manual
+            createdAt: "2026-10-10T09:25:16Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq19COA
+            createdAt: "2026-10-10T12:07:17Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw
+            reason: merge_conflict
+            createdAt: "2026-10-10T15:39:38Z"
+    pr4200:
+      number: 4200
+      url: "https://github.com/groovejones/groove-sight-platform/pull/4200"
+      state: OPEN
+      merged: false
+      isInMergeQueue: false
+      timelineItems:
+        nodes[2]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq32D0A
+            createdAt: "2026-10-10T13:08:55Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA
+            reason: merge_conflict
+            createdAt: "2026-10-10T15:47:28Z"
+    pr4308:
+      number: 4308
+      url: "https://github.com/groovejones/groove-sight-platform/pull/4308"
+      state: MERGED
+      merged: true
+      isInMergeQueue: false
+      timelineItems:
+        nodes[4]:
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHuieu1g
+            createdAt: "2026-10-14T02:09:50Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHujf8MA
+            reason: failed_checks
+            createdAt: "2026-10-14T02:32:46Z"
+          - __typename: AddedToMergeQueueEvent
+            id: ATMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHukIckQ
+            createdAt: "2026-10-14T02:47:18Z"
+          - __typename: RemovedFromMergeQueueEvent
+            id: RFMQE_lADOTK2PgM8AAAABW4rP8M8AAAAHulOGHA
+            reason: merged
+            createdAt: "2026-10-14T03:12:38Z"
+
+
+Replay of actual recorded removal IDs/reasons at their historical OPEN state; real watcher and real gh use a loopback API dataset
+
+[historical-replay/cycle-1-drain.txt]
+1792164332	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+1792164333	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh: lab cycle complete
+1792164334	3	check	RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+1792164335	4	check	RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792164335	5	check	RFMQE_lADOTK2PgM8AAAABVmppb88AAAAHpS4Ieg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+1792164336	6	check	RFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792164336	7	check	RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792164336	8	check	RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792164337	9	check	RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792164337	10	check	RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792164338	11	check	RFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 11 --recovery-generation 13081.1792164332.tmZIWk
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 5s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+
+[historical-replay/unacknowledged-redrain.txt]
+1792164332	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks
+1792164333	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh: lab cycle complete
+1792164334	3	check	RFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict
+1792164335	4	check	RFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict
+1792164335	5	check	RFMQE_lADOTK2PgM8AAAABVmppb88AAAAHpS4Ieg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual
+1792164336	6	check	RFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict
+1792164336	7	check	RFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks
+1792164336	8	check	RFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict
+1792164337	9	check	RFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual
+1792164337	10	check	RFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict
+1792164338	11	check	RFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 11 --recovery-generation 13081.1792164332.tmZIWk
+WARNING: watcher still down (same stale episode; last beat: 6s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+
+[historical-replay/cycle-2-drain.txt]
+1792164344	12	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh: lab cycle complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 12 --recovery-generation 23501.1792164344.nKd8HZ
+WARNING: watcher still down (same stale episode; last beat: 1s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+
+[historical-replay/cycle-3-drain.txt]
+1792164348	13	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=manual
+1792164349	14	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh: lab cycle complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 14 --recovery-generation 29977.1792164348.zsoeZ8
+WARNING: watcher still down (same stale episode; last beat: 1s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+

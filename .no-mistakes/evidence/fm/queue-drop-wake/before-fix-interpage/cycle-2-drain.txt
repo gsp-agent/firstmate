@@ -1,0 +1,4 @@
+1792164477	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/before-fix-interpage/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/before-fix-interpage/state/z-lab-cycle.check.sh: lab cycle complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 79661.1792164477.3TlDLr
+WARNING: watcher still down (same stale episode; last beat: 1s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

@@ -1,0 +1,12 @@
+{
+  "cycle": 1,
+  "watched_repositories": [
+    "o/r"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-merge-notified",
+    "task-a.pr-poll-retirement"
+  ],
+  "notifications": []
+}

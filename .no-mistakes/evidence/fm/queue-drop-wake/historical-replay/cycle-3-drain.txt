@@ -1,0 +1,5 @@
+1792164348	13	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=manual
+1792164349	14	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/z-lab-cycle.check.sh: lab cycle complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 14 --recovery-generation 29977.1792164348.zsoeZ8
+WARNING: watcher still down (same stale episode; last beat: 1s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

@@ -1,0 +1,10 @@
+{
+  "cycle": 2,
+  "watched_repositories": [],
+  "poll_artifacts": [
+    "task-a.pr-poll-merge-notified"
+  ],
+  "notifications": [
+    "1792164365\t4\tcheck\tdrop-nine\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=manual removal"
+  ]
+}

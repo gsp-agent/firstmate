@@ -1,0 +1,45 @@
+[
+  {
+    "scenario": "before-fix-interpage",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 1,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "before-fix-interpage",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [
+      9
+    ],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "before-fix-interpage",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  }
+]

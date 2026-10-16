@@ -1,0 +1,14 @@
+{
+  "cycle": 3,
+  "watched_repositories": [
+    "groovejones/groove-sight-platform"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-queue-dropped",
+    "task-a.pr-poll-registration"
+  ],
+  "notifications": [
+    "1792164348\t13\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=manual"
+  ]
+}

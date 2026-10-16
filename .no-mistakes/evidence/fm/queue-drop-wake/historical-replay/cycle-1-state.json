@@ -1,0 +1,23 @@
+{
+  "cycle": 1,
+  "watched_repositories": [
+    "groovejones/groove-sight-platform"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-queue-dropped",
+    "task-a.pr-poll-registration"
+  ],
+  "notifications": [
+    "1792164332\t1\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/historical-replay/state/task-a.check.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4308 reason=failed_checks",
+    "1792164334\t3\tcheck\tRFMQE_lADOTK2PgM8AAAABVmveEs8AAAAHnkjO0g\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3941 reason=merge_conflict",
+    "1792164335\t4\tcheck\tRFMQE_lADOTK2PgM8AAAABVoYikc8AAAAHpPXujA\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3950 reason=merge_conflict",
+    "1792164335\t5\tcheck\tRFMQE_lADOTK2PgM8AAAABVmppb88AAAAHpS4Ieg\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/3939 reason=manual",
+    "1792164336\t6\tcheck\tRFMQE_lADOTK2PgM8AAAABVxq1yc8AAAAHo8b0Wg\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4006 reason=merge_conflict",
+    "1792164336\t7\tcheck\tRFMQE_lADOTK2PgM8AAAABVyqiZc8AAAAHo8b4_A\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4017 reason=failed_checks",
+    "1792164336\t8\tcheck\tRFMQE_lADOTK2PgM8AAAABWEiI5s8AAAAHqbvghg\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4111 reason=merge_conflict",
+    "1792164337\t9\tcheck\tRFMQE_lADOTK2PgM8AAAABWNbYT88AAAAHqy5IGA\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4172 reason=manual",
+    "1792164337\t10\tcheck\tRFMQE_lADOTK2PgM8AAAABWPAUss8AAAAHq80tpw\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4183 reason=merge_conflict",
+    "1792164338\t11\tcheck\tRFMQE_lADOTK2PgM8AAAABWSQrSM8AAAAHq9FNQA\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/4200 reason=merge_conflict"
+  ]
+}

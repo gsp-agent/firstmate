@@ -1,0 +1,8 @@
+{
+  "cycle": 2,
+  "watched_repositories": [],
+  "poll_artifacts": [
+    "task-a.pr-poll-merge-notified"
+  ],
+  "notifications": []
+}

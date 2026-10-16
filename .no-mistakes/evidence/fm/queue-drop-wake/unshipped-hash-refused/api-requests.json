@@ -1,0 +1,15 @@
+[
+  {
+    "scenario": "unshipped-hash-refused",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": []
+  }
+]

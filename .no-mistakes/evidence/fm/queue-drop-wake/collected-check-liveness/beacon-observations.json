@@ -1,0 +1,42 @@
+[
+  {
+    "poll": 1,
+    "beacon_age_on_start_seconds": 2.8501169681549072,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 2,
+    "beacon_age_on_start_seconds": 0.5496120452880859,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 3,
+    "beacon_age_on_start_seconds": 0.6284458637237549,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 4,
+    "beacon_age_on_start_seconds": 0.6054682731628418,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 5,
+    "beacon_age_on_start_seconds": 0.5834789276123047,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 6,
+    "beacon_age_on_start_seconds": 0.6114768981933594,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 7,
+    "beacon_age_on_start_seconds": 0.742156982421875,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 8,
+    "beacon_age_on_start_seconds": 0.5812668800354004,
+    "watcher_pid": "60954"
+  }
+]

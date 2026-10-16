@@ -1,0 +1,173 @@
+Existing lab beacon aged beyond 900 seconds during seven real polls; no stall-bound override; each completion refreshes it before the next poll and re-arm
+
+[collected-check-liveness/beacon-observations.json]
+[
+  {
+    "poll": 1,
+    "beacon_age_on_start_seconds": 2.8501169681549072,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 2,
+    "beacon_age_on_start_seconds": 0.5496120452880859,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 3,
+    "beacon_age_on_start_seconds": 0.6284458637237549,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 4,
+    "beacon_age_on_start_seconds": 0.6054682731628418,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 5,
+    "beacon_age_on_start_seconds": 0.5834789276123047,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 6,
+    "beacon_age_on_start_seconds": 0.6114768981933594,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 7,
+    "beacon_age_on_start_seconds": 0.742156982421875,
+    "watcher_pid": "60954"
+  },
+  {
+    "poll": 8,
+    "beacon_age_on_start_seconds": 0.5812668800354004,
+    "watcher_pid": "60954"
+  }
+]
+
+
+[collected-check-liveness/rearm.txt]
+watcher: already running pid 60954
+
+
+[collected-check-liveness/cycle-1-drain.txt]
+1792164657	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/collected-check-liveness/state/task-8.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/collected-check-liveness/state/task-8.check.sh: dequeued https://github.com/o/r/pull/8 reason=failed_checks
+1792164658	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/collected-check-liveness/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/collected-check-liveness/state/z-lab-cycle.check.sh: lab cycle complete
+1792164658	3	check	sweep-final-drop	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 60954.1792164657.3BeX7E
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  8 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+
+[collected-check-liveness/api-requests.json]
+[
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 1,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 2,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 3,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 4,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 5,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 6,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 7,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 8,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  }
+]
+

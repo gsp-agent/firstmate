@@ -1,0 +1,20 @@
+[
+  {
+    "name": "A shipped historical poll with stale recorded device numbers is re-registered and reports the queue drop",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/shipped-template-recovery"
+  },
+  {
+    "name": "A tampered historical check remains refused after a recorded device-number shift",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/tampered-template-refused"
+  },
+  {
+    "name": "A registration carrying an unshipped template hash remains refused after a recorded device-number shift",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M52M4YB15FC8H82PA7T22SFS/unshipped-hash-refused"
+  }
+]

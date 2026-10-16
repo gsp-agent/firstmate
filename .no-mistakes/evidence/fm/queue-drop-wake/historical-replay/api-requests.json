@@ -1,0 +1,156 @@
+[
+  {
+    "scenario": "historical-replay",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 4308,
+      "owner": "groovejones",
+      "repo": "groove-sight-platform"
+    }
+  },
+  {
+    "scenario": "historical-replay",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "groovejones",
+      "repo": "groove-sight-platform"
+    },
+    "queued": [],
+    "returned": [
+      3941,
+      3950,
+      3939,
+      4006,
+      4017,
+      4111
+    ]
+  },
+  {
+    "scenario": "historical-replay",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "groovejones",
+      "repo": "groove-sight-platform"
+    },
+    "queued": [],
+    "returned": [
+      4172,
+      4183,
+      4200,
+      4308,
+      9001,
+      9002
+    ]
+  },
+  {
+    "scenario": "historical-replay",
+    "cycle": 2,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 4308,
+      "owner": "groovejones",
+      "repo": "groove-sight-platform"
+    }
+  },
+  {
+    "scenario": "historical-replay",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "groovejones",
+      "repo": "groove-sight-platform"
+    },
+    "queued": [],
+    "returned": [
+      3941,
+      3950,
+      3939,
+      4006,
+      4017,
+      4111
+    ]
+  },
+  {
+    "scenario": "historical-replay",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "groovejones",
+      "repo": "groove-sight-platform"
+    },
+    "queued": [],
+    "returned": [
+      4172,
+      4183,
+      4200,
+      4308,
+      9001,
+      9002
+    ]
+  },
+  {
+    "scenario": "historical-replay",
+    "cycle": 3,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 4308,
+      "owner": "groovejones",
+      "repo": "groove-sight-platform"
+    }
+  },
+  {
+    "scenario": "historical-replay",
+    "cycle": 3,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "groovejones",
+      "repo": "groove-sight-platform"
+    },
+    "queued": [],
+    "returned": [
+      3941,
+      3950,
+      3939,
+      4006,
+      4017,
+      4111,
+      4308
+    ]
+  },
+  {
+    "scenario": "historical-replay",
+    "cycle": 3,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "groovejones",
+      "repo": "groove-sight-platform"
+    },
+    "queued": [],
+    "returned": [
+      4172,
+      4183,
+      4200,
+      4308,
+      9001,
+      9002
+    ]
+  }
+]

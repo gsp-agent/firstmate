@@ -1,0 +1,105 @@
+[
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 1,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 2,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 3,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 4,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 5,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 6,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 7,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 8,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "collected-check-liveness",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  }
+]

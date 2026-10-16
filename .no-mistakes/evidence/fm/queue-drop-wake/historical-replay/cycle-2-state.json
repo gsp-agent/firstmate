@@ -1,0 +1,12 @@
+{
+  "cycle": 2,
+  "watched_repositories": [
+    "groovejones/groove-sight-platform"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-queue-dropped",
+    "task-a.pr-poll-registration"
+  ],
+  "notifications": []
+}

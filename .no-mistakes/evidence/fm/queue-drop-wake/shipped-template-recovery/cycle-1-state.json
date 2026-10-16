@@ -1,0 +1,14 @@
+{
+  "cycle": 1,
+  "watched_repositories": [
+    "o/r"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-queue-dropped",
+    "task-a.pr-poll-registration"
+  ],
+  "notifications": [
+    "1792164538\t1\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/shipped-template-recovery/state/task-a.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/shipped-template-recovery/state/task-a.check.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks"
+  ]
+}

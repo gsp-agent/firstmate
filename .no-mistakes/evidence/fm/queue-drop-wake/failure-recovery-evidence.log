@@ -1,0 +1,555 @@
+page-error: real watcher output, retained repository state, next-cycle recovery and actual API requests
+
+[page-error/cycle-1-watch.txt]
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/page-error/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/page-error/state/z-lab-cycle.check.sh: lab cycle complete
+
+
+[page-error/cycle-1-state.json]
+{
+  "cycle": 1,
+  "watched_repositories": [
+    "o/r",
+    "other/repo"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-merge-notified",
+    "task-a.pr-poll-retirement",
+    "task-b.pr-poll",
+    "task-b.pr-poll-registration"
+  ],
+  "notifications": []
+}
+
+
+[page-error/cycle-2-drain.txt]
+1792164398	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/page-error/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/page-error/state/z-lab-cycle.check.sh: lab cycle complete
+1792164399	4	check	pending-drop	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 90140.1792164398.xhFd8l
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+
+[page-error/cycle-2-state.json]
+{
+  "cycle": 2,
+  "watched_repositories": [
+    "other/repo"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll-merge-notified",
+    "task-b.pr-poll",
+    "task-b.pr-poll-registration"
+  ],
+  "notifications": [
+    "1792164399\t4\tcheck\tpending-drop\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=failed_checks"
+  ]
+}
+
+
+[page-error/api-requests.json]
+[
+  {
+    "scenario": "page-error",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 1,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 2,
+      "owner": "other",
+      "repo": "repo"
+    }
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "other",
+      "repo": "repo"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "other",
+      "repo": "repo"
+    }
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 2,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 2,
+      "owner": "other",
+      "repo": "repo"
+    }
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "other",
+      "repo": "repo"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "page-error",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "other",
+      "repo": "repo"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  }
+]
+
+
+page-timeout: real watcher output, retained repository state, next-cycle recovery and actual API requests
+
+[page-timeout/cycle-1-watch.txt]
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/page-timeout/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/page-timeout/state/z-lab-cycle.check.sh: lab cycle complete
+
+
+[page-timeout/cycle-1-state.json]
+{
+  "cycle": 1,
+  "watched_repositories": [
+    "o/r",
+    "other/repo"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-merge-notified",
+    "task-a.pr-poll-retirement",
+    "task-b.pr-poll",
+    "task-b.pr-poll-registration"
+  ],
+  "notifications": []
+}
+
+
+[page-timeout/cycle-2-drain.txt]
+1792164421	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/page-timeout/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/page-timeout/state/z-lab-cycle.check.sh: lab cycle complete
+1792164421	4	check	pending-drop	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 14830.1792164421.ER0I9v
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+
+[page-timeout/cycle-2-state.json]
+{
+  "cycle": 2,
+  "watched_repositories": [
+    "other/repo"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll-merge-notified",
+    "task-b.pr-poll",
+    "task-b.pr-poll-registration"
+  ],
+  "notifications": [
+    "1792164421\t4\tcheck\tpending-drop\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=failed_checks"
+  ]
+}
+
+
+[page-timeout/api-requests.json]
+[
+  {
+    "scenario": "page-timeout",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 1,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 2,
+      "owner": "other",
+      "repo": "repo"
+    }
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "other",
+      "repo": "repo"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "other",
+      "repo": "repo"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 2,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 2,
+      "owner": "other",
+      "repo": "repo"
+    }
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "other",
+      "repo": "repo"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "page-timeout",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "other",
+      "repo": "repo"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  }
+]
+
+
+malformed-seen: real watcher output, retained repository state, next-cycle recovery and actual API requests
+
+[malformed-seen/cycle-1-watch.txt]
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/malformed-seen/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/malformed-seen/state/z-lab-cycle.check.sh: lab cycle complete
+
+
+[malformed-seen/cycle-1-state.json]
+{
+  "cycle": 1,
+  "watched_repositories": [
+    "o/r",
+    "other/repo"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-merge-notified",
+    "task-a.pr-poll-retirement",
+    "task-b.pr-poll",
+    "task-b.pr-poll-registration"
+  ],
+  "notifications": []
+}
+
+
+[malformed-seen/cycle-2-drain.txt]
+1792164434	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/malformed-seen/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/malformed-seen/state/z-lab-cycle.check.sh: lab cycle complete
+1792164435	4	check	pending-drop	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 28899.1792164434.VLiKJA
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+
+[malformed-seen/cycle-2-state.json]
+{
+  "cycle": 2,
+  "watched_repositories": [
+    "other/repo"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll-merge-notified",
+    "task-b.pr-poll",
+    "task-b.pr-poll-registration"
+  ],
+  "notifications": [
+    "1792164435\t4\tcheck\tpending-drop\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=failed_checks"
+  ]
+}
+
+
+[malformed-seen/api-requests.json]
+[
+  {
+    "scenario": "malformed-seen",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 1,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "malformed-seen",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 2,
+      "owner": "other",
+      "repo": "repo"
+    }
+  },
+  {
+    "scenario": "malformed-seen",
+    "cycle": 2,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 2,
+      "owner": "other",
+      "repo": "repo"
+    }
+  },
+  {
+    "scenario": "malformed-seen",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "malformed-seen",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  },
+  {
+    "scenario": "malformed-seen",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "other",
+      "repo": "repo"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "malformed-seen",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "other",
+      "repo": "repo"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  }
+]
+

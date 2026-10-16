@@ -1,0 +1,130 @@
+Pre-fix product: queued sighting loses discovery and the following removal
+
+[before-fix-driver.log]
+before-fix-interpage cycle 1 {"cycle": 1, "watched_repositories": [], "poll_artifacts": ["task-a.pr-poll-merge-notified"], "notifications": []}
+before-fix-interpage cycle 2 {"cycle": 2, "watched_repositories": [], "poll_artifacts": ["task-a.pr-poll-merge-notified"], "notifications": []}
+Reproduced: preceding commit retired o/r after the queued sighting and never reported its removal on the next cycle.
+
+
+Target product: first sweep keeps discovery, second sweep reports the removal and retires, third does not duplicate it
+
+[interpage-retirement/cycle-1-state.json]
+{
+  "cycle": 1,
+  "watched_repositories": [
+    "o/r"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-merge-notified",
+    "task-a.pr-poll-retirement"
+  ],
+  "notifications": []
+}
+
+
+[interpage-retirement/cycle-2-drain.txt]
+1792164365	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/interpage-retirement/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/interpage-retirement/state/z-lab-cycle.check.sh: lab cycle complete
+1792164365	4	check	drop-nine	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=manual removal
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 51083.1792164365.yI2T9M
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+
+[interpage-retirement/cycle-2-state.json]
+{
+  "cycle": 2,
+  "watched_repositories": [],
+  "poll_artifacts": [
+    "task-a.pr-poll-merge-notified"
+  ],
+  "notifications": [
+    "1792164365\t4\tcheck\tdrop-nine\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/9 reason=manual removal"
+  ]
+}
+
+
+[interpage-retirement/cycle-3-drain.txt]
+1792164371	5	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/interpage-retirement/state/z-lab-cycle.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/interpage-retirement/state/z-lab-cycle.check.sh: lab cycle complete
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 5 --recovery-generation 57310.1792164371.XY3QfL
+WARNING: watcher still down (same stale episode; last beat: 1s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+
+[interpage-retirement/api-requests.json]
+[
+  {
+    "scenario": "interpage-retirement",
+    "cycle": 1,
+    "kind": "poll",
+    "page": 1,
+    "variables": {
+      "number": 1,
+      "owner": "o",
+      "repo": "r"
+    }
+  },
+  {
+    "scenario": "interpage-retirement",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [
+      9
+    ],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "interpage-retirement",
+    "cycle": 1,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  },
+  {
+    "scenario": "interpage-retirement",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 1,
+    "variables": {
+      "cursor": null,
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      9
+    ]
+  },
+  {
+    "scenario": "interpage-retirement",
+    "cycle": 2,
+    "kind": "sweep",
+    "page": 2,
+    "variables": {
+      "cursor": "page2",
+      "owner": "o",
+      "repo": "r"
+    },
+    "queued": [],
+    "returned": [
+      10
+    ]
+  }
+]
+

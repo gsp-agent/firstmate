@@ -1,0 +1,15 @@
+{
+  "cycle": 1,
+  "watched_repositories": [
+    "123/123"
+  ],
+  "poll_artifacts": [
+    "task-a.pr-poll",
+    "task-a.pr-poll-queue-dropped",
+    "task-a.pr-poll-registration"
+  ],
+  "notifications": [
+    "1792164376\t1\tcheck\t/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/numeric-identities/state/task-a.check.sh\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/.queue-live-lab/numeric-identities/state/task-a.check.sh: dequeued https://github.com/123/123/pull/7 reason=failed_checks",
+    "1792164378\t3\tcheck\tdrop-eight\tcheck: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52M4YB15FC8H82PA7T22SFS/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/123/123/pull/8 reason=manual"
+  ]
+}
