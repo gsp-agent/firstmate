@@ -66,6 +66,18 @@ if [ "${1:-}" = terminal ] && [ "${2:-}" = title ] && [ "${3:-}" = clear ]; then
   printf '{"result":{"reason":"%s"}}\n' "$reason"
   exit 0
 fi
+if [ "${1:-}" = pane ] && [ "${2:-}" = get ] && [ -n "${FM_HERDR_VIEWPORT_ROWS:-}" ]; then
+  printf '{"result":{"pane":{"scroll":{"viewport_rows":%s}}}}\n' "$FM_HERDR_VIEWPORT_ROWS"
+  exit 0
+fi
+if [ "${1:-}" = pane ] && [ "${2:-}" = read ] && [ -f "$RESP/recent-ansi.txt" ]; then
+  case "$*" in
+    *'--source visible'*) cat "$RESP/visible-ansi.txt" ;;
+    *'--source recent'*) cat "$RESP/recent-ansi.txt" ;;
+    *) exit 1 ;;
+  esac
+  exit 0
+fi
 n=$next
 echo "$n" > "$COUNT_FILE"
 [ -f "$RESP/$n.err" ] && cat "$RESP/$n.err" >&2
@@ -3858,6 +3870,36 @@ test_busy_state_unknown_on_no_agent() {
 
 # --- composer_state: structural border-row classification --------------------
 
+test_composer_state_scrolled_viewport_uses_current_screen() {
+  local dir log resp fb out
+  dir="$TMP_ROOT/composer-scrolled"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  if [ -n "${FM_HERDR_COMPOSER_REPLAY_DIR:-}" ]; then
+    cp "$FM_HERDR_COMPOSER_REPLAY_DIR/visible-ansi.txt" "$resp/visible-ansi.txt"
+    cp "$FM_HERDR_COMPOSER_REPLAY_DIR/recent-ansi.txt" "$resp/recent-ansi.txt"
+  else
+    printf 'Older chat ending mid-sentence\n' > "$resp/visible-ansi.txt"
+    printf '────────────────────────\n❯\n────────────────────────\n' > "$resp/recent-ansi.txt"
+  fi
+  fb=$(make_herdr_fakebin "$dir")
+  out=$(
+    export PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp"
+    . "$ROOT/bin/backends/herdr.sh"
+    fm_backend_herdr_composer_state default:w1:p2
+  )
+  [ "$out" = empty ] || fail "the current empty composer behind a scrolled viewport must read empty, got '$out'"
+  pass "fm_backend_herdr_composer_state: a scrolled viewport cannot hide the current empty composer"
+
+  printf '❯ old empty prompt\n' > "$resp/recent-ansi.txt"
+  for ((i = 0; i < 58; i++)); do printf 'current screen without a composer\n' >> "$resp/recent-ansi.txt"; done
+  out=$(
+    export PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp"
+    . "$ROOT/bin/backends/herdr.sh"
+    fm_backend_herdr_composer_state default:w1:p2
+  )
+  [ "$out" = unknown ] || fail "a historical prompt outside the current screen must stay unknown, got '$out'"
+  pass "fm_backend_herdr_composer_state: a scrollback prompt cannot prove the current screen empty"
+}
+
 test_composer_state_bare_prompt_is_empty() {
   local dir log resp fb out
   dir="$TMP_ROOT/composer-bare"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
@@ -5120,9 +5162,9 @@ test_composer_state_claude_slash_popup_pushes_composer_above_tail_window() {
   out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
     bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_composer_state default:w1:p2' "$ROOT" )
   [ "$out" = pending ] || fail "a composer above a slash-command popup must read pending, got '$out'"
-  grep -F $'\x1f''pane'$'\x1f''read'$'\x1f''w1:p2'$'\x1f''--source'$'\x1f''visible' "$log" >/dev/null \
-    || fail "the composer state read must use the visible viewport"
-  [ "$(grep -c $'\x1f''--lines' "$log")" -eq 0 ] || fail "the composer state read must not be a bounded --lines tail"
+  grep -F $'\x1f''pane'$'\x1f''read'$'\x1f''w1:p2'$'\x1f''--source'$'\x1f''recent' "$log" >/dev/null \
+    || fail "the composer state read must use the current bottom screen"
+
   pass "fm_backend_herdr_composer_state: a slash-command popup cannot hide a typed composer"
 }
 
@@ -5141,9 +5183,9 @@ test_send_text_submit_claude_slash_popup_composer_is_still_proven_and_submitted(
   enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
   [ "$enter_count" -eq 1 ] || fail "the proven typed command should be submitted once, sent $enter_count Enter(s)"
   [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "a proven composer must not be cleared"
-  grep -F $'\x1f''pane'$'\x1f''read'$'\x1f''w1:p2'$'\x1f''--source'$'\x1f''visible' "$log" >/dev/null \
-    || fail "the payload proof must use the visible viewport"
-  [ "$(grep -c $'\x1f''--lines' "$log")" -eq 0 ] || fail "no composer read may be a bounded --lines tail"
+  grep -F $'\x1f''pane'$'\x1f''read'$'\x1f''w1:p2'$'\x1f''--source'$'\x1f''recent' "$log" >/dev/null \
+    || fail "the payload proof must use the current bottom screen"
+
   pass "fm_backend_herdr_send_text_submit: a typed slash command hidden behind its popup is still proven and submitted"
 }
 
@@ -6020,6 +6062,8 @@ test_current_path_reads_cwd
 test_busy_state_working_maps_to_busy
 test_busy_state_done_and_blocked_map_to_idle
 test_busy_state_unknown_on_no_agent
+export FM_HERDR_VIEWPORT_ROWS=58
+test_composer_state_scrolled_viewport_uses_current_screen
 test_composer_state_bare_prompt_is_empty
 test_composer_state_styled_placeholder_draft_is_pending
 test_composer_state_real_text_is_pending
@@ -6092,6 +6136,7 @@ test_send_text_submit_multiline_paste_placeholder_submits_the_long_payload
 test_send_text_submit_refuses_placeholder_followed_by_a_literal_remainder
 test_send_text_submit_three_paste_placeholders_submit_the_long_payload
 test_send_text_submit_non_claude_skips_the_payload_proof
+unset FM_HERDR_VIEWPORT_ROWS
 test_dispatch_routes_herdr_backend
 test_dispatch_busy_state_unknown_for_tmux
 test_dispatch_composer_state_routes_by_backend
