@@ -165,6 +165,12 @@
 #                          budget and is parked until a probe reads it live
 #                          again (FM_SECONDMATE_LIVENESS_MAX_ATTEMPTS and
 #                          FM_SECONDMATE_LIVENESS_WINDOW_SECS)
+# The periodic hold-domain sweep uses the tracked check runner with
+# FM_CHECK_TIMEOUT seconds (default 90 for this sweep). A failure queues a
+# `check: hold-domain routing failed: exit <code>` wake before ordinary checks
+# run; that reason closes the sweep's one collected delivery, after the other
+# check results. fm-captain-hold.sh owns row deadlines and resumable sweep
+# ordering.
 # For normal supervision, resume the session-start primary-harness protocol
 # after each printed reason. Direct duplicate invocations of this script still
 # no-op through the watcher singleton lock. A live holder whose beacon is stale

@@ -53,7 +53,7 @@ It works in this order:
 1. It uses an existing task, or creates one when nothing exists to hold.
 2. It records the task's UTC hold-set timestamp as the leading line of the task body.
 3. When `--origin` is supplied, it records the origin on the task, replacing any previous association.
-4. It records the routing fields, invokes the underlying tasks-axi hold operation, and verifies the hold and timestamp.
+4. It invokes the underlying tasks-axi hold operation, records the routing fields only after that succeeds, and verifies the hold and timestamp.
 5. It asks the optional hold-domain router to classify the hold and route it when due.
 
 Publishing the stamp first ensures a snapshot cannot observe a newly captain-held task without the timestamp that defines its age.
@@ -74,8 +74,8 @@ Repeat and edge cases:
 The optional agent-config router owns classification of technical holds and protection of human endpoints.
 Firstmate reconciles task and origin backend identities with runtime metadata aliases for authority lookup and the task control lock, and uses the canonical backend identity for routing bodies and receipts.
 It checks live backlog state on the watcher's existing periodic pass, whose tracked check subprocess bounds the whole routing sweep; each row also has a deadline so a blocked row preserves its pending work without starving healthy later rows.
-The sweep saves its position before each row starts and the next pass resumes after that attempt, wrapping in task-id order even when rows retire or new rows appear.
-The routing sweep defaults to 90 seconds under the existing watcher check runner, and an explicit `FM_CHECK_TIMEOUT` still supplies that runner's deadline.
+Repeated passes resume after interrupted attempts so later holds make progress even as rows retire or new rows appear.
+[`bin/fm-watch.sh`](../bin/fm-watch.sh)'s header owns the whole-sweep deadline and failure-notification order.
 Pending per-home routing bodies keep that supervision required even with no other work; the watcher retires answered, closed, deferred or replaced entries against live state.
 An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new stamp separates the previous body from the current header before the backend hold, so a failed header publication preserves historical words and permits retry without reusing historical authority.
 Confirmed archival retires pending routing, while an unreadable backlog leaves it supervised and reports the read failure.
@@ -568,6 +568,8 @@ Native and fallback watcher bounds cover blocked listing, control locks, body wr
 Origin and task aliases preserve authority inheritance, shared control locks and canonical receipt identity, including new tasks and retries after interrupted release.
 Runtime-named metadata supplies the same authority and control lock for alias, canonical and self-origin holds, while routing bodies and receipts retain backend identity.
 Two-hold fixtures block the first row's control lock, resolution write or release and prove that the later row and ordinary checks still finish, with pending work retained and no duplicate delivery on retry.
+Repeated watcher sweeps exhaust their total budget across multiple blocked rows and still deliver a later healthy hold exactly once.
+Retiring attempted rows and adding new ones preserves progress, pending receipt recovery, subprocess cleanup, and eventual supervision retirement.
 An interrupted new lifecycle header preserves the historical answer and retries safely; repeated isolated remote dispatch preserves the declared owner and rejects invalid declarations before transport.
 The portable fixture implements the router protocol; `FM_TEST_HOLD_DOMAIN_ROUTER` selects an installed agent-config router for the same cases with an isolated transport.
 `FM_TEST_HOLD_DOMAIN_ONLY=1` runs only these routing cases.
