@@ -1776,9 +1776,10 @@ fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
 }
 
 # Retiring or replacing an authenticated GitHub sidecar must preserve repository
-# discovery until a successful sweep. A replacement in the same repository
-# preserves discovery unless a pending receipt already owns the retirement.
-# Callers pass only repositories whose scan and publication succeeded.
+# discovery until bin/fm-pr-queue-sweep.sh reports that repository queue-empty.
+# A replacement in the same repository preserves discovery unless a pending
+# receipt already owns the retirement.
+# Callers pass only repositories named by that queue-empty result.
 # Returns 2 while discovery must be retained, 1 for an invalid receipt or task
 # ID, and 0 when cleanup or replacement may proceed.
 fm_pr_poll_retirement_ready() {

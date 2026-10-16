@@ -6,8 +6,13 @@
 # One pass reads all open pull requests in pages of 100, newest creation first.
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
 # A failed or timed-out page fails the scan. Repositories whose pages completed
-# may still print their removals. bin/fm-watch.sh owns publication and retirement
-# after the scan.
+# may still print their removals.
+# A completed repository prints `queue-empty <owner>/<repo>` only when none of
+# its open pull requests were in the merge queue.
+# A queued sighting prints no such line. The watcher then keeps that
+# repository's sidecar and snapshot until a later successful scan sees none.
+# The scan does not re-read an earlier page.
+# bin/fm-watch.sh owns publication and applies that line to retirement.
 # There is no deadline around the complete scan.
 # When FM_PR_SWEEP_BEAT names the watcher's liveness beacon, each completed
 # page and repository attempt refreshes it so a progressing scan stays alive.
@@ -257,8 +262,9 @@ sweep_note_sidecars() {
 # partial repository result; the header owns failed-read behavior.
 sweep_one_repo() {
   local owner=$1 repo=$2 cursor='' fields line kind rest number state merged
-  local queued event_kind event reason more page_cursor saw_page collected url
+  local queued event_kind event reason more page_cursor saw_page saw_queued collected url
   collected=
+  saw_queued=0
   while :; do
     if [ -z "$cursor" ]; then
       fields=$(sweep_page_gh api graphql --hostname github.com \
@@ -307,14 +313,15 @@ sweep_one_repo() {
             *$'\t'*) reason=${rest#*$'\t'} ;;
             *) reason= ;;
           esac
+          case "$number" in
+            ''|*[!0-9]*|0*) continue ;;
+          esac
+          [ "$queued" = true ] && saw_queued=1
           [ "$state" = OPEN ] || continue
           [ "$merged" = false ] || continue
           [ "$queued" = false ] || continue
           [ "$event_kind" = removed ] || continue
           [ "$reason" != merged ] || continue
-          case "$number" in
-            ''|*[!0-9]*|0*) continue ;;
-          esac
           sweep_event_id_ok "$event" || continue
           case "$sweep_seen" in
             *$'\n'"$event"$'\n'*) continue ;;
@@ -334,6 +341,9 @@ EOF
     esac
     [ -z "${FM_PR_SWEEP_BEAT:-}" ] || touch "$FM_PR_SWEEP_BEAT"
     if [ "$more" = false ]; then
+      if [ "$saw_queued" -eq 0 ]; then
+        collected="${collected}queue-empty ${owner}/${repo}"$'\n'
+      fi
       printf '%s' "$collected"
       return 0
     fi

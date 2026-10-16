@@ -88,8 +88,9 @@
 #                          cannot hide a later PR result.
 #                          Completed repository results are published even
 #                          when another repository fails. Final retirement and
-#                          snapshot clearing require the scan and deduplication
-#                          lookups to succeed.
+#                          snapshot clearing require that repository's queue-empty
+#                          line and successful deduplication lookups.
+#                          bin/fm-pr-queue-sweep.sh owns that line.
 #                          Before startup retirement recovery and each check
 #                          block, snapshot watched GitHub repositories for
 #                          bin/fm-pr-queue-sweep.sh. bin/fm-pr-lib.sh owns
@@ -3032,16 +3033,27 @@ EOF
     # owns the line and the seen record.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
       # Pages are bounded inside the sweep. The snapshot is the repo set from
-      # before this cycle retired a merged watch. The header owns publication,
-      # snapshot retention, and final retirement after the scan.
+      # before this cycle retired a merged watch. bin/fm-pr-queue-sweep.sh owns
+      # the queue-empty line this block applies.
       FM_CHECK_UNBOUNDED=1 FM_PR_SWEEP_PAGE_TIMEOUT="$CHECK_TIMEOUT" \
         FM_PR_SWEEP_REPOS="$sweep_repo_snapshot" FM_PR_SWEEP_BEAT="$BEAT" \
         run_check_capture "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --scan "$STATE" || exit 1
       sweep_raw=$FM_CHECK_RESULT
       sweep_line=
+      sweep_queue_empty=
       while IFS= read -r sweep_line || [ -n "$sweep_line" ]; do
         [ -n "$sweep_line" ] || continue
         case "$sweep_line" in
+          'queue-empty '*)
+            sweep_repo=${sweep_line#queue-empty }
+            case "$sweep_repo" in
+              ''|[./]*|*[./]|*' '*|*'	'*|*/*/*|*[!A-Za-z0-9._/-]*) continue ;;
+              */*) ;;
+              *) continue ;;
+            esac
+            sweep_queue_empty="${sweep_queue_empty}${sweep_repo}"$'\n'
+            continue
+            ;;
           'dequeued https://github.com/'*' reason='*' event='*)
             sweep_event=${sweep_line##* event=}
             sweep_visible=${sweep_line% event=*}
@@ -3068,12 +3080,22 @@ EOF
 $sweep_raw
 EOF
       if [ "${FM_CHECK_STATUS:-1}" -eq 0 ]; then
-        if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh" "$sweep_repo_snapshot"; then
+        if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh" "$sweep_queue_empty"; then
           reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
           fm_wake_append check pr-poll-retirement "$reason" || exit 1
           check_sweep_output="${check_sweep_output}${reason}"$'\n'
         fi
-        sweep_repo_snapshot=
+        sweep_kept=
+        while IFS= read -r sweep_repo || [ -n "$sweep_repo" ]; do
+          [ -n "$sweep_repo" ] || continue
+          case $'\n'"$sweep_queue_empty"$'\n' in
+            *$'\n'"$sweep_repo"$'\n'*) ;;
+            *) sweep_kept="${sweep_kept}${sweep_repo}"$'\n' ;;
+          esac
+        done <<EOF
+$sweep_repo_snapshot
+EOF
+        sweep_repo_snapshot=$sweep_kept
       else
         triage_log "merge-queue sweep failed; keeping the repository snapshot and deferred retirement"
       fi

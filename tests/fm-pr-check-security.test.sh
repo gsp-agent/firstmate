@@ -239,6 +239,9 @@ case "${1:-} ${2:-}" in
             2> "$FM_TEST_GH_SWEEP_DIR/rearm.err" || exit 1
         fi
         [ "${FM_TEST_GH_SWEEP_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GH_SWEEP_SLEEP"
+        if [ -n "${FM_TEST_GH_SWEEP_PAGE_HOOK:-}" ]; then
+          "$FM_TEST_GH_SWEEP_PAGE_HOOK" "$cursor" || exit 1
+        fi
         if [ -z "${FM_TEST_GH_SWEEP_DIR:-}" ]; then
           printf '%s\n' '{"data":{"repository":{"pullRequests":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}}}' \
             | "$FM_TEST_REAL_JQ" -r "$jq_filter"
@@ -5369,15 +5372,86 @@ test_sweep_keeps_later_removal_in_place_after_an_update() {
     "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt2 \
       || fail "the later-page removal was not durably recorded"
     if [ "$armed_state" = MERGED ]; then
-      assert_poll_absent "$state" task-a
-      [ -z "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" ] \
-        || fail "the completed sweep did not retire the repository's last watch"
+      [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+        || fail "a queued sighting on an earlier page retired the repository's last watch"
+      [ "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" = o/r ] \
+        || fail "a queued sighting dropped repository discovery"
     else
       fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
         || fail "the updated later-page sweep retired an unmerged watch"
     fi
   done
   pass "a later-page removal remains discoverable after an update, even when the last armed pull request merges"
+}
+
+# Chip's inter-page case. Page 1 reads an unarmed pull request as queued.
+# That pull request leaves the queue before page 2 is read, and this scan does
+# not re-read page 1. The last armed pull request has already merged.
+test_queued_sighting_keeps_discovery_until_the_next_sweep() {
+  local dir state queries rc
+  dir=$(make_case queued-sighting-keeps-discovery)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  mkdir -p "$dir/sweep"
+  "$REAL_JQ" -n '
+    {data:{repository:{pullRequests:{
+      pageInfo:{hasNextPage:true, endCursor:"page2"},
+      nodes:[{number:9, state:"OPEN", merged:false, isInMergeQueue:true,
+        timelineItems:{nodes:[]}}]}}}}
+  ' > "$dir/sweep/page1.json"
+  "$REAL_JQ" -n '
+    {data:{repository:{pullRequests:{
+      pageInfo:{hasNextPage:false, endCursor:null},
+      nodes:[{number:10, state:"OPEN", merged:false, isInMergeQueue:false,
+        timelineItems:{nodes:[]}}]}}}}
+  ' > "$dir/sweep/page2.json"
+  cat > "$dir/drop-queued.sh" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-}" = page2 ] || exit 0
+"$FM_TEST_REAL_JQ" -n '
+  {data:{repository:{pullRequests:{
+    pageInfo:{hasNextPage:true, endCursor:"page2"},
+    nodes:[{number:9, state:"OPEN", merged:false, isInMergeQueue:false,
+      timelineItems:{nodes:[{__typename:"RemovedFromMergeQueueEvent",
+        id:"evt9", reason:"manual removal"}]}}]}}}}
+' > "$FM_TEST_GH_SWEEP_DIR/page1.json"
+SH
+  chmod 0700 "$dir/drop-queued.sh"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" FM_TEST_GH_SWEEP_PAGE_HOOK="$dir/drop-queued.sh" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "queued-sighting sweep failed: $(cat "$dir/watch.err")"
+  queries=$(grep -c 'pullRequests' "$dir/gh.log" || true)
+  [ "$queries" -ge 2 ] || fail "the first sweep did not read both pages (queries=$queries)"
+  ! grep -F 'dequeued https://github.com/o/r/pull/9' "$dir/watch.out" >/dev/null \
+    || fail "the first sweep woke for a pull request it had read as queued: $(cat "$dir/watch.out")"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+    || fail "a queued sighting retired the repository before the removal was visible"
+  [ "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" = o/r ] \
+    || fail "a queued sighting dropped repository discovery"
+  rc=0
+  "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt9 || rc=$?
+  [ "$rc" -eq 1 ] || fail "the first sweep recorded a removal it did not see (rc=$rc)"
+  ack_watcher_cycle "$state" || fail "queued-sighting acknowledgement failed"
+  FM_TEST_GH_LOG="$dir/gh2.log" FM_TEST_GH_STATE=MERGED \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" FM_TEST_GH_SWEEP_PAGE_HOOK="$dir/drop-queued.sh" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch2.out" 2> "$dir/watch2.err" \
+    || fail "the follow-up sweep failed: $(cat "$dir/watch2.err")"
+  queries=$(grep -c 'pullRequests' "$dir/gh2.log" || true)
+  [ "$queries" -ge 2 ] || fail "the follow-up sweep did not query the retained repository (queries=$queries)"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "queued-sighting drain failed"
+  [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/9 reason=manual removal' "$dir/drain.out")" -eq 1 ] \
+    || fail "the follow-up sweep did not wake once with GitHub's reason: $(cat "$dir/drain.out")"
+  "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt9 \
+    || fail "the follow-up removal was not recorded"
+  assert_poll_absent "$state" task-a
+  [ -z "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" ] \
+    || fail "retirement did not follow the sweep that saw an empty queue"
+  pass "a queued sighting keeps discovery until the next sweep sees the removal"
 }
 
 test_parser_matrix
@@ -5423,6 +5497,7 @@ test_open_queue_removals_wake_once_across_a_watched_repo
 test_seen_record_errors_do_not_block_later_watches
 test_open_queue_sweep_exhausts_pages
 test_sweep_keeps_later_removal_in_place_after_an_update
+test_queued_sighting_keeps_discovery_until_the_next_sweep
 test_old_template_watch_polls_after_upgrade
 test_tampered_check_stays_rejected
 test_unshipped_template_hash_is_refused
