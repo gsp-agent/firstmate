@@ -6,6 +6,7 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py expire DATA STATE ID
 The caller must hold STATE/.meta-ID.lock, the lock also used by spawn.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
+Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
 Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
 
@@ -16,15 +17,21 @@ Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
 the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
 Backlog sources retain their home addressing in the cleanup record.
 Unavailable references retain all data for retry.
-Paths mentioned in these sources or retained evidence override the size/type
-limit. Matching a basename conservatively also retains ambiguous references.
-Retained symlinks protect targets within the validated task directory, including
-through ancestor aliases such as macOS /tmp -> /private/tmp, without widening those roots.
+Paths mentioned in these sources or retained evidence override the size/type limit.
+File references conservatively match basenames; directory references use path/link
+syntax and protect all descendants, including symlinks below a linked directory.
+Matching decodes URL/HTML encoding, JSON strings, and Markdown destination escapes.
+Normalized comparisons preserve original spellings for filesystem identity lookups,
+so Unicode names work on both normalization-sensitive and aliasing filesystems.
+Retained symlinks protect owned targets and necessary path components in filesystem
+order, including symlink-plus-.. paths, filesystem-name aliases, and ancestor aliases
+such as macOS /tmp -> /private/tmp, without widening the validated task directory.
 
 Scratch moves to DATA/ID/.cleanup-hold with its relative paths intact; no bytes
 are copied. record/data-cleanup.json records the recovery, not a second task
 record. The next successful teardown of a DIFFERENT task expires the hold, after
-refreshing references and restoring newly linked files to their original paths.
+refreshing references and restoring newly linked files or directory descendants
+to their original paths under the same retention rules.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.
 An interrupted move resumes at the next cycle and receives a full new cycle.
