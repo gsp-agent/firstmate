@@ -1,0 +1,6 @@
+ok - fm-teardown: local ordinary-path Unicode checks; normalization-sensitive filesystem: False
+task data proof-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/tmp/fm-teardown-tests.6fT3Il/task-data-spellings-local/data/proof-owner/.cleanup-hold until the next completed task
+Traceback (most recent call last):
+  File "<stdin>", line 74, in <module>
+AssertionError: Markdown-escaped filename was staged
+not ok - reference spelling regression failed

@@ -1,0 +1,4 @@
+$ docker --config /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/docker-config version --format {{.Server.Os}}
+linux
+
+exit=0

@@ -1,0 +1,47 @@
+$ docker --config /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/docker-config run --rm --name fm-task-data-linux-01m51z --label no-mistakes.run=01M51ZCPG0KSDTE3D3JEJ57XBH --read-only --network none --mount type=bind,source=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH,target=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH,readonly --mount type=bind,source=/Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH,target=/Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH,readonly --tmpfs /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/linux-runtime:rw,exec,size=64m --workdir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH python:3.13-slim python3 /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-linux.py
+$ dcg --version
+0.15.3
+
+  ╭─────────────────────────────────────────╮
+  │  🛡  Destructive Command Guard               │
+  │     dcg v0.15.3                           │
+  │                                         │
+  │  Built: 2026-10-08                   │
+  │  Rustc: 1.100.0-nightly                      │
+Rustc release: 1.100.0-nightly
+Rustc commit: 90850177249efe0321573c569aec5d12b257f8d6
+Rustc date: 2026-08-30
+Rustc host: x86_64-unknown-linux-gnu
+  │  Target: aarch64-unknown-linux-gnu         │
+  │  Commit: v0.15.3                │
+Git SHA: 3eec165ae64a56bfbb2cecaa2510d82076010851
+  │                                         │
+  │  Protecting your code from destructive ops  │
+  ╰─────────────────────────────────────────╯
+
+
+Filesystem confirmed normalization-sensitive and case-sensitive.
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/linux-runtime/before proof-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/linux-runtime/before ''
+task data proof-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/linux-runtime/before/data/proof-owner/.cleanup-hold until the next completed task
+
+EXPECTED_BEFORE_FIX_FAILURE: cf0da8c3 staged an NFC directory that report.md links.
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/linux-runtime/before proof-owner
+
+EXPECTED_BEFORE_FIX_DATA_LOSS: expiry deleted the linked NFC evidence.
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/linux-runtime/current proof-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/linux-runtime/current ''
+task data proof-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/linux-runtime/current/data/proof-owner/.cleanup-hold until the next completed task
+
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/linux-runtime/current proof-owner
+
+{
+  "scenario": "Normalization-sensitive Linux NFC/NFD and Markdown evidence survives staging and expiry",
+  "live": true,
+  "result": "pass",
+  "before_fix_failure_reproduced": true,
+  "distinct_nfc_and_nfd_directories_preserved": true,
+  "new_held_references_restored": true,
+  "descendant_symlinks_valid": true,
+  "unrelated_scratch_reclaimed": true,
+  "external_target_untouched": true
+}
+LINUX_LIVE_SCENARIOS_COMPLETE

@@ -1,0 +1,78 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references
+exit=0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references/projects/example
+
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-task-data-lib.sh references https://cleanup.test/group/project/-/merge_requests/1
+{"id":1,"iid":1,"target_branch":"","source_branch":"","project_id":0,"title":"Disposable cleanup evidence","state":"merged","imported":false,"imported_from":"","created_at":null,"updated_at":null,"upvotes":0,"downvotes":0,"author":null,"assignee":null,"assignees":null,"reviewers":null,"source_project_id":0,"target_project_id":0,"labels":null,"label_details":null,"description":"[PR image](proof\\(1\\).png) [directory](café/)","draft":false,"milestone":null,"merge_when_pipeline_succeeds":false,"detailed_merge_status":"","merge_user":null,"merged_at":null,"merge_after":null,"prepared_at":null,"closed_by":null,"closed_at":null,"sha":"","merge_commit_sha":"","squash_commit_sha":"","user_notes_count":0,"should_remove_source_branch":false,"force_remove_source_branch":false,"allow_collaboration":false,"allow_maintainer_to_push":false,"web_url":"https://cleanup.test/group/project/-/merge_requests/1","references":null,"discussion_locked":false,"time_stats":null,"squash":false,"squash_on_merge":false,"task_completion_status":null,"has_conflicts":false,"blocking_discussions_resolved":false,"merged_by":null,"merge_error":"","subscribed":false,"changes_count":"","user":{"can_merge":false},"latest_build_started_at":null,"latest_build_finished_at":null,"first_deployed_to_production_at":null,"pipeline":null,"head_pipeline":null,"diff_refs":{"base_sha":"","head_sha":"","start_sha":""},"rebase_in_progress":false,"diverged_commits_count":0,"first_contribution":false,"work_in_progress":false}
+[[{"id":1,"body":"[comment evidence](comments/)"}]]
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references forge-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references/projects/example https://cleanup.test/group/project/-/merge_requests/1
+task data forge-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references/data/forge-owner/.cleanup-hold until the next completed task
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references forge-owner
+warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-task-data-lib.sh', 'references', 'https://cleanup.test/group/project/-/merge_requests/1']' returned non-zero exit status 1.
+exit=1
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references unreadable-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references/projects/example https://cleanup.test/group/project/-/merge_requests/1
+warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-task-data-lib.sh', 'references', 'https://cleanup.test/group/project/-/merge_requests/1']' returned non-zero exit status 1.
+exit=1
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/forge-references forge-owner
+
+exit=0
+OBSERVED: Real glab reads a disposable non-GitHub MR and comments; unavailable references preserve recovery
+{
+  "local_http_requests": [
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1/approval_state",
+    "/api/v4/projects/group%2Fproject/merge_requests/1/notes?per_page=100",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1/approval_state",
+    "/api/v4/projects/group%2Fproject/merge_requests/1/notes?per_page=100",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "/api/v4/projects/group%2Fproject/merge_requests/1/approval_state",
+    "/api/v4/projects/group%2Fproject/merge_requests/1/notes?per_page=100"
+  ],
+  "all_reference_bytes_preserved": true,
+  "later_links_restored": true,
+  "503_refused_staging_and_expiry": true,
+  "service": "Disposable loopback GitLab API dataset; installed glab and production cleanup code"
+}
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references
+exit=0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references/projects/example
+
+exit=0
+$ br init --db /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references/graph/.beads/beads.db --prefix proof
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit=0
+$ tasks-axi add proof-owner 'Disposable linked Beads evidence' --body '[escaped bead image](proof\(1\).png) [NFC directory](café/)'
+error: "Unsupported backend \"beads\" — P1 ships the markdown backend only"
+code: UNSUPPORTED
+help[1]: "Set `backend = \"markdown\"` in .tasks.toml, or omit --backend"
+exit=1
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-live-references.py", line 110, in <module>
+    run(['tasks-axi', 'add', 'proof-owner', 'Disposable linked Beads evidence', '--body', body], env, lab)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-live.py", line 33, in run
+    assert result.returncode == expected, result.stdout
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: error: "Unsupported backend \"beads\" — P1 ships the markdown backend only"
+code: UNSUPPORTED
+help[1]: "Set `backend = \"markdown\"` in .tasks.toml, or omit --backend"
+

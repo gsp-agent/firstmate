@@ -1,0 +1,13 @@
+{
+  "scenario": "Successful cleanup from a native Beads-backed home",
+  "result": "untested",
+  "installed_tasks_axi": "0.2.6",
+  "attempts": [
+    "Created a disposable real br database and owning issue",
+    "Tried the installed tasks-axi with an explicit isolated Beads config",
+    "Queried the published package and cloned its official default branch into the workspace"
+  ],
+  "public_source_head": "9401ff899c0d1d8ae6b4fd8727b9025abda2032c",
+  "reason": "Installed and latest published/default-branch tasks-axi 0.2.6 support Markdown only. A real Beads-capable tasks-axi build on the disposable PATH is required; fabricating its adapter would not prove integration.",
+  "observed_safety": "Actual cleanup refused while the Beads source was unreadable and every original byte stayed in place."
+}

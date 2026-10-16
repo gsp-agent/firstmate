@@ -1,0 +1,585 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle
+exit=0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/projects/example
+
+exit=0
+$ tasks-axi add proof-owner 'Disposable cleanup validation' --start --body '[owning task evidence](bead-artifacts/)'
+ok: added proof-owner -> In flight
+task:
+  id: proof-owner
+  title: Disposable cleanup validation
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "[owning task evidence](bead-artifacts/)"
+help[2]:
+  - Run `tasks-axi done proof-owner --pr <url>` when it ships
+  - Run `tasks-axi block proof-owner --by <other>` to record a dependency
+exit=0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/data/proof-owner/clone
+
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-teardown.sh proof-owner
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+task data proof-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/data/proof-owner/.cleanup-hold until the next completed task
+teardown proof-owner complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/missing-proof-owner, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T113151Z-78351)
+Backlog: proof-owner is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle proof-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/projects/example ''
+task data proof-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/data/proof-owner/.cleanup-hold until the next completed task
+exit=0
+OBSERVED: Finished task holds original scratch for one cycle and preserves linked evidence
+{
+  "before": {
+    "bytes": 6319125,
+    "allocated_bytes": 6434816,
+    "files": [
+      [
+        "report.md",
+        99,
+        4096
+      ],
+      [
+        "proof(1).png",
+        15,
+        4096
+      ],
+      [
+        "capture.bin",
+        16,
+        4096
+      ],
+      [
+        "unlinked.json",
+        37,
+        4096
+      ],
+      [
+        "later(1).png",
+        19,
+        4096
+      ],
+      [
+        "brief.md",
+        18,
+        4096
+      ],
+      [
+        "later-artifacts/frame.bin",
+        25,
+        4096
+      ],
+      [
+        "record/status",
+        15,
+        4096
+      ],
+      [
+        "prose-only/blob.bin",
+        20,
+        4096
+      ],
+      [
+        "bead-artifacts/frame.bin",
+        32,
+        4096
+      ],
+      [
+        "résumé/frame.bin",
+        24,
+        4096
+      ],
+      [
+        "single/discard.bin",
+        16,
+        4096
+      ],
+      [
+        "single/capture.png",
+        14,
+        4096
+      ],
+      [
+        "scratch/blob.bin",
+        4194304,
+        4194304
+      ],
+      [
+        "clone/build.bin",
+        2097152,
+        2097152
+      ],
+      [
+        "clone/README.md",
+        34,
+        4096
+      ],
+      [
+        "café/frame.bin",
+        24,
+        4096
+      ],
+      [
+        "clone/.git/config",
+        137,
+        4096
+      ],
+      [
+        "clone/.git/HEAD",
+        23,
+        4096
+      ],
+      [
+        "clone/.git/description",
+        73,
+        4096
+      ],
+      [
+        "clone/.git/info/exclude",
+        240,
+        4096
+      ],
+      [
+        "clone/.git/hooks/commit-msg.sample",
+        1972,
+        4096
+      ],
+      [
+        "clone/.git/hooks/pre-rebase.sample",
+        4898,
+        8192
+      ],
+      [
+        "clone/.git/hooks/sendemail-validate.sample",
+        2308,
+        4096
+      ],
+      [
+        "clone/.git/hooks/pre-commit.sample",
+        1649,
+        4096
+      ],
+      [
+        "clone/.git/hooks/applypatch-msg.sample",
+        478,
+        4096
+      ],
+      [
+        "clone/.git/hooks/fsmonitor-watchman.sample",
+        4611,
+        8192
+      ],
+      [
+        "clone/.git/hooks/pre-receive.sample",
+        544,
+        4096
+      ],
+      [
+        "clone/.git/hooks/prepare-commit-msg.sample",
+        1492,
+        4096
+      ],
+      [
+        "clone/.git/hooks/post-update.sample",
+        189,
+        4096
+      ],
+      [
+        "clone/.git/hooks/pre-merge-commit.sample",
+        416,
+        4096
+      ],
+      [
+        "clone/.git/hooks/pre-applypatch.sample",
+        424,
+        4096
+      ],
+      [
+        "clone/.git/hooks/pre-push.sample",
+        1374,
+        4096
+      ],
+      [
+        "clone/.git/hooks/update.sample",
+        3650,
+        4096
+      ],
+      [
+        "clone/.git/hooks/push-to-checkout.sample",
+        2783,
+        4096
+      ]
+    ]
+  },
+  "staged": {
+    "bytes": 6319556,
+    "allocated_bytes": 6438912,
+    "files": [
+      [
+        "report.md",
+        99,
+        4096
+      ],
+      [
+        "proof(1).png",
+        15,
+        4096
+      ],
+      [
+        "capture.bin",
+        16,
+        4096
+      ],
+      [
+        "unlinked.json",
+        37,
+        4096
+      ],
+      [
+        "brief.md",
+        18,
+        4096
+      ],
+      [
+        ".cleanup-hold/later(1).png",
+        19,
+        4096
+      ],
+      [
+        "record/data-cleanup.json",
+        431,
+        4096
+      ],
+      [
+        "record/status",
+        15,
+        4096
+      ],
+      [
+        "bead-artifacts/frame.bin",
+        32,
+        4096
+      ],
+      [
+        "résumé/frame.bin",
+        24,
+        4096
+      ],
+      [
+        "single/capture.png",
+        14,
+        4096
+      ],
+      [
+        "café/frame.bin",
+        24,
+        4096
+      ],
+      [
+        ".cleanup-hold/later-artifacts/frame.bin",
+        25,
+        4096
+      ],
+      [
+        ".cleanup-hold/prose-only/blob.bin",
+        20,
+        4096
+      ],
+      [
+        ".cleanup-hold/single/discard.bin",
+        16,
+        4096
+      ],
+      [
+        ".cleanup-hold/scratch/blob.bin",
+        4194304,
+        4194304
+      ],
+      [
+        ".cleanup-hold/clone/build.bin",
+        2097152,
+        2097152
+      ],
+      [
+        ".cleanup-hold/clone/README.md",
+        34,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/config",
+        137,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/HEAD",
+        23,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/description",
+        73,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/info/exclude",
+        240,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/commit-msg.sample",
+        1972,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/pre-rebase.sample",
+        4898,
+        8192
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/sendemail-validate.sample",
+        2308,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/pre-commit.sample",
+        1649,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/applypatch-msg.sample",
+        478,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/fsmonitor-watchman.sample",
+        4611,
+        8192
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/pre-receive.sample",
+        544,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/prepare-commit-msg.sample",
+        1492,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/post-update.sample",
+        189,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/pre-merge-commit.sample",
+        416,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/pre-applypatch.sample",
+        424,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/pre-push.sample",
+        1374,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/update.sample",
+        3650,
+        4096
+      ],
+      [
+        ".cleanup-hold/clone/.git/hooks/push-to-checkout.sample",
+        2783,
+        4096
+      ]
+    ]
+  },
+  "same_task_does_not_expire": true,
+  "unchanged_sha256": {
+    "proof(1).png": "0dad63511f19e142498d82d73954f67b4fa944ebb19b93d8d92b086d97c123e8",
+    "capture.bin": "8be3538135d5a2ebc373076afb04e445aee2f5825b83b454b92a75c7e5b496b7",
+    "café/frame.bin": "bb242fc46119bfb8a4955e1d2e70b0425adfb7ea96620774a392db2c24b11a1e",
+    "résumé/frame.bin": "45f8c981dec931e6977f4f811600d5722344c740ab26ab00607d771c326ac93b",
+    "bead-artifacts/frame.bin": "a526f5c4a88b07049ab292a4181f99df950ee886c07c799f4044ee29706bd65d",
+    "single/capture.png": "b0211086544454bce11cc6a9247e07841bfb3f49742872312c07ab9b9aac9685"
+  }
+}
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle active-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/projects/example ''
+task data active-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/data/active-owner/.cleanup-hold until the next completed task
+exit=0
+$ tasks-axi add proof-next 'Disposable cleanup validation' --start
+ok: added proof-next -> In flight
+task:
+  id: proof-next
+  title: Disposable cleanup validation
+  state: in_flight
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi done proof-next --pr <url>` when it ships
+  - Run `tasks-axi block proof-next --by <other>` to record a dependency
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-teardown.sh proof-next
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown proof-next complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/missing-proof-next, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261016T113201Z-84975)
+Backlog: proof-next is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+exit=0
+$ tasks-axi show proof-owner --full
+task:
+  id: proof-owner
+  title: Disposable cleanup validation
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: none
+  body: "[owning task evidence](bead-artifacts/)\nlocal main"
+exit=0
+OBSERVED: A different task completion restores new links, expires scratch, and leaves live/external data intact
+{
+  "expired": {
+    "bytes": 833,
+    "allocated_bytes": 53248,
+    "files": [
+      [
+        "report.md",
+        164,
+        4096
+      ],
+      [
+        "proof(1).png",
+        15,
+        4096
+      ],
+      [
+        "capture.bin",
+        16,
+        4096
+      ],
+      [
+        "unlinked.json",
+        37,
+        4096
+      ],
+      [
+        "later(1).png",
+        19,
+        4096
+      ],
+      [
+        "brief.md",
+        18,
+        4096
+      ],
+      [
+        "later-artifacts/frame.bin",
+        25,
+        4096
+      ],
+      [
+        "record/data-cleanup.json",
+        430,
+        4096
+      ],
+      [
+        "record/status",
+        15,
+        4096
+      ],
+      [
+        "bead-artifacts/frame.bin",
+        32,
+        4096
+      ],
+      [
+        "résumé/frame.bin",
+        24,
+        4096
+      ],
+      [
+        "single/capture.png",
+        14,
+        4096
+      ],
+      [
+        "café/frame.bin",
+        24,
+        4096
+      ]
+    ]
+  },
+  "reclaimed_bytes": 6318723,
+  "newly_linked_files_restored": true,
+  "live_task_recovery_unchanged": true,
+  "external_scratch_and_symlink_target_unchanged": true,
+  "owning_backlog": "task:\n  id: proof-owner\n  title: Disposable cleanup validation\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"[owning task evidence](bead-artifacts/)\\nlocal main\"\n"
+}
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle guard-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/projects/example ''
+task data guard-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/data/guard-owner/.cleanup-hold until the next completed task
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle guard-owner
+warning: task data retained for recovery: dcg is unavailable
+exit=1
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle guard-owner
+
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle active-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/projects/example ''
+warning: task data retained for recovery: task is still live: active-owner
+exit=1
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle ../external-temp /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/projects/example ''
+warning: task data retained for recovery: invalid task id
+exit=1
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle escaped /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/projects/example ''
+warning: task data retained for recovery: not a real directory: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/lifecycle/data/escaped
+exit=1
+OBSERVED: Unavailable deletion guard and unsafe or live roots refuse without losing data
+{
+  "missing_guard_retained_original": true,
+  "real_guard_retry_succeeded": true,
+  "live_task_traversal_and_symlink_escape_refused": true
+}
+LIVE_SCENARIOS_COMPLETE

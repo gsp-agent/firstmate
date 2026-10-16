@@ -1,0 +1,574 @@
+[
+  {
+    "name": "Finished task holds original scratch for one cycle and preserves linked evidence",
+    "details": {
+      "before": {
+        "bytes": 6319125,
+        "allocated_bytes": 6434816,
+        "files": [
+          [
+            "report.md",
+            99,
+            4096
+          ],
+          [
+            "proof(1).png",
+            15,
+            4096
+          ],
+          [
+            "capture.bin",
+            16,
+            4096
+          ],
+          [
+            "unlinked.json",
+            37,
+            4096
+          ],
+          [
+            "later(1).png",
+            19,
+            4096
+          ],
+          [
+            "brief.md",
+            18,
+            4096
+          ],
+          [
+            "later-artifacts/frame.bin",
+            25,
+            4096
+          ],
+          [
+            "record/status",
+            15,
+            4096
+          ],
+          [
+            "prose-only/blob.bin",
+            20,
+            4096
+          ],
+          [
+            "bead-artifacts/frame.bin",
+            32,
+            4096
+          ],
+          [
+            "résumé/frame.bin",
+            24,
+            4096
+          ],
+          [
+            "single/discard.bin",
+            16,
+            4096
+          ],
+          [
+            "single/capture.png",
+            14,
+            4096
+          ],
+          [
+            "scratch/blob.bin",
+            4194304,
+            4194304
+          ],
+          [
+            "clone/build.bin",
+            2097152,
+            2097152
+          ],
+          [
+            "clone/README.md",
+            34,
+            4096
+          ],
+          [
+            "café/frame.bin",
+            24,
+            4096
+          ],
+          [
+            "clone/.git/config",
+            137,
+            4096
+          ],
+          [
+            "clone/.git/HEAD",
+            23,
+            4096
+          ],
+          [
+            "clone/.git/description",
+            73,
+            4096
+          ],
+          [
+            "clone/.git/info/exclude",
+            240,
+            4096
+          ],
+          [
+            "clone/.git/hooks/commit-msg.sample",
+            1972,
+            4096
+          ],
+          [
+            "clone/.git/hooks/pre-rebase.sample",
+            4898,
+            8192
+          ],
+          [
+            "clone/.git/hooks/sendemail-validate.sample",
+            2308,
+            4096
+          ],
+          [
+            "clone/.git/hooks/pre-commit.sample",
+            1649,
+            4096
+          ],
+          [
+            "clone/.git/hooks/applypatch-msg.sample",
+            478,
+            4096
+          ],
+          [
+            "clone/.git/hooks/fsmonitor-watchman.sample",
+            4611,
+            8192
+          ],
+          [
+            "clone/.git/hooks/pre-receive.sample",
+            544,
+            4096
+          ],
+          [
+            "clone/.git/hooks/prepare-commit-msg.sample",
+            1492,
+            4096
+          ],
+          [
+            "clone/.git/hooks/post-update.sample",
+            189,
+            4096
+          ],
+          [
+            "clone/.git/hooks/pre-merge-commit.sample",
+            416,
+            4096
+          ],
+          [
+            "clone/.git/hooks/pre-applypatch.sample",
+            424,
+            4096
+          ],
+          [
+            "clone/.git/hooks/pre-push.sample",
+            1374,
+            4096
+          ],
+          [
+            "clone/.git/hooks/update.sample",
+            3650,
+            4096
+          ],
+          [
+            "clone/.git/hooks/push-to-checkout.sample",
+            2783,
+            4096
+          ]
+        ]
+      },
+      "staged": {
+        "bytes": 6319556,
+        "allocated_bytes": 6438912,
+        "files": [
+          [
+            "report.md",
+            99,
+            4096
+          ],
+          [
+            "proof(1).png",
+            15,
+            4096
+          ],
+          [
+            "capture.bin",
+            16,
+            4096
+          ],
+          [
+            "unlinked.json",
+            37,
+            4096
+          ],
+          [
+            "brief.md",
+            18,
+            4096
+          ],
+          [
+            ".cleanup-hold/later(1).png",
+            19,
+            4096
+          ],
+          [
+            "record/data-cleanup.json",
+            431,
+            4096
+          ],
+          [
+            "record/status",
+            15,
+            4096
+          ],
+          [
+            "bead-artifacts/frame.bin",
+            32,
+            4096
+          ],
+          [
+            "résumé/frame.bin",
+            24,
+            4096
+          ],
+          [
+            "single/capture.png",
+            14,
+            4096
+          ],
+          [
+            "café/frame.bin",
+            24,
+            4096
+          ],
+          [
+            ".cleanup-hold/later-artifacts/frame.bin",
+            25,
+            4096
+          ],
+          [
+            ".cleanup-hold/prose-only/blob.bin",
+            20,
+            4096
+          ],
+          [
+            ".cleanup-hold/single/discard.bin",
+            16,
+            4096
+          ],
+          [
+            ".cleanup-hold/scratch/blob.bin",
+            4194304,
+            4194304
+          ],
+          [
+            ".cleanup-hold/clone/build.bin",
+            2097152,
+            2097152
+          ],
+          [
+            ".cleanup-hold/clone/README.md",
+            34,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/config",
+            137,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/HEAD",
+            23,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/description",
+            73,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/info/exclude",
+            240,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/commit-msg.sample",
+            1972,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/pre-rebase.sample",
+            4898,
+            8192
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/sendemail-validate.sample",
+            2308,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/pre-commit.sample",
+            1649,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/applypatch-msg.sample",
+            478,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/fsmonitor-watchman.sample",
+            4611,
+            8192
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/pre-receive.sample",
+            544,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/prepare-commit-msg.sample",
+            1492,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/post-update.sample",
+            189,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/pre-merge-commit.sample",
+            416,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/pre-applypatch.sample",
+            424,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/pre-push.sample",
+            1374,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/update.sample",
+            3650,
+            4096
+          ],
+          [
+            ".cleanup-hold/clone/.git/hooks/push-to-checkout.sample",
+            2783,
+            4096
+          ]
+        ]
+      },
+      "same_task_does_not_expire": true,
+      "unchanged_sha256": {
+        "proof(1).png": "0dad63511f19e142498d82d73954f67b4fa944ebb19b93d8d92b086d97c123e8",
+        "capture.bin": "8be3538135d5a2ebc373076afb04e445aee2f5825b83b454b92a75c7e5b496b7",
+        "café/frame.bin": "bb242fc46119bfb8a4955e1d2e70b0425adfb7ea96620774a392db2c24b11a1e",
+        "résumé/frame.bin": "45f8c981dec931e6977f4f811600d5722344c740ab26ab00607d771c326ac93b",
+        "bead-artifacts/frame.bin": "a526f5c4a88b07049ab292a4181f99df950ee886c07c799f4044ee29706bd65d",
+        "single/capture.png": "b0211086544454bce11cc6a9247e07841bfb3f49742872312c07ab9b9aac9685"
+      }
+    }
+  },
+  {
+    "name": "A different task completion restores new links, expires scratch, and leaves live/external data intact",
+    "details": {
+      "expired": {
+        "bytes": 833,
+        "allocated_bytes": 53248,
+        "files": [
+          [
+            "report.md",
+            164,
+            4096
+          ],
+          [
+            "proof(1).png",
+            15,
+            4096
+          ],
+          [
+            "capture.bin",
+            16,
+            4096
+          ],
+          [
+            "unlinked.json",
+            37,
+            4096
+          ],
+          [
+            "later(1).png",
+            19,
+            4096
+          ],
+          [
+            "brief.md",
+            18,
+            4096
+          ],
+          [
+            "later-artifacts/frame.bin",
+            25,
+            4096
+          ],
+          [
+            "record/data-cleanup.json",
+            430,
+            4096
+          ],
+          [
+            "record/status",
+            15,
+            4096
+          ],
+          [
+            "bead-artifacts/frame.bin",
+            32,
+            4096
+          ],
+          [
+            "résumé/frame.bin",
+            24,
+            4096
+          ],
+          [
+            "single/capture.png",
+            14,
+            4096
+          ],
+          [
+            "café/frame.bin",
+            24,
+            4096
+          ]
+        ]
+      },
+      "reclaimed_bytes": 6318723,
+      "newly_linked_files_restored": true,
+      "live_task_recovery_unchanged": true,
+      "external_scratch_and_symlink_target_unchanged": true,
+      "owning_backlog": "task:\n  id: proof-owner\n  title: Disposable cleanup validation\n  state: done\n  blocked: no\n  blocked_by: none\n  held: no\n  hold_reason: \"-\"\n  hold_kind: \"-\"\n  hold_until: \"-\"\n  kind: task\n  repo: \"-\"\n  priority: \"-\"\n  created: \"-\"\n  closed: 2026-10-16\n  deps: none\n  links: none\n  body: \"[owning task evidence](bead-artifacts/)\\nlocal main\"\n"
+    }
+  },
+  {
+    "name": "Unavailable deletion guard and unsafe or live roots refuse without losing data",
+    "details": {
+      "missing_guard_retained_original": true,
+      "real_guard_retry_succeeded": true,
+      "live_task_traversal_and_symlink_escape_refused": true
+    }
+  },
+  {
+    "name": "Real glab reads a disposable non-GitHub MR and comments; unavailable references preserve recovery",
+    "details": {
+      "local_http_requests": [
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/approval_state",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/notes?per_page=100",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/approval_state",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/notes?per_page=100",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/approval_state",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/notes?per_page=100"
+      ],
+      "all_reference_bytes_preserved": true,
+      "later_links_restored": true,
+      "503_refused_staging_and_expiry": true,
+      "service": "Disposable loopback GitLab API dataset; installed glab and production cleanup code"
+    }
+  },
+  {
+    "name": "Named Bead references resolve through the real task CLI and restore newly linked recovery",
+    "details": {
+      "consumer": "Installed tasks-axi Markdown adapter",
+      "all_linked_bytes_preserved": true,
+      "held_link_restored": true,
+      "unrelated_scratch_reclaimed": true
+    }
+  },
+  {
+    "name": "Actual macOS case, normalization and ancestor aliases preserve linked targets through expiry",
+    "details": {
+      "case_insensitive_filesystem": true,
+      "normalization_insensitive_filesystem": true,
+      "symlink_dotdot_component_order_preserved": true,
+      "held_alias_restored": true,
+      "unrelated_scratch_reclaimed": true
+    }
+  },
+  {
+    "name": "Real glab reads a disposable non-GitHub MR and comments; unavailable references preserve recovery",
+    "details": {
+      "local_http_requests": [
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/approval_state",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/notes?per_page=100",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/approval_state",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/notes?per_page=100",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/approval_state",
+        "/api/v4/projects/group%2Fproject/merge_requests/1/notes?per_page=100"
+      ],
+      "all_reference_bytes_preserved": true,
+      "later_links_restored": true,
+      "503_refused_staging_and_expiry": true,
+      "service": "Disposable loopback GitLab API dataset; installed glab and production cleanup code"
+    }
+  },
+  {
+    "name": "Named Bead references resolve through the real task CLI and restore newly linked recovery",
+    "details": {
+      "consumer": "Installed tasks-axi Markdown adapter",
+      "all_linked_bytes_preserved": true,
+      "held_link_restored": true,
+      "unrelated_scratch_reclaimed": true
+    }
+  },
+  {
+    "name": "Actual macOS case, normalization and ancestor aliases preserve linked targets through expiry",
+    "details": {
+      "case_insensitive_filesystem": true,
+      "normalization_insensitive_filesystem": true,
+      "symlink_dotdot_component_order_preserved": true,
+      "held_alias_restored": true,
+      "unrelated_scratch_reclaimed": true
+    }
+  }
+]

@@ -1,0 +1,145 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references
+exit=0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references/projects/example
+
+exit=0
+$ br init --db /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references/graph/.beads/beads.db --prefix proof
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit=0
+$ br create 'Real isolated evidence source' --description '[image](proof\(1\).png) [directory](café/)' --db /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references/graph/.beads/beads.db --json
+{"id":"proof-lyb","title":"Real isolated evidence source","description":"[image](proof\\(1\\).png) [directory](café/)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-16T11:42:18.923887Z","created_by":"dalecarman","updated_at":"2026-10-16T11:42:18.923887Z","source_repo":"graph","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references/graph","compaction_level":0,"original_size":0}
+exit=0
+$ tasks-axi show proof-lyb --full
+error: "Unsupported backend \"beads\" — P1 ships the markdown backend only"
+code: UNSUPPORTED
+help[1]: "Set `backend = \"markdown\"` in .tasks.toml, or omit --backend"
+exit=1
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references proof-lyb /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references/projects/example ''
+warning: task data retained for recovery: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-task-data-lib.sh', 'backlog-references', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/beads-references/data', 'proof-lyb', '0']' returned non-zero exit status 1.
+exit=1
+{
+  "scenario": "Successful cleanup from a native Beads-backed home",
+  "result": "untested",
+  "installed_tasks_axi": "0.2.6",
+  "attempts": [
+    "Created a disposable real br database and owning issue",
+    "Tried the installed tasks-axi with an explicit isolated Beads config",
+    "Queried the published package and cloned its official default branch into the workspace"
+  ],
+  "public_source_head": "9401ff899c0d1d8ae6b4fd8727b9025abda2032c",
+  "reason": "Installed and latest published/default-branch tasks-axi 0.2.6 support Markdown only. A real Beads-capable tasks-axi build on the disposable PATH is required; fabricating its adapter would not prove integration.",
+  "observed_safety": "Actual cleanup refused while the Beads source was unreadable and every original byte stayed in place."
+}
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/named-references
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/named-references
+exit=0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/named-references/projects/example
+
+exit=0
+$ tasks-axi add proof-owner 'Owning task'
+ok: added proof-owner -> Queued
+task:
+  id: proof-owner
+  title: Owning task
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start proof-owner` to move it to in flight
+  - Run `tasks-axi block proof-owner --by <other>` to record a dependency
+exit=0
+$ tasks-axi add proof-related 'Named reference source' --body '[named bead image](proof\(1\).png) [named directory](café/)'
+ok: added proof-related -> Queued
+task:
+  id: proof-related
+  title: Named reference source
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "[named bead image](proof\\(1\\).png) [named directory](café/)"
+help[2]:
+  - Run `tasks-axi start proof-related` to move it to in flight
+  - Run `tasks-axi block proof-related --by <other>` to record a dependency
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/named-references proof-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/named-references/projects/example ''
+task data proof-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/named-references/data/proof-owner/.cleanup-hold until the next completed task
+exit=0
+$ tasks-axi update proof-related --body '[named bead image](proof\(1\).png) [named directory](café/) [late capture](later\(1\).png)'
+ok: updated proof-related (body)
+task:
+  id: proof-related
+  title: Named reference source
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "[named bead image](proof\\(1\\).png) [named directory](café/) [late capture](later\\(1\\).png)"
+help[1]:
+  - Run `tasks-axi show proof-related --full` to see the result
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/named-references proof-owner
+
+exit=0
+OBSERVED: Named Bead references resolve through the real task CLI and restore newly linked recovery
+{
+  "consumer": "Installed tasks-axi Markdown adapter",
+  "all_linked_bytes_preserved": true,
+  "held_link_restored": true,
+  "unrelated_scratch_reclaimed": true
+}
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/filesystem-aliases
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/filesystem-aliases
+exit=0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/filesystem-aliases/projects/example
+
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH stage /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/filesystem-aliases alias-owner /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/filesystem-aliases/projects/example ''
+task data alias-owner: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/filesystem-aliases/data/alias-owner/.cleanup-hold until the next completed task
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M51ZCPG0KSDTE3D3JEJ57XBH/task-data-locked.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M51ZCPG0KSDTE3D3JEJ57XBH/.validation-task-data/live/filesystem-aliases alias-owner
+
+exit=0
+OBSERVED: Actual macOS case, normalization and ancestor aliases preserve linked targets through expiry
+{
+  "case_insensitive_filesystem": true,
+  "normalization_insensitive_filesystem": true,
+  "symlink_dotdot_component_order_preserved": true,
+  "held_alias_restored": true,
+  "unrelated_scratch_reclaimed": true
+}
+NATIVE_CAPABILITY_AND_LIVE_ALIAS_SCENARIOS_COMPLETE
