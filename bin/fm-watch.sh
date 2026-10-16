@@ -2118,6 +2118,7 @@ FM_ACTIVE_CHECK_PID=
 FM_ACTIVE_CHECK_PGID=
 FM_CHECK_OUTPUT=
 FM_CHECK_RESULT=
+FM_CHECK_STATUS=
 FM_CHECK_SIGNAL_PENDING=
 
 fm_check_output_cleanup() {
@@ -2167,9 +2168,10 @@ watcher_stop_signals() {
 }
 
 run_check_capture() {
-  local pgid
+  local pgid rc=0
   fm_check_output_cleanup
   FM_CHECK_RESULT=
+  FM_CHECK_STATUS=
   FM_CHECK_OUTPUT=$(mktemp "$STATE/.fm-check-output.XXXXXX") || return 1
   chmod 0600 "$FM_CHECK_OUTPUT" || { fm_check_output_cleanup; return 1; }
   FM_CHECK_SIGNAL_PENDING=
@@ -2190,9 +2192,10 @@ run_check_capture() {
     fm_check_output_cleanup
     return 1
   fi
-  wait "$FM_ACTIVE_CHECK_PID" 2>/dev/null || true
+  wait "$FM_ACTIVE_CHECK_PID" 2>/dev/null || rc=$?
   FM_ACTIVE_CHECK_PID=
   fm_active_check_stop || return 1
+  FM_CHECK_STATUS=$rc
   FM_CHECK_RESULT=$(cat "$FM_CHECK_OUTPUT" 2>/dev/null || true)
   fm_check_output_cleanup
 }
@@ -3030,11 +3033,13 @@ EOF
     # owns the line and the seen record.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
       # Pages are bounded inside the sweep. The snapshot is the repo set from
-      # before this cycle retired a merged watch. Drop it after this pass so a
-      # later cycle does not keep scanning a repository that no longer has one.
+      # before this cycle retired a merged watch. Drop it only after the scan
+      # exits 0, so a failed or timed-out page keeps the repository and its
+      # deferred retirement for the next pass.
       FM_CHECK_UNBOUNDED=1 FM_PR_SWEEP_PAGE_TIMEOUT="$CHECK_TIMEOUT" \
         FM_PR_SWEEP_REPOS="$sweep_repo_snapshot" FM_PR_SWEEP_BEAT="$BEAT" \
         run_check_capture "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --scan "$STATE" || exit 1
+      if [ "${FM_CHECK_STATUS:-1}" -eq 0 ]; then
       sweep_repo_snapshot=
       sweep_raw=$FM_CHECK_RESULT
       sweep_line=
@@ -3066,6 +3071,9 @@ EOF
         reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
         fm_wake_append check pr-poll-retirement "$reason" || exit 1
         check_sweep_output="${check_sweep_output}${reason}"$'\n'
+      fi
+      else
+        triage_log "merge-queue sweep failed; keeping the repository snapshot and deferred retirement"
       fi
     fi
     if [ -n "$rejected_checks" ]; then

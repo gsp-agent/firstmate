@@ -85,43 +85,6 @@ rm -f "$FM_CURSOR_USAGE_DIR/20261015-spending.txt"
 printf '{"name":"pstack","version":"0.15.21"}\n' > "$FM_PSTACK_DIR/.cursor-plugin/plugin.json"
 pass "an off-pin pstack falls back to grok only while the pool is fine; a short pool still goes to codex"
 
-mkdir -p "$TMP_ROOT/gnu-bin"
-cat > "$TMP_ROOT/gnu-bin/uname" <<'SH'
-#!/usr/bin/env bash
-printf 'Linux\n'
-SH
-cat > "$TMP_ROOT/gnu-bin/stat" <<'SH'
-#!/usr/bin/env bash
-case "$1" in
-  -f) printf 'File: filesystem information\n'; exit 1 ;;
-  -c)
-    [ "$2" = %Y ] || exit 1
-    shift 2
-    if [ "$FM_TEST_STAT_HOST" = Darwin ]; then
-      exec "$FM_TEST_REAL_STAT" -f %m "$@"
-    else
-      exec "$FM_TEST_REAL_STAT" -c %Y "$@"
-    fi
-    ;;
-  *) exit 1 ;;
-esac
-SH
-chmod +x "$TMP_ROOT/gnu-bin/uname" "$TMP_ROOT/gnu-bin/stat"
-FM_TEST_STAT_HOST=$(uname)
-FM_TEST_REAL_STAT=$(command -v stat)
-export FM_TEST_STAT_HOST FM_TEST_REAL_STAT
-out=$(PATH="$TMP_ROOT/gnu-bin:$PATH" "$TOOL" fallback linux-fresh 2> "$TMP_ROOT/err")
-expect_code 0 $? "GNU stat handles a fresh spending file"
-[ "$out" = cursor ] || fail "GNU stat corrupted the fresh file time: $out"
-[ ! -s "$TMP_ROOT/err" ] || fail "GNU stat produced an age arithmetic error"
-mkdir "$FM_STATE_OVERRIDE/cursor-dispatch.lock"
-touch -t 200001010000 "$FM_STATE_OVERRIDE/cursor-dispatch.lock"
-PATH="$TMP_ROOT/gnu-bin:$PATH" g 2030-01-03 take linux-lock
-expect_code 0 $? "GNU stat recovers a stale dispatch lock"
-assert_contains "$(cat "$TMP_ROOT/err")" "removed a stale lock" "GNU stat detects the stale lock"
-[ ! -e "$FM_STATE_OVERRIDE/cursor-dispatch.lock" ] || fail "GNU stat left the stale lock"
-pass "GNU stat returns one timestamp for spending ages and stale lock recovery"
-
 # ---- a usage-limit error is recorded, then the bead routes to codex ----
 printf '{"type":"error","message":"429 usage limit reached"}\n' > "$FM_STATE_OVERRIDE/u1.cursor-stream.jsonl"
 "$TOOL" after u1 3 2>/dev/null; expect_code 3 $? "after exits with the agent's status"

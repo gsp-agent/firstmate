@@ -4,8 +4,10 @@
 # FM_PR_SWEEP_REPOS names it from a snapshot taken before a merged watch was retired.
 # One pass reads all open pull requests in pages of 100, newest update first.
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
-# A failed page suppresses that repository's results; other repositories are
-# still checked. There is no deadline around the complete scan.
+# A failed or timed-out page fails the scan. Repositories whose pages completed
+# may still print their removals. The watcher keeps its repository snapshot and
+# does not finish retiring a merged watch until a later scan exits 0.
+# There is no deadline around the complete scan.
 # When FM_PR_SWEEP_BEAT names the watcher's liveness beacon, each completed
 # page and repository attempt refreshes it so a progressing scan stays alive.
 # It reports a pull request when its newest queue event is a removal, the pull
@@ -15,7 +17,8 @@
 # Each removal event is printed once, as
 # `dequeued <url> reason=<escaped-text> event=<id>`.
 # The reason is GitHub's text with JSON string escaping and no surrounding quotes.
-# A removal whose reason is merged, a failed read, and an unreadable event stay silent.
+# A removal whose reason is merged stays silent, and an unreadable event stays silent.
+# A failed or timed-out read fails the scan instead of reporting an empty result.
 # The watcher records an event id only after that wake is durable.
 # This file owns the seen record: a mode-600 file state/merge-queue-sweep.seen
 # whose first line is fm-merge-queue-sweep-v1 and whose later lines are event ids.
@@ -342,7 +345,7 @@ EOF
 }
 
 sweep_scan() {
-  local state=$1 path key owner repo repo_out
+  local state=$1 path key owner repo repo_out failed=0
   sweep_state_ok "$state" || return 0
   path=$(sweep_seen_path "$state")
   if [ -e "$path" ] || [ -L "$path" ]; then
@@ -358,19 +361,20 @@ sweep_scan() {
     [ -n "$key" ] || continue
     owner=${key%%/*}
     repo=${key#*/}
-    repo_out=$(sweep_one_repo "$owner" "$repo") || repo_out=
+    repo_out=$(sweep_one_repo "$owner" "$repo") || { repo_out=; failed=1; }
     [ -z "${FM_PR_SWEEP_BEAT:-}" ] || touch "$FM_PR_SWEEP_BEAT"
     [ -z "$repo_out" ] || printf '%s\n' "$repo_out"
   done <<EOF
 $sweep_repos
 EOF
+  [ "$failed" -eq 0 ]
 }
 
 case "${1:-}" in
   --scan)
     [ "$#" -eq 2 ] || exit 0
     sweep_scan "$2"
-    exit 0
+    exit $?
     ;;
   --repos)
     [ "$#" -eq 2 ] || exit 0

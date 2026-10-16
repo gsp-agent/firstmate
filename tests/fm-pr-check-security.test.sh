@@ -4344,15 +4344,16 @@ test_open_queue_sweep_exhausts_pages() {
   pass "the queue sweep reads every page of open pull requests"
 }
 
-# Arms task-a on a copy of the poll template that differs by one trailing
-# newline, so the registration records that copy and not the current template.
+# Arms task-a on a poll template this repository shipped before the current
+# file, so the registration records that hash and not the current template.
 arm_previous_template_poll() {  # <dir> <url>
   local dir=$1 url=$2 state historical
   state="$dir/home/state"
   historical="$dir/historical-fm-pr-poll.sh"
-  cp "$POLL" "$historical"
-  printf '\n' >> "$historical"
+  git -C "$ROOT" show 38fa6f7bde25e4cd64235581ceb16ca92a8453bc:bin/fm-pr-poll.sh > "$historical"
   chmod 0600 "$historical"
+  fm_pr_poll_template_hash_shipped "$POLL" "$(fm_pr_sha256 "$historical")" \
+    || fail "previous-template fixture is not a shipped template"
   write_poll_meta "$state" task-a "$url"
   seed_canonical_poll "$dir" task-a "$url" "$historical"
   ! cmp -s "$POLL" "$state/task-a.check.sh" \
@@ -4418,6 +4419,39 @@ test_tampered_check_stays_rejected() {
   ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
     || fail "tampered check was queried"
   pass "a tampered check copy stays rejected"
+}
+
+test_unshipped_template_hash_is_refused() {
+  local dir state registration_sha replacement
+  dir=$(make_case unshipped-template-hash)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  replacement=$(printf 'another template\n' | shasum -a 256 | awk '{print $1}')
+  awk -v hash="$replacement" 'NR == 9 { $0 = hash } { print }' \
+    "$state/task-a.pr-poll-registration" > "$state/.swap"
+  chmod 0600 "$state/.swap"
+  mv -f -- "$state/.swap" "$state/task-a.pr-poll-registration"
+  registration_sha=$(fm_pr_sha256 "$state/task-a.pr-poll-registration")
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  : > "$dir/gh.log"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "unshipped template hash watcher failed: $(cat "$dir/watch.err")"
+  if grep -F 'rejected unauthenticated state checks:' "$dir/watch.out" >/dev/null \
+    && grep -F 'task-a.check.sh' "$dir/watch.out" >/dev/null; then
+    :
+  else
+    fail "an unshipped template hash was not refused: $(cat "$dir/watch.out")"
+  fi
+  [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_sha" ] \
+    || fail "an unshipped template hash was re-recorded"
+  ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+    || fail "an unshipped template hash was queried"
+  ! grep -F 'task-a.check.sh: merged' "$dir/watch.out" >/dev/null \
+    || fail "an unshipped template hash reported a merge"
+  pass "a registration whose template hash was never shipped stays refused"
 }
 
 test_interrupted_template_upgrade_finishes_on_the_next_poll() {
@@ -4670,6 +4704,55 @@ test_recovered_merged_watch_still_sweeps_its_repo() {
   pass "a recovered merged watch retains its repository through the first completed sweep"
 }
 
+test_failed_sweep_keeps_the_repository_for_the_next_cycle() {
+  local dir state rc
+  dir=$(make_case failed-sweep-keeps-repo)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_slow_sweep_page "$dir" page1 2 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_FAIL=1 \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/fail.out" 2> "$dir/fail.err" \
+    || fail "failed sweep watcher exited: $(cat "$dir/fail.err")"
+  ! grep -F 'dequeued https://github.com/o/r/pull/2' "$dir/fail.out" >/dev/null \
+    || fail "a failed sweep reported a removal: $(cat "$dir/fail.out")"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+    || fail "a failed sweep retired the repository"
+  [ ! -e "$state/task-a.check.sh" ] || fail "a failed sweep left the merged poll runnable"
+  [ ! -e "$state/merge-queue-sweep.seen" ] || fail "a failed sweep recorded events"
+  ack_watcher_cycle "$state" || fail "failed sweep acknowledgement failed"
+  FM_TEST_GH_LOG="$dir/gh2.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "the next sweep failed: $(cat "$dir/watch.err")"
+  assert_poll_absent "$state" task-a
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "next sweep drain failed"
+  [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+    || fail "the next good sweep lost the removal: $(cat "$dir/drain.out")"
+
+  dir=$(make_case sweep-page-timeout-fails)
+  state="$dir/home/state"
+  mkdir -p "$state" "$dir/fakebin" "$dir/sweep"
+  cat > "$dir/fakebin/gh" <<'SH'
+#!/usr/bin/env bash
+sleep 2
+exit 0
+SH
+  chmod +x "$dir/fakebin/gh"
+  set +e
+  PATH="$dir/fakebin:$BASE_PATH" FM_TEST_GH_LOG="$dir/timeout.log" \
+    FM_PR_SWEEP_PAGE_TIMEOUT=1 FM_PR_SWEEP_REPOS=$'o/r' \
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$state" > "$dir/timeout.out" 2> "$dir/timeout.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "a timed-out sweep page exited 0"
+  [ ! -s "$dir/timeout.out" ] || fail "a timed-out sweep page printed a result: $(cat "$dir/timeout.out")"
+  pass "a failed sweep keeps the repository until the next sweep reports its removal"
+}
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -4712,6 +4795,7 @@ test_open_queue_removals_wake_once_across_a_watched_repo
 test_open_queue_sweep_exhausts_pages
 test_old_template_watch_polls_after_upgrade
 test_tampered_check_stays_rejected
+test_unshipped_template_hash_is_refused
 test_interrupted_template_upgrade_finishes_on_the_next_poll
 test_interrupted_template_upgrade_refuses_replaced_artifacts
 test_old_template_and_renumber_are_both_recovered
@@ -4719,6 +4803,7 @@ test_sweep_page_deadline_reports_every_removal
 test_progressing_sweep_survives_rearm_past_stall_bound
 test_merged_only_watch_still_sweeps_its_repo
 test_recovered_merged_watch_still_sweeps_its_repo
+test_failed_sweep_keeps_the_repository_for_the_next_cycle
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations

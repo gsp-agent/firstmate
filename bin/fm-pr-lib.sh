@@ -837,13 +837,31 @@ fm_pr_poll_registration_rerecord_device() {  # <state> <id> <template>
   fm_pr_poll_artifacts_valid "$state" "$id" "$template"
 }
 
+# True when the hash is one complete line of fm-pr-poll-shipped.sha256 beside
+# the template. That file lists the sha256 of every committed bin/fm-pr-poll.sh.
+# Any other recorded hash stays refused.
+fm_pr_poll_template_hash_shipped() {  # <template> <hash>
+  local template=$1 hash=$2 list line
+  case "$hash" in
+    *[!0-9a-f]*|'') return 1 ;;
+  esac
+  [ "${#hash}" -eq 64 ] || return 1
+  list=${template%/*}/fm-pr-poll-shipped.sha256
+  [ -f "$list" ] && [ ! -L "$list" ] || return 1
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ "$line" = "$hash" ] && return 0
+  done < "$list"
+  return 1
+}
+
 # A poll armed on an older copy of the template fails the strict byte
 # comparison after that template changes. This proves that is the only
 # difference: data, registration, and meta validate, the live check and sidecar
-# are still the file objects the registration recorded, and the check's hash
-# equals the recorded template hash. A tampered, replaced, re-moded, relinked,
-# or retired artifact fails a proof here and stays refused. Success is not
-# authentication against the current template.
+# are still the file objects the registration recorded, the check's hash
+# equals the recorded template hash, and that hash is one this repository
+# shipped. A tampered, replaced, re-moded, relinked, or retired artifact fails
+# a proof here and stays refused. Success is not authentication against the
+# current template.
 fm_pr_poll_registration_template_upgradable() {  # <state> <id> <template>
   local state=$1 id=$2 template=$3 receipt data_identity check_identity current_hash
   fm_pr_task_id_valid "$id" || return 1
@@ -858,7 +876,7 @@ fm_pr_poll_registration_template_upgradable() {  # <state> <id> <template>
   current_hash=$(fm_pr_sha256 "$template") || return 1
   [ "$current_hash" != "$FM_PR_REG_TEMPLATE_HASH" ] || return 1
   cmp -s "$template" "$state/$id.check.sh" && return 1
-  return 0
+  fm_pr_poll_template_hash_shipped "$template" "$FM_PR_REG_TEMPLATE_HASH"
 }
 
 # Rewrite an upgradable poll (fm_pr_poll_registration_template_upgradable) so
@@ -940,9 +958,11 @@ fm_pr_poll_registration_rerecord_template() {  # <state> <id> <template>
 # A template rewrite can replace the check and die before the registration
 # rename. The check then already matches the current template while the
 # registration still records the previous hash and may name a renumbered
-# device. Recovery requires unchanged check and sidecar inodes on the live
-# state device, with both recorded identities naming the same prior device.
-# A replaced artifact or a check unlike the current template stays refused.
+# device. Recovery requires that recorded hash to be one this repository
+# shipped, and unchanged check and sidecar inodes on the live state device,
+# with both recorded identities naming the same prior device.
+# A replaced artifact, an unshipped hash, or a check unlike the current
+# template stays refused.
 # On success FM_PR_POLL_REARM_DATA_IDENTITY and
 # FM_PR_POLL_REARM_CHECK_IDENTITY hold the live identities.
 fm_pr_poll_registration_template_hash_stale() {  # <state> <id> <template>
@@ -963,6 +983,7 @@ fm_pr_poll_registration_template_hash_stale() {  # <state> <id> <template>
   [ "$check_identity" = "$state_device:${FM_PR_REG_CHECK_IDENTITY#*:}" ] || return 1
   current_hash=$(fm_pr_sha256 "$template") || return 1
   [ "$current_hash" != "$FM_PR_REG_TEMPLATE_HASH" ] || return 1
+  fm_pr_poll_template_hash_shipped "$template" "$FM_PR_REG_TEMPLATE_HASH" || return 1
   FM_PR_POLL_REARM_DATA_IDENTITY=$data_identity
   FM_PR_POLL_REARM_CHECK_IDENTITY=$check_identity
 }
@@ -1025,9 +1046,10 @@ fm_pr_poll_registration_rerecord_template_hash() {  # <state> <id> <template>
 # pair is the only difference: the check hash equals the recorded template
 # hash, both recorded identities share one device that is not the live device,
 # each live inode matches its recorded inode, the current template hash differs
-# from the recorded hash, and the check is not the current template. A
-# tampered, replaced, re-moded, relinked, or retired artifact fails a proof
-# here and stays refused. Success is not authentication against the current
+# from the recorded hash, that hash is one this repository shipped, and the
+# check is not the current template. A tampered, replaced, re-moded, relinked,
+# unshipped, or retired artifact fails a proof here and stays refused. Success
+# is not authentication against the current
 # template. On success FM_PR_POLL_REARM_DATA_IDENTITY and
 # FM_PR_POLL_REARM_CHECK_IDENTITY hold the live identities.
 fm_pr_poll_registration_template_device_recoverable() {  # <state> <id> <template>
@@ -1051,6 +1073,7 @@ fm_pr_poll_registration_template_device_recoverable() {  # <state> <id> <templat
   current_hash=$(fm_pr_sha256 "$template") || return 1
   [ "$current_hash" != "$FM_PR_REG_TEMPLATE_HASH" ] || return 1
   cmp -s "$template" "$state/$id.check.sh" && return 1
+  fm_pr_poll_template_hash_shipped "$template" "$FM_PR_REG_TEMPLATE_HASH" || return 1
   FM_PR_POLL_REARM_DATA_IDENTITY=$data_identity
   FM_PR_POLL_REARM_CHECK_IDENTITY=$check_identity
 }
@@ -1749,10 +1772,11 @@ fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
 }
 
 # The optional fourth argument, 1, removes the runnable check and registration
-# but retains the sidecar and receipt. The watcher uses this until its queue
-# sweep consumes the repository snapshot: an early recovery wake or restart
-# must not lose the repository when its last watch merged. A later call with
-# the default, 0, completes identity-bound removal. Regression coverage:
+# but retains the sidecar and receipt. The watcher uses this until a queue
+# sweep of that repository exits 0. A failed or timed-out sweep leaves the
+# sidecar in place. An early recovery wake or restart must not lose the
+# repository when its last watch merged. A later call with the default, 0,
+# completes identity-bound removal. Regression coverage:
 # tests/fm-pr-check-security.test.sh, test_recovered_merged_watch_still_sweeps_its_repo.
 fm_pr_poll_retirement_recover_one() {
   local state=$1 id=$2 template=$3 receipt state_device check data registration
