@@ -7,11 +7,15 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
 The caller must hold STATE/.meta-ID.lock, the lock also used by spawn.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
 Without metadata or a cleanup record, prepare reads the latest completed markdown
-backlog row, including the configured archive (legacy preparation needs tomllib).
+backlog row, including the configured archive (legacy mode needs tomllib).
+PR identity and named beads come from the entire selected row, including its
+continuation notes; multiple distinct PRs retain the whole folder.
 Named repositories resolve below the backlog home's projects/; absolute repo
-paths remain absolute. Missing, ambiguous, or active rows retain the whole folder.
+paths remain absolute.
+Missing, ambiguous, or active rows retain the whole folder.
 Legacy row references are refreshed before staging and expiry, with the original
 row retained as evidence in the cleanup record.
+A changed project or PR identity retains the whole folder.
 Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
 Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
