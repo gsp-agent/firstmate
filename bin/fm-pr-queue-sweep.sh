@@ -5,8 +5,8 @@
 # One pass reads all open pull requests in pages of 100, newest creation first.
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
 # A failed or timed-out page fails the scan. Repositories whose pages completed
-# may still print their removals. The watcher keeps its repository snapshot and
-# does not finish retiring a merged watch until a later scan exits 0.
+# may still print their removals. bin/fm-watch.sh owns publication and retirement
+# after the scan.
 # There is no deadline around the complete scan.
 # When FM_PR_SWEEP_BEAT names the watcher's liveness beacon, each completed
 # page and repository attempt refreshes it so a progressing scan stays alive.
@@ -18,7 +18,8 @@
 # `dequeued <url> reason=<escaped-text> event=<id>`.
 # The reason is GitHub's text with JSON string escaping and no surrounding quotes.
 # A removal whose reason is merged stays silent, and an unreadable event stays silent.
-# A failed or timed-out read fails the scan instead of reporting an empty result.
+# An unreadable, malformed, or unsafe seen record fails the scan before querying
+# GitHub; --contains returns 2 for validation or read errors.
 # The watcher records an event id only after that wake is durable.
 # This file owns the seen record: a mode-600 file state/merge-queue-sweep.seen
 # whose first line is fm-merge-queue-sweep-v1 and whose later lines are event ids.

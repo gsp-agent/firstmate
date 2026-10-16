@@ -18,7 +18,9 @@
 # A validated exact merged result is retired through a private receipt only
 # after its durable wake is appended.
 # The receipt binds the terminal observation to the canonical registration and
-# lets a restart finish fixed-path removal without executing state-file bytes.
+# lets a restart resume fixed-path removal without executing state-file bytes.
+# fm_pr_poll_retirement_ready owns discovery retention during retirement,
+# teardown, and re-arm.
 
 FM_PR_PROVIDER=
 FM_PR_URL=
@@ -1773,6 +1775,12 @@ fm_pr_poll_dequeue_record() {  # <state> <id> <url> <removal-event>
   return 0
 }
 
+# Retiring or replacing an authenticated GitHub sidecar must preserve repository
+# discovery until a successful sweep. A replacement in the same repository
+# preserves discovery unless a pending receipt already owns the retirement.
+# Callers pass only repositories whose scan and publication succeeded.
+# Returns 2 while discovery must be retained, 1 for an invalid receipt or task
+# ID, and 0 when cleanup or replacement may proceed.
 fm_pr_poll_retirement_ready() {
   local state=$1 id=$2 template=$3 swept_repos=${4:-} replacement=${5:-}
   local provider host path
@@ -1864,8 +1872,8 @@ fm_pr_poll_retirement_recover_all() {
 }
 
 # --- merge-notification canonical-identity marker ----------------------------
-# A merged-PR poll retires (fm_pr_poll_retirement_recover_one) in the same
-# watcher cycle that detects it, which is normally enough on its own to stop a
+# Retirement (fm_pr_poll_retirement_recover_one) removes the merged poll's
+# runnable check in the detecting watcher cycle, which normally stops a
 # duplicate detection: the check.sh is gone, so nothing re-polls it. The
 # exception is the same poll re-registered after its merge was already
 # surfaced. Its retirement state is scoped to one registration, so this marker

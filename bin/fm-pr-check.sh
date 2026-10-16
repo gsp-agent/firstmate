@@ -72,7 +72,8 @@ fi
 
 # A prior exact merged result may have queued its durable wake immediately
 # before interruption.
-# Finish only its identity-bound receipt before publishing a replacement poll.
+# Resume only its identity-bound receipt; fm_pr_poll_retirement_ready below
+# decides whether replacement preserves repository discovery.
 fm_pr_poll_retirement_recover_one "$STATE" "$ID" "$SCRIPT_DIR/fm-pr-poll.sh" || {
   echo "error: pending PR poll retirement could not be validated" >&2
   exit 1

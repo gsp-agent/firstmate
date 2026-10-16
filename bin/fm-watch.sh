@@ -86,12 +86,14 @@
 #                          stamping .last-check and delivering its collected
 #                          reasons in one watcher close, so an earlier result
 #                          cannot hide a later PR result.
+#                          Completed repository results are published even
+#                          when another repository fails. Final retirement and
+#                          snapshot clearing require the scan and deduplication
+#                          lookups to succeed.
 #                          Before startup retirement recovery and each check
 #                          block, snapshot watched GitHub repositories for
-#                          bin/fm-pr-queue-sweep.sh. Defer final retirement
-#                          through fm_pr_poll_retirement_recover_one so that
-#                          discovery evidence survives until the scan consumes
-#                          the snapshot, even across an earlier recovery close.
+#                          bin/fm-pr-queue-sweep.sh. bin/fm-pr-lib.sh owns
+#                          discovery retention across recovery and cleanup.
 #   check: process-event result captured: <keys>
 #                          a durably captured process-to-event result is queued
 #                          and has not been surfaced yet; reported once per
@@ -273,12 +275,9 @@ fi
 # turn-ended signature, annotation staleness checks, and guarded bookkeeping writes.
 
 POLL=${FM_POLL:-15}                   # seconds between cycles
-# The liveness beacon is touched once per cycle, immediately before the
-# terminal wait below (event_wait_or_sleep) as well as at the top of the next
-# one, so a healthy cycle's beacon can legitimately age up to POLL seconds
-# between touches. fm_poll_derived_grace (bin/fm-wake-lib.sh, already sourced
-# transitively above) is the single owner of the max(300, poll+60)
-# derivation - see docs/turnend-guard.md "Guard grace and the poll cadence".
+# docs/turnend-guard.md "Guard grace and the poll cadence" owns beacon refreshes.
+# fm_poll_derived_grace (bin/fm-wake-lib.sh, sourced transitively above) owns
+# the grace derivation that accommodates the terminal wait.
 # This recomputes the library default above now that the real configured
 # POLL is known.
 WATCHER_STALE_GRACE=${FM_WATCHER_STALE_GRACE:-${FM_GUARD_GRACE:-$(fm_poll_derived_grace "$POLL")}}
@@ -3033,9 +3032,8 @@ EOF
     # owns the line and the seen record.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
       # Pages are bounded inside the sweep. The snapshot is the repo set from
-      # before this cycle retired a merged watch. Drop it only after the scan
-      # exits 0, so a failed or timed-out page keeps the repository and its
-      # deferred retirement for the next pass.
+      # before this cycle retired a merged watch. The header owns publication,
+      # snapshot retention, and final retirement after the scan.
       FM_CHECK_UNBOUNDED=1 FM_PR_SWEEP_PAGE_TIMEOUT="$CHECK_TIMEOUT" \
         FM_PR_SWEEP_REPOS="$sweep_repo_snapshot" FM_PR_SWEEP_BEAT="$BEAT" \
         run_check_capture "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --scan "$STATE" || exit 1

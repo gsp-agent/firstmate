@@ -206,8 +206,10 @@ With `state/.afk` absent the daemon lock proves nothing and the strict watcher p
 
 ### Guard grace and the poll cadence
 
-`bin/fm-watch.sh` touches `state/.last-watcher-beat` once per cycle, immediately before its terminal wait (`event_wait_or_sleep`) as well as at the top of the next cycle.
-A healthy watcher's beacon can therefore legitimately age up to `FM_POLL` seconds between touches.
+`bin/fm-watch.sh` owns `state/.last-watcher-beat` and refreshes it immediately before its terminal wait (`event_wait_or_sleep`), at the top of the next cycle, and after each collected check completes, including PR polls, Relay, and custom checks.
+Its merge-queue sweep child also refreshes that same beacon after each completed GitHub page and each repository attempt, keeping actual progress visible during a long scan.
+[`tests/fm-pr-check-security.test.sh`](../tests/fm-pr-check-security.test.sh) covers re-arming during long registered-check and page sequences without evicting the progressing watcher.
+A healthy watcher's beacon can legitimately age up to `FM_POLL` seconds during the terminal wait.
 
 A fixed 300-second grace default stops correctly bounding staleness once a home's `FM_POLL` reaches or exceeds it.
 A perfectly healthy watcher mid-wait would then read stale at the edge of every full poll cycle by definition.

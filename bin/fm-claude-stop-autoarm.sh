@@ -160,11 +160,9 @@ esac
 # shellcheck source=bin/fm-supervision-engine-lib.sh
 . "$SCRIPT_DIR/fm-supervision-engine-lib.sh"
 
-# fm-watch.sh touches the liveness beacon once per cycle, immediately before
-# its terminal wait, so a healthy watcher's beacon can legitimately age up to
-# FM_POLL seconds between touches (docs/turnend-guard.md "Guard grace and the
-# poll cadence"). fm_poll_derived_grace (bin/fm-wake-lib.sh) is the single
-# owner of that max(300, poll+60) derivation.
+# Allow a healthy watcher's terminal wait to run without a stale-beacon alarm.
+# docs/turnend-guard.md "Guard grace and the poll cadence" owns refresh cadence;
+# fm_poll_derived_grace (bin/fm-wake-lib.sh) owns the grace derivation.
 GRACE=${FM_GUARD_GRACE:-$(fm_poll_derived_grace)}
 
 # Consume the Stop payload once. The decisions below are state-based; the
