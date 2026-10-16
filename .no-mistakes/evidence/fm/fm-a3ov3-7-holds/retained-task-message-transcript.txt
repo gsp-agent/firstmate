@@ -1,0 +1,87 @@
+Retained-task generated runtime message
+
+Existing human-owned captain-call teardown fixture, real fm-teardown.sh, isolated fake tmux/backend tools, no real sessions. The scenario checks the final emitted public message and the preserved task state.
+
+=== Runtime teardown output ===
+teardown sample-attach-review complete (window firstmate:fm-sample-attach-review, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M535JBDR3P05YRN998H8S00B/.hold-routing-test-phase/tmp/fm-captain-hold.e8PSBk/teardown-held/projects/missing-sample-attach-review)
+Backlog: sample-attach-review stays open in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M535JBDR3P05YRN998H8S00B/.hold-routing-test-phase/tmp/fm-captain-hold.e8PSBk/teardown-held/data/backlog.md, still held for the captain with its deliverable recorded. Relay the question and follow .agents/skills/captain-hold-lifecycle/SKILL.md for resolution authority.
+
+=== Retained human-owned task after cleanup ===
+task:
+  id: sample-attach-review
+  title: Investigate sample attachment evidence data/sample-attach-review/report.md
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "fm-hold-v1:Y2FwdGFpbiBtdXN0IGNob29zZSBpbmxpbmUgb3IgYnktcmVmZXJlbmNlIGF0dGFjaG1lbnRz"
+  hold_kind: captain
+  hold_until: "-"
+  kind: scout
+  repo: sample
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: "report:data/sample-attach-review/report.md"
+  body: "Captain hold set: 2026-10-16T20:54:41Z\nDecision owner: captain\nHold timeout seconds: 300\nHold reason: captain must choose inline or by-reference attachments\n\nDeliverable of the finished work: report data/sample-attach-review/report.md"
+
+=== Ordinary task after cleanup ===
+task:
+  id: sample-plain-review
+  title: Investigate the sample cache data/sample-plain-review/report.md
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: scout
+  repo: sample
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: "report:data/sample-plain-review/report.md"
+  body: ""
+
+=== Forced cleanup preserves the human-owned call ===
+task:
+  id: sample-forced-review
+  title: Investigate the sample forced path data/sample-forced-review/report.md
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "fm-hold-v1:Y2FwdGFpbiBtdXN0IGNob29zZSB0aGUgc2FtcGxlIGZvcmNlZCBwYXRo"
+  hold_kind: captain
+  hold_until: "-"
+  kind: scout
+  repo: sample
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: "report:data/sample-forced-review/report.md"
+  body: "Captain hold set: 2026-10-16T20:55:29Z\nDecision owner: captain\nHold timeout seconds: 300\nHold reason: captain must choose the sample forced path\n\nDeliverable of the finished work: report data/sample-forced-review/report.md"
+
+=== Synthetic fixture answer closes the human-owned call ===
+task:
+  id: sample-attach-review
+  title: Investigate sample attachment evidence data/sample-attach-review/report.md
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "fm-hold-v1:Y2FwdGFpbiBtdXN0IGNob29zZSBpbmxpbmUgb3IgYnktcmVmZXJlbmNlIGF0dGFjaG1lbnRz"
+  hold_kind: captain
+  hold_until: "-"
+  kind: scout
+  repo: sample
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: "report:data/sample-attach-review/report.md"
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: a2b53e1c1ecbf691dad5ba28267c2f66e5dcf4f9422f3c8271aad33c97fa6918\nResolution mode: answered\n\nCaptain decision:\nShip attachments by reference.\n\nDecision owner: captain\nHold timeout seconds: 300\nHold reason: captain must choose inline or by-reference attachments\n\nDeliverable of the finished work: report data/sample-attach-review/report.md"

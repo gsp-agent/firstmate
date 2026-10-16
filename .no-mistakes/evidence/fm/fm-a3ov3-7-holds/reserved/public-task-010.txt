@@ -1,0 +1,18 @@
+task:
+  id: pm-dale-desk
+  title: Human owner pm-dale-desk
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "fm-hold-v1:R1NQIFBScyA0MjgxLCA0MjkxLCA0MzA5LCBhbmQgNDMxOSBhcmUgd2FpdGluZyBvbiBhIGdvIGZvciB1cGRhdGUtYnJhbmNoLg=="
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: pm-dale-desk\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."

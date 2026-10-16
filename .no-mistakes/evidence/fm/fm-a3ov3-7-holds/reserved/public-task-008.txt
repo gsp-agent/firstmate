@@ -1,0 +1,18 @@
+task:
+  id: reserved-8
+  title: Reserved ask 8
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "fm-hold-v1:R1NQIFBScyA0MjgxLCA0MjkxLCA0MzA5LCBhbmQgNDMxOSBhcmUgd2FpdGluZyBvbiBhIGdvIGZvciB1cGRhdGUtYnJhbmNoLiBNYXkgSSBkZXBsb3kgdG8gcHJvZHVjdGlvbiB0b28/"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. May I deploy to production too?"

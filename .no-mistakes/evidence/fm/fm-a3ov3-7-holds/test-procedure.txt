@@ -1,27 +1,45 @@
-Target: fa7972e060ec00e6563eb981c7471f081ac35f2d
-Comparison: a38cae5c, the captain-hold executable before the fairness fix.
+Focused Test phase for 1f833fc9c344a125de105e224f1a4d7c554c4a97
 
-Executed commands:
-python3 .hold-validation/probe.py replay
-python3 .hold-validation/probe.py replay deferred reserved retry
-python3 .hold-validation/probe.py endpoint-probe
-python3 .hold-validation/probe.py reserved
-python3 .hold-validation/focused.py replay-fixture deferred-fixture retry-fixture fairness-before fairness rows
-bash .hold-validation/direct-live.sh
+Scope and authority:
+- Existing isolated fixtures only, as required by the recorded Test exception and R1 decision.
+- Installed hold-domain router with fake HOLD_DOMAIN_HERDR transport; no real Herdr query, harness launch, login, session lifecycle, branch or capacity operation.
+- Unchanged scheduling/blocked-row/original two-hold evidence at fa7972e0 is reused by recorded user direction, not claimed as re-driven here.
+- Real endpoint cutover and next-day validation remain Firstmate-owned after landing.
+- The accepted base-only approved-merge fixture limitation and CI hold remain unchanged; neither CI nor a full suite was run.
+- No tracked source or test changes were made.
 
-The probe provisioned and tore down fm-lab-holds-01m52 exclusively through bin/fm-herdr-lab.sh. All session configuration, logs, tripwires, receivers and fixture data were under .hold-validation. XDG_CONFIG_HOME=.hold-validation/xdg avoided the Unix socket length limit. The helper's default-session tripwire used only a local socket link for read-only checks; no default panes were driven. The first transport attempt recursed through the fixture PATH; restoring the original PATH corrected this setup error. The real Herdr API then rejected test-receiver prompt delivery with agent_not_ready. No supported harness was imitated or launched.
+Evidence driver:
+The unmodified function definitions from tests/fm-captain-hold-lifecycle.test.sh were loaded into a disposable test runner. Its selectors call the existing fixture functions below. Instrumentation preserves tasks_in status/stdout/stderr while saving each public `tasks-axi show ... --full` output. The EXIT trap copies only the fixture backlog, pending bodies, receipts, transport log and public diagnostics before the normal fixture cleanup. These are executable CLI/state checks, not source-string assertions. The reminder check asserts the final emitted runtime message, an intentional generated text contract.
 
-The focused driver executed the existing lifecycle behavioral functions with FM_TEST_HOLD_DOMAIN_ROUTER=/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py, TMPDIR under .hold-validation/tmp, FM_TEST_SKIP_ORPHAN_REAP=1, and the suite's isolated transport. It captured public backlog state, receipt and pending-body contracts, watcher output and emitted prompts before the normal fixture cleanup. These are non-live delivery regressions.
+Existing functions executed:
+1. test_domain_retries_failed_delivery_and_release expired
+   Before-R1 CLI extracted from 7249119f: expected reproduction failure, accepted a future deferral after receipt delivery and failed unhold.
+2. test_domain_retries_failed_delivery_and_release expired
+   Target CLI: passed future-deferral refusal/state preservation, matching retry, receipt recovery, new lifecycle/deferral compatibility.
+3. test_domain_retries_failed_delivery_and_release
+   Target CLI: passed active-hold compatibility and exact-once release recovery.
+4. test_domain_deferred_holds_keep_their_routing_wake
+   Target CLI plus public watcher: fresh and postponed cases passed.
+5. test_domain_keeps_reserved_human_and_answered_holds
+   Initial fixture run hit default 10s backlog read bound on `deferred`; full sequential rerun used the existing FM_BACKLOG_ROW_TIMEOUT_SECS=30 configuration only in the test process and passed.
+6. test_teardown_never_closes_a_captain_held_task
+   Target CLI: retained-task message, ordinary cleanup, forced retention and recorded answer; emitted-message policy assertion.
 
-Functions executed:
-test_domain_holds_route_after_timeout_and_record_evidence
-test_domain_deferred_holds_keep_their_routing_wake
-test_domain_retries_failed_delivery_and_release
-test_domain_interrupted_sweeps_make_fair_progress
-test_domain_row_bounds_preserve_later_holds
+Common routing invocation environment:
+TMPDIR="$PWD/.hold-routing-test-phase/tmp"
+PYTHONDONTWRITEBYTECODE=1
+FM_TEST_SKIP_ORPHAN_REAP=1
+FM_TEST_HOLD_DOMAIN_ROUTER=/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py
+VALIDATION_EVIDENCE=/Users/dalecarman/.no-mistakes/evidence/01M535JBDR3P05YRN998H8S00B/<case>
 
-For fairness-before, a private copy of bin used git show a38cae5c:bin/fm-captain-hold.sh. The comparison reproduced permanent starvation after two sweeps. The current executable passed four sweeps, row retirement/insertion and receipt recovery. Timing-sensitive fixtures ran sequentially, retaining their configured 70-second sweep and 30-second row bounds for the interrupted-sweep case and 90-second sweep for the two-row cases.
+Exact selector/runner commands (with the common environment above):
+FM_TEST_HOLD_ROUTING_REGRESSION=receipt-deferral VALIDATION_HOLD_CLI="$PWD/bin/.hold-routing-before-r1.sh" bash tests/.hold-routing-test-phase.sh
+FM_TEST_HOLD_ROUTING_REGRESSION=receipt-deferral bash tests/.hold-routing-test-phase.sh
+FM_TEST_HOLD_ROUTING_REGRESSION=deferred bash tests/.hold-routing-test-phase.sh
+FM_TEST_HOLD_ROUTING_REGRESSION=reserved bash tests/.hold-routing-test-phase.sh
+FM_BACKLOG_ROW_TIMEOUT_SECS=30 FM_TEST_HOLD_ROUTING_REGRESSION=reserved bash tests/.hold-routing-test-phase.sh
 
-The final direct CLI checks did not load tests/lib.sh or any fakebin. They used the normal PATH, real tasks-axi markdown storage, the installed router, and bin/fm-captain-hold.sh hold / route-due. live-deferral-cli.log and live-reserved-cli.jsonl contain the exact executable argv, clocks, exit codes, stdout and stderr. The only nonzero direct result is the expected reason-drift refusal, which left the production question held.
+Reminder invocation:
+env -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE -u FM_CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE TMPDIR="$PWD/.hold-routing-test-phase/tmp" PYTHONDONTWRITEBYTECODE=1 FM_BACKEND=tmux FM_TEST_SKIP_ORPHAN_REAP=1 FM_BACKLOG_ROW_TIMEOUT_SECS=30 FM_TEST_HOLD_ROUTING_REGRESSION=reminder VALIDATION_EVIDENCE=/Users/dalecarman/.no-mistakes/evidence/01M535JBDR3P05YRN998H8S00B/reminder bash tests/.hold-routing-reminder-phase.sh
 
-No actual branch update, capacity change, remote agent, worker, credential change, package installation, push, PR operation, or pipeline-control operation was performed. Temporary drivers and fixtures are removed after evidence capture; evidence remains here.
+Installed router SHA-256: d151e28e654ba9c48296e8aaf049351d84389d32446b6f669c2beea53a123695

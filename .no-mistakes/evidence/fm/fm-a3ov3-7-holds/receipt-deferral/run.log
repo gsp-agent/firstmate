@@ -1,0 +1,2 @@
+ok - expired failed delivery preserves the hold, routed deferral is refused, and release retries consume the receipt once
+ok - active failed delivery preserves the hold, routed deferral is refused, and release retries consume the receipt once

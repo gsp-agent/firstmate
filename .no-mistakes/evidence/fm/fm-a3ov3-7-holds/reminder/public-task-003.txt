@@ -1,0 +1,18 @@
+task:
+  id: sample-forced-review
+  title: Investigate the sample forced path data/sample-forced-review/report.md
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "fm-hold-v1:Y2FwdGFpbiBtdXN0IGNob29zZSB0aGUgc2FtcGxlIGZvcmNlZCBwYXRo"
+  hold_kind: captain
+  hold_until: "-"
+  kind: scout
+  repo: sample
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: "report:data/sample-forced-review/report.md"
+  body: "Captain hold set: 2026-10-16T20:55:29Z\nDecision owner: captain\nHold timeout seconds: 300\nHold reason: captain must choose the sample forced path\n\nDeliverable of the finished work: report data/sample-forced-review/report.md"

@@ -1,0 +1,18 @@
+task:
+  id: reserved-1
+  title: Reserved ask 1
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "fm-hold-v1:U2hvdWxkIEkgc3BlbmQgbW9uZXkgdG8gYnV5IG1vcmUgc2VhdHM/"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-16
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: Should I spend money to buy more seats?"

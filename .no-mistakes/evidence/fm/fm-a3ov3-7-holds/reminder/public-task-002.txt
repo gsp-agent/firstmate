@@ -1,0 +1,18 @@
+task:
+  id: sample-plain-review
+  title: Investigate the sample cache data/sample-plain-review/report.md
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: scout
+  repo: sample
+  priority: "-"
+  created: "-"
+  closed: 2026-10-16
+  deps: none
+  links: "report:data/sample-plain-review/report.md"
+  body: ""

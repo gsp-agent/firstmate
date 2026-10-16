@@ -1,0 +1,4 @@
+Captain hold set: 2026-10-14T02:00:00Z
+Decision owner: ep-firstmate
+Hold timeout seconds: 60
+Hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
