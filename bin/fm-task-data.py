@@ -146,17 +146,25 @@ def symlink_targets(views, text):
     targets = set()
 
     def locate(path):
-        for root, _, _ in views:
-            if path == root or root in path.parents:
-                rel = path.relative_to(root)
-                if rel.parts and rel.parts[0] == HOLD:
-                    rel = rel.relative_to(HOLD)
-                    path = root / rel
-                actual = path
-                if not actual.exists() and not actual.is_symlink():
-                    actual = root / HOLD / rel
-                return root, path, actual
-        return None
+        for _ in range(40):
+            for root, _, _ in views:
+                if path == root or root in path.parents:
+                    rel = path.relative_to(root)
+                    if rel.parts and rel.parts[0] == HOLD:
+                        rel = rel.relative_to(HOLD)
+                        path = root / rel
+                    actual = path
+                    if not actual.exists() and not actual.is_symlink():
+                        actual = root / HOLD / rel
+                    return root, path, actual
+            for ancestor in (*reversed(path.parents), path):
+                if ancestor.is_symlink():
+                    path = Path(os.path.abspath(ancestor.parent / os.readlink(ancestor))).joinpath(
+                        *path.relative_to(ancestor).parts)
+                    break
+            else:
+                return None
+        raise ValueError(f"cyclic evidence ancestor alias: {path}")
 
     for root, files, repos in views:
         for rel in files:

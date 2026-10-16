@@ -5376,7 +5376,7 @@ SH
   pass "a recorded open pull request or merge request keeps the task record until it is merged or closed"
 }
 
-if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ]; then
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-aliases ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
   test_missing_adapter_sibling_refuses_before_cleanup
@@ -5672,6 +5672,91 @@ SH
   [ "$(cat "$task/latest.png")" = capture ] || fail "expiry broke retained symlink chain"
   assert_absent "$task/.cleanup-hold" "symlink recovery did not expire"
   pass "fm-teardown: linked symlinks preserve files, chains, directories and held targets"
+}
+
+test_task_data_symlink_ancestor_aliases() {
+  local helper=$1 case_dir task physical alias_root temporary variant
+  for variant in fixture macos; do
+    if [ "$variant" = macos ] && [ "$(cd -P /tmp && pwd -P)" != /private/tmp ]; then
+      pass "skip: macOS /tmp ancestor alias is not present on this host"
+      continue
+    fi
+    case_dir=$(make_case "task-data-ancestor-alias-$variant")
+    task="$case_dir/data/finished"
+    if [ "$variant" = macos ]; then
+      physical=$(TMPDIR=/tmp fm_test_tmproot fm-task-data-alias)
+      alias_root="/tmp/${physical##*/}"
+    else
+      physical="$case_dir/physical"
+      alias_root="$case_dir/ancestor-alias"
+      mkdir -p "$physical"
+      ln -s "$physical" "$case_dir/alias-bridge"
+      ln -s "$case_dir/alias-bridge" "$alias_root"
+    fi
+    temporary="$physical/tmp/finished-proof"
+    mkdir -p "$task" "$temporary/frames" "$temporary/later-frames" "$case_dir/outside"
+    printf 'Temporary scratch: %s\n' "$temporary" > "$task/report.md"
+    printf 'capture\n' > "$temporary/capture.bin"
+    printf 'frame\n' > "$temporary/frames/frame.bin"
+    printf 'chain\n' > "$temporary/chain.bin"
+    printf 'later capture\n' > "$temporary/later.bin"
+    printf 'later frame\n' > "$temporary/later-frames/later-frame.bin"
+    printf 'discard\n' > "$temporary/discard.bin"
+    printf 'data capture\n' > "$task/data.bin"
+    printf 'data discard\n' > "$task/discard-data.bin"
+    printf 'outside\n' > "$case_dir/outside/outside.bin"
+    ln -s chain.bin "$temporary/bridge.bin"
+    ln -s "$alias_root/tmp/finished-proof/capture.bin" "$task/latest.png"
+    ln -s "$alias_root/tmp/finished-proof/frames" "$task/frames.png"
+    ln -s "$alias_root/tmp/finished-proof/bridge.bin" "$task/chained.png"
+    ln -s "$alias_root/tmp/finished-proof/later.bin" "$task/saved.png"
+    ln -s "$alias_root/tmp/finished-proof/later-frames" "$task/saved-frames.png"
+    ln -s "$case_dir/data" "$case_dir/data-alias"
+    ln -s "$case_dir/data-alias/finished/data.bin" "$task/latest-data.png"
+    ln -s "$case_dir/outside" "$case_dir/outside-alias"
+    ln -s "$case_dir/outside-alias/outside.bin" "$task/escape.png"
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png)\n'
+SH
+    chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
+    TMPDIR="$physical/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+      "$case_dir/data" "$case_dir/state" finished "$case_dir/project" https://github.com/test/repo/pull/1 \
+      || fail "$variant alias staging failed"
+    [ "$(cat "$task/latest.png")" = capture ] || fail "$variant aliased temporary link lost its target during staging"
+    [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "$variant aliased directory lost its contents during staging"
+    [ "$(cat "$task/chained.png")" = chain ] || fail "$variant aliased target lost an intermediate symlink"
+    [ -L "$temporary/bridge.bin" ] || fail "$variant owned intermediate symlink was staged"
+    [ "$(cat "$task/latest-data.png")" = 'data capture' ] || fail "$variant aliased data link lost its target"
+    assert_present "$temporary/.cleanup-hold/later.bin" "$variant unlinked temporary target did not stage"
+    assert_present "$temporary/.cleanup-hold/later-frames/later-frame.bin" "$variant unlinked directory did not stage"
+    [ -L "$task/.cleanup-hold/saved.png" ] || fail "$variant unlinked image did not stage"
+    [ -L "$task/.cleanup-hold/saved-frames.png" ] || fail "$variant unlinked directory link did not stage"
+    assert_present "$temporary/.cleanup-hold/discard.bin" "$variant unrelated scratch did not stage"
+    [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "$variant alias cleanup escaped its owned roots"
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png) [saved](saved.png) [saved frames](saved-frames.png)\n'
+SH
+    TMPDIR="$physical/tmp" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+      "$case_dir/data" "$case_dir/state" finished || fail "$variant alias expiry failed"
+    [ "$(cat "$task/latest.png")" = capture ] || fail "$variant alias expiry deleted the linked capture"
+    [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "$variant alias expiry deleted linked directory contents"
+    [ "$(cat "$task/chained.png")" = chain ] || fail "$variant alias expiry broke the symlink chain"
+    [ "$(cat "$task/latest-data.png")" = 'data capture' ] || fail "$variant alias expiry deleted linked data"
+    [ "$(cat "$task/saved.png")" = 'later capture' ] || fail "$variant alias expiry did not restore the held target"
+    [ "$(cat "$task/saved-frames.png/later-frame.bin")" = 'later frame' ] || fail "$variant alias expiry did not restore held directory contents"
+    [ "$(cat "$case_dir/outside/outside.bin")" = outside ] || fail "$variant alias expiry escaped its owned roots"
+    assert_absent "$temporary/.cleanup-hold" "$variant alias temporary recovery remains"
+    assert_absent "$task/.cleanup-hold" "$variant alias data recovery remains"
+    assert_absent "$temporary/discard.bin" "$variant alias lookup retained unlinked scratch"
+    assert_absent "$task/discard-data.bin" "$variant alias lookup retained unlinked data"
+    pass "fm-teardown: $variant ancestor aliases preserve owned targets and recovery paths through staging and expiry"
+  done
 }
 
 test_task_data_collision_progress() {
@@ -6033,12 +6118,18 @@ SH
   pass "fm-teardown: temporary recovery refuses symlink escapes, replaced directories and newly live owners"
 }
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-aliases ]; then
+  test_task_data_symlink_ancestor_aliases "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
 test_task_data_cleanup
 test_task_data_refusals
 test_task_data_references_and_guard
 test_task_data_reused_id
 test_task_data_expired_sources
 test_task_data_symlink_targets
+test_task_data_symlink_ancestor_aliases "$ROOT/bin/fm-task-data.py"
 test_task_data_collision_progress
 test_task_data_retirement_obligation
 test_task_data_forge_references
