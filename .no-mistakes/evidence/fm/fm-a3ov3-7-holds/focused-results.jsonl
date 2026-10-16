@@ -1,0 +1,6 @@
+{"case": "replay-fixture", "status": 0, "live": false, "router": "/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py"}
+{"case": "deferred-fixture", "status": 0, "live": false, "router": "/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py"}
+{"case": "retry-fixture", "status": 0, "live": false, "router": "/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py"}
+{"case": "fairness-before", "status": 1, "live": false, "router": "/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py"}
+{"case": "fairness", "status": 0, "live": false, "router": "/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py"}
+{"case": "rows", "status": 0, "live": false, "router": "/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py"}

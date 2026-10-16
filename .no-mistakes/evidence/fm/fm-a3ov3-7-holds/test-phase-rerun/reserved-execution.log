@@ -1,0 +1,4 @@
+Existing fixture: test_domain_keeps_reserved_human_and_answered_holds
+Installed router: /Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py
+Transport: existing fake HOLD_DOMAIN_HERDR; no real sessions
+ok - money, credentials, people, client words, production, accounts, taste and human endpoints stay reserved

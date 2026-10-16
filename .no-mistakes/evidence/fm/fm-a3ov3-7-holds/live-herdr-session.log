@@ -1,0 +1,236 @@
+$ bin/fm-herdr-lab.sh provision fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label ep-firstmate --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65df7929b2de11","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"},"type":"workspace_created","workspace":{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"ep-firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w1:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-firstmate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/ep-firstmate.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w1:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w1:p1 ep-firstmate
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-firstmate","pane_id":"w1:p1","revision":0,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term_65df7929b2de11","workspace_id":"w1"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label ep-groove-sight-platform --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w2:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w2:t1","terminal_id":"term_65df7929e1a372","workspace_id":"w2"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w2:t1","workspace_id":"w2"},"type":"workspace_created","workspace":{"active_tab_id":"w2:t1","agent_status":"unknown","focused":false,"label":"ep-groove-sight-platform","number":2,"pane_count":1,"tab_count":1,"workspace_id":"w2"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w2:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-groove-sight-platform /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/ep-groove-sight-platform.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w2:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w2:p1 ep-groove-sight-platform
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-groove-sight-platform","pane_id":"w2:p1","revision":0,"state_change_seq":2,"tab_id":"w2:t1","terminal_id":"term_65df7929e1a372","workspace_id":"w2"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label pm-dale-desk --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w3:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w3:t1","terminal_id":"term_65df792a09bfe3","workspace_id":"w3"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w3:t1","workspace_id":"w3"},"type":"workspace_created","workspace":{"active_tab_id":"w3:t1","agent_status":"unknown","focused":false,"label":"pm-dale-desk","number":3,"pane_count":1,"tab_count":1,"workspace_id":"w3"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w3:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py pm-dale-desk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/pm-dale-desk.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w3:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w3:p1 pm-dale-desk
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"pm-dale-desk","pane_id":"w3:p1","revision":0,"state_change_seq":3,"tab_id":"w3:t1","terminal_id":"term_65df792a09bfe3","workspace_id":"w3"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent list
+{"id":"cli:agent:list","result":{"agents":[{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-firstmate","pane_id":"w1:p1","revision":0,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term_65df7929b2de11","workspace_id":"w1"},{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-groove-sight-platform","pane_id":"w2:p1","revision":0,"state_change_seq":2,"tab_id":"w2:t1","terminal_id":"term_65df7929e1a372","workspace_id":"w2"},{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"pm-dale-desk","pane_id":"w3:p1","revision":0,"state_change_seq":3,"tab_id":"w3:t1","terminal_id":"term_65df792a09bfe3","workspace_id":"w3"}],"type":"agent_list"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh teardown fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh provision fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label ep-firstmate --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65df7956e77d11","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"},"type":"workspace_created","workspace":{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"ep-firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w1:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-firstmate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/ep-firstmate-2143.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w1:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w1:p1 ep-firstmate
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-firstmate","pane_id":"w1:p1","revision":0,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term_65df7956e77d11","workspace_id":"w1"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label ep-groove-sight-platform --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w2:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w2:t1","terminal_id":"term_65df79571dd262","workspace_id":"w2"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w2:t1","workspace_id":"w2"},"type":"workspace_created","workspace":{"active_tab_id":"w2:t1","agent_status":"unknown","focused":false,"label":"ep-groove-sight-platform","number":2,"pane_count":1,"tab_count":1,"workspace_id":"w2"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w2:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-groove-sight-platform /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/ep-groove-sight-platform-2143.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w2:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w2:p1 ep-groove-sight-platform
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-groove-sight-platform","pane_id":"w2:p1","revision":0,"state_change_seq":2,"tab_id":"w2:t1","terminal_id":"term_65df79571dd262","workspace_id":"w2"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label pm-dale-desk --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w3:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w3:t1","terminal_id":"term_65df79575477c3","workspace_id":"w3"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w3:t1","workspace_id":"w3"},"type":"workspace_created","workspace":{"active_tab_id":"w3:t1","agent_status":"unknown","focused":false,"label":"pm-dale-desk","number":3,"pane_count":1,"tab_count":1,"workspace_id":"w3"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w3:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py pm-dale-desk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/pm-dale-desk-2143.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w3:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w3:p1 pm-dale-desk
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"pm-dale-desk","pane_id":"w3:p1","revision":0,"state_change_seq":3,"tab_id":"w3:t1","terminal_id":"term_65df79575477c3","workspace_id":"w3"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent list
+{"id":"cli:agent:list","result":{"agents":[{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-firstmate","pane_id":"w1:p1","revision":0,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term_65df7956e77d11","workspace_id":"w1"},{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-groove-sight-platform","pane_id":"w2:p1","revision":0,"state_change_seq":2,"tab_id":"w2:t1","terminal_id":"term_65df79571dd262","workspace_id":"w2"},{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"pm-dale-desk","pane_id":"w3:p1","revision":0,"state_change_seq":3,"tab_id":"w3:t1","terminal_id":"term_65df79575477c3","workspace_id":"w3"}],"type":"agent_list"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh teardown fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh provision fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label ep-firstmate --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65df7993240fa1","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"},"type":"workspace_created","workspace":{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"ep-firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w1:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-firstmate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/ep-firstmate-28115.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w1:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w1:p1 ep-firstmate
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-firstmate","pane_id":"w1:p1","revision":0,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term_65df7993240fa1","workspace_id":"w1"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label ep-groove-sight-platform --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w2:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w2:t1","terminal_id":"term_65df7993529b62","workspace_id":"w2"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w2:t1","workspace_id":"w2"},"type":"workspace_created","workspace":{"active_tab_id":"w2:t1","agent_status":"unknown","focused":false,"label":"ep-groove-sight-platform","number":2,"pane_count":1,"tab_count":1,"workspace_id":"w2"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w2:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-groove-sight-platform /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/ep-groove-sight-platform-28115.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w2:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w2:p1 ep-groove-sight-platform
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-groove-sight-platform","pane_id":"w2:p1","revision":0,"state_change_seq":2,"tab_id":"w2:t1","terminal_id":"term_65df7993529b62","workspace_id":"w2"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label pm-dale-desk --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w3:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w3:t1","terminal_id":"term_65df799381d2a3","workspace_id":"w3"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w3:t1","workspace_id":"w3"},"type":"workspace_created","workspace":{"active_tab_id":"w3:t1","agent_status":"unknown","focused":false,"label":"pm-dale-desk","number":3,"pane_count":1,"tab_count":1,"workspace_id":"w3"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w3:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py pm-dale-desk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/pm-dale-desk-28115.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w3:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w3:p1 pm-dale-desk
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"pm-dale-desk","pane_id":"w3:p1","revision":0,"state_change_seq":3,"tab_id":"w3:t1","terminal_id":"term_65df799381d2a3","workspace_id":"w3"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent list
+{"id":"cli:agent:list","result":{"agents":[{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-firstmate","pane_id":"w1:p1","revision":0,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term_65df7993240fa1","workspace_id":"w1"},{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-groove-sight-platform","pane_id":"w2:p1","revision":0,"state_change_seq":2,"tab_id":"w2:t1","terminal_id":"term_65df7993529b62","workspace_id":"w2"},{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"pm-dale-desk","pane_id":"w3:p1","revision":0,"state_change_seq":3,"tab_id":"w3:t1","terminal_id":"term_65df799381d2a3","workspace_id":"w3"}],"type":"agent_list"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent prompt ep-firstmate 'Safe disposable terminal delivery probe'
+{"error":{"code":"agent_not_ready","message":"agent ep-firstmate is not an active named agent"},"id":"cli:agent:prompt"}
+
+exit=1
+$ bin/fm-herdr-lab.sh teardown fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh provision fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label ep-firstmate --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65df79ca862011","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"},"type":"workspace_created","workspace":{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"ep-firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w1:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-firstmate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/ep-firstmate-58111.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w1:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w1:p1 ep-firstmate
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-firstmate","pane_id":"w1:p1","revision":0,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term_65df79ca862011","workspace_id":"w1"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label ep-groove-sight-platform --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w2:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w2:t1","terminal_id":"term_65df79cacca132","workspace_id":"w2"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w2:t1","workspace_id":"w2"},"type":"workspace_created","workspace":{"active_tab_id":"w2:t1","agent_status":"unknown","focused":false,"label":"ep-groove-sight-platform","number":2,"pane_count":1,"tab_count":1,"workspace_id":"w2"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w2:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-groove-sight-platform /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/ep-groove-sight-platform-58111.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w2:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w2:p1 ep-groove-sight-platform
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-groove-sight-platform","pane_id":"w2:p1","revision":0,"state_change_seq":2,"tab_id":"w2:t1","terminal_id":"term_65df79cacca132","workspace_id":"w2"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label pm-dale-desk --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w3:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w3:t1","terminal_id":"term_65df79cb322203","workspace_id":"w3"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w3:t1","workspace_id":"w3"},"type":"workspace_created","workspace":{"active_tab_id":"w3:t1","agent_status":"unknown","focused":false,"label":"pm-dale-desk","number":3,"pane_count":1,"tab_count":1,"workspace_id":"w3"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane run w3:p1 'exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py pm-dale-desk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/pm-dale-desk-58111.ready'
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane report-agent w3:p1 --source hold-validation --agent test-receiver --state idle
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent rename w3:p1 pm-dale-desk
+{"id":"cli:agent:rename","result":{"agent":{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"pm-dale-desk","pane_id":"w3:p1","revision":0,"state_change_seq":3,"tab_id":"w3:t1","terminal_id":"term_65df79cb322203","workspace_id":"w3"},"type":"agent_info"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 agent list
+{"id":"cli:agent:list","result":{"agents":[{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-firstmate","pane_id":"w1:p1","revision":0,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term_65df79ca862011","workspace_id":"w1"},{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"ep-groove-sight-platform","pane_id":"w2:p1","revision":0,"state_change_seq":2,"tab_id":"w2:t1","terminal_id":"term_65df79cacca132","workspace_id":"w2"},{"agent":"test-receiver","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","name":"pm-dale-desk","pane_id":"w3:p1","revision":0,"state_change_seq":3,"tab_id":"w3:t1","terminal_id":"term_65df79cb322203","workspace_id":"w3"}],"type":"agent_list"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane read w1:p1 --lines 100 --format text
+sh-3.2$ exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5
+2QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-firstmate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/
+01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52Q
+K1HG196HGAE7YGSQF6KP/.hold-validation/ep-firstmate-58111.ready
+Disposable terminal receiver ready: ep-firstmate
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane read w2:p1 --lines 100 --format text
+sh-3.2$ exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52
+QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py ep-groove-sight-platform /Users/dalecarman/.no-mistakes/worktrees/a5e
+67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea7
+7f/01M52QK1HG196HGAE7YGSQF6KP/.hold-validation/ep-groove-sight-platform-58111.ready
+Disposable terminal receiver ready: ep-groove-sight-platform
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 pane read w3:p1 --lines 100 --format text
+sh-3.2$ exec /opt/homebrew/opt/python@3.14/bin/python3.14 -u /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52
+QK1HG196HGAE7YGSQF6KP/.hold-validation/receiver.py pm-dale-desk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01
+M52QK1HG196HGAE7YGSQF6KP/.hold-validation/received.jsonl /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1H
+G196HGAE7YGSQF6KP/.hold-validation/pm-dale-desk-58111.ready
+Disposable terminal receiver ready: pm-dale-desk
+
+exit=0
+$ bin/fm-herdr-lab.sh teardown fm-lab-holds-01m52
+
+exit=0

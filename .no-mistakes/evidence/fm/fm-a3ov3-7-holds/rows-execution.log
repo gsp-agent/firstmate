@@ -1,0 +1,4 @@
+ok - blocked lock permits the healthy later hold, scheduled checks and a single recovery delivery
+ok - blocked update permits the healthy later hold, scheduled checks and a single recovery delivery
+ok - blocked unhold permits the healthy later hold, scheduled checks and a single recovery delivery
+ok - blocked locks, resolution writes and releases preserve pending rows while healthy holds and scheduled checks finish

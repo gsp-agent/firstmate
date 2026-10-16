@@ -1,0 +1,194 @@
+Hold-routing test evidence for target fa7972e060ec00e6563eb981c7471f081ac35f2d
+The scheduling and delivery regressions below used the installed agent-config router, real Firstmate executables and real tasks-axi backlog storage, with an isolated transport fixture. They do not prove delivery to an active harness.
+
+CASE replay-fixture
+FINAL PERSISTED OUTPUT: domain-replay
+owner.log:
+agent prompt ep-firstmate Hold branch timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-groove-sight-platform Hold capacity timed out. You own this decision. Resolve it without Dale. ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?
+agent prompt ep-firstmate Hold branch timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+state/hold-domain/routed.tsv:
+branch	2026-10-14T02:00:00Z	ep-firstmate
+capacity	2026-10-14T02:00:00Z	ep-groove-sight-platform
+branch	2026-10-14T03:00:00Z	ep-firstmate
+
+pending bodies: []
+
+CASE deferred-fixture
+{"home": "domain-deferred-fresh", "watcher_checkpoint": 1, "cursor": "deferred", "scheduled_output": "", "pending_bodies": ["deferred.body"], "routing_receipts": "", "blocked_calls": ""}
+{"home": "domain-deferred-fresh", "watcher_checkpoint": 2, "cursor": "deferred", "scheduled_output": "", "pending_bodies": [], "routing_receipts": "deferred\t2098-12-31T02:00:00Z\tep-firstmate\n", "blocked_calls": ""}
+{"home": "domain-deferred-postponed", "watcher_checkpoint": 3, "cursor": "deferred", "scheduled_output": "", "pending_bodies": ["deferred.body"], "routing_receipts": "", "blocked_calls": ""}
+{"home": "domain-deferred-postponed", "watcher_checkpoint": 4, "cursor": "deferred", "scheduled_output": "", "pending_bodies": [], "routing_receipts": "deferred\t2098-12-31T01:00:00Z\tep-firstmate\n", "blocked_calls": ""}
+FINAL PERSISTED OUTPUT: domain-deferred-fresh
+owner.log:
+agent prompt ep-firstmate Hold deferred timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+state/hold-domain/routed.tsv:
+deferred	2098-12-31T02:00:00Z	ep-firstmate
+
+pending bodies: []
+FINAL PERSISTED OUTPUT: domain-deferred-postponed
+owner.log:
+agent prompt ep-firstmate Hold deferred timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+state/hold-domain/routed.tsv:
+deferred	2098-12-31T01:00:00Z	ep-firstmate
+
+pending bodies: []
+
+CASE retry-fixture
+FINAL PERSISTED OUTPUT: domain-retry
+owner.log:
+agent prompt ep-firstmate Hold retry timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+state/hold-domain/routed.tsv:
+retry	2026-10-14T02:00:00Z	ep-firstmate
+
+pending bodies: []
+
+CASE fairness-before
+Comparison executable: a38cae5c, before the saved sweep position was added. Its expected failure is reproduced in fairness-before-execution.log.
+{"home": "interrupted-sweep-progress", "watcher_checkpoint": 1, "cursor": "", "scheduled_output": "checked\n", "pending_bodies": ["a.body", "b.body", "c.body", "d.body"], "routing_receipts": "c\t2026-10-14T02:00:00Z\tep-firstmate\nb\t2026-10-14T02:00:00Z\tep-firstmate\n", "blocked_calls": "update:b\nunhold:c\n"}
+{"home": "interrupted-sweep-progress", "watcher_checkpoint": 2, "cursor": "", "scheduled_output": "checked\nchecked\n", "pending_bodies": ["a.body", "b.body", "c.body", "d.body"], "routing_receipts": "c\t2026-10-14T02:00:00Z\tep-firstmate\nb\t2026-10-14T02:00:00Z\tep-firstmate\n", "blocked_calls": "update:b\nunhold:c\nupdate:b\nunhold:c\n"}
+FINAL PERSISTED OUTPUT: interrupted-sweep-progress
+owner.log:
+agent prompt ep-firstmate Hold c timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold b timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+state/hold-domain/routed.tsv:
+c	2026-10-14T02:00:00Z	ep-firstmate
+b	2026-10-14T02:00:00Z	ep-firstmate
+
+scheduled.log:
+checked
+checked
+
+blocked.calls:
+update:b
+unhold:c
+update:b
+unhold:c
+
+pending bodies: ["state/hold-domain/pending/a.body", "state/hold-domain/pending/b.body", "state/hold-domain/pending/c.body", "state/hold-domain/pending/d.body"]
+watch-1.out:
+check: hold-domain routing failed: exit 124: fm-captain-hold: routing row a failed (exit 124)
+fm-captain-hold: routing row b failed (exit 124)
+
+watch-2.out:
+check: hold-domain routing failed: exit 124: fm-captain-hold: routing row a failed (exit 124)
+fm-captain-hold: routing row b failed (exit 124)
+
+
+CASE fairness
+{"home": "interrupted-sweep-progress", "watcher_checkpoint": 1, "cursor": "c", "scheduled_output": "checked\n", "pending_bodies": ["a.body", "b.body", "c.body", "d.body"], "routing_receipts": "c\t2026-10-14T02:00:00Z\tep-firstmate\nb\t2026-10-14T02:00:00Z\tep-firstmate\n", "blocked_calls": "update:b\nunhold:c\n"}
+{"home": "interrupted-sweep-progress", "watcher_checkpoint": 2, "cursor": "c", "scheduled_output": "checked\nchecked\n", "pending_bodies": ["a.body", "b.body", "c.body"], "routing_receipts": "c\t2026-10-14T02:00:00Z\tep-firstmate\nb\t2026-10-14T02:00:00Z\tep-firstmate\nd\t2026-10-14T02:00:00Z\tep-firstmate\n", "blocked_calls": "update:b\nunhold:c\nupdate:b\nunhold:c\n"}
+{"home": "interrupted-sweep-progress", "watcher_checkpoint": 3, "cursor": "c", "scheduled_output": "checked\nchecked\nchecked\n", "pending_bodies": ["b.body", "c.body"], "routing_receipts": "c\t2026-10-14T02:00:00Z\tep-firstmate\nb\t2026-10-14T02:00:00Z\tep-firstmate\nd\t2026-10-14T02:00:00Z\tep-firstmate\ne\t2026-10-14T02:00:00Z\tep-firstmate\na0\t2026-10-14T02:00:00Z\tep-firstmate\n", "blocked_calls": "update:b\nunhold:c\nupdate:b\nunhold:c\nupdate:b\nunhold:c\n"}
+{"home": "interrupted-sweep-progress", "watcher_checkpoint": 4, "cursor": "c", "scheduled_output": "checked\nchecked\nchecked\nchecked\n", "pending_bodies": ["b.body", "c.body"], "routing_receipts": "c\t2026-10-14T02:00:00Z\tep-firstmate\nb\t2026-10-14T02:00:00Z\tep-firstmate\nd\t2026-10-14T02:00:00Z\tep-firstmate\ne\t2026-10-14T02:00:00Z\tep-firstmate\na0\t2026-10-14T02:00:00Z\tep-firstmate\n", "blocked_calls": "update:b\nunhold:c\nupdate:b\nunhold:c\nupdate:b\nunhold:c\nupdate:b\nunhold:c\n"}
+FINAL PERSISTED OUTPUT: interrupted-sweep-progress
+owner.log:
+agent prompt ep-firstmate Hold c timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold b timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold d timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold e timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold a0 timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+state/hold-domain/routed.tsv:
+c	2026-10-14T02:00:00Z	ep-firstmate
+b	2026-10-14T02:00:00Z	ep-firstmate
+d	2026-10-14T02:00:00Z	ep-firstmate
+e	2026-10-14T02:00:00Z	ep-firstmate
+a0	2026-10-14T02:00:00Z	ep-firstmate
+
+scheduled.log:
+checked
+checked
+checked
+checked
+
+blocked.calls:
+update:b
+unhold:c
+update:b
+unhold:c
+update:b
+unhold:c
+update:b
+unhold:c
+
+pending bodies: []
+watch-1.out:
+check: hold-domain routing failed: exit 124: fm-captain-hold: routing row a failed (exit 124)
+fm-captain-hold: routing row b failed (exit 124)
+
+watch-2.out:
+check: hold-domain routing failed: exit 124: fm-captain-hold: routing row a failed (exit 124)
+fm-captain-hold: routing row b failed (exit 124)
+
+watch-3.out:
+check: hold-domain routing failed: exit 1: fm-captain-hold: routing row b failed (exit 124)
+fm-captain-hold: routing row c failed (exit 124)
+
+watch-4.out:
+check: hold-domain routing failed: exit 1: fm-captain-hold: routing row b failed (exit 124)
+fm-captain-hold: routing row c failed (exit 124)
+
+
+CASE rows
+{"home": "row-bound-lock", "watcher_checkpoint": 1, "cursor": "b", "scheduled_output": "checked\n", "pending_bodies": ["a.body"], "routing_receipts": "b\t2026-10-14T02:00:00Z\tep-firstmate\n", "blocked_calls": ""}
+{"home": "row-bound-update", "watcher_checkpoint": 2, "cursor": "b", "scheduled_output": "checked\n", "pending_bodies": ["a.body"], "routing_receipts": "a\t2026-10-14T02:00:00Z\tep-firstmate\nb\t2026-10-14T02:00:00Z\tep-firstmate\n", "blocked_calls": ""}
+{"home": "row-bound-unhold", "watcher_checkpoint": 3, "cursor": "b", "scheduled_output": "checked\n", "pending_bodies": ["a.body"], "routing_receipts": "a\t2026-10-14T02:00:00Z\tep-firstmate\nb\t2026-10-14T02:00:00Z\tep-firstmate\n", "blocked_calls": ""}
+FINAL PERSISTED OUTPUT: row-bound-lock
+owner.log:
+agent prompt ep-firstmate Hold b timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold a timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+state/hold-domain/routed.tsv:
+b	2026-10-14T02:00:00Z	ep-firstmate
+a	2026-10-14T02:00:00Z	ep-firstmate
+
+scheduled.log:
+checked
+
+pending bodies: []
+watch.out:
+check: hold-domain routing failed: exit 1: fm-captain-hold: routing row a failed (exit 124)
+
+FINAL PERSISTED OUTPUT: row-bound-unhold
+owner.log:
+agent prompt ep-firstmate Hold a timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold b timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+state/hold-domain/routed.tsv:
+a	2026-10-14T02:00:00Z	ep-firstmate
+b	2026-10-14T02:00:00Z	ep-firstmate
+
+scheduled.log:
+checked
+
+pending bodies: []
+watch.out:
+check: hold-domain routing failed: exit 1: fm-captain-hold: routing row a failed (exit 124)
+
+FINAL PERSISTED OUTPUT: row-bound-update
+owner.log:
+agent prompt ep-firstmate Hold a timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold b timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+state/hold-domain/routed.tsv:
+a	2026-10-14T02:00:00Z	ep-firstmate
+b	2026-10-14T02:00:00Z	ep-firstmate
+
+scheduled.log:
+checked
+
+pending bodies: []
+watch.out:
+check: hold-domain routing failed: exit 1: fm-captain-hold: routing row a failed (exit 124)
+
+
+REAL TRANSPORT LIMITATION
+A named isolated Herdr lab accepted test-receiver registration but rejected agent prompt with agent_not_ready: the receiver is not an active named harness agent. Real worker launches are explicitly forbidden by the recorded task authority. No real CLI, login, or successful delivery was fabricated. See live-herdr-session.log.
+
+DIRECT LIVE CLI CHECKS
+live-reserved-cli.jsonl and live-deferral-cli.log execute the product with its normal PATH, real tasks-axi and installed router, without the portable suite fakebin. Their persisted outputs are separate artifacts.

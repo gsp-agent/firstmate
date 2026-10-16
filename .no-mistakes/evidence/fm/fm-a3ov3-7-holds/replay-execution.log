@@ -1,0 +1,7 @@
+fm-captain-hold: route branch failed: {"error":{"code":"agent_not_ready","message":"agent ep-firstmate is not an active named agent"},"id":"cli:agent:prompt"}
+route-failed
+fm-captain-hold: routing row branch failed (exit 1)
+fm-captain-hold: route capacity failed: {"error":{"code":"agent_not_ready","message":"agent ep-groove-sight-platform is not an active named agent"},"id":"cli:agent:prompt"}
+route-failed
+fm-captain-hold: routing row capacity failed (exit 1)
+not ok - due sweep failed

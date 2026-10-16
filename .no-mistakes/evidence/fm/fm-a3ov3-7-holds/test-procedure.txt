@@ -1,0 +1,27 @@
+Target: fa7972e060ec00e6563eb981c7471f081ac35f2d
+Comparison: a38cae5c, the captain-hold executable before the fairness fix.
+
+Executed commands:
+python3 .hold-validation/probe.py replay
+python3 .hold-validation/probe.py replay deferred reserved retry
+python3 .hold-validation/probe.py endpoint-probe
+python3 .hold-validation/probe.py reserved
+python3 .hold-validation/focused.py replay-fixture deferred-fixture retry-fixture fairness-before fairness rows
+bash .hold-validation/direct-live.sh
+
+The probe provisioned and tore down fm-lab-holds-01m52 exclusively through bin/fm-herdr-lab.sh. All session configuration, logs, tripwires, receivers and fixture data were under .hold-validation. XDG_CONFIG_HOME=.hold-validation/xdg avoided the Unix socket length limit. The helper's default-session tripwire used only a local socket link for read-only checks; no default panes were driven. The first transport attempt recursed through the fixture PATH; restoring the original PATH corrected this setup error. The real Herdr API then rejected test-receiver prompt delivery with agent_not_ready. No supported harness was imitated or launched.
+
+The focused driver executed the existing lifecycle behavioral functions with FM_TEST_HOLD_DOMAIN_ROUTER=/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py, TMPDIR under .hold-validation/tmp, FM_TEST_SKIP_ORPHAN_REAP=1, and the suite's isolated transport. It captured public backlog state, receipt and pending-body contracts, watcher output and emitted prompts before the normal fixture cleanup. These are non-live delivery regressions.
+
+Functions executed:
+test_domain_holds_route_after_timeout_and_record_evidence
+test_domain_deferred_holds_keep_their_routing_wake
+test_domain_retries_failed_delivery_and_release
+test_domain_interrupted_sweeps_make_fair_progress
+test_domain_row_bounds_preserve_later_holds
+
+For fairness-before, a private copy of bin used git show a38cae5c:bin/fm-captain-hold.sh. The comparison reproduced permanent starvation after two sweeps. The current executable passed four sweeps, row retirement/insertion and receipt recovery. Timing-sensitive fixtures ran sequentially, retaining their configured 70-second sweep and 30-second row bounds for the interrupted-sweep case and 90-second sweep for the two-row cases.
+
+The final direct CLI checks did not load tests/lib.sh or any fakebin. They used the normal PATH, real tasks-axi markdown storage, the installed router, and bin/fm-captain-hold.sh hold / route-due. live-deferral-cli.log and live-reserved-cli.jsonl contain the exact executable argv, clocks, exit codes, stdout and stderr. The only nonzero direct result is the expected reason-drift refusal, which left the production question held.
+
+No actual branch update, capacity change, remote agent, worker, credential change, package installation, push, PR operation, or pipeline-control operation was performed. Temporary drivers and fixtures are removed after evidence capture; evidence remains here.

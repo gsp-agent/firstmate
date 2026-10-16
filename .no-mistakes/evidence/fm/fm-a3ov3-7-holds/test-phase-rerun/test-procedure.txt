@@ -1,0 +1,29 @@
+Test phase for target fa7972e060ec00e6563eb981c7471f081ac35f2d.
+Baseline: the worktree was clean. The prior Test verdict was inconclusive (3/7 live scenarios), with passing isolated regressions. Recorded instruction 008 explicitly accepts the existing fixture proof, forbids all real Herdr and harness operations, and assigns real endpoint cutover plus next-day verification to Firstmate after landing. That decision governs this phase; no live harness delivery is claimed.
+
+Executed sequentially:
+PYTHONDONTWRITEBYTECODE=1 python3 .hold-test-proof/driver.py deferred
+PYTHONDONTWRITEBYTECODE=1 python3 .hold-test-proof/driver.py reserved
+
+The exact disposable selector/observer is saved as fixture-driver.py. It selects the existing executable behavioral functions test_domain_deferred_holds_keep_their_routing_wake and test_domain_keeps_reserved_human_and_answered_holds from tests/fm-captain-hold-lifecycle.test.sh before its dispatcher. Existing fixture bodies/assertions are unchanged. The observer only saves generated backlog state, pending bodies, routing receipts, isolated emitted prompts, watcher output and supervision return values. Reading test source selects executable fixtures; it is not an oracle for product behavior.
+
+The installed /Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py ran with the existing fake HOLD_DOMAIN_HERDR transport. The real hold CLI, watcher and tasks-axi markdown backend addressed disposable homes under the worktree. TMPDIR was under .hold-test-proof/tmp; FM_TEST_SKIP_ORPHAN_REAP=1 avoided global fixture reaping. Parent home/path/task-file overrides were removed from the fixture environment. Existing timeout defaults were retained. Test cases ran sequentially. No real branch/capacity operations, remote agents, workers, harness launches, session queries, production changes, credential operations, package installs, gate-control commands, pushes or PR operations ran.
+
+Fresh and postponed future holds kept their pending routing body and supervision, emitted no pre-date prompt or receipt, then at the date emitted one declared-owner prompt and durable receipt, released into queued work without captain words, converged on replay, and retired supervision. All eleven reserved/mixed/human holds were accepted and remained held without a prompt or receipt. Changed production wording refused stale routing; public replacement retired its stale technical pending entry. Answered/closed pending entries also retired without a prompt.
+
+Reused unchanged saved target evidence, as instructed (not rerun):
+- replay-fixture-state.jsonl and replay-fixture-execution.log: original update-branch and EP-approved capacity holds, one delivery/receipt per lifecycle.
+- fairness-state.jsonl and fairness-execution.log: repeated interrupted sweeps, later/new rows, retiring rows, ordinary checks, cleanup and exactly-once recovery. fairness-before-execution.log records the pre-fix starvation failure at a38cae5c.
+- rows-state.jsonl and rows-execution.log: blocked control locks, resolution writes and unholds preserve later-row progress and recover once.
+- retry-fixture-state.jsonl and retry-fixture-execution.log: failed delivery preserves the hold; interrupted unhold recovers from one receipt without a duplicate prompt.
+These parent-directory artifacts belong to this run's saved target proof; the prior test-procedure.txt and focused-results.jsonl record how they ran. They were read without rerunning unchanged long timing cases.
+
+Historical session boundary: only saved parent test-procedure.txt was consulted. It reports default-session read-only tripwire checks through a local socket link and says no default panes were driven. This phase made no new real-session queries and did not repeat those checks.
+
+No product/test/memory/workflow edits were needed. No linters, formatters, static analysis or complete suite ran. The accepted base-only approved-merge fixture limitation and Firstmate's CI hold remain unchanged; this evidence makes no full-suite, CI-green, landing or live-endpoint claim. The changed runtime surface is CLI and persisted backlog state, so product-level textual artifacts are appropriate and no GUI screenshots apply.
+
+Current fixture results:
+{"case": "deferred", "function": "test_domain_deferred_holds_keep_their_routing_wake", "exit_code": 0, "seconds": 35.45, "live_harness_delivery": false, "installed_router": "/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py", "head": "fa7972e060ec00e6563eb981c7471f081ac35f2d"}
+{"case": "reserved", "function": "test_domain_keeps_reserved_human_and_answered_holds", "exit_code": 0, "seconds": 153.34, "live_harness_delivery": false, "installed_router": "/Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py", "head": "fa7972e060ec00e6563eb981c7471f081ac35f2d"}
+
+Cleanup completed: fixture roots self-cleaned; the temporary selector/observer, generated scripts, empty temp directory and newly created dirtiness-baseline directory were removed after dcg allowed the exact enumerated removal commands. Final git status --short was empty and git rev-parse HEAD remained fa7972e060ec00e6563eb981c7471f081ac35f2d. Dedicated evidence files remain untouched.

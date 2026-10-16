@@ -1,0 +1,19 @@
+Test proof correction for target fa7972e060ec00e6563eb981c7471f081ac35f2d.
+
+Baseline: the prior selected finding reported 3/7 live scenarios and an inconclusive verdict despite passing isolated regressions. Its live owner delivery attempt encountered agent_not_ready. No live reproduction is authorized. The recorded instruction 008 accepts existing isolated transport and forbids every real Herdr session operation. The issue is proof scope and classification, not an observed product failure.
+
+Focused commands for this correction (sequential):
+PYTHONDONTWRITEBYTECODE=1 python3 .hold-validation/proof.py deferred
+PYTHONDONTWRITEBYTECODE=1 python3 .hold-validation/proof.py reserved
+
+fixture-driver.py is the exact temporary selector/observer used. It selects existing fixture functions from tests/fm-captain-hold-lifecycle.test.sh before the suite dispatcher, points the existing test-library include at the current worktree, and wraps the existing watcher helper only to save persisted output after it exits. It adds no behavioral assertions or test cases. All existing fixture bodies and assertions execute unchanged. The temporary selector and fixture data are removed after completion.
+
+Both fixtures use the installed /Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py, the existing fake HOLD_DOMAIN_HERDR transport and real Firstmate hold/watcher executables with disposable markdown tasks-axi backlogs. TMPDIR is inside the worktree; FM_TEST_SKIP_ORPHAN_REAP=1 prevents global fixture scanning. Existing timeout defaults are retained. No product, test, memory, workflow or CI configuration edits are required.
+
+Reused unchanged target evidence from the parent evidence directory: replay-fixture-execution.log and replay-fixture-state.jsonl for the original two technical holds; retry-fixture-execution.log and retry-fixture-state.jsonl for delivery failure and interrupted receipt/release recovery; fairness-execution.log and fairness-state.jsonl for interrupted sweep progress, insertion/retirement, ordinary checks and cleanup; rows-execution.log and rows-state.jsonl for blocked lock, resolution write and unhold. focused-results.jsonl records zero exit status for each target case. fairness-before-execution.log preserves the expected pre-fix failure at a38cae5c. These cases were not rerun for this evidence correction.
+
+Historical boundary: the parent test-procedure.txt says the prior helper used only a local socket link for read-only default-session tripwire checks, with no default panes driven. That is a statement about previously saved evidence, not a new session query. This correction does not start, stop, inspect, list, prompt or touch any real Herdr session, does not launch workers or harnesses, and does not re-run the lab-dependent probe.
+
+Interpretation: isolated transport proves executable routing, state transitions, handoff payloads and persisted recovery contracts. It does not prove delivery to an active live harness. Real endpoint cutover and next-day validation remain Firstmate-owned after landing, outside this worker's authorization. The accepted base-only approved-merge fixture limitation and the existing Firstmate CI hold remain unchanged. No full-suite, CI-green, live-delivery, production-change or landing claim is made.
+
+Completion: deferred fixture exit 0 (158.19 seconds), reserved fixture exit 0 (301.87 seconds). All seven authorized scenario results pass using current or explicitly reused target evidence; live-harness delivery remains unperformed. Temporary selector, observer, drivers, empty temp directory and newly created dirtiness baseline directory were removed. Forced rm syntax was refused by the tool, so it was replaced with plain enumerated-file removal; dcg allowed both the plain removal and empty-directory cleanup. Final git status is clean and HEAD remains fa7972e060ec00e6563eb981c7471f081ac35f2d.

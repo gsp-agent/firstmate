@@ -1,0 +1,129 @@
+{
+  "summary": "Complete hold-routing proof with isolated fixtures",
+  "findings": [],
+  "resolved_finding_ids": [
+    "test-2"
+  ],
+  "tested_head_sha": "fa7972e060ec00e6563eb981c7471f081ac35f2d",
+  "verdict": "pass",
+  "validation_scope": "Authorized existing isolated fixtures with installed router and fake HOLD_DOMAIN_HERDR transport.",
+  "live_harness_delivery": false,
+  "baseline": {
+    "selected_findings": 1,
+    "prior_verdict": "inconclusive",
+    "prior_live_scenarios": "3/7"
+  },
+  "result": {
+    "selected_findings_remaining": 0,
+    "authorized_scenarios_passed": "7/7"
+  },
+  "testing_summary": "Deferred and reserved fixtures passed sequentially; unchanged original-hold, scheduling, blocked-row and receipt-recovery results reused at the same target. No product or test edits required.",
+  "tested": [
+    "PYTHONDONTWRITEBYTECODE=1 python3 .hold-validation/proof.py deferred",
+    "PYTHONDONTWRITEBYTECODE=1 python3 .hold-validation/proof.py reserved"
+  ],
+  "scenarios": [
+    {
+      "name": "Expired update-branch and EP-approved capacity holds release to their declared owners once per lifecycle.",
+      "result": "pass",
+      "live": false,
+      "evidence": [
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/replay-fixture-execution.log",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/replay-fixture-state.jsonl"
+      ],
+      "reason": "Reused unchanged target evidence: real hold CLI and installed router, fake transport; matching owner receipts and one prompt per lifecycle."
+    },
+    {
+      "name": "Money, credentials, people, client words, production, accounts, taste, mixed asks, and declared human owners remain held.",
+      "result": "pass",
+      "live": false,
+      "evidence": [
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/reserved-execution.log",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/reserved-state.jsonl"
+      ],
+      "reason": "Existing reserved fixture rerun with installed router and fake transport; all eleven reserved/human holds remain held with no owner prompt or routing receipt."
+    },
+    {
+      "name": "Changing a technical hold into a production question prevents stale routing fields from releasing it.",
+      "result": "pass",
+      "live": false,
+      "evidence": [
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/reserved-execution.log",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/reserved-state.jsonl"
+      ],
+      "reason": "Existing fixture observes reason-drift refusal and a held production question; replacing the stale routing metadata retires technical pending work."
+    },
+    {
+      "name": "Creating or postponing a deferred hold preserves its pending routing record through a sweep before its date.",
+      "result": "pass",
+      "live": false,
+      "evidence": [
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/deferred-execution.log",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/deferred-state.jsonl"
+      ],
+      "reason": "Fresh and postponed cases both pass through public hold and watcher interfaces; supervision stays required, pending bodies survive, and pre-date prompt and receipt counts are zero."
+    },
+    {
+      "name": "When a deferral expires, the watcher transfers responsibility once and releases the hold without completing the task.",
+      "result": "pass",
+      "live": false,
+      "evidence": [
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/deferred-execution.log",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/deferred-state.jsonl"
+      ],
+      "reason": "Both cases route to ep-firstmate at the date, release into queued state, persist one receipt without captain words, converge on replay, and retire supervision."
+    },
+    {
+      "name": "Repeated bounded sweeps reach later and newly added holds despite blocked locks, writes, and unholds, while preserving ordinary checks and cleanup.",
+      "result": "pass",
+      "live": false,
+      "evidence": [
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/fairness-before-execution.log",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/fairness-execution.log",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/fairness-state.jsonl",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/rows-execution.log",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/rows-state.jsonl"
+      ],
+      "reason": "Reused failing-before and passing-target isolated evidence: interrupted repeated sweeps, row insertion/retirement, all three blocking sites, scheduled checks and subprocess cleanup."
+    },
+    {
+      "name": "Failed delivery preserves the hold, and an interrupted release recovers from its receipt without prompting twice.",
+      "result": "pass",
+      "live": false,
+      "evidence": [
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/retry-fixture-execution.log",
+        "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/retry-fixture-state.jsonl"
+      ],
+      "reason": "Reused unchanged passing isolated target evidence; pending work survives failure and recovery consumes the single existing receipt."
+    }
+  ],
+  "limitations": [
+    "Isolated transport does not prove delivery to an active live harness; no real Herdr sessions were touched in this correction.",
+    "Real endpoint cutover and next-day validation remain Firstmate-owned after landing, outside this worker phase.",
+    "Historical default-session read-only tripwire checks via local socket link are documented only from saved evidence; no default panes were driven according to that record.",
+    "Accepted base-only approved-merge fixture limitation and existing Firstmate CI hold are preserved; no workflow changes or full-suite/CI-green claim."
+  ],
+  "artifacts": [
+    {
+      "kind": "other",
+      "label": "Exact fixture selector and observer",
+      "path": "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/fixture-driver.py"
+    },
+    {
+      "kind": "other",
+      "label": "Scoped proof procedure and historical boundaries",
+      "path": "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/test-procedure.txt"
+    },
+    {
+      "kind": "other",
+      "label": "Current focused fixture results",
+      "path": "/Users/dalecarman/.no-mistakes/evidence/01M52QK1HG196HGAE7YGSQF6KP/test-proof-correction/focused-results.jsonl"
+    }
+  ],
+  "cleanup": {
+    "transient_artifacts_removed": true,
+    "worktree_clean": true,
+    "source_changes": false,
+    "head_unchanged": true
+  }
+}

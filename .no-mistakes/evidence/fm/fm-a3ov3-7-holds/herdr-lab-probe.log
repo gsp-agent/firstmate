@@ -1,0 +1,24 @@
+$ bin/fm-herdr-lab.sh prepare fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh provision fm-lab-holds-01m52
+fm-herdr-lab: tripwire already exists for 'fm-lab-holds-01m52'; refusing ambiguous ownership
+
+exit=1
+$ bin/fm-herdr-lab.sh teardown fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh provision fm-lab-holds-01m52
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 workspace create --label hold-validation --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP --no-focus
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52QK1HG196HGAE7YGSQF6KP","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65df78d6540fb1","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"},"type":"workspace_created","workspace":{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"hold-validation","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}}}
+
+exit=0
+$ bin/fm-herdr-lab.sh run fm-lab-holds-01m52 tab list
+{"id":"cli:tab:list","result":{"tabs":[{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"}],"type":"tab_list"}}
+
+exit=0
+$ bin/fm-herdr-lab.sh teardown fm-lab-holds-01m52
+
+exit=0

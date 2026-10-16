@@ -1,0 +1,4 @@
+Existing fixture: test_domain_deferred_holds_keep_their_routing_wake
+Installed router: /Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py
+Transport: existing fake HOLD_DOMAIN_HERDR; no real sessions
+ok - fresh and postponed holds remain supervised, respect their date, and route once when due
