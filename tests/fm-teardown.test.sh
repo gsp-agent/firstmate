@@ -5446,6 +5446,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-github ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy-reuse ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-ordering ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
@@ -6861,6 +6862,96 @@ SH
   pass "fm-teardown: legacy preparation uses the latest completed row and preserves missing or active tasks"
 }
 
+test_task_data_legacy_reused_id() {
+  local case_dir task helper project variant action
+  helper="$ROOT/bin/fm-task-data.py"
+  for variant in expired empty unexpired legacy direct; do
+    case_dir=$(make_case "task-data-legacy-reuse-$variant")
+    task="$case_dir/data/task-x1"
+    project="$case_dir/projects/demo"
+    mkdir -p "$task" "$project" "$case_dir/history"
+    cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+    printf '# Backlog\n\n## In flight\n\n## Done\n' > "$case_dir/data/backlog.md"
+    printf '%s\n' '- [x] task-x1 - previous https://github.com/test/repo/pull/1 (repo: demo) (done 2026-10-10)' \
+      '  [historical row evidence](old-row.bin)' > "$case_dir/history/completed.md"
+    printf 'historical row evidence\n' > "$task/old-row.bin"
+    printf 'historical PR evidence\n' > "$task/old-pr.bin"
+    [ "$variant" = empty ] || printf 'old scratch\n' > "$task/old-scratch.bin"
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "$3" in
+  1) printf 'body: [old evidence](old-pr.bin)\n' ;;
+  2) printf 'body: [new evidence](new-pr.bin)\n' ;;
+  *) exit 2 ;;
+esac
+SH
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" prepare \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant first prepare failed"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+      "$case_dir/data" "$case_dir/state" task-x1 "$project" https://github.com/test/repo/pull/1 \
+      || fail "$variant first stage failed"
+    if [ "$variant" != unexpired ]; then
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+        "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant first expiry failed"
+      jq -e '.expired == true' "$task/record/data-cleanup.json" >/dev/null || fail "$variant first retirement not expired"
+    fi
+    printf '# Backlog\n\n## In flight\n- [ ] task-x1 - reused (repo: demo)\n' > "$case_dir/data/backlog.md"
+    printf 'new scratch\n' > "$task/new-scratch.bin"
+    printf 'current PR evidence\n' > "$task/new-pr.bin"
+    if [ "$variant" != legacy ] && [ "$variant" != direct ]; then
+      fm_write_meta "$case_dir/state/task-x1.meta" "project=$project" 'kind=ship' \
+        'pr=https://github.com/test/repo/pull/2'
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" prepare \
+        "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant second prepare failed"
+      mv "$case_dir/state/task-x1.meta" "$case_dir/retired.meta"
+    fi
+    printf '# Backlog\n\n## Done\n%s\n' \
+      '- [x] task-x1 - reused https://github.com/test/repo/pull/2 (repo: demo)' > "$case_dir/data/backlog.md"
+    if [ "$variant" = legacy ]; then
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" prepare \
+        "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant second prepare failed"
+    fi
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+      "$case_dir/data" "$case_dir/state" task-x1 "$project" https://github.com/test/repo/pull/2 \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "$variant second stage failed"
+    if [ "$variant" = unexpired ]; then
+      for action in stage expire; do
+        assert_grep 'task-x1.*changed project or PR' "$case_dir/err" "$action failed to warn about an unexpired conflict"
+        assert_present "$task/new-scratch.bin" "$action moved scratch despite unexpired conflict"
+        assert_present "$task/.cleanup-hold/old-scratch.bin" "$action lost the old recovery"
+        assert_present "$task/new-pr.bin" "$action lost current PR evidence"
+        FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+          "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err" \
+          || fail "unexpired conflict failed the pass"
+      done
+      continue
+    fi
+    assert_present "$task/.cleanup-hold/new-scratch.bin" "$variant expired legacy history blocked new staging"
+    jq -e '.complete == true and .expired == false' "$task/record/data-cleanup.json" >/dev/null \
+      || fail "$variant new retirement has no completed recovery cycle"
+    [ "$(cat "$task/new-pr.bin")" = 'current PR evidence' ] || fail "$variant staged current PR evidence"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant second expiry failed"
+    assert_absent "$task/.cleanup-hold" "$variant reused recovery did not expire"
+    assert_absent "$task/new-scratch.bin" "$variant new scratch did not expire"
+    [ "$(cat "$task/new-pr.bin")" = 'current PR evidence' ] || fail "$variant deleted current PR evidence"
+    assert_present "$task/old-row.bin" "$variant lost historical row evidence"
+    assert_present "$task/old-pr.bin" "$variant lost historical PR evidence"
+    jq -e '.expired == true' "$task/record/data-cleanup.json" >/dev/null || fail "$variant second retirement not expired"
+  done
+  pass "fm-teardown: expired legacy history permits reused retirement while unexpired conflicts retain recovery"
+}
+
 test_task_data_legacy_ordering() {
   local case_dir task variant helper project pr row_file date first_project first_pr
   helper="$ROOT/bin/fm-task-data.py"
@@ -7194,6 +7285,14 @@ fi
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-legacy ]; then
   test_task_data_legacy_rows
   test_task_data_legacy_ordering
+  test_task_data_legacy_reused_id
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-legacy-reuse ]; then
+  test_task_data_legacy_reused_id
+  test_task_data_reused_id
+  test_task_data_expired_sources
   exit 0
 fi
 
@@ -7209,6 +7308,7 @@ fi
 
 test_task_data_legacy_rows
 test_task_data_legacy_ordering
+test_task_data_legacy_reused_id
 test_task_data_github_reader
 test_task_data_cleanup
 test_task_data_refusals
