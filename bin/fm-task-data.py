@@ -16,7 +16,9 @@ Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
 the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
 Backlog sources retain their home addressing in the cleanup record.
-Unavailable references retain all data for retry.
+Named .agent-config-* and gsp-* beads use ~/.agent-config and ~/dev/gsp-beads.
+Other named beads try the task project before the owning Firstmate backlog.
+Unavailable references retain all data for retry without blocking retirement.
 Paths mentioned in these sources or retained evidence override the size/type limit.
 File references conservatively match basenames; directory references use path/link
 syntax and protect all descendants, including symlinks below a linked directory.
@@ -64,6 +66,10 @@ LIMIT = 1024 * 1024
 TEXT = {".txt", ".md", ".log", ".json"}
 HOLD = ".cleanup-hold"
 RECEIPT = "record/data-cleanup.json"
+
+
+class UnreadReferences(ValueError):
+    pass
 
 
 def real_directory(path):
@@ -129,16 +135,25 @@ def local_references(root, files, repos):
 
 def backlog_references(source, task_id):
     backlog = source["backlog"]
-    response = json.loads(read_command([
-        "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
-        "backlog-references", backlog["data"], task_id,
-        "1" if backlog["task"] is not None else "0", *source["beads"],
-    ], str(Path(backlog["data"]).parent)))
-    if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
-            or response.get("task") not in (None, task_id)
-            or (backlog["task"] is not None and response.get("task") != task_id)):
-        raise ValueError("invalid backlog reference response")
+    try:
+        response = json.loads(read_command([
+            "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
+            "backlog-references", backlog["data"], task_id,
+            "1" if backlog["task"] is not None else "0", source["project"], *source["beads"],
+        ], str(Path(backlog["data"]).parent)))
+        if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
+                or response.get("task") not in (None, task_id)
+                or (backlog["task"] is not None and response.get("task") != task_id)
+                or not isinstance(response.get("unread"), list)
+                or any(not isinstance(item, str) for item in response["unread"])):
+            raise ValueError("invalid backlog reference response")
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        source["unread"] = sorted(set([task_id, *source["beads"]]))
+        raise UnreadReferences(f"unread references {', '.join(source['unread'])}: {error}") from error
     backlog["task"] = response["task"]
+    source["unread"] = response["unread"]
+    if source["unread"]:
+        raise UnreadReferences(f"unread references: {', '.join(source['unread'])}")
     return response["text"]
 
 
@@ -431,6 +446,8 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if action == "prepare":
         try:
             backlog_references(record["sources"][-1], task_id)
+        except UnreadReferences as error:
+            print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         finally:
             write_record(root, record)
         return

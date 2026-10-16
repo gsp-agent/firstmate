@@ -5786,7 +5786,7 @@ SH
       BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong \
       run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
       || fail "$variant named-bead teardown failed: $(cat "$case_dir/err")"
-    [ "$(backlog_row_state "$case_dir")" = done ] || fail "$variant backlog close pending"
+    [ "$(backlog_row_state "$case_dir")" = 'done' ] || fail "$variant backlog close pending"
     assert_absent "$case_dir/state/task-x1.meta" "$variant metadata not retired"
     assert_absent "$case_dir/state/task-x1.backlog-close" "$variant pending close remains"
     [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant bead evidence moved"
