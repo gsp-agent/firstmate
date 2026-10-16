@@ -262,12 +262,12 @@ sweep_one_repo() {
     if [ -z "$cursor" ]; then
       fields=$(sweep_page_gh api graphql --hostname github.com \
         -f query="$SWEEP_QUERY" \
-        -F owner="$owner" -F repo="$repo" -F cursor=null \
+        -f owner="$owner" -f repo="$repo" -F cursor=null \
         --jq "$SWEEP_JQ" 2>/dev/null) || return 1
     else
       fields=$(sweep_page_gh api graphql --hostname github.com \
         -f query="$SWEEP_QUERY" \
-        -F owner="$owner" -F repo="$repo" -f cursor="$cursor" \
+        -f owner="$owner" -f repo="$repo" -f cursor="$cursor" \
         --jq "$SWEEP_JQ" 2>/dev/null) || return 1
     fi
     [ -n "$fields" ] || return 1

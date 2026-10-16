@@ -126,7 +126,7 @@ github_read_poll() {
   # shellcheck disable=SC2016  # GraphQL and jq text are literal.
   fields=$(gh api graphql --hostname "$host" \
     -f query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}' \
-    -F "owner=$owner" -F "repo=$repo" -F "number=$number" \
+    -f "owner=$owner" -f "repo=$repo" -F "number=$number" \
     --jq '.data.repository.pullRequest | ((.timelineItems.nodes // []) | last // {}) as $event | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "reason=" + (($event.reason // "") | tojson | .[1:-1]), "event=" + (($event.id // "") | if test("^[A-Za-z0-9_+/=-]{0,256}$") then . else "" end)' \
     2>/dev/null) || return 1
   [ -n "$fields" ] || return 1

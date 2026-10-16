@@ -140,6 +140,16 @@ SH
   cat > "$fakebin/gh" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FM_TEST_GH_LOG"
+test_api_string_field() {
+  [ "$1" = -F ] || return 0
+  case "$2" in
+    true|false|null) return 1 ;;
+  esac
+  case "${2#-}" in
+    ''|*[!0-9]*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 test_beacon_fresh() {
   local modified
   case "$(uname -s)" in
@@ -167,10 +177,17 @@ case "${1:-} ${2:-}" in
             --jq) shift; jq_filter=${1-} ;;
             --hostname) shift; request_host=${1-} ;;
             -f|-F)
+              field_mode=$1
               shift
               case "${1-}" in
-                owner=*) request_owner=${1#owner=} ;;
-                repo=*) request_repo=${1#repo=} ;;
+                owner=*)
+                  request_owner=${1#owner=}
+                  test_api_string_field "$field_mode" "$request_owner" || exit 1
+                  ;;
+                repo=*)
+                  request_repo=${1#repo=}
+                  test_api_string_field "$field_mode" "$request_repo" || exit 1
+                  ;;
                 query=*) request_query=${1#query=} ;;
                 cursor=*) cursor=${1#cursor=} ;;
               esac
@@ -244,9 +261,13 @@ case "${1:-} ${2:-}" in
           case "$1" in
             --jq) shift; jq_filter=${1-} ;;
             --hostname) shift; request_host=${1-} ;;
-            -F)
+            -f|-F)
+              field_mode=$1
               shift
-              case "${1-}" in number=*) poll_number=${1#number=} ;; esac
+              case "${1-}" in
+                owner=*|repo=*) test_api_string_field "$field_mode" "${1#*=}" || exit 1 ;;
+                number=*) poll_number=${1#number=} ;;
+              esac
               ;;
           esac
           shift
@@ -3816,6 +3837,47 @@ test_github_poll_uses_the_pr_host() {
   pass "a GitHub PR stays bound to github.com despite an enterprise GH_HOST"
 }
 
+test_github_identity_fields_stay_strings() {
+  local dir state path url out number
+  for path in acme/123 123/r acme/true true/r acme/false false/r acme/null null/r; do
+    dir=$(make_case "github-identity-${path%/*}-${path#*/}")
+    state="$dir/home/state"
+    url="https://github.com/$path/pull/7"
+    write_poll_meta "$state" task-a "$url"
+    seed_canonical_poll "$dir" task-a "$url"
+    out=$(FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+      FM_TEST_GH_POLL_EVENT=evt7 FM_TEST_GH_POLL_REASON=failed_checks run_poll "$dir")
+    [ "$out" = "dequeued $url reason=failed_checks event=evt7" ] \
+      || fail "$path lost its armed queue removal: $out"
+    out=$(FM_TEST_GH_STATE=MERGED run_poll "$dir")
+    [ "$out" = merged ] || fail "$path lost its merge confirmation: $out"
+    write_slow_sweep_page "$dir" page1 8 true page2
+    write_slow_sweep_page "$dir" page2 9 false ""
+    FM_TEST_GH_LOG="$dir/sweep-gh.log" FM_TEST_GH_SWEEP_DIR="$dir/sweep" PATH="$dir/fakebin:$BASE_PATH" \
+      "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$state" > "$dir/sweep.out" 2> "$dir/sweep.err" \
+      || fail "$path failed pagination: $(cat "$dir/sweep.err")"
+    for number in 8 9; do
+      [ "$(grep -Fxc "dequeued https://github.com/$path/pull/$number reason=failed_checks event=evt$number" "$dir/sweep.out")" -eq 1 ] \
+        || fail "$path lost its page removal for pull $number: $(cat "$dir/sweep.out")"
+    done
+    if [ "$path" = acme/123 ]; then
+      retire_contributions_observer "$dir"
+      add_stop_custom_check "$dir"
+      FM_TEST_GH_LOG="$dir/watch-gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+        FM_TEST_GH_POLL_EVENT=evt7 FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+        run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+        || fail "numeric repository watcher failed: $(cat "$dir/watch.err")"
+      FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+        > "$dir/drain.out" 2> "$dir/drain.err" || fail "numeric repository wake drain failed"
+      for number in 7 8 9; do
+        [ "$(grep -Fc "dequeued https://github.com/$path/pull/$number reason=failed_checks" "$dir/drain.out")" -eq 1 ] \
+          || fail "numeric repository wake lost pull $number: $(cat "$dir/drain.out")"
+      done
+    fi
+  done
+  pass "numeric and JSON-literal identities preserve merge reads and queue-removal wakes on every page"
+}
+
 test_dequeue_sweep_reaches_later_checks() {
   local dir state round id
   dir=$(make_case dequeue-sweep)
@@ -5353,6 +5415,7 @@ test_valid_recording_and_merge_derivation
 test_rejected_metacharacter_bytes_are_inert
 test_static_poll_contract
 test_github_poll_uses_the_pr_host
+test_github_identity_fields_stay_strings
 test_dequeue_sweep_reaches_later_checks
 test_queue_drop_reason_is_preserved
 test_verified_queue_drop_wakes_once
