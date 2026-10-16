@@ -2648,6 +2648,7 @@ printf '%s\n' "$FM_WATCH_DELIVERY_IDENTITY" > "$WATCH_LOCK/pid-identity" 2>/dev/
 sweep_repo_snapshot=
 if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
   sweep_repo_snapshot=$("$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
+  [ -z "$sweep_repo_snapshot" ] || sweep_repo_snapshot="${sweep_repo_snapshot}"$'\n'
 fi
 
 # Disable recovered runnable polls now; fm_pr_poll_retirement_ready in

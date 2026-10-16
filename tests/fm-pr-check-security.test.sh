@@ -5585,9 +5585,9 @@ EOF
 }
 
 assert_logged_sweep_union() {  # <log> <want> <why>
-  local log=$1 want=$2 why=$3 raw got begins
+  local log=$1 want=$2 why=$3 minimum=${4:-12} raw got begins
   begins=$(grep -c '^sweep-repos-begin$' "$log" || true)
-  [ "$begins" -ge 12 ] || fail "$why: the sweep inherited the repository list $begins times"
+  [ "$begins" -ge "$minimum" ] || fail "$why: the sweep inherited the repository list $begins times"
   raw=$(awk '
     $0 == "sweep-repos-begin" { buf = ""; capture = 1; next }
     $0 == "sweep-repos-end" { if (capture) last = buf; capture = 0; next }
@@ -5651,6 +5651,70 @@ test_retained_sweep_repos_stay_one_entry() {
     || fail "a failing sweep dropped a sidecar"
   assert_logged_sweep_union "$dir/gh.log" "$listed" "failing sweep repositories"
   pass "many checks leave one first-seen repository entry when a repo stays queued and when the sweep fails"
+}
+
+test_sweep_repos_added_after_startup_stay_separate() {
+  local mode dir state first failures passes=4
+  for mode in queued failed; do
+    dir=$(make_case "runtime-sweep-repos-$mode")
+    state="$dir/home/state"
+    write_poll_meta "$state" task-a https://github.com/o/zeta/pull/1
+    write_poll_meta "$state" task-b https://github.com/o/alpha/pull/2
+    write_poll_meta "$state" task-c https://github.com/o/beta/pull/3
+    seed_canonical_poll "$dir" task-a https://github.com/o/zeta/pull/1
+    mkdir -p "$dir/sweep"
+    "$REAL_JQ" -n '
+      {data:{repository:{pullRequests:{
+        pageInfo:{hasNextPage:false, endCursor:null},
+        nodes:[{number:9, state:"OPEN", merged:false, isInMergeQueue:true,
+          timelineItems:{nodes:[]}}]}}}}
+    ' > "$dir/queued-page.json"
+    cat > "$state/a-arm.check.sh" <<EOF
+#!/usr/bin/env bash
+count=\$(cat '$dir/passes' 2>/dev/null || true)
+case "\$count" in
+  '') id=task-b; path=o/alpha; number=2 ;;
+  1)
+    id=task-c; path=o/beta; number=3
+    if [ '$mode' = queued ]; then
+      cp '$dir/queued-page.json' '$dir/sweep/page1.json' || exit 1
+    fi
+    ;;
+  *) exit 0 ;;
+esac
+. '$ROOT/bin/fm-pr-lib.sh'
+fm_pr_poll_prepare '$state' "\$id" github "https://github.com/\$path/pull/\$number" \
+  github.com "\$path" "\$number" '$POLL' || exit 1
+fm_pr_poll_publish_prepared
+EOF
+    chmod 0700 "$state/a-arm.check.sh"
+    FM_HOME="$dir/home" "$REGISTER" a-arm >/dev/null \
+      || fail "could not register runtime repository arming"
+    add_counted_stop_check "$dir" "$passes"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_LOG_SWEEP_REPOS=1 \
+      FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+      FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "$mode runtime repository watcher failed after $(cat "$dir/passes" 2>/dev/null || true) checks: $(cat "$dir/watch.err")"
+    [ "$(cat "$dir/passes")" -eq "$passes" ] \
+      || fail "$mode runtime repository watcher did not complete $passes checks"
+    expect_stop_cycle "$dir/watch.out" "$mode runtime repository sweep woke"
+    failures=$(grep -c 'merge-queue sweep failed;' "$state/.watch-triage.log" || true)
+    case "$mode" in
+      queued) [ "$failures" -eq 1 ] || fail "runtime repository sweep did not recover after its first failure" ;;
+      failed) [ "$failures" -eq "$passes" ] || fail "runtime repository sweep did not keep failing" ;;
+    esac
+    [ -f "$state/task-b.pr-poll" ] && [ -f "$state/task-c.pr-poll" ] \
+      || fail "$mode runtime repository checks did not arm both new repositories"
+    first=$(awk '
+      $0 == "sweep-repos-begin" { capture = 1; next }
+      $0 == "sweep-repos-end" { exit }
+      capture { print }
+    ' "$dir/gh.log")
+    [ "$first" = o/zeta ] || fail "$mode runtime repositories were armed before the first sweep: $first"
+    assert_logged_sweep_union "$dir/gh.log" $'o/zeta\no/alpha\no/beta' "$mode runtime repositories" 11
+  done
+  pass "repositories armed after startup keep first-seen lines through failed and successful sweeps"
 }
 
 if [ -n "${FM_TEST_ONLY:-}" ]; then
@@ -5735,3 +5799,4 @@ test_teardown_removes_poll_artifacts
 test_closed_pull_request_teardown_follows_an_empty_sweep
 test_force_discards_closed_watch_with_or_without_a_sweep
 test_retained_sweep_repos_stay_one_entry
+test_sweep_repos_added_after_startup_stay_separate
