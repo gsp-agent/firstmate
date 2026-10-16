@@ -6039,7 +6039,7 @@ SH
   [ "$(cat "$live/blob")" = 'live bytes' ] || fail "live-task temporary scratch changed"
   [ "$(cat "$unclaimed/blob")" = 'unclaimed bytes' ] || fail "a name alone claimed temporary scratch"
   [ "$(cat "$case_dir/outside/blob")" = 'outside bytes' ] || fail "temporary symlink escaped its root"
-  next=task-next
+  next='task-next'
   fm_write_meta "$case_dir/state/$next.meta" \
     "window=firstmate:fm-$next" "endpoint_task_id=$next" "worktree=$case_dir/missing" \
     "project=$case_dir/project" "kind=ship" "mode=local-only" "spawn_gen=$next"
