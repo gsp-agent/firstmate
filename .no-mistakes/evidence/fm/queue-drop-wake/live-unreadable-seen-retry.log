@@ -1,0 +1,1 @@
+PASS unreadable-seen-recovery: Unreadable/unsafe seen records and a deduplication lookup corrupted after the scan begins all preserve the last-watch sidecar; every next successful scan delivers its removal before retirement.

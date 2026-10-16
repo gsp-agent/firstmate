@@ -1,0 +1,44 @@
+Setup full: sidecar and receipt remain on their original inodes; surviving registration/check recorded devices are renumbered.
+
+--- restart from full interrupted-retirement artifacts: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-ssklraor/state/z-end.check.sh: end-of-cycle
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/crash-full/pull/2 reason=failed_checks
+
+--- full: removal delivered and exact artifacts retired: delivered to main ---
+1792176873	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-ssklraor/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-ssklraor/state/z-end.check.sh: end-of-cycle
+1792176874	2	check	crash-full-removal-2	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/crash-full/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 70785.1792176874.TJ3ScN
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+Setup registration: sidecar and receipt remain on their original inodes; surviving registration/check recorded devices are renumbered.
+
+--- restart from registration interrupted-retirement artifacts: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-ssklraor/state/z-end.check.sh: end-of-cycle
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/crash-registration/pull/2 reason=failed_checks
+
+--- registration: removal delivered and exact artifacts retired: delivered to main ---
+1792176884	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-ssklraor/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-ssklraor/state/z-end.check.sh: end-of-cycle
+1792176884	4	check	crash-registration-removal-2	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/crash-registration/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 84685.1792176884.uHoUNq
+WARNING: watcher still down (same stale episode; last beat: 3s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+Setup sidecar: sidecar and receipt remain on their original inodes; surviving registration/check recorded devices are renumbered.
+
+--- restart from sidecar interrupted-retirement artifacts: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-ssklraor/state/z-end.check.sh: end-of-cycle
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/crash-sidecar/pull/2 reason=failed_checks
+
+--- sidecar: removal delivered and exact artifacts retired: delivered to main ---
+1792176890	5	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-ssklraor/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-ssklraor/state/z-end.check.sh: end-of-cycle
+1792176891	6	check	crash-sidecar-removal-2	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/crash-sidecar/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 6 --recovery-generation 96439.1792176890.WMoZXj
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

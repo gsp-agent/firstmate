@@ -1,0 +1,6 @@
+ok - completed repository removals are delivered once despite earlier or later repository failures
+ok - cleanup and cross-repository rearm preserve an unobserved merge until its repository is swept
+ok - renumbered retirement receipts keep scanning through every surviving artifact stage
+ok - retirement device recovery still refuses replaced inodes and altered content
+ok - a closed unmerged pull request is retired by an empty sweep and normal teardown succeeds
+ok - --force discards a closed watch with or without a completed sweep

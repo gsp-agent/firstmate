@@ -1,0 +1,40 @@
+--- last watch merged; unarmed PR drops after page 1: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/z-end.check.sh: end-of-cycle
+
+After first sweep: runnable poll removed; discovery sidecar and exact retirement receipt retained.
+
+--- merge delivered: delivered to main ---
+1792176195	1	check	merged-task-a-https://github.com/acme/interpage/pull/1	check: merge landed: task-a https://github.com/acme/interpage/pull/1 external
+1792176197	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/z-end.check.sh: end-of-cycle
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 50277.1792176195.Qs7akC
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+--- next sweep observes removal and no queued PRs: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/z-end.check.sh: end-of-cycle
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/interpage/pull/2 reason=failed_checks
+
+After second sweep: removal durable; discovery sidecar and retirement receipt removed.
+
+--- drop delivered: delivered to main ---
+1792176202	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/z-end.check.sh: end-of-cycle
+1792176203	4	check	replay-2	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/interpage/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 56557.1792176202.OaCm83
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+--- retired repository no longer scanned: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/z-end.check.sh: end-of-cycle
+
+--- quiet after retirement: delivered to main ---
+1792176208	5	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-jr1h8md2/state/z-end.check.sh: end-of-cycle
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 5 --recovery-generation 62861.1792176208.27OeO4
+WARNING: watcher still down (same stale episode; last beat: 1s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

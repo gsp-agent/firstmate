@@ -1,0 +1,3 @@
+ok - a failed sweep keeps the repository until the next sweep reports its removal
+ok - seen record errors preserve repository discovery until a removal is delivered
+not ok - mixed sweep failed: 

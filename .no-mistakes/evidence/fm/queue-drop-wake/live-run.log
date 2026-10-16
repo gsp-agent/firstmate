@@ -1,0 +1,7 @@
+PASS historical-replay: Exact GitHub #4308 event and nine stranded PRs each delivered once; drains survive interruption; acknowledged events stay silent; new event wakes again.
+PASS numeric-identities: Real gh sent String owner/repo values on all poll and two-page sweep requests, retained integer PR numbers, and delivered nine drops.
+PASS interpage-retirement: A queued page-1 sighting retains discovery after inter-page drop; next sweep reports failed_checks once and retires only afterward.
+PASS failed-page-retry: Failed and genuinely timed-out second pages preserve last-watch discovery; successful retry delivers the previously unarmed drop.
+PASS seen-record-recovery: Malformed seen data fails only the sweep; later PR polls run in both cycles, last-watch discovery survives, and recovery delivers the missed drop.
+PASS mixed-repositories: Completed repository removal is delivered while another repository page fails.
+PASS template-device-recovery: Shipped-template + device-renumber recovery resumes polling; unshipped hash-only tampering stays refused without executing the check.

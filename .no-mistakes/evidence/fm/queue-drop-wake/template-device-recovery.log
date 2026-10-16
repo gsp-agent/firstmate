@@ -1,0 +1,27 @@
+--- shipped prior template plus volume device renumber: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/task-a.check.sh: dequeued https://github.com/acme/upgrade/pull/1 reason=failed_checks
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/z-end.check.sh: end-of-cycle
+
+--- recovered watch delivered: delivered to main ---
+1792176274	1	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/task-a.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/task-a.check.sh: dequeued https://github.com/acme/upgrade/pull/1 reason=failed_checks
+1792176275	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/z-end.check.sh: end-of-cycle
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 49832.1792176274.fsww9o
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+--- unshipped template hash with unchanged check and renumber: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/z-end.check.sh: end-of-cycle
+check: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/task-a.check.sh
+
+--- tampered registration refused: delivered to main ---
+1792176283	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/z-end.check.sh: end-of-cycle
+1792176283	4	check	unauthenticated-state-checks	check: rejected unauthenticated state checks: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-57lfu158/state/task-a.check.sh
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 65492.1792176283.kwLROF
+WARNING: watcher still down (same stale episode; last beat: 2s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

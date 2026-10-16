@@ -1,0 +1,36 @@
+--- last watch merged and page 2 fails: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/task-a.check.sh: merged
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/z-end.check.sh: end-of-cycle
+
+--- merge survives failed scan: delivered to main ---
+1792176213	1	check	merged-task-a-https://github.com/acme/retry/pull/1	check: merge landed: task-a https://github.com/acme/retry/pull/1 external
+1792176215	2	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/z-end.check.sh: end-of-cycle
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 67113.1792176213.5S3pXf
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 1s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  After draining queued wakes, repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+--- second page exceeds its real two-second deadline: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/z-end.check.sh: end-of-cycle
+
+--- timeout cycle: delivered to main ---
+1792176221	3	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/z-end.check.sh: end-of-cycle
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 76047.1792176221.Livcrb
+WARNING: watcher still down (same stale episode; last beat: 1s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+--- later successful scan retries retained repository: watcher exit 0 ---
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/z-end.check.sh: end-of-cycle
+check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/retry/pull/2 reason=failed_checks
+
+--- retried drop delivered: delivered to main ---
+1792176226	4	check	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/z-end.check.sh	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-v9u_2jn2/state/z-end.check.sh: end-of-cycle
+1792176227	5	check	replay-2	check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/acme/retry/pull/2 reason=failed_checks
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 5 --recovery-generation 82143.1792176226.UcmRyw
+WARNING: watcher still down (same stale episode; last beat: 1s ago, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.

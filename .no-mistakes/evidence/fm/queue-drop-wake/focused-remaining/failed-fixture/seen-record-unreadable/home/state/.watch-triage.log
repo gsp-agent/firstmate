@@ -1,0 +1,2 @@
+[2026-10-16T13:54:54-0500] no matching persisted merge authority for task-a; recording an external merge outcome
+[2026-10-16T13:54:56-0500] merge-queue sweep failed; keeping the repository snapshot and deferred retirement

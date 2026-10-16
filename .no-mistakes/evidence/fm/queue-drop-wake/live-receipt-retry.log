@@ -1,0 +1,1 @@
+PASS interrupted-retirement-artifacts: Restarts with full, registration-only, and sidecar-only interrupted retirement artifacts accept unchanged inodes after recorded-device renumber, deliver the unarmed drop, and remove only those exact artifacts.

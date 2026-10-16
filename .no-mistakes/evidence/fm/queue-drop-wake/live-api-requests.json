@@ -1,661 +1,1343 @@
 [
   {
-    "scenario": "historical-replay",
-    "cycle": 1,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 4308,
-      "owner": "groovejones",
-      "repo": "groove-sight-platform"
-    }
+    "number": 4308,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176141.1178172,
+    "completed": 1792176141.117909,
+    "status": 200
   },
   {
-    "scenario": "historical-replay",
-    "cycle": 1,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "groovejones",
-      "repo": "groove-sight-platform"
-    },
-    "queued": [],
-    "returned": [
-      3941,
-      3950,
-      3939,
-      4006,
-      4017,
-      4111
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176142.314552,
+    "completed": 1792176142.3148422,
+    "status": 200
   },
   {
-    "scenario": "historical-replay",
-    "cycle": 1,
-    "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "groovejones",
-      "repo": "groove-sight-platform"
-    },
-    "queued": [],
-    "returned": [
-      4172,
-      4183,
-      4200,
-      4308,
-      9001,
-      9002
-    ]
-  },
-  {
-    "scenario": "historical-replay",
-    "cycle": 2,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 4308,
-      "owner": "groovejones",
-      "repo": "groove-sight-platform"
-    }
+    "number": 4308,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176150.3003242,
+    "completed": 1792176150.302646,
+    "status": 200
   },
   {
-    "scenario": "historical-replay",
-    "cycle": 2,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "groovejones",
-      "repo": "groove-sight-platform"
-    },
-    "queued": [],
-    "returned": [
-      3941,
-      3950,
-      3939,
-      4006,
-      4017,
-      4111
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176153.273813,
+    "completed": 1792176153.273906,
+    "status": 200
   },
   {
-    "scenario": "historical-replay",
-    "cycle": 2,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "groovejones",
-      "repo": "groove-sight-platform"
-    },
-    "queued": [],
-    "returned": [
-      4172,
-      4183,
-      4200,
-      4308,
-      9001,
-      9002
-    ]
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176153.504416,
+    "completed": 1792176153.5046651,
+    "status": 200
   },
   {
-    "scenario": "historical-replay",
-    "cycle": 3,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 4308,
-      "owner": "groovejones",
-      "repo": "groove-sight-platform"
-    }
+    "number": 4308,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176169.4964428,
+    "completed": 1792176169.496528,
+    "status": 200
   },
   {
-    "scenario": "historical-replay",
-    "cycle": 3,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "groovejones",
-      "repo": "groove-sight-platform"
-    },
-    "queued": [],
-    "returned": [
-      3941,
-      3950,
-      3939,
-      4006,
-      4017,
-      4111,
-      4308
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176170.463995,
+    "completed": 1792176170.464142,
+    "status": 200
   },
   {
-    "scenario": "historical-replay",
-    "cycle": 3,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "groovejones",
-      "repo": "groove-sight-platform"
-    },
-    "queued": [],
-    "returned": [
-      4172,
-      4183,
-      4200,
-      4308,
-      9001,
-      9002
-    ]
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176170.57676,
+    "completed": 1792176170.5769129,
+    "status": 200
   },
   {
-    "scenario": "interpage-retirement",
-    "cycle": 1,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 1,
-      "owner": "o",
-      "repo": "r"
-    }
+    "number": 4308,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176175.0534441,
+    "completed": 1792176175.0535219,
+    "status": 200
   },
   {
-    "scenario": "interpage-retirement",
-    "cycle": 1,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [
-      9
-    ],
-    "returned": [
-      9
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176176.739032,
+    "completed": 1792176176.739133,
+    "status": 200
   },
   {
-    "scenario": "interpage-retirement",
-    "cycle": 1,
+    "repository": "groovejones/groove-sight-platform",
     "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176176.848573,
+    "completed": 1792176176.848723,
+    "status": 200
   },
   {
-    "scenario": "interpage-retirement",
-    "cycle": 2,
-    "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
-  },
-  {
-    "scenario": "interpage-retirement",
-    "cycle": 2,
-    "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
-  },
-  {
-    "scenario": "numeric-identities",
-    "cycle": 1,
+    "repository": "acme/123",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 7,
-      "owner": "123",
-      "repo": "123"
-    }
+    "number": 7,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176183.517709,
+    "completed": 1792176183.5177972,
+    "status": 200
   },
   {
-    "scenario": "numeric-identities",
-    "cycle": 1,
-    "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "123",
-      "repo": "123"
-    },
-    "queued": [],
-    "returned": [
-      7
-    ]
-  },
-  {
-    "scenario": "numeric-identities",
-    "cycle": 1,
-    "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "123",
-      "repo": "123"
-    },
-    "queued": [],
-    "returned": [
-      8
-    ]
-  },
-  {
-    "scenario": "page-error",
-    "cycle": 1,
+    "repository": "123/true",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 1,
-      "owner": "o",
-      "repo": "r"
-    }
+    "number": 8,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176184.740927,
+    "completed": 1792176184.742015,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 1,
+    "repository": "false/null",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 2,
-      "owner": "other",
-      "repo": "repo"
-    }
+    "number": 9,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176186.127669,
+    "completed": 1792176186.127713,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 1,
+    "repository": "acme/123",
     "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176187.592656,
+    "completed": 1792176187.592726,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 1,
+    "repository": "acme/123",
     "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "o",
-      "repo": "r"
-    }
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176187.6642182,
+    "completed": 1792176187.664486,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 1,
+    "repository": "123/true",
     "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "other",
-      "repo": "repo"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176187.75686,
+    "completed": 1792176187.756918,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 1,
+    "repository": "123/true",
     "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "other",
-      "repo": "repo"
-    }
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176187.9120681,
+    "completed": 1792176187.912179,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 2,
+    "repository": "false/null",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176188.031682,
+    "completed": 1792176188.031774,
+    "status": 200
+  },
+  {
+    "repository": "false/null",
+    "kind": "sweep",
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176188.113429,
+    "completed": 1792176188.113514,
+    "status": 200
+  },
+  {
+    "repository": "acme/interpage",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 2,
-      "owner": "other",
-      "repo": "repo"
-    }
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176195.58592,
+    "completed": 1792176195.58599,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 2,
+    "repository": "acme/interpage",
     "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176197.842688,
+    "completed": 1792176197.8428018,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 2,
+    "repository": "acme/interpage",
     "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176197.924875,
+    "completed": 1792176197.924934,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 2,
+    "repository": "acme/interpage",
     "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "other",
-      "repo": "repo"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176202.929045,
+    "completed": 1792176202.929178,
+    "status": 200
   },
   {
-    "scenario": "page-error",
-    "cycle": 2,
+    "repository": "acme/interpage",
     "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "other",
-      "repo": "repo"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176202.986701,
+    "completed": 1792176202.986773,
+    "status": 200
   },
   {
-    "scenario": "page-timeout",
-    "cycle": 1,
+    "repository": "acme/retry",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 1,
-      "owner": "o",
-      "repo": "r"
-    }
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176213.4992461,
+    "completed": 1792176213.4994922,
+    "status": 200
   },
   {
-    "scenario": "page-timeout",
-    "cycle": 1,
+    "repository": "acme/retry",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176216.18533,
+    "completed": 1792176216.185457,
+    "status": 200
+  },
+  {
+    "repository": "acme/retry",
+    "kind": "sweep",
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176216.360231,
+    "completed": 1792176216.360647,
+    "status": 503
+  },
+  {
+    "repository": "acme/retry",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176221.620734,
+    "completed": 1792176221.6208699,
+    "status": 200
+  },
+  {
+    "repository": "acme/retry",
+    "kind": "sweep",
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176221.6777742,
+    "completed": 1792176224.739415,
+    "status": 503
+  },
+  {
+    "repository": "acme/retry",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176227.006772,
+    "completed": 1792176227.006849,
+    "status": 200
+  },
+  {
+    "repository": "acme/retry",
+    "kind": "sweep",
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176227.0609002,
+    "completed": 1792176227.0609422,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 2,
-      "owner": "other",
-      "repo": "repo"
-    }
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176232.796067,
+    "completed": 1792176232.79613,
+    "status": 200
   },
   {
-    "scenario": "page-timeout",
-    "cycle": 1,
-    "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
-  },
-  {
-    "scenario": "page-timeout",
-    "cycle": 1,
-    "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
-  },
-  {
-    "scenario": "page-timeout",
-    "cycle": 1,
-    "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "other",
-      "repo": "repo"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
-  },
-  {
-    "scenario": "page-timeout",
-    "cycle": 1,
-    "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "other",
-      "repo": "repo"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
-  },
-  {
-    "scenario": "page-timeout",
-    "cycle": 2,
+    "repository": "acme/later",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 2,
-      "owner": "other",
-      "repo": "repo"
-    }
+    "number": 3,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176233.68359,
+    "completed": 1792176233.683638,
+    "status": 200
   },
   {
-    "scenario": "page-timeout",
-    "cycle": 2,
-    "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
-  },
-  {
-    "scenario": "page-timeout",
-    "cycle": 2,
-    "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
-  },
-  {
-    "scenario": "page-timeout",
-    "cycle": 2,
-    "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "other",
-      "repo": "repo"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
-  },
-  {
-    "scenario": "page-timeout",
-    "cycle": 2,
-    "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "other",
-      "repo": "repo"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
-  },
-  {
-    "scenario": "malformed-seen",
-    "cycle": 1,
+    "repository": "acme/seen",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 1,
-      "owner": "o",
-      "repo": "r"
-    }
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176237.258749,
+    "completed": 1792176237.25882,
+    "status": 200
   },
   {
-    "scenario": "malformed-seen",
-    "cycle": 1,
+    "repository": "acme/later",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 2,
-      "owner": "other",
-      "repo": "repo"
-    }
+    "number": 3,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176237.902794,
+    "completed": 1792176237.902843,
+    "status": 200
   },
   {
-    "scenario": "malformed-seen",
-    "cycle": 2,
+    "repository": "acme/seen",
     "kind": "poll",
-    "page": 1,
-    "variables": {
-      "number": 2,
-      "owner": "other",
-      "repo": "repo"
-    }
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176241.893019,
+    "completed": 1792176241.893134,
+    "status": 200
   },
   {
-    "scenario": "malformed-seen",
-    "cycle": 2,
-    "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
+    "repository": "acme/later",
+    "kind": "poll",
+    "number": 3,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176244.178897,
+    "completed": 1792176244.178942,
+    "status": 200
   },
   {
-    "scenario": "malformed-seen",
-    "cycle": 2,
-    "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "o",
-      "repo": "r"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
+    "repository": "acme/later",
+    "kind": "poll",
+    "number": 3,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176249.649469,
+    "completed": 1792176249.6495318,
+    "status": 200
   },
   {
-    "scenario": "malformed-seen",
-    "cycle": 2,
+    "repository": "acme/seen",
     "kind": "sweep",
-    "page": 1,
-    "variables": {
-      "cursor": null,
-      "owner": "other",
-      "repo": "repo"
-    },
-    "queued": [],
-    "returned": [
-      9
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176250.397932,
+    "completed": 1792176250.3980029,
+    "status": 200
   },
   {
-    "scenario": "malformed-seen",
-    "cycle": 2,
+    "repository": "acme/later",
     "kind": "sweep",
-    "page": 2,
-    "variables": {
-      "cursor": "page2",
-      "owner": "other",
-      "repo": "repo"
-    },
-    "queued": [],
-    "returned": [
-      10
-    ]
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176250.497668,
+    "completed": 1792176250.497729,
+    "status": 200
+  },
+  {
+    "repository": "acme/complete",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176262.151795,
+    "completed": 1792176262.1518688,
+    "status": 200
+  },
+  {
+    "repository": "acme/failing",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176262.7982059,
+    "completed": 1792176262.798261,
+    "status": 200
+  },
+  {
+    "repository": "acme/complete",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176263.3189561,
+    "completed": 1792176263.319063,
+    "status": 200
+  },
+  {
+    "repository": "acme/failing",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176263.4189062,
+    "completed": 1792176263.419005,
+    "status": 503
+  },
+  {
+    "repository": "acme/upgrade",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176273.884303,
+    "completed": 1792176273.884375,
+    "status": 200
+  },
+  {
+    "repository": "acme/upgrade",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176275.458519,
+    "completed": 1792176275.4586072,
+    "status": 200
+  },
+  {
+    "repository": "acme/upgrade",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176283.508407,
+    "completed": 1792176283.508495,
+    "status": 200
+  },
+  {
+    "repository": "groovejones/groove-sight-platform",
+    "kind": "poll",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176294.482257,
+    "completed": 1792176294.482423,
+    "status": 200
+  },
+  {
+    "repository": "groovejones/groove-sight-platform",
+    "kind": "poll",
+    "number": 4308,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176294.611512,
+    "completed": 1792176294.611582,
+    "status": 200
+  },
+  {
+    "repository": "acme/force",
+    "kind": "poll",
+    "number": 18,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176303.162355,
+    "completed": 1792176303.1624289,
+    "status": 200
+  },
+  {
+    "repository": "acme/force",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176306.99657,
+    "completed": 1792176306.9966269,
+    "status": 503
+  },
+  {
+    "repository": "acme/retained",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176318.250059,
+    "completed": 1792176318.250153,
+    "status": 200
+  },
+  {
+    "repository": "acme/retained",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176321.707836,
+    "completed": 1792176321.7079492,
+    "status": 503
+  },
+  {
+    "repository": "acme/slow",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176336.217958,
+    "completed": 1792176336.4916961,
+    "status": 200
+  },
+  {
+    "repository": "acme/slow",
+    "kind": "poll",
+    "number": 2,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176337.3198369,
+    "completed": 1792176337.593643,
+    "status": 200
+  },
+  {
+    "repository": "acme/slow",
+    "kind": "poll",
+    "number": 3,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176339.677401,
+    "completed": 1792176340.454577,
+    "status": 200
+  },
+  {
+    "repository": "acme/slow",
+    "kind": "poll",
+    "number": 4,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176342.211394,
+    "completed": 1792176342.487804,
+    "status": 200
+  },
+  {
+    "repository": "acme/slow",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176345.141311,
+    "completed": 1792176345.141474,
+    "status": 200
+  },
+  {
+    "repository": "acme/long-pages",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176357.3868318,
+    "completed": 1792176357.386965,
+    "status": 200
+  },
+  {
+    "repository": "acme/long-pages",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176360.003175,
+    "completed": 1792176361.325525,
+    "status": 200
+  },
+  {
+    "repository": "acme/long-pages",
+    "kind": "sweep",
+    "number": null,
+    "cursor": "page2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176361.4712489,
+    "completed": 1792176362.7429519,
+    "status": 200
+  },
+  {
+    "repository": "acme/long-pages",
+    "kind": "sweep",
+    "number": null,
+    "cursor": "page3",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176362.821067,
+    "completed": 1792176364.13654,
+    "status": 200
+  },
+  {
+    "repository": "acme/lifecycle",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176391.434667,
+    "completed": 1792176391.434925,
+    "status": 200
+  },
+  {
+    "repository": "acme/lifecycle",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176395.9764311,
+    "completed": 1792176395.976532,
+    "status": 200
+  },
+  {
+    "repository": "acme/lifecycle",
+    "kind": "poll",
+    "number": 18,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176405.456894,
+    "completed": 1792176405.456961,
+    "status": 200
+  },
+  {
+    "repository": "acme/lifecycle",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176408.749295,
+    "completed": 1792176408.7493608,
+    "status": 200
+  },
+  {
+    "repository": "acme/lifecycle",
+    "kind": "poll",
+    "number": 18,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176413.1134222,
+    "completed": 1792176413.113496,
+    "status": 200
+  },
+  {
+    "repository": "acme/force",
+    "kind": "poll",
+    "number": 18,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176420.446652,
+    "completed": 1792176420.446753,
+    "status": 200
+  },
+  {
+    "repository": "acme/force",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176422.406709,
+    "completed": 1792176422.406762,
+    "status": 503
+  },
+  {
+    "repository": "acme/force",
+    "kind": "poll",
+    "number": 18,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176437.624066,
+    "completed": 1792176437.6241632,
+    "status": 200
+  },
+  {
+    "repository": "acme/force",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176439.5415711,
+    "completed": 1792176439.541674,
+    "status": 200
+  },
+  {
+    "repository": "acme/force",
+    "kind": "poll",
+    "number": 18,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176452.9547362,
+    "completed": 1792176452.954803,
+    "status": 200
+  },
+  {
+    "repository": "acme/force",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176454.537156,
+    "completed": 1792176454.5372102,
+    "status": 503
+  },
+  {
+    "repository": "acme/retained",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176459.4635332,
+    "completed": 1792176459.463618,
+    "status": 200
+  },
+  {
+    "repository": "acme/retained",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176462.106449,
+    "completed": 1792176462.106495,
+    "status": 503
+  },
+  {
+    "repository": "acme/retained",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176471.101963,
+    "completed": 1792176471.102048,
+    "status": 200
+  },
+  {
+    "repository": "acme/reasons",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176478.54975,
+    "completed": 1792176478.549842,
+    "status": 200
+  },
+  {
+    "repository": "acme/reasons",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176481.110142,
+    "completed": 1792176481.110228,
+    "status": 200
+  },
+  {
+    "repository": "acme/reasons",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176664.232508,
+    "order_by": null,
+    "completed": 1792176664.232712,
+    "status": 200
+  },
+  {
+    "repository": "acme/reasons",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176666.2398698,
+    "order_by": null,
+    "completed": 1792176666.239973,
+    "status": 200
+  },
+  {
+    "repository": "acme/reasons",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176667.12336,
+    "order_by": "CREATED_AT",
+    "completed": 1792176667.123435,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-before-gitlab",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176673.484001,
+    "order_by": null,
+    "completed": 1792176673.4840882,
+    "status": 200
+  },
+  {
+    "kind": "gitlab-rest",
+    "path": "/api/v4/projects/acme%2Fmerge/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "started": 1792176674.424552,
+    "status": 200,
+    "completed": 1792176674.42462
+  },
+  {
+    "kind": "gitlab-rest",
+    "path": "/api/v4/projects/acme%2Fmerge/merge_requests/1/approval_state",
+    "started": 1792176674.426476,
+    "status": 200,
+    "completed": 1792176674.4265301
+  },
+  {
+    "repository": "None/None",
+    "kind": "poll",
+    "number": null,
+    "cursor": null,
+    "owner_type": "NoneType",
+    "repo_type": "NoneType",
+    "number_type": "NoneType",
+    "started": 1792176674.4283578,
+    "order_by": null,
+    "completed": 1792176674.428395,
+    "status": 422
+  },
+  {
+    "repository": "acme/seen-before-gitlab",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176677.3822348,
+    "order_by": null,
+    "completed": 1792176677.382366,
+    "status": 200
+  },
+  {
+    "kind": "gitlab-rest",
+    "path": "/api/v4/projects/acme%2Fmerge/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "started": 1792176677.9299278,
+    "status": 200,
+    "completed": 1792176677.929991
+  },
+  {
+    "kind": "gitlab-rest",
+    "path": "/api/v4/projects/acme%2Fmerge/merge_requests/1/approval_state",
+    "started": 1792176677.933849,
+    "status": 200,
+    "completed": 1792176677.93392
+  },
+  {
+    "repository": "None/None",
+    "kind": "poll",
+    "number": null,
+    "cursor": null,
+    "owner_type": "NoneType",
+    "repo_type": "NoneType",
+    "number_type": "NoneType",
+    "started": 1792176677.9355562,
+    "order_by": null,
+    "completed": 1792176677.935605,
+    "status": 422
+  },
+  {
+    "repository": "acme/seen-before-gitlab",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176683.07999,
+    "order_by": null,
+    "completed": 1792176683.0800908,
+    "status": 200
+  },
+  {
+    "kind": "gitlab-rest",
+    "path": "/api/v4/projects/acme%2Fmerge/merge_requests/1?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true",
+    "started": 1792176683.8500679,
+    "status": 200,
+    "completed": 1792176683.850133
+  },
+  {
+    "kind": "gitlab-rest",
+    "path": "/api/v4/projects/acme%2Fmerge/merge_requests/1/approval_state",
+    "started": 1792176683.852143,
+    "status": 200,
+    "completed": 1792176683.8522
+  },
+  {
+    "repository": "None/None",
+    "kind": "poll",
+    "number": null,
+    "cursor": null,
+    "owner_type": "NoneType",
+    "repo_type": "NoneType",
+    "number_type": "NoneType",
+    "started": 1792176683.85446,
+    "order_by": null,
+    "completed": 1792176683.854507,
+    "status": 422
+  },
+  {
+    "repository": "acme/mutable-update",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176702.9670131,
+    "order_by": null,
+    "completed": 1792176702.967232,
+    "status": 200
+  },
+  {
+    "repository": "acme/mutable-update",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176705.7664378,
+    "order_by": "CREATED_AT",
+    "completed": 1792176705.766527,
+    "status": 200
+  },
+  {
+    "repository": "acme/mutable-update",
+    "kind": "sweep",
+    "number": null,
+    "cursor": "after-2",
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176705.83008,
+    "order_by": "CREATED_AT",
+    "completed": 1792176705.830179,
+    "status": 200
+  },
+  {
+    "repository": "acme/crash-full",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176711.590902,
+    "order_by": "CREATED_AT",
+    "completed": 1792176711.590983,
+    "status": 200
+  },
+  {
+    "repository": "acme/crash-registration",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176717.132428,
+    "order_by": "CREATED_AT",
+    "completed": 1792176717.132532,
+    "status": 200
+  },
+  {
+    "repository": "acme/crash-full",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176874.195016,
+    "order_by": "CREATED_AT",
+    "completed": 1792176874.1952178,
+    "status": 200
+  },
+  {
+    "repository": "acme/crash-registration",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176884.6565819,
+    "order_by": "CREATED_AT",
+    "completed": 1792176884.6567402,
+    "status": 200
+  },
+  {
+    "repository": "acme/crash-sidecar",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176891.084243,
+    "order_by": "CREATED_AT",
+    "completed": 1792176891.0843441,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-unreadable",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176947.732738,
+    "order_by": null,
+    "completed": 1792176947.7348218,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-unreadable",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792176959.356159,
+    "order_by": "CREATED_AT",
+    "completed": 1792176959.356895,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-unsafe",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792176976.089566,
+    "order_by": null,
+    "completed": 1792176976.089725,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-unreadable",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792177397.5926552,
+    "order_by": null,
+    "completed": 1792177397.592903,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-unreadable",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792177401.947149,
+    "order_by": "CREATED_AT",
+    "completed": 1792177401.9472342,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-unsafe",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792177405.453133,
+    "order_by": null,
+    "completed": 1792177405.453213,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-unsafe",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792177410.0392919,
+    "order_by": "CREATED_AT",
+    "completed": 1792177410.039387,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-lookup",
+    "kind": "poll",
+    "number": 1,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "int",
+    "started": 1792177413.4437828,
+    "order_by": null,
+    "completed": 1792177413.443905,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-lookup",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792177415.138131,
+    "order_by": "CREATED_AT",
+    "completed": 1792177415.138405,
+    "status": 200
+  },
+  {
+    "repository": "acme/seen-lookup",
+    "kind": "sweep",
+    "number": null,
+    "cursor": null,
+    "owner_type": "str",
+    "repo_type": "str",
+    "number_type": "NoneType",
+    "started": 1792177417.742753,
+    "order_by": "CREATED_AT",
+    "completed": 1792177417.742831,
+    "status": 200
   }
 ]

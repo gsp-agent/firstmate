@@ -1,0 +1,10 @@
+PASS baseline-comparison: The base-commit poll is silent for the exact #4308 removal; the current poll emits the PR, failed_checks, and its real GitHub removal-event ID.
+FAIL lifecycle-boundary: fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-80psr_n6
+REFUSED: task task-a has a missing, empty, or ambiguous window endpoint; preserving task state.
+
+FAIL force-closed-cleanup: 
+FAIL retained-device-renumber: fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-m5vvzq17
+REFUSED: task task-a has a missing, empty, or ambiguous window endpoint; preserving task state.
+
+PASS slow-checks-rearm: Completion of real custom and gh checks refreshes the existing expired beacon at unchanged default bounds; concurrent rearm preserves the running watcher, final PR and sweep drops arrive.
+PASS long-sweep-pages: Three real API pages took more than the two-second page budget in aggregate and still delivered every removal.

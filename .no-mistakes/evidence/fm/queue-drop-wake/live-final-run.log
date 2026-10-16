@@ -1,0 +1,5 @@
+PASS reason-preservation: Long and Unicode GitHub reasons survive poll, sweep, and drain; controls are escaped and event-like reason text cannot replace the actual deduplication event ID.
+PASS later-gitlab-watch: The real glab CLI reads the later GitLab watch in the malformed-seen cycle and on restart, then its merge notification reaches main despite the GitHub sweep failure.
+PASS immutable-pagination: A real two-page scan retains immutable creation ordering when a later-page PR updates and drops after page 1, delivers its removal, and only then retires the merged last watch.
+FAIL interrupted-retirement-artifacts: check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/fm-lab-nt1egf_n/state/z-end.check.sh: end-of-cycle
+

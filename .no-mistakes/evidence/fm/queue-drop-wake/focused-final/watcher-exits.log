@@ -1,0 +1,13 @@
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/mixed-sweep-task-a/home: exit 0; elapsed 8s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/mixed-sweep-task-a/home: exit 0; elapsed 3s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/mixed-sweep-task-b/home: exit 0; elapsed 9s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/mixed-sweep-task-b/home: exit 0; elapsed 4s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/unobserved-merge-cleanup/home: exit 0; elapsed 5s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/unobserved-merge-rearm/home: exit 0; elapsed 7s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/retirement-renumber-full/home: exit 0; elapsed 4s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/retirement-renumber-registration/home: exit 0; elapsed 4s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/retirement-renumber-sidecar/home: exit 0; elapsed 2s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/retirement-renumber-sidecar/home: exit 0; elapsed 2s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/closed-unmerged-empty-sweep/home: exit 0; elapsed 4s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/closed-unmerged-force-without-sweep/home: exit 0; elapsed 3s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.8vRAcx/closed-unmerged-force-with-sweep/home: exit 0; elapsed 3s

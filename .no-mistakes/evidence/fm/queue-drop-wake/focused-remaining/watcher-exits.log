@@ -1,0 +1,11 @@
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/failed-sweep-keeps-repo/home: exit 0; elapsed 4s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/failed-sweep-keeps-repo/home: exit 0; elapsed 5s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/seen-record-unreadable/home: exit 0; elapsed 5s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/seen-record-unreadable/home: exit 0; elapsed 3s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/seen-record-malformed/home: exit 0; elapsed 6s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/seen-record-malformed/home: exit 0; elapsed 8s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/seen-record-unsafe/home: exit 0; elapsed 6s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/seen-record-unsafe/home: exit 0; elapsed 7s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/seen-record-lookup/home: exit 0; elapsed 11s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/seen-record-lookup/home: exit 0; elapsed 10s
+watcher /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M52ZKA2EPSP789SM0Y7YDE7G/.phase-test/tmp/fm-pr-check-security.egkQk7/mixed-sweep-task-a/home: exit 124; elapsed 73s
