@@ -1070,6 +1070,7 @@ command_hold() {
         [ "${decision_owner:-$old_owner}" = "$old_owner" ] \
           && [ "${timeout_seconds:-$old_timeout}" = "$old_timeout" ] \
           && [ "$routing_reason" = "$old_reason" ] \
+          && [[ ! "$until" > "$hold_set" ]] \
           || fail "task $id already has a routing receipt; finish releasing it before changing its routing fields"
       fi
       decision_owner=${decision_owner:-$old_owner}
