@@ -552,7 +552,8 @@ A Claude composer that already holds text, or cannot be read, before the send is
 Before that Enter, the adapter continues only when the selected composer shows the typed payload, or only Claude paste placeholders with no literal remainder.
 Every Herdr adapter composer read (`fm_backend_herdr_composer_state`, `fm_backend_herdr_composer_content`) captures the current bottom screen at the reported viewport height, independent of the user's scroll position.
 The capture includes the full composer and any popup below it while excluding historical prompts above the current screen.
-Missing or invalid screen dimensions fail closed.
+Herdr 0.7.1 (protocol 14) reports no `scroll` in `pane get`, so on that version both reads use the visible viewport, as they did before scroll support.
+A reported `scroll` without a positive integer `viewport_rows` fails closed.
 The shared inbox pending-line confirmation read (`bin/fm-task-inbox-lib.sh`) stays a bounded tail on every backend.
 Dated measurement: docs/verification/runtime-backends.md "Claude exit behind the slash-command popup".
 
@@ -617,6 +618,7 @@ A missed native transition falls through to the composer verdict rather than rep
 The capture owner requests at least 200 lines from Herdr and trims locally to the caller's bound.
 This generous floor is required for the small bounded reads that remain: peek and watch tails, the rendered busy-footer read, and the shared steering-inbox pending-line read.
 Composer reads request at least the reported viewport height and at least 200 rows, then trim to that viewport height (see [Claude composer proof](#claude-composer-proof)).
+A pane that reports no `scroll` uses the visible viewport read, which takes no line count.
 
 ### Native idle state
 

@@ -3165,11 +3165,21 @@ fm_backend_herdr_visible_capture() {  # <target>
 # Capture the current bottom screen, independent of the user's scroll position.
 # A fixed tail can cut off a composer above a popup; untrimmed scrollback can
 # falsely prove emptiness from an old prompt. Keep exactly the viewport height.
+# Herdr 0.7.1 (protocol 14) reports no scroll, so its read stays the visible
+# viewport; a scroll Herdr does report must carry a valid height.
 fm_backend_herdr_composer_capture() {  # <target> [text|ansi]
   fm_backend_herdr_target_observable "$1" || return 1
   local info rows fetch format=${2:-text}
   info=$(fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane get "$FM_BACKEND_HERDR_PANE" 2>/dev/null) || return 1
-  rows=$(printf '%s' "$info" | jq -er '.result.pane.scroll.viewport_rows | select(type == "number") | select(. > 0 and . == floor)') || return 1
+  rows=$(printf '%s' "$info" | jq -er '.result.pane
+    | if type != "object" then error("no pane")
+      elif .scroll == null then "visible"
+      elif .scroll | type == "object" and (.viewport_rows | type == "number" and . > 0 and . == floor) then .scroll.viewport_rows
+      else error("invalid scroll") end') || return 1
+  if [ "$rows" = visible ]; then
+    fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source visible --format "$format" 2>/dev/null
+    return
+  fi
   fetch=$rows
   [ "$fetch" -ge 200 ] || fetch=200
   (

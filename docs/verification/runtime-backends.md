@@ -1345,7 +1345,23 @@ empty
 ```
 
 This read-only check proves composer classification, not an unattended reset.
-`bash tests/fm-backend-herdr.test.sh` covers scrolled captures, stale scrollback prompts, trailing blank rows, screens taller than 200 rows, invalid dimensions, plain fallback drafts, and the existing slash-popup submission cases.
+
+Herdr's own schema has no `PaneInfo.scroll` at v0.7.1 (protocol 14) and adds `scroll: Option<PaneScrollInfo>`, whose `viewport_rows` is required, at v0.7.2.
+Checked on 2026-10-17 against the upstream source tags:
+
+```sh
+for tag in v0.7.1 v0.7.2; do printf '%s ' "$tag"; gh api "repos/ogulcancelik/herdr/contents/src/api/schema/panes.rs?ref=$tag" --jq .content | base64 -d | grep -c 'pub scroll: Option<PaneScrollInfo>'; done
+```
+
+```text
+v0.7.1 0
+v0.7.2 1
+```
+
+When `pane get` reports no `scroll`, the adapter reads the visible viewport as it did before scroll support.
+A reported `scroll` without a positive integer `viewport_rows` fails closed.
+
+`bash tests/fm-backend-herdr.test.sh` covers scrolled captures, stale scrollback prompts, trailing blank rows, screens taller than 200 rows, malformed scroll reports, protocol-14 panes without `scroll` (including a Claude `/exit` submission), plain fallback drafts, and the existing slash-popup submission cases.
 The same suite accepts `FM_HERDR_COMPOSER_REPLAY_DIR` pointing to a directory containing verbatim `visible-ansi.txt` and `recent-ansi.txt` captures from a 58-row pane for the scrolled-capture regression.
 The existing live guard, `FM_HERDR_SUBMIT_CONFIRM_LIVE=1 tests/fm-herdr-submit-confirm-live-e2e.test.sh`, remains the end-to-end check for actual submission and exit in an isolated lab.
 

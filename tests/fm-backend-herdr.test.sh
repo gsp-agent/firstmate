@@ -66,6 +66,10 @@ if [ "${1:-}" = terminal ] && [ "${2:-}" = title ] && [ "${3:-}" = clear ]; then
   printf '{"result":{"reason":"%s"}}\n' "$reason"
   exit 0
 fi
+if [ "${1:-}" = pane ] && [ "${2:-}" = get ] && [ -n "${FM_HERDR_PANE_INFO:-}" ]; then
+  printf '%s\n' "$FM_HERDR_PANE_INFO"
+  exit 0
+fi
 if [ "${1:-}" = pane ] && [ "${2:-}" = get ] && [ -n "${FM_HERDR_VIEWPORT_ROWS:-}" ]; then
   printf '{"result":{"pane":{"scroll":{"viewport_rows":%s}}}}\n' "$FM_HERDR_VIEWPORT_ROWS"
   exit 0
@@ -3882,6 +3886,10 @@ shift 2
 SH
 }
 
+# `pane get` as Herdr 0.7.1 (protocol 14) prints it. Its PaneInfo has no scroll
+# field; scroll first appears in Herdr 0.7.2.
+HERDR_PROTOCOL_14_PANE_INFO='{"id":"cli:pane:get","result":{"type":"pane_info","pane":{"pane_id":"w1:p2","terminal_id":"term_2","workspace_id":"w1","tab_id":"w1:t1","focused":true,"cwd":"/tmp","agent":"claude","agent_status":"idle","revision":7}}}'
+
 test_composer_state_scrolled_viewport_uses_current_screen() {
   local dir log resp fb out i
   dir="$TMP_ROOT/composer-scrolled"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
@@ -3944,7 +3952,31 @@ test_composer_state_unproved_height_stays_unknown() {
     out=$(herdr_composer_probe "$fb" "$log" "$resp" "$rows" fm_backend_herdr_composer_state)
     [ "$out" = unknown ] || fail "unproved viewport height '$rows' must stay unknown, got '$out'"
   done
-  pass "fm_backend_herdr_composer_state: absent or malformed screen height cannot prove emptiness"
+  for info in '{"result":{"pane":{"scroll":{}}}}' '{"result":{"pane":{"scroll":5}}}' '{"result":{}}'; do
+    out=$(FM_HERDR_PANE_INFO=$info herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+    [ "$out" = unknown ] || fail "malformed pane info '$info' must stay unknown, got '$out'"
+  done
+  pass "fm_backend_herdr_composer_state: a reported but malformed scroll cannot prove emptiness"
+}
+
+test_composer_reads_protocol_14_pane_without_scroll() {
+  local dir log resp fb out
+  dir="$TMP_ROOT/composer-protocol-14"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  printf '────────────────────────\n❯\n────────────────────────\n' > "$resp/visible-ansi.txt"
+  printf '────────────────────────\n❯ recent rows are not read\n────────────────────────\n' > "$resp/recent-ansi.txt"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$(FM_HERDR_PANE_INFO=$HERDR_PROTOCOL_14_PANE_INFO herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+  [ "$out" = empty ] || fail "a protocol-14 pane must read its visible empty composer, got '$out'"
+
+  printf '────────────────────────\n❯ unfinished draft\n────────────────────────\n' > "$resp/visible-ansi.txt"
+  printf '────────────────────────\n❯\n────────────────────────\n' > "$resp/recent-ansi.txt"
+  out=$(FM_HERDR_PANE_INFO=$HERDR_PROTOCOL_14_PANE_INFO herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+  [ "$out" = pending ] || fail "a protocol-14 pane must read its visible draft as pending, got '$out'"
+  out=$(FM_HERDR_PANE_INFO=$HERDR_PROTOCOL_14_PANE_INFO herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_content)
+  [ "$out" = 'unfinished draft' ] || fail "a protocol-14 payload proof must extract the visible draft, got '$out'"
+  assert_contains "$(cat "$log")" $'--source\x1fvisible\x1f--format\x1fansi' "a protocol-14 pane must read its visible viewport"
+  assert_not_contains "$(cat "$log")" $'--source\x1frecent' "a protocol-14 pane must not read recent rows"
+  pass "fm_backend_herdr_composer_state: a protocol-14 pane without scroll reads its visible composer and payload"
 }
 
 test_composer_state_plain_fallback_reads_current_draft() {
@@ -5270,6 +5302,25 @@ test_send_text_submit_claude_selected_slash_popup_is_submitted() {
   pass "fm_backend_herdr_send_text_submit: Claude's captured selected slash popup submits without clearing"
 }
 
+test_send_text_submit_claude_exit_on_protocol_14_pane() {
+  local dir log resp fb out enter_count
+  dir="$TMP_ROOT/submit-claude-exit-protocol-14"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  herdr_submit_claude_prefix "$resp" /exit
+  printf '{"result":{"agent":{"agent":"claude","agent_status":"idle"}}}\n' > "$resp/5.out"
+  printf '{"result":{"agent":{"agent_status":"idle"}}}\n' > "$resp/7.out"
+  printf '❯\n' > "$resp/8.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+    FM_HERDR_PANE_INFO="$HERDR_PROTOCOL_14_PANE_INFO" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 /exit 3 0.01 0.01' "$ROOT" )
+  [ "$out" = empty ] || fail "a protocol-14 Claude pane must submit /exit, got '$out'; log: $(cat "$log")"
+  enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
+  [ "$enter_count" -eq 1 ] || fail "/exit must receive one Enter, got $enter_count"
+  [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "/exit must not be cleared"
+  assert_not_contains "$(cat "$log")" $'--source\x1frecent' "a protocol-14 pane must not read recent rows"
+  pass "fm_backend_herdr_send_text_submit: a protocol-14 Claude pane without scroll still types and submits /exit"
+}
+
 # Live Claude Code 2.1.283 draws a recognized typed slash command in muted
 # truecolor grey (38;2;112;112;112, luminance 112), below the grok-tuned
 # dark-foreground ghost threshold. Claude's own ghost suggestion is SGR-2 dim,
@@ -6147,6 +6198,7 @@ export FM_HERDR_VIEWPORT_ROWS=58
 test_composer_state_scrolled_viewport_uses_current_screen
 test_composer_capture_preserves_full_height_and_blank_rows
 test_composer_state_unproved_height_stays_unknown
+test_composer_reads_protocol_14_pane_without_scroll
 test_composer_state_plain_fallback_reads_current_draft
 test_composer_state_bare_prompt_is_empty
 test_composer_state_styled_placeholder_draft_is_pending
@@ -6215,6 +6267,7 @@ test_send_text_submit_refuses_marked_digest_missing_its_head
 test_composer_state_claude_slash_popup_pushes_composer_above_tail_window
 test_send_text_submit_claude_slash_popup_composer_is_still_proven_and_submitted
 test_send_text_submit_claude_selected_slash_popup_is_submitted
+test_send_text_submit_claude_exit_on_protocol_14_pane
 test_send_text_submit_claude_grey_slash_command_is_proven_and_submitted
 test_send_text_submit_lone_paste_placeholder_submits_the_long_payload
 test_send_text_submit_multiline_paste_placeholder_submits_the_long_payload
