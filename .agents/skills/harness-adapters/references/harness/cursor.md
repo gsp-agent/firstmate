@@ -73,7 +73,7 @@ The [Cursor launch controls](../../../../../docs/configuration.md#cursor-launch-
 
 ## Primary integration
 
-Primary supervision is the stop-hook park in `../../../docs/supervision-protocols/cursor.md` through tracked `.cursor/hooks.json`; primary and secondmate launches require `--trust` or hooks do not load.
+Interactive primary supervision is the stop-hook park in `../../../docs/supervision-protocols/cursor.md` through tracked `.cursor/hooks.json`; `--trust` is required or project hooks do not load.
 In a home with `config/supervision-host` and no `config/supervision-host-off` the park runs the supervision host instead of `../../../bin/fm-watch-arm.sh`, with Claude's print mode as its headless engine; [`supervision-host.md`](../../../../../docs/supervision-host.md) owns the host.
 Cursor exposes 20 project events plus a Claude-Code compatibility map that loads `.claude/settings.json`.
 Tracked hooks register `stop`, `sessionStart`, and two `preToolUse` seatbelts through `$CURSOR_PROJECT_DIR`; Claude entries stand down on Cursor payloads under `../../../docs/turnend-guard.md`.

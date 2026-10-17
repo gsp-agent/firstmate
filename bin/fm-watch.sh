@@ -82,6 +82,24 @@
 #                          steering-inbox recovery; bin/fm-task-inbox-lib.sh owns
 #                          delivery-attempt, busy-deferral, and unavailable-endpoint policy
 #   check: <script>: <out> authenticated check output, always actionable
+#                          The sweep runs every registered check before
+#                          stamping .last-check and delivering its collected
+#                          reasons in one watcher close, so an earlier result
+#                          cannot hide a later PR result.
+#                          A validated task PR's merged result publishes its
+#                          durable merge outcome before poll retirement.
+#                          A GitHub closed result uses the same retirement path
+#                          without a merge outcome or a closed-result wake.
+#                          bin/fm-pr-lib.sh owns the receipt and recovery contract.
+#                          Completed repository results are published even
+#                          when another repository fails. Final retirement and
+#                          snapshot clearing require that repository's queue-empty
+#                          line and successful deduplication lookups.
+#                          bin/fm-pr-queue-sweep.sh owns that line.
+#                          Before startup retirement recovery and each check
+#                          block, snapshot watched GitHub repositories for
+#                          bin/fm-pr-queue-sweep.sh. bin/fm-pr-lib.sh owns
+#                          discovery retention across recovery and cleanup.
 #   check: process-event result captured: <keys>
 #                          a durably captured process-to-event result is queued
 #                          and has not been surfaced yet; reported once per
@@ -191,8 +209,7 @@ WATCH_HOME_EXISTED=0
 . "$SCRIPT_DIR/fm-procevent-lib.sh"
 # Single owner of durable merge-outcome publication, shared with
 # bin/fm-pr-merge.sh so self and poll origins use the same role-routed outcome.
-# The watcher still owns immediate delivery of its actionable poll result and
-# poll retirement.
+# The watcher owns collected check-sweep delivery and poll retirement.
 # This library is a canonical lint root in its own right, and it reaches the
 # wake queue, PR identity, and secondmate parent libraries. Keep it an analysis
 # boundary here for the same reason as the transition and inbox owners above and
@@ -264,12 +281,9 @@ fi
 # turn-ended signature, annotation staleness checks, and guarded bookkeeping writes.
 
 POLL=${FM_POLL:-15}                   # seconds between cycles
-# The liveness beacon is touched once per cycle, immediately before the
-# terminal wait below (event_wait_or_sleep) as well as at the top of the next
-# one, so a healthy cycle's beacon can legitimately age up to POLL seconds
-# between touches. fm_poll_derived_grace (bin/fm-wake-lib.sh, already sourced
-# transitively above) is the single owner of the max(300, poll+60)
-# derivation - see docs/turnend-guard.md "Guard grace and the poll cadence".
+# docs/turnend-guard.md "Guard grace and the poll cadence" owns beacon refreshes.
+# fm_poll_derived_grace (bin/fm-wake-lib.sh, sourced transitively above) owns
+# the grace derivation that accommodates the terminal wait.
 # This recomputes the library default above now that the real configured
 # POLL is known.
 WATCHER_STALE_GRACE=${FM_WATCHER_STALE_GRACE:-${FM_GUARD_GRACE:-$(fm_poll_derived_grace "$POLL")}}
@@ -2086,6 +2100,11 @@ procevent_surface_queued() {
 run_check_process() {
   local c=$1
   shift
+  # The merge-queue sweep bounds each GitHub page itself. An outer deadline
+  # would kill the rest of a scan that is already making progress.
+  if [ "${FM_CHECK_UNBOUNDED:-0}" = 1 ]; then
+    exec bash "$c" "$@"
+  fi
   if [ "${FM_CHECK_FORCE_FALLBACK:-0}" != 1 ] && command -v timeout >/dev/null 2>&1; then
     exec timeout "$CHECK_TIMEOUT" bash "$c" "$@"
   elif [ "${FM_CHECK_FORCE_FALLBACK:-0}" != 1 ] && command -v gtimeout >/dev/null 2>&1; then
@@ -2104,6 +2123,7 @@ FM_ACTIVE_CHECK_PID=
 FM_ACTIVE_CHECK_PGID=
 FM_CHECK_OUTPUT=
 FM_CHECK_RESULT=
+FM_CHECK_STATUS=
 FM_CHECK_SIGNAL_PENDING=
 
 fm_check_output_cleanup() {
@@ -2153,9 +2173,10 @@ watcher_stop_signals() {
 }
 
 run_check_capture() {
-  local pgid
+  local pgid rc=0
   fm_check_output_cleanup
   FM_CHECK_RESULT=
+  FM_CHECK_STATUS=
   FM_CHECK_OUTPUT=$(mktemp "$STATE/.fm-check-output.XXXXXX") || return 1
   chmod 0600 "$FM_CHECK_OUTPUT" || { fm_check_output_cleanup; return 1; }
   FM_CHECK_SIGNAL_PENDING=
@@ -2176,11 +2197,13 @@ run_check_capture() {
     fm_check_output_cleanup
     return 1
   fi
-  wait "$FM_ACTIVE_CHECK_PID" 2>/dev/null || true
+  wait "$FM_ACTIVE_CHECK_PID" 2>/dev/null || rc=$?
   FM_ACTIVE_CHECK_PID=
   fm_active_check_stop || return 1
+  FM_CHECK_STATUS=$rc
   FM_CHECK_RESULT=$(cat "$FM_CHECK_OUTPUT" 2>/dev/null || true)
   fm_check_output_cleanup
+  touch "$BEAT"
 }
 
 FM_CAPTURE_OUTPUT=
@@ -2619,9 +2642,17 @@ printf '%s\n' "$FM_WATCH_DELIVERY_IDENTITY" > "$WATCH_LOCK/pid-identity" 2>/dev/
 
 [ -e "$STATE/.last-heartbeat" ] || touch "$STATE/.last-heartbeat"
 
-# A merged poll may have queued its terminal wake and then lost the process
-# between receipt publication and fixed-path removal.
-# Finish only identity-bound retirement receipts before any check can run.
+# Snapshot repositories before recovering terminal polls' retirement receipts.
+# The sweep reads this snapshot, so a repo whose only watch merges or closes
+# is still scanned. bin/fm-pr-queue-sweep.sh owns the line format.
+sweep_repo_snapshot=
+if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
+  sweep_repo_snapshot=$("$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
+  [ -z "$sweep_repo_snapshot" ] || sweep_repo_snapshot="${sweep_repo_snapshot}"$'\n'
+fi
+
+# Disable recovered runnable polls now; fm_pr_poll_retirement_ready in
+# bin/fm-pr-lib.sh owns retention of repository discovery evidence.
 if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; then
   reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
   fm_wake_append check pr-poll-retirement "$reason" || exit 1
@@ -2629,7 +2660,7 @@ if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; the
   wake "$reason"
 fi
 
-# Shared by both the first-notification and already-notified paths below so
+# Shared by the terminal-result paths below so
 # the retirement sequence (bin/fm-pr-lib.sh) is stated once.
 retire_merged_pr_poll() {  # <id>
   local id=$1
@@ -2658,6 +2689,55 @@ rerecord_device_shifted_pr_poll() {  # <id>
     triage_log "re-recorded PR poll identity for $id after its state volume device number changed"
   else
     triage_log "PR poll identity for $id was not re-recorded; the locked proof or rewrite did not hold"
+  fi
+  pr_poll_publish_release || exit 1
+  pr_poll_control_release || exit 1
+  return 0
+}
+
+# A poll armed before fm-pr-poll.sh changed can fail capture only because its
+# check copy is the previous template, or because a rewrite replaced that copy
+# and died before recording the new template hash. bin/fm-pr-lib.sh
+# fm_pr_poll_registration_rerecord_template and
+# fm_pr_poll_registration_rerecord_template_hash own those proofs and rewrites.
+# Returns 0 when a re-record was attempted under the control lock, so the caller
+# captures again whatever the outcome.
+rerecord_template_upgraded_pr_poll() {  # <id>
+  local id=$1
+  if ! fm_pr_poll_registration_template_upgradable "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" \
+    && ! fm_pr_poll_registration_template_hash_stale "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; then
+    return 1
+  fi
+  PR_POLL_CONTROL_LOCK="$STATE/.control-$id.lock"
+  fm_lock_acquire_wait "$PR_POLL_CONTROL_LOCK" || exit 1
+  PR_POLL_PUBLISH_LOCK="$STATE/.pr-poll-publish-$id.lock"
+  fm_lock_acquire_wait "$PR_POLL_PUBLISH_LOCK" || exit 1
+  if fm_pr_poll_registration_rerecord_template "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" \
+    || fm_pr_poll_registration_rerecord_template_hash "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; then
+    triage_log "re-recorded PR poll for $id from the current template"
+  else
+    triage_log "PR poll for $id was not re-recorded from the current template; the locked proof or rewrite did not hold"
+  fi
+  pr_poll_publish_release || exit 1
+  pr_poll_control_release || exit 1
+  return 0
+}
+
+# A poll can fail both of the recoveries above when the template changed and
+# the volume was renumbered together. bin/fm-pr-lib.sh
+# fm_pr_poll_registration_rerecord_template_device owns that proof and rewrite.
+# Returns 0 when a re-record was attempted under the control lock.
+rerecord_template_device_pr_poll() {  # <id>
+  local id=$1
+  fm_pr_poll_registration_template_device_recoverable "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" || return 1
+  PR_POLL_CONTROL_LOCK="$STATE/.control-$id.lock"
+  fm_lock_acquire_wait "$PR_POLL_CONTROL_LOCK" || exit 1
+  PR_POLL_PUBLISH_LOCK="$STATE/.pr-poll-publish-$id.lock"
+  fm_lock_acquire_wait "$PR_POLL_PUBLISH_LOCK" || exit 1
+  if fm_pr_poll_registration_rerecord_template_device "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; then
+    triage_log "re-recorded PR poll for $id from the current template after its state volume device number changed"
+  else
+    triage_log "PR poll for $id was not re-recorded for a template change and device renumber; the locked proof or rewrite did not hold"
   fi
   pr_poll_publish_release || exit 1
   pr_poll_control_release || exit 1
@@ -2796,6 +2876,25 @@ while :; do
   if [ "$(age_of "$STATE/.last-check")" -ge "$CHECK_INTERVAL" ]; then
     rejected_checks=
     contribution_check_output=
+    check_sweep_output=
+    # Read watched repositories before this cycle retires a terminal watch.
+    # The startup snapshot still names a repository whose receipt was recovered
+    # before this block. bin/fm-pr-queue-sweep.sh owns the line format.
+    if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
+      sweep_listed=$("$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
+      # Keep one line per repository, in first-seen order, or this list grows until the sweep cannot run.
+      if [ -n "$sweep_listed" ]; then
+        while IFS= read -r sweep_repo || [ -n "$sweep_repo" ]; do
+          [ -n "$sweep_repo" ] || continue
+          case $'\n'"${sweep_repo_snapshot}"$'\n' in
+            *$'\n'"${sweep_repo}"$'\n'*) ;;
+            *) sweep_repo_snapshot="${sweep_repo_snapshot}${sweep_repo}"$'\n' ;;
+          esac
+        done <<EOF
+$sweep_listed
+EOF
+      fi
+    fi
     for c in "$STATE"/*.check.sh; do
       [ -e "$c" ] || continue
       is_pr_poll=0
@@ -2812,6 +2911,10 @@ while :; do
         id=$(basename "$c" .check.sh)
         if fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" \
           || { rerecord_device_shifted_pr_poll "$id" \
+            && fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; } \
+          || { rerecord_template_upgraded_pr_poll "$id" \
+            && fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; } \
+          || { rerecord_template_device_pr_poll "$id" \
             && fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; }; then
           is_pr_poll=1
           provider=$FM_PR_POLL_SNAPSHOT_PROVIDER
@@ -2826,7 +2929,10 @@ while :; do
             triage_log "PR poll for $id changed before its validated check; skipping the stale snapshot"
             continue
           fi
-          run_check_capture "$SCRIPT_DIR/fm-pr-poll.sh" --validated \
+          # The poll reads these to name a merge-queue departure.
+          # bin/fm-pr-poll.sh owns that line.
+          FM_PR_POLL_ID="$id" FM_PR_POLL_STATE="$STATE" \
+            run_check_capture "$SCRIPT_DIR/fm-pr-poll.sh" --validated \
             "$provider" "$url" "$host" "$path" "$number" || exit 1
           out=$FM_CHECK_RESULT
         elif fm_custom_check_snapshot_prepare "$STATE" "$id"; then
@@ -2860,6 +2966,15 @@ EOF
             continue
           fi
         fi
+        dequeue_event=
+        if [ "$is_pr_poll" -eq 1 ]; then
+          case "$out" in
+            "dequeued $url reason="*" event="*)
+              dequeue_event=${out##* event=}
+              out=${out% event=*}
+              ;;
+          esac
+        fi
         reason="check: $c: $out"
         if [ "$is_pr_poll" -eq 1 ] && [ "$out" = merged ]; then
           if [ "$(fm_meta_get "$STATE/$id.meta" kind)" = secondmate ]; then
@@ -2869,7 +2984,6 @@ EOF
             # outcome and no wake; bin/fm-pr-check.sh refuses to arm another.
             retire_merged_pr_poll "$id"
             pr_poll_control_release || exit 1
-            touch "$STATE/.last-check"
             triage_log "retired a merge poll armed on secondmate $id without reporting an outcome"
             continue
           fi
@@ -2895,29 +3009,128 @@ EOF
           fi
           retire_merged_pr_poll "$id"
           pr_poll_control_release || exit 1
-          touch "$STATE/.last-check"
           if [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = true ]; then
             triage_log "absorbed duplicate merged PR poll result for $id"
             continue
           fi
-          wake "$reason"
+          check_sweep_output="${check_sweep_output}${reason}"$'\n'
+          continue
+        fi
+        if [ "$is_pr_poll" -eq 1 ] && [ "$out" = closed ]; then
+          # Same retirement receipt as a merge. No merge outcome is reported.
+          retire_merged_pr_poll "$id"
+          pr_poll_control_release || exit 1
+          continue
+        fi
+        publish_dequeue=1
+        if [ -n "$dequeue_event" ]; then
+          sweep_contains=0
+          "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --contains "$STATE" "$dequeue_event" \
+            || sweep_contains=$?
+          if [ "$sweep_contains" -eq 0 ]; then
+            publish_dequeue=0
+          fi
+        fi
+        if [ "$publish_dequeue" -eq 1 ]; then
+          fm_wake_append check "$c" "$reason" || exit 1
+        fi
+        if [ -n "$dequeue_event" ]; then
+          fm_pr_poll_dequeue_record "$STATE" "$id" "$url" "$dequeue_event" || exit 1
+          if [ "$publish_dequeue" -eq 1 ] && [ "$sweep_contains" -eq 1 ]; then
+            "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --record "$STATE" "$dequeue_event" || exit 1
+          fi
         fi
         pr_poll_control_release || exit 1
-        fm_wake_append check "$c" "$reason" || exit 1
-        touch "$STATE/.last-check"
-        wake "$reason"
+        if [ "$publish_dequeue" -eq 1 ]; then
+          check_sweep_output="${check_sweep_output}${reason}"$'\n'
+        fi
+        continue
       fi
       pr_poll_control_release || exit 1
     done
+    # Open pull requests in a watched merge-queue repository. The sweep header
+    # owns the line and the seen record.
+    if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
+      # Pages are bounded inside the sweep. The snapshot is the repo set from
+      # before this cycle retired a terminal watch. bin/fm-pr-queue-sweep.sh owns
+      # the queue-empty line this block applies.
+      FM_CHECK_UNBOUNDED=1 FM_PR_SWEEP_PAGE_TIMEOUT="$CHECK_TIMEOUT" \
+        FM_PR_SWEEP_REPOS="$sweep_repo_snapshot" FM_PR_SWEEP_BEAT="$BEAT" \
+        run_check_capture "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --scan "$STATE" || exit 1
+      sweep_raw=$FM_CHECK_RESULT
+      sweep_line=
+      sweep_queue_empty=
+      while IFS= read -r sweep_line || [ -n "$sweep_line" ]; do
+        [ -n "$sweep_line" ] || continue
+        case "$sweep_line" in
+          'queue-empty '*)
+            sweep_repo=${sweep_line#queue-empty }
+            case "$sweep_repo" in
+              ''|[./]*|*[./]|*' '*|*'	'*|*/*/*|*[!A-Za-z0-9._/-]*) continue ;;
+              */*) ;;
+              *) continue ;;
+            esac
+            sweep_queue_empty="${sweep_queue_empty}${sweep_repo}"$'\n'
+            continue
+            ;;
+          'dequeued https://github.com/'*' reason='*' event='*)
+            sweep_event=${sweep_line##* event=}
+            sweep_visible=${sweep_line% event=*}
+            ;;
+          *) continue ;;
+        esac
+        case "$sweep_event" in
+          ''|*[!A-Za-z0-9_+/=-]*) continue ;;
+        esac
+        [ "${#sweep_event}" -le 256 ] || continue
+        sweep_contains=0
+        "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --contains "$STATE" "$sweep_event" \
+          || sweep_contains=$?
+        case "$sweep_contains" in
+          0) continue ;;
+          1) ;;
+          *) FM_CHECK_STATUS=$sweep_contains; continue ;;
+        esac
+        sweep_reason="check: $SCRIPT_DIR/fm-pr-queue-sweep.sh: $sweep_visible"
+        fm_wake_append check "$sweep_event" "$sweep_reason" || exit 1
+        "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --record "$STATE" "$sweep_event" || exit 1
+        check_sweep_output="${check_sweep_output}${sweep_reason}"$'\n'
+      done <<EOF
+$sweep_raw
+EOF
+      if [ "${FM_CHECK_STATUS:-1}" -eq 0 ]; then
+        if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh" "$sweep_queue_empty"; then
+          reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
+          fm_wake_append check pr-poll-retirement "$reason" || exit 1
+          check_sweep_output="${check_sweep_output}${reason}"$'\n'
+        fi
+        sweep_kept=
+        while IFS= read -r sweep_repo || [ -n "$sweep_repo" ]; do
+          [ -n "$sweep_repo" ] || continue
+          case $'\n'"$sweep_queue_empty"$'\n' in
+            *$'\n'"$sweep_repo"$'\n'*) continue ;;
+          esac
+          case $'\n'"${sweep_kept}"$'\n' in
+            *$'\n'"${sweep_repo}"$'\n'*) continue ;;
+          esac
+          sweep_kept="${sweep_kept}${sweep_repo}"$'\n'
+        done <<EOF
+$sweep_repo_snapshot
+EOF
+        sweep_repo_snapshot=$sweep_kept
+      else
+        triage_log "merge-queue sweep failed; keeping the repository snapshot and deferred retirement"
+      fi
+    fi
     if [ -n "$rejected_checks" ]; then
       reason="check: rejected unauthenticated state checks:$rejected_checks"
       fm_wake_append check unauthenticated-state-checks "$reason" || exit 1
-      touch "$STATE/.last-check"
-      wake "$reason"
+      check_sweep_output="${check_sweep_output}${reason}"$'\n'
     fi
     touch "$STATE/.last-check"
-    if [ -n "$contribution_check_output" ]; then
-      wake "$contribution_check_output"
+    check_sweep_output="${check_sweep_output}${contribution_check_output}"
+    if [ -n "$check_sweep_output" ]; then
+      wake "${check_sweep_output%$'\n'}"
     fi
   fi
 

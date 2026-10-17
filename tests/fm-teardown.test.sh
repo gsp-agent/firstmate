@@ -5271,6 +5271,60 @@ test_recorded_request_refuses_when_the_copy_is_gone_or_reassigned() {
   pass "an open or unreadable recorded request keeps the task record when the copy is gone or reassigned"
 }
 
+test_recorded_github_request_ignores_enterprise_host() {
+  local reader enterprise_state case_dir tool rc
+  for reader in gh gh-axi; do
+    for enterprise_state in CLOSED MERGED; do
+      case_dir=$(make_case "recorded-pr-host-$reader-$enterprise_state")
+      write_meta "$case_dir" no-mistakes ship "$case_dir/missing-wt"
+      append_pr_meta_url "$case_dir"
+      for tool in gh gh-axi; do
+        cat > "$case_dir/fakebin/$tool" <<'SH'
+#!/usr/bin/env bash
+command_pair="${1:-} ${2:-}"
+if [ "$command_pair" = "api graphql" ] && [ "$FM_TEST_RECORD_READER" = gh-axi ]; then
+  exit 1
+fi
+host=${GH_HOST:-github.com}
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --hostname) shift; host=${1:-} ;;
+  esac
+  shift
+done
+state=$FM_TEST_ENTERPRISE_STATE
+[ "$host" != github.com ] || state=OPEN
+case "$command_pair" in
+  "api graphql")
+    merged=false
+    [ "$state" != MERGED ] || merged=true
+    printf 'state=%s\nmerged=%s\n' "$state" "$merged"
+    ;;
+  "pr view")
+    printf 'pull_request:\n  number: 7\n  state: %s\n' "$state"
+    ;;
+  *) exit 1 ;;
+esac
+SH
+        chmod +x "$case_dir/fakebin/$tool"
+      done
+
+      rc=0
+      GH_HOST=ghe.example FM_TEST_RECORD_READER="$reader" \
+        FM_TEST_ENTERPRISE_STATE="$enterprise_state" \
+        run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+      expect_code 1 "$rc" "$reader: an enterprise $enterprise_state PR must not allow cleanup of an open github.com PR"$'\n'"$(cat "$case_dir/stderr")"
+      assert_grep "still open" "$case_dir/stderr" \
+        "$reader: cleanup did not read the open github.com PR"
+      assert_present "$case_dir/state/task-x1.meta" \
+        "$reader: cleanup erased the open github.com PR's task record"
+      assert_no_grep "teardown task-x1 complete" "$case_dir/stdout" \
+        "$reader: cleanup reported completing an open github.com PR"
+    done
+  done
+  pass "both GitHub readers ignore enterprise PR state and retain an open github.com PR's record"
+}
+
 test_recorded_request_state_decides_pushed_teardown() {
   local state case_dir rc head
   for state in open merged closed; do
@@ -6882,6 +6936,7 @@ test_forced_secondmate_dirty_child_return_warns_and_completes
 test_return_that_removes_copy_warns_cannot_verify
 test_scout_ignored_files_survive_scratch_clean
 test_gh_error_and_content_absent_refuses
+test_recorded_github_request_ignores_enterprise_host
 test_recorded_request_state_decides_pushed_teardown
 test_recorded_request_refuses_when_the_copy_is_gone_or_reassigned
 test_legacy_record_without_the_flag_refuses

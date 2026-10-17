@@ -27,6 +27,7 @@ REAL_CHMOD=$(command -v chmod)
 # deliberately restricted, so a case that needs jq exposes this one rather than
 # depending on the host keeping jq in one of those four directories.
 REAL_JQ=$(command -v jq) || fail "these tests read glab's JSON with the real jq, which was not found"
+export FM_TEST_REAL_JQ=$REAL_JQ
 
 ack_watcher_cycle() {  # <state>
   local state=$1 err sequence generation
@@ -139,13 +140,202 @@ SH
   cat > "$fakebin/gh" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FM_TEST_GH_LOG"
+test_api_string_field() {
+  [ "$1" = -F ] || return 0
+  case "$2" in
+    true|false|null) return 1 ;;
+  esac
+  case "${2#-}" in
+    ''|*[!0-9]*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+test_beacon_fresh() {
+  local modified
+  case "$(uname -s)" in
+    Darwin) modified=$(/usr/bin/stat -f %m "$1") || return 1 ;;
+    *) modified=$(stat -c %Y "$1") || return 1 ;;
+  esac
+  [ "$(( $(date +%s) - modified ))" -lt 900 ]
+}
 case "${1:-} ${2:-}" in
   "api graphql")
-    printf '%s\n' \
-      "state=${FM_TEST_GH_GRAPHQL_STATE:-MERGED}" \
-      "merged=${FM_TEST_GH_GRAPHQL_MERGED:-true}" \
-      "queued=${FM_TEST_GH_GRAPHQL_QUEUED:-false}" \
-      'base=main'
+    # The merge script's four-line outcome query stays on the branch below.
+    # A poll query names the removal event, so this branch can dequeue a
+    # pull request the outcome query has never described.
+    case " $* " in
+      *pullRequests*)
+        if [ -n "${FM_TEST_GH_LOG_SWEEP_REPOS:-}" ]; then
+          {
+            printf 'sweep-repos-begin\n'
+            printf '%s\n' "${FM_PR_SWEEP_REPOS-}"
+            printf 'sweep-repos-end\n'
+          } >> "$FM_TEST_GH_LOG"
+        fi
+        [ "${FM_TEST_GH_SWEEP_FAIL:-0}" = 0 ] || exit 1
+        request_host=github.com
+        request_owner=
+        request_repo=
+        request_query=
+        cursor=null
+        jq_filter=
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            --jq) shift; jq_filter=${1-} ;;
+            --hostname) shift; request_host=${1-} ;;
+            -f|-F)
+              field_mode=$1
+              shift
+              case "${1-}" in
+                owner=*)
+                  request_owner=${1#owner=}
+                  test_api_string_field "$field_mode" "$request_owner" || exit 1
+                  ;;
+                repo=*)
+                  request_repo=${1#repo=}
+                  test_api_string_field "$field_mode" "$request_repo" || exit 1
+                  ;;
+                query=*) request_query=${1#query=} ;;
+                cursor=*) cursor=${1#cursor=} ;;
+              esac
+              ;;
+          esac
+          shift
+        done
+        [ "$request_host" = github.com ] || exit 1
+        [ -n "$jq_filter" ] || exit 1
+        [ "$request_owner/$request_repo" != "${FM_TEST_GH_SWEEP_FAIL_REPO:-}" ] || exit 1
+        if [ -n "${FM_TEST_GH_SWEEP_CORRUPT_SEEN:-}" ]; then
+          printf 'malformed\n' > "$FM_TEST_GH_SWEEP_CORRUPT_SEEN" || exit 1
+        fi
+        if [ "${FM_TEST_GH_SWEEP_MUTATING:-0}" = 1 ]; then
+          set -o pipefail
+          "$FM_TEST_REAL_JQ" --arg query "$request_query" --arg cursor "$cursor" '
+            ($query | capture("orderBy\\s*:\\s*\\{(?<body>[^}]+)\\}").body) as $order |
+            ($order | capture("field\\s*:\\s*(?<field>[A-Z_]+)").field) as $field |
+            ($order | capture("direction\\s*:\\s*(?<direction>ASC|DESC)").direction) as $direction |
+            ($query | capture("first\\s*:\\s*(?<count>[0-9]+)").count | tonumber) as $count |
+            ({CREATED_AT:"createdAt", UPDATED_AT:"updatedAt"}[$field] // error("unsupported order")) as $key |
+            map(if $cursor != "null" and .number == 2 then
+              .updatedAt = 1000 | .isInMergeQueue = false |
+              .timelineItems.nodes = [{__typename:"RemovedFromMergeQueueEvent",id:"evt2",reason:"failed_checks"}]
+            else . end) |
+            sort_by(.[$key]) | (if $direction == "DESC" then reverse else . end) |
+            . as $pulls |
+            (if $cursor == "null" then 0 else
+              (map(.number) | index($cursor | ltrimstr("cursor") | tonumber)) + 1
+            end) as $start |
+            .[$start:($start + $count)] as $page |
+            {data:{repository:{pullRequests:{nodes:$page,pageInfo:{
+              hasNextPage:($start + ($page | length) < ($pulls | length)),
+              endCursor:(if ($page | length) > 0 then "cursor"+($page[-1].number | tostring) else null end)
+            }}}}}
+          ' "$FM_TEST_GH_SWEEP_DIR/pulls.json" | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+          exit $?
+        fi
+        if [ "${FM_TEST_GH_SWEEP_EXPIRE_BEAT:-0}" = 1 ]; then
+          test_beacon_fresh "$FM_PR_SWEEP_BEAT" \
+            || printf 'stale-beacon sweep\n' >> "$FM_TEST_GH_LOG"
+          if [ "$cursor" != page6 ]; then
+            touch -t 200001010000 "$FM_PR_SWEEP_BEAT" || exit 1
+            printf 'expired-beacon sweep\n' >> "$FM_TEST_GH_LOG"
+          fi
+        fi
+        if [ "$cursor" = page6 ] && [ -n "${FM_TEST_GH_SWEEP_REARM:-}" ]; then
+          "$FM_TEST_GH_SWEEP_REARM" > "$FM_TEST_GH_SWEEP_DIR/rearm.out" \
+            2> "$FM_TEST_GH_SWEEP_DIR/rearm.err" || exit 1
+        fi
+        [ "${FM_TEST_GH_SWEEP_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GH_SWEEP_SLEEP"
+        if [ -n "${FM_TEST_GH_SWEEP_PAGE_HOOK:-}" ]; then
+          "$FM_TEST_GH_SWEEP_PAGE_HOOK" "$cursor" || exit 1
+        fi
+        if [ -z "${FM_TEST_GH_SWEEP_DIR:-}" ]; then
+          printf '%s\n' '{"data":{"repository":{"pullRequests":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}}}' \
+            | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+          exit $?
+        fi
+        page=$cursor
+        [ "$page" != null ] && [ -n "$page" ] || page=page1
+        [ -f "$FM_TEST_GH_SWEEP_DIR/$page.json" ] || exit 1
+        "$FM_TEST_REAL_JQ" -r "$jq_filter" "$FM_TEST_GH_SWEEP_DIR/$page.json"
+        exit $?
+        ;;
+      *REMOVED_FROM_MERGE_QUEUE_EVENT*)
+        [ "${FM_TEST_GH_FAIL:-0}" = 0 ] || exit 1
+        [ -z "${FM_TEST_GH_STATE_STARTED:-}" ] || : > "$FM_TEST_GH_STATE_STARTED"
+        [ "${FM_TEST_GH_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GH_SLEEP"
+        request_host=${GH_HOST:-github.com}
+        poll_number=
+        jq_filter=
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            --jq) shift; jq_filter=${1-} ;;
+            --hostname) shift; request_host=${1-} ;;
+            -f|-F)
+              field_mode=$1
+              shift
+              case "${1-}" in
+                owner=*|repo=*) test_api_string_field "$field_mode" "${1#*=}" || exit 1 ;;
+                number=*) poll_number=${1#number=} ;;
+              esac
+              ;;
+          esac
+          shift
+        done
+        if [ "${FM_TEST_GH_POLL_EXPIRE_BEAT:-0}" = 1 ]; then
+          test_beacon_fresh "$FM_PR_POLL_STATE/.last-watcher-beat" \
+            || printf 'stale-beacon poll\n' >> "$FM_TEST_GH_LOG"
+          if [ "$poll_number" != "${FM_TEST_GH_POLL_REARM_NUMBER:-}" ]; then
+            touch -t 200001010000 "$FM_PR_POLL_STATE/.last-watcher-beat" || exit 1
+            printf 'expired-beacon poll\n' >> "$FM_TEST_GH_LOG"
+          fi
+        fi
+        if [ "$poll_number" = "${FM_TEST_GH_POLL_REARM_NUMBER:-}" ] \
+          && [ -n "${FM_TEST_GH_POLL_REARM:-}" ]; then
+          "$FM_TEST_GH_POLL_REARM" > "$FM_TEST_GH_LOG.rearm.out" \
+            2> "$FM_TEST_GH_LOG.rearm.err" || exit 1
+        fi
+        if [ -n "${FM_TEST_GH_POLL_RESPONSES:-}" ]; then
+          "$FM_TEST_REAL_JQ" --arg number "$poll_number" '.[$number]' "$FM_TEST_GH_POLL_RESPONSES" \
+            | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+          exit $?
+        fi
+        state=${FM_TEST_GH_STATE-OPEN}
+        if [ "$request_host" != github.com ]; then
+          state=MERGED
+          merged=true
+        elif [ -n "${FM_TEST_GH_POLL_MERGED+x}" ]; then
+          merged=$FM_TEST_GH_POLL_MERGED
+        elif [ "$state" = MERGED ]; then
+          merged=true
+        else
+          merged=false
+        fi
+        "$FM_TEST_REAL_JQ" -n --arg state "$state" --argjson merged "$merged" \
+          --argjson queued "${FM_TEST_GH_POLL_QUEUED:-false}" \
+          --arg reason "${FM_TEST_GH_POLL_REASON-}" \
+          --arg event "${FM_TEST_GH_POLL_EVENT-}" \
+          '{data:{repository:{pullRequest:{state:$state,merged:$merged,isInMergeQueue:$queued,timelineItems:{nodes:(if $event == "" then [] else [{id:$event,reason:$reason}] end)}}}}}' \
+          | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+        exit $?
+        ;;
+    esac
+    # The merge outcome query asks for the queue and the base. The teardown
+    # record query asks for state and merged only, and rejects any extra line.
+    case " $* " in
+      *isInMergeQueue*|*baseRefName*)
+        printf '%s\n' \
+          "state=${FM_TEST_GH_GRAPHQL_STATE:-MERGED}" \
+          "merged=${FM_TEST_GH_GRAPHQL_MERGED:-true}" \
+          "queued=${FM_TEST_GH_GRAPHQL_QUEUED:-false}" \
+          'base=main'
+        ;;
+      *)
+        printf '%s\n' \
+          "state=${FM_TEST_GH_GRAPHQL_STATE:-MERGED}" \
+          "merged=${FM_TEST_GH_GRAPHQL_MERGED:-true}"
+        ;;
+    esac
     exit 0
     ;;
   "pr view")
@@ -834,6 +1024,9 @@ test_valid_recording_and_merge_derivation() {
     || fail "safe lifecycle-compatible task ID could not use the PR merge flow"
   fm_pr_poll_artifacts_valid "$dir/home/state" Task_A.1 "$POLL" \
     || fail "safe lifecycle-compatible task ID did not publish an authenticated poll"
+  ack_watcher_cycle "$dir/home/state" || fail "safe lifecycle-compatible merge acknowledgement failed"
+  FM_TEST_GH_LOG="$dir/gh.log" run_merged_poll_cycle "$dir"
+  assert_poll_absent "$dir/home/state" Task_A.1
   rm -rf "$dir/wt"
   cat > "$dir/fakebin/tmux" <<'SH'
 #!/usr/bin/env bash
@@ -843,7 +1036,7 @@ SH
   touch "$dir/home/state/.last-watcher-beat"
   FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
     "$TEARDOWN" Task_A.1 --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
-    || fail "safe lifecycle-compatible task ID could not be torn down"
+    || fail "safe lifecycle-compatible task ID could not be torn down: $(cat "$dir/teardown.err")"
   [ ! -e "$dir/home/state/Task_A.1.meta" ] \
     || fail "safe lifecycle-compatible task teardown retained metadata"
 
@@ -883,10 +1076,13 @@ SH
       || fail "path-safe legacy task ID could not use the PR merge flow"
     fm_pr_poll_artifacts_valid "$dir/home/state" "$id" "$POLL" \
       || fail "path-safe legacy task ID did not publish an authenticated poll"
+    ack_watcher_cycle "$dir/home/state" || fail "legacy path-safe merge acknowledgement failed"
+    FM_TEST_GH_LOG="$dir/gh.log" run_merged_poll_cycle "$dir"
+    assert_poll_absent "$dir/home/state" "$id"
     rm -rf "$dir/wt"
     FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
       "$TEARDOWN" "$id" --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
-      || fail "legacy path-safe task ID could not be torn down"
+      || fail "legacy path-safe task ID could not be torn down: $(cat "$dir/teardown.err")"
     [ ! -e "$dir/home/state/$id.meta" ] || fail "legacy task teardown retained metadata"
   done
   pass "valid direct and merge flows record exact metadata and reject multiline head metadata"
@@ -978,7 +1174,9 @@ test_static_poll_contract() {
   dir=$(make_case poll-contract)
   make_poll_fixture "$dir"
 
-  for state in OPEN CLOSED EMPTY MALFORMED; do
+  out=$(FM_TEST_GH_STATE=CLOSED run_poll "$dir")
+  [ "$out" = closed ] || fail "static poll did not emit exactly one closed line"
+  for state in OPEN EMPTY MALFORMED; do
     case "$state" in
       EMPTY) value= ;;
       MALFORMED) value='not-a-state' ;;
@@ -1469,7 +1667,7 @@ SH
 }
 
 test_teardown_removes_poll_artifacts() {
-  local dir fakebin artifact counterpart rc
+  local dir fakebin artifact counterpart rc before
   dir=$(make_case teardown-cleanup)
   fakebin="$dir/fakebin"
   fm_write_meta "$dir/home/state/task-a.meta" \
@@ -1482,6 +1680,7 @@ test_teardown_removes_poll_artifacts() {
   printf 'check\n' > "$dir/home/state/task-a.check.sh"
   printf 'data\n' > "$dir/home/state/task-a.pr-poll"
   printf 'registration\n' > "$dir/home/state/task-a.pr-poll-registration"
+  printf 'dropped\n' > "$dir/home/state/task-a.pr-poll-queue-dropped"
   printf 'trust\n' > "$dir/home/state/task-a.check-trust"
   cat > "$fakebin/tmux" <<'SH'
 #!/usr/bin/env bash
@@ -1496,6 +1695,7 @@ SH
   [ ! -e "$dir/home/state/task-a.check.sh" ] || fail "teardown left the runnable check"
   [ ! -e "$dir/home/state/task-a.pr-poll" ] || fail "teardown left the sidecar"
   [ ! -e "$dir/home/state/task-a.pr-poll-registration" ] || fail "teardown left the PR poll registration"
+  [ ! -e "$dir/home/state/task-a.pr-poll-queue-dropped" ] || fail "teardown left the queue departure marker"
   [ ! -e "$dir/home/state/task-a.check-trust" ] || fail "teardown left the custom check registration"
 
   dir=$(make_case teardown-retirement-receipt)
@@ -1520,10 +1720,27 @@ exit 0
 SH
   chmod +x "$fakebin/tmux"
   touch "$dir/home/state/.last-watcher-beat"
+  before=$(poll_artifact_snapshot "$dir/home/state" task-a)
+  set +e
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$fakebin:$BASE_PATH" \
+    "$TEARDOWN" task-a > "$dir/teardown.out" 2> "$dir/teardown.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "teardown bypassed a pending repository sweep"
+  grep -F 'REFUSED: pending repository merge-queue sweep; preserving task state.' "$dir/teardown.err" >/dev/null \
+    || fail "teardown refused for a reason other than its pending sweep: $(cat "$dir/teardown.err")"
+  [ "$(poll_artifact_snapshot "$dir/home/state" task-a)" = "$before" ] \
+    || fail "refused teardown changed the pending retirement artifacts"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" run_watcher_bounded "$dir/home" "$dir/fakebin" \
+    > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "teardown receipt sweep failed: $(cat "$dir/watch.err")"
+  assert_poll_absent "$dir/home/state" task-a
+  ack_watcher_cycle "$dir/home/state" || fail "teardown receipt sweep acknowledgement failed"
   FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$fakebin:$BASE_PATH" \
     "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
-    || fail "teardown could not finish a valid crash-left retirement receipt"
-  assert_poll_absent "$dir/home/state" task-a
+    || fail "teardown failed after the repository sweep: $(cat "$dir/teardown.err")"
   [ ! -e "$dir/home/state/task-a.meta" ] || fail "receipt-aware teardown left task metadata"
 
   for artifact in check.sh pr-poll; do
@@ -2270,7 +2487,8 @@ add_stop_custom_check() {
 
 assert_poll_absent() {
   local state=$1 id=$2 suffix
-  for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement; do
+  for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement \
+    pr-poll-queue-dropped; do
     [ ! -e "$state/$id.$suffix" ] && [ ! -L "$state/$id.$suffix" ] \
       || fail "retired poll left $id.$suffix"
   done
@@ -2278,7 +2496,8 @@ assert_poll_absent() {
 
 poll_artifact_snapshot() {
   local state=$1 id=$2 suffix path
-  for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement meta; do
+  for suffix in check.sh pr-poll pr-poll-registration pr-poll-retirement \
+    pr-poll-queue-dropped meta; do
     path="$state/$id.$suffix"
     [ -e "$path" ] || [ -L "$path" ] || continue
     if [ -L "$path" ]; then
@@ -2307,7 +2526,10 @@ test_merged_poll_retires_once() {
   set -e
   [ "$rc" -eq 0 ] || fail "merged retirement watcher failed: $(cat "$dir/watch-1.err")"
   first=$(cat "$dir/watch-1.out")
-  case "$first" in check:*task-a.check.sh:*merged) ;; *) fail "first merged notification was not preserved: $first" ;; esac
+  [ "$(grep -cxF "check: $state/task-a.check.sh: merged" "$dir/watch-1.out")" -eq 1 ] \
+    || fail "first merged notification was not preserved: $first"
+  [ "$(grep -cxF "check: $state/z-stop.check.sh: stop-cycle" "$dir/watch-1.out")" -eq 1 ] \
+    || fail "merged retirement skipped the remaining checks"
   ack_watcher_cycle "$state" || fail "first merged notification handling acknowledgement failed"
   assert_poll_absent "$state" task-a
   [ "$(cat "$state/task-a.meta")" = "$meta_before" ] || fail "merged retirement changed canonical metadata"
@@ -2348,7 +2570,8 @@ test_merged_poll_reregistration_after_notification_is_absorbed() {
   set -e
   [ "$rc" -eq 0 ] || fail "first merged watcher cycle failed: $(cat "$dir/watch-1.err")"
   first=$(cat "$dir/watch-1.out")
-  case "$first" in check:*task-a.check.sh:*merged) ;; *) fail "first merge confirmation was not delivered: $first" ;; esac
+  [ "$(grep -cxF "check: $state/task-a.check.sh: merged" "$dir/watch-1.out")" -eq 1 ] \
+    || fail "first merge confirmation was not delivered: $first"
   ack_watcher_cycle "$state" || fail "first merge confirmation acknowledgement failed"
   assert_poll_absent "$state" task-a
   [ -f "$state/task-a.pr-poll-merge-notified" ] || fail "the merge-notified marker was not recorded"
@@ -2507,10 +2730,8 @@ SH
   set -e
   [ "$rc" -eq 0 ] \
     || fail "merge-outcome-uncommitted: poll retry failed: $(cat "$dir/watch.err")"
-  case "$(cat "$dir/watch.out")" in
-    check:*task-a.check.sh:*merged) ;;
-    *) fail "merge-outcome-uncommitted: poll retry did not re-emit the outcome" ;;
-  esac
+  [ "$(grep -cxF "check: $state/task-a.check.sh: merged" "$dir/watch.out")" -eq 1 ] \
+    || fail "merge-outcome-uncommitted: poll retry did not re-emit the outcome"
   assert_grep "$url" "$state/.wake-queue" \
     "merge-outcome-uncommitted: drained outcome was not durably re-emitted"
   fm_pr_poll_merge_already_notified "$state" task-a github github.com o/r 1 \
@@ -2535,10 +2756,8 @@ test_merged_poll_reports_upward_from_a_secondmate_home_once() {
   rc=$?
   set -e
   [ "$rc" -eq 0 ] || fail "merged-poll-upward: watcher failed: $(cat "$dir/watch-1.err")"
-  case "$(cat "$dir/watch-1.out")" in
-    check:*task-a.check.sh:*merged) ;;
-    *) fail "merged-poll-upward: the poll's own row was lost: $(cat "$dir/watch-1.out")" ;;
-  esac
+  [ "$(grep -cxF "check: $state/task-a.check.sh: merged" "$dir/watch-1.out")" -eq 1 ] \
+    || fail "merged-poll-upward: the poll's own row was lost: $(cat "$dir/watch-1.out")"
   assert_grep "done [key=merged-task-a]: merged task-a $url" <(sed -E 's/ \[at=[0-9]+\]//' "$replies") \
     "merged-poll-upward: a merge this home did not perform was never reported upward"
   [ "$(grep -c -F "$url" "$replies")" -eq 1 ] \
@@ -2776,7 +2995,8 @@ test_retirement_crash_recovery() {
   set -e
   [ "$rc" -eq 0 ] || fail "template-update recovery watcher failed: $(cat "$dir/restart.err")"
   case "$(cat "$dir/restart.out")" in check:*z-stop.check.sh:*stop-cycle) ;; *) fail "template-update recovery did not reach the control check" ;; esac
-  [ ! -s "$dir/gh.log" ] || fail "template-update migration rebuilt and queried the retired poll"
+  ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+    || fail "template-update migration rebuilt and queried the retired poll"
   ! grep "$(printf '\tcheck\ttask-a.check.sh\t')" "$state/.wake-queue" >/dev/null 2>&1 \
     || fail "template-update recovery left the handled terminal wake queued"
   assert_poll_absent "$state" task-a
@@ -2792,15 +3012,12 @@ test_external_merge_transition_retires_only_terminal_poll() {
   add_stop_custom_check "$dir"
   before=$(poll_artifact_snapshot "$state" task-a)
 
-  for label in open-green open-red closed-unmerged forge-error malformed; do
+  for label in open-green open-red forge-error malformed; do
     rm -f "$state/.last-check"
     set +e
     case "$label" in
       open-green|open-red)
         FM_TEST_GH_STATE=OPEN run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/$label.out" 2> "$dir/$label.err"
-        ;;
-      closed-unmerged)
-        FM_TEST_GH_STATE=CLOSED run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/$label.out" 2> "$dir/$label.err"
         ;;
       forge-error)
         FM_TEST_GH_FAIL=1 run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/$label.out" 2> "$dir/$label.err"
@@ -2825,7 +3042,7 @@ test_external_merge_transition_retires_only_terminal_poll() {
   [ "$rc" -eq 0 ] || fail "external merged transition failed: $(cat "$dir/merged.err")"
   case "$(cat "$dir/merged.out")" in check:*task-a.check.sh:*merged) ;; *) fail "external merge did not preserve its notification" ;; esac
   assert_poll_absent "$state" task-a
-  pass "open/red, closed-unmerged, malformed, and forge errors remain armed until an exact merged transition"
+  pass "open/red, malformed, and forge errors remain armed until an exact merged transition"
 }
 
 test_retirement_refuses_replacement_and_nonterminal_results() {
@@ -3372,7 +3589,7 @@ SH
     || fail "re-recorded registration differs from the one published on the live device"
   [ "$(file_mode "$state/task-a.pr-poll-registration")" = 600 ] || fail "re-recorded registration is not private"
   fm_pr_poll_artifacts_valid "$state" task-a "$POLL" || fail "re-recorded poll is not strictly authenticated"
-  grep -F 'pr view https://github.com/o/r/pull/1 --json state' "$dir/gh.log" >/dev/null \
+  grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null \
     || fail "re-recorded poll did not run its validated check in the same cycle"
   grep -F 're-recorded PR poll identity for task-a' "$state/.watch-triage.log" >/dev/null \
     || fail "re-record left no triage evidence"
@@ -3459,7 +3676,7 @@ SH
     esac
     [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_sha" ] \
       || fail "$mutation let the watcher re-record the registration"
-    ! grep -F -- '--json state' "$dir/gh.log" >/dev/null 2>&1 \
+    ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
       || fail "$mutation ran the refused poll"
     ! ls "$state"/.fm-pr-poll-registration.* >/dev/null 2>&1 \
       || fail "$mutation left a staged registration behind"
@@ -3602,6 +3819,1909 @@ SH
   pass "device re-record publication waits without rewriting its registration"
 }
 
+# An unmerged pull request outside the queue with a new removal event must
+# wake once with GitHub's removal reason. A merge still wakes as merged
+# alone. An unreadable read, or a poll with no removal event, stays silent.
+# A follow-up cycle has to acknowledge the previous wake first. Otherwise the
+# watcher re-announces that wake and never reaches the poll, and a missing
+# dequeue line would pass without the poll having run.
+expect_stop_cycle() {  # <output> <why>
+  [ "$(wc -l < "$1" | tr -d '[:space:]')" -eq 1 ] || fail "$2: $(cat "$1")"
+  case "$(cat "$1")" in
+    check:*z-stop.check.sh:*stop-cycle) ;;
+    *) fail "$2: $(cat "$1")" ;;
+  esac
+}
+
+test_github_poll_uses_the_pr_host() {
+  local dir state url out
+  dir=$(make_case github-poll-host)
+  state="$dir/home/state"
+  url=https://github.com/o/r/pull/1
+  make_poll_fixture "$dir"
+  out=$(GH_HOST=ghe.example FM_TEST_GH_STATE=OPEN run_poll "$dir")
+  [ -z "$out" ] || fail "enterprise host falsely reported a merge for the GitHub PR: $out"
+  out=$(GH_HOST=ghe.example FM_TEST_GH_STATE=MERGED run_poll "$dir")
+  [ "$out" = merged ] || fail "explicit GitHub host did not report its real merged state: $out"
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url"
+  add_stop_custom_check "$dir"
+  GH_HOST=ghe.example FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_REASON=failed_checks \
+    FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ== \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "GitHub host watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "GitHub host watcher did not report its removal: $(cat "$dir/watch.out")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "enterprise host retired the GitHub PR watch"
+  pass "a GitHub PR stays bound to github.com despite an enterprise GH_HOST"
+}
+
+test_github_identity_fields_stay_strings() {
+  local dir state path url out number
+  for path in acme/123 123/r acme/true true/r acme/false false/r acme/null null/r; do
+    dir=$(make_case "github-identity-${path%/*}-${path#*/}")
+    state="$dir/home/state"
+    url="https://github.com/$path/pull/7"
+    write_poll_meta "$state" task-a "$url"
+    seed_canonical_poll "$dir" task-a "$url"
+    out=$(FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+      FM_TEST_GH_POLL_EVENT=evt7 FM_TEST_GH_POLL_REASON=failed_checks run_poll "$dir")
+    [ "$out" = "dequeued $url reason=failed_checks event=evt7" ] \
+      || fail "$path lost its armed queue removal: $out"
+    out=$(FM_TEST_GH_STATE=MERGED run_poll "$dir")
+    [ "$out" = merged ] || fail "$path lost its merge confirmation: $out"
+    write_slow_sweep_page "$dir" page1 8 true page2
+    write_slow_sweep_page "$dir" page2 9 false ""
+    FM_TEST_GH_LOG="$dir/sweep-gh.log" FM_TEST_GH_SWEEP_DIR="$dir/sweep" PATH="$dir/fakebin:$BASE_PATH" \
+      "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$state" > "$dir/sweep.out" 2> "$dir/sweep.err" \
+      || fail "$path failed pagination: $(cat "$dir/sweep.err")"
+    for number in 8 9; do
+      [ "$(grep -Fxc "dequeued https://github.com/$path/pull/$number reason=failed_checks event=evt$number" "$dir/sweep.out")" -eq 1 ] \
+        || fail "$path lost its page removal for pull $number: $(cat "$dir/sweep.out")"
+    done
+    if [ "$path" = acme/123 ]; then
+      retire_contributions_observer "$dir"
+      add_stop_custom_check "$dir"
+      FM_TEST_GH_LOG="$dir/watch-gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+        FM_TEST_GH_POLL_EVENT=evt7 FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+        run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+        || fail "numeric repository watcher failed: $(cat "$dir/watch.err")"
+      FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+        > "$dir/drain.out" 2> "$dir/drain.err" || fail "numeric repository wake drain failed"
+      for number in 7 8 9; do
+        [ "$(grep -Fc "dequeued https://github.com/$path/pull/$number reason=failed_checks" "$dir/drain.out")" -eq 1 ] \
+          || fail "numeric repository wake lost pull $number: $(cat "$dir/drain.out")"
+      done
+    fi
+  done
+  pass "numeric and JSON-literal identities preserve merge reads and queue-removal wakes on every page"
+}
+
+test_dequeue_sweep_reaches_later_checks() {
+  local dir state round id
+  dir=$(make_case dequeue-sweep)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_poll_meta "$state" task-b https://github.com/o/r/pull/2
+  seed_canonical_poll "$dir" task-b https://github.com/o/r/pull/2
+  cat > "$state/mail.check.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'visited\n' >> "$FM_HOME/state/mail.log"
+printf 'poll did not finish within 1s budget\n'
+SH
+  chmod 0700 "$state/mail.check.sh"
+  FM_HOME="$dir/home" "$REGISTER" mail >/dev/null \
+    || fail "could not register the recurring mail timeout check"
+  cat > "$state/task-a0.check.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'visited\n' >> "$FM_HOME/state/midpoint.log"
+if [ -e "$FM_HOME/state/.last-check" ]; then
+  printf 'premature timestamp\n'
+fi
+printf 'midpoint\n'
+SH
+  chmod 0700 "$state/task-a0.check.sh"
+  FM_HOME="$dir/home" "$REGISTER" task-a0 >/dev/null \
+    || fail "could not register the check between PR polls"
+  add_stop_custom_check "$dir"
+  for round in 1 2; do
+    rm -f "${state:?}/.last-check"
+    # shellcheck disable=SC2016 # $event and $reason are jq variables.
+    "$REAL_JQ" -n --arg event "drop-a-$round" '
+      def pull($event; $reason):
+        {data:{repository:{pullRequest:{state:"OPEN",merged:false,isInMergeQueue:false,
+          timelineItems:{nodes:[{id:$event,reason:$reason}]}}}}};
+      {"1":pull($event; "failed_checks"), "2":pull("drop-b-1"; "ci_failure")}
+    ' > "$dir/poll-responses.json"
+    LC_ALL=C FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch-$round.out" 2> "$dir/watch-$round.err" \
+      || fail "dequeue sweep $round failed: $(cat "$dir/watch-$round.err")"
+    [ "$(grep -cxF "check: $state/mail.check.sh: poll did not finish within 1s budget" "$dir/watch-$round.out")" -eq 1 ] \
+      || fail "dequeue sweep $round lost the earlier mail timeout"
+    [ "$(wc -l < "$state/mail.log" | tr -d '[:space:]')" -eq "$round" ] \
+      || fail "dequeue sweep $round skipped or repeated the mail check"
+    [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch-$round.out")" -eq 1 ] \
+      || fail "dequeue sweep $round missed the new first-PR removal: $(cat "$dir/watch-$round.out")"
+    if [ "$round" -eq 1 ]; then
+      [ "$(grep -c '^check: .*task-b\.check\.sh: dequeued https://github.com/o/r/pull/2 reason=ci_failure$' "$dir/watch-$round.out")" -eq 1 ] \
+        || fail "the first PR's removal starved the later PR: $(cat "$dir/watch-$round.out")"
+    else
+      [ "$(grep -c 'task-b\.check\.sh: dequeued ' "$dir/watch-$round.out" || true)" -eq 0 ] \
+        || fail "the later PR's handled removal woke again"
+    fi
+    [ "$(wc -l < "$state/midpoint.log" | tr -d '[:space:]')" -eq "$round" ] \
+      || fail "dequeue sweep $round skipped the intervening check"
+    assert_no_grep 'premature timestamp' "$dir/watch-$round.out" \
+      "dequeue sweep $round stamped completion before running every check"
+    [ "$(grep -c '^check: .*z-stop\.check\.sh: stop-cycle$' "$dir/watch-$round.out")" -eq 1 ] \
+      || fail "dequeue sweep $round skipped the final check"
+    for id in task-a task-b; do
+      fm_pr_poll_artifacts_valid "$state" "$id" "$POLL" \
+        || fail "dequeue sweep retired $id's unmerged PR"
+    done
+    [ -f "$state/.last-check" ] || fail "dequeue sweep $round did not record its completion"
+    ack_watcher_cycle "$state" || fail "dequeue sweep $round acknowledgement failed"
+  done
+  pass "recurring earlier mail timeouts and dequeues complete every check without repeating handled drops"
+}
+
+test_queue_drop_reason_is_preserved() {
+  local dir state url out raw_reason escaped_reason queued_payload
+  local -x FM_TEST_GH_POLL_EVENT=drop-reason-1
+  dir=$(make_case queue-drop-free-text-reason)
+  state="$dir/home/state"
+  url=https://github.com/o/r/pull/1
+  raw_reason=$'Required check "integration" failed at C:\\checks\\suite; event=another-id\nretry after\tCI recovers\r\ncheck: forged notification\033[31m — details retained beyond sixty-four characters'
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url"
+  add_stop_custom_check "$dir"
+  out=$(FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON="$raw_reason" run_poll "$dir")
+  [ "$(printf '%s\n' "$out" | wc -l | tr -d '[:space:]')" -eq 1 ] \
+    || fail "free-text removal reason split the poll output into multiple lines"
+  case "$out" in
+    "dequeued $url reason="*" event=$FM_TEST_GH_POLL_EVENT") ;;
+    *) fail "free-text removal reason lost the poll identity: $out" ;;
+  esac
+  escaped_reason=${out#"dequeued $url reason="}
+  escaped_reason=${escaped_reason%" event=$FM_TEST_GH_POLL_EVENT"}
+  # shellcheck disable=SC2016 # $expected is a jq variable.
+  printf '"%s"\n' "$escaped_reason" \
+    | "$REAL_JQ" -e --arg expected "$raw_reason" '. == $expected' >/dev/null \
+    || fail "the poll's JSON-escaped removal reason did not preserve GitHub's text"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false FM_TEST_GH_POLL_REASON="$raw_reason" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "free-text removal reason watcher failed: $(cat "$dir/watch.err")"
+  queued_payload=$(awk -F '\t' -v key="$state/task-a.check.sh" \
+    '$3 == "check" && $4 == key { print $5 }' "$state/.wake-queue")
+  [ "$queued_payload" = "check: $state/task-a.check.sh: dequeued $url reason=$escaped_reason" ] \
+    || fail "the wake queue changed or repeated GitHub's removal reason: $queued_payload"
+  [ "$(grep -cxF "$queued_payload" "$dir/watch.out")" -eq 1 ] \
+    || fail "the escaped removal reason was not delivered as exactly one notification line"
+  ack_watcher_cycle "$state" || fail "free-text removal reason acknowledgement failed"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false FM_TEST_GH_POLL_REASON="$raw_reason" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/repeat.out" 2> "$dir/repeat.err" \
+    || fail "free-text removal reason repeat failed: $(cat "$dir/repeat.err")"
+  expect_stop_cycle "$dir/repeat.out" "a handled free-text removal woke again"
+  pass "GitHub removal reasons preserve long text, quotes, delimiters, Unicode, and escaped control characters"
+}
+
+test_verified_queue_drop_wakes_once() {
+  local dir state url rc out
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
+  url=https://github.com/o/r/pull/1
+
+  dir=$(make_case queue-drop-once)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "queue drop: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  out=$(FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks run_poll "$dir")
+  [ "$out" = "dequeued $url reason=failed_checks event=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==" ] \
+    || fail "queue drop was not captured: $out"
+  [ ! -e "$state/task-a.pr-poll-queue-dropped" ] \
+    || fail "capturing a queue drop marked it reported before publication"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "queue drop watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "verified queue drop did not wake once: $(cat "$dir/watch.out")"
+  [ "$(awk -F '\t' -v key="$state/task-a.check.sh" '$3 == "check" && $4 == key { count++ } END { print count + 0 }' "$state/.wake-queue")" -eq 1 ] \
+    || fail "verified queue drop did not publish exactly one wake row"
+  ack_watcher_cycle "$state" || fail "queue drop: could not acknowledge the first wake"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch2.out" 2> "$dir/watch2.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "second queue drop watcher failed: $(cat "$dir/watch2.err")"
+  expect_stop_cycle "$dir/watch2.out" "verified queue drop woke again"
+
+  dir=$(make_case queue-drop-publication-failure)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "publication failure: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  mkdir "$state/.wake-queue.seq"
+  : > "$dir/gh.log"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/failed.out" 2> "$dir/failed.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "queue drop watcher succeeded despite publication failure"
+  [ -s "$dir/gh.log" ] || fail "publication failure did not reach the poll"
+  [ ! -e "$state/task-a.pr-poll-queue-dropped" ] \
+    || fail "publication failure consumed an undelivered queue drop"
+  [ ! -s "$state/.wake-queue" ] || fail "publication failure left an unexpected wake row"
+  rmdir "$state/.wake-queue.seq"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/retry.out" 2> "$dir/retry.err" \
+    || fail "queue drop retry failed: $(cat "$dir/retry.err")"
+  if [ "$(cat "$dir/retry.out")" = 'check: rearm-resurface' ]; then
+    ack_watcher_cycle "$state" || fail "publication failure recovery acknowledgement failed"
+    FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+      FM_TEST_GH_POLL_REASON=failed_checks \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/retry.out" 2> "$dir/retry.err" \
+      || fail "queue drop retry after recovery failed: $(cat "$dir/retry.err")"
+  fi
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/retry.out")" -eq 1 ] \
+    || fail "queue drop retry did not wake once: $(cat "$dir/retry.out")"
+  ack_watcher_cycle "$state" || fail "publication failure retry acknowledgement failed"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/repeat.out" 2> "$dir/repeat.err" \
+    || fail "queue drop repeat after recovery failed: $(cat "$dir/repeat.err")"
+  expect_stop_cycle "$dir/repeat.out" "published queue drop woke again after a failed append"
+
+  dir=$(make_case queue-then-merged)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "queued merge: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  run_merged_poll_cycle "$dir"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: merged$' "$dir/watch.out")" -eq 1 ] \
+    || fail "queued merge did not wake as merged: $(cat "$dir/watch.out")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
+    || fail "queued merge also woke as dequeued: $(cat "$dir/watch.out")"
+  assert_poll_absent "$state" task-a
+
+  dir=$(make_case queue-drop-unreadable)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "unreadable drop: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_FAIL=1 \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "unreadable drop watcher failed: $(cat "$dir/watch.err")"
+  expect_stop_cycle "$dir/watch.out" "unreadable drop woke"
+
+  dir=$(make_case queue-drop-between-polls)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "unobserved queue: could not arm the merge poll"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_EVENT='' \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/empty.out" 2> "$dir/empty.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "no-event watcher failed: $(cat "$dir/empty.err")"
+  expect_stop_cycle "$dir/empty.out" "a poll with no removal event woke as dequeued"
+  ack_watcher_cycle "$state" || fail "no-event cycle acknowledgement failed"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "unobserved queue drop watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "queue drop between polls did not wake once: $(cat "$dir/watch.out")"
+  [ "$(awk -F '\t' -v key="$state/task-a.check.sh" '$3 == "check" && $4 == key { count++ } END { print count + 0 }' "$state/.wake-queue")" -eq 1 ] \
+    || fail "queue drop between polls did not publish exactly one wake row"
+  ack_watcher_cycle "$state" || fail "unobserved queue drop acknowledgement failed"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/repeat.out" 2> "$dir/repeat.err" \
+    || fail "unobserved queue drop repeat failed: $(cat "$dir/repeat.err")"
+  expect_stop_cycle "$dir/repeat.out" "a handled drop between polls woke again"
+
+  dir=$(make_case queue-observed-then-dropped)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "observed queue: could not arm the merge poll"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/queued.out" 2> "$dir/queued.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "observed queue watcher failed: $(cat "$dir/queued.err")"
+  expect_stop_cycle "$dir/queued.out" "a pull request still in the queue woke as dequeued"
+  ack_watcher_cycle "$state" || fail "observed queue: could not acknowledge the queued wake"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON='failed checks' \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "observed drop watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "observed queue drop did not preserve GitHub's reason: $(cat "$dir/watch.out")"
+
+  dir=$(make_case queue-drop-contradiction)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "contradiction: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_MERGED=true FM_TEST_GH_POLL_QUEUED=false \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "contradiction watcher failed: $(cat "$dir/watch.err")"
+  expect_stop_cycle "$dir/watch.out" "contradictory read woke"
+
+  dir=$(make_case queue-drop-empty-reason)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "empty reason: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON='' \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "empty reason watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=$' "$dir/watch.out")" -eq 1 ] \
+    || fail "empty removal reason was not named: $(cat "$dir/watch.out")"
+
+  dir=$(make_case queue-merged-with-removal-reason)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "merged with reason: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=MERGED FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "merged-with-reason watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: merged$' "$dir/watch.out")" -eq 1 ] \
+    || fail "merged pull request with a removal reason did not wake as merged: $(cat "$dir/watch.out")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 0 ] \
+    || fail "merged pull request also woke as dequeued: $(cat "$dir/watch.out")"
+
+  dir=$(make_case queue-reentry-drops-once-each)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "re-entry: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/first.out" 2> "$dir/first.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "re-entry first drop watcher failed: $(cat "$dir/first.err")"
+  [ "$(grep -c 'dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/first.out")" -eq 1 ] \
+    || fail "re-entry first drop did not wake: $(cat "$dir/first.out")"
+  ack_watcher_cycle "$state" || fail "re-entry: could not acknowledge the first drop"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/back.out" 2> "$dir/back.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "re-entry queue watcher failed: $(cat "$dir/back.err")"
+  expect_stop_cycle "$dir/back.out" "re-entry while queued woke as dequeued"
+  ack_watcher_cycle "$state" || fail "re-entry: could not acknowledge the return to the queue"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/stale.out" 2> "$dir/stale.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "re-entry stale event watcher failed: $(cat "$dir/stale.err")"
+  expect_stop_cycle "$dir/stale.out" "re-entry reported the same removal event again"
+  ack_watcher_cycle "$state" || fail "re-entry: could not acknowledge the stale event cycle"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=ci_failure FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50Mg== \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/second.out" 2> "$dir/second.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "re-entry second drop watcher failed: $(cat "$dir/second.err")"
+  [ "$(grep -c 'dequeued https://github.com/o/r/pull/1 reason=ci_failure$' "$dir/second.out")" -eq 1 ] \
+    || fail "re-entry second drop did not wake once: $(cat "$dir/second.out")"
+  ack_watcher_cycle "$state" || fail "re-entry: could not acknowledge the second drop"
+  set +e
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=ci_failure FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50Mg== \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/third.out" 2> "$dir/third.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "re-entry repeat watcher failed: $(cat "$dir/third.err")"
+  expect_stop_cycle "$dir/third.out" "re-entry second drop woke again"
+
+  dir=$(make_case queue-reentry-between-polls)
+  state="$dir/home/state"
+  write_task_meta "$dir" task-a
+  run_check_entry "$dir" task-a "$url" >/dev/null 2> "$dir/seed.err" \
+    || fail "unobserved re-entry: could not arm the merge poll"
+  queue_merge "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/first.out" 2> "$dir/first.err" \
+    || fail "unobserved re-entry first drop failed: $(cat "$dir/first.err")"
+  [ "$(grep -c 'dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/first.out")" -eq 1 ] \
+    || fail "unobserved re-entry first drop did not wake once: $(cat "$dir/first.out")"
+  ack_watcher_cycle "$state" || fail "unobserved re-entry first drop acknowledgement failed"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50Mg== \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/second.out" 2> "$dir/second.err" \
+    || fail "unobserved re-entry second drop failed: $(cat "$dir/second.err")"
+  [ "$(grep -c 'dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/second.out")" -eq 1 ] \
+    || fail "unobserved re-entry second removal did not wake once: $(cat "$dir/second.out")"
+  [ "$(awk -F '\t' -v key="$state/task-a.check.sh" '$3 == "check" && $4 == key { count++ } END { print count + 0 }' "$state/.wake-queue")" -eq 1 ] \
+    || fail "unobserved re-entry second removal did not publish exactly one wake row"
+  ack_watcher_cycle "$state" || fail "unobserved re-entry second drop acknowledgement failed"
+  FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50Mg== \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/repeat.out" 2> "$dir/repeat.err" \
+    || fail "unobserved re-entry repeat failed: $(cat "$dir/repeat.err")"
+  expect_stop_cycle "$dir/repeat.out" "unobserved re-entry repeated a handled removal"
+
+  pass "a verified queue drop wakes once, a merge stays a merge, and a bad read stays silent"
+}
+
+# The nine stranded open pull requests, plus 4308 at the moment it left the
+# queue, are the replay. A re-added pull request and a merged removal are not.
+write_queue_sweep_pages() {
+  local dir=$1
+  mkdir -p "$dir/sweep"
+  # shellcheck disable=SC2016 # $n, $reason, $kind, and $queued are jq variables.
+  "$REAL_JQ" -n '
+    def node($n; $reason; $kind; $queued):
+      {number:$n, state:"OPEN", merged:false, isInMergeQueue:$queued,
+       timelineItems:{nodes:
+         (if $kind == "added" then
+            [{__typename:"AddedToMergeQueueEvent", id:("evt"+($n|tostring))}]
+          else
+            [{__typename:"RemovedFromMergeQueueEvent", id:("evt"+($n|tostring)), reason:$reason}]
+          end)}};
+    def page($nodes; $more; $cursor):
+      {data:{repository:{pullRequests:{
+        pageInfo:{hasNextPage:$more, endCursor:(if $more then $cursor else null end)},
+        nodes:$nodes}}}};
+    page([
+      node(3941; "merge_conflict"; "removed"; false),
+      node(3950; "merge_conflict"; "removed"; false),
+      node(3939; "manual"; "removed"; false),
+      node(4006; "merge_conflict"; "removed"; false),
+      node(4017; "failed_checks"; "removed"; false),
+      node(4308; "failed_checks"; "removed"; false)
+    ]; true; "page2")
+  ' > "$dir/sweep/page1.json"
+  # shellcheck disable=SC2016 # $n, $reason, $kind, and $queued are jq variables.
+  "$REAL_JQ" -n '
+    def node($n; $reason; $kind; $queued):
+      {number:$n, state:"OPEN", merged:false, isInMergeQueue:$queued,
+       timelineItems:{nodes:
+         (if $kind == "added" then
+            [{__typename:"AddedToMergeQueueEvent", id:("evt"+($n|tostring))}]
+          else
+            [{__typename:"RemovedFromMergeQueueEvent", id:("evt"+($n|tostring)), reason:$reason}]
+          end)}};
+    def page($nodes; $more; $cursor):
+      {data:{repository:{pullRequests:{
+        pageInfo:{hasNextPage:$more, endCursor:(if $more then $cursor else null end)},
+        nodes:$nodes}}}};
+    page([
+      node(4111; "merge_conflict"; "removed"; false),
+      node(4172; "manual"; "removed"; false),
+      node(4183; "merge_conflict"; "removed"; false),
+      node(4200; "merge_conflict"; "removed"; false),
+      node(3361; "manual"; "added"; false),
+      node(9001; "merged"; "removed"; false),
+      node(9002; null; "removed"; false),
+      node(9003; ""; "removed"; false),
+      node(9004; "échec des vérifications"; "removed"; false),
+      node(9005; "failed \"checks\"\\path\nnext\tline\rcontrol\u0001 event=not-the-id"; "removed"; false)
+    ]; false; "")
+  ' > "$dir/sweep/page2.json"
+}
+
+test_open_queue_removals_wake_once_across_a_watched_repo() {
+  local dir state url spec number reason
+  url=https://github.com/groovejones/groove-sight-platform/pull/4308
+  dir=$(make_case open-queue-removals)
+  state="$dir/home/state"
+  write_queue_sweep_pages "$dir"
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url"
+  add_stop_custom_check "$dir"
+  LC_ALL=C FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=evt4308 \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "open queue sweep failed: $(cat "$dir/watch.err")"
+  for spec in \
+    3941:merge_conflict 3950:merge_conflict 3939:manual 4006:merge_conflict \
+    4017:failed_checks 4111:merge_conflict 4172:manual 4183:merge_conflict \
+    4200:merge_conflict 4308:failed_checks
+  do
+    number=${spec%%:*}
+    reason=${spec#*:}
+    [ "$(grep -c "dequeued https://github.com/groovejones/groove-sight-platform/pull/${number} reason=${reason}$" "$dir/watch.out")" -eq 1 ] \
+      || fail "pull ${number} was not reported once: $(cat "$dir/watch.out")"
+  done
+  for number in 9002 9003 9004 9005; do
+    case "$number" in
+      9002|9003) reason= ;;
+      9004) reason='échec des vérifications' ;;
+      9005) reason='failed \"checks\"\\path\nnext\tline\rcontrol\u0001 event=not-the-id' ;;
+    esac
+    [ "$(grep -Fxc "check: $ROOT/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/groovejones/groove-sight-platform/pull/${number} reason=${reason}" "$dir/watch.out")" -eq 1 ] \
+      || fail "pull ${number} lost or changed its reason: $(cat "$dir/watch.out")"
+  done
+  ! grep -F 'pull/3361' "$dir/watch.out" >/dev/null \
+    || fail "a re-added pull request woke: $(cat "$dir/watch.out")"
+  ! grep -F 'pull/9001' "$dir/watch.out" >/dev/null \
+    || fail "a merged removal woke: $(cat "$dir/watch.out")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 14 ] \
+    || fail "the sweep did not report fourteen removals: $(cat "$dir/watch.out")"
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-wake-drain.sh" > "$dir/drain.out" 2> "$dir/drain.err" \
+    || fail "open queue sweep drain failed: $(cat "$dir/drain.err")"
+  for spec in \
+    3941:merge_conflict 3950:merge_conflict 3939:manual 4006:merge_conflict \
+    4017:failed_checks 4111:merge_conflict 4172:manual 4183:merge_conflict \
+    4200:merge_conflict 4308:failed_checks
+  do
+    number=${spec%%:*}
+    reason=${spec#*:}
+    [ "$(grep -c "dequeued https://github.com/groovejones/groove-sight-platform/pull/${number} reason=${reason}$" "$dir/drain.out")" -eq 1 ] \
+      || fail "drain dropped pull ${number}: $(cat "$dir/drain.out")"
+  done
+  for number in 9002 9003 9004 9005; do
+    case "$number" in
+      9002|9003) reason= ;;
+      9004) reason='échec des vérifications' ;;
+      9005) reason='failed \"checks\"\\path\nnext\tline\rcontrol\u0001 event=not-the-id' ;;
+    esac
+    [ "$(grep -Fc "dequeued https://github.com/groovejones/groove-sight-platform/pull/${number} reason=${reason}" "$dir/drain.out")" -eq 1 ] \
+      || fail "drain dropped pull ${number}: $(cat "$dir/drain.out")"
+  done
+  [ "$(file_mode "$state/merge-queue-sweep.seen")" = 600 ] \
+    || fail "the seen record is not private"
+  ack_watcher_cycle "$state" || fail "open queue sweep acknowledgement failed"
+  LC_ALL=C FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks FM_TEST_GH_POLL_EVENT=evt4308 \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/repeat.out" 2> "$dir/repeat.err" \
+    || fail "open queue sweep repeat failed: $(cat "$dir/repeat.err")"
+  expect_stop_cycle "$dir/repeat.out" "a handled removal woke again"
+
+  dir=$(make_case open-queue-removals-unreadable)
+  state="$dir/home/state"
+  write_queue_sweep_pages "$dir"
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_SWEEP_FAIL=1 FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/fail.out" 2> "$dir/fail.err" \
+    || fail "unreadable queue sweep failed closed: $(cat "$dir/fail.err")"
+  expect_stop_cycle "$dir/fail.out" "an unreadable sweep woke"
+  [ ! -e "$state/merge-queue-sweep.seen" ] \
+    || fail "an unreadable sweep recorded events"
+
+  pass "open pull requests removed from a watched queue wake once"
+}
+
+test_seen_record_errors_do_not_block_later_watches() {
+  local dir state seen fault round target rc
+  for fault in unreadable malformed symlink; do
+    dir=$(make_case "later-watches-seen-$fault")
+    state="$dir/home/state"
+    seen="$state/merge-queue-sweep.seen"
+    write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    write_poll_meta "$state" task-b https://github.com/o/r/pull/3
+    seed_canonical_poll "$dir" task-b https://github.com/o/r/pull/3
+    write_poll_meta "$state" task-c https://gitlab.example/group/subgroup/project/-/merge_requests/17
+    seed_canonical_poll "$dir" task-c https://gitlab.example/group/subgroup/project/-/merge_requests/17
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    case "$fault" in
+      unreadable)
+        printf 'fm-merge-queue-sweep-v1\n' > "$seen"
+        chmod 0000 "$seen"
+        ;;
+      malformed)
+        printf 'malformed\n' > "$seen"
+        chmod 0600 "$seen"
+        ;;
+      symlink)
+        target="$dir/seen-target"
+        printf 'kept\n' > "$target"
+        ln -s "$target" "$seen"
+        ;;
+    esac
+    for round in 1 2; do
+      cat > "$dir/poll-responses.json" <<JSON
+{
+  "1": {"data": {"repository": {"pullRequest": {
+    "state": "OPEN", "merged": false, "isInMergeQueue": false,
+    "timelineItems": {"nodes": [{"id": "drop-a-$round", "reason": "failed_checks"}]}
+  }}}},
+  "3": {"data": {"repository": {"pullRequest": {
+    "state": "OPEN", "merged": false, "isInMergeQueue": true,
+    "timelineItems": {"nodes": []}
+  }}}}
+}
+JSON
+      FM_TEST_GH_LOG="$dir/gh-$round.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
+        FM_TEST_GLAB_LOG="$dir/glab-$round.log" FM_TEST_GLAB_STATE=opened \
+        run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch-$round.out" 2> "$dir/watch-$round.err" \
+        || fail "$fault seen record blocked later watches in round $round: $(cat "$dir/watch-$round.err")"
+      [ "$(grep -Fc 'number=3' "$dir/gh-$round.log")" -eq 1 ] \
+        || fail "$fault seen record starved the later GitHub watch in round $round"
+      [ "$(grep -Fxc 'mr view 17 -R https://gitlab.example/group/subgroup/project' "$dir/glab-$round.log")" -eq 1 ] \
+        || fail "$fault seen record starved the later GitLab watch in round $round"
+      [ "$(grep -Fxc "check: $state/task-a.check.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks" "$dir/watch-$round.out")" -eq 1 ] \
+        || fail "$fault seen record suppressed the armed removal in round $round"
+      [ "$(grep -Fxc "check: $state/z-stop.check.sh: stop-cycle" "$dir/watch-$round.out")" -eq 1 ] \
+        || fail "$fault seen record skipped the final check in round $round"
+      ! grep -F 'fm-pr-queue-sweep.sh: dequeued ' "$dir/watch-$round.out" >/dev/null \
+        || fail "$fault seen record produced a sweep removal in round $round"
+      rc=0
+      "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$state" \
+        > "$dir/scan.out" 2> "$dir/scan.err" || rc=$?
+      [ "$rc" -eq 1 ] || fail "$fault seen record stopped failing the sweep (rc=$rc)"
+      if [ "$fault" = symlink ]; then
+        [ "$(cat "$target")" = kept ] || fail "an unsafe seen record was followed"
+        [ -L "$seen" ] || fail "an unsafe seen record was replaced"
+      fi
+      ack_watcher_cycle "$state" || fail "$fault seen record round $round acknowledgement failed"
+    done
+  done
+  pass "seen record errors leave later GitHub and GitLab watches polling across restarts"
+}
+
+test_open_queue_sweep_exhausts_pages() {
+  local dir state page
+  dir=$(make_case open-queue-sweep-eleven-pages)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  add_stop_custom_check "$dir"
+  mkdir -p "$dir/sweep"
+  for page in 1 2 3 4 5 6 7 8 9 10 11; do
+    # shellcheck disable=SC2016 # $page is a jq variable.
+    "$REAL_JQ" -n --argjson page "$page" '
+      {data:{repository:{pullRequests:{
+        pageInfo:{hasNextPage:($page < 11),
+          endCursor:(if $page < 11 then "page"+(($page+1)|tostring) else null end)},
+        nodes:(if $page < 11 then
+          [range(($page-1)*100+1; $page*100+1) |
+            {number:., state:"OPEN", merged:false, isInMergeQueue:true,
+             timelineItems:{nodes:[]}}]
+        else
+          [{number:1001, state:"OPEN", merged:false, isInMergeQueue:false,
+            timelineItems:{nodes:[{__typename:"RemovedFromMergeQueueEvent",
+              id:"evt1001", reason:"failed_checks"}]}}]
+        end)}}}}
+    ' > "$dir/sweep/page${page}.json"
+  done
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "eleven-page queue sweep failed: $(cat "$dir/watch.err")"
+  [ "$(grep -Fxc "check: $ROOT/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/1001 reason=failed_checks" "$dir/watch.out")" -eq 1 ] \
+    || fail "the sweep missed the removal after 1,000 open PRs: $(cat "$dir/watch.out")"
+  [ "$(grep -c 'dequeued ' "$dir/watch.out")" -eq 1 ] \
+    || fail "the sweep reported something other than the eleventh-page removal: $(cat "$dir/watch.out")"
+  "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt1001 \
+    || fail "the eleventh-page removal was not published"
+  pass "the queue sweep reads every page of open pull requests"
+}
+
+# Arms task-a on a poll template this repository shipped before the current
+# file, so the registration records that hash and not the current template.
+arm_previous_template_poll() {  # <dir> <url>
+  local dir=$1 url=$2 state historical
+  state="$dir/home/state"
+  historical="$dir/historical-fm-pr-poll.sh"
+  git -C "$ROOT" show 38fa6f7bde25e4cd64235581ceb16ca92a8453bc:bin/fm-pr-poll.sh > "$historical"
+  chmod 0600 "$historical"
+  fm_pr_poll_template_hash_shipped "$POLL" "$(fm_pr_sha256 "$historical")" \
+    || fail "previous-template fixture is not a shipped template"
+  write_poll_meta "$state" task-a "$url"
+  seed_canonical_poll "$dir" task-a "$url" "$historical"
+  ! cmp -s "$POLL" "$state/task-a.check.sh" \
+    || fail "previous-template fixture matched the current template"
+  fm_pr_poll_artifacts_valid "$state" task-a "$historical" \
+    || fail "previous-template fixture was not valid for the template it was armed on"
+  ! fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "previous-template fixture already matched the current template"
+}
+
+test_old_template_watch_polls_after_upgrade() {
+  local dir state url rc
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
+  url=https://github.com/o/r/pull/1
+  dir=$(make_case old-template-upgrade)
+  state="$dir/home/state"
+  arm_previous_template_poll "$dir" "$url"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "old-template watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "old-template watch did not wake on the dequeue: $(cat "$dir/watch.out")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "old-template watch was not re-recorded from the current template"
+  cmp -s "$POLL" "$state/task-a.check.sh" \
+    || fail "re-recorded check is not the current template"
+  pass "a watch armed on the previous template keeps polling after the template changes"
+}
+
+test_tampered_check_stays_rejected() {
+  local dir state url registration_sha check_sha rc out
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
+  url=https://github.com/o/r/pull/1
+  dir=$(make_case tampered-check-rejected)
+  state="$dir/home/state"
+  arm_previous_template_poll "$dir" "$url"
+  printf '# tampered\n' >> "$state/task-a.check.sh"
+  registration_sha=$(fm_pr_sha256 "$state/task-a.pr-poll-registration")
+  check_sha=$(fm_pr_sha256 "$state/task-a.check.sh")
+  : > "$dir/gh.log"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "tampered-check watcher failed: $(cat "$dir/watch.err")"
+  out=$(cat "$dir/watch.out")
+  case "$out" in
+    "check: rejected unauthenticated state checks:"*"task-a.check.sh"*) ;;
+    *) fail "tampered check was not refused: $out" ;;
+  esac
+  [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_sha" ] \
+    || fail "tampered check was re-recorded"
+  [ "$(fm_pr_sha256 "$state/task-a.check.sh")" = "$check_sha" ] \
+    || fail "tampered check bytes were replaced"
+  ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+    || fail "tampered check was queried"
+  pass "a tampered check copy stays rejected"
+}
+
+test_unshipped_template_hash_is_refused() {
+  local dir state registration_sha replacement
+  dir=$(make_case unshipped-template-hash)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  replacement=$(printf 'another template\n' | shasum -a 256 | awk '{print $1}')
+  awk -v hash="$replacement" 'NR == 9 { $0 = hash } { print }' \
+    "$state/task-a.pr-poll-registration" > "$state/.swap"
+  chmod 0600 "$state/.swap"
+  mv -f -- "$state/.swap" "$state/task-a.pr-poll-registration"
+  registration_sha=$(fm_pr_sha256 "$state/task-a.pr-poll-registration")
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  : > "$dir/gh.log"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "unshipped template hash watcher failed: $(cat "$dir/watch.err")"
+  if grep -F 'rejected unauthenticated state checks:' "$dir/watch.out" >/dev/null \
+    && grep -F 'task-a.check.sh' "$dir/watch.out" >/dev/null; then
+    :
+  else
+    fail "an unshipped template hash was not refused: $(cat "$dir/watch.out")"
+  fi
+  [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_sha" ] \
+    || fail "an unshipped template hash was re-recorded"
+  ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+    || fail "an unshipped template hash was queried"
+  ! grep -F 'task-a.check.sh: merged' "$dir/watch.out" >/dev/null \
+    || fail "an unshipped template hash reported a merge"
+  pass "a registration whose template hash was never shipped stays refused"
+}
+
+test_interrupted_template_upgrade_finishes_on_the_next_poll() {
+  local dir state url check_identity rc device
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
+  url=https://github.com/o/r/pull/1
+  for device in unchanged renumbered; do
+    dir=$(make_case "interrupted-template-upgrade-$device")
+    state="$dir/home/state"
+    arm_previous_template_poll "$dir" "$url"
+    [ "$device" = unchanged ] || shift_registration_device "$state" task-a
+    check_identity=$(fm_pr_file_identity "$state/task-a.check.sh")
+    cat "$POLL" > "$state/task-a.check.sh"
+    [ "$(fm_pr_file_identity "$state/task-a.check.sh")" = "$check_identity" ] \
+      || fail "interrupted upgrade fixture replaced the check file"
+    cmp -s "$POLL" "$state/task-a.check.sh" \
+      || fail "interrupted upgrade fixture did not leave the current template in place"
+    ! fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+      || fail "interrupted upgrade fixture was already valid"
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    set +e
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+      FM_TEST_GH_POLL_REASON=failed_checks \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+    rc=$?
+    set -e
+    [ "$rc" -eq 0 ] || fail "interrupted-template watcher failed: $(cat "$dir/watch.err")"
+    [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+      || fail "interrupted template upgrade did not wake on the dequeue: $(cat "$dir/watch.out")"
+    fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+      || fail "interrupted template upgrade did not finish the registration"
+    [ "$(fm_pr_file_identity "$state/task-a.check.sh")" = "$check_identity" ] \
+      || fail "interrupted template upgrade replaced the check file"
+    ack_watcher_cycle "$state" || fail "interrupted upgrade acknowledgement failed"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/merged.out" 2> "$dir/merged.err" \
+      || fail "recovered template watch stopped polling: $(cat "$dir/merged.err")"
+    grep -F 'task-a.check.sh: merged' "$dir/merged.out" >/dev/null \
+      || fail "recovered template watch missed its merge: $(cat "$dir/merged.out")"
+    assert_poll_absent "$state" task-a
+  done
+  pass "an interrupted template upgrade keeps polling with unchanged or renumbered devices"
+}
+
+test_interrupted_template_upgrade_refuses_replaced_artifacts() {
+  local dir state artifact registration_hash check_hash
+  for artifact in task-a.check.sh task-a.pr-poll; do
+    dir=$(make_case "interrupted-template-replaced-$artifact")
+    state="$dir/home/state"
+    arm_previous_template_poll "$dir" https://github.com/o/r/pull/1
+    shift_registration_device "$state" task-a
+    cat "$POLL" > "$state/task-a.check.sh"
+    cp "$state/$artifact" "$dir/replacement"
+    chmod 0600 "$dir/replacement"
+    mv -f "$dir/replacement" "$state/$artifact"
+    registration_hash=$(fm_pr_sha256 "$state/task-a.pr-poll-registration")
+    check_hash=$(fm_pr_sha256 "$state/task-a.check.sh")
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "replaced interrupted upgrade failed: $(cat "$dir/watch.err")"
+    grep -F 'rejected unauthenticated state checks:' "$dir/watch.out" >/dev/null \
+      || fail "interrupted upgrade accepted a replaced $artifact: $(cat "$dir/watch.out")"
+    [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_hash" ] \
+      || fail "replaced artifact registration was rewritten"
+    [ "$(fm_pr_sha256 "$state/task-a.check.sh")" = "$check_hash" ] \
+      || fail "replaced artifact check was rewritten"
+    ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+      || fail "replaced artifact was polled"
+  done
+  pass "interrupted template recovery refuses a replaced check or sidecar"
+}
+
+test_old_template_and_renumber_are_both_recovered() {
+  local dir state url rc registration_sha check_sha
+  local -x FM_TEST_GH_POLL_EVENT=MDEyOlJlbW92ZWRGcm9tTWVyZ2VRdWV1ZUV2ZW50MQ==
+  url=https://github.com/o/r/pull/1
+  dir=$(make_case old-template-and-renumber)
+  state="$dir/home/state"
+  arm_previous_template_poll "$dir" "$url"
+  shift_registration_device "$state" task-a
+  ! fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "old-template renumber fixture was already valid"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "old-template renumber watcher failed: $(cat "$dir/watch.err")"
+  [ "$(grep -c '^check: .*task-a\.check\.sh: dequeued https://github.com/o/r/pull/1 reason=failed_checks$' "$dir/watch.out")" -eq 1 ] \
+    || fail "old-template renumber did not wake on the dequeue: $(cat "$dir/watch.out")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "old-template renumber was not re-recorded from the current template"
+  cmp -s "$POLL" "$state/task-a.check.sh" \
+    || fail "old-template renumber check is not the current template"
+
+  dir=$(make_case old-template-renumber-tampered)
+  state="$dir/home/state"
+  arm_previous_template_poll "$dir" "$url"
+  shift_registration_device "$state" task-a
+  printf '# tampered\n' >> "$state/task-a.check.sh"
+  registration_sha=$(fm_pr_sha256 "$state/task-a.pr-poll-registration")
+  check_sha=$(fm_pr_sha256 "$state/task-a.check.sh")
+  : > "$dir/gh.log"
+  set +e
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=false \
+    FM_TEST_GH_POLL_REASON=failed_checks \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "tampered renumber watcher failed: $(cat "$dir/watch.err")"
+  case "$(cat "$dir/watch.out")" in
+    "check: rejected unauthenticated state checks:"*"task-a.check.sh"*) ;;
+    *) fail "tampered renumbered check was not refused: $(cat "$dir/watch.out")" ;;
+  esac
+  [ "$(fm_pr_sha256 "$state/task-a.pr-poll-registration")" = "$registration_sha" ] \
+    || fail "tampered renumbered check was re-recorded"
+  [ "$(fm_pr_sha256 "$state/task-a.check.sh")" = "$check_sha" ] \
+    || fail "tampered renumbered check bytes were replaced"
+  ! grep -F 'pullRequest(number:' "$dir/gh.log" >/dev/null 2>&1 \
+    || fail "tampered renumbered check was queried"
+  pass "a renumbered watch on the previous template keeps polling, and a tampered copy stays refused"
+}
+
+write_slow_sweep_page() {  # <dir> <page> <number> <more> <cursor>
+  local dir=$1 page=$2 number=$3 more=$4 cursor=$5
+  mkdir -p "$dir/sweep"
+  # shellcheck disable=SC2016 # $number, $more, and $cursor are jq variables.
+  "$REAL_JQ" -n --argjson number "$number" --argjson more "$more" --arg cursor "$cursor" '
+    {data:{repository:{pullRequests:{
+      pageInfo:{hasNextPage:$more, endCursor:(if $more then $cursor else null end)},
+      nodes:[{number:$number, state:"OPEN", merged:false, isInMergeQueue:false,
+        timelineItems:{nodes:[{__typename:"RemovedFromMergeQueueEvent",
+          id:("evt"+($number|tostring)), reason:"failed_checks"}]}}]}}}}
+  ' > "$dir/sweep/$page.json"
+}
+
+test_sweep_page_deadline_reports_every_removal() {
+  local dir state number
+  dir=$(make_case sweep-page-deadline)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_slow_sweep_page "$dir" page1 2 true page2
+  write_slow_sweep_page "$dir" page2 3 true page3
+  write_slow_sweep_page "$dir" page3 4 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_CHECK_TIMEOUT=2 FM_TEST_GH_SWEEP_SLEEP=1 \
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "slow page sweep failed: $(cat "$dir/watch.err")"
+  for number in 2 3 4; do
+    [ "$(grep -Fxc "check: $ROOT/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/${number} reason=failed_checks" "$dir/watch.out")" -eq 1 ] \
+      || fail "a page that fit under the deadline was dropped (pull ${number}): $(cat "$dir/watch.out")"
+  done
+  pass "each sweep page has its own deadline, so a longer scan still reports every removal"
+}
+
+test_progressing_sweep_survives_rearm_past_stall_bound() {
+  local dir state page
+  dir=$(make_case sweep-progress-liveness)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  for page in 1 2 3 4 5; do
+    write_slow_sweep_page "$dir" "page$page" "$((page+1))" true "page$((page+1))"
+  done
+  write_slow_sweep_page "$dir" page6 7 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  # Expire the existing beacon before each page leading to rearm completes.
+  # Every page must renew it before the next read, using the production stall
+  # bound so a valid page's own launch overhead cannot cause eviction.
+  FM_WATCHER_STALE_GRACE=900 FM_WATCHER_STALL_BOUND=900 FM_TEST_GH_SWEEP_EXPIRE_BEAT=1 \
+    FM_TEST_CHECK_TIMEOUT=10 FM_TEST_GH_SWEEP_SLEEP=1 FM_TEST_GH_SWEEP_REARM="$WATCH" \
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "progressing scan was interrupted: $(cat "$dir/watch.err")"
+  [ "$(grep -Fxc 'expired-beacon sweep' "$dir/gh.log")" -eq 5 ] \
+    || fail "completed sweep pages did not renew every expired beacon"
+  ! grep -Fx 'stale-beacon sweep' "$dir/gh.log" >/dev/null \
+    || fail "a completed page left the next read's beacon expired"
+  grep -F 'watcher: already running pid ' "$dir/sweep/rearm.out" >/dev/null \
+    || fail "rearm evicted the progressing scan: $(cat "$dir/sweep/rearm.out" "$dir/sweep/rearm.err")"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "progressing sweep drain failed"
+  for page in 2 3 4 5 6 7; do
+    [ "$(grep -Fc "dequeued https://github.com/o/r/pull/$page reason=failed_checks" "$dir/drain.out")" -eq 1 ] \
+      || fail "the long sweep lost pull $page: $(cat "$dir/drain.out")"
+  done
+  pass "real page progress keeps a long sweep alive through a concurrent rearm"
+}
+
+test_slow_registered_polls_survive_rearm() {
+  local dir state number
+  dir=$(make_case registered-poll-progress-liveness)
+  state="$dir/home/state"
+  for number in 1 2 3 4 5 6 7 8; do
+    write_poll_meta "$state" "task-$number" "https://github.com/o/r/pull/$number"
+    seed_canonical_poll "$dir" "task-$number" "https://github.com/o/r/pull/$number"
+  done
+  "$REAL_JQ" -n '[range(1;9) | {
+    key:tostring,
+    value:{data:{repository:{pullRequest:{
+      state:"OPEN", merged:false, isInMergeQueue:(. != 8),
+      timelineItems:{nodes:(if . == 8 then [{id:"evt8",reason:"failed_checks"}] else [] end)}
+    }}}}
+  }] | from_entries' > "$dir/poll-responses.json"
+  write_slow_sweep_page "$dir" page1 9 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  # Each poll leading to rearm completes after its beacon has expired.
+  # Every next poll must see completion progress at the production stall bound.
+  FM_WATCHER_STALE_GRACE=900 FM_WATCHER_STALL_BOUND=900 FM_TEST_GH_POLL_EXPIRE_BEAT=1 FM_TEST_CHECK_TIMEOUT=20 \
+    FM_TEST_GH_SLEEP=1 FM_TEST_GH_POLL_REARM="$WATCH" FM_TEST_GH_POLL_REARM_NUMBER=8 \
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "slow registered polls were interrupted: $(cat "$dir/watch.err")"
+  [ "$(grep -Fxc 'expired-beacon poll' "$dir/gh.log")" -eq 7 ] \
+    || fail "completed registered polls did not renew every expired beacon"
+  ! grep -Fx 'stale-beacon poll' "$dir/gh.log" >/dev/null \
+    || fail "a completed poll left the next poll's beacon expired"
+  grep -F 'watcher: already running pid ' "$dir/gh.log.rearm.out" >/dev/null \
+    || fail "rearm evicted the progressing registered polls: $(cat "$dir/gh.log.rearm.out" "$dir/gh.log.rearm.err")"
+  for number in 1 2 3 4 5 6 7 8; do
+    [ "$(grep -Fc "number=$number " "$dir/gh.log")" -eq 1 ] \
+      || fail "the collected checks skipped or repeated pull $number"
+  done
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "slow registered poll drain failed"
+  for number in 8 9; do
+    [ "$(grep -Fc "dequeued https://github.com/o/r/pull/$number reason=failed_checks" "$dir/drain.out")" -eq 1 ] \
+      || fail "the long registered-check sweep lost pull $number: $(cat "$dir/drain.out")"
+  done
+  pass "completed registered polls keep the watcher alive through rearm and deliver the final removal"
+}
+
+test_merged_only_watch_still_sweeps_its_repo() {
+  local dir state
+  dir=$(make_case merged-watch-still-sweeps)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_slow_sweep_page "$dir" page1 2 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "merged-watch sweep failed: $(cat "$dir/watch.err")"
+  assert_poll_absent "$state" task-a
+  [ "$(grep -Fxc "check: $ROOT/bin/fm-pr-queue-sweep.sh: dequeued https://github.com/o/r/pull/2 reason=failed_checks" "$dir/watch.out")" -eq 1 ] \
+    || fail "a repo whose only armed pull request merged was not swept: $(cat "$dir/watch.out")"
+  pass "a repository is swept after its only armed pull request merges"
+}
+
+test_recovered_merged_watch_still_sweeps_its_repo() {
+  local dir state
+  dir=$(make_case recovered-merged-watch-still-sweeps)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_slow_sweep_page "$dir" page1 2 false ""
+  fm_pr_poll_snapshot_capture "$state" task-a "$POLL" || fail "could not snapshot the merged watch"
+  fm_pr_poll_retirement_publish "$state" task-a "$POLL" merged || fail "could not publish the retirement receipt"
+  (
+    export FM_STATE_OVERRIDE="$state" FM_HOME="$dir/home"
+    . "$ROOT/bin/fm-wake-lib.sh"
+    fm_wake_append check "$state/task-a.check.sh" "check: $state/task-a.check.sh: merged"
+  ) || fail "could not queue the merged wake"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/recovery.out" 2> "$dir/recovery.err" \
+    || fail "receipt recovery failed: $(cat "$dir/recovery.err")"
+  grep -F 'check: rearm-resurface' "$dir/recovery.out" >/dev/null \
+    || fail "receipt recovery did not resurface its queued wake"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+    || fail "receipt recovery lost the repository before its sweep"
+  [ ! -e "$state/task-a.check.sh" ] || fail "receipt recovery left a merged poll runnable"
+  ack_watcher_cycle "$state" || fail "recovered merge acknowledgement failed"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "post-recovery sweep failed: $(cat "$dir/watch.err")"
+  assert_poll_absent "$state" task-a
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "post-recovery sweep drain failed"
+  [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+    || fail "receipt recovery lost the dropped pull request: $(cat "$dir/drain.out")"
+  pass "a recovered merged watch retains its repository through the first completed sweep"
+}
+
+test_failed_sweep_keeps_the_repository_for_the_next_cycle() {
+  local dir state rc before
+  dir=$(make_case failed-sweep-keeps-repo)
+  state="$dir/home/state"
+  fm_write_meta "$state/task-a.meta" \
+    window=firstmate:fm-task-a endpoint_task_id=task-a \
+    "worktree=$dir/wt" "project=$dir/project" kind=ship mode=local-only \
+    pr=https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  write_slow_sweep_page "$dir" page1 2 false ""
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_FAIL=1 \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/fail.out" 2> "$dir/fail.err" \
+    || fail "failed sweep watcher exited: $(cat "$dir/fail.err")"
+  ! grep -F 'dequeued https://github.com/o/r/pull/2' "$dir/fail.out" >/dev/null \
+    || fail "a failed sweep reported a removal: $(cat "$dir/fail.out")"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+    || fail "a failed sweep retired the repository"
+  [ ! -e "$state/task-a.check.sh" ] || fail "a failed sweep left the merged poll runnable"
+  [ ! -e "$state/merge-queue-sweep.seen" ] || fail "a failed sweep recorded events"
+  ack_watcher_cycle "$state" || fail "failed sweep acknowledgement failed"
+  shift_retirement_device "$state" task-a
+  before=$(poll_artifact_snapshot "$state" task-a)
+  set +e
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    "$TEARDOWN" task-a > "$dir/teardown.out" 2> "$dir/teardown.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "teardown discarded the repository after a failed sweep"
+  grep -F 'REFUSED: pending repository merge-queue sweep; preserving task state.' "$dir/teardown.err" >/dev/null \
+    || fail "teardown did not refuse its pending sweep: $(cat "$dir/teardown.err")"
+  [ "$(poll_artifact_snapshot "$state" task-a)" = "$before" ] \
+    || fail "teardown changed the repository's deferred retirement"
+  [ -d "$dir/wt/.git" ] || fail "refused teardown removed the task's worktree"
+  set +e
+  run_check_entry "$dir" task-a https://github.com/o/replacement/pull/3 \
+    > "$dir/rearm.out" 2> "$dir/rearm.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "rearm discarded the repository after a failed sweep"
+  [ "$(cat "$dir/rearm.err")" = 'error: pending repository merge-queue sweep; preserving task state' ] \
+    || fail "rearm did not refuse its pending sweep: $(cat "$dir/rearm.err")"
+  [ "$(poll_artifact_snapshot "$state" task-a)" = "$before" ] \
+    || fail "rearm changed the repository's deferred retirement"
+  FM_TEST_GH_LOG="$dir/gh2.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "the next sweep failed: $(cat "$dir/watch.err")"
+  assert_poll_absent "$state" task-a
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "next sweep drain failed"
+  [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+    || fail "the next good sweep lost the removal: $(cat "$dir/drain.out")"
+  FM_TEST_GH_HEAD="$(git -C "$dir/wt" rev-parse HEAD)" \
+    run_check_entry "$dir" task-a https://github.com/o/replacement/pull/3 \
+    > "$dir/rearm.out" 2> "$dir/rearm.err" \
+    || fail "rearm failed after the repository sweep: $(cat "$dir/rearm.err")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+    || fail "rearm after a successful sweep left an invalid poll"
+
+  dir=$(make_case sweep-page-timeout-fails)
+  state="$dir/home/state"
+  mkdir -p "$state" "$dir/fakebin" "$dir/sweep"
+  cat > "$dir/fakebin/gh" <<'SH'
+#!/usr/bin/env bash
+sleep 2
+exit 0
+SH
+  chmod +x "$dir/fakebin/gh"
+  set +e
+  PATH="$dir/fakebin:$BASE_PATH" FM_TEST_GH_LOG="$dir/timeout.log" \
+    FM_PR_SWEEP_PAGE_TIMEOUT=1 FM_PR_SWEEP_REPOS=$'o/r' \
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$state" > "$dir/timeout.out" 2> "$dir/timeout.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "a timed-out sweep page exited 0"
+  [ ! -s "$dir/timeout.out" ] || fail "a timed-out sweep page printed a result: $(cat "$dir/timeout.out")"
+  pass "a failed sweep keeps the repository until the next sweep reports its removal"
+}
+
+test_seen_record_errors_keep_repository_discovery() {
+  local dir state seen fault corrupt_seen rc invalid_state
+  for fault in unreadable malformed unsafe lookup; do
+    dir=$(make_case "seen-record-$fault")
+    state="$dir/home/state"
+    seen="$state/merge-queue-sweep.seen"
+    write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    write_slow_sweep_page "$dir" page1 2 false ""
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    printf 'fm-merge-queue-sweep-v1\n' > "$seen"
+    chmod 0600 "$seen"
+    corrupt_seen=
+    case "$fault" in
+      unreadable) chmod 0000 "$seen" ;;
+      malformed) printf 'fm-merge-queue-sweep-v1\ninvalid event\n' > "$seen" ;;
+      unsafe) chmod 0644 "$seen" ;;
+      lookup) corrupt_seen=$seen ;;
+    esac
+    if [ "$fault" != lookup ]; then
+      rc=0
+      FM_TEST_GH_LOG="$dir/scan-gh.log" PATH="$dir/fakebin:$BASE_PATH" \
+        "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$state" \
+        > "$dir/scan.out" 2> "$dir/scan.err" || rc=$?
+      [ "$rc" -eq 1 ] || fail "$fault seen record did not fail the scan (rc=$rc)"
+      [ ! -s "$dir/scan.out" ] || fail "$fault seen record produced scan output"
+    fi
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      FM_TEST_GH_SWEEP_CORRUPT_SEEN="$corrupt_seen" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/fail.out" 2> "$dir/fail.err" \
+      || fail "$fault seen record interrupted merge delivery: $(cat "$dir/fail.err")"
+    [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+      || fail "$fault seen record retired the repository before publication"
+    [ ! -e "$state/task-a.check.sh" ] || fail "$fault seen record left a merged poll runnable"
+    ! grep -F 'dequeued https://github.com/o/r/pull/2' "$dir/fail.out" >/dev/null \
+      || fail "$fault seen record published an unverified removal"
+    rc=0
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt2 || rc=$?
+    [ "$rc" -eq 2 ] || fail "$fault seen record lost its lookup failure (rc=$rc)"
+    ack_watcher_cycle "$state" || fail "$fault seen record merge acknowledgement failed"
+    chmod 0600 "$seen"
+    printf 'fm-merge-queue-sweep-v1\n' > "$seen"
+    FM_TEST_GH_LOG="$dir/retry-gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/retry.out" 2> "$dir/retry.err" \
+      || fail "$fault seen record recovery failed: $(cat "$dir/retry.err")"
+    assert_poll_absent "$state" task-a
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "$fault seen record recovery drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "$fault seen record lost the removal on retry: $(cat "$dir/drain.out")"
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt2 \
+      || fail "$fault seen record recovery did not record the delivered removal"
+  done
+  ln -s "$state" "$dir/state-link"
+  for invalid_state in "$dir/missing-state" "$dir/state-link"; do
+    rc=0
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --scan "$invalid_state" \
+      > "$dir/invalid.out" 2> "$dir/invalid.err" || rc=$?
+    [ "$rc" -eq 1 ] || fail "an invalid state directory was a successful scan (rc=$rc)"
+    [ ! -s "$dir/invalid.out" ] || fail "an invalid state directory produced scan output"
+  done
+  rc=0
+  "$ROOT/bin/fm-pr-queue-sweep.sh" --scan > "$dir/invalid.out" 2> "$dir/invalid.err" || rc=$?
+  [ "$rc" -eq 1 ] || fail "a scan without its state directory succeeded (rc=$rc)"
+  pass "seen record errors preserve repository discovery until a removal is delivered"
+}
+
+test_completed_repo_removals_survive_another_repo_failure() {
+  local dir state failing success before
+  for failing in task-a task-b; do
+    dir=$(make_case "mixed-sweep-$failing")
+    state="$dir/home/state"
+    success=task-a
+    [ "$failing" != task-a ] || success=task-b
+    write_poll_meta "$state" "$success" https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" "$success" https://github.com/o/r/pull/1
+    write_poll_meta "$state" "$failing" https://github.com/o/unreadable/pull/1
+    seed_canonical_poll "$dir" "$failing" https://github.com/o/unreadable/pull/1
+    write_slow_sweep_page "$dir" page1 2 false ""
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED \
+      FM_TEST_GH_SWEEP_FAIL_REPO=o/unreadable FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "mixed sweep failed: $(cat "$dir/watch.err")"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/watch.out")" -eq 1 ] \
+      || fail "an unreadable repository suppressed a completed removal: $(cat "$dir/watch.out")"
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt2 \
+      || fail "the completed removal was not recorded after publication"
+    [ -f "$state/$failing.pr-poll" ] && [ -f "$state/$failing.pr-poll-retirement" ] \
+      || fail "the unreadable repository lost its deferred retirement"
+    [ -f "$state/$success.pr-poll" ] && [ -f "$state/$success.pr-poll-retirement" ] \
+      || fail "aggregate sweep failure was treated as success"
+    [ ! -e "$state/$failing.check.sh" ] && [ ! -e "$state/$success.check.sh" ] \
+      || fail "a mixed sweep left a merged watch runnable"
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "mixed sweep drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "the completed removal was not delivered: $(cat "$dir/drain.out")"
+    ack_watcher_cycle "$state" || fail "mixed sweep acknowledgement failed"
+    before=$(poll_artifact_snapshot "$state" "$failing")
+    FM_TEST_GH_LOG="$dir/gh2.log" FM_TEST_GH_STATE=MERGED \
+      FM_TEST_GH_SWEEP_FAIL_REPO=o/unreadable FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/retry.out" 2> "$dir/retry.err" \
+      || fail "mixed sweep retry failed: $(cat "$dir/retry.err")"
+    ! grep -F 'dequeued https://github.com/o/r/pull/2' "$dir/retry.out" >/dev/null \
+      || fail "a mixed sweep retry duplicated the completed removal"
+    [ "$(poll_artifact_snapshot "$state" "$failing")" = "$before" ] \
+      || fail "a mixed sweep retry changed the unreadable repository's retirement"
+  done
+  pass "completed repository removals are delivered once despite earlier or later repository failures"
+}
+
+test_unobserved_merge_preserves_repository_before_cleanup_or_rearm() {
+  local dir state action before rc
+  for action in cleanup rearm; do
+    dir=$(make_case "unobserved-merge-$action")
+    state="$dir/home/state"
+    write_task_meta "$dir"
+    printf 'pr=https://github.com/o/r/pull/1\n' >> "$state/task-a.meta"
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    write_slow_sweep_page "$dir" page1 2 false ""
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    before=$(poll_artifact_snapshot "$state" task-a)
+    [ ! -e "$state/task-a.pr-poll-retirement" ] || fail "unobserved merge already has a receipt"
+    set +e
+    if [ "$action" = cleanup ]; then
+      FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+        FM_TEST_GH_STATE=MERGED "$TEARDOWN" task-a \
+        > "$dir/refused.out" 2> "$dir/refused.err"
+    else
+      FM_TEST_GH_STATE=MERGED run_check_entry "$dir" task-a https://github.com/other/repo/pull/3 \
+        > "$dir/refused.out" 2> "$dir/refused.err"
+    fi
+    rc=$?
+    set -e
+    [ "$rc" -ne 0 ] || fail "$action removed the last watch before its merge was observed"
+    grep -F 'pending repository merge-queue sweep; preserving task state' "$dir/refused.err" >/dev/null \
+      || fail "$action refused for another reason: $(cat "$dir/refused.err")"
+    [ "$(poll_artifact_snapshot "$state" task-a)" = "$before" ] \
+      || fail "$action changed the unobserved merge's authenticated watch"
+    [ -d "$dir/wt/.git" ] || fail "$action removed the task's worktree"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "unobserved merge recovery failed: $(cat "$dir/watch.err")"
+    assert_poll_absent "$state" task-a
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "unobserved merge drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "$action lost the repository's dropped pull request: $(cat "$dir/drain.out")"
+  done
+
+  dir=$(make_case same-repository-rearm-keeps-discovery)
+  state="$dir/home/state"
+  write_task_meta "$dir"
+  printf 'pr=https://github.com/o/r/pull/1\n' >> "$state/task-a.meta"
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  FM_TEST_GH_HEAD="$(git -C "$dir/wt" rev-parse HEAD)" \
+    run_check_entry "$dir" task-a https://github.com/o/r/pull/3 \
+    > "$dir/rearm.out" 2> "$dir/rearm.err" \
+    || fail "same-repository rearm failed: $(cat "$dir/rearm.err")"
+  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" || fail "same-repository rearm left an invalid watch"
+  [ "$FM_PR_DATA_URL" = https://github.com/o/r/pull/3 ] || fail "same-repository rearm lost its replacement"
+  [ "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" = o/r ] \
+    || fail "same-repository rearm lost repository discovery"
+  pass "cleanup and cross-repository rearm preserve an unobserved merge until its repository is swept"
+}
+
+shift_retirement_device() {
+  local state=$1 id=$2 device shifted tmp registration receipt reg_hash=''
+  device=$(fm_pr_file_device "$state") || fail "could not read retirement fixture device"
+  shifted=$((device + 1))
+  registration="$state/$id.pr-poll-registration"
+  receipt="$state/$id.pr-poll-retirement"
+  tmp=$(mktemp "$state/.test-retirement-device.XXXXXX") || fail "could not stage retirement device shift"
+  if [ -f "$registration" ]; then
+    awk -v live="$device" -v shifted="$shifted" '
+      NR == 10 || NR == 11 { sub("^" live ":", shifted ":") }
+      { print }
+    ' "$registration" > "$tmp"
+    cat "$tmp" > "$registration"
+    reg_hash=$(fm_pr_sha256 "$registration") || fail "could not hash shifted registration"
+  fi
+  awk -v live="$device" -v shifted="$shifted" -v reg_hash="$reg_hash" '
+    NR == 10 || NR == 11 || NR == 13 { sub("^" live ":", shifted ":") }
+    NR == 12 && reg_hash != "" { $0 = reg_hash }
+    { print }
+  ' "$receipt" > "$tmp"
+  cat "$tmp" > "$receipt"
+  rm -f "$tmp"
+  [ "$(sed -n 10p "$receipt")" = "$shifted:$(fm_pr_file_inode "$state/$id.pr-poll")" ] \
+    || fail "retirement device shift did not preserve the sidecar inode"
+}
+
+test_retirement_survives_device_renumbering() {
+  local dir state stage before rc
+  for stage in full registration sidecar; do
+    dir=$(make_case "retirement-renumber-$stage")
+    state="$dir/home/state"
+    write_task_meta "$dir"
+    printf 'pr=https://github.com/o/r/pull/1\n' >> "$state/task-a.meta"
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    fm_pr_poll_snapshot_capture "$state" task-a "$POLL" || fail "could not snapshot retirement renumber fixture"
+    fm_pr_poll_retirement_publish "$state" task-a "$POLL" merged || fail "could not publish retirement renumber receipt"
+    case "$stage" in
+      registration) rm -f "$state/task-a.check.sh" ;;
+      sidecar)
+        fm_pr_poll_retirement_recover_one "$state" task-a "$POLL" \
+          || fail "could not defer the merged watch before its failed scan"
+        ;;
+    esac
+    shift_retirement_device "$state" task-a
+    fm_pr_poll_retirement_state_valid "$state" task-a \
+      || fail "$stage retirement did not accept unchanged inodes on the live device"
+    write_slow_sweep_page "$dir" page1 2 false ""
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    if [ "$stage" = sidecar ]; then
+      before=$(poll_artifact_snapshot "$state" task-a)
+      set +e
+      run_check_entry "$dir" task-a https://github.com/other/repo/pull/3 \
+        > "$dir/rearm.out" 2> "$dir/rearm.err"
+      rc=$?
+      set -e
+      [ "$rc" -ne 0 ] || fail "renumbered pending retirement allowed cross-repository rearm"
+      [ "$(cat "$dir/rearm.err")" = 'error: pending repository merge-queue sweep; preserving task state' ] \
+        || fail "rearm rejected the renumbered receipt: $(cat "$dir/rearm.err")"
+      set +e
+      FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+        "$TEARDOWN" task-a > "$dir/teardown.out" 2> "$dir/teardown.err"
+      rc=$?
+      set -e
+      [ "$rc" -ne 0 ] || fail "renumbered pending retirement allowed cleanup"
+      grep -F 'REFUSED: pending repository merge-queue sweep; preserving task state.' "$dir/teardown.err" >/dev/null \
+        || fail "cleanup rejected the renumbered receipt: $(cat "$dir/teardown.err")"
+      [ "$(poll_artifact_snapshot "$state" task-a)" = "$before" ] \
+        || fail "pending retirement callers changed renumbered artifacts"
+      FM_TEST_GH_LOG="$dir/fail-gh.log" FM_TEST_GH_SWEEP_FAIL=1 \
+        run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/fail.out" 2> "$dir/fail.err" \
+        || fail "renumbered failed scan stopped monitoring: $(cat "$dir/fail.err")"
+      ! grep -F 'rejected unauthenticated PR poll retirement' "$dir/fail.out" >/dev/null \
+        || fail "renumbered failed scan rejected the retained receipt"
+      [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+        || fail "renumbered failed scan lost its repository"
+      ack_watcher_cycle "$state" || fail "renumbered failed scan acknowledgement failed"
+    fi
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=OPEN FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "renumbered retirement watcher failed: $(cat "$dir/watch.err")"
+    assert_poll_absent "$state" task-a
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "renumbered retirement drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "$stage retirement lost a removal after renumbering: $(cat "$dir/drain.out")"
+  done
+  pass "renumbered retirement receipts keep scanning through every surviving artifact stage"
+}
+
+test_retirement_device_recovery_keeps_content_and_inode_checks() {
+  local dir state artifact mutation expected_identity expected_hash live_device field
+  for artifact in check.sh pr-poll pr-poll-registration; do
+    for mutation in replaced altered; do
+      dir=$(make_case "retirement-renumber-$artifact-$mutation")
+      state="$dir/home/state"
+      write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+      seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+      fm_pr_poll_snapshot_capture "$state" task-a "$POLL" || fail "could not snapshot changed retirement fixture"
+      fm_pr_poll_retirement_publish "$state" task-a "$POLL" merged || fail "could not publish changed retirement receipt"
+      shift_retirement_device "$state" task-a
+      fm_pr_poll_retirement_state_valid "$state" task-a || fail "changed retirement fixture was invalid before mutation"
+      case "$artifact" in
+        check.sh) expected_identity=$FM_PR_RETIRE_CHECK_IDENTITY; expected_hash=$FM_PR_RETIRE_TEMPLATE_HASH ;;
+        pr-poll) expected_identity=$FM_PR_RETIRE_DATA_IDENTITY; expected_hash=$FM_PR_RETIRE_DATA_HASH ;;
+        pr-poll-registration) expected_identity=$FM_PR_RETIRE_REG_IDENTITY; expected_hash=$FM_PR_RETIRE_REG_HASH ;;
+      esac
+      if [ "$mutation" = replaced ]; then
+        cp "$state/task-a.$artifact" "$state/.replacement"
+        chmod 0600 "$state/.replacement"
+        mv -f "$state/.replacement" "$state/task-a.$artifact"
+      else
+        printf 'altered\n' >> "$state/task-a.$artifact"
+      fi
+      ! fm_pr_poll_retirement_state_valid "$state" task-a \
+        || fail "renumber recovery accepted a $mutation $artifact"
+      live_device=$(fm_pr_file_device "$state") || fail "could not read live state device"
+      ! fm_pr_poll_retirement_remove_exact "$state/task-a.$artifact" "$live_device" "$expected_identity" "$expected_hash" \
+        || fail "exact retirement removed a $mutation $artifact"
+      [ -f "$state/task-a.$artifact" ] || fail "rejected retirement removed $artifact"
+    done
+  done
+  for field in 10 11 13; do
+    dir=$(make_case "retirement-split-device-$field")
+    state="$dir/home/state"
+    write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    fm_pr_poll_snapshot_capture "$state" task-a "$POLL" || fail "could not snapshot split-device retirement"
+    fm_pr_poll_retirement_publish "$state" task-a "$POLL" merged || fail "could not publish split-device receipt"
+    shift_retirement_device "$state" task-a
+    awk -v field="$field" 'NR == field { sub(/^[0-9]+:/, "999999999:") } { print }' \
+      "$state/task-a.pr-poll-retirement" > "$state/.split-device"
+    cat "$state/.split-device" > "$state/task-a.pr-poll-retirement"
+    ! fm_pr_poll_retirement_state_valid "$state" task-a \
+      || fail "retirement accepted inconsistent recorded devices in field $field"
+  done
+  pass "retirement device recovery still refuses replaced inodes and altered content"
+}
+
+test_sweep_keeps_later_removal_in_place_after_an_update() {
+  local dir state armed_state
+  for armed_state in OPEN MERGED; do
+    dir=$(make_case "sweep-updated-later-pull-$armed_state")
+    state="$dir/home/state"
+    write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+    seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+    mkdir -p "$dir/sweep"
+    "$REAL_JQ" -n '[range(2;103) | {
+      number:., createdAt:., updatedAt:., state:"OPEN", merged:false,
+      isInMergeQueue:true, timelineItems:{nodes:[]}
+    }]' > "$dir/sweep/pulls.json"
+    retire_contributions_observer "$dir"
+    add_stop_custom_check "$dir"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE="$armed_state" \
+      FM_TEST_GH_SWEEP_DIR="$dir/sweep" FM_TEST_GH_SWEEP_MUTATING=1 \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "updated later-page sweep failed: $(cat "$dir/watch.err")"
+    FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+      > "$dir/drain.out" 2> "$dir/drain.err" || fail "updated later-page sweep drain failed"
+    [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/2 reason=failed_checks' "$dir/drain.out")" -eq 1 ] \
+      || fail "an update moved the later removal out of the sweep: $(cat "$dir/drain.out")"
+    "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt2 \
+      || fail "the later-page removal was not durably recorded"
+    if [ "$armed_state" = MERGED ]; then
+      [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+        || fail "a queued sighting on an earlier page retired the repository's last watch"
+      [ "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" = o/r ] \
+        || fail "a queued sighting dropped repository discovery"
+    else
+      fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
+        || fail "the updated later-page sweep retired an unmerged watch"
+    fi
+  done
+  pass "a later-page removal remains discoverable after an update, even when the last armed pull request merges"
+}
+
+# Chip's inter-page case. Page 1 reads an unarmed pull request as queued.
+# That pull request leaves the queue before page 2 is read, and this scan does
+# not re-read page 1. The last armed pull request has already merged.
+test_queued_sighting_keeps_discovery_until_the_next_sweep() {
+  local dir state queries rc
+  dir=$(make_case queued-sighting-keeps-discovery)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/r/pull/1
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/1
+  mkdir -p "$dir/sweep"
+  "$REAL_JQ" -n '
+    {data:{repository:{pullRequests:{
+      pageInfo:{hasNextPage:true, endCursor:"page2"},
+      nodes:[{number:9, state:"OPEN", merged:false, isInMergeQueue:true,
+        timelineItems:{nodes:[]}}]}}}}
+  ' > "$dir/sweep/page1.json"
+  "$REAL_JQ" -n '
+    {data:{repository:{pullRequests:{
+      pageInfo:{hasNextPage:false, endCursor:null},
+      nodes:[{number:10, state:"OPEN", merged:false, isInMergeQueue:false,
+        timelineItems:{nodes:[]}}]}}}}
+  ' > "$dir/sweep/page2.json"
+  cat > "$dir/drop-queued.sh" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-}" = page2 ] || exit 0
+"$FM_TEST_REAL_JQ" -n '
+  {data:{repository:{pullRequests:{
+    pageInfo:{hasNextPage:true, endCursor:"page2"},
+    nodes:[{number:9, state:"OPEN", merged:false, isInMergeQueue:false,
+      timelineItems:{nodes:[{__typename:"RemovedFromMergeQueueEvent",
+        id:"evt9", reason:"manual removal"}]}}]}}}}
+' > "$FM_TEST_GH_SWEEP_DIR/page1.json"
+SH
+  chmod 0700 "$dir/drop-queued.sh"
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" FM_TEST_GH_SWEEP_PAGE_HOOK="$dir/drop-queued.sh" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "queued-sighting sweep failed: $(cat "$dir/watch.err")"
+  queries=$(grep -c 'pullRequests' "$dir/gh.log" || true)
+  [ "$queries" -ge 2 ] || fail "the first sweep did not read both pages (queries=$queries)"
+  ! grep -F 'dequeued https://github.com/o/r/pull/9' "$dir/watch.out" >/dev/null \
+    || fail "the first sweep woke for a pull request it had read as queued: $(cat "$dir/watch.out")"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+    || fail "a queued sighting retired the repository before the removal was visible"
+  [ "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" = o/r ] \
+    || fail "a queued sighting dropped repository discovery"
+  rc=0
+  "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt9 || rc=$?
+  [ "$rc" -eq 1 ] || fail "the first sweep recorded a removal it did not see (rc=$rc)"
+  ack_watcher_cycle "$state" || fail "queued-sighting acknowledgement failed"
+  FM_TEST_GH_LOG="$dir/gh2.log" FM_TEST_GH_STATE=MERGED \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" FM_TEST_GH_SWEEP_PAGE_HOOK="$dir/drop-queued.sh" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch2.out" 2> "$dir/watch2.err" \
+    || fail "the follow-up sweep failed: $(cat "$dir/watch2.err")"
+  queries=$(grep -c 'pullRequests' "$dir/gh2.log" || true)
+  [ "$queries" -ge 2 ] || fail "the follow-up sweep did not query the retained repository (queries=$queries)"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "queued-sighting drain failed"
+  [ "$(grep -Fc 'dequeued https://github.com/o/r/pull/9 reason=manual removal' "$dir/drain.out")" -eq 1 ] \
+    || fail "the follow-up sweep did not wake once with GitHub's reason: $(cat "$dir/drain.out")"
+  "$ROOT/bin/fm-pr-queue-sweep.sh" --contains "$state" evt9 \
+    || fail "the follow-up removal was not recorded"
+  assert_poll_absent "$state" task-a
+  [ -z "$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")" ] \
+    || fail "retirement did not follow the sweep that saw an empty queue"
+  pass "a queued sighting keeps discovery until the next sweep sees the removal"
+}
+
+prepare_closed_teardown_case() {
+  local dir=$1 state
+  state="$dir/home/state"
+  fm_write_meta "$state/task-a.meta" \
+    'window=firstmate:fm-task-a' \
+    'endpoint_task_id=task-a' \
+    "worktree=$dir/missing-worktree" \
+    "project=$dir/project" \
+    'kind=ship' \
+    'mode=local-only' \
+    'pr=https://github.com/o/r/pull/18'
+  seed_canonical_poll "$dir" task-a https://github.com/o/r/pull/18
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  cat > "$dir/fakebin/tmux" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+  chmod +x "$dir/fakebin/tmux"
+  touch "$state/.last-watcher-beat"
+}
+
+test_closed_pull_request_teardown_follows_an_empty_sweep() {
+  local dir state
+  dir=$(make_case closed-unmerged-empty-sweep)
+  state="$dir/home/state"
+  prepare_closed_teardown_case "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=CLOSED \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "closed pull request watcher failed: $(cat "$dir/watch.err")"
+  ! grep -F ': merged' "$dir/watch.out" >/dev/null \
+    || fail "a closed pull request was reported as merged: $(cat "$dir/watch.out")"
+  assert_poll_absent "$state" task-a
+  ack_watcher_cycle "$state" || fail "closed pull request acknowledgement failed"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    FM_TEST_GH_GRAPHQL_STATE=CLOSED FM_TEST_GH_GRAPHQL_MERGED=false \
+    "$TEARDOWN" task-a > "$dir/teardown.out" 2> "$dir/teardown.err" \
+    || fail "normal teardown failed after the empty sweep: $(cat "$dir/teardown.err")"
+  [ ! -e "$state/task-a.meta" ] || fail "normal teardown left task metadata"
+  pass "a closed unmerged pull request is retired by an empty sweep and normal teardown succeeds"
+}
+
+test_force_discards_closed_watch_with_or_without_a_sweep() {
+  local dir state rc
+  dir=$(make_case closed-unmerged-force-without-sweep)
+  state="$dir/home/state"
+  prepare_closed_teardown_case "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=CLOSED FM_TEST_GH_SWEEP_FAIL=1 \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "closed pull request with a failed sweep exited: $(cat "$dir/watch.err")"
+  [ ! -e "$state/task-a.check.sh" ] || fail "a closed pull request left its watch polling"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-a.pr-poll-retirement" ] \
+    || fail "a failed sweep retired the closed pull request's repository"
+  ack_watcher_cycle "$state" || fail "failed-sweep close acknowledgement failed"
+  set +e
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    FM_TEST_GH_GRAPHQL_STATE=CLOSED FM_TEST_GH_GRAPHQL_MERGED=false \
+    "$TEARDOWN" task-a > "$dir/refused.out" 2> "$dir/refused.err"
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "normal teardown skipped the pending sweep"
+  grep -F 'REFUSED: pending repository merge-queue sweep; preserving task state.' "$dir/refused.err" >/dev/null \
+    || fail "normal teardown refused for another reason: $(cat "$dir/refused.err")"
+  [ -f "$state/task-a.pr-poll" ] || fail "refused teardown removed repository discovery"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    FM_TEST_GH_GRAPHQL_STATE=CLOSED FM_TEST_GH_GRAPHQL_MERGED=false \
+    "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
+    || fail "--force failed without a sweep: $(cat "$dir/teardown.err")"
+  [ ! -e "$state/task-a.pr-poll" ] || fail "--force left the sidecar"
+  [ ! -e "$state/task-a.meta" ] || fail "--force left task metadata"
+
+  dir=$(make_case closed-unmerged-force-with-sweep)
+  state="$dir/home/state"
+  prepare_closed_teardown_case "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=CLOSED \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "closed pull request sweep exited: $(cat "$dir/watch.err")"
+  ack_watcher_cycle "$state" || fail "swept close acknowledgement failed"
+  FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" PATH="$dir/fakebin:$BASE_PATH" \
+    FM_TEST_GH_GRAPHQL_STATE=CLOSED FM_TEST_GH_GRAPHQL_MERGED=false \
+    "$TEARDOWN" task-a --force > "$dir/teardown.out" 2> "$dir/teardown.err" \
+    || fail "--force failed after an empty sweep: $(cat "$dir/teardown.err")"
+  [ ! -e "$state/task-a.pr-poll" ] || fail "--force left the sidecar after the sweep"
+  [ ! -e "$state/task-a.meta" ] || fail "--force left task metadata after the sweep"
+  pass "--force discards a closed watch with or without a completed sweep"
+}
+
+# The sweep collapses its own repository set after it starts. Growth is the
+# list inherited from the watcher, across many checks of one process.
+add_counted_stop_check() {  # <dir> <passes>
+  local dir=$1 passes=$2 state
+  state="$dir/home/state"
+  cat > "$state/z-stop.check.sh" <<EOF
+#!/usr/bin/env bash
+count_file='$dir/passes'
+count=0
+if [ -f "\$count_file" ]; then
+  count=\$(cat "\$count_file")
+fi
+case "\$count" in
+  ''|*[!0-9]*) count=0 ;;
+esac
+count=\$((count + 1))
+printf '%s\n' "\$count" > "\$count_file"
+if [ "\$count" -ge $passes ]; then
+  printf 'stop-cycle\n'
+fi
+EOF
+  chmod 0700 "$state/z-stop.check.sh"
+  FM_HOME="$dir/home" "$REGISTER" z-stop >/dev/null \
+    || fail "could not register the counted stop check"
+}
+
+assert_logged_sweep_union() {  # <log> <want> <why>
+  local log=$1 want=$2 why=$3 minimum=${4:-12} raw got begins
+  begins=$(grep -c '^sweep-repos-begin$' "$log" || true)
+  [ "$begins" -ge "$minimum" ] || fail "$why: the sweep inherited the repository list $begins times"
+  raw=$(awk '
+    $0 == "sweep-repos-begin" { buf = ""; capture = 1; next }
+    $0 == "sweep-repos-end" { if (capture) last = buf; capture = 0; next }
+    capture { buf = buf $0 "\n" }
+    END { printf "%s", last }
+  ' "$log")
+  got=$(printf '%s\n' "$raw" | awk 'NF')
+  [ "$got" = "$want" ] || fail "$why: got $(printf '%q' "$got") want $(printf '%q' "$want")"
+}
+
+test_retained_sweep_repos_stay_one_entry() {
+  local dir state listed passes=6
+  dir=$(make_case retained-sweep-repo-union)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/zeta/pull/1
+  write_poll_meta "$state" task-b https://github.com/o/alpha/pull/2
+  seed_canonical_poll "$dir" task-a https://github.com/o/zeta/pull/1
+  seed_canonical_poll "$dir" task-b https://github.com/o/alpha/pull/2
+  listed=$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")
+  [ "$listed" = $'o/zeta\no/alpha' ] \
+    || fail "retained repositories were not first seen as o/zeta then o/alpha: $listed"
+  mkdir -p "$dir/sweep"
+  "$REAL_JQ" -n '
+    {data:{repository:{pullRequests:{
+      pageInfo:{hasNextPage:false, endCursor:null},
+      nodes:[{number:9, state:"OPEN", merged:false, isInMergeQueue:true,
+        timelineItems:{nodes:[]}}]}}}}
+  ' > "$dir/sweep/page1.json"
+  add_counted_stop_check "$dir" "$passes"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_LOG_SWEEP_REPOS=1 \
+    FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "retained queued sweep watcher failed: $(cat "$dir/watch.err")"
+  [ "$(cat "$dir/passes")" -eq "$passes" ] \
+    || fail "retained queued sweep did not complete $passes checks"
+  expect_stop_cycle "$dir/watch.out" "a retained queued repository woke"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-b.pr-poll" ] \
+    || fail "a retained queued repository dropped a sidecar"
+  assert_logged_sweep_union "$dir/gh.log" "$listed" "retained queued repositories"
+
+  dir=$(make_case failing-sweep-repo-union)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-a https://github.com/o/zeta/pull/1
+  write_poll_meta "$state" task-b https://github.com/o/alpha/pull/2
+  seed_canonical_poll "$dir" task-a https://github.com/o/zeta/pull/1
+  seed_canonical_poll "$dir" task-b https://github.com/o/alpha/pull/2
+  listed=$("$ROOT/bin/fm-pr-queue-sweep.sh" --repos "$state")
+  [ "$listed" = $'o/zeta\no/alpha' ] \
+    || fail "failing-sweep repositories were not first seen as o/zeta then o/alpha: $listed"
+  add_counted_stop_check "$dir" "$passes"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_LOG_SWEEP_REPOS=1 \
+    FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+    FM_TEST_GH_SWEEP_FAIL=1 \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "failing sweep watcher failed: $(cat "$dir/watch.err")"
+  [ "$(cat "$dir/passes")" -eq "$passes" ] \
+    || fail "failing sweep did not complete $passes checks"
+  expect_stop_cycle "$dir/watch.out" "a failing sweep woke"
+  [ -f "$state/task-a.pr-poll" ] && [ -f "$state/task-b.pr-poll" ] \
+    || fail "a failing sweep dropped a sidecar"
+  assert_logged_sweep_union "$dir/gh.log" "$listed" "failing sweep repositories"
+  pass "many checks leave one first-seen repository entry when a repo stays queued and when the sweep fails"
+}
+
+test_sweep_repos_added_after_startup_stay_separate() {
+  local mode dir state first failures passes=4
+  for mode in queued failed; do
+    dir=$(make_case "runtime-sweep-repos-$mode")
+    state="$dir/home/state"
+    write_poll_meta "$state" task-a https://github.com/o/zeta/pull/1
+    write_poll_meta "$state" task-b https://github.com/o/alpha/pull/2
+    write_poll_meta "$state" task-c https://github.com/o/beta/pull/3
+    seed_canonical_poll "$dir" task-a https://github.com/o/zeta/pull/1
+    mkdir -p "$dir/sweep"
+    "$REAL_JQ" -n '
+      {data:{repository:{pullRequests:{
+        pageInfo:{hasNextPage:false, endCursor:null},
+        nodes:[{number:9, state:"OPEN", merged:false, isInMergeQueue:true,
+          timelineItems:{nodes:[]}}]}}}}
+    ' > "$dir/queued-page.json"
+    cat > "$state/a-arm.check.sh" <<EOF
+#!/usr/bin/env bash
+count=\$(cat '$dir/passes' 2>/dev/null || true)
+case "\$count" in
+  '') id=task-b; path=o/alpha; number=2 ;;
+  1)
+    id=task-c; path=o/beta; number=3
+    if [ '$mode' = queued ]; then
+      cp '$dir/queued-page.json' '$dir/sweep/page1.json' || exit 1
+    fi
+    ;;
+  *) exit 0 ;;
+esac
+. '$ROOT/bin/fm-pr-lib.sh'
+fm_pr_poll_prepare '$state' "\$id" github "https://github.com/\$path/pull/\$number" \
+  github.com "\$path" "\$number" '$POLL' || exit 1
+fm_pr_poll_publish_prepared
+EOF
+    chmod 0700 "$state/a-arm.check.sh"
+    FM_HOME="$dir/home" "$REGISTER" a-arm >/dev/null \
+      || fail "could not register runtime repository arming"
+    add_counted_stop_check "$dir" "$passes"
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_LOG_SWEEP_REPOS=1 \
+      FM_TEST_GH_STATE=OPEN FM_TEST_GH_POLL_QUEUED=true \
+      FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
+      run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+      || fail "$mode runtime repository watcher failed after $(cat "$dir/passes" 2>/dev/null || true) checks: $(cat "$dir/watch.err")"
+    [ "$(cat "$dir/passes")" -eq "$passes" ] \
+      || fail "$mode runtime repository watcher did not complete $passes checks"
+    expect_stop_cycle "$dir/watch.out" "$mode runtime repository sweep woke"
+    failures=$(grep -c 'merge-queue sweep failed;' "$state/.watch-triage.log" || true)
+    case "$mode" in
+      queued) [ "$failures" -eq 1 ] || fail "runtime repository sweep did not recover after its first failure" ;;
+      failed) [ "$failures" -eq "$passes" ] || fail "runtime repository sweep did not keep failing" ;;
+    esac
+    [ -f "$state/task-b.pr-poll" ] && [ -f "$state/task-c.pr-poll" ] \
+      || fail "$mode runtime repository checks did not arm both new repositories"
+    first=$(awk '
+      $0 == "sweep-repos-begin" { capture = 1; next }
+      $0 == "sweep-repos-end" { exit }
+      capture { print }
+    ' "$dir/gh.log")
+    [ "$first" = o/zeta ] || fail "$mode runtime repositories were armed before the first sweep: $first"
+    assert_logged_sweep_union "$dir/gh.log" $'o/zeta\no/alpha\no/beta' "$mode runtime repositories" 11
+  done
+  pass "repositories armed after startup keep first-seen lines through failed and successful sweeps"
+}
+
+if [ -n "${FM_TEST_ONLY:-}" ]; then
+  "$FM_TEST_ONLY"
+  exit $?
+fi
+
 test_parser_matrix
 test_gitlab_merge_watch
 test_forgejo_merge_watch
@@ -3636,6 +5756,33 @@ test_direct_pr_unpushed_commit_refuses_registration
 test_valid_recording_and_merge_derivation
 test_rejected_metacharacter_bytes_are_inert
 test_static_poll_contract
+test_github_poll_uses_the_pr_host
+test_github_identity_fields_stay_strings
+test_dequeue_sweep_reaches_later_checks
+test_queue_drop_reason_is_preserved
+test_verified_queue_drop_wakes_once
+test_open_queue_removals_wake_once_across_a_watched_repo
+test_seen_record_errors_do_not_block_later_watches
+test_open_queue_sweep_exhausts_pages
+test_sweep_keeps_later_removal_in_place_after_an_update
+test_queued_sighting_keeps_discovery_until_the_next_sweep
+test_old_template_watch_polls_after_upgrade
+test_tampered_check_stays_rejected
+test_unshipped_template_hash_is_refused
+test_interrupted_template_upgrade_finishes_on_the_next_poll
+test_interrupted_template_upgrade_refuses_replaced_artifacts
+test_old_template_and_renumber_are_both_recovered
+test_sweep_page_deadline_reports_every_removal
+test_progressing_sweep_survives_rearm_past_stall_bound
+test_slow_registered_polls_survive_rearm
+test_merged_only_watch_still_sweeps_its_repo
+test_recovered_merged_watch_still_sweeps_its_repo
+test_failed_sweep_keeps_the_repository_for_the_next_cycle
+test_seen_record_errors_keep_repository_discovery
+test_completed_repo_removals_survive_another_repo_failure
+test_unobserved_merge_preserves_repository_before_cleanup_or_rearm
+test_retirement_survives_device_renumbering
+test_retirement_device_recovery_keeps_content_and_inode_checks
 test_atomic_interruption_leaves_no_partial_artifact
 test_concurrent_watcher_sees_only_complete_publication
 test_poll_publication_refuses_unsafe_destinations
@@ -3649,3 +5796,7 @@ test_bootstrap_leaves_unauthenticated_checks
 test_custom_snapshot_cleanup_on_signal
 test_returned_custom_check_descendants_are_drained
 test_teardown_removes_poll_artifacts
+test_closed_pull_request_teardown_follows_an_empty_sweep
+test_force_discards_closed_watch_with_or_without_a_sweep
+test_retained_sweep_repos_stay_one_entry
+test_sweep_repos_added_after_startup_stay_separate
