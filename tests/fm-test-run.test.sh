@@ -1630,14 +1630,16 @@ runner_scratch_entries() { # <dir>: the runner's and the stand-in gate's temp en
   done | LC_ALL=C sort
 }
 
-# A runner stopped from outside mid-script (a lane killed, a terminal closed)
-# must take that script's whole process group with it, bounded or not, and
-# also when the machine gate re-executed it under a second runner: the caller
+# A runner stopped from outside mid-script (a lane killed, a terminal closed,
+# a TERM to its whole process group) must take that script's whole process
+# group with it, bounded or not, and also when the machine gate re-executed it
+# under a second runner (a pid kill only, since the stand-in gate does not
+# survive a group TERM): the caller
 # holds only the pid of the runner it launched. No later script may start
 # after that on either scheduler. Otherwise the suite and every watcher it
 # started keep running unowned, and the gate keeps the line.
 test_killed_runner_takes_its_script_down() {
-  local tmp repo runner name gate sig shape running runner_pid pids waited gated=0 scratch_before leaked
+  local tmp repo runner name gate sig how shape running runner_pid pids waited gated=0 scratch_before leaked
   local -a selection
   scratch_before=$(runner_scratch_entries "${TMPDIR:-/tmp}")
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-killed.XXXXXX")
@@ -1664,7 +1666,8 @@ SH
   write_machine_gate_standin "$tmp/machine-gate.sh"
 
   for gate in '' "$tmp/machine-gate.sh"; do
-    for sig in TERM KILL; do
+    for sig in TERM KILL group-TERM; do
+      [ "$sig" != group-TERM ] || [ -z "$gate" ] || continue
       for shape in serial jobs; do
         if [ "$shape" = serial ]; then
           running=1
@@ -1680,7 +1683,7 @@ SH
           FM_TEST_MACHINE_GATE="$gate" \
           MACHINE_LINE_DIR="$tmp/line" MACHINE_LINE_NAME=fm-test-run \
           FM_TEST_MACHINE_LINE_RETRY_SECS=0 \
-          "$runner" "${selection[@]}" >"$tmp/out" 2>&1 &
+          perl -e 'setpgrp(0, 0); exec @ARGV' "$runner" "${selection[@]}" >"$tmp/out" 2>&1 &
         runner_pid=$!
         waited=0
         while [ "$(wc -l <"$tmp/starts")" -lt "$running" ] && [ "$waited" -lt 100 ]; do
@@ -1688,7 +1691,13 @@ SH
           waited=$((waited + 1))
         done
         [ "$(wc -l <"$tmp/starts")" -ge "$running" ] || { kill -KILL "$runner_pid" 2>/dev/null; fail "the $shape fixtures never started under the runner: $(cat "$tmp/out")"; }
-        kill -"$sig" "$runner_pid"
+        if [ "$sig" = group-TERM ]; then
+          how="SIGTERM to its process group"
+          kill -TERM -- "-$runner_pid"
+        else
+          how="SIG$sig"
+          kill -"$sig" "$runner_pid"
+        fi
         wait "$runner_pid" 2>/dev/null || true
         if [ -n "$gate" ]; then
           gated=$((gated + 1))
@@ -1709,21 +1718,21 @@ SH
         # shellcheck disable=SC2086
         if kill -0 $pids 2>/dev/null; then
           kill -KILL $pids 2>/dev/null || true
-          fail "a runner killed with SIG$sig${gate:+ through the machine gate} left a $shape script or its child running ($pids)"
+          fail "a runner killed with $how${gate:+ through the machine gate} left a $shape script or its child running ($pids)"
         fi
         [ "$(grep -c '^FM_TEST_BEGIN ' "$tmp/out")" -eq "$running" ] \
-          || fail "a $shape run killed with SIG$sig${gate:+ through the machine gate} launched another script after its runner died: $(cat "$tmp/out")"
+          || fail "a $shape run killed with $how${gate:+ through the machine gate} launched another script after its runner died: $(cat "$tmp/out")"
         [ "$(wc -l <"$tmp/cleaned")" -eq "$running" ] \
-          || fail "a $shape script TERMed when its runner was killed with SIG$sig${gate:+ through the machine gate} was KILLed before its cleanup finished"
+          || fail "a $shape script TERMed when its runner was killed with $how${gate:+ through the machine gate} was KILLed before its cleanup finished"
         [ "$shape" = jobs ] || [ "$(grep -c '^cleaned ' "$tmp/out")" -eq "$running" ] \
-          || fail "a streamed script's cleanup output never reached the runner's output after SIG$sig${gate:+ through the machine gate}: $(cat "$tmp/out")"
+          || fail "a streamed script's cleanup output never reached the runner's output after $how${gate:+ through the machine gate}: $(cat "$tmp/out")"
         [ -n "$gate" ] || continue
         [ "$shape" = jobs ] || grep -Eq '^FM_TEST_END .* exit=143 ' "$tmp/out" \
-          || fail "the inner runner did not record the TERMed script's own exit 143 after SIG$sig through the machine gate: $(cat "$tmp/out")"
+          || fail "the inner runner did not record the TERMed script's own exit 143 after $how through the machine gate: $(cat "$tmp/out")"
         [ "$(line_row_count "$tmp/line/log.tsv" start 'cap 180m')" = "$gated" ] \
-          || fail "the gated SIG$sig $shape leg did not run its scripts through the machine gate"
+          || fail "the gated $how $shape leg did not run its scripts through the machine gate"
         [ "$(line_row_count "$tmp/line/log.tsv" end '^rc ')" = "$gated" ] \
-          || fail "a $shape runner killed with SIG$sig through the machine gate left the gate holding the line"
+          || fail "a $shape runner killed with $how through the machine gate left the gate holding the line"
       done
     done
   done
