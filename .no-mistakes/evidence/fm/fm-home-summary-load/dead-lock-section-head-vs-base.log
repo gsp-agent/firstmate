@@ -1,0 +1,8 @@
+round1 head(f15dc13d): producer 3.99s 3.75s 3.69s | load1 87.86 | writer rc=0 4.83s published-by-writer-return=yes | ledger PUBLISHED at +4.84s | live-hold log lines=0
+round1 base(433c7b85): producer 4.46s 5.14s 4.29s | load1 101.46 | writer rc=0 1.45s published-by-writer-return=no | ledger WEDGED at +50.48s | live-hold log lines=0
+    refresh-log: [2026-10-17T19:18:36Z] refresh exceeded its 2-second deadline
+    refresh-log: [2026-10-17T19:18:41Z] refresh exceeded its 2-second deadline
+round2 head(f15dc13d): producer 2.40s 2.81s 3.56s | load1 86.27 | writer rc=0 5.75s published-by-writer-return=yes | ledger PUBLISHED at +5.76s | live-hold log lines=0
+round2 base(433c7b85): producer 4.73s 3.42s 3.81s | load1 92.19 | writer rc=0 9.15s published-by-writer-return=yes | ledger PUBLISHED at +9.16s | live-hold log lines=0
+round3 head(f15dc13d): producer 5.31s 4.69s 6.63s | load1 89.60 | writer rc=0 10.02s published-by-writer-return=yes | ledger PUBLISHED at +10.05s | live-hold log lines=0
+round3 base(433c7b85): producer 5.00s 6.52s 3.53s | load1 88.25 | writer rc=0 4.43s published-by-writer-return=yes | ledger PUBLISHED at +4.44s | live-hold log lines=0

@@ -1,0 +1,19 @@
+secondmate-home-summary  before-1  vs after-1   SAME
+secondmate-home-summary  before-1  vs after-2   SAME
+secondmate-home-summary  after-1   vs after-2   SAME
+secondmate-home-summary  before-1  vs before-2  DIFF
+secondmate-home-summary  before-2  vs after-2   DIFF
+contribution-input       before-1  vs after-1   SAME
+contribution-input       before-1  vs after-2   SAME
+contribution-input       after-1   vs after-2   SAME
+contribution-input       before-1  vs before-2  SAME
+contribution-input       before-2  vs after-2   SAME
+json                     before-1  vs after-1   SAME
+json                     before-1  vs after-2   SAME
+json                     after-1   vs after-2   SAME
+json                     before-1  vs before-2  DIFF
+json                     before-2  vs after-2   DIFF
+before-json-1: tasks=64 empty-current-state=[]
+after-json-1: tasks=64 empty-current-state=[]
+before-json-2: tasks=64 empty-current-state=[t04 t09 t14 t17 t18 t19 t22 t23 t24 t28 t29 t33 t34 t38 t39]
+after-json-2: tasks=64 empty-current-state=[]

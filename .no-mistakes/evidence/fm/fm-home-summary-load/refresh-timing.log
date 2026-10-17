@@ -1,0 +1,12 @@
+round=1 ver=before nm_delay_ms=0 wall= 60.37s cpu=  0.06s load1=33.32->49.37 rc=124 NOT-published endpoints=none err="fm-home-summary-refresh: refresh exceeded its 60-second deadline"
+round=1 ver=after  nm_delay_ms=0 wall= 42.50s cpu=  8.20s load1=49.37->54.61 rc=0 published endpoints=64 
+round=2 ver=before nm_delay_ms=0 wall= 60.50s cpu=  0.06s load1=54.61->68.35 rc=124 NOT-published endpoints=64 err="fm-home-summary-refresh: refresh exceeded its 60-second deadline"
+round=2 ver=after  nm_delay_ms=0 wall= 24.36s cpu=  8.10s load1=68.35->72.46 rc=0 published endpoints=64 
+round=3 ver=before nm_delay_ms=0 wall= 60.33s cpu=  0.05s load1=72.46->53.59 rc=124 NOT-published endpoints=64 err="fm-home-summary-refresh: refresh exceeded its 60-second deadline"
+round=3 ver=after  nm_delay_ms=0 wall= 56.52s cpu=  9.52s load1=53.59->70.21 rc=0 published endpoints=64 
+round=1 ver=before nm_delay_ms=1000 wall= 60.74s cpu=  0.08s load1=70.21->101.65 rc=124 NOT-published endpoints=64 err="fm-home-summary-refresh: refresh exceeded its 60-second deadline"
+round=1 ver=after  nm_delay_ms=1000 wall= 60.60s cpu=  0.06s load1=101.65->83.46 rc=124 NOT-published endpoints=64 err="fm-home-summary-refresh: refresh exceeded its 60-second deadline"
+round=2 ver=before nm_delay_ms=1000 wall= 60.60s cpu=  0.08s load1=83.46->127.92 rc=124 NOT-published endpoints=64 err="fm-home-summary-refresh: refresh exceeded its 60-second deadline"
+round=2 ver=after  nm_delay_ms=1000 wall= 61.38s cpu=  0.08s load1=127.92->144.38 rc=124 NOT-published endpoints=64 err="fm-home-summary-refresh: refresh exceeded its 60-second deadline"
+round=3 ver=before nm_delay_ms=1000 wall= 60.54s cpu=  0.06s load1=144.38->119.79 rc=124 NOT-published endpoints=64 err="fm-home-summary-refresh: refresh exceeded its 60-second deadline"
+round=3 ver=after  nm_delay_ms=1000 wall= 60.69s cpu=  0.06s load1=119.79->147.45 rc=124 NOT-published endpoints=64 err="fm-home-summary-refresh: refresh exceeded its 60-second deadline"

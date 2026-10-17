@@ -1,0 +1,9 @@
+== jq 1.6 producer runs (new code, lab, pinned clock)
+contribution-input: 64 tasks, last t64; tasks[] identical to jq 1.8 output
+home summary: identical to jq 1.8 output (canonical)
+== jq-1.8.2
+without trailing byte: ["a","b"]
+with trailing newline (fix): ["a","b"]
+== jq-1.6
+without trailing byte: ["a"]
+with trailing newline (fix): ["a","b"]

@@ -1,0 +1,4 @@
+round1 base load1=98.52->46.86 rc=0 142s ok=21
+round1 head load1=46.86->75.73 rc=1 196s ok=18
+    not ok - a dead publication lock wedged publication
+exit=0

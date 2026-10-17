@@ -1,0 +1,8 @@
+== tree: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5518WCKZCZZKKA1AW7FWEMK (f15dc13d)
+== step 1: refresh killed at a forced 3 s deadline
+  rc=124 stderr=fm-home-summary-refresh: refresh exceeded its 3-second deadline
+  lock: present -> .home-summary-refresh.lock.owner.GXxZ8d pid=33424 (dead)
+== step 3: ordinary direct refresh (default bound, no override, no --best-effort)
+  rc=124 wall=60.52s load1=66.79->77.38 NOT-published generated_epoch 1792248312->1792248312 endpoints=64 stderr=fm-home-summary-refresh: refresh exceeded its 60-second deadline
+  lock: present -> .home-summary-refresh.lock.owner.Tq1HAT pid=34749 (dead)
+  ledger mode=600 schema=fm-secondmate-home-summary.v1 valid=false

@@ -1,0 +1,122 @@
+before json round1 rc=0 bytes=312986
+before secondmate-home-summary round1 rc=0 bytes=15748
+before contribution-input round1 rc=0 bytes=83630
+after json round1 rc=0 bytes=312991
+after secondmate-home-summary round1 rc=0 bytes=15748
+after contribution-input round1 rc=0 bytes=83630
+before json round2 rc=0 bytes=311526
+before secondmate-home-summary round2 rc=0 bytes=13285
+before contribution-input round2 rc=0 bytes=83630
+after json round2 rc=0 bytes=312991
+after secondmate-home-summary round2 rc=0 bytes=15748
+after contribution-input round2 rc=0 bytes=83630
+IDENTICAL secondmate-home-summary round1
+DIFFERENT secondmate-home-summary round2
+4a5,31
+>       "id": "t18",
+>       "kind": "ship",
+>       "name": "Lab fleet task t18",
+>       "repo": "firstmate",
+>       "source": "pane",
+>       "state": "working"
+>     },
+>     {
+>       "doing": "harness busy (claude-hook)",
+>       "id": "t24",
+>       "kind": "ship",
+>       "name": "Lab fleet task t24",
+>       "repo": "firstmate",
+>       "source": "pane",
+>       "state": "working"
+>     },
+>     {
+>       "doing": "harness busy (claude-hook)",
+>       "id": "t44",
+>       "kind": "scout",
+>       "name": "Lab fleet task t44",
+>       "repo": "firstmate",
+>       "source": "pane",
+>       "state": "working"
+>     },
+>     {
+>       "doing": "harness busy (claude-hook)",
+33,34c60,61
+<     "active_children": 1,
+<     "decisions_open": 33,
+---
+>     "active_children": 4,
+>     "decisions_open": 26,
+36c63
+<     "holds": 5,
+---
+>     "holds": 13,
+58,65d84
+<       "id": "t07",
+DIFFERENT contribution-input round1
+DIFFERENT contribution-input round2
+DIFFERENT json round1
+2612c2612
+<     "fm_root": "/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-trees.jtLuGw/before",
+---
+>     "fm_root": "<ROOT>",
+DIFFERENT json round2
+2612c2612
+<     "fm_root": "/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-trees.jtLuGw/before",
+---
+>     "fm_root": "<ROOT>",
+3410c3410
+<         "detail": "",
+---
+>         "detail": "harness state unavailable (unknown codex-unverified)",
+3413,3414c3413,3414
+<         "raw": "",
+<         "source": "none",
+---
+>         "raw": "state: unknown · source: pane · harness state unavailable (unknown codex-unverified)",
+>         "source": "pane",
+3986c3986
+<         "detail": "",
+---
+>         "detail": "keyless choice with: colons [at=10:30]",
+3989,3991c3989,3991
+<         "raw": "",
+<         "source": "none",
+<         "state": "unknown"
+---
+>         "raw": "state: parked · source: status-log · keyless choice with: colons [at=10:30]",
+>         "source": "status-log",
+>         "state": "parked"
+4568c4568
+<         "detail": "",
+---
+>         "detail": "harness state unavailable (unknown cursor-transcript)",
+4571,4572c4571,4572
+<         "raw": "",
+<         "source": "none",
+---
+>         "raw": "state: unknown · source: pane · harness state unavailable (unknown cursor-transcript)",
+>         "source": "pane",
+4916c4916
+<         "detail": "",
+---
+>         "detail": "harness state unavailable (unknown cursor-transcript)",
+4919,4920c4919,4920
+<         "raw": "",
+<         "source": "none",
+---
+>         "raw": "state: unknown · source: pane · harness state unavailable (unknown cursor-transcript)",
+>         "source": "pane",
+5030c5030
+<         "detail": "",
+---
+>         "detail": "harness busy (claude-hook)",
+5033,5035c5033,5035
+<         "raw": "",
+<         "source": "none",
+<         "state": "unknown"
+---
+>         "raw": "state: working · source: pane · harness busy (claude-hook)",
+>         "source": "pane",
+>         "state": "working"
+5049,5056c5049,5050
+<         "open_decisions": [

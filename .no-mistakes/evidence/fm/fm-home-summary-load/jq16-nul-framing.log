@@ -1,0 +1,6 @@
+== jq-1.8.2
+without trailing byte: ["a","b"]
+with trailing newline (fix): ["a","b"]
+== jq-1.6
+without trailing byte: ["a"]
+with trailing newline (fix): ["a","b"]

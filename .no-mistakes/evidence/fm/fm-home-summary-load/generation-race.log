@@ -1,0 +1,7 @@
+mutated at 09:52:40
+producer rc=0
+{"id":"t29","spawn_gen":"fm.lab000029","current_state":"","source":"none","status_present":true,"exists":true}
+{"id":"t30","spawn_gen":"fm.lab000030","current_state":"task generation changed during snapshot","source":"none","status_present":false,"exists":null}
+{"id":"t31","spawn_gen":"fm.lab000031","current_state":"task generation changed during snapshot","source":"none","status_present":false,"exists":null}
+tasks=64 generation-changed=t30,t31
+empty current state (crew-state hit its 10s bound): [t02 t03 t04 t07 t09 t10 t11 t12 t13 t14 t15 t16 t17 t18 t19 t20 t21 t22 t23 t24 t25 t26 t27 t28 t29 t32 t33 t34 t35 t36 t37 t38 t39 t40 t41 t43 t44 t62 t63 t64]

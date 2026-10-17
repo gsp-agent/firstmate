@@ -1,0 +1,13 @@
+round1 head load1=102.44 rc=1 24s
+    not ok - watcher did not surface contribution diagnostics: 
+    FAILED test_watcher_keeps_diagnostics_separate_from_contribution_wakes
+round1 base load1=132.62 rc=1 29s
+    not ok - watcher did not surface contribution diagnostics: 
+    FAILED test_watcher_keeps_diagnostics_separate_from_contribution_wakes
+round2 head load1=134.91 rc=1 44s
+    ok - watcher keeps observer diagnostics separate from contribution wakes
+    not ok - watcher did not surface the new contribution signal: 
+    FAILED test_watcher_surfaces_new_contribution_once
+round2 base load1=135.14 rc=1 28s
+    not ok - watcher did not surface contribution diagnostics: 
+    FAILED test_watcher_keeps_diagnostics_separate_from_contribution_wakes

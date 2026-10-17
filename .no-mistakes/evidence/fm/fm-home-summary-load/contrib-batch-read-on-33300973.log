@@ -1,0 +1,2 @@
+not ok - unreadable siblings were miscounted (batch): contributions: 3 unreadable durable record(s)
+FAILED test_unreadable_sibling_keeps_healthy_record

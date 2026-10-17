@@ -1,0 +1,10 @@
+== before (433c7b85 / branch head)
+{"id":"t49","project":"","branch":null,"pr":{"url":null,"source":"absent","head":null},"pr_head":null,"backend":null,"target":"orca-term-t49","exists":false,"open":[]}
+{"id":"t50","project":"","branch":null,"pr":{"url":null,"source":"absent","head":null},"pr_head":null,"backend":null,"target":"orca-window-t50","exists":false,"open":[]}
+{"id":"t55","project":"firstmate","branch":null,"pr":{"url":null,"source":"absent","head":null},"pr_head":null,"backend":null,"target":null,"exists":null,"open":[{"key":"dependency","verb":"blocked","summary":"wait for \"fixture\" \\ input"}]}
+{"id":"t59","project":"firstmate \"quoted\" \\ back=slash","branch":"fm/ünï-t59","pr":{"url":"https://github.com/o/r/pull/59?x=1&y=2","source":"meta","head":null},"pr_head":null,"backend":null,"target":"fmlab:fm-t59","exists":true,"open":[{"key":"a-b","verb":"needs-decision","summary":"tab\there, \"q\", \\back\\, ünï — 漢字"},{"key":"default","verb":"blocked","summary":"no key here: with colon"}]}
+== after (433c7b85 / branch head)
+{"id":"t49","project":"","branch":null,"pr":{"url":null,"source":"absent","head":null},"pr_head":null,"backend":null,"target":"orca-term-t49","exists":false,"open":[]}
+{"id":"t50","project":"","branch":null,"pr":{"url":null,"source":"absent","head":null},"pr_head":null,"backend":null,"target":"orca-window-t50","exists":false,"open":[]}
+{"id":"t55","project":"firstmate","branch":null,"pr":{"url":null,"source":"absent","head":null},"pr_head":null,"backend":null,"target":null,"exists":null,"open":[{"key":"dependency","verb":"blocked","summary":"wait for \"fixture\" \\ input"}]}
+{"id":"t59","project":"firstmate \"quoted\" \\ back=slash","branch":"fm/ünï-t59","pr":{"url":"https://github.com/o/r/pull/59?x=1&y=2","source":"meta","head":null},"pr_head":null,"backend":null,"target":"fmlab:fm-t59","exists":true,"open":[{"key":"a-b","verb":"needs-decision","summary":"tab\there, \"q\", \\back\\, ünï — 漢字"},{"key":"default","verb":"blocked","summary":"no key here: with colon"}]}

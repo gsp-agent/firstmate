@@ -1,0 +1,15 @@
+/Users/dalecarman/.no-mistakes/evidence/01M5518WCKZCZZKKA1AW7FWEMK/scripts/dead-lock-section-full.sh: line 88: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-dead-lock-full.wnR1TP/restart-home/state/.home-summary-refresh.log: No such file or directory
+round1 head: load1 43.76 | watcher-one exited=yes third-watcher=yes live-hold log=0 | writer rc=0 0.77s published-by-writer=no | ledger WEDGED at +45.45s | producer 1.85s 1.77s
+    refresh-log: [2026-10-17T19:53:40Z] refresh exceeded its 2-second deadline
+/Users/dalecarman/.no-mistakes/evidence/01M5518WCKZCZZKKA1AW7FWEMK/scripts/dead-lock-section-full.sh: line 88: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-dead-lock-full.cp8GYG/restart-home/state/.home-summary-refresh.log: No such file or directory
+round1 base: load1 43.48 | watcher-one exited=yes third-watcher=yes live-hold log=0 | writer rc=0 0.95s published-by-writer=no | ledger WEDGED at +45.41s | producer 2.23s 3.45s
+    refresh-log: [2026-10-17T19:54:47Z] refresh exceeded its 2-second deadline
+/Users/dalecarman/.no-mistakes/evidence/01M5518WCKZCZZKKA1AW7FWEMK/scripts/dead-lock-section-full.sh: line 88: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-dead-lock-full.wxHBmj/restart-home/state/.home-summary-refresh.log: No such file or directory
+round2 head: load1 38.00 | watcher-one exited=yes third-watcher=yes live-hold log=0 | writer rc=0 0.70s published-by-writer=no | ledger WEDGED at +43.56s | producer 1.08s .85s
+    refresh-log: [2026-10-17T19:55:57Z] refresh exceeded its 2-second deadline
+/Users/dalecarman/.no-mistakes/evidence/01M5518WCKZCZZKKA1AW7FWEMK/scripts/dead-lock-section-full.sh: line 88: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-dead-lock-full.9mGsmb/restart-home/state/.home-summary-refresh.log: No such file or directory
+round2 base: load1 32.11 | watcher-one exited=yes third-watcher=yes live-hold log=0 | writer rc=0 1.83s published-by-writer=yes | ledger PUBLISHED at +1.84s | producer 1.15s .95s
+/Users/dalecarman/.no-mistakes/evidence/01M5518WCKZCZZKKA1AW7FWEMK/scripts/dead-lock-section-full.sh: line 88: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-dead-lock-full.dLlXck/restart-home/state/.home-summary-refresh.log: No such file or directory
+round3 head: load1 30.61 | watcher-one exited=yes third-watcher=yes live-hold log=0 | writer rc=0 0.40s published-by-writer=no | ledger PUBLISHED at +1.88s | producer 1.28s 1.58s
+/Users/dalecarman/.no-mistakes/evidence/01M5518WCKZCZZKKA1AW7FWEMK/scripts/dead-lock-section-full.sh: line 88: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-dead-lock-full.46ihEB/restart-home/state/.home-summary-refresh.log: No such file or directory
+round3 base: load1 28.06 | watcher-one exited=yes third-watcher=yes live-hold log=0 | writer rc=0 0.47s published-by-writer=no | ledger PUBLISHED at +1.92s | producer 1.07s .97s

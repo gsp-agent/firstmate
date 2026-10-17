@@ -1,0 +1,6 @@
+14:57  up 3 days, 17 mins, 4 users, load averages: 26.80 49.40 74.50
+FM_TEST_BEGIN 2026-10-17T19:57:53Z tests/fm-bearings-snapshot.test.sh family=snapshot-bearings expected_gate_skip=optional-binary
+ok - task teardown during metadata capture is omitted without aborting the snapshot
+ok - current state and decision hints share one captured status observation
+ok - reused live state is discarded when task generation changes
+ok - large local snapshot overlaps local reads with byte-identical serial and concurrent projections

@@ -1,0 +1,5 @@
+ok - an unreadable sibling or failed batch read costs one error and keeps healthy records whole
+ok - record task identity is the directory dirname/basename named
+ok - parent consumes measured child coverage and refuses expired child silence
+ok - malformed durable evidence cannot prove silence
+ok - snapshot and pending create nothing in a home without state
