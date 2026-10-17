@@ -1734,6 +1734,124 @@ SH
   pass "a killed runner takes its running scripts down and starts no other, through the machine gate too"
 }
 
+# SIGINT to the runner's process group reaches the running script through
+# fm_exec_timed even when the runner inherited INT as ignored, as a runner
+# backgrounded by a non-interactive shell does, so the 130 that fm_exec_timed
+# reports for that script is all the runner sees of it. An INT straight to the
+# script's own group bypasses the watchdog, so there the streamed wrapper's
+# status carries it. The run must not record the script as passing or start
+# another one, on either scheduler, whether the script handles INT or dies of
+# it.
+test_interrupted_script_stops_the_run() {
+  local tmp repo runner name kind disposition shape target how running runner_pid rc pids waited
+  local -a selection launcher
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-interrupted.XXXXXX")
+  repo="$tmp/repo"
+  runner="$repo/bin/fm-test-run.sh"
+  mkdir -p "$repo/bin" "$repo/tests" "$tmp/scratch"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
+  cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
+  chmod +x "$runner"
+
+  # The held fixture dies of INT, while its background sleep ignores INT, as a
+  # non-interactive shell's background jobs do, and holds the script's output
+  # open, so a streamed run waits out the grace until the watchdog KILLs the
+  # group. The trap fixture handles INT itself and lets go of its output.
+  for kind in trap held; do
+    for name in fm-first-fixture fm-later-fixture fm-lint fm-brief fm-crew-state; do
+      {
+        printf '%s\n' '#!/usr/bin/env bash'
+        if [ "$kind" = trap ]; then
+          printf '%s\n' "trap 'exit 130' INT" 'sleep 600 >/dev/null 2>&1 &'
+        else
+          printf '%s\n' 'sleep 600 &'
+        fi
+        # shellcheck disable=SC2016
+        printf '%s\n' 'ps -o pgid= -p $$ >>"$PGID_FILE"' 'echo "$$ $!" >>"$STARTS_FILE"' wait
+      } >"$repo/tests/$name.test.sh"
+      chmod +x "$repo/tests/$name.test.sh"
+    done
+    for disposition in ignored default; do
+      # A job started with & here inherits INT ignored; the default leg resets it.
+      if [ "$disposition" = ignored ]; then
+        launcher=(perl -e 'setpgrp(0, 0); exec @ARGV')
+      else
+        # shellcheck disable=SC2016
+        launcher=(perl -e '$SIG{INT} = "DEFAULT"; setpgrp(0, 0); exec @ARGV')
+      fi
+      for shape in serial jobs; do
+        for target in runner script; do
+          if [ "$target" = runner ]; then
+            how="by an INT to the runner's group, INT $disposition in the runner"
+          else
+            # Only a streamed script has the wrapper, and only a script whose
+            # background child lets go of its output ends without the watchdog.
+            # Bash 3.2 dies of an INT in wait with status 129, so this leg's
+            # script reports its interrupt itself.
+            [ "$kind" = trap ] && [ "$disposition" = default ] && [ "$shape" = serial ] || continue
+            how="by an INT to its own group"
+          fi
+          if [ "$shape" = serial ]; then
+            running=1
+            selection=(--jobs 1 tests/fm-first-fixture.test.sh tests/fm-later-fixture.test.sh)
+          else
+            running=2
+            selection=(--jobs 2 tests/fm-lint.test.sh tests/fm-brief.test.sh tests/fm-crew-state.test.sh)
+          fi
+          : >"$tmp/starts"
+          : >"$tmp/pgids"
+          env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+            TMPDIR="$tmp/scratch" STARTS_FILE="$tmp/starts" PGID_FILE="$tmp/pgids" \
+            FM_TEST_MACHINE_GATE='' \
+            MACHINE_LINE_DIR="$tmp/line" MACHINE_LINE_NAME=fm-test-run \
+            FM_TEST_MACHINE_LINE_RETRY_SECS=0 \
+            "${launcher[@]}" "$runner" "${selection[@]}" >"$tmp/out" 2>&1 &
+          runner_pid=$!
+          waited=0
+          while [ "$(wc -l <"$tmp/starts")" -lt "$running" ] && [ "$waited" -lt 100 ]; do
+            sleep 0.1
+            waited=$((waited + 1))
+          done
+          [ "$(wc -l <"$tmp/starts")" -ge "$running" ] || { kill -TERM -- "-$runner_pid" 2>/dev/null; fail "the $shape fixtures never started under the runner: $(cat "$tmp/out")"; }
+          if [ "$target" = runner ]; then
+            kill -INT -- "-$runner_pid"
+          else
+            kill -INT -- "-$(tr -d ' ' <"$tmp/pgids")"
+          fi
+          waited=0
+          while kill -0 "$runner_pid" 2>/dev/null && [ "$waited" -lt 100 ]; do
+            sleep 0.1
+            waited=$((waited + 1))
+          done
+          # A run that moved on is blocked in its next script; TERM lets the
+          # watchdog take that script's group down with the runner.
+          kill -TERM -- "-$runner_pid" 2>/dev/null || true
+          rc=0
+          wait "$runner_pid" 2>/dev/null || rc=$?
+          pids=$(cat "$tmp/starts")
+          waited=0
+          # shellcheck disable=SC2086
+          while kill -0 $pids 2>/dev/null && [ "$waited" -lt 100 ]; do
+            sleep 0.1
+            waited=$((waited + 1))
+          done
+          # shellcheck disable=SC2086
+          kill -KILL $pids 2>/dev/null || true
+          ! grep -Eq '^FM_TEST_END .* exit=0 ' "$tmp/out" \
+            || fail "a $shape run recorded a $kind script interrupted $how as passing: $(cat "$tmp/out")"
+          [ "$(grep -c '^FM_TEST_BEGIN ' "$tmp/out")" -eq "$running" ] \
+            || fail "a $shape run started another script after a $kind script was interrupted $how: $(cat "$tmp/out")"
+          [ "$rc" -eq 130 ] \
+            || fail "a $shape run whose $kind script was interrupted $how exited $rc, not 130: $(cat "$tmp/out")"
+        done
+      done
+    done
+  done
+
+  rm -rf "$tmp"
+  pass "an interrupted script stops the run as interrupted, also when the runner inherited INT as ignored"
+}
+
 # The duration regression this guard exists for: a suite whose scripts are all
 # green but whose wall clock outgrew its caller's invocation budget. The caller
 # gets killed mid-run and retries invisibly, so an over-budget run has to be a
@@ -2557,6 +2675,7 @@ test_changed_shared_fixture_selects_its_readers
 test_concurrent_runs_are_ordered_longest_first
 test_per_script_timeout_bounds_a_hang
 test_killed_runner_takes_its_script_down
+test_interrupted_script_stops_the_run
 test_changed_bound_gives_slow_watcher_suites_headroom
 test_max_wall_ms_is_a_result_not_advice
 test_jobs_parallel_scheduler_and_failure_propagation

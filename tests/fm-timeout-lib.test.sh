@@ -201,6 +201,32 @@ test_a_signal_to_the_bounding_process_reaches_the_command() {
   pass "fm_exec_timed forwards a TERM it receives to the bounded command"
 }
 
+# An INT is different: a caller started in the background by a non-interactive
+# shell inherits INT ignored and never sees it, so the bounding process reports
+# the interruption as 130 even when the command handled it and exited 0.
+test_an_interrupt_is_reported_as_130() {
+  local dir watchdog rc=0
+  dir="$TMP_ROOT/interrupt"
+  mkdir -p "$dir"
+  # shellcheck disable=SC2016
+  (
+    . "$ROOT/bin/fm-timeout-lib.sh"
+    PATH=$PERL_ONLY
+    fm_exec_timed 60 30 bash -c '
+      trap "echo interrupted > \"\$2\"; exit 0" INT
+      echo $$ > "$1"
+      while :; do sleep 0.1; done
+    ' _ "$dir/pid" "$dir/int"
+  ) 2>/dev/null &
+  watchdog=$!
+  wait_for_file "$dir/pid"
+  kill -INT "$watchdog" || fail "could not signal the bounding process"
+  wait "$watchdog" || rc=$?
+  [ "$(cat "$dir/int" 2>/dev/null)" = interrupted ] || fail "the INT never reached the bounded command"
+  [ "$rc" -eq 130 ] || fail "an INT to the bounding process was reported as $rc, not 130"
+  pass "fm_exec_timed forwards an INT and reports it as 130"
+}
+
 # A caller that names its owner before launching the watchdog is watched even
 # when that owner died while the watchdog was still starting: the watchdog's
 # parent is then not the named owner, so the escalation starts at once rather
@@ -410,6 +436,7 @@ test_kill_ends_a_term_ignoring_command_after_the_grace
 test_the_bound_replaces_the_calling_shell
 test_a_descendant_holding_the_output_cannot_outlast_the_bound
 test_a_signal_to_the_bounding_process_reaches_the_command
+test_an_interrupt_is_reported_as_130
 test_a_named_owner_that_is_gone_ends_the_command
 test_an_owner_that_dies_during_startup_ends_the_command
 test_a_top_level_parent_that_dies_during_startup_ends_the_command
