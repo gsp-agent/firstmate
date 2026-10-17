@@ -1102,6 +1102,7 @@ A repository whose config sets `core.hooksPath` to the empty string runs no proj
 When stripping is enabled, the hooks directory is read-only, so a hook manager run inside a fleet pane (lefthook's npm postinstall, `pre-commit install`) fails instead of displacing the strip; install a project's hooks from outside the pane, where the wrappers chain them.
 The flag is a home-wide attribution choice, so it is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract and a secondmate's own workers keep AI trailers too.
 Per-machine Cursor `cli-config.json` attribution-off is not this contract: it does not travel with Firstmate, defaults back to on when unset, and only feeds the CLI's request to the server, so it suppresses the trailer rather than preventing it.
+The flag does not govern the `Made-with:` lines Firstmate adds to a task's GitHub pull request body, one per engine that wrote its commits, so a reviewer that routes by model family can see who wrote it; [`bin/fm-pr-made-with.sh`](../bin/fm-pr-made-with.sh) owns that stamp.
 
 ## Project capacity (config/project-capacity)
 
