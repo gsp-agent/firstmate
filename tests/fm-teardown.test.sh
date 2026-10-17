@@ -5795,7 +5795,8 @@ run_next_teardown() { # <case-dir> <task>
 }
 
 test_task_data_expire_too_large_hold_skipped() {
-  local case_dir real_python record started
+  local case_dir real_python record started advertised
+  local by_hand=()
   case_dir=$(make_case task-data-too-large-hold)
   write_pending_hold "$case_dir" aa-huge
   record="$case_dir/data/aa-huge/record/data-cleanup.json"
@@ -5840,7 +5841,66 @@ SH
     "a later teardown did not name the hold it skipped"
   assert_present "$case_dir/data/aa-huge/.cleanup-hold/scratch.bin" "a hold too large to expire lost its data"
   [ "$(jq -r '.expiry' "$record")" = too-large ] || fail "skipping the hold cleared its too-large mark"
-  pass "fm-teardown: a hold that outlasts the budget and its one full attempt is skipped and named"
+
+  advertised=$(sed -n 's/.*expire it by hand with //p' "$case_dir/task-next.err")
+  read -r -a by_hand <<< "$advertised"
+  [ "${#by_hand[@]}" -eq 5 ] || fail "the too-large warning advertised no by-hand command: $advertised"
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+case " \$* " in
+  *" expire "*" aa-huge "*)
+    if [ -d "$case_dir/state/.meta-aa-huge.lock" ]; then echo held; else echo free; fi >> "$case_dir/lock-seen" ;;
+esac
+exec "$real_python" "\$@"
+SH
+  mkdir "$case_dir/state/.meta-aa-huge.lock"
+  printf '%s\n' "$$" > "$case_dir/state/.meta-aa-huge.lock/pid"
+  if PATH="$case_dir/fakebin:$PATH" "${by_hand[@]}" > "$case_dir/by-hand.out" 2> "$case_dir/by-hand.err"; then
+    fail "the by-hand command expired a hold whose task lock another process holds"
+  fi
+  assert_absent "$case_dir/lock-seen" "the by-hand command ran expiry while another process held the task lock"
+  rm -f -- "$case_dir/state/.meta-aa-huge.lock/pid"
+  rmdir -- "$case_dir/state/.meta-aa-huge.lock"
+  PATH="$case_dir/fakebin:$PATH" "${by_hand[@]}" > "$case_dir/by-hand.out" 2> "$case_dir/by-hand.err" \
+    || fail "the advertised by-hand command failed: $(cat "$case_dir/by-hand.err")"
+  [ "$(cat "$case_dir/lock-seen")" = held ] || fail "the by-hand command expired the hold without its task lock"
+  assert_absent "$case_dir/state/.meta-aa-huge.lock" "the by-hand command left the task lock behind"
+  assert_absent "$case_dir/data/aa-huge/.cleanup-hold" "the by-hand command did not expire the hold"
+  jq -e '.expired == true and (has("expiry") | not)' "$record" >/dev/null \
+    || fail "the by-hand expiry left the hold marked"
+  pass "fm-teardown: a hold that outlasts the budget and its one full attempt is skipped, named, and expired by hand under its lock"
+}
+
+test_task_data_full_attempt_uses_its_own_limit() {
+  local case_dir real_python record started marked
+  case_dir=$(make_case task-data-full-attempt-limit)
+  write_pending_hold "$case_dir" aa-slow
+  record="$case_dir/data/aa-slow/record/data-cleanup.json"
+  jq '.expiry = "cut-off"' "$record" > "$record.next" && mv "$record.next" "$record"
+  real_python=$(command -v python3)
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+case " \$* " in
+  *" expire "*" aa-slow "*) date +%s > "$case_dir/started"; exec sleep 30 ;;
+  *" mark "*" aa-slow "*) date +%s > "$case_dir/marked" ;;
+esac
+exec "$real_python" "\$@"
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/python3" "$case_dir/fakebin/dcg"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=3 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=1 run_teardown "$case_dir" \
+    > "$case_dir/out" 2> "$case_dir/err" || fail "teardown with a short full attempt failed: $(cat "$case_dir/err")"
+  started=$(cat "$case_dir/started") marked=$(cat "$case_dir/marked")
+  [ $((marked - started)) -le 2 ] || fail "the 1s full attempt ran $((marked - started))s under a 3s budget"
+  assert_contains "$(cat "$case_dir/err")" "task data aa-slow expiry stopped after its one full 1s attempt" \
+    "the full-attempt warning did not report the configured 1s"
+  [ "$(jq -r '.expiry' "$record")" = too-large ] || fail "the cut-off full attempt did not mark the hold too large"
+  pass "fm-teardown: the one full attempt lasts FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT even under a longer budget"
 }
 
 test_task_data_refusals() {
@@ -7654,6 +7714,7 @@ test_task_data_slow_expire_releases_locks
 test_task_data_expire_skips_expired_receipts
 test_task_data_expire_cut_off_hold_moves_back
 test_task_data_expire_too_large_hold_skipped
+test_task_data_full_attempt_uses_its_own_limit
 test_task_data_refusals
 test_task_data_references_and_guard
 test_task_data_bead_backlog_sources
