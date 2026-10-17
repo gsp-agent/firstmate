@@ -5844,7 +5844,7 @@ SH
 
   advertised=$(sed -n 's/.*expire it by hand with //p' "$case_dir/task-next.err")
   read -r -a by_hand <<< "$advertised"
-  [ "${#by_hand[@]}" -eq 5 ] || fail "the too-large warning advertised no by-hand command: $advertised"
+  [ "${#by_hand[@]}" -ge 5 ] || fail "the too-large warning advertised no by-hand command: $advertised"
   cat > "$case_dir/fakebin/python3" <<SH
 #!/usr/bin/env bash
 case " \$* " in
