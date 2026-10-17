@@ -739,7 +739,7 @@ prefetch_task_current_states() {
 # NUL frames preserve arbitrary field text without per-task JSON encoders.
 # An empty key terminates a record; values may themselves be empty.
 snapshot_fields_json() {
-  jq -Rs '
+  { cat; printf '\n'; } | jq -Rs '
     split("\u0000") as $fields
     | reduce range(0; ($fields | length) - 1; 2) as $i
         ({records:[],record:{}};
