@@ -17,11 +17,12 @@
 #     worker's harness. The commit's author time names the call: the latest
 #     committing call (review-fix, test-fix, lint, lint-fix, document,
 #     housekeeping, ci) of that step that exited ok at or before it, in a run
-#     recorded for this pull request or for the task's branch in its project.
-#     The source is no-mistakes' local state database, opened read-only as
-#     bin/fm-pipeline-spend.sh opens it. A fixing call that committed nothing
-#     names no one, and neither does the configured agent: only what the run
-#     recorded.
+#     recorded for this pull request, or for the task's branch or the pull
+#     request's head branch in its project, compared by resolved path so a
+#     symlinked project matches. The source is no-mistakes' local state
+#     database, opened read-only as bin/fm-pipeline-spend.sh opens it. A fixing
+#     call that committed nothing names no one, and neither does the configured
+#     agent: only what the run recorded.
 # Only lines the body lacks are appended, after a blank line at its end. The
 # existing body stays byte for byte as the prefix, so a rerun changes nothing.
 # GitHub offers only a full-body write, so the edit follows the read at once.
@@ -29,9 +30,12 @@
 # worker runs this as soon as its pull request is ready (bin/fm-dod-lib.sh) and
 # bin/fm-pr-check.sh runs it again when it registers the pull request.
 # A URL that is not a GitHub pull request needs nothing and exits 0.
-# Exit status: 0 when the body names every engine found; 1 when the task
-# record, the database, or the forge read or edit failed (an unreadable
-# database still lets the worker line through first); 2 for bad usage.
+# Exit status: 0 when the body names every engine found and every
+# `no-mistakes(<step>)` commit maps to a recorded call; 1 when the task record,
+# the forge read or edit, or the read of the fixing agents failed, or when such
+# a commit maps to no call because none matches or the database is absent or
+# unreadable: every line found is still appended, and stderr names each such
+# commit by short sha and headline; 2 for bad usage.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -83,13 +87,13 @@ LINES=$(engine_line "$HARNESS" "$(meta_value model)")
 
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-pr-made-with.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT
-gh pr view "$URL" --json body,commits > "$TMP/pr.json" || fail "could not read the body of $URL"
+gh pr view "$URL" --json body,commits,headRefName > "$TMP/pr.json" || fail "could not read the body of $URL"
 
 RC=0
 DB=$(fm_nm_state_db "${PROJECT:-$STATE}")
-if [ -f "$DB" ]; then
-  FIXERS=$(fm_nm_bounded "$STATE" 30 python3 -I - "$DB" "$TMP/pr.json" "$URL" "$(meta_value branch)" "$PROJECT" <<'PY'
+FIXERS=$(fm_nm_bounded "$STATE" 30 python3 -I - "$DB" "$TMP/pr.json" "$URL" "$(meta_value branch)" "$PROJECT" <<'PY'
 import json
+import os
 import re
 import sqlite3
 import sys
@@ -97,42 +101,62 @@ from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
+
+def resolved(path):
+    return os.path.realpath(path) if path else None
+
+
 db, pr_json, url, branch, project = sys.argv[1:6]
 with open(pr_json, encoding="utf-8") as f:
-    commits = json.load(f).get("commits") or []
+    pr = json.load(f)
 writes = []
-for commit in commits:
-    step = re.match(r"no-mistakes\(([a-z-]+)\):", commit.get("messageHeadline") or "")
+for commit in pr.get("commits") or []:
+    headline = commit.get("messageHeadline") or ""
+    step = re.match(r"no-mistakes\(([a-z-]+)\):", headline)
     if step:
         when = datetime.fromisoformat(commit["authoredDate"].replace("Z", "+00:00"))
-        writes.append((when.timestamp(), step[1]))
+        writes.append((when.timestamp(), step[1], (commit.get("oid") or "")[:7], headline))
 committing = ("review-fix", "test-fix", "lint", "lint-fix", "document", "housekeeping", "ci")
 query = (
     "SELECT a.agent, COALESCE(a.model, '') FROM agent_invocations a"
     " JOIN runs r ON r.id = a.run_id JOIN repos p ON p.id = r.repo_id"
-    " WHERE (r.pr_url = ? OR (r.branch = ? AND p.working_path = ?))"
+    " WHERE (r.pr_url = ? OR (r.branch IN (?, ?) AND resolved(p.working_path) = ?))"
     " AND a.exit_status = 'ok' AND a.step_name = ? AND a.started_at <= ?"
     " AND a.purpose IN (%s) ORDER BY a.started_at DESC LIMIT 1" % ", ".join("?" * len(committing))
 )
+branches = (branch or None, pr.get("headRefName") or None)
+found = {}
+try:
+    with closing(sqlite3.connect(Path(db).as_uri() + "?mode=ro", uri=True, timeout=20)) as con:
+        con.create_function("resolved", 1, resolved)
+        for write in writes:
+            found[write] = con.execute(query, (url, *branches, resolved(project), write[1], write[0], *committing)).fetchone()
+except sqlite3.Error:
+    pass
 named = []
-with closing(sqlite3.connect(Path(db).as_uri() + "?mode=ro", uri=True, timeout=20)) as con:
-    for when, step in sorted(writes):
-        row = con.execute(query, (url, branch, project, step, when, *committing)).fetchone()
-        if row and row[0] and row not in named:
-            named.append(row)
-for agent, model in named:
-    if not any(c in agent + model for c in "\t\r\n"):
-        print(f"{agent}\t{model}")
+for write in sorted(writes):
+    row = found.get(write)
+    if not row or not row[0] or any(c in row[0] + row[1] for c in "\t\r\n"):
+        print(f"unnamed\t{write[2]}\t{write[3]}")
+    elif row not in named:
+        named.append(row)
+        print(f"agent\t{row[0]}\t{row[1]}")
 PY
-  ) || { RC=1; echo "fm-pr-made-with: could not read no-mistakes fixing agents from $DB; naming the worker only" >&2; }
-  while IFS="$(printf '\t')" read -r agent model; do
-    [ -n "$agent" ] && [ "$agent" != "$HARNESS" ] || continue
-    LINES="$LINES
-$(engine_line "$agent" "$model" ' via no-mistakes')"
-  done <<EOF
+) || { RC=1; echo "fm-pr-made-with: could not read no-mistakes fixing agents from $DB; naming the worker only" >&2; }
+while IFS="$(printf '\t')" read -r kind a b; do
+  case "$kind" in
+    agent)
+      [ "$a" = "$HARNESS" ] || LINES="$LINES
+$(engine_line "$a" "$b" ' via no-mistakes')"
+      ;;
+    unnamed)
+      RC=1
+      printf 'fm-pr-made-with: no recorded no-mistakes call wrote %s %s\n' "$a" "$b" >&2
+      ;;
+  esac
+done <<EOF
 ${FIXERS:-}
 EOF
-fi
 
 jq --arg add "$LINES" '
   (.body // "") as $body

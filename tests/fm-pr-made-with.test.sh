@@ -14,16 +14,16 @@ command -v python3 >/dev/null 2>&1 || fail "these tests build a no-mistakes stat
 URL=https://github.com/o/r/pull/7
 PROJECT=/work/project
 
-# The fake gh serves one pull request body from FM_TEST_BODY and its commits
-# from FM_TEST_COMMITS, and replaces the body on edit, the way GitHub's
-# full-body write does.
+# The fake gh serves one pull request body from FM_TEST_BODY, its commits from
+# FM_TEST_COMMITS and its head branch from FM_TEST_HEAD (default fm/task), and
+# replaces the body on edit, the way GitHub's full-body write does.
 cat > "$FAKEBIN/gh" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FM_TEST_GH_LOG"
 case "$1 $2 $3 $4 $5" in
-  "pr view https://github.com/o/r/pull/7 --json body,commits")
+  "pr view https://github.com/o/r/pull/7 --json body,commits,headRefName")
     jq -n --rawfile body "$FM_TEST_BODY" --slurpfile commits "$FM_TEST_COMMITS" \
-      '{body: $body, commits: $commits}'
+      --arg head "${FM_TEST_HEAD:-fm/task}" '{body: $body, commits: $commits, headRefName: $head}'
     ;;
   "pr edit https://github.com/o/r/pull/7 --body-file "*)
     [ "${FM_TEST_EDIT_FAIL:-0}" = 0 ] || exit 1
@@ -39,9 +39,10 @@ chmod +x "$FAKEBIN/gh"
 
 # new_case <name> <harness> <model> <initial-body> builds a home whose task
 # record names the worker, an empty no-mistakes home, the PR body, and a pull
-# request with no commits.
+# request with no commits. REPO_PATH is the project path no-mistakes records.
 new_case() {
   CASE="$TMP_ROOT/$1"
+  REPO_PATH=$PROJECT
   mkdir -p "$CASE/home/state" "$CASE/nm"
   fm_write_meta "$CASE/home/state/task.meta" "harness=$2" "model=$3" \
     "project=$PROJECT" branch=fm/task
@@ -50,20 +51,21 @@ new_case() {
   : > "$CASE/gh.log"
 }
 
-# add_commits <headline|author-epoch...> puts commits on the pull request.
+# add_commits <headline|author-epoch...> puts commits on the pull request,
+# each with an oid whose short form is c<epoch as six digits>.
 add_commits() {
   local row
   for row in "$@"; do
-    jq -n --arg head "${row%|*}" --argjson at "${row##*|}" \
-      '{messageHeadline: $head, authoredDate: ($at | todate)}' >> "$CASE/commits"
+    jq -n --arg head "${row%|*}" --argjson at "${row##*|}" --arg oid "$(printf 'c%06d%033d' "${row##*|}" 0)" \
+      '{oid: $oid, messageHeadline: $head, authoredDate: ($at | todate)}' >> "$CASE/commits"
   done
 }
 
 # add_calls <rows...> records no-mistakes agent calls, each row
 # run|pr_url|branch|agent|model|step|purpose|exit_status|started_at, for the
-# project repo.
+# project repo at REPO_PATH.
 add_calls() {
-  python3 -I - "$CASE/nm/state.sqlite" "$PROJECT" "$@" <<'PY'
+  python3 -I - "$CASE/nm/state.sqlite" "$REPO_PATH" "$@" <<'PY'
 import sqlite3
 import sys
 
@@ -121,6 +123,7 @@ test_rerun_changes_nothing() {
 }
 
 test_only_the_call_that_wrote_a_commit_counts() {
+  local status=0 err
   new_case one-family claude claude-opus-5-5 'Body.'
   add_calls "run1|$URL|fm/task|codex|gpt-6.1-sol|review|review-fix|ok|10" \
     "run1|$URL|fm/task|claude|claude-opus-5-5|review|review-fix|ok|30" \
@@ -130,10 +133,17 @@ test_only_the_call_that_wrote_a_commit_counts() {
     "run2||other:fm/task|cursor|composer-2|lint|lint-fix|ok|5"
   add_commits "no-mistakes(review): Fix a finding|40" "no-mistakes(test): Fix a test|50" \
     "no-mistakes(lint): Fix lint|45"
-  run_stamp >/dev/null || fail "a stamp with only the worker's own family exited nonzero"
+  run_stamp >/dev/null 2>"$CASE/stderr" || status=$?
+  err=$(cat "$CASE/stderr")
+  assert_equals "$status" 1 "a no-mistakes commit that no recorded call wrote did not exit 1"
   assert_equals "$(cat "$CASE/body")" $'Body.\n\nMade-with: claude (claude-opus-5-5)' \
     "an earlier or failed fixer, a reviewer, a fixer that started after the commit, or another repository's run was named"
-  pass "only the latest ok committing call before each commit names its agent, and the worker's own agent adds nothing"
+  assert_contains "$err" 'no recorded no-mistakes call wrote c000045 no-mistakes(lint): Fix lint' \
+    "a commit only another repository's run could have written was not named on stderr"
+  assert_contains "$err" 'no recorded no-mistakes call wrote c000050 no-mistakes(test): Fix a test' \
+    "a commit only a later fixer could have written was not named on stderr"
+  assert_not_contains "$err" 'c000040' "a commit the worker's own agent wrote was reported as unattributed"
+  pass "only the latest ok committing call before each commit names its agent, the worker's own agent adds nothing, and an unattributed commit exits 1 naming it"
 }
 
 test_branch_run_without_pr_counts() {
@@ -144,6 +154,31 @@ test_branch_run_without_pr_counts() {
   assert_equals "$(cat "$CASE/body")" $'Body.\n\nMade-with: muse (muse-wonder-1.0)\nMade-with: claude (claude-opus-5-5) via no-mistakes' \
     "a fixing run on the task's branch that recorded no pull request was not named"
   pass "a fixing run on the task's branch counts before it records the pull request"
+}
+
+test_symlinked_project_matches_its_resolved_path() {
+  new_case symlink claude claude-opus-5-5 'Body.'
+  mkdir -p "$CASE/agent-config"
+  ln -s "$CASE/agent-config" "$CASE/dev-agent-config"
+  printf 'project=%s\n' "$CASE/dev-agent-config" >> "$CASE/home/state/task.meta"
+  REPO_PATH=$(cd "$CASE/agent-config" && pwd -P)
+  add_calls "run1||fm/task|codex|gpt-6.1-sol|review|review-fix|ok|10"
+  add_commits "no-mistakes(review): Fix a finding|20"
+  run_stamp >/dev/null || fail "a run in the symlinked project's resolved path exited nonzero"
+  assert_equals "$(cat "$CASE/body")" $'Body.\n\nMade-with: claude (claude-opus-5-5)\nMade-with: codex (gpt-6.1-sol) via no-mistakes' \
+    "a run recorded under the resolved path of a symlinked project was not named"
+  pass "a task record's symlinked project matches the resolved path no-mistakes records"
+}
+
+test_head_branch_run_counts() {
+  new_case head-branch claude claude-opus-5-5 'Body.'
+  add_calls "run1||fm/task-2c|codex|gpt-6.1-sol|review|review-fix|ok|10" \
+    "run2||fm/other|grok|grok-4.7|review|review-fix|ok|15"
+  add_commits "no-mistakes(review): Fix a finding|20"
+  FM_TEST_HEAD=fm/task-2c run_stamp >/dev/null || fail "a run on the pull request's head branch exited nonzero"
+  assert_equals "$(cat "$CASE/body")" $'Body.\n\nMade-with: claude (claude-opus-5-5)\nMade-with: codex (gpt-6.1-sol) via no-mistakes' \
+    "a run on the pull request's renamed head branch was not named, or a run on an unrelated branch was"
+  pass "a fixing run on the pull request's head branch counts when the task record names another branch"
 }
 
 test_default_model_and_empty_body() {
@@ -161,16 +196,24 @@ test_crlf_body_already_naming_engines_is_left_alone() {
   pass "a CRLF body that already names every engine is left alone"
 }
 
-test_unreadable_database_still_names_the_worker() {
+test_absent_or_unreadable_database_still_names_the_worker() {
   local status=0
   new_case bad-db claude claude-opus-5-5 'Body.'
   printf 'not a database' > "$CASE/nm/state.sqlite"
   add_commits "no-mistakes(review): Fix a finding|20"
-  run_stamp >/dev/null 2>&1 || status=$?
+  run_stamp >/dev/null 2>"$CASE/stderr" || status=$?
   assert_equals "$status" 1 "an unreadable database did not exit 1"
   assert_equals "$(cat "$CASE/body")" $'Body.\n\nMade-with: claude (claude-opus-5-5)' \
     "an unreadable database kept the worker line out"
-  pass "an unreadable database exits 1 after naming the worker"
+  assert_contains "$(cat "$CASE/stderr")" 'no recorded no-mistakes call wrote c000020 no-mistakes(review): Fix a finding' \
+    "an unreadable database did not name the commit it could not attribute"
+  status=0
+  rm "$CASE/nm/state.sqlite"
+  run_stamp >/dev/null 2>"$CASE/stderr" || status=$?
+  assert_equals "$status" 1 "an absent database with a no-mistakes commit did not exit 1"
+  assert_contains "$(cat "$CASE/stderr")" 'no recorded no-mistakes call wrote c000020 no-mistakes(review): Fix a finding' \
+    "an absent database did not name the commit it could not attribute"
+  pass "an absent or unreadable database exits 1 after naming the worker and each commit it could not attribute"
 }
 
 test_non_github_url_needs_nothing() {
@@ -201,8 +244,10 @@ test_names_worker_and_each_committing_agent
 test_rerun_changes_nothing
 test_only_the_call_that_wrote_a_commit_counts
 test_branch_run_without_pr_counts
+test_symlinked_project_matches_its_resolved_path
+test_head_branch_run_counts
 test_default_model_and_empty_body
 test_crlf_body_already_naming_engines_is_left_alone
-test_unreadable_database_still_names_the_worker
+test_absent_or_unreadable_database_still_names_the_worker
 test_non_github_url_needs_nothing
 test_failures_exit_nonzero
