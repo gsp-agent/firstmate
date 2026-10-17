@@ -1537,10 +1537,13 @@ test_killed_runner_takes_its_script_down() {
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   # Proven-isolated names admit the jobs scheduler. Every fixture blocks until
   # it is killed, so the runner announces a script beyond the first <running>
-  # with FM_TEST_BEGIN only if it moved on after its owner died.
+  # with FM_TEST_BEGIN only if it moved on after its owner died. Its TERM
+  # cleanup takes a few hundred ms, so a script KILLed before its grace leaves
+  # no cleanup record.
   for name in fm-orphan-fixture fm-later-fixture fm-lint fm-brief fm-crew-state; do
     cat >"$repo/tests/$name.test.sh" <<'SH'
 #!/usr/bin/env bash
+trap 'sleep 0.3; echo "cleaned $$"; echo "$$" >>"$CLEANED_FILE"; exit 143' TERM
 sleep 600 &
 echo "$$ $!" >>"$STARTS_FILE"
 wait
@@ -1560,8 +1563,10 @@ SH
           selection=(--jobs 2 tests/fm-lint.test.sh tests/fm-brief.test.sh tests/fm-crew-state.test.sh)
         fi
         : >"$tmp/starts"
+        : >"$tmp/cleaned"
         env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
-          TMPDIR="$tmp/scratch" STARTS_FILE="$tmp/starts" FM_TEST_MACHINE_GATE="$gate" \
+          TMPDIR="$tmp/scratch" STARTS_FILE="$tmp/starts" CLEANED_FILE="$tmp/cleaned" \
+          FM_TEST_MACHINE_GATE="$gate" \
           MACHINE_LINE_DIR="$tmp/line" MACHINE_LINE_NAME=fm-test-run \
           FM_TEST_MACHINE_LINE_RETRY_SECS=0 \
           "$runner" "${selection[@]}" >"$tmp/out" 2>&1 &
@@ -1597,6 +1602,10 @@ SH
         fi
         [ "$(grep -c '^FM_TEST_BEGIN ' "$tmp/out")" -eq "$running" ] \
           || fail "a $shape run killed with SIG$sig${gate:+ through the machine gate} launched another script after its runner died: $(cat "$tmp/out")"
+        [ "$(wc -l <"$tmp/cleaned")" -eq "$running" ] \
+          || fail "a $shape script TERMed when its runner was killed with SIG$sig${gate:+ through the machine gate} was KILLed before its cleanup finished"
+        [ "$shape" = jobs ] || [ "$(grep -c '^cleaned ' "$tmp/out")" -eq "$running" ] \
+          || fail "a streamed script's cleanup output never reached the runner's output after SIG$sig${gate:+ through the machine gate}: $(cat "$tmp/out")"
         [ -n "$gate" ] || continue
         [ "$(line_row_count "$tmp/line/log.tsv" start 'cap 180m')" = "$gated" ] \
           || fail "the gated SIG$sig $shape leg did not run its scripts through the machine gate"
