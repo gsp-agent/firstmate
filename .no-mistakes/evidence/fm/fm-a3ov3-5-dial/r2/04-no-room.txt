@@ -1,0 +1,41 @@
+### S4a reading prints a busy line and exits 1
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-b /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/project --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+deferred: project project admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/config/project-capacity) and 1 already hold a place (task-a); task task-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[exit 75 after 3s]
+
+### S4b reading program missing
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-b /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/project --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+deferred: project project admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/config/project-capacity) and 1 already hold a place (task-a); task task-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[exit 75 after 3s]
+
+### S4c reading hangs (exec sleep 30); bound is 5 s
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-b /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/project --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+deferred: project project admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/config/project-capacity) and 1 already hold a place (task-a); task task-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[exit 75 after 7s]
+hung reading 3517 was stopped
+== snapshot after-S4 now=1792266742
+-- panes:
+bash pid=13527 cmd=bash dead=0
+fm-task-a pid=32894 cmd=sleep dead=0
+-- task records:
+task-a.meta
+-- backlog:
+task-a In flight
+task-b Queued
+task-c Queued
+task-d Queued
+task-o1 Queued
+task-o2 Queued
+task-z Queued
+task-r1 Queued
+task-r2 Queued
+-- extra-start records:
+(none)
+-- reading runs:
+silent 83163
+blankfirst 86280
+noroom 97159
+hang 3517

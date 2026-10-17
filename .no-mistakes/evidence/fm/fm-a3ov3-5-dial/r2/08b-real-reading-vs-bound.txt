@@ -1,0 +1,61 @@
+### S8b the real shared reading versus Firstmate's 5 s bound
+config/project-capacity-headroom names a lab wrapper that runs the same real reading (node <lab>/observer/machine-headroom.mjs, agent-observer fm/ac-a3ov3-5-dial) detached, so the reading's own duration and verdict are logged even if Firstmate stops the wrapper.
+config/project-capacity-headroom: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/readings/observed
+-- time of three top -l 2 -s 2 -n 0 samples (the reading's CPU-idle source):
+  top took 5.84s
+  top took 6.81s
+  top took 6.54s
+14:56  up 3 days, 16 mins, 4 users, load averages: 32.11 54.24 77.62
+-- attempt 1
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-o2 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/other --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  3 task(s) in flight, but no watcher has a fresh beacon (last beat: 404s ago, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+deferred: project other admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/config/project-capacity) and 1 already hold a place (task-o1); task task-o2 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[exit 75 after 7s]
+observed-wrapper-start pid=47896 t=1792267017.54
+observed-reading wrapper=47896 start=1792267017.56 end=1792267024.45 took=6.89s exit=0 line=[cpu_idle_pct=25.3 load1=31.22 disk_free_gb=563.8]
+-- attempt 2
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-o2 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/other --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+WARNING: watcher still down (same stale episode; last beat: 425s ago, grace 300s) - full banner already printed this episode.
+deferred: project other admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/config/project-capacity) and 1 already hold a place (task-o1); task task-o2 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[exit 75 after 8s]
+observed-wrapper-start pid=66963 t=1792267037.72
+observed-reading wrapper=66963 start=1792267037.78 end=1792267046.51 took=8.73s exit=0 line=[cpu_idle_pct=32.8 load1=28.50 disk_free_gb=563.8]
+-- attempt 3
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-o2 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/other --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+WARNING: watcher still down (same stale episode; last beat: 445s ago, grace 300s) - full banner already printed this episode.
+deferred: project other admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/config/project-capacity) and 1 already hold a place (task-o1); task task-o2 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[exit 75 after 8s]
+observed-wrapper-start pid=87286 t=1792267057.81
+observed-reading wrapper=87286 start=1792267057.84 end=1792267066.49 took=8.65s exit=1 line=[cpu_idle_pct=17.1 load1=26.80 disk_free_gb=563.8]
+== snapshot after-S8b now=1792267076
+-- panes:
+bash pid=13527 cmd=bash dead=0
+fm-task-a pid=32894 cmd=sleep dead=0
+fm-task-b pid=23464 cmd=sleep dead=0
+fm-task-o1 pid=55998 cmd=sleep dead=0
+-- task records:
+task-a.meta
+task-b.meta
+task-o1.meta
+-- backlog:
+task-o1 In flight
+task-b In flight
+task-a In flight
+task-c Queued
+task-d Queued
+task-o2 Queued
+task-z Queued
+task-r1 Queued
+task-r2 Queued
+-- extra-start records:
+project=1792266752
+-- reading runs:

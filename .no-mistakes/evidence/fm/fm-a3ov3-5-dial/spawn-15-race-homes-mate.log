@@ -1,0 +1,4 @@
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab2.Ks1BfF bin/fm-spawn.sh task-m /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab2.Ks1BfF/projects/project --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab2.Ks1BfF
+error: another Treehouse slot allocation or return is in progress for /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab2.Ks1BfF/projects/project; refusing to race it
+[exit 1 after 8s]

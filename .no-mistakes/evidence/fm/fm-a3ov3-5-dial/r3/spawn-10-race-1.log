@@ -1,0 +1,7 @@
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t bin/fm-spawn.sh task-r1 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/projects/race --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t
+headroom: cpu_idle_pct=27.0 load1=33.00 disk_free_gb=563.0 (lab slow room, 14 s)
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/data/task-r1/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-r1
+notice: task-r1 ships mode=local-only while the standing posture for race is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned task-r1 harness=sleep kind=ship mode=local-only yolo=off window=firstmate:fm-task-r1 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.agWB0t/treehouse/.treehouse/race-edd1a8/2/race
+[exit 0 after 23s]

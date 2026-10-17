@@ -1,0 +1,13 @@
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.XIFmHG bin/fm-spawn.sh task-o1 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.XIFmHG/projects/other --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.XIFmHG
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: 305s ago, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.XIFmHG/data/task-o1/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-o1
+notice: task-o1 ships mode=local-only while the standing posture for other is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned task-o1 harness=sleep kind=ship mode=local-only yolo=off window=firstmate:fm-task-o1 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XIFmHG/treehouse/.treehouse/other-e5140b/1/other
+[exit 0 after 99s]

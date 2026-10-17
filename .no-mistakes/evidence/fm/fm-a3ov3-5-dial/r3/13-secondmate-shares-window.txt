@@ -1,0 +1,126 @@
+### S13a share start on project 'hang' (declared 1) from the root home
+config/project-capacity-headroom: [/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/readings/room|]
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t bin/fm-spawn.sh task-h1 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/projects/hang --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/data/task-h1/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-h1
+notice: task-h1 ships mode=local-only while the standing posture for hang is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned task-h1 harness=sleep kind=ship mode=local-only yolo=off window=firstmate:fm-task-h1 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.agWB0t/treehouse/.treehouse/hang-46d1b2/1/hang
+[exit 0 after 8s]
+-- reading runs caused by this spawn:
+  (none: the reading did not run)
+== snapshot after 13a-hang-share now=1792268531
+-- panes:
+bash pid=86260 cmd=bash dead=0
+fm-task-a pid=301 cmd=sleep dead=0
+fm-task-b pid=34731 cmd=sleep dead=0
+fm-task-o1 pid=52192 cmd=sleep dead=0
+fm-task-o2 pid=98743 cmd=sleep dead=0
+fm-task-r0 pid=23505 cmd=sleep dead=0
+fm-task-r1 pid=52696 cmd=sleep dead=0
+fm-task-h1 pid=99470 cmd=sleep dead=0
+primary1 pid=86266 cmd=bash dead=0
+primary2 pid=86274 cmd=bash dead=0
+-- task records:
+task-a.meta
+task-b.meta
+task-h1.meta
+task-o1.meta
+task-o2.meta
+task-r0.meta
+task-r1.meta
+-- backlog:
+task-h1 In flight
+task-r1 In flight
+task-r0 In flight
+task-o2 In flight
+task-o1 In flight
+task-b In flight
+task-a In flight
+task-c Queued
+task-o3 Queued
+task-h2 Queued
+task-h3 Queued
+task-r2 Queued
+task-z1 Queued
+-- extra-start records:
+other=1792268378
+project=1792268285
+race=1792268425
+
+### S13b a local secondmate home's spawn on 'hang' (root's 1 place held by task-h1) is admitted by the ROOT home's reading (room); the mate's own headroom file (noroom) is not consulted, and the window is recorded in the root home
+root config/project-capacity-headroom: [/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/readings/room]
+mate config/project-capacity-headroom: [/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/readings/noroom]
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.qFPNBz bin/fm-spawn.sh task-m1 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.qFPNBz/projects/hang --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.qFPNBz
+headroom: cpu_idle_pct=41.5 load1=12.30 disk_free_gb=566.0 (lab room)
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.qFPNBz/data/task-m1/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-m1
+notice: task-m1 ships mode=local-only while the standing posture for hang is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned task-m1 harness=sleep kind=ship mode=local-only yolo=off window=firstmate:fm-task-m1 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.agWB0t/treehouse/.treehouse/hang-46d1b2/2/hang
+[exit 0 after 8s]
+-- reading runs caused by this spawn:
+  room 10557 1792268543
+-- root extra-start records:
+  hang=1792268543
+  other=1792268378
+  project=1792268285
+  race=1792268425
+-- mate extra-start records:
+  "/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.qFPNBz/state/project-capacity-overshare": No such file or directory (os error 2)
+-- mate task records:
+  task-m1.meta
+### S13c back in the root home, a second extra start on 'hang' inside the window defers as spent: the secondmate's extra start counts for the whole machine
+config/project-capacity-headroom: [/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/readings/room|]
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t bin/fm-spawn.sh task-h2 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/projects/hang --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  7 task(s) in flight, but no watcher has a fresh beacon (last beat: 312s ago, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+deferred: project hang admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/config/project-capacity) and 2 already hold a place (task-h1, task-m1 in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.qFPNBz); task task-h2 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+[exit 75 after 1s]
+-- reading runs caused by this spawn:
+  (none: the reading did not run)
+== snapshot after 13c-hang-spent now=1792268552
+-- panes:
+bash pid=86260 cmd=bash dead=0
+fm-task-a pid=301 cmd=sleep dead=0
+fm-task-b pid=34731 cmd=sleep dead=0
+fm-task-o1 pid=52192 cmd=sleep dead=0
+fm-task-o2 pid=98743 cmd=sleep dead=0
+fm-task-r0 pid=23505 cmd=sleep dead=0
+fm-task-r1 pid=52696 cmd=sleep dead=0
+fm-task-h1 pid=99470 cmd=sleep dead=0
+primary1 pid=86266 cmd=bash dead=0
+primary2 pid=86274 cmd=bash dead=0
+fm-task-m1 pid=11301 cmd=sleep dead=0
+-- task records:
+task-a.meta
+task-b.meta
+task-h1.meta
+task-o1.meta
+task-o2.meta
+task-r0.meta
+task-r1.meta
+-- backlog:
+task-h1 In flight
+task-r1 In flight
+task-r0 In flight
+task-o2 In flight
+task-o1 In flight
+task-b In flight
+task-a In flight
+task-c Queued
+task-o3 Queued
+task-h2 Queued
+task-h3 Queued
+task-r2 Queued
+task-z1 Queued
+-- extra-start records:
+hang=1792268543
+other=1792268378
+project=1792268285
+race=1792268425
+

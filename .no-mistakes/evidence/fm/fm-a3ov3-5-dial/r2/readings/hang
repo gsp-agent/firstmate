@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "hang $$" >> "/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/readings/runs.log"
+exec sleep 30

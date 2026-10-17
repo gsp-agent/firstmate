@@ -1,0 +1,13 @@
+#!/bin/sh
+# Lab wrapper around the real shared reading. The reading runs detached in its
+# own process group, so it still finishes and logs its own duration and verdict
+# when Firstmate's bound stops this wrapper. The wrapper logs only its start
+# and, if it is not stopped first, its end.
+echo "observed-wrapper-start pid=$$ t=$(perl -MTime::HiRes=time -e 'printf "%.2f", time')" >> "/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/readings/runs.log"
+perl -e 'setpgrp(0,0); exec @ARGV or die' "/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/readings/observed-inner" "$$" </dev/null >/dev/null 2>&1 &
+inner=$!
+wait $inner
+rc=$?
+echo "observed-wrapper-end pid=$$ t=$(perl -MTime::HiRes=time -e 'printf "%.2f", time') rc=$rc" >> "/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/readings/runs.log"
+cat "/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/readings/observed.out.$$"
+exit $rc

@@ -1,0 +1,6 @@
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-a /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/project --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/data/task-a/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-a
+notice: task-a ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned task-a harness=sleep kind=ship mode=local-only yolo=off window=firstmate:fm-task-a worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.enUiPK/treehouse/.treehouse/project-7b3578/1/project
+[exit 0 after 28s]

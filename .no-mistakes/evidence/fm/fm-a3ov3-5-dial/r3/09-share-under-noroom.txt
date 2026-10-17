@@ -1,0 +1,44 @@
+### S9 headroom gone, shares still start: with the reading reporting no room, project 'race' (declared 1, 0 held) launches its share without consulting the reading
+config/project-capacity-headroom: [/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/readings/noroom|]
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t bin/fm-spawn.sh task-r0 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/projects/race --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/data/task-r0/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-r0
+notice: task-r0 ships mode=local-only while the standing posture for race is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned task-r0 harness=sleep kind=ship mode=local-only yolo=off window=firstmate:fm-task-r0 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.agWB0t/treehouse/.treehouse/race-edd1a8/1/race
+[exit 0 after 11s]
+-- reading runs caused by this spawn:
+  (none: the reading did not run)
+== snapshot after 09-share-under-noroom now=1792268418
+-- panes:
+bash pid=86260 cmd=bash dead=0
+fm-task-a pid=301 cmd=sleep dead=0
+fm-task-b pid=34731 cmd=sleep dead=0
+fm-task-o1 pid=52192 cmd=sleep dead=0
+fm-task-o2 pid=98743 cmd=sleep dead=0
+fm-task-r0 pid=23505 cmd=sleep dead=0
+primary1 pid=86266 cmd=bash dead=0
+primary2 pid=86274 cmd=bash dead=0
+-- task records:
+task-a.meta
+task-b.meta
+task-o1.meta
+task-o2.meta
+task-r0.meta
+-- backlog:
+task-r0 In flight
+task-o2 In flight
+task-o1 In flight
+task-b In flight
+task-a In flight
+task-c Queued
+task-o3 Queued
+task-h1 Queued
+task-h2 Queued
+task-h3 Queued
+task-r1 Queued
+task-r2 Queued
+task-z1 Queued
+-- extra-start records:
+other=1792268378
+project=1792268285
+

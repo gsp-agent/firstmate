@@ -1,0 +1,44 @@
+### S10 race: two spawns of project other (other 1, task-o1 holds), typed into two lab panes back to back; reading reports room; other's window open
+other extra-start record before: cat: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/state/project-capacity-overshare/other: No such file or directory
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-o2 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/other --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+WARNING: watcher still down (same stale episode; last beat: 507s ago, grace 300s) - full banner already printed this episode.
+error: this home's task set is locked by another spawn; refusing to create task task-o2 rather than racing it
+[exit 1 after 2s]
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-r1 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/other --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+WARNING: watcher still down (same stale episode; last beat: 507s ago, grace 300s) - full banner already printed this episode.
+headroom: cpu_idle_pct=41.5 load1=12.30 disk_free_gb=566.0 (lab room)
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/data/task-r1/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-r1
+notice: task-r1 ships mode=local-only while the standing posture for other is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned task-r1 harness=sleep kind=ship mode=local-only yolo=off window=firstmate:fm-task-r1 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.enUiPK/treehouse/.treehouse/other-d02325/2/other
+[exit 0 after 24s]
+reading runs during S10: [room 63143]
+== snapshot after-S10 now=1792267142
+-- panes:
+bash pid=13527 cmd=bash dead=0
+fm-task-a pid=32894 cmd=sleep dead=0
+fm-task-b pid=23464 cmd=sleep dead=0
+fm-task-o1 pid=55998 cmd=sleep dead=0
+fm-task-r1 pid=67728 cmd=sleep dead=0
+bash pid=47809 cmd=bash dead=0
+-- task records:
+task-a.meta
+task-b.meta
+task-o1.meta
+task-r1.meta
+-- backlog:
+task-r1 In flight
+task-o1 In flight
+task-b In flight
+task-a In flight
+task-c Queued
+task-d Queued
+task-o2 Queued
+task-z Queued
+task-r2 Queued
+-- extra-start records:
+other=1792267119
+project=1792266752
+-- reading runs:
+room 63143

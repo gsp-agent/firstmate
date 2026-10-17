@@ -1,0 +1,30 @@
+== snapshot final now=1792267225
+-- panes:
+bash pid=13527 cmd=bash dead=0
+fm-task-a pid=32894 cmd=sleep dead=0
+fm-task-b pid=23464 cmd=sleep dead=0
+fm-task-o1 pid=55998 cmd=sleep dead=0
+fm-task-r1 pid=67728 cmd=sleep dead=0
+fm-task-c pid=41329 cmd=sleep dead=0
+bash pid=47809 cmd=bash dead=0
+-- task records:
+task-a.meta
+task-b.meta
+task-c.meta
+task-o1.meta
+task-r1.meta
+-- backlog:
+task-c In flight
+task-r1 In flight
+task-o1 In flight
+task-b In flight
+task-a In flight
+task-d Queued
+task-o2 Queued
+task-z Queued
+task-r2 Queued
+-- extra-start records:
+other=1792267119
+project=1792267177
+-- reading runs:
+room 32726

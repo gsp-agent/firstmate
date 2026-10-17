@@ -1,0 +1,13 @@
+window=firstmate:fm-task-a
+endpoint_task_id=task-a
+worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XIFmHG/treehouse/.treehouse/project-15cefa/1/project
+project=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XIFmHG/projects/project
+harness=sleep
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/task-a
+tasktmp=/tmp/fm-task-a
+model=default
+effort=default
+spawn_gen=s1792262797.78060.841

@@ -1,0 +1,48 @@
+### S8 the real shared reading: agent-observer origin/fm/ac-a3ov3-5-dial ace54f136e6d084ccd4b89d54f704074f47ed19b machine-headroom.mjs, named on the documented 'node <absolute path>' line, admits the extra start on project 'other' when it reports headroom
+-- machine now: 15:19  up 3 days, 38 mins, 4 users, load averages: 13.60 26.82 46.54
+-- standalone reading before the spawn:
+  [cpu_idle_pct=48.6 load1=13.63 disk_free_gb=563.1] exit=0 took=4.18s
+### S8 spawn with the real reading
+config/project-capacity-headroom: [node /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/observer/machine-headroom.mjs|]
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t bin/fm-spawn.sh task-o2 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/projects/other --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t
+headroom: cpu_idle_pct=37.5 load1=14.68 disk_free_gb=563.1
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/data/task-o2/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-o2
+notice: task-o2 ships mode=local-only while the standing posture for other is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned task-o2 harness=sleep kind=ship mode=local-only yolo=off window=firstmate:fm-task-o2 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.agWB0t/treehouse/.treehouse/other-97ae2a/2/other
+[exit 0 after 15s]
+-- reading runs caused by this spawn:
+  (none: the reading did not run)
+== snapshot after 08-real-reading now=1792268393
+-- panes:
+bash pid=86260 cmd=bash dead=0
+fm-task-a pid=301 cmd=sleep dead=0
+fm-task-b pid=34731 cmd=sleep dead=0
+fm-task-o1 pid=52192 cmd=sleep dead=0
+fm-task-o2 pid=98743 cmd=sleep dead=0
+primary1 pid=86266 cmd=bash dead=0
+primary2 pid=86274 cmd=bash dead=0
+-- task records:
+task-a.meta
+task-b.meta
+task-o1.meta
+task-o2.meta
+-- backlog:
+task-o2 In flight
+task-o1 In flight
+task-b In flight
+task-a In flight
+task-c Queued
+task-o3 Queued
+task-h1 Queued
+task-h2 Queued
+task-h3 Queued
+task-r0 Queued
+task-r1 Queued
+task-r2 Queued
+task-z1 Queued
+-- extra-start records:
+other=1792268378
+project=1792268285
+
+note: the real reading is named directly on the config line, so it writes no line to the lab's runs.log; the 'headroom:' line in the spawn transcript is that reading's own stdout, and the spawn admitted only because it exited 0.

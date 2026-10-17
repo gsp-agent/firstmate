@@ -1,0 +1,7 @@
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t bin/fm-spawn.sh task-o2 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/projects/other --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t
+headroom: cpu_idle_pct=37.5 load1=14.68 disk_free_gb=563.1
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.agWB0t/data/task-o2/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-o2
+notice: task-o2 ships mode=local-only while the standing posture for other is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned task-o2 harness=sleep kind=ship mode=local-only yolo=off window=firstmate:fm-task-o2 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.agWB0t/treehouse/.treehouse/other-97ae2a/2/other
+[exit 0 after 15s]

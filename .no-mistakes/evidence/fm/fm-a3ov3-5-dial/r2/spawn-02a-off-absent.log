@@ -1,0 +1,4 @@
+$ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK bin/fm-spawn.sh task-b /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/projects/project --mode local-only --yolo off --harness 'sleep 900'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK
+deferred: project project admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.enUiPK/config/project-capacity) and 1 already hold a place (task-a); task task-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+[exit 75 after 4s]

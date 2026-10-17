@@ -1,0 +1,19 @@
+== before-03
+-- panes:
+bash pid=38144 cmd=bash
+fm-task-a pid=95479 cmd=sleep
+fm-task-b pid=79554 cmd=sleep
+-- state records:
+task-a.meta
+task-b.meta
+-- treehouse slots:
+1
+2
+treehouse-state.json
+treehouse-state.lock
+-- backlog:
+task-a in_flight
+task-b in_flight
+task-c queued
+-- task-c files:
+brief.md
