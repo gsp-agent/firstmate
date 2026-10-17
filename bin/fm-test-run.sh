@@ -2532,9 +2532,9 @@ run_script_bounded() {  # <script> <out> <stream> <id>
     # shellcheck disable=SC2016
     (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
       fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash -c '
-        trap : HUP INT TERM
-        set -o pipefail
+        trap "suite_rc=\${suite_rc:-\${PIPESTATUS[0]}}" HUP INT TERM
         bash "$1" 2>&1 | (trap "" HUP INT TERM; exec tee "$2")
+        exit "${suite_rc:-${PIPESTATUS[0]}}"
       ' _ "$script" "$out")
     rc=$?
   else
