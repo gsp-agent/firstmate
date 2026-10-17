@@ -112,8 +112,11 @@ FM_PROJECT_CAPACITY_DEFER_EXIT=75
 # matches one starter pass of about 7 minutes.
 FM_PROJECT_CAPACITY_OVERSHARE_WINDOW=420
 
-# A reading that has not exited by this many seconds is no room.
-FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT=5
+# A reading that has not exited by this many seconds is no room. The shared
+# reading samples the CPU over a few seconds and has taken up to 12.7 seconds
+# on a loaded machine. The spawn holds the project lock for as long as the
+# reading runs.
+FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT=30
 
 # The config directory holding this machine's declaration: the spawning home's
 # own <config-dir> when that home is the local root (so an override of it
