@@ -734,6 +734,29 @@ EOF
   pass "one extra start is admitted per window, and a later one waits until that window has passed"
 }
 
+# The shared reading samples the CPU over a few seconds and has taken up to
+# 12.7 seconds on a loaded machine. A reading that slow which reports room
+# still admits the extra start.
+test_slow_reading_that_reports_room_admits() {
+  local case_dir home out rc=0
+  case_dir=$(make_case reading-slow task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  install_reading "$case_dir/slow" <<EOF
+sleep 9
+printf '%s\n' 'cpu_idle_pct=25.3 load1=31.22 disk_free_gb=563.8'
+EOF
+  write_headroom "$home" "$case_dir/slow"
+  out=$(spawn_ship "$case_dir" task-c) || rc=$?
+  expect_code 0 "$rc" "a slow reading that reports room did not admit the extra start: $out"
+  assert_contains "$out" "spawned task-c" "the extra start after a slow reading did not launch"
+  assert_contains "$out" "headroom: cpu_idle_pct=25.3 load1=31.22 disk_free_gb=563.8" \
+    "the extra start after a slow reading did not log the reading's line"
+  assert_present "$home/state/project-capacity-overshare/project" "the slow reading's extra start was not recorded"
+  pass "a reading that takes several seconds and reports room admits the extra start"
+}
+
 # No program, a blank file, and a program that exists only in a secondmate
 # home all keep the original deferral. The secondmate's program does not run.
 test_absent_headroom_command_keeps_the_capacity_deferral() {
@@ -850,7 +873,7 @@ EOF
 
   install_reading "$case_dir/hang" <<EOF
 printf '%s\n' "\$\$" > $(printf '%q' "$case_dir/hang.pid")
-sleep 30
+sleep 90
 exit 0
 EOF
   write_headroom "$home" "$case_dir/hang"
@@ -862,7 +885,7 @@ EOF
   elapsed=$((SECONDS - started))
   expect_code "$DEFER_EXIT" "$rc" "a hung reading was admitted: $out"
   assert_contains "$out" "The headroom reading reported no room." "a hung reading did not say there was no room"
-  [ "$elapsed" -ge 4 ] && [ "$elapsed" -lt 20 ] || fail "a hung reading was not bounded (took ${elapsed}s): $out"
+  [ "$elapsed" -ge 29 ] && [ "$elapsed" -lt 60 ] || fail "a hung reading was not bounded (took ${elapsed}s): $out"
   assert_present "$case_dir/hang.pid" "the hung reading never started"
   pid=$(cat "$case_dir/hang.pid")
   if kill -0 "$pid" 2>/dev/null; then
@@ -985,6 +1008,7 @@ test_batch_reports_a_deferred_pair
 test_orca_spawn_is_admitted_under_the_shared_project_lock
 test_share_starts_without_reading_headroom
 test_headroom_admits_one_extra_start_per_window
+test_slow_reading_that_reports_room_admits
 test_absent_headroom_command_keeps_the_capacity_deferral
 test_failed_missing_and_hung_readings_defer
 test_zero_capacity_admits_no_overshare
