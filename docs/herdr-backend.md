@@ -550,8 +550,9 @@ Typed-plane text is typed once; only Enter is retried.
 When native `agent get` identity is Claude, the adapter types only into an empty composer.
 A Claude composer that already holds text, or cannot be read, before the send is refused with nothing typed.
 Before that Enter, the adapter continues only when the selected composer shows the typed payload, or only Claude paste placeholders with no literal remainder.
-Every Herdr adapter composer read (`fm_backend_herdr_composer_state`, `fm_backend_herdr_composer_content`) captures the current screen, independent of the user's scroll position.
-When `pane get` reports `scroll.offset_from_bottom` 0, or reports no `scroll` at all as Herdr 0.7.1 (protocol 14) does, both reads use the visible viewport, which is exactly the current screen.
+Every Herdr adapter composer read (`fm_backend_herdr_composer_state`, `fm_backend_herdr_composer_content`) captures the current screen, independent of the user's scroll position, whenever `pane get` reports `scroll`.
+When `scroll.offset_from_bottom` is 0, both reads use the visible viewport, which is then exactly the current screen.
+A pane that reports no `scroll`, as Herdr 0.7.1 (protocol 14) does, reads the visible viewport as before scroll support, so a scrolled Herdr 0.7.1 pane remains scroll-blind.
 When the pane is scrolled, the visible viewport shows old chat, so both reads take `recent` rows trimmed to `scroll.viewport_rows`.
 Herdr ends a `recent` read at the current screen's last non-blank or cursor row, and its text format also drops trailing blank rows, so when the bottom of the screen is blank the trimmed read includes rows from above the current screen.
 The trim keeps the full composer and any popup below it; the classifier's bottom-most composer selection, not the trim, keeps an older prompt above a live composer from deciding the verdict.
@@ -633,7 +634,7 @@ A human-blocked permission dialog has no busy banner and still surfaces.
 
 Herdr has no direct cursor-row primitive.
 The adapter is a thin capture.
-It hands the current screen's ANSI capture plus Herdr's capability facts to the fleet-wide classifier in `bin/fm-composer-lib.sh`, which owns every shape:
+It hands its ANSI composer capture plus Herdr's capability facts to the fleet-wide classifier in `bin/fm-composer-lib.sh`, which owns every shape:
 
 - Bordered boxes.
 - Bare agent-glyph rows, including muse's `⟩`, which the adapter's retired local pattern silently omitted.

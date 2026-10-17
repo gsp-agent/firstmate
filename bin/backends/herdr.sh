@@ -3162,15 +3162,17 @@ fm_backend_herdr_visible_capture() {  # <target>
   fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source visible 2>/dev/null
 }
 
-# Capture the current screen, independent of the user's scroll position. An
-# unscrolled pane, and Herdr 0.7.1 (protocol 14), which reports no scroll, read
-# the visible viewport, which is exactly the current screen. A scrolled pane's
-# visible viewport is old chat, so it reads recent rows trimmed to the viewport
-# height. Herdr ends that read at the current screen's last non-blank or cursor
-# row, so when the screen's bottom is blank the trim reaches rows above it; the
-# classifier's bottom-most composer selection, not the trim, keeps an older
-# prompt above a live composer from deciding the verdict. A reported scroll
-# must carry a valid offset and height.
+# Capture the screen the composer reads classify. An unscrolled pane
+# (offset_from_bottom 0) reads the visible viewport, which is then exactly the
+# current screen. A pane that reports no scroll, as Herdr 0.7.1 (protocol 14)
+# does, reads the visible viewport as before scroll support, so a scrolled 0.7.1
+# pane remains scroll-blind. A scrolled pane's visible viewport is old chat, so
+# it reads recent rows trimmed to the viewport height. Herdr ends that read at
+# the current screen's last non-blank or cursor row, so when the screen's
+# bottom is blank the trim reaches rows above it; the classifier's bottom-most
+# composer selection, not the trim, keeps an older prompt above a live composer
+# from deciding the verdict. A reported scroll must carry a valid offset and
+# height.
 fm_backend_herdr_composer_capture() {  # <target> [text|ansi]
   fm_backend_herdr_target_observable "$1" || return 1
   local info rows fetch format=${2:-text}
@@ -3220,8 +3222,8 @@ fm_backend_herdr_composer_identity() {  # <target> -> "<agent>\t<status>"
 # only when the classifier reports the verdict depends on it (a pi separator
 # pair below every other candidate), preserving this adapter's original
 # consult-only-when-needed behavior.
-# Both styled and plain reads use the current screen. A scrolled visible
-# viewport can show old chat without the live composer.
+# Both styled and plain reads use fm_backend_herdr_composer_capture. A scrolled
+# visible viewport can show old chat without the live composer.
 fm_backend_herdr_composer_state() {  # <target> -> empty|pending|pending-unproven|unknown
   local target=$1 cap caps verdict identity
   fm_backend_herdr_parse_target "$target" || { printf 'unknown'; return 0; }
@@ -3386,7 +3388,7 @@ fm_backend_herdr_proof_lines() {  # <text>
 }
 
 # fm_backend_herdr_composer_content: the selected composer's visible text.
-# Uses the same current-screen capture as the pre-submit state guard.
+# Uses the same capture as the pre-submit state guard.
 # Styled capture is preferred. An empty or failed styled read falls through to
 # the plain capture so a missing ANSI format does not look like an empty draft.
 # This read serves only the Claude payload proof, so the grok-tuned
