@@ -31,7 +31,8 @@ Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
 
 Keep brief.md, report.md, status, findings, review, and record/ regardless of size,
-and read them for references whatever their size.
+and read them for references up to 16 MiB each. A larger one is an unread
+reference: the folder stays whole and the file is named in the warning and record.
 Also keep .txt/.md/.log/.json files up to 1 MiB outside nested repositories.
 Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
@@ -62,12 +63,13 @@ record. The next successful teardown of a DIFFERENT task expires the hold, after
 refreshing references and restoring newly linked files or directory descendants
 to their original paths under the same retention rules. That teardown lists
 pending records, then expires holds after releasing its own locks, least recently
-tried first, for at most FM_TEARDOWN_DATA_EXPIRE_TIMEOUT seconds (default 10)
-counted from the end of the listing.
+tried first, while FM_TEARDOWN_DATA_EXPIRE_TIMEOUT seconds (default 10) counted
+from the end of the listing remain.
 Each attempt marks its record tried before it starts, so a hold cut off before
 it writes anything still moves behind the others.
-A hold the teardown does not finish waits for a later teardown, and the holds
-its budget never reached are named in one warning.
+A hold whose attempt is cut off keeps its data, and the next teardown that
+reaches it allows that attempt at least 60 seconds, even past the budget.
+The holds the budget never reached are named in one warning.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.
 An interrupted move resumes at the next cycle and receives a full new cycle.
@@ -100,6 +102,7 @@ from urllib.parse import unquote
 
 
 LIMIT = 1024 * 1024
+KEPT_LIMIT = 16 * LIMIT
 TEXT = {".txt", ".md", ".log", ".json"}
 HOLD = ".cleanup-hold"
 RECEIPT = "record/data-cleanup.json"
@@ -162,15 +165,18 @@ def read_command(args, project):
 
 
 def local_references(root, files, repos):
-    texts = []
+    texts, oversized = [], []
     for rel in files:
         path = root / rel
         if (rel.parts[0] != HOLD and str(rel) != RECEIPT
                 and not path.is_symlink()
                 and (path.suffix.lower() in TEXT or path.name in ("status", "findings", "review"))
                 and ordinary_evidence(path, rel, repos)):
-            texts.append(path.read_text(errors="replace"))
-    return "\n".join(texts)
+            if path.lstat().st_size > KEPT_LIMIT:
+                oversized.append(str(rel))
+            else:
+                texts.append(path.read_text(errors="replace"))
+    return "\n".join(texts), oversized
 
 
 def completed_source(data, task_id):
@@ -298,7 +304,14 @@ def backlog_references(source, task_id):
 
 
 def references(views, sources, task_id):
-    texts = [local_references(*view) for view in views]
+    texts, oversized = [], []
+    for view in views:
+        text, skipped = local_references(*view)
+        texts.append(text)
+        oversized += skipped
+    if oversized:
+        sources[-1]["unread"] = sorted(set(sources[-1].get("unread", [])) | set(oversized))
+        raise RetainWhole(f"kept evidence over 16 MiB: {', '.join(oversized)}")
     local = "\n".join(texts)
     beads = set(re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", local))
     sources[-1]["beads"] = sorted(set(sources[-1]["beads"]) | beads)
@@ -608,7 +621,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if hold.exists() and record is None:
         raise ValueError("unowned recovery directory")
     files, all_directories, repos = inventory(root)
-    local = unquote(html.unescape(local_references(root, files, repos)))
+    local = unquote(html.unescape(local_references(root, files, repos)[0]))
     if record is None:
         record = {"version": 1, "task": task_id, "sources": [], "complete": False}
     if record.get("expired"):

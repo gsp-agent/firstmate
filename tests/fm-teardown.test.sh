@@ -5555,6 +5555,48 @@ SH
   pass "fm-teardown: a kept report over 1 MiB prepares, stages and expires like a small one"
 }
 
+test_task_data_oversized_kept_evidence() {
+  local case_dir task
+  case_dir=$(make_case task-data-oversized-evidence)
+  task="$case_dir/data/task-x1"
+  mkdir -p "$task/record"
+  dd if=/dev/zero of="$task/record/run.log" bs=1048576 count=16 2>/dev/null
+  printf 'x' >> "$task/record/run.log"
+  printf 'scratch\n' > "$task/scratch.bin"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/dcg"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "teardown with kept evidence over 16 MiB failed: $(cat "$case_dir/err")"
+  [ "$(backlog_row_state "$case_dir")" = "done" ] \
+    || fail "kept evidence over 16 MiB left the backlog item at $(backlog_row_state "$case_dir"): $(cat "$case_dir/err")"
+  assert_absent "$case_dir/state/task-x1.backlog-close" "kept evidence over 16 MiB left its pending-close record behind"
+  [ "$(cat "$task/scratch.bin")" = scratch ] || fail "kept evidence over 16 MiB moved scratch"
+  assert_absent "$task/.cleanup-hold" "kept evidence over 16 MiB staged data"
+  assert_grep "record/run.log" "$case_dir/err" "teardown output did not name the unread kept evidence"
+  jq -e '.complete == false and (.sources[-1].unread | index("record/run.log") != null)' \
+    "$task/record/data-cleanup.json" >/dev/null || fail "cleanup record did not name the unread kept evidence"
+  printf 'short log\n' > "$task/record/run.log"
+  tasks-axi add task-next "next teardown fixture task" --kind ship --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi start task-next --file "$case_dir/data/backlog.md" >/dev/null
+  fm_write_meta "$case_dir/state/task-next.meta" \
+    "window=firstmate:fm-task-next" "endpoint_task_id=task-next" \
+    "worktree=$case_dir/missing" "project=$case_dir/project" \
+    "kind=ship" "mode=local-only" "spawn_gen=task-next"
+  FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
+    FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+    PATH="$case_dir/fakebin:$PATH" "$TEARDOWN" task-next > "$case_dir/next.out" 2> "$case_dir/next.err" \
+    || fail "next teardown failed: $(cat "$case_dir/next.err")"
+  assert_present "$task/.cleanup-hold/scratch.bin" "the next teardown did not retry once the kept evidence shrank"
+  jq -e '.sources[-1].unread == []' "$task/record/data-cleanup.json" >/dev/null \
+    || fail "the retry kept the shrunk evidence as unread"
+  pass "fm-teardown: kept evidence over 16 MiB is not read, keeps the folder whole, closes the backlog item and is retried"
+}
+
 test_task_data_slow_expire_releases_locks() {
   local case_dir old young held beads started send_pid teardown_pid rc i seconds
   case_dir=$(make_case task-data-slow-expire)
@@ -5624,6 +5666,7 @@ SH
   assert_present "$young/.cleanup-hold/scratch.bin" "teardown kept expiring holds past its budget"
   assert_contains "$(cat "$case_dir/err")" "holds left for a later teardown: young-done" \
     "teardown did not name the hold its budget left unvisited"
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$case_dir/fakebin/br"
   tasks-axi add task-next "next teardown fixture task" --kind ship --file "$case_dir/data/backlog.md" >/dev/null
   tasks-axi start task-next --file "$case_dir/data/backlog.md" >/dev/null
   fm_write_meta "$case_dir/state/task-next.meta" \
@@ -5696,7 +5739,7 @@ test_task_data_expire_cut_off_hold_moves_back() {
   cat > "$case_dir/fakebin/python3" <<SH
 #!/usr/bin/env bash
 case " \$* " in
-  *" expire "*" aa-stuck "*) exec sleep 30 ;;
+  *" expire "*" aa-stuck "*) sleep 6 ;;
 esac
 exec "$real_python" "\$@"
 SH
@@ -5710,6 +5753,11 @@ SH
   FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
     || fail "teardown with a stuck hold failed: $(cat "$case_dir/err")"
   assert_present "$case_dir/data/bb-fast/.cleanup-hold/scratch.bin" "the stuck hold did not use up the first budget"
+  assert_present "$case_dir/data/aa-stuck/.cleanup-hold/scratch.bin" "a hold cut off by the budget lost its data"
+  assert_contains "$(cat "$case_dir/err")" "task data aa-stuck expiry stopped after" \
+    "teardown did not name the hold it cut off"
+  assert_contains "$(cat "$case_dir/err")" "keeps its data; the next teardown that reaches it allows it at least 60s" \
+    "teardown did not say what happens to the hold it cut off"
   tasks-axi add task-next "next teardown fixture task" --kind ship --file "$case_dir/data/backlog.md" >/dev/null
   tasks-axi start task-next --file "$case_dir/data/backlog.md" >/dev/null
   fm_write_meta "$case_dir/state/task-next.meta" \
@@ -5723,8 +5771,9 @@ SH
     || fail "next teardown failed: $(cat "$case_dir/next.err")"
   assert_absent "$case_dir/data/bb-fast/.cleanup-hold" \
     "a hold cut off before it recorded anything kept first place and starved the next hold"
-  assert_present "$case_dir/data/aa-stuck/.cleanup-hold/scratch.bin" "the stuck hold expired"
-  pass "fm-teardown: a hold cut off before it records anything moves behind the other holds"
+  assert_absent "$case_dir/data/aa-stuck/.cleanup-hold" \
+    "a hold that needs longer than the budget never expired on a later teardown: $(cat "$case_dir/next.err")"
+  pass "fm-teardown: a hold cut off by the budget moves behind the other holds and expires on a later teardown"
 }
 
 test_task_data_refusals() {
@@ -7533,6 +7582,7 @@ test_task_data_legacy_reused_id
 test_task_data_github_reader
 test_task_data_cleanup
 test_task_data_large_kept_evidence
+test_task_data_oversized_kept_evidence
 test_task_data_slow_expire_releases_locks
 test_task_data_expire_skips_expired_receipts
 test_task_data_expire_cut_off_hold_moves_back
