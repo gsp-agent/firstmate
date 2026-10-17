@@ -137,9 +137,19 @@ jq_lib() { # jq options/program via final argument
   jq -L "$SCRIPT_DIR" "$@" "include \"fm-contributions\"; $program"
 }
 
+valid_saved() { # (--arg taskN task --rawfile recordN file)... --argjson count N
+  # A file's task identity must match its durable directory, not arbitrary JSON.
+  jq_lib -n "$@" '
+      [range(0; $count) as $i
+       | [$ARGS.named["record\($i)"] | try fromjson catch empty] as $record
+       | select(($record | length) == 1 and ($record[0] | valid_record)
+           and $record[0].task == $ARGS.named["task\($i)"])
+       | $record[0]]' 2>/dev/null
+}
+
 read_saved() {
-  local file dir task oversized=/ count=0
-  local -a records=()
+  local file dir task oversized=/ count=0 i
+  local -a tasks=() files=() records=()
   ERRORS=0
   if [ -L "$DATA" ]; then
     ERRORS=1; printf '[]\n' > "$TMP/saved.json"; return 0
@@ -154,23 +164,19 @@ read_saved() {
     fm_dirname_to dir "$file"
     fm_basename_to task "$dir"
     case "$oversized" in */"$task"/*) ERRORS=$((ERRORS + 1)); continue ;; esac
-    if [ -L "$file" ] || [ -L "$dir" ] || [ ! -f "$file" ]; then
+    if [ -L "$file" ] || [ -L "$dir" ] || [ ! -f "$file" ] || [ ! -r "$file" ]; then
       ERRORS=$((ERRORS + 1)); continue
     fi
+    tasks+=("$task"); files+=("$file")
     records+=(--arg "task$count" "$task" --rawfile "record$count" "$file")
     count=$((count + 1))
   done
-  # A file's task identity must match its durable directory, not arbitrary JSON.
-  if jq_lib -n ${records[@]+"${records[@]}"} --argjson count "$count" '
-      [range(0; $count) as $i
-       | [$ARGS.named["record\($i)"] | try fromjson catch empty] as $record
-       | select(($record | length) == 1 and ($record[0] | valid_record)
-           and $record[0].task == $ARGS.named["task\($i)"])
-       | $record[0]]' > "$TMP/saved.json" 2>/dev/null; then
-    ERRORS=$((ERRORS + count - $(jq length "$TMP/saved.json")))
-  else
-    ERRORS=$((ERRORS + count)); printf '[]\n' > "$TMP/saved.json"
+  if ! valid_saved ${records[@]+"${records[@]}"} --argjson count "$count" > "$TMP/saved.json"; then
+    for ((i = 0; i < count; i++)); do
+      valid_saved --arg task0 "${tasks[i]}" --rawfile record0 "${files[i]}" --argjson count 1 || :
+    done | jq -s 'add // []' > "$TMP/saved.json"
   fi
+  ERRORS=$((ERRORS + count - $(jq length "$TMP/saved.json")))
 }
 
 get_input() {
