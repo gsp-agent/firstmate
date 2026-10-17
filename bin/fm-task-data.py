@@ -71,11 +71,13 @@ Each attempt marks its record tried before it starts, so a hold cut off before
 it writes anything still moves behind the others.
 An attempt cut off by the budget leaves the deletions it already made done and
 the rest of the hold in place, and mark sets expiry "cut-off" in its record.
-The next teardown that reaches it gives it one full attempt of
-FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT seconds (default 60), even past the budget.
+The next teardown that reaches it gives it one full attempt of exactly
+FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT seconds (default 60), whatever remains of
+the budget.
 If that attempt is cut off too, mark sets expiry "too-large": later teardowns
 skip the hold, keep what remains of it, and name it in a warning each time so
-it can be expired by hand with the expire command above.
+it can be expired by hand with `bash fm-task-data-lib.sh expire DATA STATE ID`,
+which takes the task's meta lock and refuses a live task.
 Prepare, stage and expire clear the mark at their first record write.
 The holds the budget never reached are named in one warning.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
