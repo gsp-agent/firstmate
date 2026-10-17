@@ -5443,7 +5443,11 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-directories ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-spellings ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retirement ] \
-  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ]; then
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-beads ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-github ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy-reuse ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-ordering ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
   test_missing_adapter_sibling_refuses_before_cleanup
@@ -5890,7 +5894,7 @@ SH
   cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
 case "$3" in
-  */1) printf 'body: [original](old.bin)\n' ;;
+  1) printf 'body: [original](old.bin)\n' ;;
   *) printf 'body: no linked files\n' ;;
 esac
 SH
@@ -5928,7 +5932,7 @@ SH
     cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
 case "$3" in
-  */1) printf 'body: [proof](proof.png)\n' ;;
+  1) printf 'body: [proof](proof.png)\n' ;;
   *) printf 'body: no attachments\n' ;;
 esac
 SH
@@ -6689,6 +6693,432 @@ SH
   pass "fm-teardown: discovered PR references survive interrupted close, retain, replay and direct retirement"
 }
 
+test_task_data_legacy_rows() {
+  local case_dir task variant helper project pr row_file note refresh original
+  helper="$ROOT/bin/fm-task-data.py"
+  for variant in archive current no-pr missing active gitlab-note gerrit-note ambiguous-note ambiguous-notes repeated-note; do
+    case_dir=$(make_case "task-data-legacy-$variant")
+    task="$case_dir/data/task-x1"
+    project="$case_dir/projects/demo"
+    pr=https://github.com/groovejones/groove-sight-platform/pull/4365
+    row_file="$case_dir/history/completed.md"
+    case "$variant" in
+      current|no-pr|gerrit-note) row_file="$case_dir/data/backlog.md" ;;
+    esac
+    mkdir -p "$task" "$project" "$case_dir/history"
+    printf 'retired task\n' > "$task/brief.md"
+    printf 'row evidence\n' > "$task/row.png"
+    printf 'named evidence\n' > "$task/bead.png"
+    printf 'PR evidence\n' > "$task/pr.png"
+    printf 'scratch\n' > "$task/discard.bin"
+    cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+    printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+    if [ "$variant" != missing ]; then
+      cat > "$case_dir/history/completed.md" <<'MD'
+## Archived 2026-10-10
+- [x] task-x1 - old attempt https://github.com/test/old/pull/1 (repo: obsolete) (done 2026-10-10)
+  Bead old-ref
+
+## Archived 2026-10-11
+- [x] task-x1 - finished https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo) (done 2026-10-11)
+  Bead proof-related; [capture](row.png)
+MD
+    fi
+    if [ "$variant" = current ]; then
+      printf '%s\n' '- [x] task-x1 - newest https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo) (done 2026-10-12)' \
+        '  Bead proof-related; [capture](row.png)' >> "$case_dir/data/backlog.md"
+    elif [ "$variant" = no-pr ]; then
+      pr=''
+      printf '%s\n' '- [x] task-x1 - newest without a PR (repo: demo) (done 2026-10-12)' \
+        '  Bead proof-related; [capture](row.png)' >> "$case_dir/data/backlog.md"
+    elif [ "$variant" = active ]; then
+      printf '# Backlog\n\n## In flight\n- [ ] task-x1 - reused (repo: demo)\n' > "$case_dir/data/backlog.md"
+    elif [ "$variant" = gitlab-note ] || [ "$variant" = gerrit-note ] || [ "$variant" = ambiguous-notes ]; then
+      if [ "$variant" = gerrit-note ]; then
+        pr=https://review.internal/c/group/repo/+/7
+        note="Gerrit change $pr"
+      else
+        pr=https://gitlab.example.com/group/repo/-/merge_requests/7
+        note="GitLab merge request $pr"
+      fi
+      printf '%s\n' '- [x] task-x1 - newest (repo: demo) (done 2026-10-12)' \
+        '  Bead proof-related; [capture](row.png)' "  $note" >> "$row_file"
+      if [ "$variant" = ambiguous-notes ]; then
+        printf '  Gerrit change https://review.internal/c/group/repo/+/7\n' >> "$row_file"
+      fi
+    elif [ "$variant" = ambiguous-note ]; then
+      printf '  GitLab merge request https://gitlab.example.com/group/repo/-/merge_requests/7\n' >> "$row_file"
+    elif [ "$variant" = repeated-note ]; then
+      printf '  Completed %s\n' "$pr" >> "$row_file"
+    fi
+    cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+[ "$PWD" = "$REF_PROJECT" ] && [ "$1 $2" = 'show proof-related' ] || exit 1
+printf '[{"id":"proof-related","description":"[capture](bead.png)"}]\n'
+SH
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2 $3" = 'pr view 4365' ] || exit 2
+printf 'body: [capture](pr.png)\n'
+SH
+    cat > "$case_dir/fakebin/glab" <<'SH'
+#!/usr/bin/env bash
+case "$1 $2" in
+  'mr view') [ "$3" = 7 ] || exit 2; printf '{"iid":7,"state":"merged","description":"[capture](pr.png)"}\n' ;;
+  'api --hostname') printf '[]\n' ;;
+  *) exit 1 ;;
+esac
+SH
+    cat > "$case_dir/fakebin/gerrit-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$*" = 'show 7 --host review.internal --json' ] || exit 1
+printf '{"ok":true,"changes":[{"change":7,"status":"MERGED","subject":"[capture](pr.png)"}]}\n'
+SH
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/glab" \
+      "$case_dir/fakebin/gerrit-axi" "$case_dir/fakebin/dcg"
+    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" prepare "$case_dir/data" "$case_dir/state" task-x1 \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "legacy $variant prepare failed: $(cat "$case_dir/err")"
+    if [ "$variant" = missing ] || [ "$variant" = active ] \
+      || [ "$variant" = ambiguous-note ] || [ "$variant" = ambiguous-notes ]; then
+      assert_grep task-x1 "$case_dir/err" "legacy $variant did not name retained task"
+      assert_present "$task/discard.bin" "legacy $variant moved scratch"
+      assert_absent "$task/record/data-cleanup.json" "legacy $variant invented cleanup sources"
+      assert_absent "$task/.cleanup-hold" "legacy $variant staged without a completed row"
+      case "$variant" in
+        ambiguous-*) assert_grep 'multiple PRs' "$case_dir/err" "legacy $variant did not report ambiguous PRs" ;;
+      esac
+      continue
+    fi
+    jq -e --arg project "$project" --arg pr "$pr" \
+      '.sources[-1] | .project == $project and .pr == $pr and .beads == ["proof-related"]' \
+      "$task/record/data-cleanup.json" >/dev/null || fail "legacy $variant chose stale or incomplete sources"
+    original=$(jq -r '.sources[-1].backlog.text' "$task/record/data-cleanup.json")
+    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" stage "$case_dir/data" "$case_dir/state" task-x1 "$project" "$pr" \
+      || fail "legacy $variant stage failed"
+    assert_present "$task/row.png" "legacy $variant lost completed-row evidence"
+    assert_present "$task/bead.png" "legacy $variant lost named-bead evidence"
+    if [ -n "$pr" ]; then
+      assert_present "$task/pr.png" "legacy $variant lost PR evidence"
+    fi
+    assert_present "$task/.cleanup-hold/discard.bin" "legacy $variant did not stage scratch"
+    cp "$case_dir/data/backlog.md" "$case_dir/saved-backlog.md"
+    printf '# Backlog\n\n## In flight\n- [ ] task-x1 - reused (repo: demo)\n' > "$case_dir/data/backlog.md"
+    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "active legacy retry failed the pass"
+    assert_present "$task/.cleanup-hold/discard.bin" "legacy expiry ignored the active backlog row"
+    for refresh in changed ambiguous; do
+      [ "$refresh" != ambiguous ] || [ -n "$pr" ] || continue
+      cp "$case_dir/saved-backlog.md" "$case_dir/data/backlog.md"
+      printf '%s\n' '- [x] task-x1 - changed (repo: demo) (done 2026-10-13)' \
+        '  Completed https://github.com/groovejones/groove-sight-platform/pull/4366' \
+        >> "$case_dir/data/backlog.md"
+      if [ "$refresh" = ambiguous ]; then
+        printf '  Completed %s\n' "$pr" >> "$case_dir/data/backlog.md"
+      fi
+      REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+        python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
+        > "$case_dir/out" 2> "$case_dir/err" || fail "$refresh legacy source failed the pass"
+      assert_present "$task/.cleanup-hold/discard.bin" "legacy expiry ignored the $refresh PR"
+      if [ "$refresh" = changed ]; then
+        assert_grep 'changed project or PR' "$case_dir/err" "legacy expiry omitted the changed source"
+      else
+        assert_grep 'multiple PRs' "$case_dir/err" "legacy expiry omitted the ambiguous source"
+      fi
+    done
+    cp "$case_dir/saved-backlog.md" "$case_dir/data/backlog.md"
+    printf 'later evidence\n' > "$task/.cleanup-hold/later.png"
+    printf '  [later capture](later.png)\n' >> "$row_file"
+    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
+      || fail "legacy $variant expiry failed"
+    assert_present "$task/later.png" "legacy $variant did not refresh completed-row references"
+    assert_absent "$task/.cleanup-hold" "legacy $variant hold did not expire"
+    if [ -n "$pr" ]; then
+      [ "$(cat "$task/pr.png")" = 'PR evidence' ] || fail "legacy $variant expiry lost PR evidence"
+    fi
+    jq -e --arg original "$original" '.sources[0].backlog.text == $original' \
+      "$task/record/data-cleanup.json" >/dev/null || fail "legacy $variant replaced the original row evidence"
+    fm_write_meta "$case_dir/state/task-x1.meta" "project=$project" 'kind=ship' \
+      'pr=https://github.com/groovejones/groove-sight-platform/pull/4366'
+    printf '# Backlog\n\n## In flight\n- [ ] task-x1 - reused (repo: demo)\n' > "$case_dir/data/backlog.md"
+    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" prepare "$case_dir/data" "$case_dir/state" task-x1 \
+      || fail "reused legacy task could not record its new retirement"
+    jq -e '.sources[-1].pr == "https://github.com/groovejones/groove-sight-platform/pull/4366"' \
+      "$task/record/data-cleanup.json" >/dev/null || fail "legacy source prevented the reused task retirement record"
+  done
+  pass "fm-teardown: legacy preparation uses the latest completed row and preserves missing or active tasks"
+}
+
+test_task_data_legacy_reused_id() {
+  local case_dir task helper project variant action
+  helper="$ROOT/bin/fm-task-data.py"
+  for variant in expired empty unexpired legacy direct; do
+    case_dir=$(make_case "task-data-legacy-reuse-$variant")
+    task="$case_dir/data/task-x1"
+    project="$case_dir/projects/demo"
+    mkdir -p "$task" "$project" "$case_dir/history"
+    cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+    printf '# Backlog\n\n## In flight\n\n## Done\n' > "$case_dir/data/backlog.md"
+    printf '%s\n' '- [x] task-x1 - previous https://github.com/test/repo/pull/1 (repo: demo) (done 2026-10-10)' \
+      '  [historical row evidence](old-row.bin)' > "$case_dir/history/completed.md"
+    printf 'historical row evidence\n' > "$task/old-row.bin"
+    printf 'historical PR evidence\n' > "$task/old-pr.bin"
+    [ "$variant" = empty ] || printf 'old scratch\n' > "$task/old-scratch.bin"
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "$3" in
+  1) printf 'body: [old evidence](old-pr.bin)\n' ;;
+  2) printf 'body: [new evidence](new-pr.bin)\n' ;;
+  *) exit 2 ;;
+esac
+SH
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" prepare \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant first prepare failed"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+      "$case_dir/data" "$case_dir/state" task-x1 "$project" https://github.com/test/repo/pull/1 \
+      || fail "$variant first stage failed"
+    if [ "$variant" != unexpired ]; then
+      if [ "$variant" != empty ]; then
+        printf 'late historical row evidence\n' > "$task/.cleanup-hold/late-row.bin"
+        printf '  [late historical evidence](late-row.bin)\n' >> "$case_dir/history/completed.md"
+      fi
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+        "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant first expiry failed"
+      jq -e '.expired == true' "$task/record/data-cleanup.json" >/dev/null || fail "$variant first retirement not expired"
+    fi
+    printf '# Backlog\n\n## In flight\n- [ ] task-x1 - reused (repo: demo)\n' > "$case_dir/data/backlog.md"
+    printf 'new scratch\n' > "$task/new-scratch.bin"
+    printf 'current PR evidence\n' > "$task/new-pr.bin"
+    if [ "$variant" != legacy ] && [ "$variant" != direct ]; then
+      fm_write_meta "$case_dir/state/task-x1.meta" "project=$project" 'kind=ship' \
+        'pr=https://github.com/test/repo/pull/2'
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" prepare \
+        "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant second prepare failed"
+      mv "$case_dir/state/task-x1.meta" "$case_dir/retired.meta"
+    fi
+    printf '# Backlog\n\n## Done\n%s\n' \
+      '- [x] task-x1 - reused https://github.com/test/repo/pull/2 (repo: demo)' > "$case_dir/data/backlog.md"
+    if [ "$variant" = legacy ]; then
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" prepare \
+        "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant second prepare failed"
+      jq -e '.sources[-1].pr == "https://github.com/test/repo/pull/2" and .sources[-1].backlog.legacy' \
+        "$task/record/data-cleanup.json" >/dev/null || fail "$variant prepare recorded closed history as the new retirement"
+    fi
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+      "$case_dir/data" "$case_dir/state" task-x1 "$project" https://github.com/test/repo/pull/2 \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "$variant second stage failed"
+    if [ "$variant" = unexpired ]; then
+      for action in stage expire; do
+        assert_grep 'completed row task-x1 changed project or PR' "$case_dir/err" "$action failed to warn about an unexpired conflict"
+        assert_present "$task/new-scratch.bin" "$action moved scratch despite unexpired conflict"
+        assert_present "$task/.cleanup-hold/old-scratch.bin" "$action lost the old recovery"
+        assert_present "$task/new-pr.bin" "$action lost current PR evidence"
+        FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+          "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err" \
+          || fail "unexpired conflict failed the pass"
+      done
+      continue
+    fi
+    assert_present "$task/.cleanup-hold/new-scratch.bin" "$variant expired legacy history blocked new staging"
+    jq -e '.complete == true and .expired == false' "$task/record/data-cleanup.json" >/dev/null \
+      || fail "$variant new retirement has no completed recovery cycle"
+    [ "$(cat "$task/new-pr.bin")" = 'current PR evidence' ] || fail "$variant staged current PR evidence"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+      "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant second expiry failed"
+    assert_absent "$task/.cleanup-hold" "$variant reused recovery did not expire"
+    assert_absent "$task/new-scratch.bin" "$variant new scratch did not expire"
+    [ "$(cat "$task/new-pr.bin")" = 'current PR evidence' ] || fail "$variant deleted current PR evidence"
+    assert_present "$task/old-row.bin" "$variant lost historical row evidence"
+    assert_present "$task/old-pr.bin" "$variant lost historical PR evidence"
+    [ "$variant" = empty ] || assert_present "$task/late-row.bin" "$variant lost refreshed historical row evidence"
+    jq -e '.expired == true' "$task/record/data-cleanup.json" >/dev/null || fail "$variant second retirement not expired"
+  done
+  pass "fm-teardown: expired legacy history permits reused retirement while unexpired conflicts retain recovery"
+}
+
+test_task_data_legacy_ordering() {
+  local case_dir task variant helper project pr row_file date first_project first_pr
+  helper="$ROOT/bin/fm-task-data.py"
+  for variant in current-undated current-older archive-undated archive-tie current-tie project-tie archive-invalid same-source-undated; do
+    case_dir=$(make_case "task-data-ordering-$variant")
+    task="$case_dir/data/task-x1"
+    project="$case_dir/projects/demo"
+    mkdir -p "$task" "$project" "$case_dir/projects/obsolete" "$case_dir/history"
+    printf 'current PR evidence\n' > "$task/current-pr-only.bin"
+    printf 'scratch\n' > "$task/discard.bin"
+    cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+    printf '# Backlog\n\n## Done\n' > "$case_dir/data/backlog.md"
+    row_file="$case_dir/history/completed.md"
+    date=' (done 2026-10-10)'
+    first_project=demo
+    first_pr=https://github.com/groovejones/groove-sight-platform/pull/4365
+    [ "$variant" != archive-undated ] || date=''
+    [ "$variant" != archive-invalid ] || date=' (done 2026-99-99)'
+    [ "$variant" != current-older ] || first_project=obsolete
+    [ "$variant" != current-tie ] || row_file="$case_dir/data/backlog.md"
+    if [ "$variant" = same-source-undated ]; then
+      date=''
+      first_pr=https://github.com/groovejones/groove-sight-platform/pull/4364
+      printf 'older row evidence\n' > "$task/old-row-only.bin"
+    fi
+    printf '\n- [x] task-x1 - old %s (repo: %s)%s\n' \
+      "$first_pr" "$first_project" "$date" >> "$row_file"
+    [ "$variant" != same-source-undated ] || printf '  [older capture](old-row-only.bin)\n' >> "$row_file"
+    case "$variant" in
+      current-undated) row_file="$case_dir/data/backlog.md"; date='' ;;
+      current-older) row_file="$case_dir/data/backlog.md"; date=' (done 2026-10-01)' ;;
+      archive-undated|archive-invalid|same-source-undated) date=' (done 2026-10-11)' ;;
+    esac
+    pr=https://github.com/groovejones/groove-sight-platform/pull/4364
+    if [ "$variant" = project-tie ]; then
+      pr=https://github.com/groovejones/groove-sight-platform/pull/4365
+      first_project=obsolete
+    else
+      first_project=demo
+    fi
+    printf '\n- [x] task-x1 - current %s (repo: %s)%s\n' "$pr" "$first_project" "$date" >> "$row_file"
+    cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "$1 $2 $3" in
+  'pr view 4364') printf 'body: [current](current-pr-only.bin)\n' ;;
+  'pr view 4365') printf 'body: no linked files\n' ;;
+  *) exit 2 ;;
+esac
+SH
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" prepare "$case_dir/data" "$case_dir/state" task-x1 \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "ordering $variant preparation failed"
+    case "$variant" in
+      current-undated|current-older|same-source-undated) ;;
+      *)
+        assert_grep task-x1 "$case_dir/err" "ordering $variant did not name retained data"
+        assert_absent "$task/record/data-cleanup.json" "ordering $variant selected unprovable sources"
+        assert_absent "$task/.cleanup-hold" "ordering $variant staged ambiguous data"
+        assert_present "$task/current-pr-only.bin" "ordering $variant lost evidence"
+        assert_present "$task/discard.bin" "ordering $variant moved scratch"
+        continue
+        ;;
+    esac
+    project=$(jq -r '.sources[-1].project' "$task/record/data-cleanup.json")
+    pr=$(jq -r '.sources[-1].pr' "$task/record/data-cleanup.json")
+    cp "$case_dir/data/backlog.md" "$case_dir/ordering-backlog.md"
+    if [ "$variant" = current-undated ]; then
+      printf '\n- [x] task-x1 - conflict https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo)\n' \
+        >> "$case_dir/data/backlog.md"
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+        python3 "$helper" stage "$case_dir/data" "$case_dir/state" task-x1 "$project" "$pr" \
+        > "$case_dir/out" 2> "$case_dir/err" || fail "ambiguous row refresh failed staging pass"
+      assert_grep task-x1 "$case_dir/err" "ambiguous staging did not name retained data"
+      assert_absent "$task/.cleanup-hold" "ambiguous row refresh staged data"
+      assert_present "$task/discard.bin" "ambiguous row refresh moved scratch"
+      cp "$case_dir/ordering-backlog.md" "$case_dir/data/backlog.md"
+    fi
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" stage "$case_dir/data" "$case_dir/state" task-x1 "$project" "$pr" \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "ordering $variant stage failed"
+    assert_present "$task/current-pr-only.bin" "ordering $variant staged current PR-only evidence"
+    if [ "$variant" = current-undated ]; then
+      printf '\n- [x] task-x1 - conflict https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo)\n' \
+        >> "$case_dir/data/backlog.md"
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+        python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
+        > "$case_dir/out" 2> "$case_dir/err" || fail "ambiguous row refresh failed expiry pass"
+      assert_grep task-x1 "$case_dir/err" "ambiguous expiry did not name retained data"
+      assert_present "$task/.cleanup-hold/discard.bin" "ambiguous row refresh expired recovery"
+      cp "$case_dir/ordering-backlog.md" "$case_dir/data/backlog.md"
+    fi
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
+      > "$case_dir/out" 2> "$case_dir/err" || fail "ordering $variant expiry failed"
+    assert_present "$task/current-pr-only.bin" "ordering $variant deleted current PR-only evidence"
+    [ "$(cat "$task/current-pr-only.bin")" = 'current PR evidence' ] || fail "ordering $variant changed evidence"
+    [ "$project" = "$case_dir/projects/demo" ] || fail "ordering $variant selected archived project"
+    [ "$pr" = https://github.com/groovejones/groove-sight-platform/pull/4364 ] || fail "ordering $variant selected archived PR"
+    assert_absent "$task/.cleanup-hold" "ordering $variant did not expire unlinked scratch"
+    [ "$variant" != same-source-undated ] || assert_present "$task/old-row-only.bin" "unordered same-source rows lost earlier evidence"
+  done
+  pass "fm-teardown: current completed rows beat archives and unprovable conflicting sources stay whole"
+}
+
+test_task_data_github_reader() {
+  local case_dir task helper pr
+  helper="$ROOT/bin/fm-task-data.py"
+  case_dir=$(make_case task-data-github-reader)
+  task="$case_dir/data/task-x1"
+  pr=https://github.com/groovejones/groove-sight-platform/pull/4364
+  mkdir -p "$task"
+  printf 'PR evidence\n' > "$task/proof.png"
+  printf 'scratch\n' > "$task/discard.bin"
+  cat > "$case_dir/fakebin/gh-axi" <<'PY'
+#!/usr/bin/env python3
+import os
+import sys
+from pathlib import Path
+args = sys.argv[1:]
+assert args[:3] == ["pr", "view", "4364"], args
+assert args[args.index("--repo") + 1] == "groovejones/groove-sight-platform", args
+assert args[args.index("--hostname") + 1] == "github.com", args
+assert all(flag in args for flag in ("--full", "--comments", "--reviews")), args
+if not Path(os.environ["REF_READY"]).exists():
+    sys.exit(2)
+print("body: [capture](proof.png)")
+PY
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+  REF_READY="$case_dir/ready" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
+    "$case_dir/data" "$case_dir/state" task-x1 "$case_dir/project" "$pr" \
+    > "$case_dir/out" 2> "$case_dir/err" || fail "unread PR failed the cleanup pass"
+  assert_present "$task/discard.bin" "unread PR moved original scratch"
+  assert_absent "$task/.cleanup-hold" "unread PR created a hold"
+  assert_grep "$pr" "$case_dir/err" "unread PR diagnostic omitted the URL"
+  jq -e --arg pr "$pr" '.sources[-1].unread | index($pr) != null' \
+    "$task/record/data-cleanup.json" >/dev/null || fail "unread PR was not recorded"
+  touch "$case_dir/ready"
+  REF_READY="$case_dir/ready" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
+    "$case_dir/data" "$case_dir/state" task-x1 || fail "readable PR did not retry"
+  assert_present "$task/proof.png" "readable PR evidence was staged"
+  assert_present "$task/.cleanup-hold/discard.bin" "PR retry omitted the recovery cycle"
+  jq -e '.sources[-1].unread == []' "$task/record/data-cleanup.json" >/dev/null \
+    || fail "readable PR retained stale unread state"
+  pass "fm-teardown: GitHub reads use explicit PR identity and unread PRs preserve data without failing the pass"
+}
+
 test_task_data_forge_references() {
   local case_dir task provider pr
   for provider in gitlab forgejo gerrit; do
@@ -6762,11 +7192,11 @@ case "$1 $2" in
   *) printf '{"message":"unavailable"}\n' ;;
 esac
 SH
-      if PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
-          "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err"; then
-        fail "unreadable GitLab notes permitted expiry"
-      fi
+      PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+        "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err" \
+        || fail "unreadable GitLab notes failed the pass"
       assert_present "$task/.cleanup-hold/discard.bin" "unreadable GitLab notes lost recovery"
+      assert_grep "$pr" "$case_dir/err" "unreadable GitLab diagnostic omitted its URL"
       cat > "$case_dir/fakebin/glab" <<'SH'
 #!/usr/bin/env bash
 case "$1 $2" in
@@ -6859,6 +7289,34 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-named-beads ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-legacy ]; then
+  test_task_data_legacy_rows
+  test_task_data_legacy_ordering
+  test_task_data_legacy_reused_id
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-legacy-reuse ]; then
+  test_task_data_legacy_reused_id
+  test_task_data_reused_id
+  test_task_data_expired_sources
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-ordering ]; then
+  test_task_data_legacy_ordering
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-github ]; then
+  test_task_data_github_reader
+  exit 0
+fi
+
+test_task_data_legacy_rows
+test_task_data_legacy_ordering
+test_task_data_legacy_reused_id
+test_task_data_github_reader
 test_task_data_cleanup
 test_task_data_refusals
 test_task_data_references_and_guard
