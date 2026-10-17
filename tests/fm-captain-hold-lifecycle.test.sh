@@ -6014,7 +6014,22 @@ SH
   assert_contains "$(tasks_in "$home" show due-call --full)" 'held: no' 'the sweep did not route the due technical hold'
   assert_contains "$(tasks_in "$home" show kept-ask --full)" 'held: yes' 'the sweep released the protected ask'
   assert_equals 1 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'the sweep did not prompt exactly the technical owner'
-  pass 'protected holds create no routing state and the sweep reads only captain-held and pending rows'
+  for probe in '--version ' 'update --help' 'mv --help' 'hold --help'; do
+    assert_equals 1 "$(grep -cFx -- "$probe" "$home/axi.log")" "the routing sweep repeated the tasks-axi probe '$probe' per row"
+  done
+  run_domain "$home" 2026-10-14T02:02:00Z hold late-call --title 'Later technical call' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --reason "$technical" >/dev/null || fail 'could not hold the later call'
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-} ${2:-}" = 'hold --help' ]; then exit 0; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  if run_domain "$home" 2026-10-14T02:04:00Z route-due > "$home/no-contract.out" 2>&1; then
+    fail 'the routing sweep ran without the captain-hold contract'
+  fi
+  assert_contains "$(tasks_in "$home" show late-call --full)" 'held: yes' 'a sweep without the captain-hold contract released a hold'
+  assert_equals 1 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'a sweep without the captain-hold contract prompted an owner'
+  pass 'protected holds create no routing state and the sweep probes tasks-axi once and reads only captain-held and pending rows'
 }
 
 test_domain_lifecycle_commands_read_only_alias_metas() {

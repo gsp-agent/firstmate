@@ -407,10 +407,18 @@ tasks_axi() {
   fi
 }
 
+# A routing sweep hands its proven captain-hold contract to each row process
+# the same one-hop way fm-tasks-axi-lib.sh hands on FM_TASKS_AXI_COMPATIBLE,
+# so rows do not re-probe tasks-axi. Consumed here so it never travels further.
+CAPTAIN_HOLD_CONTRACT=${FM_CAPTAIN_HOLD_CONTRACT:-}
+unset FM_CAPTAIN_HOLD_CONTRACT
+
 require_tasks_axi() {
   fm_tasks_axi_compatible || fail "compatible tasks-axi is required"
+  [ "$CAPTAIN_HOLD_CONTRACT" != 1 ] || return 0
   tasks-axi hold --help 2>&1 | grep -F -- '--kind captain' >/dev/null \
     || fail "tasks-axi does not expose the captain-hold contract"
+  CAPTAIN_HOLD_CONTRACT=1
 }
 
 # Read one row into TASK_SHOW_OUTPUT; a non-zero return means the row is
@@ -1378,7 +1386,8 @@ command_route_due() {
     mv -f -- "$tmp" "$cursor_file" || fail "cannot publish routing sweep position"
     # Use one process per row so a failed route cannot strand later holds.
     row_status=0
-    ( fm_exec_timed "$row_timeout" 1 "$SCRIPT_DIR/fm-captain-hold.sh" route-due "$id" ) || row_status=$?
+    ( export FM_TASKS_AXI_COMPATIBLE=1 FM_CAPTAIN_HOLD_CONTRACT=1
+      fm_exec_timed "$row_timeout" 1 "$SCRIPT_DIR/fm-captain-hold.sh" route-due "$id" ) || row_status=$?
     if [ "$row_status" -ne 0 ]; then
       printf 'fm-captain-hold: routing row %s failed (exit %s)\n' "$id" "$row_status" >&2
       rc=1
