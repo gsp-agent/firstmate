@@ -138,29 +138,39 @@ jq_lib() { # jq options/program via final argument
 }
 
 read_saved() {
-  local file dir task
-  : > "$TMP/saved.jsonl"
+  local file dir task oversized=/ count=0
+  local -a records=()
   ERRORS=0
   if [ -L "$DATA" ]; then
     ERRORS=1; printf '[]\n' > "$TMP/saved.json"; return 0
   fi
+  while IFS= read -r -d '' file; do
+    fm_dirname_to dir "$file"
+    fm_basename_to task "$dir"
+    oversized="$oversized$task/"
+  done < <(find "$DATA" -mindepth 2 -maxdepth 2 -name contributions.json -size +1048576c -print0 2>/dev/null)
   for file in "$DATA"/*/contributions.json; do
     [ -e "$file" ] || [ -L "$file" ] || continue
     fm_dirname_to dir "$file"
     fm_basename_to task "$dir"
-    if [ -L "$file" ] || [ -L "$dir" ] || [ ! -f "$file" ] \
-      || [ "$(wc -c < "$file")" -gt 1048576 ] \
-      || ! jq_lib -ne --slurpfile record "$file" '($record | length) == 1 and ($record[0] | valid_record)' >/dev/null 2>&1; then
-      ERRORS=$((ERRORS + 1))
-      continue
-    fi
-    # A file's task identity must match its durable directory, not arbitrary JSON.
-    if ! jq -e --arg task "$task" '.task == $task' "$file" >/dev/null; then
+    case "$oversized" in */"$task"/*) ERRORS=$((ERRORS + 1)); continue ;; esac
+    if [ -L "$file" ] || [ -L "$dir" ] || [ ! -f "$file" ]; then
       ERRORS=$((ERRORS + 1)); continue
     fi
-    jq -c . "$file" >> "$TMP/saved.jsonl"
+    records+=(--arg "task$count" "$task" --rawfile "record$count" "$file")
+    count=$((count + 1))
   done
-  jq -s . "$TMP/saved.jsonl" > "$TMP/saved.json"
+  # A file's task identity must match its durable directory, not arbitrary JSON.
+  if jq_lib -n ${records[@]+"${records[@]}"} --argjson count "$count" '
+      [range(0; $count) as $i
+       | [$ARGS.named["record\($i)"] | try fromjson catch empty] as $record
+       | select(($record | length) == 1 and ($record[0] | valid_record)
+           and $record[0].task == $ARGS.named["task\($i)"])
+       | $record[0]]' > "$TMP/saved.json" 2>/dev/null; then
+    ERRORS=$((ERRORS + count - $(jq length "$TMP/saved.json")))
+  else
+    ERRORS=$((ERRORS + count)); printf '[]\n' > "$TMP/saved.json"
+  fi
 }
 
 get_input() {

@@ -332,15 +332,17 @@ fm_backend_required_tool_available() {  # <backend> <tool>
 # fm_meta_get: the LAST value of `key=` in <meta-file>, or empty (never
 # errors) if the file or key is absent. Mirrors the ad hoc `grep '^key=' |
 # tail -1 | cut -d= -f2-` snippet every fm-*.sh script used to repeat inline.
-fm_meta_get() {  # <meta-file> <key>
-  local meta=$1 key=$2 line value=''
-  [ -f "$meta" ] || return 0
-  while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in
-      "$key="*) value=${line#*=} ;;
-    esac
-  done < "$meta" 2>/dev/null || true
-  printf '%s' "$value"
+fm_meta_get() {  # <meta-file> <key> [<out-var>]
+  local fm_meta=$1 fm_key=$2 fm_line fm_value=''
+  if [ -f "$fm_meta" ]; then
+    while IFS= read -r fm_line || [ -n "$fm_line" ]; do
+      case "$fm_line" in
+        "$fm_key="*) fm_value=${fm_line#*=} ;;
+      esac
+    done < "$fm_meta" 2>/dev/null || true
+  fi
+  if [ "$#" -gt 2 ]; then printf -v "$3" '%s' "$fm_value"
+  else printf '%s' "$fm_value"; fi
 }
 
 # fm_backend_endpoint_of_fields: the backend/target rule over meta fields the
@@ -356,14 +358,17 @@ fm_backend_endpoint_of_fields() {  # <backend> <window> <terminal> <backend-var>
 # fm_backend_of_meta: the backend recorded in <meta-file>.
 fm_backend_of_meta() {  # <meta-file>
   local backend target
-  fm_backend_endpoint_of_fields "$(fm_meta_get "$1" backend)" '' '' backend target
+  fm_meta_get "$1" backend backend
+  fm_backend_endpoint_of_fields "$backend" '' '' backend target
   printf '%s' "$backend"
 }
 
 fm_backend_target_of_meta() {  # <meta-file>
-  local meta=$1 backend target
-  fm_backend_endpoint_of_fields "$(fm_meta_get "$meta" backend)" \
-    "$(fm_meta_get "$meta" window)" "$(fm_meta_get "$meta" terminal)" backend target
+  local meta=$1 backend window terminal target
+  fm_meta_get "$meta" backend backend
+  fm_meta_get "$meta" window window
+  fm_meta_get "$meta" terminal terminal
+  fm_backend_endpoint_of_fields "$backend" "$window" "$terminal" backend target
   [ -n "$target" ] && printf '%s' "$target"
 }
 

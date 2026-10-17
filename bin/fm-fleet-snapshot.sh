@@ -1986,16 +1986,21 @@ scout_report_lines() {
 
 BACKLOG_JSON=$(backlog_json) || { echo "fm-fleet-snapshot: backlog read failed" >&2; exit 1; }
 contribution_tasks_json() {
-  local meta id merge_authority
+  local meta id kind url head merge_authority=''
   for meta in "$STATE"/*.meta; do
     [ -f "$meta" ] && [ ! -L "$meta" ] || continue
-    id=$(basename "$meta" .meta)
-    merge_authority=unknown
-    if fm_merge_authority_resolve "$FM_HOME" "$STATE" "$meta" "$id"; then
-      merge_authority=$FM_MERGE_AUTHORITY
+    id=${meta##*/}
+    id=${id%.meta}
+    if [ -z "$merge_authority" ]; then
+      merge_authority=unknown
+      if fm_merge_authority_resolve "$FM_HOME" "$STATE" "$meta" "$id"; then
+        merge_authority=$FM_MERGE_AUTHORITY
+      fi
     fi
-    printf '%s\0' id "$id" kind "$(meta_value "$meta" kind)" \
-      url "$(meta_value "$meta" pr)" head "$(meta_value "$meta" pr_head)" \
+    fm_meta_get "$meta" kind kind
+    fm_meta_get "$meta" pr url
+    fm_meta_get "$meta" pr_head head
+    printf '%s\0' id "$id" kind "$kind" url "$url" head "$head" \
       merge_authority "$merge_authority" '' ''
   done | snapshot_fields_json | jq 'map({id,kind,pr:{url,head},merge_authority})'
 }
