@@ -6,10 +6,11 @@
 #                      cursor_fallback.models_pct (default 85), or there is no readable file, or
 #                      it is older than max_age_h (default 26) by mtime, or the bead's last Cursor
 #                      run hit a usage limit (state/<id>.cursor-limit). At pct >= the limit,
-#                      prepaid/on-demand credit room in the same file keeps Cursor (Dale
-#                      10-16): a numeric prepaid_balance above 0, or numeric
-#                      monthly_additional_usage_used below a numeric _limit; a missing or
-#                      non-numeric value is unknown room and falls back. Bare Grok draws the same
+#                      credit room in the same file keeps Cursor (Dale 10-16) only when
+#                      on_demand=enabled, a numeric monthly_additional_usage_used is below a
+#                      numeric monthly_additional_usage_limit, and a numeric prepaid_balance is
+#                      above 0; anything else, a missing or non-numeric value included, is no
+#                      room and falls back. Bare Grok draws the same
 #                      pool, so it is no fallback there. Claude instead of Codex when the bead's
 #                      last Codex run hit a usage limit (state/<id>.codex-limit). Grok (bare CLI,
 #                      grok-4.7 xhigh) only when the pstack plugin dir's plugin.json version is
@@ -72,11 +73,12 @@ if [ "$op" = fallback ]; then
     # Cursor (Dale 10-16: Grok/Cursor keep running on credits while they last).
     # A missing or non-numeric value is unknown room, never zero use.
     num='^[0-9]+([.][0-9]+)?$'
+    on_demand=$(sed -n 's/^on_demand=//p' "$f" | tail -1)
     prepaid=$(sed -n 's/^prepaid_balance=//p' "$f" | tail -1)
     add_used=$(sed -n 's/^monthly_additional_usage_used=//p' "$f" | tail -1)
     add_limit=$(sed -n 's/^monthly_additional_usage_limit=//p' "$f" | tail -1)
-    if ! { [[ $prepaid =~ $num ]] && awk -v p="$prepaid" 'BEGIN { exit !(p + 0 > 0) }'; } \
-      && ! { [[ $add_used =~ $num && $add_limit =~ $num ]] && awk -v u="$add_used" -v l="$add_limit" 'BEGIN { exit !(u + 0 < l + 0) }'; }; then
+    if ! { [ "$on_demand" = enabled ] && [[ $prepaid =~ $num && $add_used =~ $num && $add_limit =~ $num ]] \
+      && awk -v p="$prepaid" -v u="$add_used" -v l="$add_limit" 'BEGIN { exit !(p + 0 > 0 && u + 0 < l + 0) }'; }; then
       pool "Cursor Models at ${pct}% (limit ${pct_max}%) and no prepaid/on-demand credit room in $(basename "$f")"; exit 0
     fi
   fi
