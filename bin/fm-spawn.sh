@@ -210,7 +210,10 @@
 #   publication. A spawn that finds
 #   every place held prints one `deferred:` line and exits 75 before any brief
 #   render, endpoint, worktree, record, or backlog move exists, so the task stays
-#   exactly as queued as it was; an unreadable declaration refuses with exit 1.
+#   exactly as queued as it was, unless config/project-capacity-headroom names a
+#   reading command that exits 0 and this project has not already taken its one
+#   extra start in the current window (bin/fm-project-capacity-lib.sh owns that
+#   rule). An unreadable declaration refuses with exit 1.
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
@@ -3297,8 +3300,9 @@ else
   BRIEF="$DATA/$ID/brief.md"
 fi
 # Project capacity admission (bin/fm-project-capacity-lib.sh owns the
-# declaration, what holds a place, and why this is race-safe). A fresh worker
-# for a project whose declared capacity is already held is deferred here, before
+# declaration, what holds a place, the optional headroom command, and why this
+# is race-safe). A fresh worker for a project whose declared capacity is
+# already held is deferred here, before
 # any brief render, endpoint, worktree, record, or backlog move exists, so the
 # deferral leaves the task exactly as queued as it was. A relaunch replaces a
 # worker that already holds a place, and a secondmate is not a worker.
@@ -3338,8 +3342,27 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     exit 1
   fi
   if [ "$FM_PROJECT_CAPACITY_OCCUPANTS" -ge "$SPAWN_PROJECT_CAPACITY" ]; then
-    echo "deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up" >&2
-    exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+    # A declared count of 0 is the operator brake. The reading cannot raise it.
+    if [ "$SPAWN_PROJECT_CAPACITY" = 0 ]; then
+      FM_PROJECT_CAPACITY_OVERSHARE=off
+    else
+      fm_project_capacity_overshare "$SPAWN_CAPACITY_CONFIG" "$(basename "$PROJ_ABS")" ||
+        FM_PROJECT_CAPACITY_OVERSHARE=no
+    fi
+    if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != admit ]; then
+      SPAWN_CAPACITY_DEFER="deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up"
+      case "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" in
+        off) ;;
+        spent)
+          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER This project already started one worker past that count in the current window."
+          ;;
+        *)
+          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER The headroom reading reported no room."
+          ;;
+      esac
+      echo "$SPAWN_CAPACITY_DEFER" >&2
+      exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+    fi
   fi
 fi
 [ -f "$BRIEF" ] || {
