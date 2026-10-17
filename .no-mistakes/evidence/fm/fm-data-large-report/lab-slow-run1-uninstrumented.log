@@ -1,0 +1,56 @@
+lab=/private/tmp/fm-lab.H9WYfk code=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55T6XQ34TBKBCS6M5GBCCPY tmux=/tmp/fml.q6PxSO scenario=slow
+
+=== set up: lab-slow hold naming 80 real project beads, then a fast hold lab-fast (16:38:48) ===
+lab-slow staged: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[["proj-0b6","proj-1aa","proj-283","proj-33s","proj-3o2","proj-44w","proj-489","proj-4en","proj-4l7","proj-5hl","proj-6dm","proj-6up","proj-78u","proj-7ii","proj-7wc","proj-80j","proj-8gr","proj-8jz","proj-8ze","proj-8zn","proj-9b2","proj-9x8","proj-a0v","proj-acy","proj-bk8","proj-bqq","proj-d20","proj-d8v","proj-dn6","proj-dpe","proj-eee","proj-eo9","proj-f3v","proj-gh3","proj-hs4","proj-i5y","proj-ig3","proj-itr","proj-j9h","proj-jwl","proj-l0x","proj-l66","proj-ltx","proj-lyf","proj-mrj","proj-n59","proj-nb3","proj-nvr","proj-o8v","proj-oj6","proj-omt","proj-ork","proj-ow2","proj-plh","proj-puz","proj-qdr","proj-r6c","proj-ra9","proj-rho","proj-sbz","proj-sfl","proj-std","proj-t67","proj-vj8","proj-vkp","proj-vta","proj-w7h","proj-w9r","proj-wjf","proj-xoi","proj-xql","proj-y04","proj-y2e","proj-yia","proj-yxc","proj-z2o","proj-zf6","proj-zqy","proj-zsl","proj-zxg"]]}
+lab-fast staged: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[[]]}
+pending holds (least recently tried first):
+  lab-slow	
+  lab-fast	
+
+=== teardown lab-main with FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=10; fm-send live-y once its task record is gone (16:42:32) ===
+lab-main task record removed at +36.8s; starting fm-send live-y
+fm-send live-y -> exit 0 in 12.1s; teardown still running when fm-send returned: yes
+--- fm-send stdout
+--- fm-send stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.H9WYfk
+fm-teardown.sh lab-main -> exit 0 in 56.4s
+--- stdout
+teardown lab-main complete (window firstmate:fm-lab-main, worktree /private/tmp/fm-lab.H9WYfk/missing-lab-main)
+Backlog: lab-main is closed in /private/tmp/fm-lab.H9WYfk/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.H9WYfk
+warning: task data lab-slow expiry stopped after 10s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+warning: the 10s task-data expiry budget ran out; holds left for a later teardown: lab-fast
+warning: lab-main teardown completed, but expiring other tasks' held data needs a retry
+FAIL: fm-send returned within 3s
+PASS: fm-send recorded the steer in live-y's inbox
+PASS: teardown was still expiring when fm-send returned
+PASS: teardown exit 0
+PASS: lab-main backlog row is done
+PASS: slow hold kept its held scratch
+PASS: slow hold marked cut-off
+PASS: warning names the unvisited fast hold
+PASS: fast hold untouched past the budget
+pending holds now:
+  lab-fast	
+  lab-slow	cut-off
+
+=== teardown lab-next (default budget): fast hold first, then the slow hold's one full attempt (16:43:31) ===
+fm-teardown.sh lab-next -> exit 0 in 112.3s
+--- stdout
+teardown lab-next complete (window firstmate:fm-lab-next, worktree /private/tmp/fm-lab.H9WYfk/missing-lab-next)
+Backlog: lab-next is closed in /private/tmp/fm-lab.H9WYfk/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.H9WYfk
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: 301s ago, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASS: lab-next expired the previously starved fast hold
+PASS: lab-next's full attempt expired the slow hold
+PASS: slow hold record expired with its mark cleared
+PASS: slow hold's kept brief survives
+LAB=/private/tmp/fm-lab.H9WYfk

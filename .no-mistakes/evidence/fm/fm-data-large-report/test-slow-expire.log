@@ -1,0 +1,3 @@
+ok - fm-teardown: a slow expiry of another task's data neither blocks fm-send, outlasts its budget, nor starves other holds
+[test_task_data_slow_expire_releases_locks took 129s]
+exit=0

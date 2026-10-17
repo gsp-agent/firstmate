@@ -1,0 +1,50 @@
+lab=/private/tmp/fm-lab.u5WDMv code=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55T6XQ34TBKBCS6M5GBCCPY tmux=/tmp/fml.tgAMtE scenario=reports
+-rw-r--r--@ 1 dalecarman  wheel  1400041 Oct 17 17:01 /private/tmp/fm-lab.u5WDMv/data/lab-big/report.md
+
+=== teardown lab-big with a 1.4 MB report.md (17:01:38) ===
+fm-teardown.sh lab-big -> exit 0 in 73.2s
+--- stdout
+task data lab-big: scratch recoverable in /private/tmp/fm-lab.u5WDMv/data/lab-big/.cleanup-hold until the next completed task
+teardown lab-big complete (window firstmate:fm-lab-big, worktree /private/tmp/fm-lab.u5WDMv/missing-lab-big)
+Backlog: lab-big is closed in /private/tmp/fm-lab.u5WDMv/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.u5WDMv
+PASS: lab-big backlog row is done
+PASS: lab-big has no pending backlog close
+PASS: lab-big scratch staged
+PASS: link at the end of the large report kept proof/capture.png
+PASS: large report bytes unchanged
+lab-big record: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[[]]}
+-rw-r--r--@ 1 dalecarman  wheel  16777217 Oct 17 17:02 /private/tmp/fm-lab.u5WDMv/data/lab-huge/record/run.log
+
+=== teardown lab-huge with a 16 MiB + 1 byte record/run.log (17:02:55) ===
+fm-teardown.sh lab-huge -> exit 0 in 87.1s
+--- stdout
+teardown lab-huge complete (window firstmate:fm-lab-huge, worktree /private/tmp/fm-lab.u5WDMv/missing-lab-huge)
+Backlog: lab-huge is closed in /private/tmp/fm-lab.u5WDMv/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.u5WDMv
+warning: task data lab-huge retained whole for retry: kept evidence over 16 MiB: record/run.log
+PASS: lab-huge backlog row is done
+PASS: lab-huge has no pending backlog close
+PASS: lab-huge kept whole: scratch in place
+PASS: lab-huge kept whole: nothing staged
+PASS: teardown output names record/run.log
+PASS: record names record/run.log unread
+lab-huge record: {"complete":false,"expired":null,"expiry":null,"unread":[["record/run.log"]],"beads":[[]]}
+PASS: lab-huge's teardown expired lab-big's hold
+PASS: lab-big report and capture survive expiry
+lab-big record: {"complete":true,"expired":true,"expiry":null,"unread":[[]],"beads":[[]]}
+
+=== shrink lab-huge's run.log, then teardown lab-next retries it (17:04:25) ===
+fm-teardown.sh lab-next -> exit 0 in 73.3s
+--- stdout
+teardown lab-next complete (window firstmate:fm-lab-next, worktree /private/tmp/fm-lab.u5WDMv/missing-lab-next)
+Backlog: lab-next is closed in /private/tmp/fm-lab.u5WDMv/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+task data lab-huge: scratch recoverable in /private/tmp/fm-lab.u5WDMv/data/lab-huge/.cleanup-hold until the next completed task
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.u5WDMv
+PASS: retry staged lab-huge scratch
+PASS: retry cleared the unread file
+lab-huge record: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[[]]}
+LAB=/private/tmp/fm-lab.u5WDMv

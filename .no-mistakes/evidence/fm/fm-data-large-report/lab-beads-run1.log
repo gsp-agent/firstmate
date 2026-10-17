@@ -1,0 +1,122 @@
+lab=/private/tmp/fm-lab.r2S2Uq code=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55T6XQ34TBKBCS6M5GBCCPY tmux=/tmp/fml.zFm6By scenario=beads
+beads: agent-config=.agent-config-ttx gsp=gsp-5l2 project=proj-h3i unresolvable=nope-zz9q
+
+=== teardown lab-ac naming bead .agent-config-ttx (BEADS_DIR/BEADS_DB/BR_DB point at a wrong database) (16:20:51) ===
+fm-teardown.sh lab-ac -> exit 0 in 58.5s
+--- stdout
+task data lab-ac: scratch recoverable in /private/tmp/fm-lab.r2S2Uq/data/lab-ac/.cleanup-hold until the next completed task
+teardown lab-ac complete (window firstmate:fm-lab-ac, worktree /private/tmp/fm-lab.r2S2Uq/missing-lab-ac)
+Backlog: lab-ac is closed in /private/tmp/fm-lab.r2S2Uq/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.r2S2Uq
+PASS: lab-ac teardown exits 0
+PASS: lab-ac backlog row is done
+PASS: lab-ac has no pending backlog close
+PASS: lab-ac task record retired
+PASS: lab-ac window killed on the lab tmux server
+PASS: lab-ac bead-linked proof/capture.png kept in place
+lab-ac record: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[[".agent-config-ttx"]]}
+lab-ac files:
+  ./.cleanup-hold/scratch.bin
+  ./brief.md
+  ./proof/capture.png
+PASS: lab-ac unbound scratch staged into .cleanup-hold
+PASS: lab-ac record lists bead .agent-config-ttx, nothing unread
+
+=== teardown lab-gsp naming bead gsp-5l2 (BEADS_DIR/BEADS_DB/BR_DB point at a wrong database) (16:21:55) ===
+fm-teardown.sh lab-gsp -> exit 0 in 102.7s
+--- stdout
+task data lab-gsp: scratch recoverable in /private/tmp/fm-lab.r2S2Uq/data/lab-gsp/.cleanup-hold until the next completed task
+teardown lab-gsp complete (window firstmate:fm-lab-gsp, worktree /private/tmp/fm-lab.r2S2Uq/missing-lab-gsp)
+Backlog: lab-gsp is closed in /private/tmp/fm-lab.r2S2Uq/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.r2S2Uq
+PASS: lab-gsp teardown exits 0
+PASS: lab-gsp backlog row is done
+PASS: lab-gsp has no pending backlog close
+PASS: lab-gsp task record retired
+PASS: lab-gsp window killed on the lab tmux server
+PASS: lab-gsp bead-linked proof/capture.png kept in place
+lab-gsp record: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[["gsp-5l2"]]}
+lab-gsp files:
+  ./.cleanup-hold/scratch.bin
+  ./brief.md
+  ./proof/capture.png
+PASS: lab-gsp unbound scratch staged into .cleanup-hold
+PASS: lab-gsp record lists bead gsp-5l2, nothing unread
+
+=== teardown lab-proj naming bead proj-h3i (BEADS_DIR/BEADS_DB/BR_DB point at a wrong database) (16:23:42) ===
+fm-teardown.sh lab-proj -> exit 0 in 101.3s
+--- stdout
+task data lab-proj: scratch recoverable in /private/tmp/fm-lab.r2S2Uq/data/lab-proj/.cleanup-hold until the next completed task
+teardown lab-proj complete (window firstmate:fm-lab-proj, worktree /private/tmp/fm-lab.r2S2Uq/missing-lab-proj)
+Backlog: lab-proj is closed in /private/tmp/fm-lab.r2S2Uq/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.r2S2Uq
+PASS: lab-proj teardown exits 0
+PASS: lab-proj backlog row is done
+PASS: lab-proj has no pending backlog close
+PASS: lab-proj task record retired
+PASS: lab-proj window killed on the lab tmux server
+PASS: lab-proj bead-linked proof/capture.png kept in place
+lab-proj record: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[["proj-h3i"]]}
+lab-proj files:
+  ./.cleanup-hold/scratch.bin
+  ./brief.md
+  ./proof/capture.png
+PASS: lab-proj unbound scratch staged into .cleanup-hold
+PASS: lab-proj record lists bead proj-h3i, nothing unread
+
+=== teardown lab-unread naming bead nope-zz9q (BEADS_DIR/BEADS_DB/BR_DB point at a wrong database) (16:25:31) ===
+fm-teardown.sh lab-unread -> exit 0 in 87.0s
+--- stdout
+teardown lab-unread complete (window firstmate:fm-lab-unread, worktree /private/tmp/fm-lab.r2S2Uq/missing-lab-unread)
+Backlog: lab-unread is closed in /private/tmp/fm-lab.r2S2Uq/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.r2S2Uq
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: 323s ago, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: task data lab-unread retained whole for retry: unread references: nope-zz9q
+warning: task data retained for recovery: unread references: nope-zz9q
+warning: lab-unread teardown completed, but task-data cleanup needs a retry
+PASS: lab-unread teardown exits 0
+PASS: lab-unread backlog row is done
+PASS: lab-unread has no pending backlog close
+PASS: lab-unread task record retired
+PASS: lab-unread window killed on the lab tmux server
+PASS: lab-unread bead-linked proof/capture.png kept in place
+lab-unread record: {"complete":false,"expired":null,"expiry":null,"unread":[["nope-zz9q"]],"beads":[["nope-zz9q"]]}
+lab-unread files:
+  ./brief.md
+  ./proof/capture.png
+  ./scratch.bin
+PASS: lab-unread scratch not moved
+PASS: lab-unread nothing staged
+PASS: lab-unread teardown output names nope-zz9q
+PASS: lab-unread record incomplete and names nope-zz9q as unread
+PASS: lab-ac hold expired by a later teardown, evidence kept
+
+=== the unresolvable id becomes readable in Firstmate's backlog; next teardown retries it (16:26:59) ===
+fm-teardown.sh lab-last -> exit 0 in 70.2s
+--- stdout
+teardown lab-last complete (window firstmate:fm-lab-last, worktree /private/tmp/fm-lab.r2S2Uq/missing-lab-last)
+Backlog: lab-last is closed in /private/tmp/fm-lab.r2S2Uq/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.r2S2Uq
+WARNING: watcher still down (same stale episode; last beat: 397s ago, grace 300s) - full banner already printed this episode.
+warning: task data lab-unread expiry stopped after 10s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+warning: lab-last teardown completed, but expiring other tasks' held data needs a retry
+lab-unread record: {"complete":false,"expired":null,"expiry":"cut-off","unread":[["nope-zz9q"]],"beads":[["nope-zz9q"]]}
+lab-unread files:
+  ./brief.md
+  ./proof/capture.png
+  ./scratch.bin
+FAIL: retry staged lab-unread scratch
+FAIL: retry cleared the unread id
+PASS: retry kept the backlog-linked capture
+LAB=/private/tmp/fm-lab.r2S2Uq

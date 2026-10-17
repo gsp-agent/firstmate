@@ -1,0 +1,22 @@
+lab=/private/tmp/fm-lab.iuqiM4 code=/private/tmp/fm-base.2KjlGT tmux=/tmp/fml.qP8GWl scenario=slow-base
+lab-slow staged: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[["proj-086","proj-0mj","proj-17c","proj-1dp","proj-283","proj-2m0","proj-2ny","proj-2v4","proj-2zm","proj-35m","proj-39f","proj-3q0","proj-3u2","proj-4ax","proj-4eb","proj-51v","proj-5e3","proj-6il","proj-77g","proj-79z","proj-7f4","proj-87d","proj-883","proj-8t3","proj-8zj","proj-9kz","proj-b0o","proj-b1q","proj-d8b","proj-dbu","proj-dpl","proj-dy8","proj-e6u","proj-f0v","proj-fer","proj-g48","proj-gaa","proj-h1y","proj-h35","proj-h47","proj-hfk","proj-i7g","proj-j9l","proj-k0h","proj-kdb","proj-l6n","proj-lk0","proj-mf9","proj-n08","proj-ngz","proj-nhv","proj-niq","proj-nt8","proj-o0h","proj-pj5","proj-prg","proj-qbo","proj-qfz","proj-rhp","proj-s80","proj-sye","proj-t52","proj-t7k","proj-u00","proj-u7z","proj-u9h","proj-ugo","proj-uxj","proj-v1w","proj-vzo","proj-w74","proj-wn2","proj-wrg","proj-xs0","proj-y67","proj-ysz","proj-yvs","proj-ywk","proj-zat","proj-zof"]]}
+lab-fast staged: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[[]]}
+
+=== BASE CODE: teardown lab-main; fm-send live-y while it expires lab-slow (16:59:24) ===
+baseline fm-send live-y (no teardown running) -> exit 0 in 5.0s
++40.7s lab-main's task record removed (base code expires other holds next, under its locks); starting fm-send live-y
+lease lock at fm-send start: held
++109.6s fm-send live-y -> exit 0 in 68.7s; teardown still running when fm-send returned: no
+--- fm-send stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.iuqiM4
++109.9s fm-teardown.sh lab-main -> exit 0
+--- lease lock timeline
++0.1s lease lock free
++1.2s lease lock held
++109.5s lease lock free
+--- stdout
+teardown lab-main complete (window firstmate:fm-lab-main, worktree /private/tmp/fm-lab.iuqiM4/missing-lab-main)
+Backlog: lab-main is closed in /private/tmp/fm-lab.iuqiM4/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.iuqiM4
+LAB=/private/tmp/fm-lab.iuqiM4

@@ -1,0 +1,60 @@
+lab=/private/tmp/fm-lab.5MWmzB code=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55T6XQ34TBKBCS6M5GBCCPY tmux=/tmp/fml.2SuHBN scenario=slow
+
+=== set up: lab-slow hold naming 80 real project beads, then a fast hold lab-fast (16:46:31) ===
+lab-slow staged: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[["proj-04s","proj-04z","proj-2it","proj-2kp","proj-2la","proj-2u8","proj-4as","proj-5lo","proj-5ta","proj-60e","proj-6ep","proj-6kg","proj-6nn","proj-70l","proj-7nr","proj-8de","proj-8ez","proj-99u","proj-9ao","proj-9f6","proj-9j6","proj-9jv","proj-9pd","proj-a8f","proj-adt","proj-aw3","proj-axh","proj-be7","proj-cgz","proj-d8e","proj-ebl","proj-emk","proj-fi8","proj-g4l","proj-hkk","proj-hn9","proj-ij6","proj-jf5","proj-jhz","proj-k7q","proj-k89","proj-k8e","proj-kp7","proj-kvf","proj-mfq","proj-mjl","proj-mom","proj-myc","proj-n4x","proj-n86","proj-n8p","proj-n8x","proj-nhb","proj-nvu","proj-ow3","proj-q0k","proj-qpb","proj-r03","proj-r6r","proj-rad","proj-rgk","proj-rhk","proj-rj6","proj-rm0","proj-s8r","proj-stq","proj-tcn","proj-thh","proj-ug7","proj-uoi","proj-uzq","proj-vze","proj-wvy","proj-xkd","proj-xst","proj-xva","proj-yn6","proj-yqo","proj-z0k","proj-z49"]]}
+lab-fast staged: {"complete":true,"expired":false,"expiry":null,"unread":[[]],"beads":[[]]}
+pending holds (least recently tried first):
+  lab-slow	
+  lab-fast	
+
+=== teardown lab-main with FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=10; fm-send live-y while it expires lab-slow (16:51:55) ===
+baseline fm-send live-y (no teardown running) -> exit 0 in 8.3s
++76.5s lab-slow's expiry attempt started (record touched); starting fm-send live-y
+lease lock at fm-send start: free
++84.7s fm-send live-y -> exit 0 in 8.0s; teardown still running when fm-send returned: yes
+--- fm-send stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.5MWmzB
+WARNING: watcher still down (same stale episode; last beat: 413s ago, grace 300s) - full banner already printed this episode.
++87.4s fm-teardown.sh lab-main -> exit 0
+--- lease lock timeline
++0.2s lease lock free
++1.7s lease lock held
++75.7s lease lock free
++80.0s lease lock held
++84.7s lease lock free
+--- stdout
+teardown lab-main complete (window firstmate:fm-lab-main, worktree /private/tmp/fm-lab.5MWmzB/missing-lab-main)
+Backlog: lab-main is closed in /private/tmp/fm-lab.5MWmzB/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.5MWmzB
+WARNING: watcher still down (same stale episode; last beat: 352s ago, grace 300s) - full banner already printed this episode.
+warning: task data lab-slow expiry stopped after 10s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+warning: the 10s task-data expiry budget ran out; holds left for a later teardown: lab-fast
+warning: lab-main teardown completed, but expiring other tasks' held data needs a retry
+PASS: fm-send during expiry took no more than its no-teardown baseline + 3s
+PASS: lease lock was free when fm-send started
+PASS: fm-send recorded the steer in live-y's inbox
+PASS: teardown was still expiring when fm-send returned
+PASS: teardown exit 0
+PASS: lab-main backlog row is done
+PASS: slow hold kept its held scratch
+PASS: slow hold marked cut-off
+PASS: warning names the unvisited fast hold
+PASS: fast hold untouched past the budget
+pending holds now:
+  lab-fast	
+  lab-slow	cut-off
+
+=== teardown lab-next (default budget): fast hold first, then the slow hold's one full attempt (16:53:38) ===
+fm-teardown.sh lab-next -> exit 0 in 127.4s
+--- stdout
+teardown lab-next complete (window firstmate:fm-lab-next, worktree /private/tmp/fm-lab.5MWmzB/missing-lab-next)
+Backlog: lab-next is closed in /private/tmp/fm-lab.5MWmzB/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/tmp/fm-lab.5MWmzB
+WARNING: watcher still down (same stale episode; last beat: 442s ago, grace 300s) - full banner already printed this episode.
+PASS: lab-next expired the previously starved fast hold
+PASS: lab-next's full attempt expired the slow hold
+PASS: slow hold record expired with its mark cleared
+PASS: slow hold's kept brief survives
+LAB=/private/tmp/fm-lab.5MWmzB
