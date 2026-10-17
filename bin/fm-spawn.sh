@@ -339,7 +339,9 @@
 # Launch environment (config/launch-env-allowlist):
 #   Absent means unchanged ambient inheritance. A present readable regular file
 #   opts every launch (ship, scout, secondmate, raw command, and relaunch) into
-#   /usr/bin/env -i followed by /bin/sh -c of the existing launch command.
+#   /usr/bin/env -i followed by /bin/sh -c of the existing launch command, except
+#   Cursor launches, which use /bin/bash -c because Cursor's worker stream capture
+#   uses Bash process substitution.
 #   Each line is one POSIX environment name, never a value or shell expression;
 #   blank lines and lines beginning with # are ignored. Invalid input refuses
 #   before launch, as do path inspection errors such as inaccessible config
@@ -5856,8 +5858,8 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
   # it still delivers the switch on a pane whose export never landed. Unlike the
   # trace carrier below it carries no gate, so it is appended unconditionally.
   # Setting it here rather than relying on the assignment already carried by
-  # $LAUNCH is what gives the wrapping `/bin/sh` itself the switch, not only the
-  # agent command it runs.
+  # $LAUNCH is what gives the wrapping shell (`/bin/sh`, or `/bin/bash` for
+  # Cursor) itself the switch, not only the agent command it runs.
   LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX COMPACT_ADVISER_DISABLE=1"
   if [ -n "$SPAWN_TRACEPARENT" ]; then
     # shellcheck disable=SC2016
