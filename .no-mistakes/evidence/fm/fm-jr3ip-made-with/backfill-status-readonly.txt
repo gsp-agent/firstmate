@@ -1,0 +1,17 @@
+Read-only GitHub check, 2026-10-17T06:18:56Z: Made-with lines on PR bodies
+gsp-agent/firstmate open PRs:
+  #34 fm/fm-ci-upstream-lean-2: NO Made-with line
+  #33 fm/fm-ljm6g-cursor-credits: Made-with: claude (claude-opus-5-5) | Made-with: codex (gpt-6.1-sol) via no-mistakes
+  #32 fm/fm-xbvre-composer: Made-with: claude (claude-opus-5-5) | Made-with: codex (gpt-6.1-sol) via no-mistakes
+  #31 fm/fm-data-cutover: Made-with: claude (claude-opus-5-5) | Made-with: codex (gpt-6.1-sol) via no-mistakes
+  #29 fm/fm-a3ov3-7-holds: Made-with: claude (claude-opus-5-5) | Made-with: codex (gpt-6.1-sol) via no-mistakes
+  #25 fm/fm-drift-nightly: Made-with: claude (claude-opus-5-5[1m]) | Made-with: codex (gpt-6.1-sol) via no-mistakes
+  #23 fm/fm-cursor-cap: Made-with: cursor (grok-4.7-xhigh) | Made-with: codex (gpt-6.1-sol) via no-mistakes
+  #20 fm/fm-ci-upstream-lean: Made-with: claude | Made-with: codex (gpt-6.1-sol) via no-mistakes
+  #14 fm/fm-cursor-guard-fallback: Made-with: codex
+  #10 fm/a3ov3-5-fm: Made-with: grok (grok-4.7)
+  #1 dale/fm-codex-max-effort: NO Made-with line
+carmandale/agent-config PRs named in the intent:
+  #219 OPEN: Made-with: claude (claude-opus-5-5)
+  #222 OPEN: Made-with: claude (claude-opus-5-5)
+  #223 OPEN: Made-with: claude (claude-opus-5-5)

@@ -1,0 +1,31 @@
+=== firstmate #32 (live GitHub, read-only)
+state: OPEN  head: fm/fm-xbvre-composer
+engine lines in the live body:
+  Made-with: claude (claude-opus-5-5)
+  Made-with: codex (gpt-6.1-sol) via no-mistakes
+commits:
+  6a9dab4 2026-10-16T21:07:54Z test: reproduce Herdr composer hidden by scrolled viewport
+  5f57f99 2026-10-16T21:19:11Z fix: read the current Herdr composer independently of scroll position
+  ea34a38 2026-10-16T22:14:52Z no-mistakes(test): Fix Claude slash-popup selection while preserving …
+  82c4347 2026-10-16T22:32:55Z no-mistakes(document): Correct Herdr composer capture documentation
+  dff6142 2026-10-16T22:41:35Z no-mistakes(lint): Fix popup regression test environment scoping
+--- stamp on the stand-in copy
+$ stamp /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s9-32 s9-32 https://github.com/fm-lab-owner/firstmate/pull/32
+fm-pr-made-with: https://github.com/fm-lab-owner/firstmate/pull/32 already names every engine found
+[exit 0]
+--- body edits: 0
+
+=== firstmate #33 (live GitHub, read-only)
+state: OPEN  head: fm/fm-ljm6g-cursor-credits
+engine lines in the live body:
+  Made-with: claude (claude-opus-5-5)
+  Made-with: codex (gpt-6.1-sol) via no-mistakes
+commits:
+  ab7251f 2026-10-17T02:48:57Z fix(cursor-guard): keep Cursor on prepaid/on-demand credits at pct 100
+  cc441eb 2026-10-17T03:09:49Z no-mistakes(review): Preserve pstack compatibility checks when Cursor…
+--- stamp on the stand-in copy
+$ stamp /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s9-33 s9-33 https://github.com/fm-lab-owner/firstmate/pull/33
+fm-pr-made-with: https://github.com/fm-lab-owner/firstmate/pull/33 already names every engine found
+[exit 0]
+--- body edits: 0
+

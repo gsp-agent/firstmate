@@ -1,0 +1,59 @@
+=== S3: run on the PR's renamed head branch only
+--- pre-fix script (48f04bee) on the same state
+fm-pr-made-with: added to https://github.com/fm-lab-owner/web/pull/31:
+Made-with: claude (claude-opus-5-5)
+[exit 0]
+--- fixed script (HEAD)
+$ stamp /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s3 s3-task https://github.com/fm-lab-owner/web/pull/31
+fm-pr-made-with: added to https://github.com/fm-lab-owner/web/pull/31:
+Made-with: claude (claude-opus-5-5)
+Made-with: codex (gpt-6.1-sol) via no-mistakes
+[exit 0]
+--- body after
+Body.
+
+Made-with: claude (claude-opus-5-5)
+Made-with: codex (gpt-6.1-sol) via no-mistakes
+
+=== S4: a no-mistakes commit that no recorded call wrote
+$ stamp /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s4 s4-task https://github.com/fm-lab-owner/web/pull/32
+fm-pr-made-with: no recorded no-mistakes call wrote ddddddd no-mistakes(lint): Quote a variable
+fm-pr-made-with: no recorded no-mistakes call wrote eeeeeee no-mistakes(review): Fix a finding
+fm-pr-made-with: added to https://github.com/fm-lab-owner/web/pull/32:
+Made-with: claude (claude-opus-5-5)
+[exit 1]
+--- body after
+Body.
+
+Made-with: claude (claude-opus-5-5)
+
+=== S5: state database absent
+state.sqlite present? no
+$ stamp /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s5-empty s5-task https://github.com/fm-lab-owner/web/pull/33
+fm-pr-made-with: no recorded no-mistakes call wrote 0abcdef no-mistakes(document): Update docs
+fm-pr-made-with: added to https://github.com/fm-lab-owner/web/pull/33:
+Made-with: codex (gpt-6.1-sol)
+[exit 1]
+--- body after
+Body.
+
+Made-with: codex (gpt-6.1-sol)
+--- the same, with no no-mistakes commit on the PR
+$ stamp /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s5-empty s5-task https://github.com/fm-lab-owner/web/pull/34
+fm-pr-made-with: added to https://github.com/fm-lab-owner/web/pull/34:
+Made-with: codex (gpt-6.1-sol)
+[exit 0]
+--- body after
+Body.
+
+Made-with: codex (gpt-6.1-sol)
+
+=== S6: fixer of the worker's own family; worker on the default model
+$ stamp /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s6 s6-task https://github.com/fm-lab-owner/web/pull/35
+fm-pr-made-with: added to https://github.com/fm-lab-owner/web/pull/35:
+Made-with: codex
+[exit 0]
+--- body after
+Body.
+
+Made-with: codex

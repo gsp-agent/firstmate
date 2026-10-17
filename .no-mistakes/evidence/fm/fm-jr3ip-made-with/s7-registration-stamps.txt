@@ -1,0 +1,46 @@
+=== S7a: registration stamps the worker and the Codex fixer
+$ FM_HOME=<lab> bin/fm-pr-check.sh s7a-task https://github.com/fm-lab-owner/web/pull/70
+[exit 0]
+--- stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  7 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--- task record pr lines
+pr=https://github.com/fm-lab-owner/web/pull/70
+pr_head=0123456789abcdef0123456789abcdef01234567
+--- merge watch armed: yes (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/state/s7a-task.check.sh)
+--- PR body after registration
+## Why
+A reason.
+
+
+Made-with: claude (claude-opus-5-5)
+Made-with: codex (gpt-6.1-sol) via no-mistakes
+--- forge calls
+pr view https://github.com/fm-lab-owner/web/pull/70 --json isDraft
+pr view https://github.com/fm-lab-owner/web/pull/70 --json headRefOid -q .headRefOid
+pr view https://github.com/fm-lab-owner/web/pull/70 --json body,commits,headRefName
+pr edit https://github.com/fm-lab-owner/web/pull/70 --body-file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-pr-made-with.AnvCjF/body
+--- merge-time re-record (FM_PR_CHECK_MERGE=1)
+[exit 0] body edits before=1 after=1
+
+=== S7b: a stamp that cannot attribute a commit still arms the watch
+$ FM_HOME=<lab> NM_HOME=<empty> bin/fm-pr-check.sh s7b-task https://github.com/fm-lab-owner/web/pull/71
+[exit 0]
+--- stderr
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+fm-pr-made-with: no recorded no-mistakes call wrote 7b00000 no-mistakes(lint): Quote it
+actionable: PR https://github.com/fm-lab-owner/web/pull/71 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh s7b-task https://github.com/fm-lab-owner/web/pull/71
+--- task record pr line
+pr=https://github.com/fm-lab-owner/web/pull/71
+--- merge watch armed: yes
+--- PR body after registration
+## Why
+A reason.
+
+
+Made-with: claude (claude-opus-5-5)

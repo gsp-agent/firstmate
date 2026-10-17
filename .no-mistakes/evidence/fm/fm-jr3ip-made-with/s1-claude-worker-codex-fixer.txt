@@ -1,0 +1,33 @@
+seeded /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s1/state.sqlite: 1 repos, 1 runs, 3 calls
+--- PR commits on the stand-in forge (from the real firstmate #30)
+8ca0dc6 2026-10-16T16:14:58Z test: reproduce named bead cleanup retirement failures
+e59a666 2026-10-16T16:21:13Z fix: resolve named bead evidence without blocking retirement
+b8932e8 2026-10-16T16:51:18Z no-mistakes(document): Clarify named-bead retention and retry documen…
+--- body tail before
+
+✅ No issues found.
+</details>
+--- first stamp
+$ stamp /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s1 s1-task https://github.com/fm-lab-owner/firstmate/pull/30
+fm-pr-made-with: added to https://github.com/fm-lab-owner/firstmate/pull/30:
+Made-with: claude (claude-opus-5-5)
+Made-with: codex (gpt-6.1-sol) via no-mistakes
+[exit 0]
+--- body tail after
+
+✅ No issues found.
+</details>
+
+Made-with: claude (claude-opus-5-5)
+Made-with: codex (gpt-6.1-sol) via no-mistakes
+--- original body is the byte-for-byte prefix?
+yes (   28299 bytes)
+--- rerun
+$ stamp /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.yzLRPP/nm/s1 s1-task https://github.com/fm-lab-owner/firstmate/pull/30
+fm-pr-made-with: https://github.com/fm-lab-owner/firstmate/pull/30 already names every engine found
+[exit 0]
+--- forge edits: 1
+--- forge calls
+pr view https://github.com/fm-lab-owner/firstmate/pull/30 --json body,commits,headRefName
+pr edit https://github.com/fm-lab-owner/firstmate/pull/30 --body-file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-pr-made-with.YmiEJ5/body
+pr view https://github.com/fm-lab-owner/firstmate/pull/30 --json body,commits,headRefName
