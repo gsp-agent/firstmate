@@ -80,7 +80,9 @@
 #                   so the runner the caller launched, killed or interrupted
 #                   mid-run, takes the running script's group down with it
 #                   rather than leaving it behind, also when the machine gate
-#                   re-executed it, and no further script starts.
+#                   re-executed it, and no further script starts. Taking the
+#                   group down needs perl: fm_exec_timed's timeout fallback
+#                   bounds the script only by its deadline.
 #   --max-wall-ms N fail the run when its measured invocation wall clock exceeds
 #                   N milliseconds, including an empty selection. It is
 #                   evaluated after selection and suite execution and cannot
@@ -2505,10 +2507,10 @@ record_script_result() {
 
 # Run <script>, capturing output to <out>. <stream> 1 also echoes it live.
 # <id> only has to be unique within this run. Every script runs in its own
-# process group under fm_exec_timed, which ends that group when this runner
-# or the runner the caller launched (RUN_OWNER_PID, across a machine-gate
-# re-execution) dies, so an interrupted run cannot leave a suite and its
-# watchers behind.
+# process group under fm_exec_timed, whose perl watchdog ends that group when
+# this runner or the runner the caller launched (RUN_OWNER_PID, across a
+# machine-gate re-execution) dies, so an interrupted run cannot leave a suite
+# and its watchers behind.
 # When PER_SCRIPT_TIMEOUT_SECS is positive, a script that outruns it is
 # terminated and reported as exit 124: a hung script must become a bounded
 # failure rather than an unbounded suite, because an unbounded suite is what
