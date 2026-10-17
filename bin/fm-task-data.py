@@ -56,7 +56,10 @@ Scratch moves to DATA/ID/.cleanup-hold with its relative paths intact; no bytes
 are copied. record/data-cleanup.json records the recovery, not a second task
 record. The next successful teardown of a DIFFERENT task expires the hold, after
 refreshing references and restoring newly linked files or directory descendants
-to their original paths under the same retention rules.
+to their original paths under the same retention rules. That teardown expires
+holds after releasing its own locks, least recently tried first, for at most
+FM_TEARDOWN_DATA_EXPIRE_TIMEOUT seconds (default 10); a hold it does not finish
+waits for a later teardown.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.
 An interrupted move resumes at the next cycle and receives a full new cycle.
