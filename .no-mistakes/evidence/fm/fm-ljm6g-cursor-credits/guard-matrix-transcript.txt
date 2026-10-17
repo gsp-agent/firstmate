@@ -1,0 +1,405 @@
+## pct at or over the limit: credit room keeps Cursor
+### pct 100, on-demand enabled, prepaid 445.63, used 138.38 of 400
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=138.38
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> cursor
+    PASS (expected cursor)
+
+### pct 89 (over 85), same credit room
+    file: cursor_models_pct=89
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=138.38
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> cursor
+    PASS (expected cursor)
+
+### pct 100, prepaid 0.01, used 399.99 of 400 (edge just inside)
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=0.01
+    file: monthly_additional_usage_used=399.99
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> cursor
+    PASS (expected cursor)
+
+## pct at or over the limit: no credit room diverts with the no-room message
+### pct 100, prepaid 184.05 but used 400.00 of 400 (Dale's 10-16 trace)
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=184.05
+    file: monthly_additional_usage_used=400.00
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt)
+
+### pct 100, on-demand disabled, prepaid 84.07, used 10 of 400
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=disabled
+    file: prepaid_balance=84.07
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### pct 100, on-demand not_set, prepaid 84.07, limit 0 (real 10-13 state)
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=not_set
+    file: prepaid_balance=84.07
+    file: monthly_additional_usage_used=0
+    file: monthly_additional_usage_limit=0
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### pct 100, on-demand room but prepaid 0
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=0
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### pct 100, prepaid 0.00
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=0.00
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### pct 100, used 400.001 just past 400
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=400.001
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### pct 85 exactly at the limit, no room
+    file: cursor_models_pct=85
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=0
+    file: monthly_additional_usage_used=400
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 85% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex Cursor Models at 85% (limit 85%) and no*)
+
+## unknown values are no room (adversarial)
+### prepaid_balance missing
+    file: cursor_models_pct=100
+    file: on_demand=enabled
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### on_demand missing
+    file: cursor_models_pct=100
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### monthly_additional_usage_used missing
+    file: cursor_models_pct=100
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_limit=400
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### monthly_additional_usage_limit missing
+    file: cursor_models_pct=100
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=10
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### used=not-available
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=not-available
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### used empty
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### prepaid negative (-5)
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=-5
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### prepaid in exponent form (1e3)
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=1e3
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### prepaid with a currency sign
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=$445.63
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### limit with a trailing space
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400 
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### on_demand=Enabled (wrong case)
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=Enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### CRLF line endings
+    file: cursor_models_pct=100^M
+    file: other_models_pct=45^M
+    file: on_demand=enabled^M
+    file: prepaid_balance=445.63^M
+    file: monthly_additional_usage_used=10^M
+    file: monthly_additional_usage_limit=400^M
+    file: cycle_resets=2026-11-14^M
+    file: read_at=2026-10-17T03:00-05:00^M
+    guard> codex cursor_models_pct missing or not an integer in 20261017-0800-spending.txt
+    PASS (expected codex *)
+
+### a later on_demand=disabled line wins
+    file: cursor_models_pct=100
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    file: on_demand=disabled
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+## credit room does not override the other guards
+### credit room with an off-pin pstack 0.15.22
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=138.38
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> grok pstack plugin version is '0.15.22', not the pinned 0.15.21
+    PASS (expected grok pstack plugin version is '0.15.22', not the pinned 0.15.21)
+
+### no room with an off-pin pstack still goes to codex, not grok
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=0
+    file: monthly_additional_usage_used=10
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex *no prepaid/on-demand credit room*)
+
+### credit room but this bead's last Cursor run hit a usage limit
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=138.38
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex cursor run for e1 exited 1 on a usage-limit/429 error; next launch goes to codex
+    PASS (expected codex cursor run for e1 exited 1 on a usage-limit/429 error*)
+
+### another bead (e2) is not moved by e1's marker
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=138.38
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> cursor
+    PASS (expected cursor)
+
+### no room and the bead's Codex run hit its limit goes to claude
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=400
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> claude Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt; codex run for e1 hit its usage limit
+    PASS (expected claude Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room*; codex run for e1 hit its usage limit)
+
+### credit room with a codex-limit marker stays on cursor
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=138.38
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> cursor
+    PASS (expected cursor)
+
+### stale file (30 h old by mtime) with credit room still diverts
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=138.38
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex newest Cursor spending file is 30 h old (limit 26 h)
+    PASS
+
+## below the limit nothing changed
+### pct 26 with on-demand disabled and no credit fields
+    file: cursor_models_pct=26
+    file: other_models_pct=45
+    file: on_demand=disabled
+    file: cycle_resets=2026-10-14
+    file: read_at=2026-10-12T15:12-05:00
+    guard> cursor
+    PASS (expected cursor)
+
+### pct 84 with no credit room at all
+    file: cursor_models_pct=84
+    file: other_models_pct=45
+    file: on_demand=disabled
+    file: prepaid_balance=0
+    file: monthly_additional_usage_used=400
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> cursor
+    PASS (expected cursor)
+
+### crew-dispatch.json models_pct 101 puts pct 100 below the limit
+    file: cursor_models_pct=100
+    file: other_models_pct=45
+    file: on_demand=disabled
+    file: prepaid_balance=0
+    file: monthly_additional_usage_used=400
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> cursor
+    PASS (expected cursor)
+
+### models_pct 50 from config; pct 60 with room stays on cursor
+    file: cursor_models_pct=60
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=138.38
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> cursor
+    PASS (expected cursor)
+
+### models_pct 50 from config; pct 60 without room diverts
+    file: cursor_models_pct=60
+    file: other_models_pct=45
+    file: on_demand=enabled
+    file: prepaid_balance=445.63
+    file: monthly_additional_usage_used=400
+    file: monthly_additional_usage_limit=400
+    file: cycle_resets=2026-11-14
+    file: read_at=2026-10-17T03:00-05:00
+    guard> codex Cursor Models at 60% (limit 50%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    PASS (expected codex Cursor Models at 60% (limit 50%) and no*)
+
+== 35 scenarios, 0 failed ==

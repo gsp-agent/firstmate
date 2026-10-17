@@ -1,0 +1,3 @@
+spending file: pct 100, on_demand=enabled, prepaid 445.63, used 138.38 of 400
+before (upstream-lean 433c7b85): codex Cursor Models at 100% (limit 85%)
+after  (branch b93556ea):        cursor

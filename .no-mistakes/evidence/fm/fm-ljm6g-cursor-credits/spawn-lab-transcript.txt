@@ -1,0 +1,57 @@
+### pct 100 with enabled on-demand room and prepaid credit: spawn stays on Cursor
+    spending file:
+      cursor_models_pct=100
+      other_models_pct=45
+      on_demand=enabled
+      prepaid_balance=445.63
+      monthly_additional_usage_used=138.38
+      monthly_additional_usage_limit=400
+      cycle_resets=2026-11-14
+      read_at=2026-10-17T03:00-05:00
+    $ fm-spawn.sh lab-room-c1 projects/labproj --mode no-mistakes --yolo off --harness cursor   (exit 1)
+      fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+      cursor guard: refused lab-room-c1, already launched 2 times today (2026-10-17); write blocked: instead of a 3rd run
+    state/lab-room-c1.cursor-fallback: (absent)
+    state/lab-room-c1.meta: absent
+    lab tmux windows: zsh 
+    cursor-dispatch.json: {"day":"2026-10-17","beads":{"lab-room-c1":2}}
+
+### pct 100 with prepaid credit but on-demand used at the limit: spawn falls back to Codex
+    spending file:
+      cursor_models_pct=100
+      other_models_pct=45
+      on_demand=enabled
+      prepaid_balance=184.05
+      monthly_additional_usage_used=400.00
+      monthly_additional_usage_limit=400
+      cycle_resets=2026-11-14
+      read_at=2026-10-17T03:00-05:00
+    $ fm-spawn.sh lab-noroom-c2 projects/labproj --mode no-mistakes --yolo off --harness cursor   (exit 1)
+      fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+      cursor fallback: launching lab-noroom-c2 on the codex harness (default model xhigh): Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+      error: spawn refused: the project capacity declaration is unreadable (<lab>/config/project-capacity line 2 names labproj a second time); fix it so the captain's worker limits are known (docs/configuration.md "Project capacity")
+    state/lab-noroom-c2.cursor-fallback: Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    state/lab-noroom-c2.meta: absent
+    lab tmux windows: zsh 
+    cursor-dispatch.json: {"day":"2026-10-17","beads":{"lab-noroom-c2":2}}
+
+### pct 100 with prepaid credit but on-demand disabled: spawn falls back to Codex
+    spending file:
+      cursor_models_pct=100
+      other_models_pct=45
+      on_demand=disabled
+      prepaid_balance=84.07
+      monthly_additional_usage_used=10
+      monthly_additional_usage_limit=400
+      cycle_resets=2026-11-14
+      read_at=2026-10-17T03:00-05:00
+    $ fm-spawn.sh lab-off-c3 projects/labproj --mode no-mistakes --yolo off --harness cursor   (exit 1)
+      fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+      cursor fallback: launching lab-off-c3 on the codex harness (default model xhigh): Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+      error: spawn refused: the project capacity declaration is unreadable (<lab>/config/project-capacity line 2 names labproj a second time); fix it so the captain's worker limits are known (docs/configuration.md "Project capacity")
+    state/lab-off-c3.cursor-fallback: Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 20261017-0800-spending.txt
+    state/lab-off-c3.meta: absent
+    lab tmux windows: zsh 
+    cursor-dispatch.json: {"day":"2026-10-17","beads":{"lab-off-c3":2}}
+
+lab user-home after the runs: 

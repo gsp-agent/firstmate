@@ -1,0 +1,5 @@
+cursor_models_pct=100
+on_demand=enabled
+prepaid_balance=445.63
+monthly_additional_usage_used=138.38
+monthly_additional_usage_limit=400
