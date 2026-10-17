@@ -209,8 +209,8 @@ cycle_log_append() {
 
   i=0
   while ! fm_lock_try_acquire "$CYCLE_LOG_LOCK"; do
-    [ "$i" -lt 20 ] || return 0
-    sleep 0.02
+    [ "$i" -lt 4 ] || return 0
+    sleep 0.1
     i=$((i + 1))
   done
   printf 'arm_pid=%s\twatcher_pid=%s\torigin=%s\tstarted_at=%s\tended_at=%s\texit_code=%s\tsignal=%s\treason=%s\tbeacon_age=%s\tlock_before=%s\tlock_after=%s\tsuccessor=%s\n' \
@@ -259,8 +259,8 @@ cycle_mark_predecessor_successor() {
   [ -f "$CYCLE_LOG" ] || return 0
   i=0
   while ! fm_lock_try_acquire "$CYCLE_LOG_LOCK"; do
-    [ "$i" -lt 20 ] || return 0
-    sleep 0.02
+    [ "$i" -lt 4 ] || return 0
+    sleep 0.1
     i=$((i + 1))
   done
   tmp="$CYCLE_LOG.link.$ARM_PID"
@@ -347,8 +347,8 @@ cycle_delivered_reason() {
   clean_identity=$(printf '%s' "$cycle_watcher_identity" | tr '\t\r\n' '   ')
   i=0
   while ! fm_lock_try_acquire "$WATCH_DELIVERY_LOCK"; do
-    [ "$i" -lt 20 ] || return 1
-    sleep 0.02
+    [ "$i" -lt 4 ] || return 1
+    sleep 0.1
     i=$((i + 1))
   done
   if [ -f "$WATCH_DELIVERY_LOG" ]; then
@@ -577,13 +577,13 @@ take_over_cycle() {  # <watcher-pid> <identity>
   # self-exit that raced the stop. Give its post-wait ledger append a short bound.
   i=0
   owner_signal=
-  while [ "$i" -lt 50 ]; do
+  while [ "$i" -lt 10 ]; do
     owner_signal=$(awk -F '\t' -v arm="$take_over_arm_pid" -v watcher="$pid" '
       $1 == "arm_pid=" arm && $2 == "watcher_pid=" watcher { signal = $7 }
       END { sub(/^signal=/, "", signal); print signal }
     ' "$CYCLE_LOG" 2>/dev/null || true)
     [ -z "$owner_signal" ] || break
-    sleep 0.02
+    sleep 0.1
     i=$((i + 1))
   done
   if [ "$owner_signal" = TERM ]; then
@@ -653,7 +653,7 @@ handle_arm_signal() {
         kill -TERM "$child" 2>/dev/null || true
         break
       fi
-      sleep 0.02
+      sleep 0.1
     done
     wait "$child" 2>/dev/null || true
   fi

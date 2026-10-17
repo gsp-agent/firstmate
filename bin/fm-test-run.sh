@@ -75,8 +75,14 @@
 #                   slowest CI hint with margin; exceeding it becomes a bounded
 #                   failure, not proof of a hang. --max-wall-ms is checked
 #                   after the run and so cannot catch a hang on its own.
-#                   External interruption cleanup is outside this runner's
-#                   guarantee; configured per-script bounds remain authoritative.
+#                   With or without a bound, each script runs in its own
+#                   process group under fm_exec_timed (bin/fm-timeout-lib.sh),
+#                   so the runner the caller launched, killed or interrupted
+#                   mid-run, takes the running script's group down with it
+#                   rather than leaving it behind, also when the machine gate
+#                   re-executed it, and no further script starts. Taking the
+#                   group down needs perl: fm_exec_timed's timeout fallback
+#                   bounds the script only by its deadline.
 #   --max-wall-ms N fail the run when its measured invocation wall clock exceeds
 #                   N milliseconds, including an empty selection. It is
 #                   evaluated after selection and suite execution and cannot
@@ -2366,11 +2372,9 @@ if [ "$JOBS" -gt 1 ]; then
   rm -f "$SCHEDULE_TMP"
 fi
 
-if [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ]; then
-  [ -r "$ROOT/bin/fm-timeout-lib.sh" ] || die "per-script timeout helper not found: bin/fm-timeout-lib.sh"
-  # shellcheck source=bin/fm-timeout-lib.sh
-  . "$ROOT/bin/fm-timeout-lib.sh"
-fi
+[ -r "$ROOT/bin/fm-timeout-lib.sh" ] || die "script supervision helper not found: bin/fm-timeout-lib.sh"
+# shellcheck source=bin/fm-timeout-lib.sh
+. "$ROOT/bin/fm-timeout-lib.sh"
 
 # Refusals above exit before this, so a refused run does not take the turn.
 enter_machine_line "$ROOT/bin/fm-test-run.sh" ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}
@@ -2390,6 +2394,10 @@ cleanup_run() {
 }
 
 trap cleanup_run EXIT
+# Ctrl-C reaches the script's own process group through fm_exec_timed, which
+# ends the script and returns normally, so without this the run would move on
+# to the next script instead of stopping.
+trap 'exit 130' INT
 
 RUN_ID="fm-test-run-${RUN_STARTED_MS}-$$"
 TOTAL=0
@@ -2468,12 +2476,19 @@ record_script_result() {
 }
 
 # Run <script>, capturing output to <out>. <stream> 1 also echoes it live.
-# <id> only has to be unique within this run. When PER_SCRIPT_TIMEOUT_SECS is
-# positive, a script that outruns it is terminated and reported as exit 124: a
-# hung script must become a bounded failure rather than an unbounded suite,
-# because an unbounded suite is what silently outruns its caller's budget.
+# <id> only has to be unique within this run. Every script runs in its own
+# process group under fm_exec_timed, whose perl watchdog ends that group when
+# this runner or the runner the caller launched (RUN_OWNER_PID, across a
+# machine-gate re-execution) dies, so an interrupted run cannot leave a suite
+# and its watchers behind.
+# When PER_SCRIPT_TIMEOUT_SECS is positive, a script that outruns it is
+# terminated and reported as exit 124: a hung script must become a bounded
+# failure rather than an unbounded suite, because an unbounded suite is what
+# silently outruns its caller's budget. With 0 the deadline is out of reach.
+SCRIPT_GRACE_SECS=10
+UNBOUNDED_SCRIPT_SECS=315360000
 run_script_bounded() {  # <script> <out> <stream> <id>
-  local script=$1 out=$2 stream=$3 id=$4
+  local script=$1 out=$2 stream=$3 id=$4 bound=$PER_SCRIPT_TIMEOUT_SECS
   # Declaring the variables local first keeps the helper's export scoped to this
   # call and its child script, so the runner's own environment is left as the
   # caller had it.
@@ -2482,23 +2497,21 @@ run_script_bounded() {  # <script> <out> <stream> <id>
   . "$ROOT/tests/git-config-helpers.sh" || return
   local rc
   : "$id"
+  [ "$bound" -gt 0 ] || bound=$UNBOUNDED_SCRIPT_SECS
   set +e
   if [ "$stream" -eq 1 ]; then
-    if [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ]; then
-      # Expansion is intentionally deferred to the child bash passed to -c.
-      # shellcheck disable=SC2016
-      fm_run_timed "$PER_SCRIPT_TIMEOUT_SECS" bash -c \
-        'bash "$1" 2>&1 | tee "$2"; exit "${PIPESTATUS[0]}"' _ "$script" "$out"
-      rc=$?
-    else
-      bash "$script" 2>&1 | tee "$out"
-      rc=${PIPESTATUS[0]}
-    fi
-  elif [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ]; then
-    fm_run_timed "$PER_SCRIPT_TIMEOUT_SECS" bash "$script" >"$out" 2>&1
+    # Expansion is intentionally deferred to the child bash passed to -c.
+    # shellcheck disable=SC2016
+    (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
+      fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash -c '
+        trap "suite_rc=\${suite_rc:-\${PIPESTATUS[0]}}" HUP INT TERM
+        bash "$1" 2>&1 | (trap "" HUP INT TERM; exec tee "$2")
+        exit "${suite_rc:-${PIPESTATUS[0]}}"
+      ' _ "$script" "$out")
     rc=$?
   else
-    bash "$script" >"$out" 2>&1
+    (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
+      fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash "$script") >"$out" 2>&1
     rc=$?
   fi
   if [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ] && [ "$rc" -eq 124 ]; then
@@ -2509,9 +2522,21 @@ run_script_bounded() {  # <script> <out> <stream> <id>
   return "$rc"
 }
 
+# Once the runner the caller launched is gone, every running script's watchdog
+# is already ending its group: wait for those, start nothing further, and
+# leave, so a gated re-execution does not hold the machine line for a run
+# nobody is waiting on. Called before each script starts, on every path.
+stop_when_owner_gone() {
+  kill -0 "$RUN_OWNER_PID" 2>/dev/null && return 0
+  log "the runner the caller launched (pid $RUN_OWNER_PID) is gone; starting no further scripts"
+  wait
+  exit 143
+}
+
 run_one_serial() {
   local script=$1
   local base family expected out begin_iso begin_ms end_ms end_iso duration rc
+  stop_when_owner_gone
   base=$(basename "$script")
   family=$(family_for_basename "$base")
   expected=$(expected_gate_skip_for_family "$family")
@@ -2628,6 +2653,7 @@ else
     while [ "$active_workers" -ge "$JOBS" ]; do
       wait_one_completed_job_worker
     done
+    stop_when_owner_gone
     worker_n=$((worker_n + 1))
     work="$RUN_TMP/w$worker_n"
     mkdir -p "$work/tmp"

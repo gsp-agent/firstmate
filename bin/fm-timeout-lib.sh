@@ -223,7 +223,7 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
   owner=${FM_EXEC_TIMED_OWNER_PID:-$$}
   unset FM_EXEC_TIMED_OWNER_PID
   if command -v perl >/dev/null 2>&1; then
-    exec perl -MPOSIX=WNOHANG,setpgid -MTime::HiRes=time -e '
+    exec perl -MPOSIX=WNOHANG,setpgid,sigprocmask,SIG_BLOCK,SIG_SETMASK,SIGTERM,SIGINT,SIGHUP -MTime::HiRes=time -e '
       my ($bound, $grace, $owner, $shell_parent) = (shift, shift, shift, shift);
       # exec preserves the shell PID, including in Bash 3.2 subshells where
       # BASHPID is unavailable. Keep the pre-exec parent for startup races.
@@ -236,16 +236,24 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
           $kill_at ||= time + $grace;
         };
       }
+      # Hold these signals from the fork until the child has reset them: perl
+      # defers one that lands before the reset and dispatches it afterwards
+      # as a call to a sub named DEFAULT, which drops it.
+      my $mask = POSIX::SigSet->new;
+      sigprocmask(SIG_BLOCK, POSIX::SigSet->new(SIGTERM, SIGINT, SIGHUP), $mask);
       my $child = fork;
       exit 127 unless defined $child;
       if ($child == 0) {
         $SIG{$_} = "DEFAULT" for qw(TERM INT HUP);
+        kill $pending, $$ if $pending;
         setpgid(0, 0);
+        sigprocmask(SIG_SETMASK, $mask);
         exec @ARGV;
         exit 127;
       }
       setpgid($child, $child);
       $pid = $child;
+      sigprocmask(SIG_SETMASK, $mask);
       kill $pending, -$pid if $pending;
       my $deadline = time + $bound;
       sub finish {
