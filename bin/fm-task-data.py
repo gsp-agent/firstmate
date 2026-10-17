@@ -4,7 +4,11 @@
 Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py stage DATA STATE ID PROJECT PR
        fm-task-data.py expire DATA STATE ID
-The caller must hold STATE/.meta-ID.lock, the lock also used by spawn.
+       fm-task-data.py pending DATA
+Prepare, stage and expire need the caller to hold STATE/.meta-ID.lock, the lock
+also used by spawn.
+Pending takes no lock and prints, in one pass, the task ids of cleanup records
+that have not expired, least recently tried first.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
 Without metadata, prepare reads the latest completed markdown backlog row,
 including the configured archive (legacy mode needs tomllib), when there is no
@@ -56,10 +60,14 @@ Scratch moves to DATA/ID/.cleanup-hold with its relative paths intact; no bytes
 are copied. record/data-cleanup.json records the recovery, not a second task
 record. The next successful teardown of a DIFFERENT task expires the hold, after
 refreshing references and restoring newly linked files or directory descendants
-to their original paths under the same retention rules. That teardown expires
-holds after releasing its own locks, least recently tried first, for at most
-FM_TEARDOWN_DATA_EXPIRE_TIMEOUT seconds (default 10); a hold it does not finish
-waits for a later teardown.
+to their original paths under the same retention rules. That teardown lists
+pending records, then expires holds after releasing its own locks, least recently
+tried first, for at most FM_TEARDOWN_DATA_EXPIRE_TIMEOUT seconds (default 10)
+counted from the end of the listing.
+Each attempt marks its record tried before it starts, so a hold cut off before
+it writes anything still moves behind the others.
+A hold the teardown does not finish waits for a later teardown, and the holds
+its budget never reached are named in one warning.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.
 An interrupted move resumes at the next cycle and receives a full new cycle.
@@ -95,6 +103,7 @@ LIMIT = 1024 * 1024
 TEXT = {".txt", ".md", ".log", ".json"}
 HOLD = ".cleanup-hold"
 RECEIPT = "record/data-cleanup.json"
+TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 
 class UnreadReferences(ValueError):
@@ -498,8 +507,30 @@ def remove_entries(root, files, directories):
         guard_command(["rmdir", "--", *paths])
 
 
+def pending(data):
+    tried = []
+    for receipt in real_directory(data).glob(f"*/{RECEIPT}"):
+        task_id = receipt.parent.parent.name
+        if not TASK_ID.fullmatch(task_id):
+            continue
+        try:
+            info = receipt.lstat()
+        except OSError:
+            continue
+        record = None
+        if stat.S_ISREG(info.st_mode) and info.st_size <= LIMIT:
+            try:
+                record = json.loads(receipt.read_text())
+            except (OSError, ValueError):
+                pass
+        if not (isinstance(record, dict) and record.get("version") == 1 and record.get("expired") is True):
+            tried.append((info.st_mtime, task_id))
+    for _, task_id in sorted(tried):
+        print(task_id)
+
+
 def cleanup(action, data, state, task_id, project="", pr=""):
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", task_id):
+    if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
     data, state = real_directory(data), real_directory(state)
     meta = state / f"{task_id}.meta"
@@ -686,11 +717,12 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(0)
     try:
-        if (len(sys.argv) < 2 or sys.argv[1] not in ("prepare", "stage", "expire")
-                or len(sys.argv) not in ({5, 6} if sys.argv[1] == "prepare"
-                                        else {7} if sys.argv[1] == "stage" else {5})):
+        arities = {"prepare": {5, 6}, "stage": {7}, "expire": {5}, "pending": {3}}
+        if len(sys.argv) < 2 or len(sys.argv) not in arities.get(sys.argv[1], ()):
             raise ValueError(__doc__)
-        if sys.argv[1] == "prepare" and len(sys.argv) == 6:
+        if sys.argv[1] == "pending":
+            pending(sys.argv[2])
+        elif sys.argv[1] == "prepare" and len(sys.argv) == 6:
             cleanup(*sys.argv[1:5], pr=sys.argv[5])
         else:
             cleanup(*sys.argv[1:])

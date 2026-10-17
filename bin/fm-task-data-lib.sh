@@ -17,29 +17,34 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
 }
 
 fm_task_data_expire_others() { # <data> <state> <id>
-  local data=$1 state=$2 id=$3 helper candidate other lock budget start remaining status rc=0
+  local data=$1 state=$2 id=$3 helper listed other lock budget start remaining status rc=0 i
+  local pending=()
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   command -v python3 >/dev/null 2>&1 || return 1
   budget=${FM_TEARDOWN_DATA_EXPIRE_TIMEOUT:-10}
   case "$budget" in ''|0*|*[!0-9]*) budget=10 ;; esac
+  listed=$(python3 "$helper" pending "$data") || return 1
+  while IFS= read -r other; do
+    if [ -n "$other" ] && [ "$other" != "$id" ] && fm_task_id_path_safe "$other"; then
+      pending+=("$other")
+    fi
+  done <<< "$listed"
   start=$SECONDS
   # A concurrent teardown holds its own lock. Skip it instead of waiting on a
   # cycle of locks; only a later, different completed task expires a recovery.
-  # Each attempt rewrites its record first, so ordering by record age keeps one
+  # Each attempt touches its record first, so ordering by record age keeps one
   # slow hold from taking every teardown's budget.
-  while IFS= read -r candidate; do
+  for ((i = 0; i < ${#pending[@]}; i++)); do
     remaining=$((budget - (SECONDS - start)))
-    [ "$remaining" -gt 0 ] || break
-    if jq -e 'type == "object" and .version == 1 and .expired == true' "$candidate" >/dev/null 2>&1; then
-      continue
+    if [ "$remaining" -le 0 ]; then
+      echo "warning: the ${budget}s task-data expiry budget ran out; holds left for a later teardown: ${pending[*]:i}" >&2
+      break
     fi
-    other=${candidate%/record/data-cleanup.json}
-    other=${other##*/}
-    [ "$other" != "$id" ] || continue
-    fm_task_id_path_safe "$other" || continue
+    other=${pending[i]}
     lock=$(fm_meta_lock_path "$state/$other.meta") || continue
     fm_lock_try_acquire "$lock" || continue
     if [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ]; then
+      touch -h -c "$data/$other/record/data-cleanup.json" 2>/dev/null || true
       status=0
       fm_run_timed "$remaining" python3 "$helper" expire "$data" "$state" "$other" || status=$?
       if fm_timed_out "$status"; then
@@ -48,12 +53,7 @@ fm_task_data_expire_others() { # <data> <state> <id>
       [ "$status" = 0 ] || rc=1
     fi
     fm_lock_release "$lock"
-  done < <(
-    for candidate in "$data"/*/record/data-cleanup.json; do
-      [ -f "$candidate" ] || continue
-      printf '%s\t%s\n' "$(fm_path_mtime "$candidate")" "$candidate"
-    done | sort -n -k1,1 | cut -f2-
-  )
+  done
   return "$rc"
 }
 
