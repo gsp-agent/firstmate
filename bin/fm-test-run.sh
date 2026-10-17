@@ -2530,12 +2530,15 @@ run_script_bounded() {  # <script> <out> <stream> <id>
   set +e
   if [ "$stream" -eq 1 ]; then
     # Expansion is intentionally deferred to the child bash passed to -c.
+    # The wrapper catches the signals so it outlives the script's own
+    # handling of them. Its trap action runs no command, because on Bash 3.2
+    # any command it ran would replace PIPESTATUS before the exit reads it.
     # shellcheck disable=SC2016
     (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
       fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash -c '
-        trap "suite_rc=\${suite_rc:-\${PIPESTATUS[0]}}" HUP INT TERM
+        trap " " HUP INT TERM
         bash "$1" 2>&1 | (trap "" HUP INT TERM; exec tee "$2")
-        exit "${suite_rc:-${PIPESTATUS[0]}}"
+        exit "${PIPESTATUS[0]}"
       ' _ "$script" "$out")
     rc=$?
   else
@@ -2560,6 +2563,16 @@ stop_when_owner_gone() {
   log "the runner the caller launched (pid $RUN_OWNER_PID) is gone; starting no further scripts"
   wait
   exit 143
+}
+
+# fm_exec_timed reports 130 once an INT reached the script's watchdog. This
+# runner's INT trap cannot fire when it inherited INT ignored, so that status
+# is the run's interrupt: stop as the trap would, after the running scripts.
+stop_when_interrupted() {  # <rc>
+  [ "$1" -eq 130 ] || return 0
+  log "a script was interrupted; starting no further scripts"
+  wait
+  exit 130
 }
 
 run_one_serial() {
@@ -2590,6 +2603,7 @@ run_one_serial() {
     duration=0
   fi
   record_script_result "$script" "$rc" "$duration" "$out" "$end_iso"
+  stop_when_interrupted "$rc"
 }
 
 if [ "$JOBS" -eq 1 ]; then
@@ -2644,6 +2658,7 @@ else
       esac
     fi
     record_script_result "$script" "$rc" "$duration" "$out" "$end_iso"
+    stop_when_interrupted "$rc"
   }
 
   worker_pid_is_running() {

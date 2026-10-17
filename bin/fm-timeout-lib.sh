@@ -43,7 +43,11 @@
 #       deadline and grace, so owner death alone does not stop the command.
 #       Exit status is the command's own, except 124 (the bound was hit) or
 #       137 (GNU timeout's status when its KILL had to fire); fm_timed_out
-#       accepts both. The seconds and grace values must be positive integers
+#       accepts both. The perl watchdog also reports 130 once an INT has
+#       reached it, whatever the command then did: a caller started in the
+#       background by a non-interactive shell inherits INT ignored, so this
+#       status is the only way it learns of the interrupt. The seconds and
+#       grace values must be positive integers
 #       (125 otherwise). The perl watchdog is
 #       preferred: once termination has begun it also KILLs whatever the group
 #       left behind, so a descendant that outlives the command and holds its
@@ -229,11 +233,12 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
       # BASHPID is unavailable. Keep the pre-exec parent for startup races.
       $owner = $shell_parent if $owner == $$;
       my $parent = getppid();
-      my ($pid, $pending, $kill_at, $timed_out) = (0, "", 0, 0);
+      my ($pid, $pending, $kill_at, $timed_out, $interrupted) = (0, "", 0, 0, 0);
       for my $sig (qw(TERM INT HUP)) {
         $SIG{$sig} = sub {
           if ($pid) { kill $sig, -$pid } else { $pending = $sig }
           $kill_at ||= time + $grace;
+          $interrupted = 1 if $sig eq "INT";
         };
       }
       # Hold these signals from the fork until the child has reset them: perl
@@ -260,6 +265,7 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
         my $status = shift;
         kill "KILL", -$pid if $kill_at;
         exit 124 if $timed_out;
+        exit 130 if $interrupted;
         exit(($status & 127) ? 128 + ($status & 127) : $status >> 8);
       }
       while (1) {
