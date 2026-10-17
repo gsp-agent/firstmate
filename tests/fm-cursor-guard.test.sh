@@ -73,6 +73,12 @@ printf 'cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=
 [ "$(fb e1)" = cursor ] || fail "100% with on-demand room must stay on cursor: $(fb e1)"
 printf 'cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with no credit room must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with on-demand used missing must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=not-available\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with non-numeric on-demand used must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with on-demand limit missing must fall back: $(fb e1)" ;; esac
 # the live 89% reading goes to codex; a codex-limit marker sends the bead to claude
 printf 'cursor_models_pct=89\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 case "$(fb e1)" in "codex Cursor Models at 89% (limit 85%)"*) ;; *) fail "89% must fall back to codex: $(fb e1)" ;; esac
