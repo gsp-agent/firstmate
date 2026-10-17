@@ -11,14 +11,17 @@
 #   - the worker: the task record's harness= and model=, written
 #     `Made-with: <harness> (<model>)`, with the model left out when it is
 #     empty or `default`;
-#   - each no-mistakes agent with a fixing call (review-fix, test-fix,
-#     lint-fix, document, rebase, ci) that exited ok in a run recorded for this
-#     pull request or for the task's branch in its project, written
+#   - each no-mistakes agent that wrote a `no-mistakes(<step>): ...` commit
+#     the pull request carries, written
 #     `Made-with: <agent> (<model>) via no-mistakes`, unless that agent is the
-#     worker's harness. The source is no-mistakes' local state database, read
-#     read-only as bin/fm-pipeline-spend.sh reads it. A fixing call that
-#     changed nothing still names its agent: an extra family only keeps a
-#     same-family review out.
+#     worker's harness. The commit's author time names the call: the latest
+#     committing call (review-fix, test-fix, lint, lint-fix, document,
+#     housekeeping, ci) of that step that exited ok at or before it, in a run
+#     recorded for this pull request or for the task's branch in its project.
+#     The source is no-mistakes' local state database, opened read-only as
+#     bin/fm-pipeline-spend.sh opens it. A fixing call that committed nothing
+#     names no one, and neither does the configured agent: only what the run
+#     recorded.
 # Only lines the body lacks are appended, after a blank line at its end. The
 # existing body stays byte for byte as the prefix, so a rerun changes nothing.
 # GitHub offers only a full-body write, so the edit follows the read at once.
@@ -78,28 +81,48 @@ HARNESS=$(meta_value harness)
 PROJECT=$(meta_value project)
 LINES=$(engine_line "$HARNESS" "$(meta_value model)")
 
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-pr-made-with.XXXXXX")
+trap 'rm -rf "$TMP"' EXIT
+gh pr view "$URL" --json body,commits > "$TMP/pr.json" || fail "could not read the body of $URL"
+
 RC=0
 DB=$(fm_nm_state_db "${PROJECT:-$STATE}")
 if [ -f "$DB" ]; then
-  FIXERS=$(fm_nm_bounded "$STATE" 30 python3 -I - "$DB" "$URL" "$(meta_value branch)" "$PROJECT" <<'PY'
+  FIXERS=$(fm_nm_bounded "$STATE" 30 python3 -I - "$DB" "$TMP/pr.json" "$URL" "$(meta_value branch)" "$PROJECT" <<'PY'
+import json
+import re
 import sqlite3
 import sys
 from contextlib import closing
+from datetime import datetime
 from pathlib import Path
 
-db, url, branch, project = sys.argv[1:5]
-fixing = ("review-fix", "test-fix", "lint-fix", "document", "rebase", "ci")
+db, pr_json, url, branch, project = sys.argv[1:6]
+with open(pr_json, encoding="utf-8") as f:
+    commits = json.load(f).get("commits") or []
+writes = []
+for commit in commits:
+    step = re.match(r"no-mistakes\(([a-z-]+)\):", commit.get("messageHeadline") or "")
+    if step:
+        when = datetime.fromisoformat(commit["authoredDate"].replace("Z", "+00:00"))
+        writes.append((when.timestamp(), step[1]))
+committing = ("review-fix", "test-fix", "lint", "lint-fix", "document", "housekeeping", "ci")
 query = (
     "SELECT a.agent, COALESCE(a.model, '') FROM agent_invocations a"
     " JOIN runs r ON r.id = a.run_id JOIN repos p ON p.id = r.repo_id"
     " WHERE (r.pr_url = ? OR (r.branch = ? AND p.working_path = ?))"
-    " AND a.exit_status = 'ok' AND a.purpose IN (%s)"
-    " GROUP BY 1, 2 ORDER BY MIN(a.started_at)" % ", ".join("?" * len(fixing))
+    " AND a.exit_status = 'ok' AND a.step_name = ? AND a.started_at <= ?"
+    " AND a.purpose IN (%s) ORDER BY a.started_at DESC LIMIT 1" % ", ".join("?" * len(committing))
 )
+named = []
 with closing(sqlite3.connect(Path(db).as_uri() + "?mode=ro", uri=True, timeout=20)) as con:
-    for agent, model in con.execute(query, (url, branch, project, *fixing)):
-        if agent and not any(c in agent + model for c in "\t\r\n"):
-            print(f"{agent}\t{model}")
+    for when, step in sorted(writes):
+        row = con.execute(query, (url, branch, project, step, when, *committing)).fetchone()
+        if row and row[0] and row not in named:
+            named.append(row)
+for agent, model in named:
+    if not any(c in agent + model for c in "\t\r\n"):
+        print(f"{agent}\t{model}")
 PY
   ) || { RC=1; echo "fm-pr-made-with: could not read no-mistakes fixing agents from $DB; naming the worker only" >&2; }
   while IFS="$(printf '\t')" read -r agent model; do
@@ -111,9 +134,6 @@ ${FIXERS:-}
 EOF
 fi
 
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-pr-made-with.XXXXXX")
-trap 'rm -rf "$TMP"' EXIT
-gh pr view "$URL" --json body > "$TMP/pr.json" || fail "could not read the body of $URL"
 jq --arg add "$LINES" '
   (.body // "") as $body
   | ($body | split("\n") | map(rtrimstr("\r"))) as $have

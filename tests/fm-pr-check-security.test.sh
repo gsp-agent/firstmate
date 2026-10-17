@@ -352,8 +352,8 @@ case "${1:-} ${2:-}" in
         printf '%s\n' "{\"headRefOid\":\"${FM_TEST_GH_HEAD:-0123456789abcdef0123456789abcdef01234567}\",\"reviewDecision\":\"APPROVED\"}"
         exit 0
         ;;
-      *" --json body "*)
-        "$FM_TEST_REAL_JQ" -n '{body: "Body."}'
+      *" --json body,commits "*)
+        "$FM_TEST_REAL_JQ" -n '{body: "Body.", commits: []}'
         exit 0
         ;;
     esac
