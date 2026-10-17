@@ -1115,7 +1115,8 @@ The file lives in the machine's root Firstmate home, so every local secondmate h
 my-project 2
 ```
 
-The name is the project's registered name, which is its clone directory name and may contain spaces, and the number, the last field on the line, is a positive integer.
+The name is the project's registered name, which is its clone directory name and may contain spaces, and the number, the last field on the line, is 0 or a positive integer.
+A count of 0 admits no worker for that project, and a headroom reading does not start one past it.
 A line that is only `#`, or that begins with `#` followed by whitespace, is a comment, as is a `#` line whose last field is not an integer.
 A project name may begin with `#` when that `#` is written immediately against the rest of the name and the line ends with the project's capacity.
 A name that is `#`, or that begins with `#` and a space, cannot be declared, because that line is a comment.
@@ -1123,9 +1124,21 @@ A place is held by every ship or scout on that project in the root home or any l
 The declaration is matched by the spawning clone's directory name, so clones of the same origin share the cap only when they use that same directory name.
 A clone of that origin under a different directory name finds no declaration and is not capped, though its workers are still counted as holders for a same-origin clone that is capped.
 When every place is held, `bin/fm-spawn.sh` launches nothing, creates no record, leaves the backlog item queued, prints one `deferred:` line naming the holders, and exits 75, so Firstmate dispatches the item again once a place frees.
-A malformed or unreadable file refuses every fresh ship or scout spawn until it is fixed, rather than guessing the intended limit, and so does a local home's state directory or task record that cannot be read while counting a capped project's holders.
+That deferral is unchanged when `config/project-capacity-headroom` is absent or contains no non-whitespace line.
+When the file's one line names a reading program and that program exits 0, one spawn past the declared count can launch for that project.
+When that extra start is admitted, the spawn logs the program's first stdout line; [`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns that log line.
+A second extra spawn for the same project waits until 420 seconds after that start.
+A program that is missing, unreadable, or not executable, that exits non-zero, or that is still running after 5 seconds, counts as no room, and the spawn is deferred.
+The line is the program and its arguments, split on whitespace.
+The shell does not evaluate the line, so a program path that contains whitespace cannot be named.
+One reading that fits the line is `node` followed by the absolute path of `machine-headroom.mjs`.
+From the checkout that contains that file the same program is `node machine-headroom.mjs`, and this check does not change directory, so the config line uses the absolute path.
+That program prints one line, `cpu_idle_pct=<n|unread> load1=<n|unread> disk_free_gb=<n|unread>`, and exits 0 only when CPU idle is at least 25%, the 1-minute load is under 80, and free disk is at least 50 GB.
+The file is read from the machine's root home, as `config/project-capacity` is, and a copy in a secondmate home is not consulted.
+Workers that are already running are left running.
+A malformed or unreadable capacity file refuses every fresh ship or scout spawn until it is fixed, rather than guessing the intended limit, and so does a local home's state directory or task record that cannot be read while counting a capped project's holders.
 Firstmate cannot see which part of a worker's life uses the resource, so the number bounds whole workers from launch to handoff, and the tightest resource every worker needs should decide it.
-[`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns the file format, what holds a place, and why concurrent spawns cannot both take the last one.
+[`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns the capacity file format, what holds a place, the headroom program, the 420-second record, and why concurrent spawns cannot both take the last place or the extra start.
 
 ## Crew dispatch profiles (config/crew-dispatch.json)
 
