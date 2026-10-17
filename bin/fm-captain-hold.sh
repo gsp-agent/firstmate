@@ -83,7 +83,10 @@
 # ordinary captain holds. Its route command alone classifies technical holds.
 # Routing state and pending bodies stay under this home's state/hold-domain,
 # keeping supervision required until the existing watcher sweeps them against
-# live backlog state. Deferred holds remain pending until their --until date.
+# live backlog state. Each hold, re-hold and sweep row asks the router before
+# spooling, so a protected ask or human owner retires at once and stays a plain
+# captain hold. A future --until is classified at the hold-set stamp, so an
+# eligible deferral stays pending until its date without an early prompt.
 # Only an exact routed.tsv receipt for this task, stamp and owner permits an
 # agent-routed resolution and unhold. The receipt remains for
 # retries; the resolution body records it as routing evidence, never as the
@@ -1170,7 +1173,8 @@ write_hold_domain_fields() {  # <id> <decoded-body> <owner> <timeout> <one-line-
 }
 
 retire_hold_route() {
-  rm -f -- "$STATE/hold-domain/pending/$1.body" || fail "could not retire hold routing for $1"
+  rm -f -- "$STATE/hold-domain/pending/$1.body" "$STATE/hold-domain/pending/.route.$1" \
+    || fail "could not retire hold routing for $1"
 }
 
 route_hold() {  # <id>; caller owns the task control lock
@@ -1226,23 +1230,28 @@ route_hold() {  # <id>; caller owns the task control lock
   [ "$live_reason" = "$reason" ] || fail "task $id has divergent hold and routing reasons; leaving the hold intact"
   (umask 077; mkdir -p "$STATE/hold-domain/pending") || fail "cannot create routing spool"
   pending="$STATE/hold-domain/pending/$id.body"
-  tmp=$(umask 077; mktemp "$STATE/hold-domain/pending/.route.XXXXXX") || fail "cannot stage routing body"
-  printf 'Captain hold set: %s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\n' \
-    "$stamp" "$owner" "$timeout" "$reason" > "$tmp" || fail "cannot stage routing body"
-  mv -f -- "$tmp" "$pending" || fail "cannot publish routing body"
+  # One staging name per task: the control lock serializes it, and a retry
+  # overwrites what an interrupted router call left behind.
+  tmp="$STATE/hold-domain/pending/.route.$id"
+  (umask 077; printf 'Captain hold set: %s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\n' \
+    "$stamp" "$owner" "$timeout" "$reason" > "$tmp") || { rm -f -- "$tmp"; fail "cannot stage routing body"; }
+  local -a args=(route --task "$id" --body-file "$tmp")
   until=$(show_field_value "$show" hold_until)
   if [ -n "$until" ] && [[ "$until" > "${FM_CAPTAIN_HOLD_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" ]]; then
-    return 0
+    # Before its timeout can elapse, the router classifies without prompting.
+    args+=(--now "$stamp")
+  elif [ -n "${FM_CAPTAIN_HOLD_NOW:-}" ]; then
+    args+=(--now "$FM_CAPTAIN_HOLD_NOW")
   fi
-  local -a args=(route --task "$id" --body-file "$pending")
-  [ -z "${FM_CAPTAIN_HOLD_NOW:-}" ] || args+=(--now "$FM_CAPTAIN_HOLD_NOW")
   output=$(HOLD_DOMAIN_STATE="$STATE/hold-domain/routed.tsv" HOLD_DOMAIN_SPOOL="$STATE/hold-domain/pending" \
     python3 "$router" "${args[@]}" 2>&1) || rc=$?
   result=${output##*$'\n'}
   case "$rc:$result" in
-    0:pending) return 0 ;;
     0:kept|'2:not-routed owner-is-dale') retire_hold_route "$id"; return 0 ;;
   esac
+  # Spool before release so a failed route or unhold is retried.
+  mv -f -- "$tmp" "$pending" || { rm -f -- "$tmp"; fail "cannot publish routing body"; }
+  [ "$rc:$result" != 0:pending ] || return 0
   if [ "$rc" -ne 0 ]; then
     printf 'fm-captain-hold: route %s failed: %s\n' "$id" "$output" >&2
     return 1
