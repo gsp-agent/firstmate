@@ -1,0 +1,66 @@
+code under test: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M54HTDXBEM2HDQP19MSPVBF0 (04a8187f)
+creating 100 beads in the project's real br database
+    first=proj-esb last=proj-920
+
+=== C-setup: task old-slow names 100 beads; its own teardown stages a hold ===
+$ FM_HOME=<lab>  bin/fm-teardown.sh old-slow   -> exit 0
+    out| teardown old-slow complete (window firstmate:fm-old-slow, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/gone-old-slow)
+    out| Backlog: old-slow is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+    err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8
+    err| warning: task data old-slow retained whole for retry: unread references old-slow, proj-0ba, proj-1pz, proj-1yf, proj-217, proj-22l, proj-29l, proj-2c9, proj-2sl, proj-2vc, proj-3i3, proj-3q3, proj-3rt, proj-3xj, proj-4m9, proj-4nd, proj-4t1, proj-558, proj-5kj, proj-5xf, proj-5zm, proj-683, proj-687, proj-88q, proj-8ju, proj-8lf, proj-920, proj-9xz, proj-a91, proj-afn, proj-aup, proj-b0s, proj-bhu, proj-bvy, proj-bwz, proj-d8z, proj-dfh, proj-dh8, proj-djz, proj-e37, proj-esb, proj-f57, proj-fbb, proj-foi, proj-fzn, proj-g3s, proj-gcu, proj-gxy, proj-h0a, proj-h99, proj-hhb, proj-hv4, proj-i0t, proj-ie9, proj-izs, proj-j8t, proj-jff, proj-jkt, proj-jue, proj-knb, proj-kzo, proj-l32, proj-l88, proj-m6g, proj-mak, proj-mbw, proj-mp1, proj-npd, proj-ntc, proj-o9h, proj-ooc, proj-p6w, proj-pc3, proj-pe9, proj-pqw, proj-pqx, proj-q13, proj-qcx, proj-qhl, proj-qrc, proj-qun, proj-qye, proj-r5m, proj-tc8, proj-tfh, proj-tgi, proj-tmb, proj-ust, proj-uv4, proj-vij, proj-vlp, proj-wc2, proj-wiq, proj-wos, proj-xn5, proj-xx7, proj-y77, proj-y8s, proj-yav, proj-ybb, proj-yuy: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M54HTDXBEM2HDQP19MSPVBF0/bin/fm-task-data-lib.sh', 'backlog-references', '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/data', 'old-slow', '0', '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/projects/proj', 'proj-0ba', 'proj-1pz', 'proj-1yf', 'proj-217', 'proj-22l', 'proj-29l', 'proj-2c9', 'proj-2sl', 'proj-2vc', 'proj-3i3', 'proj-3q3', 'proj-3rt', 'proj-3xj', 'proj-4m9', 'proj-4nd', 'proj-4t1', 'proj-558', 'proj-5kj', 'proj-5xf', 'proj-5zm', 'proj-683', 'proj-687', 'proj-88q', 'proj-8ju', 'proj-8lf', 'proj-920', 'proj-9xz', 'proj-a91', 'proj-afn', 'proj-aup', 'proj-b0s', 'proj-bhu', 'proj-bvy', 'proj-bwz', 'proj-d8z', 'proj-dfh', 'proj-dh8', 'proj-djz', 'proj-e37', 'proj-esb', 'proj-f57', 'proj-fbb', 'proj-foi', 'proj-fzn', 'proj-g3s', 'proj-gcu', 'proj-gxy', 'proj-h0a', 'proj-h99', 'proj-hhb', 'proj-hv4', 'proj-i0t', 'proj-ie9', 'proj-izs', 'proj-j8t', 'proj-jff', 'proj-jkt', 'proj-jue', 'proj-knb', 'proj-kzo', 'proj-l32', 'proj-l88', 'proj-m6g', 'proj-mak', 'proj-mbw', 'proj-mp1', 'proj-npd', 'proj-ntc', 'proj-o9h', 'proj-ooc', 'proj-p6w', 'proj-pc3', 'proj-pe9', 'proj-pqw', 'proj-pqx', 'proj-q13', 'proj-qcx', 'proj-qhl', 'proj-qrc', 'proj-qun', 'proj-qye', 'proj-r5m', 'proj-tc8', 'proj-tfh', 'proj-tgi', 'proj-tmb', 'proj-ust', 'proj-uv4', 'proj-vij', 'proj-vlp', 'proj-wc2', 'proj-wiq', 'proj-wos', 'proj-xn5', 'proj-xx7', 'proj-y77', 'proj-y8s', 'proj-yav', 'proj-ybb', 'proj-yuy']' timed out after 60 seconds
+    err| warning: task data retained for recovery: unread references old-slow, proj-0ba, proj-1pz, proj-1yf, proj-217, proj-22l, proj-29l, proj-2c9, proj-2sl, proj-2vc, proj-3i3, proj-3q3, proj-3rt, proj-3xj, proj-4m9, proj-4nd, proj-4t1, proj-558, proj-5kj, proj-5xf, proj-5zm, proj-683, proj-687, proj-88q, proj-8ju, proj-8lf, proj-920, proj-9xz, proj-a91, proj-afn, proj-aup, proj-b0s, proj-bhu, proj-bvy, proj-bwz, proj-d8z, proj-dfh, proj-dh8, proj-djz, proj-e37, proj-esb, proj-f57, proj-fbb, proj-foi, proj-fzn, proj-g3s, proj-gcu, proj-gxy, proj-h0a, proj-h99, proj-hhb, proj-hv4, proj-i0t, proj-ie9, proj-izs, proj-j8t, proj-jff, proj-jkt, proj-jue, proj-knb, proj-kzo, proj-l32, proj-l88, proj-m6g, proj-mak, proj-mbw, proj-mp1, proj-npd, proj-ntc, proj-o9h, proj-ooc, proj-p6w, proj-pc3, proj-pe9, proj-pqw, proj-pqx, proj-q13, proj-qcx, proj-qhl, proj-qrc, proj-qun, proj-qye, proj-r5m, proj-tc8, proj-tfh, proj-tgi, proj-tmb, proj-ust, proj-uv4, proj-vij, proj-vlp, proj-wc2, proj-wiq, proj-wos, proj-xn5, proj-xx7, proj-y77, proj-y8s, proj-yav, proj-ybb, proj-yuy: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M54HTDXBEM2HDQP19MSPVBF0/bin/fm-task-data-lib.sh', 'backlog-references', '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/data', 'old-slow', '0', '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/projects/proj', 'proj-0ba', 'proj-1pz', 'proj-1yf', 'proj-217', 'proj-22l', 'proj-29l', 'proj-2c9', 'proj-2sl', 'proj-2vc', 'proj-3i3', 'proj-3q3', 'proj-3rt', 'proj-3xj', 'proj-4m9', 'proj-4nd', 'proj-4t1', 'proj-558', 'proj-5kj', 'proj-5xf', 'proj-5zm', 'proj-683', 'proj-687', 'proj-88q', 'proj-8ju', 'proj-8lf', 'proj-920', 'proj-9xz', 'proj-a91', 'proj-afn', 'proj-aup', 'proj-b0s', 'proj-bhu', 'proj-bvy', 'proj-bwz', 'proj-d8z', 'proj-dfh', 'proj-dh8', 'proj-djz', 'proj-e37', 'proj-esb', 'proj-f57', 'proj-fbb', 'proj-foi', 'proj-fzn', 'proj-g3s', 'proj-gcu', 'proj-gxy', 'proj-h0a', 'proj-h99', 'proj-hhb', 'proj-hv4', 'proj-i0t', 'proj-ie9', 'proj-izs', 'proj-j8t', 'proj-jff', 'proj-jkt', 'proj-jue', 'proj-knb', 'proj-kzo', 'proj-l32', 'proj-l88', 'proj-m6g', 'proj-mak', 'proj-mbw', 'proj-mp1', 'proj-npd', 'proj-ntc', 'proj-o9h', 'proj-ooc', 'proj-p6w', 'proj-pc3', 'proj-pe9', 'proj-pqw', 'proj-pqx', 'proj-q13', 'proj-qcx', 'proj-qhl', 'proj-qrc', 'proj-qun', 'proj-qye', 'proj-r5m', 'proj-tc8', 'proj-tfh', 'proj-tgi', 'proj-tmb', 'proj-ust', 'proj-uv4', 'proj-vij', 'proj-vlp', 'proj-wc2', 'proj-wiq', 'proj-wos', 'proj-xn5', 'proj-xx7', 'proj-y77', 'proj-y8s', 'proj-yav', 'proj-ybb', 'proj-yuy']' timed out after 60 seconds
+    err| warning: old-slow teardown completed, but task-data cleanup needs a retry
+    old-slow's own teardown took 206.9s (its prepare and stage read every bead under its own lock; unchanged by this PR)
+PASS: C-setup old-slow teardown exits 0
+FAIL: C-setup old-slow hold staged
+
+=== C-lock: teardown young-fast (budget 15s) expires old-slow's hold while fm-send steers live task live-y ===
+    expiry of old-slow began 87.2s after teardown start
+$ FM_HOME=<lab> bin/fm-send.sh live-y 'steer during expiry'   -> exit 0 after 6.8s; teardown still running: yes
+    send-err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8
+    send-err| ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    send-err| ●  WATCHER DOWN - SUPERVISION IS OFF
+    send-err| ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: 348s ago, grace 300s).
+    send-err| ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+    send-err| ●  This is a supervision warning only; the requested message WILL still be sent.
+    send-err| ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+    send-err| ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASS: C-lock fm-send exits 0
+PASS: C-lock steer recorded in live-y's inbox
+PASS: C-lock fm-send returned while teardown was still expiring
+PASS: C-lock fm-send took under 10s (6.8s)
+$ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=15 bin/fm-teardown.sh young-fast   -> exit 0; expiry phase 14.9s
+    out| task data young-fast: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/data/young-fast/.cleanup-hold until the next completed task
+    out| teardown young-fast complete (window firstmate:fm-young-fast, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/gone-young-fast)
+    out| Backlog: young-fast is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+    err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8
+    err| warning: task data old-slow expiry stopped at the 15s teardown budget; a later teardown retries it
+    err| warning: young-fast teardown completed, but expiring other tasks' held data needs a retry
+PASS: C-lock teardown exits 0
+PASS: C-lock backlog row closed (state=done)
+PASS: C-lock expiry phase bounded by the 15s budget plus overhead (14.9s)
+PASS: C-lock warning names the budget and the retry
+FAIL: C-lock unfinished hold keeps its data
+true
+PASS: C-lock old-slow record not marked expired
+PASS: C-lock young-fast's own scratch staged
+    processes still naming the lab after teardown: none
+PASS: C-lock no expiry reader left running after the budget stop
+
+=== C-order: next teardown t-third (budget 8s) visits the least recently tried hold first ===
+    record mtimes: young-fast=1792230968 old-slow=1792230971 (glob order would visit old-slow first)
+$ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=8 bin/fm-teardown.sh t-third   -> exit 0
+    out| teardown t-third complete (window firstmate:fm-t-third, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/gone-t-third)
+    out| Backlog: t-third is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+    err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.FaFmc8
+    err| WARNING: watcher still down (same stale episode; last beat: 374s ago, grace 300s) - full banner already printed this episode.
+    err| warning: task data old-slow expiry stopped at the 8s teardown budget; a later teardown retries it
+    err| warning: t-third teardown completed, but expiring other tasks' held data needs a retry
+    t-third teardown took 40.2s
+PASS: C-order teardown exits 0
+true
+PASS: C-order young-fast's hold expired (not starved by old-slow)
+PASS: C-order young-fast held scratch removed
+FAIL: C-order old-slow hold still keeps its data
+
+RESULT: 3 failing check(s)

@@ -1,0 +1,155 @@
+beads created: agent-config=.agent-config-lp6 gsp=gsp-s73 project=proj-hjn (real br databases under the disposable HOME and project)
+
+=== A-agent-config: task t-ac names bead .agent-config-lp6 ===
+$ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=60 bin/fm-teardown.sh t-ac   -> exit 0
+    out| task data t-ac: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/t-ac/.cleanup-hold until the next completed task
+    out| teardown t-ac complete (window firstmate:fm-t-ac, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/gone-t-ac)
+    out| Backlog: t-ac is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+    err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB
+PASS: A-agent-config teardown exits 0
+PASS: A-agent-config backlog row is done (state=done)
+PASS: A-agent-config no pending close left
+PASS: A-agent-config task record retired
+PASS: A-agent-config task window closed on the lab tmux server
+PASS: A-agent-config file linked only from the bead stays in place
+PASS: A-agent-config scratch staged for one-cycle recovery
+PASS: A-agent-config no 'slug-shaped', 'not found' or retry warning
+    record: {"complete":true,"expired":false,"sources":[{"beads":[".agent-config-lp6"],"unread":[]}]}
+true
+PASS: A-agent-config record names the bead with nothing unread
+    file| ./.cleanup-hold/scratch.bin
+    file| ./ac-proof.png
+    file| ./brief.md
+
+=== A-gsp: task t-gsp names bead gsp-s73 ===
+$ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=60 bin/fm-teardown.sh t-gsp   -> exit 0
+    out| task data t-gsp: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/t-gsp/.cleanup-hold until the next completed task
+    out| teardown t-gsp complete (window firstmate:fm-t-gsp, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/gone-t-gsp)
+    out| Backlog: t-gsp is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+    err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB
+PASS: A-gsp teardown exits 0
+PASS: A-gsp backlog row is done (state=done)
+PASS: A-gsp no pending close left
+PASS: A-gsp task record retired
+PASS: A-gsp task window closed on the lab tmux server
+PASS: A-gsp file linked only from the bead stays in place
+PASS: A-gsp scratch staged for one-cycle recovery
+PASS: A-gsp no 'slug-shaped', 'not found' or retry warning
+    record: {"complete":true,"expired":false,"sources":[{"beads":["gsp-s73"],"unread":[]}]}
+true
+PASS: A-gsp record names the bead with nothing unread
+    file| ./.cleanup-hold/scratch.bin
+    file| ./brief.md
+    file| ./gsp-proof.png
+    after t-gsp: t-ac hold expired by the later teardown? record={"complete":true,"expired":true}
+true
+PASS: A-gsp later teardown expired t-ac's hold, re-reading the .agent-config bead
+PASS: A-gsp t-ac's held scratch is gone
+PASS: A-gsp t-ac's bead-linked file survived expiry
+
+=== A-project: task t-proj names bead proj-hjn ===
+$ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=60 bin/fm-teardown.sh t-proj   -> exit 0
+    out| task data t-proj: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/t-proj/.cleanup-hold until the next completed task
+    out| teardown t-proj complete (window firstmate:fm-t-proj, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/gone-t-proj)
+    out| Backlog: t-proj is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+    err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB
+PASS: A-project teardown exits 0
+PASS: A-project backlog row is done (state=done)
+PASS: A-project no pending close left
+PASS: A-project task record retired
+PASS: A-project task window closed on the lab tmux server
+PASS: A-project file linked only from the bead stays in place
+PASS: A-project scratch staged for one-cycle recovery
+PASS: A-project no 'slug-shaped', 'not found' or retry warning
+    record: {"complete":true,"expired":false,"sources":[{"beads":["proj-hjn"],"unread":[]}]}
+true
+PASS: A-project record names the bead with nothing unread
+    file| ./.cleanup-hold/scratch.bin
+    file| ./brief.md
+    file| ./proj-proof.png
+
+=== A-fallback: task t-fb names fb-evidence, absent from the project's beads, present in Firstmate's backlog ===
+
+=== A-fallback: task t-fb names bead fb-evidence ===
+$ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=60 bin/fm-teardown.sh t-fb   -> exit 0
+    out| task data t-fb: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/t-fb/.cleanup-hold until the next completed task
+    out| teardown t-fb complete (window firstmate:fm-t-fb, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/gone-t-fb)
+    out| Backlog: t-fb is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+    err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB
+PASS: A-fallback teardown exits 0
+PASS: A-fallback backlog row is done (state=done)
+PASS: A-fallback no pending close left
+PASS: A-fallback task record retired
+PASS: A-fallback task window closed on the lab tmux server
+PASS: A-fallback file linked only from the bead stays in place
+PASS: A-fallback scratch staged for one-cycle recovery
+PASS: A-fallback no 'slug-shaped', 'not found' or retry warning
+    record: {"complete":true,"expired":false,"sources":[{"beads":["fb-evidence"],"unread":[]}]}
+true
+PASS: A-fallback record names the bead with nothing unread
+    file| ./.cleanup-hold/scratch.bin
+    file| ./brief.md
+    file| ./fb-proof.png
+
+=== A-unread: task t-unread names later-ref, which no database can read yet ===
+$ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=60 bin/fm-teardown.sh t-unread   -> exit 0
+    out| teardown t-unread complete (window firstmate:fm-t-unread, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/gone-t-unread)
+    out| Backlog: t-unread is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+    err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB
+    err| warning: task data t-unread retained whole for retry: unread references: later-ref
+    err| warning: task data retained for recovery: unread references: later-ref
+    err| warning: t-unread teardown completed, but task-data cleanup needs a retry
+PASS: A-unread teardown exits 0
+PASS: A-unread backlog close completes (state=done)
+PASS: A-unread no pending close left
+PASS: A-unread task record retired
+PASS: A-unread teardown output names the unread id
+PASS: A-unread scratch NOT moved (data kept whole)
+PASS: A-unread nothing staged
+    record: {"complete":false,"expired":null,"sources":[{"beads":["later-ref"],"unread":["later-ref"]}]}
+true
+PASS: A-unread record names the unread id and stays incomplete
+    file| ./brief.md
+    file| ./scratch.bin
+    file| ./unread-proof.png
+
+=== A-retry: later-ref becomes readable; the next teardown of a different task retries t-unread ===
+$ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=60 bin/fm-teardown.sh t-next   -> exit 0
+    out| teardown t-next complete (window firstmate:fm-t-next, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/gone-t-next)
+    out| Backlog: t-next is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+    out| task data t-unread: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB/data/t-unread/.cleanup-hold until the next completed task
+    err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.7OuMAB
+PASS: A-retry teardown of t-next exits 0
+    t-unread record: {"complete":true,"expired":false,"sources":[{"beads":["later-ref"],"unread":[]}]}
+true
+PASS: A-retry t-unread's unread list cleared
+PASS: A-retry t-unread scratch now staged
+PASS: A-retry t-unread linked file kept
+    file| ./.cleanup-hold/scratch.bin
+    file| ./brief.md
+    file| ./unread-proof.png
+
+backlog after all teardowns:
+    backlog| # Backlog
+    backlog| 
+    backlog| ## In flight
+    backlog| ## Queued
+    backlog| - [ ] fb-evidence - named evidence (since 2026-10-17)
+    backlog|   evidence [capture](fb-proof.png)
+    backlog| - [ ] later-ref - late evidence (since 2026-10-17)
+    backlog|   evidence [capture](unread-proof.png)
+    backlog| ## Done
+    backlog| - [x] t-next - lab task t-next (kind: ship) (done 2026-10-17)
+    backlog|   local main
+    backlog| - [x] t-unread - lab task t-unread (kind: ship) (done 2026-10-17)
+    backlog|   local main
+    backlog| - [x] t-fb - lab task t-fb (kind: ship) (done 2026-10-17)
+    backlog|   local main
+    backlog| - [x] t-proj - lab task t-proj (kind: ship) (done 2026-10-17)
+    backlog|   local main
+    backlog| - [x] t-gsp - lab task t-gsp (kind: ship) (done 2026-10-17)
+    backlog|   local main
+    backlog| - [x] t-ac - lab task t-ac (kind: ship) (done 2026-10-17)
+    backlog|   local main
+
+RESULT: 0 failing check(s)
