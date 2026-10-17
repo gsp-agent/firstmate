@@ -1501,6 +1501,16 @@ SH
     fail "the timed-out script left grandchild $grandchild running"
   fi
 
+  # A script with no TERM handling dies of the bound's TERM itself; the runner
+  # reports the bound, and no shell job notice reaches its stderr.
+  printf '#!/usr/bin/env bash\nsleep 600\n' >"$repo/tests/fm-plain-hang-fixture.test.sh"
+  set +e
+  "$runner" --per-script-timeout-secs 1 tests/fm-plain-hang-fixture.test.sh >"$tmp/o3" 2>"$tmp/e3"
+  set -e
+  grep -Eq 'FM_TEST_END .* exit=124 ' "$tmp/o3" \
+    || fail "a script ended by the bound's TERM was not recorded as exit 124: $(cat "$tmp/o3")"
+  [ ! -s "$tmp/e3" ] || fail "a script ended by the bound's TERM left a job notice on the runner's stderr: $(cat "$tmp/e3")"
+
   # 0 keeps the historical unbounded behavior, so no existing caller changes.
   set +e
   "$runner" --per-script-timeout-secs nope "$hang" >"$tmp/o2" 2>"$tmp/e2"
@@ -1607,6 +1617,8 @@ SH
         [ "$shape" = jobs ] || [ "$(grep -c '^cleaned ' "$tmp/out")" -eq "$running" ] \
           || fail "a streamed script's cleanup output never reached the runner's output after SIG$sig${gate:+ through the machine gate}: $(cat "$tmp/out")"
         [ -n "$gate" ] || continue
+        [ "$shape" = jobs ] || grep -Eq '^FM_TEST_END .* exit=143 ' "$tmp/out" \
+          || fail "the inner runner did not record the TERMed script's own exit 143 after SIG$sig through the machine gate: $(cat "$tmp/out")"
         [ "$(line_row_count "$tmp/line/log.tsv" start 'cap 180m')" = "$gated" ] \
           || fail "the gated SIG$sig $shape leg did not run its scripts through the machine gate"
         [ "$(line_row_count "$tmp/line/log.tsv" end '^rc ')" = "$gated" ] \
