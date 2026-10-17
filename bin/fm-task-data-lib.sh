@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Task-data cleanup runs only after teardown removes the task record, while its
-# meta lock is still held. fm-task-data.py owns retention and recovery rules.
+# Task-data staging runs only after teardown removes the task record, while its
+# meta lock is still held. Expiring other tasks' holds runs after teardown
+# releases every lock. fm-task-data.py owns retention and recovery rules.
 # Callers source fm-wake-lib.sh for the same locks spawn uses to publish records.
 
 fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
-  local data=$1 state=$2 id=$3 project=$4 pr=$5 helper candidate other lock rc=0
+  local data=$1 state=$2 id=$3 project=$4 pr=$5 helper
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   fm_task_id_path_safe "$id" || return 1
   [ ! -e "$state/$id.meta" ] && [ ! -L "$state/$id.meta" ] || return 1
@@ -12,10 +13,23 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
     echo "warning: task data retained: python3 is unavailable" >&2
     return 1
   }
+  python3 "$helper" stage "$data" "$state" "$id" "$project" "$pr"
+}
+
+fm_task_data_expire_others() { # <data> <state> <id>
+  local data=$1 state=$2 id=$3 helper candidate other lock budget start remaining status rc=0
+  helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
+  command -v python3 >/dev/null 2>&1 || return 1
+  budget=${FM_TEARDOWN_DATA_EXPIRE_TIMEOUT:-10}
+  case "$budget" in ''|0*|*[!0-9]*) budget=10 ;; esac
+  start=$SECONDS
   # A concurrent teardown holds its own lock. Skip it instead of waiting on a
   # cycle of locks; only a later, different completed task expires a recovery.
-  for candidate in "$data"/*/record/data-cleanup.json; do
-    [ -f "$candidate" ] || continue
+  # Each attempt rewrites its record first, so ordering by record age keeps one
+  # slow hold from taking every teardown's budget.
+  while IFS= read -r candidate; do
+    remaining=$((budget - (SECONDS - start)))
+    [ "$remaining" -gt 0 ] || break
     if jq -e 'type == "object" and .version == 1 and .expired == true' "$candidate" >/dev/null 2>&1; then
       continue
     fi
@@ -26,11 +40,20 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
     lock=$(fm_meta_lock_path "$state/$other.meta") || continue
     fm_lock_try_acquire "$lock" || continue
     if [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ]; then
-      python3 "$helper" expire "$data" "$state" "$other" || rc=1
+      status=0
+      fm_run_timed "$remaining" python3 "$helper" expire "$data" "$state" "$other" || status=$?
+      if fm_timed_out "$status"; then
+        echo "warning: task data $other expiry stopped at the ${budget}s teardown budget; a later teardown retries it" >&2
+      fi
+      [ "$status" = 0 ] || rc=1
     fi
     fm_lock_release "$lock"
-  done
-  python3 "$helper" stage "$data" "$state" "$id" "$project" "$pr" || rc=1
+  done < <(
+    for candidate in "$data"/*/record/data-cleanup.json; do
+      [ -f "$candidate" ] || continue
+      printf '%s\t%s\n' "$(fm_path_mtime "$candidate")" "$candidate"
+    done | sort -n -k1,1 | cut -f2-
+  )
   return "$rc"
 }
 
