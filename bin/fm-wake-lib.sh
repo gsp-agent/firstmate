@@ -1955,8 +1955,8 @@ fm_autoarm_write_owned() {  # <state-dir> <gen> <outcome> [marker-file] [session
   pid=${BASHPID:-$$}
   i=0
   while ! fm_lock_try_acquire "$lock"; do
-    [ "$i" -lt 20 ] || return 1
-    sleep 0.02
+    [ "$i" -lt 4 ] || return 1
+    sleep 0.1
     i=$((i + 1))
   done
   if ! fm_autoarm_ledger_read "$state" \
