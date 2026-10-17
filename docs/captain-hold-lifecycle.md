@@ -73,12 +73,12 @@ Repeat and edge cases:
 
 The optional agent-config router owns classification of technical holds and protection of human endpoints.
 Firstmate reconciles task and origin backend identities with runtime metadata aliases for authority lookup and the task control lock, and uses the canonical backend identity for routing bodies and receipts.
-It checks live backlog state on the watcher's existing periodic pass, whose tracked check subprocess bounds the whole routing sweep; each row also has a deadline so a blocked row preserves its pending work without starving healthy later rows.
+It checks live captain-held rows and pending routing bodies on the watcher's existing periodic pass, whose tracked check subprocess bounds the whole routing sweep; each row also has a deadline so a blocked row preserves its pending work without starving healthy later rows.
 Repeated passes resume after interrupted attempts so later holds make progress even as rows retire or new rows appear.
 [`bin/fm-watch.sh`](../bin/fm-watch.sh)'s header owns the whole-sweep deadline and failure-notification order.
 Pending per-home routing bodies keep that supervision required even with no other work.
-Every hold, re-hold and sweep row asks the router before it spools, so a protected ask or human-owned hold is retired at once and stays a plain captain hold.
-A deferral is classified at its hold-set instant, so an eligible deferred entry stays pending without prompting anyone before its date, while the watcher retires answered, closed or replaced entries against live state.
+Every hold, re-hold and sweep row asks the router before it spools, so a protected ask or human-owned hold is retired at once and stays a plain captain hold without creating routing state.
+A deferral dated after the local calendar date, the date tasks-axi gates on, is classified at its hold-set instant, so an eligible deferred entry stays pending without prompting anyone before its date, while the watcher retires answered, closed or replaced entries against live state.
 An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new stamp separates the previous body from the current header before the backend hold, so a failed header publication preserves historical words and permits retry without reusing historical authority.
 Confirmed archival retires pending routing, while an unreadable backlog leaves it supervised and reports the read failure.
 A successful prompt transfers responsibility to the owner and releases the hold without completing the task.
