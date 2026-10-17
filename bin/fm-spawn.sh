@@ -3354,10 +3354,10 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
       case "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" in
         off) ;;
         spent)
-          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER This project already started one worker past that count in the current window."
+          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. This project already started one worker past that count in the current window."
           ;;
         *)
-          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER The headroom reading reported no room."
+          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. The headroom reading reported no room."
           ;;
       esac
       echo "$SPAWN_CAPACITY_DEFER" >&2

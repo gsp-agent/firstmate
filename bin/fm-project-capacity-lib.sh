@@ -76,14 +76,13 @@
 # arguments, split on whitespace, and it is not a shell command. A program
 # path that contains whitespace cannot be named. A second non-empty line, a
 # file that exists but cannot be read, a program that is not executable, a
-# non-zero exit, or a run that is still going after
-# FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT seconds is no room. The spawn is
-# deferred and the window below is not consumed. Standard error from the
-# program is discarded. When the extra start is admitted, the program's first
-# stdout line, with a trailing carriage return removed and cut at 240
-# characters, is written to standard error as "headroom: <line>". A program
-# that prints nothing is still admitted on exit 0. A line from a reading that
-# is not admitted is discarded.
+# non-zero exit, an exit 0 whose first stdout line is empty, or a run that is
+# still going after FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT seconds is no room.
+# The spawn is deferred and the window below is not consumed. Standard error
+# from the program is discarded. When the extra start is admitted, the
+# program's first stdout line, with a trailing carriage return removed and cut
+# at 240 characters, is written to standard error as "headroom: <line>". A
+# line from a reading that is not admitted is discarded.
 # The program runs only when the project is already at its declared count and
 # its extra-start window is open. Exit 0 admits one spawn past that count.
 # Before that spawn continues, the epoch second is written as the only line of
@@ -375,7 +374,8 @@ fm_project_capacity_overshare_record() {  # <dir> <project> <now>
 # worker. The caller holds the project lock.
 # Sets FM_PROJECT_CAPACITY_OVERSHARE to off, admit, no, or spent.
 # off means the command is not configured. admit records the window before
-# returning. no means the reading failed, was missing, or could not be recorded.
+# returning. no means the reading failed, printed no line, was missing, or
+# could not be recorded.
 # spent means this project already used its extra start in the window.
 fm_project_capacity_overshare() {  # <config-dir> <project-name>
   local config=$1 name=$2 now dir rc=0 line
@@ -405,15 +405,15 @@ fm_project_capacity_overshare() {  # <config-dir> <project-name>
   _fm_project_capacity_require_timeout || return 0
   line=$(fm_run_timed "$FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT" "${FM_PROJECT_CAPACITY_HEADROOM_CMD[@]}" 2>/dev/null) || rc=$?
   [ "$rc" -eq 0 ] || return 0
-  fm_project_capacity_overshare_record "$dir" "$name" "$now" || return 0
   line=${line%%$'\n'*}
   line=${line%$'\r'}
+  # An exit 0 with no reading line has shown no headroom.
+  [ -n "$line" ] || return 0
   if [ "${#line}" -gt 240 ]; then
     line=${line:0:240}
   fi
-  if [ -n "$line" ]; then
-    printf '%s\n' "headroom: $line" >&2
-  fi
+  fm_project_capacity_overshare_record "$dir" "$name" "$now" || return 0
+  printf '%s\n' "headroom: $line" >&2
   FM_PROJECT_CAPACITY_OVERSHARE=admit
   return 0
 }
