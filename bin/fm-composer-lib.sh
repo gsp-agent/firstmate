@@ -550,8 +550,10 @@ fm_composer_strip_braille() {
 # for the shared inbox confirmation read. One shared policy (previously three
 # per-backend variables that had drifted to 20/20/200) keeps stale scrollback
 # (startup banners, old transcript boxes) out of those candidate sets. tmux
-# and Herdr adapter composer reads use their visible viewports instead; Herdr
-# also uses this value as the minimum Ctrl+U clear budget after a refused proof.
+# adapter composer reads use the visible viewport instead. Herdr's use the
+# visible viewport when the pane is unscrolled or reports no scroll, and a
+# viewport-height recent trim when it is scrolled; Herdr also uses this value
+# as the minimum Ctrl+U clear budget after a refused proof.
 FM_COMPOSER_CAPTURE_LINES=${FM_COMPOSER_CAPTURE_LINES:-20}
 
 # Pi allows a multi-line composer between its horizontal separators. Bound the
@@ -1481,12 +1483,49 @@ _fm_composer_bare_rule_sandwich() {  # <plain-screen> <row>
   _fm_composer_titled_rule_row "$above" "${below//─/ }"
 }
 
+# Claude's slash popup repeats its prompt glyph on the selected menu item.
+# Recognize that row only below a single-line, rule-enclosed slash query,
+# with the menu's indentation and command/description columns, and with a
+# selected command matching the query. A later draft or a break in the menu
+# keeps the ordinary bottom-most-candidate rule.
+_fm_composer_bare_is_slash_popup() {  # <plain-screen> <bare-row>
+  local plain=$1 bare=$2 close=$FM_COMPOSER_SCAN_PI_LAST_SEPARATOR
+  local row raw indent query menu
+  local item_re='^/[^[:space:]]+[[:space:]]{2,}[^[:space:]]'
+  local continuation_re='^[[:space:]]{2,}[^[:space:]]'
+  [ "$close" -ge 2 ] && [ "$bare" -gt "$close" ] || return 1
+  row=$((close - 1))
+  _fm_composer_bare_rule_sandwich "$plain" "$row" || return 1
+  raw=$(_fm_composer_screen_row "$row" "$plain")
+  indent=${raw%%[![:space:]]*}
+  query=$raw
+  fm_composer_normalize_spaces_var query
+  fm_composer_normalize_trim_var query
+  case "$query" in '❯ /'*) query=${query#❯ } ;; *) return 1 ;; esac
+  case "$query" in *[[:space:]]*) return 1 ;; esac
+  raw=$(_fm_composer_screen_row "$bare" "$plain")
+  case "$raw" in "$indent  ❯ "*) menu=${raw#"$indent  ❯ "} ;; *) return 1 ;; esac
+  [[ $menu =~ $item_re ]] || return 1
+  case "$menu" in "$query"*) ;; *) return 1 ;; esac
+  row=$((close + 1))
+  while [ "$row" -lt "$bare" ]; do
+    raw=$(_fm_composer_screen_row "$row" "$plain")
+    case "$raw" in "$indent    "*) menu=${raw#"$indent    "} ;; *) return 1 ;; esac
+    if ! [[ $menu =~ $item_re ]]; then
+      [ "$row" -gt "$((close + 1))" ] && [[ $menu =~ $continuation_re ]] || return 1
+    fi
+    row=$((row + 1))
+  done
+  return 0
+}
+
 _fm_composer_select_cursorless() {
   local plain=$1 generic=-1 next boundary raw trimmed glyph bare footer=0
   FM_COMPOSER_SELECTED_KIND=
   FM_COMPOSER_SELECTED_FIRST=-1
   FM_COMPOSER_SELECTED_LAST=-1
   FM_COMPOSER_SELECTED_AMBIG=0
+  FM_COMPOSER_SLASH_QUERY_ROW=-1
   if _fm_composer_locate_footer_zone "$plain"; then footer=1; fi
   if [ "$FM_COMPOSER_SCAN_BOX_BOTTOM" -ge 0 ]; then
     generic=$FM_COMPOSER_SCAN_BOX_BOTTOM
@@ -1509,6 +1548,9 @@ _fm_composer_select_cursorless() {
     else
       bare=-1
     fi
+  elif _fm_composer_bare_is_slash_popup "$plain" "$bare"; then
+    bare=$((FM_COMPOSER_SCAN_PI_LAST_SEPARATOR - 1))
+    FM_COMPOSER_SLASH_QUERY_ROW=$bare
   fi
   if [ "$bare" -gt "$generic" ]; then
     generic=$bare
@@ -1539,8 +1581,8 @@ _fm_composer_select_cursorless() {
     # Spare only a bare glyph inside its own titled composer rules; see
     # _fm_composer_bare_rule_sandwich for why that shape is not scrollback.
     if ! { [ "$FM_COMPOSER_SELECTED_KIND" = bare ] \
-           && [ "$generic" = "$FM_COMPOSER_SCAN_BARE_ROW" ] \
-           && _fm_composer_bare_rule_sandwich "$plain" "$FM_COMPOSER_SCAN_BARE_ROW"; }; then
+           && [ "$generic" = "$bare" ] \
+           && _fm_composer_bare_rule_sandwich "$plain" "$bare"; }; then
       FM_COMPOSER_SELECTED_KIND=
       return 1
     fi
@@ -1830,7 +1872,10 @@ EOF
         "$FM_COMPOSER_SELECTED_FIRST" "$FM_COMPOSER_SELECTED_LAST"
       ;;
     bare)
-      if [ "$FM_COMPOSER_SELECTED_LAST" -gt "$FM_COMPOSER_SELECTED_FIRST" ]; then
+      # The popup proves a typed slash query even when Claude mutes its colour.
+      if [ "$FM_COMPOSER_SELECTED_FIRST" = "$FM_COMPOSER_SLASH_QUERY_ROW" ]; then
+        if [ "$styled" = 1 ]; then printf 'pending'; else printf 'unknown'; fi
+      elif [ "$FM_COMPOSER_SELECTED_LAST" -gt "$FM_COMPOSER_SELECTED_FIRST" ]; then
         _fm_composer_classify_bare_wrap "$screen" "$styled" \
           "$FM_COMPOSER_SELECTED_FIRST" "$FM_COMPOSER_SELECTED_LAST"
       elif [ "$FM_COMPOSER_SCAN_PI_PAIR_FOUND" = 1 ] \
