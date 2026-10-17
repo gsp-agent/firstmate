@@ -71,6 +71,8 @@
 # held=no. A future --until is refused during that release recovery.
 # A recorded answer or reconciliation awaiting closure must finish before re-holding.
 # `route-due` re-reads live backlog holds from the watcher's periodic pass.
+# A no-argument sweep visits only rows the listing reports held for the captain
+# (including expired dated holds) and ids with pending bodies.
 # Each row of a no-argument sweep allows FM_HOLD_ROUTE_TIMEOUT_SECS seconds (default 30),
 # then reports its failure and continues to the next row.
 # The sweep saves the attempted task id in state/hold-domain/sweep-cursor before
@@ -84,9 +86,11 @@
 # Routing state and pending bodies stay under this home's state/hold-domain,
 # keeping supervision required until the existing watcher sweeps them against
 # live backlog state. Each hold, re-hold and sweep row asks the router before
-# spooling, so a protected ask or human owner retires at once and stays a plain
-# captain hold. A future --until is classified at the hold-set stamp, so an
-# eligible deferral stays pending until its date without an early prompt.
+# spooling, so a protected ask or human owner retires at once, stays a plain
+# captain hold and creates no routing state. A --until date after the local
+# calendar date, which is what tasks-axi gates on, is classified at the hold-set
+# stamp, so an eligible deferral stays pending until its date without an early
+# prompt. FM_CAPTAIN_HOLD_NOW, the UTC test clock, is read in local time too.
 # Only an exact routed.tsv receipt for this task, stamp and owner permits an
 # agent-routed resolution and unhold. The receipt remains for
 # retries; the resolution body records it as routing evidence, never as the
@@ -242,7 +246,9 @@
 # <n> is the count of resolution records the body already carries plus one, so
 # a released and re-held task opens and closes a distinct parent decision with
 # no new persisted state, and an exact retry republishes the same line, which
-# the channel deduplicates. A main home has no channel and publishes nothing.
+# the channel deduplicates. An agent-routed record whose release has not
+# finished keeps its lifecycle's <n>: a re-hold, answer or reconciliation on top
+# of it names that same occurrence. A main home has no channel and publishes nothing.
 # The hold or answer is already durable in the backlog, so a channel that
 # cannot be written is reported as `actionable:` on stderr rather than undoing
 # the record; bin/fm-inactive-reconcile.sh's diagnostics name a broken binding.
@@ -526,11 +532,40 @@ recorded_decision_digest() {  # <task-body>
 }
 
 # How many resolution records the shown body carries, in either record format.
+# Records are newest first, and each new lifecycle starts below a history
+# header. An agent-routed record with a newer record before that header was
+# superseded within its own lifecycle, so it shares that record's occurrence.
 resolution_record_count() {  # <task-body>
   local body
   body=$(decode_shown_value "$1") || return 1
-  printf '%s\n' "$body" \
-    | grep -Ec '^Resolution recorded by fm-(captain|decision)-hold\.$' || true
+  printf '%s\n' "$body" | awk -v history="$HOLD_HISTORY_HEADER" '
+    $0 == history { newer = 0; next }
+    /^Resolution recorded by fm-(captain|decision)-hold\.$/ { count++; superseded = newer; newer = 1; start = NR; next }
+    NR == start + 2 && superseded && $0 == "Resolution mode: agent-routed" { count-- }
+    END { print count + 0 }
+  '
+}
+
+# Whether the newest record is this lifecycle's agent-routed record, whose
+# release has not finished while the hold-set stamp it names is still present.
+body_has_unreleased_routing() {  # <task-id> <task-body>
+  local body stamp
+  [ "$(recorded_resolution_mode "$2" || true)" = agent-routed ] || return 1
+  body=$(decode_shown_value "$2") || return 1
+  stamp=$(body_hold_set_timestamp "$body")
+  [ -n "$stamp" ] || return 1
+  case "$body" in
+    *"Hold-domain receipt: $1"$'\t'"$stamp"$'\t'*) return 0 ;;
+  esac
+  return 1
+}
+
+# The parent occurrence of the lifecycle a new hold or record belongs to.
+next_hold_occurrence() {  # <task-id> <task-body>
+  local count
+  count=$(resolution_record_count "$2") || return 1
+  body_has_unreleased_routing "$1" "$2" || count=$((count + 1))
+  printf '%s' "$count"
 }
 
 # The newest record's `Resolution mode:` value; empty for a record predating it.
@@ -888,8 +923,10 @@ task_identity() {
   printf '%s' "$id"
 }
 
+# A meta named by a listed task id belongs to that id, so only the other metas
+# can be aliases worth a backend read. An unreadable listing skips none.
 task_runtime_identity() {
-  local canonical=$1 meta candidate backend
+  local canonical=$1 meta candidate backend listed='' listed_loaded=0
   if [ -f "$STATE/$canonical.meta" ]; then
     printf '%s' "$canonical"
     return
@@ -898,6 +935,11 @@ task_runtime_identity() {
     [ -f "$meta" ] || continue
     candidate=${meta##*/}
     candidate=${candidate%.meta}
+    if [ "$listed_loaded" = 0 ]; then
+      listed=$(listed_task_rows | cut -d' ' -f1) || listed=''
+      listed_loaded=1
+    fi
+    ! list_has_line "$listed" "$candidate" || continue
     backend=$(task_identity "$candidate") || return $?
     if [ "$backend" = "$canonical" ]; then
       printf '%s' "$candidate"
@@ -988,7 +1030,7 @@ verify_entry_durable() {  # <origin-or-empty> <entry>; prints "<id> <how> <origi
 command_hold() {
   local id=${1:-} title='' reason='' repo='' origin='' until='' show state existing_title body='' hold_kind hold_set occurrence
   local existing_hold_kind='' existing_held='' preserve_hold_set=0 stored_reason previous_origin='' hold_status=0
-  local decision_owner='' timeout_seconds='' old_owner old_timeout old_reason routing_reason origin_runtime=''
+  local decision_owner='' timeout_seconds='' old_owner old_timeout old_reason routing_reason origin_runtime='' today=''
   [ "$#" -ge 1 ] || { usage >&2; exit 2; }
   shift
   while [ "$#" -gt 0 ]; do
@@ -1023,6 +1065,7 @@ command_hold() {
     [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z) : ;;
     *) fail "FM_CAPTAIN_HOLD_NOW must be a UTC YYYY-MM-DDTHH:MM:SSZ timestamp" ;;
   esac
+  [ -z "$until" ] || today=$(hold_local_date) || exit $?
   require_tasks_axi
   if [ -n "$origin" ]; then
     origin=$(task_identity "$origin") || exit $?
@@ -1075,7 +1118,7 @@ command_hold() {
         [ "${decision_owner:-$old_owner}" = "$old_owner" ] \
           && [ "${timeout_seconds:-$old_timeout}" = "$old_timeout" ] \
           && [ "$routing_reason" = "$old_reason" ] \
-          && [[ ! "$until" > "$hold_set" ]] \
+          && [[ ! "$until" > "$today" ]] \
           || fail "task $id already has a routing receipt; finish releasing it before changing its routing fields"
         preserve_hold_set=1
       fi
@@ -1128,7 +1171,7 @@ command_hold() {
   show=$TASK_SHOW_OUTPUT
   hold_kind=$(show_field_value "$show" hold_kind)
   [ "$hold_kind" = captain ] || fail "task $id did not retain its captain hold"
-  occurrence=$(( $(resolution_record_count "$(show_field "$show" body)") + 1 ))
+  occurrence=$(next_hold_occurrence "$id" "$(show_field "$show" body)")
   [ -n "$(body_hold_set_timestamp "$(show_field_value "$show" body)")" ] \
     || fail "task $id lost its hold-set stamp while being held"
   publish_parent_hold "$id" "$occurrence" needs-decision "$reason"
@@ -1148,6 +1191,19 @@ validate_hold_timeout() {
     ''|0*|*[!0-9]*) fail "hold timeout must be 1..9999999 seconds" ;;
   esac
   [ "${#1}" -le 7 ] || fail "hold timeout must be 1..9999999 seconds"
+}
+
+# tasks-axi keeps a --until hold active while its date is after the local
+# calendar date, so a deferral is future against that same date.
+hold_local_date() {
+  local epoch
+  if [ -z "${FM_CAPTAIN_HOLD_NOW:-}" ]; then
+    date +%Y-%m-%d
+    return
+  fi
+  epoch=$(fm_utc_iso_to_epoch "$FM_CAPTAIN_HOLD_NOW") \
+    || fail "FM_CAPTAIN_HOLD_NOW must be a UTC YYYY-MM-DDTHH:MM:SSZ timestamp"
+  date -r "$epoch" +%Y-%m-%d 2>/dev/null || date -d "@$epoch" +%Y-%m-%d
 }
 
 body_domain_field() {  # <decoded-body> <field>
@@ -1173,12 +1229,12 @@ write_hold_domain_fields() {  # <id> <decoded-body> <owner> <timeout> <one-line-
 }
 
 retire_hold_route() {
-  rm -f -- "$STATE/hold-domain/pending/$1.body" "$STATE/hold-domain/pending/.route.$1" \
+  rm -f -- "$STATE/hold-domain/pending/$1.body" "$STATE/.hold-route.$1" \
     || fail "could not retire hold routing for $1"
 }
 
 route_hold() {  # <id>; caller owns the task control lock
-  local id=$1 router show body stamp owner timeout reason live_reason tmp pending output result rc=0 receipt occurrence until data
+  local id=$1 router show body stamp owner timeout reason live_reason tmp pending output result rc=0 receipt occurrence until today='' data
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   [ -f "$router" ] || return 0
   if task_show "$id"; then
@@ -1228,16 +1284,17 @@ route_hold() {  # <id>; caller owns the task control lock
   live_reason=$(show_field_value "$(printf '%s\n' "$show" | fm_hold_reason_decode_stream)" hold_reason)
   live_reason=$(printf '%s' "$live_reason" | perl -0777 -pe 's/\s+/ /g; s/^ | $//g')
   [ "$live_reason" = "$reason" ] || fail "task $id has divergent hold and routing reasons; leaving the hold intact"
-  (umask 077; mkdir -p "$STATE/hold-domain/pending") || fail "cannot create routing spool"
   pending="$STATE/hold-domain/pending/$id.body"
   # One staging name per task: the control lock serializes it, and a retry
-  # overwrites what an interrupted router call left behind.
-  tmp="$STATE/hold-domain/pending/.route.$id"
+  # overwrites what an interrupted router call left behind. It stays outside
+  # state/hold-domain until the router keeps the hold eligible for routing.
+  tmp="$STATE/.hold-route.$id"
   (umask 077; printf 'Captain hold set: %s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\n' \
     "$stamp" "$owner" "$timeout" "$reason" > "$tmp") || { rm -f -- "$tmp"; fail "cannot stage routing body"; }
   local -a args=(route --task "$id" --body-file "$tmp")
   until=$(show_field_value "$show" hold_until)
-  if [ -n "$until" ] && [[ "$until" > "${FM_CAPTAIN_HOLD_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" ]]; then
+  [ -z "$until" ] || today=$(hold_local_date) || { rm -f -- "$tmp"; exit 1; }
+  if [ -n "$until" ] && [[ "$until" > "$today" ]]; then
     # Before its timeout can elapse, the router classifies without prompting.
     args+=(--now "$stamp")
   elif [ -n "${FM_CAPTAIN_HOLD_NOW:-}" ]; then
@@ -1250,6 +1307,7 @@ route_hold() {  # <id>; caller owns the task control lock
     0:kept|'2:not-routed owner-is-dale') retire_hold_route "$id"; return 0 ;;
   esac
   # Spool before release so a failed route or unhold is retried.
+  (umask 077; mkdir -p "$STATE/hold-domain/pending") || { rm -f -- "$tmp"; fail "cannot create routing spool"; }
   mv -f -- "$tmp" "$pending" || { rm -f -- "$tmp"; fail "cannot publish routing body"; }
   [ "$rc:$result" != 0:pending ] || return 0
   if [ "$rc" -ne 0 ]; then
@@ -1265,11 +1323,10 @@ route_hold() {  # <id>; caller owns the task control lock
     || fail "routing $id returned no matching receipt"
   DECISION_TEXT=$(printf 'Hold-domain receipt: %s\nRouted hold reason: %s' "$receipt" "$reason")
   DECISION_DIGEST=$(sha256_text "$DECISION_TEXT")
-  occurrence=$(resolution_record_count "$body")
+  occurrence=$(next_hold_occurrence "$id" "$body")
   if [ "$(recorded_resolution_mode "$body" || true)" != agent-routed ] \
     || [ "$(recorded_decision_digest "$body" || true)" != "$DECISION_DIGEST" ]; then
     write_resolution_record "$id" agent-routed "$(show_field "$show" body)"
-    occurrence=$((occurrence + 1))
   fi
   tasks_axi unhold "$id" >/dev/null || fail "could not release routed hold $id"
   remove_interrupted_answer_stamp "$id"
@@ -1293,9 +1350,11 @@ command_route_due() {
     return
   fi
   case "$row_timeout" in ''|0*|*[!0-9]*) fail 'FM_HOLD_ROUTE_TIMEOUT_SECS must be positive whole seconds' ;; esac
-  ids=$(open_task_ids) || fail "could not list holds for routing"
+  # Unhold and archival always leave the pending body until routing retires,
+  # so every row that still owes work is captain-held or has a pending body.
+  ids=$(listed_task_rows) || fail "could not list holds for routing"
   ids=$({
-    printf '%s\n' "$ids"
+    printf '%s\n' "$ids" | awk '$2 != "done" && $3 == "captain" { print $1 }'
     for pending in "$STATE"/hold-domain/pending/*.body; do
       [ -f "$pending" ] || continue
       id=${pending##*/}
@@ -1445,7 +1504,7 @@ command_answer() {
   if [ "$release" = 1 ]; then outcome=released; else outcome=answered; fi
   # The occurrence the parent line names: the record about to be written is
   # one past those already in the body, and a retry names the newest one.
-  occurrence=$(( $(resolution_record_count "$body") + 1 ))
+  occurrence=$(next_hold_occurrence "$id" "$body")
 
   if [ "$state" = "done" ]; then
     if body_has_resolution_record "$body"; then
@@ -1949,7 +2008,7 @@ reconcile_close() {
   state=$(show_field "$show" state)
   hold_kind=$(show_field_value "$show" hold_kind)
   body=$(show_field "$show" body)
-  occurrence=$(( $(resolution_record_count "$body") + 1 ))
+  occurrence=$(next_hold_occurrence "$id" "$body")
   if [ "$state" = "done" ]; then
     # An exact retry finishes an interrupted close and stays idempotent; a
     # different evidence text on an already closed call is refused.
@@ -2217,6 +2276,23 @@ open_task_ids() {
       id = $1
       sub(/^ +/, "", id)
       if ($2 != "done") print id
+    }
+  '
+}
+
+# Every listed row as "<id> <state> <hold-kind>". hold_kind is the one extra
+# field requested, so it is the last field, after any quoted title.
+listed_task_rows() {
+  local data listing
+  data=$(fm_backlog_data_absolute "$DATA") || return 1
+  listing=$(fm_backlog_row_list "$data" --fields hold_kind 2>/dev/null) || return 1
+  printf '%s\n' "$listing" | awk -F, '
+    /^  [A-Za-z0-9._-]+,/ {
+      id = $1
+      sub(/^ +/, "", id)
+      kind = $NF
+      gsub(/"/, "", kind)
+      print id, $2, kind
     }
   '
 }

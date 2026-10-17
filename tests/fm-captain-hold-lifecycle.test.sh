@@ -4807,12 +4807,14 @@ SH
   printf '%s\n' "$domain_home"
 }
 
+# The UTC test clock names calendar dates, so routing reads them in UTC unless
+# a case sets FM_TEST_DOMAIN_TZ to exercise another local calendar.
 run_domain() {
   local domain_home=$1 now=$2
   shift 2
   FM_HOLD_DOMAIN_ROUTER="${FM_TEST_HOLD_DOMAIN_ROUTER:-$domain_home/router.py}" \
     HOLD_DOMAIN_HERDR="$domain_home/fakebin/herdr" HOLD_DOMAIN_TEST_LOG="$domain_home/owner.log" \
-    FM_CAPTAIN_HOLD_NOW="$now" run_captain "$domain_home" "$@"
+    TZ="${FM_TEST_DOMAIN_TZ:-UTC}" FM_CAPTAIN_HOLD_NOW="$now" run_captain "$domain_home" "$@"
 }
 
 domain_supervision_needed() (
@@ -4826,7 +4828,7 @@ run_domain_watcher() {
     FM_DATA_OVERRIDE="$domain_home/data" FM_CONFIG_OVERRIDE="$domain_home/config" FM_BACKEND=tmux \
     FM_HOLD_DOMAIN_ROUTER="${FM_TEST_HOLD_DOMAIN_ROUTER:-$domain_home/router.py}" \
     HOLD_DOMAIN_HERDR="$domain_home/fakebin/herdr" HOLD_DOMAIN_TEST_LOG="$domain_home/owner.log" \
-    FM_CAPTAIN_HOLD_NOW="$now" FM_CHECK_INTERVAL=0 FM_POLL=1 FM_SIGNAL_GRACE=1 \
+    TZ="${FM_TEST_DOMAIN_TZ:-UTC}" FM_CAPTAIN_HOLD_NOW="$now" FM_CHECK_INTERVAL=0 FM_POLL=1 FM_SIGNAL_GRACE=1 \
     FM_HOME_SUMMARY_INTERVAL=999999 FM_SECONDMATE_LIVENESS_SECS=999999 \
     bash "$ROOT/bin/fm-watch.sh"
 }
@@ -5286,7 +5288,7 @@ test_domain_protected_deferrals_never_enter_pending() {
     --reason "$technical" >/dev/null || fail 'could not hand the deferred hold to the captain'
   for id in production-ask human-deferred money-deferred postponed switched reowned; do
     assert_absent "$domain_home/state/hold-domain/pending/$id.body" "protected or human-owned deferral $id stayed pending"
-    assert_absent "$domain_home/state/hold-domain/pending/.route.$id" "protected deferral $id left its staged routing body"
+    assert_absent "$domain_home/state/.hold-route.$id" "protected deferral $id left its staged routing body"
     show=$(tasks_in "$domain_home" show "$id" --full)
     assert_contains "$show" 'held: yes' "protected deferral $id was released"
     assert_contains "$show" 'hold_until: 2099-01-01' "protected deferral $id lost its date"
@@ -5981,6 +5983,155 @@ SH
   pass 'repeated remote dispatch preserves declared authority for canonical-origin holds'
 }
 
+test_domain_sweep_visits_only_routable_rows() {
+  local home id technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+  home=$(make_domain_home sweep-scope)
+  for id in plain-1 plain-2 plain-3 plain-4 other-hold closed-call; do
+    tasks_in "$home" add "$id" "Ordinary row $id" --kind ship --repo sample >/dev/null || fail 'could not add an ordinary row'
+  done
+  tasks_in "$home" hold other-hold --reason 'Waiting on a vendor reply' >/dev/null || fail 'could not hold an ordinary row'
+  tasks_in "$home" hold closed-call --kind captain --reason 'An old captain call' >/dev/null || fail 'could not hold the old call'
+  tasks_in "$home" 'done' closed-call >/dev/null || fail 'could not close the old call'
+  run_domain "$home" 2026-10-14T02:00:00Z hold kept-ask --title 'Protected ask' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --reason 'Should I deploy this to production?' >/dev/null \
+    || fail 'could not hold the protected ask'
+  run_domain "$home" 2026-10-14T02:00:00Z hold human-call --title 'Human-owned technical call' \
+    --decision-owner captain --timeout-seconds 60 --reason "$technical" >/dev/null || fail 'could not hold the human-owned call'
+  assert_absent "$home/state/hold-domain" 'a protected or human-owned hold created routing state'
+  run_domain "$home" 2026-10-14T02:00:00Z hold due-call --title 'Due technical call' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --reason "$technical" >/dev/null || fail 'could not hold the technical call'
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+printf '%s %s\n' "${1:-}" "${2:-}" >> "$FM_HOME/axi.log"
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  run_domain "$home" 2026-10-14T02:01:00Z route-due || fail 'the routing sweep failed'
+  for id in plain-1 plain-2 plain-3 plain-4 other-hold closed-call; do
+    assert_no_grep "show $id" "$home/axi.log" "the routing sweep read non-captain row $id"
+  done
+  assert_grep 'show kept-ask' "$home/axi.log" 'the routing sweep skipped a live captain hold'
+  assert_contains "$(tasks_in "$home" show due-call --full)" 'held: no' 'the sweep did not route the due technical hold'
+  assert_contains "$(tasks_in "$home" show kept-ask --full)" 'held: yes' 'the sweep released the protected ask'
+  assert_equals 1 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'the sweep did not prompt exactly the technical owner'
+  pass 'protected holds create no routing state and the sweep reads only captain-held and pending rows'
+}
+
+test_domain_lifecycle_commands_read_only_alias_metas() {
+  local home id technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+  home=$(make_domain_home alias-meta-reads)
+  for id in m1 m2 m3 m4; do
+    tasks_in "$home" add "$id" "Dispatched $id" --kind ship --repo sample >/dev/null || fail 'could not add a dispatched row'
+    printf 'decision_owner=ep-%s\nproject=/fixture/sample\n' "$id" > "$home/state/$id.meta"
+  done
+  tasks_in "$home" add fm-o 'Aliased dispatch' --kind ship --repo gsp >/dev/null || fail 'could not add the aliased row'
+  printf 'endpoint_task_id=o\ndecision_owner=ep-runtime\nproject=/fixture/gsp\n' > "$home/state/o.meta"
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+printf '%s %s\n' "${1:-}" "${2:-}" >> "$FM_HOME/axi.log"
+if [ "$#" -ge 2 ] && [ "$2" = o ]; then set -- "$1" fm-o "${@:3}"; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  run_domain "$home" 2026-10-14T02:00:00Z hold call --title 'Undispatched call' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --reason "$technical" >/dev/null || fail 'could not hold the call'
+  printf 'Proceed with the update.\n' > "$home/decision.txt"
+  run_captain "$home" answer call --decision-file "$home/decision.txt" >/dev/null || fail "the captain's answer was not recorded"
+  assert_contains "$(tasks_in "$home" show call --full)" 'state: done' "the captain's answer did not close the call"
+  for id in m1 m2 m3 m4; do
+    assert_no_grep "show $id" "$home/axi.log" "a lifecycle command read the listed task's meta $id"
+  done
+  run_domain "$home" 2026-10-14T02:00:00Z hold fm-o --timeout-seconds 60 --reason "$technical" >/dev/null \
+    || fail 'could not hold the aliased dispatch'
+  assert_contains "$(tasks_in "$home" show fm-o --full)" 'Decision owner: ep-runtime' 'an unlisted alias meta lost its authority'
+  pass 'lifecycle commands read only metas that are not listed task ids and keep alias authority'
+}
+
+test_domain_deferrals_use_the_local_calendar_date() {
+  local home show before FM_TEST_DOMAIN_TZ=CST6
+  local technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+  home=$(make_domain_home local-date-deferral)
+  run_domain "$home" 2098-10-19T20:00:00Z hold dated --title 'Dated technical call' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --until 2098-10-20 --reason "$technical" >/dev/null \
+    || fail 'could not defer the technical hold'
+  run_domain "$home" 2098-10-20T00:00:00Z route-due dated || fail 'the evening routing check failed'
+  assert_absent "$home/owner.log" 'the owner was prompted while the local date was before the deferral'
+  show=$(tasks_in "$home" show dated --full)
+  assert_contains "$show" 'hold_until: 2098-10-20' 'the evening check released the dated hold'
+  assert_not_contains "$show" 'Resolution mode:' 'the evening check recorded a routing resolution'
+  assert_present "$home/state/hold-domain/pending/dated.body" 'the evening check dropped the pending deferral'
+  run_domain "$home" 2098-10-20T07:00:00Z route-due dated || fail 'routing on the local deferral date failed'
+  assert_contains "$(tasks_in "$home" show dated --full)" 'held: no' 'the deferral did not route on its local date'
+  assert_equals 1 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'the local-date route did not prompt exactly once'
+  run_domain "$home" 2098-10-19T20:00:00Z hold recovering --title 'Release recovery' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --reason "$technical" >/dev/null || fail 'could not hold the recovery fixture'
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = unhold ]; then exit 1; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  if run_domain "$home" 2098-10-19T20:01:00Z route-due recovering > "$home/seed.out" 2>&1; then
+    fail 'could not seed an interrupted release'
+  fi
+  before=$(tasks_in "$home" show recovering --full)
+  assert_contains "$before" 'Resolution mode: agent-routed' 'the release fixture lost its routing record'
+  if run_domain "$home" 2098-10-20T00:30:00Z hold recovering --until 2098-10-20 --reason "$technical" \
+    > "$home/defer.out" 2>&1; then
+    fail 'release recovery accepted a deferral to the next local date'
+  fi
+  assert_grep 'already has a routing receipt; finish releasing it' "$home/defer.out" 'a next-local-date deferral was not refused as future'
+  assert_equals "$before" "$(tasks_in "$home" show recovering --full)" 'the refused deferral changed the routed hold'
+  pass 'deferrals follow the local calendar date when routing and when guarding release recovery'
+}
+
+test_domain_release_recovery_keeps_one_parent_occurrence() {
+  local home id status technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+  home=$(make_domain_home parent-occurrence)
+  status="$home/parent/state/router-mate.status"
+  mkdir -p "$home/parent/state"
+  printf 'router-mate\n' > "$home/.fm-secondmate-home"
+  printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$home/parent" > "$home/.fm-secondmate-parent"
+  for id in rehold answered reconciled; do
+    run_domain "$home" 2026-10-14T02:00:00Z hold "$id" --title "Recovery $id" \
+      --decision-owner ep-firstmate --timeout-seconds 60 --reason "$technical" >/dev/null || fail "could not hold $id"
+  done
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = unhold ] && [ -f "$FM_HOME/fail-unhold" ]; then exit 1; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  touch "$home/fail-unhold"
+  if run_domain "$home" 2026-10-14T02:01:00Z route-due > "$home/routed.out" 2>&1; then
+    fail 'the interrupted releases reported success'
+  fi
+  if run_domain "$home" 2026-10-14T02:01:30Z hold rehold --reason "$technical" > "$home/rehold.out" 2>&1; then
+    fail 'the recovery re-hold hid the failed release'
+  fi
+  printf 'Ship the update now.\n' > "$home/decision.txt"
+  run_captain "$home" answer answered --decision-file "$home/decision.txt" >/dev/null \
+    || fail "the captain's answer over a routed hold failed"
+  request_reconciles "$home" board reconciled || fail 'could not request reconciliation'
+  printf 'The branch already merged upstream.\n' > "$home/evidence.txt"
+  run_captain "$home" reconcile close reconciled --evidence-file "$home/evidence.txt" >/dev/null \
+    || fail 'reconciliation over a routed hold failed'
+  mv "$home/fail-unhold" "$home/unhold-restored"
+  run_domain "$home" 2026-10-14T02:02:00Z route-due || fail 'the release retry failed'
+  for id in rehold answered reconciled; do
+    assert_grep "resolved [key=captain-hold-$id-1]" "$status" "$id did not resolve its first parent occurrence"
+  done
+  assert_equals '' "$(bash -c '. "$1"; status_open_decisions "$2"' _ "$ROOT/bin/fm-classify-lib.sh" "$status")" \
+    'release recovery left a parent decision open'
+  run_domain "$home" 2026-10-14T03:00:00Z hold rehold --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason "$technical" >/dev/null || fail 'could not start a new lifecycle'
+  run_domain "$home" 2026-10-14T03:01:00Z route-due rehold || fail 'the new lifecycle did not route'
+  assert_grep 'needs-decision [key=captain-hold-rehold-2]' "$status" 'the new lifecycle reused the previous occurrence'
+  assert_equals '' "$(bash -c '. "$1"; status_open_decisions "$2"' _ "$ROOT/bin/fm-classify-lib.sh" "$status")" \
+    'the new lifecycle left its parent decision open'
+  pass 'release recovery, answers and reconciliations over a routed hold share its parent occurrence'
+}
+
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
   receipt-deferral)
     test_domain_retries_failed_delivery_and_release expired || exit 1
@@ -5994,6 +6145,13 @@ case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
   runtime) test_domain_runtime_metadata_aliases; exit $? ;;
   history) test_domain_failed_new_lifecycle_header_is_retryable; exit $? ;;
   remote) test_domain_remote_dispatch_preserves_owner; exit $? ;;
+  live-home)
+    test_domain_sweep_visits_only_routable_rows
+    test_domain_lifecycle_commands_read_only_alias_metas
+    test_domain_deferrals_use_the_local_calendar_date
+    test_domain_release_recovery_keeps_one_parent_occurrence
+    exit $?
+    ;;
   guards)
     test_domain_aliases_share_interrupted_routing_receipts
     test_domain_failed_rehold_preserves_routing_fields
@@ -6043,6 +6201,10 @@ test_domain_row_bounds_preserve_later_holds || exit 1
 test_domain_runtime_metadata_aliases || exit 1
 test_domain_failed_new_lifecycle_header_is_retryable
 test_domain_remote_dispatch_preserves_owner
+test_domain_sweep_visits_only_routable_rows
+test_domain_lifecycle_commands_read_only_alias_metas
+test_domain_deferrals_use_the_local_calendar_date
+test_domain_release_recovery_keeps_one_parent_occurrence
 test_domain_aliases_inherit_canonical_authority
 test_domain_aliases_share_interrupted_routing_receipts
 test_watcher_bounds_blocked_routing || exit 1
