@@ -4031,4 +4031,11 @@ else
   echo "teardown $ID complete (window ${T:-none}; pool slot $WT left to task $TEARDOWN_SLOT_REASSIGNED_TO${TEARDOWN_SLOT_REASSIGNED_HOME:+ (home $TEARDOWN_SLOT_REASSIGNED_HOME)}, which it was reassigned to)"
 fi
 backlog_refresh_reminder
+# Expiring other tasks' holds reads their references, which can be slow, so it
+# runs only after every lock above is released (bin/fm-task-data-lib.sh).
+teardown_release_locks || true
+if [ "$KIND" != secondmate ]; then
+  fm_task_data_expire_others "$DATA" "$STATE" "$ID" \
+    || echo "warning: $ID teardown completed, but expiring other tasks' held data needs a retry" >&2
+fi
 [ "$TEARDOWN_POOL_SLOT_LOST" = 0 ] || exit "$TEARDOWN_LOST_SLOT_EXIT"

@@ -4,7 +4,12 @@
 Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py stage DATA STATE ID PROJECT PR
        fm-task-data.py expire DATA STATE ID
-The caller must hold STATE/.meta-ID.lock, the lock also used by spawn.
+       fm-task-data.py pending DATA
+       fm-task-data.py mark DATA ID cut-off|too-large
+Prepare, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
+lock also used by spawn.
+Pending takes no lock and prints, in one pass, each unexpired cleanup record's
+task id and expiry mark, tab-separated, least recently tried first.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
 Without metadata, prepare reads the latest completed markdown backlog row,
 including the configured archive (legacy mode needs tomllib), when there is no
@@ -26,7 +31,10 @@ Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
 Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
 
-Keep brief.md, report.md, status, findings, review, and record/ regardless of size.
+Keep brief.md, report.md, status, findings, review, and record/ regardless of size,
+and read those files and record/'s .txt/.md/.log/.json files for references up to
+16 MiB each. A larger one is an unread reference: the folder stays whole and the
+file is named in the warning and record.
 Also keep .txt/.md/.log/.json files up to 1 MiB outside nested repositories.
 Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
@@ -55,7 +63,23 @@ Scratch moves to DATA/ID/.cleanup-hold with its relative paths intact; no bytes
 are copied. record/data-cleanup.json records the recovery, not a second task
 record. The next successful teardown of a DIFFERENT task expires the hold, after
 refreshing references and restoring newly linked files or directory descendants
-to their original paths under the same retention rules.
+to their original paths under the same retention rules. That teardown lists
+pending records, then expires holds after releasing its own locks, least recently
+tried first, while FM_TEARDOWN_DATA_EXPIRE_TIMEOUT seconds (default 10) counted
+from the end of the listing remain.
+Each attempt marks its record tried before it starts, so a hold cut off before
+it writes anything still moves behind the others.
+An attempt cut off by the budget leaves the deletions it already made done and
+the rest of the hold in place, and mark sets expiry "cut-off" in its record.
+The next teardown that reaches it gives it one full attempt of exactly
+FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT seconds (default 60), whatever remains of
+the budget.
+If that attempt is cut off too, mark sets expiry "too-large": later teardowns
+skip the hold, keep what remains of it, and name it in a warning each time so
+it can be expired by hand with `bash fm-task-data-lib.sh expire DATA STATE ID`,
+which takes the task's meta lock and refuses a live task.
+Prepare, stage and expire clear the mark at their first record write.
+The holds the budget never reached are named in one warning.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.
 An interrupted move resumes at the next cycle and receives a full new cycle.
@@ -88,9 +112,12 @@ from urllib.parse import unquote
 
 
 LIMIT = 1024 * 1024
+KEPT_LIMIT = 16 * LIMIT
 TEXT = {".txt", ".md", ".log", ".json"}
 HOLD = ".cleanup-hold"
 RECEIPT = "record/data-cleanup.json"
+TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+MARKS = ("cut-off", "too-large")
 
 
 class UnreadReferences(ValueError):
@@ -149,17 +176,18 @@ def read_command(args, project):
 
 
 def local_references(root, files, repos):
-    texts = []
+    texts, oversized = [], []
     for rel in files:
         path = root / rel
         if (rel.parts[0] != HOLD and str(rel) != RECEIPT
                 and not path.is_symlink()
                 and (path.suffix.lower() in TEXT or path.name in ("status", "findings", "review"))
                 and ordinary_evidence(path, rel, repos)):
-            if path.stat().st_size > LIMIT:
-                raise ValueError(f"reference text exceeds 1 MiB: {path}")
-            texts.append(path.read_text(errors="replace"))
-    return "\n".join(texts)
+            if path.lstat().st_size > KEPT_LIMIT:
+                oversized.append(str(rel))
+            else:
+                texts.append(path.read_text(errors="replace"))
+    return "\n".join(texts), oversized
 
 
 def completed_source(data, task_id):
@@ -287,7 +315,14 @@ def backlog_references(source, task_id):
 
 
 def references(views, sources, task_id):
-    texts = [local_references(*view) for view in views]
+    texts, oversized = [], []
+    for view in views:
+        text, skipped = local_references(*view)
+        texts.append(text)
+        oversized += skipped
+    if oversized:
+        sources[-1]["unread"] = sorted(set(sources[-1].get("unread", [])) | set(oversized))
+        raise RetainWhole(f"kept evidence over 16 MiB: {', '.join(oversized)}")
     local = "\n".join(texts)
     beads = set(re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", local))
     sources[-1]["beads"] = sorted(set(sources[-1]["beads"]) | beads)
@@ -496,8 +531,46 @@ def remove_entries(root, files, directories):
         guard_command(["rmdir", "--", *paths])
 
 
+def pending(data):
+    tried = []
+    for receipt in real_directory(data).glob(f"*/{RECEIPT}"):
+        task_id = receipt.parent.parent.name
+        if not TASK_ID.fullmatch(task_id):
+            continue
+        try:
+            info = receipt.lstat()
+        except OSError:
+            continue
+        record = None
+        if stat.S_ISREG(info.st_mode) and info.st_size <= LIMIT:
+            try:
+                record = json.loads(receipt.read_text())
+            except (OSError, ValueError):
+                pass
+        if not (isinstance(record, dict) and record.get("version") == 1 and record.get("expired") is True):
+            expiry = record.get("expiry") if isinstance(record, dict) else None
+            tried.append((info.st_mtime, task_id, expiry if expiry in MARKS else ""))
+    for _, task_id, expiry in sorted(tried):
+        print(f"{task_id}\t{expiry}")
+
+
+def mark(data, task_id, expiry):
+    if not TASK_ID.fullmatch(task_id) or expiry not in MARKS:
+        raise ValueError("invalid expiry mark")
+    root = real_directory(real_directory(data) / task_id)
+    receipt = root / RECEIPT
+    if (receipt.is_symlink() or not receipt.is_file() or receipt.stat().st_nlink != 1
+            or receipt.stat().st_size > LIMIT):
+        raise ValueError("unsafe cleanup record")
+    record = json.loads(receipt.read_text())
+    if not isinstance(record, dict) or record.get("version") != 1 or record.get("task") != task_id:
+        raise ValueError("invalid cleanup record")
+    record["expiry"] = expiry
+    write_record(root, record)
+
+
 def cleanup(action, data, state, task_id, project="", pr=""):
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", task_id):
+    if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
     data, state = real_directory(data), real_directory(state)
     meta = state / f"{task_id}.meta"
@@ -575,7 +648,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if hold.exists() and record is None:
         raise ValueError("unowned recovery directory")
     files, all_directories, repos = inventory(root)
-    local = unquote(html.unescape(local_references(root, files, repos)))
+    local = unquote(html.unescape(local_references(root, files, repos)[0]))
     if record is None:
         record = {"version": 1, "task": task_id, "sources": [], "complete": False}
     if record.get("expired"):
@@ -600,6 +673,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     for source in record["sources"]:
         source.setdefault("backlog", {"data": str(data), "task": None})
     views = [(root, files, repos)]
+    record.pop("expiry", None)
     write_record(root, record)
     if action == "prepare":
         try:
@@ -684,11 +758,14 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(0)
     try:
-        if (len(sys.argv) < 2 or sys.argv[1] not in ("prepare", "stage", "expire")
-                or len(sys.argv) not in ({5, 6} if sys.argv[1] == "prepare"
-                                        else {7} if sys.argv[1] == "stage" else {5})):
+        arities = {"prepare": {5, 6}, "stage": {7}, "expire": {5}, "pending": {3}, "mark": {5}}
+        if len(sys.argv) < 2 or len(sys.argv) not in arities.get(sys.argv[1], ()):
             raise ValueError(__doc__)
-        if sys.argv[1] == "prepare" and len(sys.argv) == 6:
+        if sys.argv[1] == "pending":
+            pending(sys.argv[2])
+        elif sys.argv[1] == "mark":
+            mark(*sys.argv[2:])
+        elif sys.argv[1] == "prepare" and len(sys.argv) == 6:
             cleanup(*sys.argv[1:5], pr=sys.argv[5])
         else:
             cleanup(*sys.argv[1:])
