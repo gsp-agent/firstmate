@@ -1,0 +1,26 @@
+# Round 2: Cursor scenarios against real cursor-agent 2026.10.16-e3cb207 (head 4c3bd8dc)
+
+Lab: marked disposable FM_HOME, private tmux socket, treehouse pool inside the lab,
+config/launch-env-allowlist present (HOME PATH TERM USER LOGNAME LANG), model grok-4.7-low.
+
+A. Real fm-spawn Cursor ship worker (r2-cursor-ship-allowlist-live.txt)
+   generated launch: /usr/bin/env -i ... /bin/bash -c '... cursor-agent -p --output-format stream-json ... > >(tee state/<id>.cursor-stream.jsonl); fm-cursor-guard.sh after <id> $?'
+   cd /tmp && pwd  -> /tmp
+   pwd             -> <task worktree>            (crew guard pinned the drifted shell)
+   git symbolic-ref HEAD -> refused [crew-git-plumbing]
+   stream: 26 JSON lines shown in the pane and 26 captured in state; PANE_LAUNCH_EXIT=0
+   same launch file re-run with an unauthenticated HOME: RERUN_EXIT=1 (direct binary: exit 1)
+
+B. Real Cursor + spawn-generated guard, hook payload logged (r2-cursor-crew-guard-probe-live.txt)
+   Cursor sent tool_input {command, cwd:"", timeout:30000}; guard answered updated_input.cwd=<worktree>
+   pwd after cd /tmp -> <task worktree>; symbolic-ref denied
+C. Control, same prompt, log-only hook (no guard)
+   pwd after cd /tmp -> /private/tmp; symbolic-ref ran
+
+D. Real fm-spawn Cursor secondmate (r2-cursor-secondmate-live.txt)
+   generated launch: no -p, no --output-format, no tee, no guard-after; interactive Cursor TUI came up
+   state/cursor-dispatch.json unchanged (secondmate took no worker launch allowance)
+
+Side effect found and reverted: cursor-agent persisted --model grok-4.7-low into the operator's
+~/.cursor/cli-config.json (model, selectedModel, modelParameters["grok-4.7"]). Restored to
+Grok 4.7 256K Extra High / fleet canonical 256k-xhigh-fast:false; no other field changed.

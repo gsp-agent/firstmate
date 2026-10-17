@@ -1,0 +1,18 @@
+pi CLI: /opt/homebrew/bin/pi version 0.85.0; local fake provider on 127.0.0.1:63113
+pi exit=0
+pi stdout: OK
+pi stderr: 
+before_agent_start events recorded by the probe extension:
+{
+  "keys": [
+    "images",
+    "prompt",
+    "systemPrompt",
+    "systemPromptOptions",
+    "type"
+  ],
+  "messageType": "(absent)",
+  "prompt": "captain: please check the fleet",
+  "thisBranchGuardDrops": true,
+  "upstreamGuardDrops": false
+}

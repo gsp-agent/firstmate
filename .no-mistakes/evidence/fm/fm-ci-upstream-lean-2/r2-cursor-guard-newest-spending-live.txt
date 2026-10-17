@@ -1,0 +1,16 @@
+lab: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.i1N8Lu; default limits 85% / 26 h
+
+=== 1. older file says 90%, newer file (alphabetically first) says 10%
+  total 16
+  -rw-r--r--@ 1 dalecarman  staff  21 Oct 16 23:15:13 2026 aa-new-spending.txt
+  -rw-r--r--@ 1 dalecarman  staff  21 Oct 16 21:15:00 2026 zz-old-spending.txt
+$ fm-cursor-guard.sh fallback lab-bead -> cursor
+
+=== 2. newer file says 90%, older says 10%
+$ fm-cursor-guard.sh fallback lab-bead -> codex Cursor Models at 90% (limit 85%)
+
+=== 3. only file is 30 h old (limit 26 h)
+$ fm-cursor-guard.sh fallback lab-bead -> codex newest Cursor spending file is 30 h old (limit 26 h)
+
+=== 4. no spending file
+$ fm-cursor-guard.sh fallback lab-bead -> codex no Cursor spending file in /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.i1N8Lu/cursor-usage

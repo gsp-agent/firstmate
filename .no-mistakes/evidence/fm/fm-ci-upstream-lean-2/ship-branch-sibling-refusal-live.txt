@@ -1,0 +1,42 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.cifWVO
+task ids: lab5fb3d3-sib (sibling holds fm/lab5fb3d3-sib), lab5fb3d3-ctl (control)
+lab tmux socket: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/tmux/tmux-501/fm-lab
+
+=== 1. ship spawn whose branch fm/lab5fb3d3-sib is checked out in the sibling worktree
+before: sibling branch=fm/lab5fb3d3-sib HEAD=df1d2e01af89 status=[?? uncommitted.txt]
+$ bin/fm-spawn.sh lab5fb3d3-sib <project> "sh -c 'while :; do sleep 60; done'" --mode local-only --yolo off   (run inside the lab tmux pane)
+exit: 1
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.cifWVO
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.cifWVO/data/lab5fb3d3-sib/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab5fb3d3-sib
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.cifWVO/data/lab5fb3d3-sib/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab5fb3d3-sib ships mode=local-only while the standing posture for proj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | fatal: 'fm/lab5fb3d3-sib' is already used by worktree at '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/sibling'
+  | error: could not check out ship branch 'fm/lab5fb3d3-sib' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/treehouse/.treehouse/proj-9b441f/1/proj'; refusing to launch
+after: sibling branch=fm/lab5fb3d3-sib HEAD=df1d2e01af89 fm/lab5fb3d3-sib=df1d2e01af89 status=[?? uncommitted.txt]
+sibling dirty file: uncommitted sibling work
+state/lab5fb3d3-sib.meta present: no
+git worktree list:
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/projects/proj                           df1d2e0 [main]
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/sibling                                 df1d2e0 [fm/lab5fb3d3-sib]
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/treehouse/.treehouse/proj-9b441f/1/proj df1d2e0 (detached HEAD)
+
+=== 2. control: ship spawn lab5fb3d3-ctl with no branch held elsewhere
+exit: 0
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.cifWVO
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.cifWVO/data/lab5fb3d3-ctl/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab5fb3d3-ctl
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.cifWVO/data/lab5fb3d3-ctl/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab5fb3d3-ctl ships mode=local-only while the standing posture for proj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab5fb3d3-ctl harness=sh kind=ship mode=local-only yolo=off window=primary:fm-lab5fb3d3-ctl worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/treehouse/.treehouse/proj-9b441f/2/proj
+control meta worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/treehouse/.treehouse/proj-9b441f/2/proj
+control slot branch: fm/lab5fb3d3-ctl at df1d2e0; origin/main=df1d2e0
+lab tmux windows:
+  primary:bash cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53TZ92JWJYABJDQBHFVGB0R cmd=bash
+  primary:fm-lab5fb3d3-sib cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/treehouse/.treehouse/proj-9b441f/1/proj cmd=bash
+  primary:fm-lab5fb3d3-ctl cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.cifWVO/treehouse/.treehouse/proj-9b441f/2/proj cmd=bash
+sibling still: branch=fm/lab5fb3d3-sib HEAD=df1d2e01af89 dirty=uncommitted sibling work
+
+~/.treehouse entries before/after: 101/101
+worktree status after run: 0 changed paths
+task temp dirs: /tmp/fm-lab5fb3d3-ctl /tmp/fm-lab5fb3d3-ctl+241f889a163ddf02db1c84bccca29b894d513dd8d06d3edfb49a5b851430ace2 
+IDS=lab5fb3d3-sib lab5fb3d3-ctl
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.cifWVO

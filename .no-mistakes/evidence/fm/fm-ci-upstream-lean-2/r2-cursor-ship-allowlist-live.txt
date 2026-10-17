@@ -1,0 +1,92 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.0ZiHbK (marked: yes)
+cursor-agent: 2026.10.16-e3cb207; login (operator HOME): Logged in
+lab tmux socket: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.0ZiHbK/tmux/tmux-501/fm-lab
+config/launch-env-allowlist:
+  # lab allowlist
+  HOME
+  PATH
+  TERM
+  USER
+  LOGNAME
+  LANG
+
+=== A. allowlisted Cursor ship worker, spawned for real
+$ bin/fm-spawn.sh labd9823-pin <project> --harness cursor --model grok-4.7-low --mode local-only --yolo off  -> exit 0
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.0ZiHbK
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.0ZiHbK/data/labd9823-pin/launch-brief.md records no ship branch; defaulting to legacy branch fm/labd9823-pin
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.0ZiHbK/data/labd9823-pin/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: labd9823-pin ships mode=local-only while the standing posture for proj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned labd9823-pin harness=cursor kind=ship mode=local-only yolo=off window=primary:fm-labd9823-pin worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.0ZiHbK/treehouse/.treehouse/proj-2e7888/1/proj
+worker window: primary:fm-labd9823-pin; slot: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.0ZiHbK/treehouse/.treehouse/proj-2e7888/1/proj (branch fm/labd9823-pin)
+generated launch file: /tmp/fm-labd9823-pin+dc3a40991d0435948f12795ce0db44ea21f17b59fb5441064476bd39cfe3bcc6/launch.s1792209936.89829.14972.sh
+  wrapper shell: /bin/bash -c
+  env -i wrapper: 1
+  process substitution tee: 1
+  headless -p: 1
+  model flag: --model '
+crew guard hooks.json: {
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "matcher": "Shell",
+        "type": "command",
+        "command": "'/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53TZ92JWJYABJDQBHFVGB0R/bin/fm-cursor-crew-guard.mjs' --worktree '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.0ZiHbK/treehouse/.treehouse/proj-2e7888/1/proj'",
+        "timeout": 10
+      }
+    ]
+  }
+}
+Cursor run finished after about 44s (result line present: 1)
+--- worker pane tail (capture-pane):
+  | gDirectory":"","timeout":30000,"toolCallId":"call-9ec6e049-49b9-4dd2-a025-7bb01a189deb-2\nfc_2ce76c83-0c42-9f2d-8fa4-eff095c89fa3_0","simpleCommands":["git"],"hasInputRedirect":false,"hasOutputRedirect":false,"parsingRes
+  | ult":{"parsingFailed":false,"executableCommands":[{"name":"git","args":[{"type":"word","value":"symbolic-ref"},{"type":"word","value":"HEAD"}],"fullText":"git symbolic-ref HEAD"}],"hasRedirects":false,"hasCommandSubstitu
+  | tion":false,"redirects":[]},"fileOutputThresholdBytes":"40000","isBackground":false,"skipApproval":false,"timeoutBehavior":"TIMEOUT_BEHAVIOR_BACKGROUND","hardTimeout":86400000,"description":"Print current branch symbolic
+  |  ref","closeStdin":true,"conversationId":"42181ab8-8e1c-4215-91a2-9ad65c1792c8","adminCommandDenylist":[],"requestId":"3df5ffd8-aa8e-4ac1-bca3-d9a74004524c"},"result":{"rejected":{"command":"git symbolic-ref HEAD","worki
+  | ngDirectory":"","reason":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <w
+  | hat you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`.\n\nAgent note: Do not sugge
+  | st workarounds to the blocked tool.","isReadonly":false}}},"hookAdditionalContexts":[],"toolCallId":"call-9ec6e049-49b9-4dd2-a025-7bb01a189deb-2\nfc_2ce76c83-0c42-9f2d-8fa4-eff095c89fa3_0","startedAtMs":"1792209978651","
+  | completedAtMs":"1792209979766"},"model_call_id":"3df5ffd8-aa8e-4ac1-bca3-d9a74004524c-2-4szk","session_id":"42181ab8-8e1c-4215-91a2-9ad65c1792c8","timestamp_ms":1792209979804}
+  | {"type":"thinking","subtype":"delta","text":"The third command was","session_id":"42181ab8-8e1c-4215-91a2-9ad65c1792c8","timestamp_ms":1792209981592}
+  | {"type":"thinking","subtype":"delta","text":" rejected.","session_id":"42181ab8-8e1c-4215-91a2-9ad65c1792c8","timestamp_ms":1792209981723}
+  | {"type":"thinking","subtype":"delta","text":"\n\nThe first two commands succeeded. The third failed with an append-blocked status-file error. I will report all three outputs and stop.","session_id":"42181ab8-8e1c-4215-91
+  | a2-9ad65c1792c8","timestamp_ms":1792209984728}
+  | {"type":"thinking","subtype":"completed","session_id":"42181ab8-8e1c-4215-91a2-9ad65c1792c8","timestamp_ms":1792209984728}
+  | {"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"1. `cd /tmp && pwd`\n```\n/tmp\n```\n\n2. `pwd`\n```\n/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.0ZiHbK/treehouse/.
+  | treehouse/proj-2e7888/1/proj\n```\n\n3. `git symbolic-ref HEAD`  \nRejected before it ran: `[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run t
+  | hem.`"}]},"session_id":"42181ab8-8e1c-4215-91a2-9ad65c1792c8"}
+  | {"type":"result","subtype":"success","duration_ms":28328,"duration_api_ms":28328,"is_error":false,"result":"I'll run the three commands in order, each as its own shell call with no working directory set.1. `cd /tmp && pw
+  | d`\n```\n/tmp\n```\n\n2. `pwd`\n```\n/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.0ZiHbK/treehouse/.treehouse/proj-2e7888/1/proj\n```\n\n3. `git symbolic-ref HEAD`  \nRejected before it ran: `[crew-git
+  | -plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them.`","session_id":"42181ab8-8e1c-4215-91a2-9ad65c1792c8","request_id":"3df5ffd8-aa8e-4ac1-bca3-d9a7
+  | 4004524c","usage":{"inputTokens":15280,"outputTokens":657,"cacheReadTokens":67072,"cacheWriteTokens":0}}
+  | ╭─proj on 🌱 fm/labd9823-pin
+  | ╰─❯ echo "PANE_LAUNCH_EXIT=$?"
+  | PANE_LAUNCH_EXIT=0
+  | ╭─proj on 🌱 fm/labd9823-pin
+  | ╰─❯
+--- captured stream file: 26 JSON lines; pane shows stream JSON: 26
+--- shell tool calls in the captured stream (command, workingDirectory, stdout or refusal):
+  | {"command":"cd /tmp && pwd","workingDirectory":"","stdout":"/tmp\n","refused":null}
+  | {"command":"pwd","workingDirectory":"","stdout":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.0ZiHbK/treehouse/.treehouse/proj-2e7888/1/proj\n","refused":null}
+  | {"command":"git symbolic-ref HEAD","workingDirectory":"","stdout":null,"refused":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`.\n\nAgent note: Do not suggest workarounds to the blocked tool."}
+--- final result:
+  | I'll run the three commands in order, each as its own shell call with no working directory set.1. `cd /tmp && pwd`
+  | ```
+  | /tmp
+  | ```
+  | 
+  | 2. `pwd`
+  | ```
+  | /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.0ZiHbK/treehouse/.treehouse/proj-2e7888/1/proj
+  | ```
+  | 
+  | 3. `git symbolic-ref HEAD`  
+  | Rejected before it ran: `[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them.`
+state/cursor-dispatch.json after ship: {"day":"2026-10-16","beads":{"labd9823-pin":1}}
+
+=== A2. same generated launch file, re-run in the worker pane with an unauthenticated HOME (exit status through the tee)
+  | Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.
+  | RERUN_EXIT=1
+  | proj on  fm/labd9823-pin took 2s
+  | ❯
+reference: the same binary run directly with that HOME: exit=1

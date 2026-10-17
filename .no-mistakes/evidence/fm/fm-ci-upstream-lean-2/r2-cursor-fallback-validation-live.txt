@@ -1,0 +1,202 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq (marked: yes)
+jq: jq-1.8.2
+spending file: cursor_models_pct=90 (fresh). Any accepted limit <= 90 must leave Cursor; 100 must keep Cursor.
+
+=== cursor_fallback={"models_pct":85,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 0
+  | dispatch-resolve:
+  |   status: clear
+  |   source: default (no label matched)
+  |   profile: --harness 'cursor'
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | (no CREW_DISPATCH line: accepted)
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: codex Cursor Models at 90% (limit 85%)
+  => ACCEPTED by both validators; guard decision expected=fallback -> ok
+
+=== cursor_fallback={"models_pct":1,"max_age_h":1}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 0
+  | dispatch-resolve:
+  |   status: clear
+  |   source: default (no label matched)
+  |   profile: --harness 'cursor'
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | (no CREW_DISPATCH line: accepted)
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: codex Cursor Models at 90% (limit 1%)
+  => ACCEPTED by both validators; guard decision expected=fallback -> ok
+
+=== cursor_fallback={"models_pct":100,"max_age_h":1}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 0
+  | dispatch-resolve:
+  |   status: clear
+  |   source: default (no label matched)
+  |   profile: --harness 'cursor'
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | (no CREW_DISPATCH line: accepted)
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: cursor
+  => ACCEPTED by both validators; guard decision expected=cursor -> ok
+
+=== cursor_fallback={"models_pct":90,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 0
+  | dispatch-resolve:
+  |   status: clear
+  |   source: default (no label matched)
+  |   profile: --harness 'cursor'
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | (no CREW_DISPATCH line: accepted)
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: codex Cursor Models at 90% (limit 90%)
+  => ACCEPTED by both validators; guard decision expected=fallback -> ok
+
+=== cursor_fallback={"models_pct":85.0,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: cursor
+  | stderr: bin/fm-cursor-guard.sh: line 76: [: 85.0: integer expected
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":85,"max_age_h":26.0}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: 
+  | stderr: bin/fm-cursor-guard.sh: line 73: 26.0: arithmetic syntax error: invalid arithmetic operator (error token is ".0")
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":1E2,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: cursor
+  | stderr: bin/fm-cursor-guard.sh: line 76: [: 1E+2: integer expected
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":1e2,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: cursor
+  | stderr: bin/fm-cursor-guard.sh: line 76: [: 1E+2: integer expected
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":8.5e1,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 0
+  | dispatch-resolve:
+  |   status: clear
+  |   source: default (no label matched)
+  |   profile: --harness 'cursor'
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | (no CREW_DISPATCH line: accepted)
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: codex Cursor Models at 90% (limit 85%)
+  => ACCEPTED by both validators; guard decision expected=fallback -> ok
+
+=== cursor_fallback={"models_pct":850e-1,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: cursor
+  | stderr: bin/fm-cursor-guard.sh: line 76: [: 85.0: integer expected
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":85.5,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: cursor
+  | stderr: bin/fm-cursor-guard.sh: line 76: [: 85.5: integer expected
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":85,"max_age_h":0.5}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: 
+  | stderr: bin/fm-cursor-guard.sh: line 73: 0.5: arithmetic syntax error: invalid arithmetic operator (error token is ".5")
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":85,"max_age_h":2.6e1}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 0
+  | dispatch-resolve:
+  |   status: clear
+  |   source: default (no label matched)
+  |   profile: --harness 'cursor'
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | (no CREW_DISPATCH line: accepted)
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: codex Cursor Models at 90% (limit 85%)
+  => ACCEPTED by both validators; guard decision expected=fallback -> ok
+
+=== cursor_fallback={"models_pct":85.00000000000001,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: cursor
+  | stderr: bin/fm-cursor-guard.sh: line 76: [: 85.00000000000001: integer expected
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":-0,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: codex Cursor Models at 90% (limit -0%)
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":"85","max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: codex Cursor Models at 90% (limit 85%)
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":0,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: codex Cursor Models at 90% (limit 0%)
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":101,"max_age_h":26}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: cursor
+  => REJECTED by both validators (never dispatched)
+
+=== cursor_fallback={"models_pct":85,"max_age_h":0}
+$ bin/fm-dispatch-resolve.sh --labels ''  -> exit 2
+  | error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Yo7qDq/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  | CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback lab-bead  -> exit 0
+  | stdout: codex newest Cursor spending file is 0 h old (limit 0 h)
+  => REJECTED by both validators (never dispatched)
+
+SUMMARY: accepted=6 rejected=13 broken=0

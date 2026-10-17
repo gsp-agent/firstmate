@@ -1,0 +1,55 @@
+# GitHub Actions evidence for the upstream-lean CI trigger (read-only API, 2026-10-17T02:47:27Z)
+
+## upstream-lean's current ci.yml triggers (baseline)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+
+## this branch's ci.yml triggers (HEAD 63eeca42)
+on:
+  push:
+    branches: [main, upstream-lean]
+  pull_request:
+    branches: [main, upstream-lean]
+
+
+## ci.yml byte-identical to PR 20 head 382524da: yes
+
+## CI workflow runs (most recent 30)
+2026-10-14T16:57:37Z	pull_request	fm/fm-ci-upstream-lean	382524da	success
+2026-10-14T15:23:58Z	pull_request	fm/fm-ci-upstream-lean	f0d2d738	failure
+2026-10-14T08:43:24Z	pull_request	fm/fm-ci-upstream-lean	f546c1e4	failure
+2026-10-12T15:46:50Z	push	main	7dd35426	success
+2026-10-12T14:31:12Z	pull_request	pm-firstmate/upstream-sync	2391c501	cancelled
+2026-10-12T14:21:16Z	pull_request	pm-firstmate/upstream-sync	10f34d50	cancelled
+2026-10-12T14:02:45Z	pull_request	pm-firstmate/upstream-sync	e3b2bdd4	cancelled
+
+## run 38602523486 (pull_request into upstream-lean, PR 20 head 382524da) jobs
+https://github.com/gsp-agent/firstmate/actions/runs/38602523486
+success	Behavior portable parallel 2
+success	Behavior portable parallel 1
+success	Behavior portable serial 5
+success	Behavior portable serial 2
+success	Lint 2
+success	Lint 1
+success	Behavior tests (Herdr)
+success	Test coverage guard
+success	Stock macOS Bash snapshot compatibility
+success	Repo invariants
+success	Behavior portable serial 7
+success	Behavior portable serial 1
+success	Behavior portable serial 4
+success	Behavior portable serial 9
+success	Behavior portable serial 6
+success	Behavior portable serial 8
+success	Behavior portable serial 3
+success	Behavior timing aggregate
+
+## upstream-lean PRs and their check rollups
+PR 15: base=upstream-lean mergeable=UNKNOWN checks=0
+PR 17: base=upstream-lean mergeable=UNKNOWN checks=0
+PR 18: base=upstream-lean mergeable=UNKNOWN checks=0
+PR 20: base=upstream-lean mergeable=CONFLICTING checks=0

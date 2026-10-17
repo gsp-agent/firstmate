@@ -1,0 +1,100 @@
+# Real Pi 0.85.0: does a captain prompt reach the supervision branch before Pi persists it?
+
+Setup per run: disposable marked lab FM_HOME, primary lock held by the pi process, both fm Pi extensions loaded with -e, a probe extension that
+records Pi's real before_agent_start event and, at agent_start (Pi has not yet saved the prompt), offers one eligible heartbeat wake to the
+branch exactly as fm-primary-pi-watch would; one heartbeat row seeded in the real wake-queue format; a local OpenAI-compatible stand-in
+model that logs request bodies (no paid tokens). The branch's settlement rejects only because the stand-in model never files a report.
+
+## Run 1
+variant: updated (this run's head 4c3bd8dc)
+extensions loaded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53TZ92JWJYABJDQBHFVGB0R/.pi/extensions/fm-primary-pi-watch.ts, /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53TZ92JWJYABJDQBHFVGB0R/.pi/extensions/fm-branch-supervision.ts (+ probe.ts)
+pi: /opt/homebrew/bin/pi version 0.85.0; stand-in model server 127.0.0.1:59354; lab FM_HOME /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gwHTYH; primary lock held by the pi process
+$ pi -p --no-extensions -e <fm extensions> -e probe.ts --provider labfake --model lab-model 'captain: please check the fleet'  -> exit 0
+pi stdout: OK
+pi stderr: 
+model requests received: 2
+probe records:
+  {
+    "hook": "before_agent_start",
+    "keys": [
+      "images",
+      "prompt",
+      "systemPrompt",
+      "systemPromptOptions",
+      "type"
+    ],
+    "messageType": "(absent)",
+    "prompt": "captain: please check the fleet",
+    "updatedGuardAdmits": true,
+    "round1GuardDrops": true
+  }
+  {
+    "hook": "agent_start",
+    "persistedUserMessagesAtOffer": 0,
+    "offerAccepted": true
+  }
+  {
+    "hook": "branch-request",
+    "branchReachedModel": true,
+    "mirrorCarriesCaptainPrompt": true,
+    "mirrorExcerpt": [
+      "[captain] or [main], as messages of customType fm-main-mirror or as a MAIN DIALOG MIRROR ",
+      "[captain] captain: please check the fleet"
+    ],
+    "settlement": "rejected: supervision branch prompt settled but produced no durable outcome for its claimed wake rows"
+  }
+branch session file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.gwHTYH/state/branch-session/2026-10-17T04-12-00-963Z_01a1480f-3e43-7617-885c-2e00081b8877.jsonl
+branch session fm-main-mirror entries:
+  | "[captain] captain: please check the fleet"
+  | "[main] OK"
+wake queue after run: 1792210319 1 heartbeat heartbeat lab heartbeat review
+watch extension log (state/.watch-extension.log, tail):
+
+## Run 2 (comparison)
+variant: round-1 extensions (63eeca42, messageType guard)
+extensions loaded: /tmp/fm-r2.Jc7aN7/r1/.pi/extensions/fm-primary-pi-watch.ts, /tmp/fm-r2.Jc7aN7/r1/.pi/extensions/fm-branch-supervision.ts (+ probe.ts)
+pi: /opt/homebrew/bin/pi version 0.85.0; stand-in model server 127.0.0.1:59599; lab FM_HOME /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.9b7IbZ; primary lock held by the pi process
+$ pi -p --no-extensions -e <fm extensions> -e probe.ts --provider labfake --model lab-model 'captain: please check the fleet'  -> exit 0
+pi stdout: OK
+pi stderr: 
+model requests received: 2
+probe records:
+  {
+    "hook": "before_agent_start",
+    "keys": [
+      "images",
+      "prompt",
+      "systemPrompt",
+      "systemPromptOptions",
+      "type"
+    ],
+    "messageType": "(absent)",
+    "prompt": "captain: please check the fleet",
+    "updatedGuardAdmits": true,
+    "round1GuardDrops": true
+  }
+  {
+    "hook": "agent_start",
+    "persistedUserMessagesAtOffer": 0,
+    "offerAccepted": true
+  }
+  {
+    "hook": "branch-request",
+    "branchReachedModel": true,
+    "mirrorCarriesCaptainPrompt": false,
+    "mirrorExcerpt": [
+      "[captain] or [main], as messages of customType fm-main-mirror or as a MAIN DIALOG MIRROR "
+    ],
+    "settlement": "rejected: supervision branch prompt settled but produced no durable outcome for its claimed wake rows"
+  }
+branch session file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9b7IbZ/state/branch-session/2026-10-17T04-12-19-436Z_01a1480f-866c-70be-835d-c862f651e3c5.jsonl
+branch session fm-main-mirror entries:
+  | "[captain] captain: please check the fleet"
+  | "[main] OK"
+wake queue after run: 1792210336 1 heartbeat heartbeat lab heartbeat review
+watch extension log (state/.watch-extension.log, tail):
+
+## Reading
+- Pi 0.85 sends before_agent_start with prompt and no messageType (both runs).
+- Updated extensions: the branch's model request for the wake carried "[captain] captain: please check the fleet" (mirrorCarriesCaptainPrompt=true).
+- Round-1 extensions (messageType guard): the same request lacked it (false); the prompt only reached the branch later, after Pi saved it.

@@ -1,0 +1,5 @@
+338:Launch environment (config/launch-env-allowlist):
+339-  Absent means unchanged ambient inheritance. A present readable regular file
+340-  opts every launch (ship, scout, secondmate, raw command, and relaunch) into
+341-  /usr/bin/env -i followed by /bin/sh -c of the existing launch command, except
+342-  Cursor launches, which use /bin/bash -c because Cursor's worker stream capture

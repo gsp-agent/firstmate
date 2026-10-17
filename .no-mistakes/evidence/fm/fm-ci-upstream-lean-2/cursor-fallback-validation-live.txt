@@ -1,0 +1,104 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.ePIV7d (marked: yes)
+spending file: cursor_models_pct=90 (fresh), so a valid limit of 85 must fall back off Cursor
+
+=== config/crew-dispatch.json cursor_fallback={"models_pct":85,"max_age_h":26}
+$ FM_HOME=$LAB bin/fm-dispatch-resolve.sh --labels ''   -> exit 0
+  stdout: dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'cursor'
+$ FM_HOME=$LAB FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  (no CREW_DISPATCH line: config accepted)
+$ bin/fm-cursor-guard.sh fallback s6-bead   (usage 90%) -> exit 0
+  stdout: codex Cursor Models at 90% (limit 85%)
+
+=== config/crew-dispatch.json cursor_fallback={"models_pct":1,"max_age_h":1}
+$ FM_HOME=$LAB bin/fm-dispatch-resolve.sh --labels ''   -> exit 0
+  stdout: dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'cursor'
+$ FM_HOME=$LAB FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  (no CREW_DISPATCH line: config accepted)
+$ bin/fm-cursor-guard.sh fallback s6-bead   (usage 90%) -> exit 0
+  stdout: codex Cursor Models at 90% (limit 1%)
+
+=== config/crew-dispatch.json cursor_fallback={"models_pct":100,"max_age_h":1}
+$ FM_HOME=$LAB bin/fm-dispatch-resolve.sh --labels ''   -> exit 0
+  stdout: dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'cursor'
+$ FM_HOME=$LAB FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  (no CREW_DISPATCH line: config accepted)
+$ bin/fm-cursor-guard.sh fallback s6-bead   (usage 90%) -> exit 0
+  stdout: cursor
+
+=== config/crew-dispatch.json cursor_fallback={"models_pct":85.5,"max_age_h":26}
+$ FM_HOME=$LAB bin/fm-dispatch-resolve.sh --labels ''   -> exit 2
+  stderr: error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.ePIV7d/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_HOME=$LAB FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback s6-bead   (usage 90%) -> exit 0
+  stdout: cursor
+  stderr: bin/fm-cursor-guard.sh: line 76: [: 85.5: integer expected
+
+=== config/crew-dispatch.json cursor_fallback={"models_pct":85,"max_age_h":0.5}
+$ FM_HOME=$LAB bin/fm-dispatch-resolve.sh --labels ''   -> exit 2
+  stderr: error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.ePIV7d/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_HOME=$LAB FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback s6-bead   (usage 90%) -> exit 0
+  stdout: 
+  stderr: bin/fm-cursor-guard.sh: line 73: 0.5: arithmetic syntax error: invalid arithmetic operator (error token is ".5")
+
+=== config/crew-dispatch.json cursor_fallback={"models_pct":0,"max_age_h":26}
+$ FM_HOME=$LAB bin/fm-dispatch-resolve.sh --labels ''   -> exit 2
+  stderr: error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.ePIV7d/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_HOME=$LAB FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback s6-bead   (usage 90%) -> exit 0
+  stdout: codex Cursor Models at 90% (limit 0%)
+
+=== config/crew-dispatch.json cursor_fallback={"models_pct":101,"max_age_h":26}
+$ FM_HOME=$LAB bin/fm-dispatch-resolve.sh --labels ''   -> exit 2
+  stderr: error: malformed rules file: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.ePIV7d/config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ FM_HOME=$LAB FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+$ bin/fm-cursor-guard.sh fallback s6-bead   (usage 90%) -> exit 0
+  stdout: cursor
+
+=== config/crew-dispatch.json cursor_fallback={"models_pct":85.0,"max_age_h":26}
+$ FM_HOME=$LAB bin/fm-dispatch-resolve.sh --labels ''   -> exit 0
+  stdout: dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'cursor'
+$ FM_HOME=$LAB FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  (no CREW_DISPATCH line: config accepted)
+$ bin/fm-cursor-guard.sh fallback s6-bead   (usage 90%) -> exit 0
+  stdout: cursor
+  stderr: bin/fm-cursor-guard.sh: line 76: [: 85.0: integer expected
+
+=== config/crew-dispatch.json cursor_fallback={"models_pct":85,"max_age_h":26.0}
+$ FM_HOME=$LAB bin/fm-dispatch-resolve.sh --labels ''   -> exit 0
+  stdout: dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'cursor'
+$ FM_HOME=$LAB FM_BOOTSTRAP_DETECT_ONLY=1 bin/fm-bootstrap.sh | grep CREW_DISPATCH
+  (no CREW_DISPATCH line: config accepted)
+$ bin/fm-cursor-guard.sh fallback s6-bead   (usage 90%) -> exit 0
+  stdout: 
+  stderr: bin/fm-cursor-guard.sh: line 73: 26.0: arithmetic syntax error: invalid arithmetic operator (error token is ".0")
+
+=== Darwin newest-by-mtime spending selection (guard on this host, uname=Darwin)
+  total 16
+  -rw-r--r--@ 1 dalecarman  staff  21 Oct 16 21:52:00 2026 aaa-new-spending.txt
+  -rw-r--r--@ 1 dalecarman  staff  21 Oct  1 00:00:00 2026 zzz-old-spending.txt
+  newest (aaa, 10%) wins over lexically-later stale (zzz, 95%): cursor
+  both stale (2026-10-01): codex newest Cursor spending file is 381 h old (limit 26 h)
+  no spending file: codex no Cursor spending file in /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.ePIV7d/usage-empty
+
+worktree status after run: 0 changed paths
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.ePIV7d

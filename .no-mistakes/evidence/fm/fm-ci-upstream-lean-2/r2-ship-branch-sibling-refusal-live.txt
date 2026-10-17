@@ -1,0 +1,29 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gHfUTm (marked: yes)
+lab tmux socket: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.gHfUTm/tmux/tmux-501/fm-lab
+
+=== 1. ship spawn whose branch fm/lab256a1-sib is checked out in a sibling worktree
+before: branch=fm/lab256a1-sib HEAD=3343283fdcd0 fm/lab256a1-sib=3343283fdcd0 status=[?? uncommitted.txt ]
+$ bin/fm-spawn.sh lab256a1-sib <project> "sh -c 'while :; do sleep 60; done'" --mode local-only --yolo off  -> exit 1
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gHfUTm
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gHfUTm/data/lab256a1-sib/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab256a1-sib
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gHfUTm/data/lab256a1-sib/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab256a1-sib ships mode=local-only while the standing posture for proj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | fatal: 'fm/lab256a1-sib' is already used by worktree at '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.gHfUTm/sibling'
+  | error: could not check out ship branch 'fm/lab256a1-sib' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.gHfUTm/treehouse/.treehouse/proj-d92c4c/1/proj'; refusing to launch
+after:  branch=fm/lab256a1-sib HEAD=3343283fdcd0 fm/lab256a1-sib=3343283fdcd0 status=[?? uncommitted.txt ]
+sibling dirty file: uncommitted sibling work
+state/lab256a1-sib.meta present: no
+worker windows: bash fm-lab256a1-sib 
+git worktree list:
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.gHfUTm/projects/proj                           3343283 [main]
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.gHfUTm/sibling                                 3343283 [fm/lab256a1-sib]
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.gHfUTm/treehouse/.treehouse/proj-d92c4c/1/proj 3343283 (detached HEAD)
+
+=== 2. control: ship spawn lab256a1-ctl with no branch held elsewhere
+exit: 0
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gHfUTm
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gHfUTm/data/lab256a1-ctl/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab256a1-ctl
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gHfUTm/data/lab256a1-ctl/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab256a1-ctl ships mode=local-only while the standing posture for proj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab256a1-ctl harness=sh kind=ship mode=local-only yolo=off window=primary:fm-lab256a1-ctl worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.gHfUTm/treehouse/.treehouse/proj-d92c4c/2/proj
+control slot branch: fm/lab256a1-ctl

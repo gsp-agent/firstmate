@@ -1,0 +1,27 @@
+generated plugin (from fm-spawn): /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.lSkfh5/state/lab7ad899-pin.cursor-crew-guard
+  plugin.json: {"name":"fm-crew-guard","displayName":"Firstmate crew guard","version":"1.0.0","description":"Pins crew shell calls to the task worktree and refuses git symbolic-ref and update-ref.","hooks":"./hooks/hooks.json"}
+  hooks.json:  {"version":1,"hooks":{"preToolUse":[{"matcher":"Shell","type":"command","command":"'/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53TZ92JWJYABJDQBHFVGB0R/bin/fm-cursor-crew-guard.mjs' --worktree '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lSkfh5/treehouse/.treehouse/proj-4461e2/1/proj'","timeout":10}]}}
+probe hooks.json: {"version":1,"hooks":{"preToolUse":[{"matcher":"Shell","type":"command","command":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.lSkfh5/hook-log.sh","timeout":10}]}}
+cursor-agent exit=0
+stderr: 
+--- shell calls Cursor recorded (stream):
+  | {"command":"cd /tmp && pwd","workingDirectory":"","result":"{\"command\":\"cd /tmp && pwd\",\"workingDirectory\":\"\",\"exitCode\":0,\"signal\":\"\",\"stdout\":\"/tmp\\n\",\"stderr\":\"\",\"executionTime\":6525,\"interleavedOutput\":\"/tmp\\n\",\"localExecutionTimeMs\":519}"}
+  | {"command":"pwd","workingDirectory":"","result":"{\"command\":\"pwd\",\"workingDirectory\":\"\",\"exitCode\":0,\"signal\":\"\",\"stdout\":\"/private/tmp\\n\",\"stderr\":\"\",\"executionTime\":4179,\"interleavedOutput\":\"/private/tmp\\n\",\"localExecutionTimeMs\":626}"}
+  | {"command":"git symbolic-ref HEAD","workingDirectory":"","result":"{\"command\":\"git symbolic-ref HEAD\",\"workingDirectory\":\"\",\"reason\":\"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <"}
+--- final answer:
+  | I'll run the three shell commands in order, one per call, with no working directory set./tmp
+  | /private/tmp
+  | Rejected: [crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`.
+--- hook invocations logged: 3
+  hook stdin (tool_name, tool_input keys and values):
+    {"tool_name":"Shell","tool_input":{"command":"cd /tmp && pwd","cwd":""}}
+  top-level payload keys: ["conversation_id","cursor_version","cwd","generation_id","hook_event_name","model","session_id","tool_input","tool_name","tool_use_id","transcript_path","user_email","workspace_roots"]
+  guard answer: {"permission":"allow","updated_input":{"command":"cd /tmp && pwd","cwd":"","timeout":30000,"working_directory":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lSkfh5/treehouse/.treehouse/proj-4461e2/1/proj"}}
+  hook stdin (tool_name, tool_input keys and values):
+    {"tool_name":"Shell","tool_input":{"command":"pwd","cwd":""}}
+  top-level payload keys: ["conversation_id","cursor_version","cwd","generation_id","hook_event_name","model","session_id","tool_input","tool_name","tool_use_id","transcript_path","user_email","workspace_roots"]
+  guard answer: {"permission":"allow","updated_input":{"command":"pwd","cwd":"","timeout":30000,"working_directory":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lSkfh5/treehouse/.treehouse/proj-4461e2/1/proj"}}
+  hook stdin (tool_name, tool_input keys and values):
+    {"tool_name":"Shell","tool_input":{"command":"git symbolic-ref HEAD","cwd":""}}
+  top-level payload keys: ["conversation_id","cursor_version","cwd","generation_id","hook_event_name","model","session_id","tool_input","tool_name","tool_use_id","transcript_path","user_email","workspace_roots"]
+  guard answer: {"permission":"deny","user_message":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`.","agent_message":"[crew-git-plumbing] git symbolic-ref and git update-ref move HEAD or a ref without git's checks, so a crew session may not run them. A refused command is a stop: append `blocked [at=<epoch>]: <what you needed>` to your status file and wait; do not get the same effect another way. To read the current branch use `git branch --show-current`; to start a branch use `git switch -c <name>`."}

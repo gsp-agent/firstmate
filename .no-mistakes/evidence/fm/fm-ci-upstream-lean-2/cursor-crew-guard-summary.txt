@@ -1,0 +1,24 @@
+# Crew guard against real Cursor: summary (cursor-agent 2026.10.16-e3cb207)
+
+Payload Cursor sent to the preToolUse hook (one call, identifiers dropped):
+{"hook_event_name":"preToolUse","cursor_version":"2026.10.16-e3cb207","tool_name":"Shell","tool_input":{"command":"git symbolic-ref HEAD","cwd":"","timeout":30000}}
+
+## This PR's guard (bin/fm-cursor-crew-guard.mjs at HEAD 63eeca42)
+run 1, real fm-spawn Cursor ship launch (state/lab7ad899-pin.cursor-stream.jsonl):
+  pwd  ->  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lSkfh5/treehouse/.treehouse/proj-4461e2/1/proj
+  cd /tmp && pwd  ->  /tmp
+  pwd  ->  /private/tmp
+run 2, logged hook probe (probe-stream.jsonl):
+  cd /tmp && pwd  ->  /tmp
+  pwd  ->  /private/tmp
+  git symbolic-ref HEAD  ->  denied
+guard answer for the drifted pwd: {"permission":"allow","updated_input":{"command":"pwd","cwd":"","timeout":30000,"working_directory":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lSkfh5/treehouse/.treehouse/proj-4461e2/1/proj"}}
+
+## Pre-change guard (upstream-lean 67669705), same sequential probe
+  cd /tmp && pwd  ->  /tmp
+  pwd  ->  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lSkfh5/treehouse/.treehouse/proj-4461e2/1/proj
+  git symbolic-ref HEAD  ->  denied
+guard answer for the second call: {"permission":"allow","updated_input":{"command":"pwd","cwd":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lSkfh5/treehouse/.treehouse/proj-4461e2/1/proj"}}
+
+Task worktree (pin target): /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lSkfh5/treehouse/.treehouse/proj-4461e2/1/proj
+Conclusion: Cursor sends tool_input.cwd and applies updated_input.cwd; it ignores updated_input.working_directory. The pre-change guard pinned the drifted call; this PR's guard does not.

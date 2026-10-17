@@ -1,0 +1,75 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8
+lab HOME for every lab process: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/user-home (cursor-agent status there: Not logged in)
+config/launch-env-allowlist:
+  # lab allowlist
+  HOME
+  PATH
+  TERM
+  USER
+  LOGNAME
+  LANG
+task ids: labfec6d2-cur (ship), labfec6d2-csm (secondmate)
+lab tmux socket: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/tmux/tmux-501/fm-lab
+
+=== A. allowlisted Cursor ship worker
+$ bin/fm-spawn.sh labfec6d2-cur <project> --harness cursor --mode local-only --yolo off   -> exit 0
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/data/labfec6d2-cur/launch-brief.md records no ship branch; defaulting to legacy branch fm/labfec6d2-cur
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/data/labfec6d2-cur/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: labfec6d2-cur ships mode=local-only while the standing posture for proj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned labfec6d2-cur harness=cursor kind=ship mode=local-only yolo=off window=primary:fm-labfec6d2-cur worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/treehouse/.treehouse/proj-ac847a/1/proj
+worker window: primary:fm-labfec6d2-cur
+generated launch file: /tmp/fm-labfec6d2-cur+58b520ee87babca3f17df9e62061b265f51b610d548ae178686f7ca54f0120e1/launch.s1792205942.87855.30613.sh
+  > /usr/bin/env -i ${HOME+"HOME=$HOME"} ${PATH+"PATH=$PATH"} ${USER+"USER=$USER"} ${LOGNAME+"LOGNAME=$LOGNAME"} ${SHELL+"SHELL=$SHELL"} ${TERM+"TERM=$TERM"} ${COLORTERM+"COLORTERM=$COLORTERM"} ${LANG+"LANG=$LANG"} ${LC_ALL+"LC_ALL=$LC_ALL"} ${LC_CTYPE+"LC_CTYPE=$LC_CTYPE"} ${TMPDIR+"TMPDIR=$TMPDIR"} ${TMP+"TMP=$TMP"} ${TEMP+"TEMP=$TEMP"} ${GOTMPDIR+"GOTMPDIR=$GOTMPDIR"} ${TMUX+"TMUX=$TMUX"} ${TMUX_PANE+"TMUX_PANE=$TMUX_PANE"} ${HERDR_ENV+"HERDR_ENV=$HERDR_ENV"} ${HERDR_SESSION+"HERDR_SESSION=$HERDR_SESSION"} ${HERDR_SOCKET_PATH+"HERDR_SOCKET_PATH=$HERDR_SOCKET_PATH"} ${HERDR_PANE_ID+"HERDR_PANE_ID=$HERDR_PANE_ID"} ${CMUX_WORKSPACE_ID+"CMUX_WORKSPACE_ID=$CMUX_WORKSPACE_ID"} ${CMUX_SURFACE_ID+"CMUX_SURFACE_ID=$CMUX_SURFACE_ID"} ${CMUX_TAB_ID+"CMUX_TAB_ID=$CMUX_TAB_ID"} ${CMUX_PANEL_ID+"CMUX_PANEL_ID=$CMUX_PANEL_ID"} ${CMUX_SOCKET_PATH+"CMUX_SOCKET_PATH=$CMUX_SOCKET_PATH"} ${ZELLIJ+"ZELLIJ=$ZELLIJ"} ${ZELLIJ_SESSION_NAME+"ZELLIJ_SESSION_NAME=$ZELLIJ_SESSION_NAME"} ${ZELLIJ_PANE_ID+"ZELLIJ_PANE_ID=$ZELLIJ_PANE_ID"} ${FM_ZELLIJ_SESSION+"FM_ZELLIJ_SESSION=$FM_ZELLIJ_SESSION"} ${FM_TASK_ID+"FM_TASK_ID=$FM_TASK_ID"} ${COMPACT_ADVISER_DISABLE+"COMPACT_ADVISER_DISABLE=$COMPACT_ADVISER_DISABLE"} ${LAVISH_AXI_HOST+"LAVISH_AXI_HOST=$LAVISH_AXI_HOST"} ${HOME+"HOME=$HOME"} ${PATH+"PATH=$PATH"} ${TERM+"TERM=$TERM"} ${USER+"USER=$USER"} ${LOGNAME+"LOGNAME=$LOGNAME"} ${LANG+"LANG=$LANG"} COMPACT_ADVISER_DISABLE=1 /bin/bash -c 'export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='\''/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/state/labfec6d2-cur.inbox'\''; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0='\''/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/state/labfec6d2-cur.git-hooks'\''; env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS '\''/Users/dalecarman/.local/bin/cursor-agent'\'' -p --output-format stream-json --trust --yolo --approve-mcps --plugin-dir '\''/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/pstack'\'' --plugin-dir '\''/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/state/labfec6d2-cur.cursor-crew-guard'\'' --workspace '\''/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/treehouse/.treehouse/proj-ac847a/1/proj'\'' "$('\''/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53TZ92JWJYABJDQBHFVGB0R/bin/fm-operational-input.sh'\'' encode launch-brief < '\''/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/data/labfec6d2-cur/launch-brief.md'\'')" > >(tee '\''/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/state/labfec6d2-cur.cursor-stream.jsonl'\''); FM_STATE_OVERRIDE='\''/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/state'\'' '\''/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53TZ92JWJYABJDQBHFVGB0R/bin/fm-cursor-guard.sh'\'' after '\''labfec6d2-cur'\'' $?'
+--- worker pane (capture-pane):
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | bash-3.2$ treehouse get
+  | 🌳 Setting up worktree...
+  | 🌳 Entered worktree at /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/treehouse/.treehouse/proj-ac847a/1/proj. Type 'exit' to return.
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | bash-3.2$ cd -- '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/treehouse/.treehouse/proj-ac847a/1/proj'
+  | bash-3.2$ export GOTMPDIR=/tmp/fm-labfec6d2-cur/gotmp
+  | bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+  | bash-3.2$ export FM_TASK_ID=labfec6d2-cur
+  | bash-3.2$ . '/tmp/fm-labfec6d2-cur+58b520ee87babca3f17df9e62061b265f51b610d548ae178686f7ca54f0120e1/launch.s1792205942.87855.30613.sh'
+  | Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.
+  | bash-3.2$ echo "PANE_LAUNCH_EXIT=$?"
+  | PANE_LAUNCH_EXIT=1
+  | bash-3.2$ 
+--- state/labfec6d2-cur.cursor-stream.jsonl:
+--- same Cursor binary, same argv shape, run directly with the lab HOME (exit code reference):
+  direct cursor-agent exit=1
+state/cursor-dispatch.json after ship: {"day":"2026-10-16","beads":{"labfec6d2-cur":1}}
+state/labfec6d2-cur.cursor-limit: absent
+crew guard plugin dir: unknown
+ship slot: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/treehouse/.treehouse/proj-ac847a/1/proj (branch fm/labfec6d2-cur)
+
+=== B. Cursor secondmate
+$ bin/fm-spawn.sh labfec6d2-csm <mate-home> --secondmate --harness cursor   -> exit 1
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8
+  | error: secondmate home cannot be inside the active firstmate home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/mate
+secondmate window: none
+generated launch file: none
+--- live cursor-agent processes under this lab (ps args):
+--- secondmate pane process tree under pane pid 87821:
+--- secondmate pane (capture-pane):
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | bash-3.2$ FM_SPAWN_NO_GUARD=1 bin/fm-spawn.sh labfec6d2-cur /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/projects/proj --harness cursor --mode local-only --yolo off > /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/ship.out 2>&1; echo $? > /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/ship.rc
+  | bash-3.2$ FM_SPAWN_NO_GUARD=1 bin/fm-spawn.sh labfec6d2-csm /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/mate --secondmate --harness cursor > /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/mate.out 2>&1; echo $? > /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/mate.rc
+  | bash-3.2$ 
+state/cursor-dispatch.json after secondmate: {"day":"2026-10-16","beads":{"labfec6d2-cur":1}}
+
+operator ~/.cursor/cli-config.json sha256 before/after: f0d007ad69cb7590/f0d007ad69cb7590
+lab assert targets: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/cursor-cli-config.json /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8/pstack-models.mdc 
+worktree status after run: 0 changed paths
+task temp dirs: /tmp/fm-labfec6d2-cur /tmp/fm-labfec6d2-cur+58b520ee87babca3f17df9e62061b265f51b610d548ae178686f7ca54f0120e1 
+GUARD_DIR=
+SLOT=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BctmG8/treehouse/.treehouse/proj-ac847a/1/proj
+IDS=labfec6d2-cur labfec6d2-csm
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.BctmG8
