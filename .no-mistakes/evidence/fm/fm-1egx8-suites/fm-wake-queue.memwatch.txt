@@ -1,0 +1,9 @@
+start swap_used_mb=1506.44 swapouts=96924
+end swap_used_mb=1506.44 swapouts=96924 swapouts_delta=0 swap_windows=0
+peak_load1=94.11 peak_test_procs=7
+top RSS growers over the whole run:
+  +422M (rss 422M) pid 29510 /Users/dalecarman/.local/bin/claude --model claude-opus-5-5 --effort xhigh -p --verbose --output-format stream-json --json-schema {\012\011"
+  +218M (rss 218M) pid 65042 /Applications/ego lite.app/Contents/Frameworks/ego Framework.framework/Versions/0.5.1.13/Helpers/ego Helper (Renderer).app/Contents/MacOS/eg
+  +212M (rss 643M) pid 77241 /Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1 --yolo --model muse-wonder-1.0 --reasoning-effort medium \040-cFIRSTMATE_OP: v1 launch-
+  +182M (rss 182M) pid 20516 /Applications/ego lite.app/Contents/Frameworks/ego Framework.framework/Versions/0.5.1.13/Helpers/ego Helper (Renderer).app/Contents/MacOS/eg
+  +132M (rss 132M) pid 98915 /Applications/ego lite.app/Contents/Frameworks/ego Framework.framework/Versions/0.5.1.13/Helpers/ego Helper (Node).app/Contents/MacOS/ego He

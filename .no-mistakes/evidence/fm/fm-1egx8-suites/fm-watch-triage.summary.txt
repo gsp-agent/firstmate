@@ -1,0 +1,7 @@
+suite: tests/fm-watch-triage.test.sh
+worktree: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M54WZTRHEY5SHJKQMXE1DD48 at 7d297ac7
+scratch TMPDIR: /tmp/fmp.AH0yi9/tmp
+start: 2026-10-17T15:31:00Z loadavg { 187.39 140.34 120.32 } total = 2048.00M  used = 1506.44M  free = 541.56M  (encrypted)
+start swapouts: 96924.
+start home store: sha 5e658611f7d51685 mtime 1792218826
+pre-run survivors: 0

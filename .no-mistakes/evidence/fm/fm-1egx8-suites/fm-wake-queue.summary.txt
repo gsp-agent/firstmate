@@ -1,0 +1,39 @@
+suite: tests/fm-wake-queue.test.sh
+worktree: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M54WZTRHEY5SHJKQMXE1DD48 at 7d297ac7
+scratch TMPDIR: /tmp/fmp.mcd6NF/tmp
+start: 2026-10-17T15:04:58Z loadavg { 97.69 111.26 110.49 } total = 2048.00M  used = 1506.44M  free = 541.56M  (encrypted)
+start swapouts: 96924.
+start home store: sha 5e658611f7d51685 mtime 1792218826
+pre-run survivors: 0
+runner rc: 1 after 137s
+end: 2026-10-17T15:07:30Z loadavg { 72.26 94.90 103.88 } total = 2048.00M  used = 1506.44M  free = 541.56M  (encrypted)
+end swapouts: 96924.
+end home store: sha 5e658611f7d51685 mtime 1792218826
+scratch paths in /Users/dalecarman/.claude.json: 0
+scratch paths in /Users/dalecarman/.claude-accounts/george/.claude.json: 0
+fm-watch/home-summary/fleet-snapshot survivors at exit: 0
+survivors 10s after exit: 0
+any process under the scratch root 10s after exit: 0
+entries left in the scratch TMPDIR: 0
+suite result lines:
+  SLOT FREE = NO
+  machine-gate run: NOT STARTED: the gate reads 'SLOT FREE = NO'. Wait, then run the same command again yourself.
+  SLOT FREE = NO
+  machine-gate run: NOT STARTED: the gate reads 'SLOT FREE = NO'. Wait, then run the same command again yourself.
+  SLOT FREE = NO
+  machine-gate run: NOT STARTED: the gate reads 'SLOT FREE = NO'. Wait, then run the same command again yourself.
+  SLOT FREE = NO
+  machine-gate run: NOT STARTED: the gate reads 'SLOT FREE = NO'. Wait, then run the same command again yourself.
+  not ok - presentation lock delayed the drain for 6s
+  FM_TEST_END 2026-10-17T15:07:17Z tests/fm-wake-queue.test.sh exit=1 duration_ms=16242 gate_skip=false
+pass lines: 3
+--- memory watch ---
+start swap_used_mb=1506.44 swapouts=96924
+end swap_used_mb=1506.44 swapouts=96924 swapouts_delta=0 swap_windows=0
+peak_load1=94.11 peak_test_procs=7
+top RSS growers over the whole run:
+  +422M (rss 422M) pid 29510 /Users/dalecarman/.local/bin/claude --model claude-opus-5-5 --effort xhigh -p --verbose --output-format stream-json --json-schema {\012\011"
+  +218M (rss 218M) pid 65042 /Applications/ego lite.app/Contents/Frameworks/ego Framework.framework/Versions/0.5.1.13/Helpers/ego Helper (Renderer).app/Contents/MacOS/eg
+  +212M (rss 643M) pid 77241 /Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1 --yolo --model muse-wonder-1.0 --reasoning-effort medium \040-cFIRSTMATE_OP: v1 launch-
+  +182M (rss 182M) pid 20516 /Applications/ego lite.app/Contents/Frameworks/ego Framework.framework/Versions/0.5.1.13/Helpers/ego Helper (Renderer).app/Contents/MacOS/eg
+  +132M (rss 132M) pid 98915 /Applications/ego lite.app/Contents/Frameworks/ego Framework.framework/Versions/0.5.1.13/Helpers/ego Helper (Node).app/Contents/MacOS/ego He

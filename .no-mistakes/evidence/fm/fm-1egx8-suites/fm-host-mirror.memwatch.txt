@@ -1,0 +1,9 @@
+start swap_used_mb=1506.44 swapouts=96924
+end swap_used_mb=1506.44 swapouts=96924 swapouts_delta=0 swap_windows=0
+peak_load1=111.20 peak_test_procs=9
+top RSS growers over the whole run:
+  +385M (rss 385M) pid 70507 /Users/dalecarman/.local/bin/claude --model claude-opus-5-5 --effort xhigh -p --verbose --output-format stream-json --json-schema {\012\011"
+  +373M (rss 373M) pid 44270 next-server (v16.3.5)      
+  +344M (rss 1066M) pid 54194 /opt/homebrew/bin/node /Users/dalecarman/.local/share/agent-observer-deploy/observer.mjs
+  +284M (rss 284M) pid 6098 /Users/dalecarman/.local/share/mise/installs/node/22.12.0/bin/node --require /Users/dalecarman/.treehouse/groove-sight-platform-5f20d7/2/gro
+  +212M (rss 212M) pid 43829 /Users/dalecarman/.local/share/mise/installs/node/22.12.0/bin/node --no-warnings /Users/dalecarman/.treehouse/groove-sight-platform-5f20d7/2

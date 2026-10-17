@@ -1,0 +1,9 @@
+start swap_used_mb=1506.44 swapouts=96924
+end swap_used_mb=1506.44 swapouts=96924 swapouts_delta=0 swap_windows=0
+peak_load1=187.39 peak_test_procs=34
+top RSS growers over the whole run:
+  +6827M (rss 6827M) pid 80132 /opt/homebrew/Cellar/python@3.14/3.14.8/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python /Users/dalecarm
+  +1104M (rss 1104M) pid 66223 /Applications/Blender.app/Contents/Resources/5.2/python/bin/python3.13 -B /Users/dalecarman/.no-mistakes/worktrees/dd62e3928c4d/01M55424K0MR
+  +697M (rss 697M) pid 97938 git grep -n AGENT_STATE_KEEP\|NOT_SEATS\|SEAT_NAME -- .
+  +670M (rss 670M) pid 34085 claude --model claude-opus-5-5[1m] --effort xhigh --permission-mode bypassPermissions --settings {"autoMemoryEnabled":false} --plugin-dir /U
+  +501M (rss 501M) pid 36790 /Users/dalecarman/.local/bin/claude --model claude-opus-5-5 --effort xhigh -p --verbose --output-format stream-json --json-schema {\012\011"
