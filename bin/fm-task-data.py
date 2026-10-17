@@ -26,7 +26,8 @@ Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
 Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
 
-Keep brief.md, report.md, status, findings, review, and record/ regardless of size.
+Keep brief.md, report.md, status, findings, review, and record/ regardless of size,
+and read them for references whatever their size.
 Also keep .txt/.md/.log/.json files up to 1 MiB outside nested repositories.
 Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
@@ -156,8 +157,6 @@ def local_references(root, files, repos):
                 and not path.is_symlink()
                 and (path.suffix.lower() in TEXT or path.name in ("status", "findings", "review"))
                 and ordinary_evidence(path, rel, repos)):
-            if path.stat().st_size > LIMIT:
-                raise ValueError(f"reference text exceeds 1 MiB: {path}")
             texts.append(path.read_text(errors="replace"))
     return "\n".join(texts)
 
