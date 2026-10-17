@@ -1,0 +1,190 @@
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+beads: agent-config=.agent-config-62b gsp=gsp-lhl project=demo-4fl firstmate-backlog=fmb-fallback1
+
+== teardown t-ac (names .agent-config-62b; inherited BEADS_DIR/BEADS_DB/BR_DB point at /wrong) ==
+exit=0
+-- stdout
+task data t-ac: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/t-ac/.cleanup-hold until the next completed task
+teardown t-ac complete (window firstmate:fm-t-ac, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/gone-t-ac)
+Backlog: t-ac is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+-- record
+{"version": 1, "task": "t-ac", "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/projects/demo", "pr": "", "beads": [".agent-config-62b"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data", "task": "t-ac"}, "unread": []}], "complete": true, "expired": false}
+-- data/t-ac
+./.cleanup-hold/scratch.bin
+./ac-proof.png
+./brief.md
+PASS: t-ac teardown exits 0
+PASS: t-ac backlog row is done
+PASS: t-ac leaves no pending close
+PASS: t-ac bead-linked ac-proof.png stays in place (bead text was read)
+PASS: t-ac scratch is staged to .cleanup-hold
+true
+PASS: t-ac record lists .agent-config-62b with no unread ids
+
+== teardown t-gsp (names gsp-lhl; inherited BEADS_DIR/BEADS_DB/BR_DB point at /wrong) ==
+exit=0
+-- stdout
+task data t-gsp: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/t-gsp/.cleanup-hold until the next completed task
+teardown t-gsp complete (window firstmate:fm-t-gsp, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/gone-t-gsp)
+Backlog: t-gsp is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+-- record
+{"version": 1, "task": "t-gsp", "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/projects/demo", "pr": "", "beads": ["gsp-lhl"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data", "task": "t-gsp"}, "unread": []}], "complete": true, "expired": false}
+-- data/t-gsp
+./.cleanup-hold/scratch.bin
+./brief.md
+./gsp-proof.png
+PASS: t-gsp teardown exits 0
+PASS: t-gsp backlog row is done
+PASS: t-gsp leaves no pending close
+PASS: t-gsp bead-linked gsp-proof.png stays in place (bead text was read)
+PASS: t-gsp scratch is staged to .cleanup-hold
+true
+PASS: t-gsp record lists gsp-lhl with no unread ids
+
+== teardown t-prj (names demo-4fl; inherited BEADS_DIR/BEADS_DB/BR_DB point at /wrong) ==
+exit=0
+-- stdout
+task data t-prj: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/t-prj/.cleanup-hold until the next completed task
+teardown t-prj complete (window firstmate:fm-t-prj, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/gone-t-prj)
+Backlog: t-prj is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+warning: task data retained for recovery: dcg refused cleanup: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by dcg\n\nTip: dcg explain \"rm -f -- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/t-gsp/.cleanup-hold/scratch.bin\"\n\nReason: dcg could not finish evaluating this command within 200ms (spent 266ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging.\n\nExplanation: dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n             \n             Ways through, in order of preference:\n             - Split the command into smaller commands and run them separately.\n             - Approve this one command with the allow-once code below.\n             - Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.\n\nRule: core.limits:evaluation-timeout\n\nIf this is a false positive: dcg allow-once 37635\n\nIf this operation is truly needed, ask the user for explicit permission and have them run the command manually.","allowOnceCode":"37635","allowOnceFullHash":"82efed912f55d947fa1310592aabd2bbce6daa90585211059f3c530f982c4343","ruleId":"core.limits:evaluation-timeout","packId":"core.limits","remediation":{"safeAlternative":"Use 'git clean -n' first to preview what would be deleted.","explanation":"dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n\nWays through, in order of preference:\n- Split the command into smaller commands and run them separately.\n- Approve this one command with the allow-once code below.\n- Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.","allowOnceCommand":"dcg allow-once 37635"}}}
+warning: t-prj teardown completed, but expiring other tasks' held data needs a retry
+-- record
+{"version": 1, "task": "t-prj", "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/projects/demo", "pr": "", "beads": ["demo-4fl"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data", "task": "t-prj"}, "unread": []}], "complete": true, "expired": false}
+-- data/t-prj
+./.cleanup-hold/scratch.bin
+./brief.md
+./prj-proof.png
+PASS: t-prj teardown exits 0
+PASS: t-prj backlog row is done
+PASS: t-prj leaves no pending close
+PASS: t-prj bead-linked prj-proof.png stays in place (bead text was read)
+PASS: t-prj scratch is staged to .cleanup-hold
+true
+PASS: t-prj record lists demo-4fl with no unread ids
+
+== teardown t-fb (names fmb-fallback1; inherited BEADS_DIR/BEADS_DB/BR_DB point at /wrong) ==
+exit=0
+-- stdout
+task data t-fb: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/t-fb/.cleanup-hold until the next completed task
+teardown t-fb complete (window firstmate:fm-t-fb, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/gone-t-fb)
+Backlog: t-fb is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+warning: task data retained for recovery: dcg refused cleanup: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by dcg\n\nTip: dcg explain \"rm -f -- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/t-gsp/.cleanup-hold/scratch.bin\"\n\nReason: dcg could not finish evaluating this command within 200ms (spent 255ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging.\n\nExplanation: dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n             \n             Ways through, in order of preference:\n             - Split the command into smaller commands and run them separately.\n             - Approve this one command with the allow-once code below.\n             - Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.\n\nRule: core.limits:evaluation-timeout\n\nIf this is a false positive: dcg allow-once 09911\n\nIf this operation is truly needed, ask the user for explicit permission and have them run the command manually.","allowOnceCode":"09911","allowOnceFullHash":"8ed447444e702e7730398006e57ead6954310733929c622deeee993de73facd7","ruleId":"core.limits:evaluation-timeout","packId":"core.limits","remediation":{"safeAlternative":"Use 'git clean -n' first to preview what would be deleted.","explanation":"dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n\nWays through, in order of preference:\n- Split the command into smaller commands and run them separately.\n- Approve this one command with the allow-once code below.\n- Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.","allowOnceCommand":"dcg allow-once 09911"}}}
+warning: t-fb teardown completed, but expiring other tasks' held data needs a retry
+-- record
+{"version": 1, "task": "t-fb", "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/projects/demo", "pr": "", "beads": ["fmb-fallback1"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data", "task": "t-fb"}, "unread": []}], "complete": true, "expired": false}
+-- data/t-fb
+./.cleanup-hold/scratch.bin
+./brief.md
+./fb-proof.png
+PASS: t-fb teardown exits 0
+PASS: t-fb backlog row is done
+PASS: t-fb leaves no pending close
+PASS: t-fb bead-linked fb-proof.png stays in place (bead text was read)
+PASS: t-fb scratch is staged to .cleanup-hold
+true
+PASS: t-fb record lists fmb-fallback1 with no unread ids
+PASS: earlier holds were expired by later teardowns through real dcg
+PASS: expired t-ac still keeps its bead-linked evidence
+
+== teardown t-unread (names unreadable zzz-missing1) ==
+exit=0
+-- stdout
+teardown t-unread complete (window firstmate:fm-t-unread, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/gone-t-unread)
+Backlog: t-unread is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+warning: task data t-unread retained whole for retry: unread references: zzz-missing1
+warning: task data retained for recovery: unread references: zzz-missing1
+warning: t-unread teardown completed, but task-data cleanup needs a retry
+warning: task data t-gsp expiry stopped after 3s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+warning: t-unread teardown completed, but expiring other tasks' held data needs a retry
+-- record
+{"version": 1, "task": "t-unread", "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/projects/demo", "pr": "", "beads": ["zzz-missing1"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data", "task": "t-unread"}, "unread": ["zzz-missing1"]}], "complete": false}
+-- data/t-unread
+./brief.md
+./proof.png
+./scratch.bin
+PASS: t-unread teardown exits 0
+PASS: t-unread backlog row is done (close went through)
+PASS: t-unread leaves no pending close
+PASS: t-unread scratch stays in place (data kept whole)
+PASS: t-unread staged nothing
+PASS: t-unread teardown output names zzz-missing1
+true
+PASS: t-unread record names zzz-missing1 as unread and is incomplete
+
+== teardown t-dotmiss (names unreadable .agent-config-zzzz) ==
+exit=0
+-- stdout
+teardown t-dotmiss complete (window firstmate:fm-t-dotmiss, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/gone-t-dotmiss)
+Backlog: t-dotmiss is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+warning: task data t-dotmiss retained whole for retry: unread references: .agent-config-zzzz
+warning: task data retained for recovery: unread references: .agent-config-zzzz
+warning: t-dotmiss teardown completed, but task-data cleanup needs a retry
+warning: task data retained for recovery: unread references: zzz-missing1
+warning: t-dotmiss teardown completed, but expiring other tasks' held data needs a retry
+-- record
+{"version": 1, "task": "t-dotmiss", "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/projects/demo", "pr": "", "beads": [".agent-config-zzzz"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data", "task": "t-dotmiss"}, "unread": [".agent-config-zzzz"]}], "complete": false}
+-- data/t-dotmiss
+./brief.md
+./proof.png
+./scratch.bin
+PASS: t-dotmiss teardown exits 0
+PASS: t-dotmiss backlog row is done (close went through)
+PASS: t-dotmiss leaves no pending close
+PASS: t-dotmiss scratch stays in place (data kept whole)
+PASS: t-dotmiss staged nothing
+PASS: t-dotmiss teardown output names .agent-config-zzzz
+true
+PASS: t-dotmiss record names .agent-config-zzzz as unread and is incomplete
+
+== retry 1: teardown t-next1 while zzz-missing1 is still unreadable ==
+exit=0
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+warning: task data retained for recovery: unread references: .agent-config-zzzz
+warning: task data retained for recovery: unread references: zzz-missing1
+warning: t-next1 teardown completed, but expiring other tasks' held data needs a retry
+-- t-unread record
+{"version": 1, "task": "t-unread", "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/projects/demo", "pr": "", "beads": ["zzz-missing1"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data", "task": "t-unread"}, "unread": ["zzz-missing1"]}], "complete": false}
+PASS: t-next1 teardown exits 0
+PASS: the retry names zzz-missing1 again
+PASS: the retry still keeps t-unread whole
+PASS: the retry staged nothing for t-unread
+
+== retry 2: zzz-missing1 now readable from the Firstmate backlog; teardown t-next2 ==
+exit=0
+-- stdout
+teardown t-next2 complete (window firstmate:fm-t-next2, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/gone-t-next2)
+Backlog: t-next2 is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+task data t-unread: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data/t-unread/.cleanup-hold until the next completed task
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+warning: task data retained for recovery: unread references: .agent-config-zzzz
+warning: t-next2 teardown completed, but expiring other tasks' held data needs a retry
+-- t-unread record
+{"version": 1, "task": "t-unread", "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/projects/demo", "pr": "", "beads": ["zzz-missing1"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d/data", "task": "t-unread"}, "unread": []}], "complete": true, "expired": false}
+-- data/t-unread
+./.cleanup-hold/scratch.bin
+./brief.md
+./proof.png
+PASS: t-next2 teardown exits 0
+PASS: the next cleanup pass staged t-unread's scratch
+PASS: the next cleanup pass kept t-unread's linked proof.png
+true
+PASS: the t-unread record no longer lists an unread id
+PASS: t-dotmiss is still kept whole and named
+
+lab home to remove: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Jttk0d
+FAILS=0

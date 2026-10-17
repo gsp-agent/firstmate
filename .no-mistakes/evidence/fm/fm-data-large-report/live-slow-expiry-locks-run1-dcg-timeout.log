@@ -1,0 +1,63 @@
+code root: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55K1VPQMVY2S65757P9E9Q4
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3
+
+== teardown t-main (FM_SUPERVISION_ACTOR=main, budget 8s) with holds old-slow (40 beads, oldest) and young-fast ==
+old-slow expiry running: 1 (after 27.8s)
+-- lock files while old-slow expires:
+ls: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/state/.fm-lease-command.lock: No such file or directory
+/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/state/.meta-old-slow.lock
+fm-send exit=0 after 2.6s; teardown still running: 1
+-- fm-send stdout
+-- fm-send stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3
+fm-send: doorbell not typed because the agent in sess:fm-live-y has exited; the steer is durably recorded at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/state/live-y.inbox/001.msg for recovery (stuck-crewmate-recovery), and the watcher will not re-ring a dead pane
+-- live-y inbox
+001.msg
+handled
+-- live-y pane
+dalecarman@Dales-MacBook-Pro-M4-7 01M55K1VPQMVY2S65757P9E9Q4 %
+teardown exit=0 total 36.0s
+-- stdout
+teardown t-main complete (window firstmate:fm-t-main, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/gone-t-main)
+Backlog: t-main is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3
+warning: task data old-slow expiry stopped after 8s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+warning: the 8s task-data expiry budget ran out; holds left for a later teardown: young-fast
+warning: t-main teardown completed, but expiring other tasks' held data needs a retry
+-- old-slow record
+{"version": 1, "task": "old-slow", "complete": true, "expired": false, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/projects/demo", "pr": "", "beads": ["demo-za2", "demo-baz", "demo-1ne", "demo-wlb", "demo-rf9", "demo-4z3", "demo-pwi", "demo-n0j", "demo-gyl", "demo-wfq", "demo-6vi", "demo-yxz", "demo-zat", "demo-r11", "demo-sty", "demo-3vj", "demo-4xn", "demo-ibx", "demo-eml", "demo-fey", "demo-n2t", "demo-9lx", "demo-uqd", "demo-sbh", "demo-9dg", "demo-zvn", "demo-g6u", "demo-y8c", "demo-qkc", "demo-o4x", "demo-veb", "demo-7x0", "demo-87e", "demo-na0", "demo-7sv", "demo-quy", "demo-8iv", "demo-w2d", "demo-lef", "demo-t1b"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/data", "task": null}}], "expiry": "cut-off"}
+
+PASS: old-slow expiry was observed running
+PASS: the home-wide lease lock is free while another task's hold expires
+PASS: t-main's own meta lock is free while another task's hold expires
+PASS: concurrent fm-send exits 0
+PASS: concurrent fm-send finished within 5s
+PASS: teardown was still expiring when fm-send finished
+PASS: fm-send recorded its steer
+PASS: teardown exits 0
+PASS: t-main backlog row is done
+PASS: old-slow keeps its held data after the cut-off
+PASS: young-fast was not visited past the budget
+PASS: teardown names the unvisited hold
+PASS: teardown says the cut-off hold gets one full attempt
+PASS: old-slow record is marked cut-off
+
+== teardown t-next (default budget 10s, full attempt 60s) ==
+teardown exit=0 total 58.3s
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3
+warning: task data retained for recovery: dcg refused cleanup: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by dcg\n\nTip: dcg explain \"rm -f -- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/data/young-fast/.cleanup-hold/scratch.bin\"\n\nReason: dcg could not finish evaluating this command within 200ms
+warning: task data retained for recovery: dcg refused cleanup: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by dcg\n\nTip: dcg explain \"rm -f -- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/data/old-slow/.cleanup-hold/scratch.bin\"\n\nReason: dcg could not finish evaluating this command within 200ms (
+warning: t-next teardown completed, but expiring other tasks' held data needs a retry
+-- old-slow record
+{"version": 1, "task": "old-slow", "complete": true, "expired": false, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/projects/demo", "pr": "", "beads": ["demo-1ne", "demo-3vj", "demo-4xn", "demo-4z3", "demo-6vi", "demo-7sv", "demo-7x0", "demo-87e", "demo-8iv", "demo-9dg", "demo-9lx", "demo-baz", "demo-eml", "demo-fey", "demo-g6u", "demo-gyl", "demo-ibx", "demo-lef", "demo-n0j", "demo-n2t", "demo-na0", "demo-o4x", "demo-pwi", "demo-qkc", "demo-quy", "demo-r11", "demo-rf9", "demo-sbh", "demo-sty", "demo-t1b", "demo-uqd", "demo-veb", "demo-w2d", "demo-wfq", "demo-wlb", "demo-y8c", "demo-yxz", "demo-za2", "demo-zat", "demo-zvn"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3/data", "task": null}, "unread": []}]}
+
+PASS: t-next exits 0
+FAIL: the next teardown reached and expired young-fast first
+FAIL: old-slow's one full attempt expired it
+false
+FAIL: old-slow's completed attempt cleared its mark
+
+lab home to remove: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.khCzm3
+FAILS=3

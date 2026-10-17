@@ -1,0 +1,58 @@
+code root: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-prefix.21YtqJ
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc
+
+== teardown t-main (FM_SUPERVISION_ACTOR=main, budget 8s) with holds old-slow (40 beads, oldest) and young-fast ==
+old-slow expiry running: 1 (after 15.8s)
+-- lock files while old-slow expires:
+/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/state/.fm-lease-command.lock
+/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/state/.meta-old-slow.lock
+/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/state/.meta-t-main.lock
+fm-send exit=0 after 13.9s; teardown still running: 0
+-- fm-send stdout
+-- fm-send stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc
+fm-send: doorbell not typed because the agent in sess:fm-live-y has exited; the steer is durably recorded at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/state/live-y.inbox/001.msg for recovery (stuck-crewmate-recovery), and the watcher will not re-ring a dead pane
+-- live-y inbox
+001.msg
+handled
+-- live-y pane
+dalecarman@Dales-MacBook-Pro-M4-7 01M55K1VPQMVY2S65757P9E9Q4 %
+uncontended baseline fm-send exit=0 after 2.0s (contended send took 13.9s)
+teardown exit=0 total 30.2s
+-- stdout
+teardown t-main complete (window firstmate:fm-t-main, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/gone-t-main)
+Backlog: t-main is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc
+-- old-slow record
+{"version": 1, "task": "old-slow", "complete": true, "expired": true, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/projects/demo", "pr": "", "beads": ["demo-0n7", "demo-17q", "demo-3mk", "demo-47e", "demo-53u", "demo-8pw", "demo-9b2", "demo-9da", "demo-9ex", "demo-bzm", "demo-div", "demo-flq", "demo-fp2", "demo-fym", "demo-g83", "demo-gvm", "demo-hdy", "demo-jsz", "demo-k10", "demo-lma", "demo-mgg", "demo-nzm", "demo-poy", "demo-pty", "demo-q46", "demo-q7q", "demo-sha", "demo-t5n", "demo-tll", "demo-ugz", "demo-up8", "demo-vn0", "demo-vud", "demo-vyp", "demo-wh7", "demo-wkz", "demo-yks", "demo-z09", "demo-z5v", "demo-z8s"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/data", "task": null}, "unread": []}]}
+
+PASS: old-slow expiry was observed running
+FAIL: the home-wide lease lock is free while another task's hold expires
+FAIL: t-main's own meta lock is free while another task's hold expires
+PASS: concurrent fm-send exits 0
+FAIL: teardown was still expiring when fm-send finished
+PASS: fm-send recorded its steer
+PASS: teardown exits 0
+PASS: t-main backlog row is done
+FAIL: old-slow keeps its held data after the cut-off
+FAIL: young-fast was not visited past the budget
+FAIL: teardown names the unvisited hold
+FAIL: teardown says the cut-off hold gets one full attempt
+FAIL: old-slow record is marked cut-off
+
+== teardown t-next (default budget 10s, full attempt 60s) ==
+teardown exit=0 total 17.3s
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc
+-- old-slow record
+{"version": 1, "task": "old-slow", "complete": true, "expired": true, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/projects/demo", "pr": "", "beads": ["demo-0n7", "demo-17q", "demo-3mk", "demo-47e", "demo-53u", "demo-8pw", "demo-9b2", "demo-9da", "demo-9ex", "demo-bzm", "demo-div", "demo-flq", "demo-fp2", "demo-fym", "demo-g83", "demo-gvm", "demo-hdy", "demo-jsz", "demo-k10", "demo-lma", "demo-mgg", "demo-nzm", "demo-poy", "demo-pty", "demo-q46", "demo-q7q", "demo-sha", "demo-t5n", "demo-tll", "demo-ugz", "demo-up8", "demo-vn0", "demo-vud", "demo-vyp", "demo-wh7", "demo-wkz", "demo-yks", "demo-z09", "demo-z5v", "demo-z8s"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc/data", "task": null}, "unread": []}]}
+
+PASS: t-next exits 0
+PASS: the next teardown reached and expired young-fast first
+PASS: old-slow's one full attempt expired it
+true
+PASS: old-slow's completed attempt cleared its mark
+
+lab home to remove: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.KytaIc
+FAILS=8

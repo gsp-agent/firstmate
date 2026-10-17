@@ -1,0 +1,124 @@
+######## C2: cut-off, one full attempt, too large, skipped, by hand ########
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk
+
+== teardown t1 (budget 2s, full attempt 4s) ==
+teardown t1 exit=0; expire process for aa-huge seen=1 lifetime=2.0s
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk
+warning: task data aa-huge expiry stopped after 2s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 4s attempt
+warning: t1 teardown completed, but expiring other tasks' held data needs a retry
+-- aa-huge record
+{"version": 1, "task": "aa-huge", "complete": true, "expired": false, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/projects/demo", "pr": "", "beads": ["demo-1e0", "demo-y7w", "demo-f9o", "demo-5hs", "demo-udx", "demo-17f", "demo-pbn", "demo-tin", "demo-i8z", "demo-h46", "demo-siz", "demo-y2z", "demo-toa", "demo-4b2", "demo-fkg", "demo-ddc", "demo-fze", "demo-lxv", "demo-3jg", "demo-1nn", "demo-r7n", "demo-56m", "demo-1vr", "demo-3ja", "demo-tvt", "demo-ph8", "demo-pf1", "demo-z4t", "demo-fuq", "demo-xbl", "demo-xl4", "demo-bjl", "demo-174", "demo-jsp", "demo-fk8", "demo-d88", "demo-c9z", "demo-qck", "demo-rtz", "demo-q8z"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/data", "task": null}}], "expiry": "cut-off"}
+
+PASS: t1 exits 0
+PASS: t1 attempted aa-huge
+PASS: t1 names the cut-off and promises one full 4s attempt
+PASS: t1 warning promises one full 4s attempt
+PASS: t1 warning says deletions stay done and the rest stays held
+PASS: aa-huge record is marked cut-off
+PASS: aa-huge still holds its scratch
+
+== teardown t2 (budget 2s, full attempt 4s) ==
+teardown t2 exit=0; expire process for aa-huge seen=1 lifetime=4.5s
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk
+warning: task data aa-huge expiry stopped after its one full 4s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55K1VPQMVY2S65757P9E9Q4/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/state aa-huge
+warning: t2 teardown completed, but expiring other tasks' held data needs a retry
+-- aa-huge record
+{"version": 1, "task": "aa-huge", "complete": true, "expired": false, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/projects/demo", "pr": "", "beads": ["demo-1e0", "demo-y7w", "demo-f9o", "demo-5hs", "demo-udx", "demo-17f", "demo-pbn", "demo-tin", "demo-i8z", "demo-h46", "demo-siz", "demo-y2z", "demo-toa", "demo-4b2", "demo-fkg", "demo-ddc", "demo-fze", "demo-lxv", "demo-3jg", "demo-1nn", "demo-r7n", "demo-56m", "demo-1vr", "demo-3ja", "demo-tvt", "demo-ph8", "demo-pf1", "demo-z4t", "demo-fuq", "demo-xbl", "demo-xl4", "demo-bjl", "demo-174", "demo-jsp", "demo-fk8", "demo-d88", "demo-c9z", "demo-qck", "demo-rtz", "demo-q8z"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/data", "task": null}}], "expiry": "too-large"}
+
+PASS: t2 exits 0
+PASS: t2 attempted aa-huge
+PASS: the full attempt ran about 4s (3-7s observed)
+PASS: t2 names the one full 4s attempt
+PASS: t2 says later teardowns skip it
+PASS: aa-huge record is marked too-large
+PASS: aa-huge still holds its scratch
+
+== teardown t3 (budget 2s, full attempt 4s) ==
+teardown t3 exit=0; expire process for aa-huge seen=0 lifetime=n/as
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk
+warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: aa-huge
+-- aa-huge record
+{"version": 1, "task": "aa-huge", "complete": true, "expired": false, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/projects/demo", "pr": "", "beads": ["demo-1e0", "demo-y7w", "demo-f9o", "demo-5hs", "demo-udx", "demo-17f", "demo-pbn", "demo-tin", "demo-i8z", "demo-h46", "demo-siz", "demo-y2z", "demo-toa", "demo-4b2", "demo-fkg", "demo-ddc", "demo-fze", "demo-lxv", "demo-3jg", "demo-1nn", "demo-r7n", "demo-56m", "demo-1vr", "demo-3ja", "demo-tvt", "demo-ph8", "demo-pf1", "demo-z4t", "demo-fuq", "demo-xbl", "demo-xl4", "demo-bjl", "demo-174", "demo-jsp", "demo-fk8", "demo-d88", "demo-c9z", "demo-qck", "demo-rtz", "demo-q8z"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/data", "task": null}}], "expiry": "too-large"}
+
+PASS: t3 exits 0
+PASS: t3 did not attempt the too-large hold
+PASS: t3 names the skipped hold
+PASS: aa-huge stays marked too-large
+PASS: aa-huge still holds its scratch
+
+advertised by-hand command: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55K1VPQMVY2S65757P9E9Q4/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/state aa-huge
+PASS: the advertised command is bash fm-task-data-lib.sh expire DATA STATE aa-huge
+
+== by hand while another live process holds aa-huge's task lock ==
+exit=1
+error: task aa-huge is locked by another process; nothing was expired, retry later
+PASS: the lock holder was running
+PASS: by hand refuses while the lock is held
+PASS: by hand says the task is locked by another process
+PASS: the refused run left the hold in place
+
+== by hand against a live task ==
+exit=1
+error: task live-z is live; nothing was expired
+PASS: by hand refuses a live task
+PASS: by hand says the task is live
+PASS: the live task's hold is untouched
+PASS: the refusal released the live task's lock
+
+== by hand, lock free (no time limit) ==
+exit=0 after 4.9s; task lock seen held during the run: 1
+-- stdout
+-- stderr
+-- aa-huge record
+{"version": 1, "task": "aa-huge", "complete": true, "expired": true, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/projects/demo", "pr": "", "beads": ["demo-174", "demo-17f", "demo-1e0", "demo-1nn", "demo-1vr", "demo-3ja", "demo-3jg", "demo-4b2", "demo-56m", "demo-5hs", "demo-bjl", "demo-c9z", "demo-d88", "demo-ddc", "demo-f9o", "demo-fk8", "demo-fkg", "demo-fuq", "demo-fze", "demo-h46", "demo-i8z", "demo-jsp", "demo-lxv", "demo-pbn", "demo-pf1", "demo-ph8", "demo-q8z", "demo-qck", "demo-r7n", "demo-rtz", "demo-siz", "demo-tin", "demo-toa", "demo-tvt", "demo-udx", "demo-xbl", "demo-xl4", "demo-y2z", "demo-y7w", "demo-z4t"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk/data", "task": null}, "unread": []}]}
+
+PASS: by hand exits 0
+PASS: by hand held aa-huge's task lock while it ran
+PASS: by hand released the task lock
+PASS: by hand expired the hold
+true
+PASS: by hand cleared the mark and recorded expiry
+lab home to remove: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk
+
+######## C3: the one full attempt lasts exactly its own limit ########
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.ZXd1Ca
+
+== teardown c3 (budget 3s, full attempt 1s; aa-slow already marked cut-off) ==
+teardown c3 exit=0; expire process for aa-slow seen=1 lifetime=1.3s
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.ZXd1Ca
+warning: task data aa-slow expiry stopped after its one full 1s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55K1VPQMVY2S65757P9E9Q4/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.ZXd1Ca/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.ZXd1Ca/state aa-slow
+warning: c3 teardown completed, but expiring other tasks' held data needs a retry
+-- aa-slow record
+{"version": 1, "task": "aa-slow", "complete": true, "expired": false, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.ZXd1Ca/projects/demo", "pr": "", "beads": ["demo-lm6", "demo-b5w", "demo-0z8", "demo-z3e", "demo-irl", "demo-hrm", "demo-sah", "demo-lxg", "demo-gk6", "demo-207", "demo-u17", "demo-2x7", "demo-7gy", "demo-wrj", "demo-3z8", "demo-3ot", "demo-gk4", "demo-fvt", "demo-4k9", "demo-n8z", "demo-d6q", "demo-dnf", "demo-2qk", "demo-kx3", "demo-9k7", "demo-3jv", "demo-2w8", "demo-65d", "demo-gdz", "demo-w2v", "demo-nza", "demo-kr0", "demo-bpv", "demo-hkn", "demo-p29", "demo-qos", "demo-mh3", "demo-3md", "demo-8ln", "demo-wnt"], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.ZXd1Ca/data", "task": null}}], "expiry": "too-large"}
+
+PASS: c3 exits 0
+PASS: c3 attempted aa-slow
+PASS: the full attempt stopped near 1s, not the 3s budget (<2.5s observed)
+PASS: c3 names the one full 1s attempt
+PASS: aa-slow record is marked too-large
+lab home to remove: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.ZXd1Ca
+
+######## C4: expired records do not use up the budget ########
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.p4uyYR
+pending listing over 3001 records: 0.5s -> zz-live 
+
+== teardown c4 (default budget) with 3000 expired records dated 2020 and one live hold dated 2021 ==
+teardown c4 exit=0; expire process for zz-live seen=1 lifetime=1.0s
+-- stderr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.p4uyYR
+-- zz-live record
+{"version": 1, "task": "zz-live", "complete": true, "expired": true, "sources": [{"project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.p4uyYR/projects/demo", "pr": "", "beads": [], "backlog": {"data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.p4uyYR/data", "task": null}, "unread": []}]}
+
+PASS: c4 exits 0
+PASS: the listing names only the live hold
+PASS: the live hold expired
+/Users/dalecarman/.no-mistakes/evidence/01M55K1VPQMVY2S65757P9E9Q4/driver/scenario-budget.sh: line 12: !: command not found
+FAIL: no budget warning
+lab home to remove: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.p4uyYR
+
+labs to remove: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.iRyYuk /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.ZXd1Ca /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.p4uyYR
+FAILS=1
