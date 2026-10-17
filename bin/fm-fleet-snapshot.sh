@@ -778,9 +778,7 @@ task_json_lines() {
       backend=${remote_backend:-unknown}
       target=$remote_target
     else
-      backend=${backend:-tmux}
-      target=$window
-      [ "$backend" != orca ] || [ -z "$terminal" ] || target=$terminal
+      fm_backend_endpoint_of_fields "$backend" "$window" "$terminal" backend target
     fi
     status_log="$SNAPSHOT_TASK_DIR/$id.status"
     report_path="$SNAPSHOT_TASK_DIR/$id.report"

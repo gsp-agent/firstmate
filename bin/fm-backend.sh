@@ -343,23 +343,28 @@ fm_meta_get() {  # <meta-file> <key>
   printf '%s' "$value"
 }
 
-# fm_backend_of_meta: the backend recorded in <meta-file>, defaulting to
-# `tmux` when the field is absent - the P1 compatibility contract.
+# fm_backend_endpoint_of_fields: the backend/target rule over meta fields the
+# caller already read. The backend defaults to `tmux` when the field is absent -
+# the P1 compatibility contract; an orca task with a terminal targets it, every
+# other task its window.
+fm_backend_endpoint_of_fields() {  # <backend> <window> <terminal> <backend-var> <target-var>
+  printf -v "$4" '%s' "${1:-tmux}"
+  if [ "${1:-tmux}" = orca ] && [ -n "$3" ]; then printf -v "$5" '%s' "$3"
+  else printf -v "$5" '%s' "$2"; fi
+}
+
+# fm_backend_of_meta: the backend recorded in <meta-file>.
 fm_backend_of_meta() {  # <meta-file>
-  local v
-  v=$(fm_meta_get "$1" backend)
-  printf '%s' "${v:-tmux}"
+  local backend target
+  fm_backend_endpoint_of_fields "$(fm_meta_get "$1" backend)" '' '' backend target
+  printf '%s' "$backend"
 }
 
 fm_backend_target_of_meta() {  # <meta-file>
-  local meta=$1 backend terminal window
-  backend=$(fm_backend_of_meta "$meta")
-  if [ "$backend" = orca ]; then
-    terminal=$(fm_meta_get "$meta" terminal)
-    [ -n "$terminal" ] && { printf '%s' "$terminal"; return 0; }
-  fi
-  window=$(fm_meta_get "$meta" window)
-  [ -n "$window" ] && printf '%s' "$window"
+  local meta=$1 backend target
+  fm_backend_endpoint_of_fields "$(fm_meta_get "$meta" backend)" \
+    "$(fm_meta_get "$meta" window)" "$(fm_meta_get "$meta" terminal)" backend target
+  [ -n "$target" ] && printf '%s' "$target"
 }
 
 # fm_backend_validate_task_endpoint: validate a task cleanup record entirely
