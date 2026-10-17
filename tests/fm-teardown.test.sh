@@ -832,6 +832,7 @@ test_teardown_closes_a_gitlab_task_with_its_merge_request_url_as_a_note() {
   printf 'pr=%s\n' "$gitlab_url" >> "$case_dir/state/task-x1.meta"
   cat > "$case_dir/fakebin/glab" <<'SH'
 #!/usr/bin/env bash
+[ "${1:-} ${2:-}" = "mr view" ] || exit 1
 printf '%s\n' '{"state":"merged"}'
 SH
   chmod +x "$case_dir/fakebin/glab"

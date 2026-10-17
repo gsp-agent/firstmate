@@ -2926,6 +2926,19 @@ test_dispatch_and_completion_are_structural() {
 
   meta="$home/state/$id.meta"
   printf 'pr=%s\n' "$pr" >> "$meta"
+  # Teardown reads the recorded pull request and refuses an empty forge answer.
+  cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "${1:-} ${2:-}" in
+  "pr view")
+    printf '%s\n' "pull_request:" "  number: 15" "  state: merged"
+    exit 0
+    ;;
+esac
+echo "error: unexpected gh-axi $*" >&2
+exit 1
+SH
+  chmod +x "$case_dir/fakebin/gh-axi"
   out=$(run_teardown "$case_dir" "$id") \
     || fail "structural teardown failed: $out"
   [ "$(row_state "$case_dir" "$id")" = "done" ] \

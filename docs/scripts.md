@@ -56,6 +56,8 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-arm-pretool-check.sh` | Stable PreToolUse transport for the watcher-arm command policy (docs/arm-pretool-check.md) |
 | `fm-arm-command-policy.mjs` | Semantic owner of the watcher-arm PreToolUse policy (docs/arm-pretool-check.md)   |
 | [`fm-cursor-crew-guard.mjs`](../bin/fm-cursor-crew-guard.mjs) | Per-session Cursor shell guard for Firstmate launches |
+| `fm-cursor-guard.sh` | Cursor fallback and launch accounting; its header owns the checks and state records |
+| `fm-cursor-assert.sh` | Reassert shared Cursor CLI and pstack settings before launch; its header owns the affected files and values |
 | `fm-subagent-pretool-check.sh` | Primary-home delegation-shape PreToolUse guard (docs/subagent-guard.md) |
 | `fm-supervision-instructions.sh` | Render the session-start primary-harness supervision block or the one-line repair instruction |
 | `fm-home-seed.sh`        | Transactionally provision a local secondmate home and maintain `data/secondmates.md` |

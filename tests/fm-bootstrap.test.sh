@@ -1138,7 +1138,11 @@ codex Luna max effort is accepted^{"rules":[{"when":"big feature","use":{"harnes
 codex Sol max effort is accepted^{"rules":[{"when":"big feature","use":{"harness":"codex","model":"gpt-6.1-sol","effort":"max"}}]}^empty^
 cursor label route is accepted and a label route effort is checked^{"label_routes":{"ep-opus":{"harness":"claude","model":"claude-opus-5-5[1m]","effort":"xhigh"}},"default":{"harness":"cursor","model":"grok-4.7-xhigh"}}^empty^
 cursor_fallback of 85 and 26 is accepted^{"cursor_fallback":{"models_pct":85,"max_age_h":26},"default":{"harness":"cursor","model":"grok-4.7-xhigh"}}^empty^
-cursor_fallback with a missing age is flagged^{"cursor_fallback":{"models_pct":85}}^exact^CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs models_pct 1..100 and max_age_h > 0
+fractional cursor percentage is flagged^{"cursor_fallback":{"models_pct":85.5,"max_age_h":26}}^grep^CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+fractional cursor age is flagged^{"cursor_fallback":{"models_pct":85,"max_age_h":0.5}}^grep^CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+decimal-spelled cursor percentage is flagged^{"cursor_fallback":{"models_pct":85.0,"max_age_h":26}}^grep^CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+decimal-spelled cursor age is flagged^{"cursor_fallback":{"models_pct":85,"max_age_h":26.0}}^grep^CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
+cursor_fallback with a missing age is flagged^{"cursor_fallback":{"models_pct":85}}^exact^CREW_DISPATCH: invalid config/crew-dispatch.json - cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0
 label route with unsupported effort is flagged^{"label_routes":{"x":{"harness":"cursor","model":"m","effort":"high"}}}^exact^CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: cursor:high
 codex unsupported model max effort is flagged^{"rules":[{"when":"big feature","use":{"harness":"codex","model":"gpt-5","effort":"max"}}]}^exact^CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: codex:max
 unsupported grok max effort is flagged^{"rules":[{"when":"deep current work","use":{"harness":"grok","model":"grok-4","effort":"max"}}]}^exact^CREW_DISPATCH: invalid config/crew-dispatch.json - invalid effort: grok:max
