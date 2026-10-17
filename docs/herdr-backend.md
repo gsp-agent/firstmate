@@ -550,10 +550,12 @@ Typed-plane text is typed once; only Enter is retried.
 When native `agent get` identity is Claude, the adapter types only into an empty composer.
 A Claude composer that already holds text, or cannot be read, before the send is refused with nothing typed.
 Before that Enter, the adapter continues only when the selected composer shows the typed payload, or only Claude paste placeholders with no literal remainder.
-Every Herdr adapter composer read (`fm_backend_herdr_composer_state`, `fm_backend_herdr_composer_content`) captures the current bottom screen at the reported viewport height, independent of the user's scroll position.
-The capture includes the full composer and any popup below it while excluding historical prompts above the current screen.
-Herdr 0.7.1 (protocol 14) reports no `scroll` in `pane get`, so on that version both reads use the visible viewport, as they did before scroll support.
-A reported `scroll` without a positive integer `viewport_rows` fails closed.
+Every Herdr adapter composer read (`fm_backend_herdr_composer_state`, `fm_backend_herdr_composer_content`) captures the current screen, independent of the user's scroll position.
+When `pane get` reports `scroll.offset_from_bottom` 0, or reports no `scroll` at all as Herdr 0.7.1 (protocol 14) does, both reads use the visible viewport, which is exactly the current screen.
+When the pane is scrolled, the visible viewport shows old chat, so both reads take `recent` rows trimmed to `scroll.viewport_rows`.
+Herdr ends a `recent` read at the current screen's last non-blank or cursor row, and its text format also drops trailing blank rows, so when the bottom of the screen is blank the trimmed read includes rows from above the current screen.
+The trim keeps the full composer and any popup below it; the classifier's bottom-most composer selection, not the trim, keeps an older prompt above the current screen from deciding the verdict.
+A reported `scroll` without a non-negative integer `offset_from_bottom` and a positive integer `viewport_rows` fails closed.
 The shared inbox pending-line confirmation read (`bin/fm-task-inbox-lib.sh`) stays a bounded tail on every backend.
 Dated measurement: docs/verification/runtime-backends.md "Claude exit behind the slash-command popup".
 
@@ -617,8 +619,8 @@ A missed native transition falls through to the composer verdict rather than rep
 `pane read --lines N` can return empty output when N is below the viewport height.
 The capture owner requests at least 200 lines from Herdr and trims locally to the caller's bound.
 This generous floor is required for the small bounded reads that remain: peek and watch tails, the rendered busy-footer read, and the shared steering-inbox pending-line read.
-Composer reads request at least the reported viewport height and at least 200 rows, then trim to that viewport height (see [Claude composer proof](#claude-composer-proof)).
-A pane that reports no `scroll` uses the visible viewport read, which takes no line count.
+A scrolled pane's composer reads request at least the reported viewport height and at least 200 rows, then trim to that viewport height (see [Claude composer proof](#claude-composer-proof)).
+An unscrolled pane, or one that reports no `scroll`, uses the visible viewport read, which takes no line count.
 
 ### Native idle state
 
@@ -631,7 +633,7 @@ A human-blocked permission dialog has no busy banner and still surfaces.
 
 Herdr has no direct cursor-row primitive.
 The adapter is a thin capture.
-It hands the current bottom screen's ANSI capture plus Herdr's capability facts to the fleet-wide classifier in `bin/fm-composer-lib.sh`, which owns every shape:
+It hands the current screen's ANSI capture plus Herdr's capability facts to the fleet-wide classifier in `bin/fm-composer-lib.sh`, which owns every shape:
 
 - Bordered boxes.
 - Bare agent-glyph rows, including muse's `⟩`, which the adapter's retired local pattern silently omitted.

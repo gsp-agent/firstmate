@@ -71,7 +71,7 @@ if [ "${1:-}" = pane ] && [ "${2:-}" = get ] && [ -n "${FM_HERDR_PANE_INFO:-}" ]
   exit 0
 fi
 if [ "${1:-}" = pane ] && [ "${2:-}" = get ] && [ -n "${FM_HERDR_VIEWPORT_ROWS:-}" ]; then
-  printf '{"result":{"pane":{"scroll":{"viewport_rows":%s}}}}\n' "$FM_HERDR_VIEWPORT_ROWS"
+  printf '{"result":{"pane":{"scroll":{"offset_from_bottom":%s,"viewport_rows":%s}}}}\n' "${FM_HERDR_SCROLL_OFFSET:-0}" "$FM_HERDR_VIEWPORT_ROWS"
   exit 0
 fi
 if [ "${1:-}" = pane ] && [ "${2:-}" = read ] && [ -f "$RESP/recent-ansi.txt" ]; then
@@ -3874,10 +3874,10 @@ test_busy_state_unknown_on_no_agent() {
 
 # --- composer_state: structural border-row classification --------------------
 
-herdr_composer_probe() {  # <fakebin> <log> <responses> <rows> <function> [format]
-  local fb=$1 log=$2 resp=$3 rows=$4 method=$5
-  shift 5
-  PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_HERDR_VIEWPORT_ROWS="$rows" \
+herdr_composer_probe() {  # <fakebin> <log> <responses> <offset-from-bottom> <rows> <function> [format]
+  local fb=$1 log=$2 resp=$3 offset=$4 rows=$5 method=$6
+  shift 6
+  PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_HERDR_SCROLL_OFFSET="$offset" FM_HERDR_VIEWPORT_ROWS="$rows" \
     bash -s -- "$ROOT" "$method" "$@" <<'SH'
 . "$1/bin/backends/herdr.sh"
 method=$2
@@ -3889,6 +3889,8 @@ SH
 # `pane get` as Herdr 0.7.1 (protocol 14) prints it. Its PaneInfo has no scroll
 # field; scroll first appears in Herdr 0.7.2.
 HERDR_PROTOCOL_14_PANE_INFO='{"id":"cli:pane:get","result":{"type":"pane_info","pane":{"pane_id":"w1:p2","terminal_id":"term_2","workspace_id":"w1","tab_id":"w1:t1","focused":true,"cwd":"/tmp","agent":"claude","agent_status":"idle","revision":7}}}'
+# The real wYK:p1 primary's scroll offset when its visible screen held only chat.
+HERDR_SCROLLED_OFFSET=5669
 
 test_composer_state_scrolled_viewport_uses_current_screen() {
   local dir log resp fb out i
@@ -3897,30 +3899,52 @@ test_composer_state_scrolled_viewport_uses_current_screen() {
     cp "$FM_HERDR_COMPOSER_REPLAY_DIR/visible-ansi.txt" "$resp/visible-ansi.txt"
     cp "$FM_HERDR_COMPOSER_REPLAY_DIR/recent-ansi.txt" "$resp/recent-ansi.txt"
   else
-    printf 'Older chat ending mid-sentence\n' > "$resp/visible-ansi.txt"
-    printf '────────────────────────\n❯\n────────────────────────\n' > "$resp/recent-ansi.txt"
+    cp "$ROOT/tests/captures/claude-code-2.1.300/scrolled-visible.ansi" "$resp/visible-ansi.txt"
+    cp "$ROOT/tests/captures/claude-code-2.1.300/scrolled-recent.ansi" "$resp/recent-ansi.txt"
   fi
   fb=$(make_herdr_fakebin "$dir")
-  out=$(herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" 0 58 fm_backend_herdr_composer_state)
+  [ "$out" = unknown ] || fail "the scrolled pane's visible screen alone has no composer and must read unknown, got '$out'"
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" "$HERDR_SCROLLED_OFFSET" 58 fm_backend_herdr_composer_state)
   [ "$out" = empty ] || fail "the current empty composer behind a scrolled viewport must read empty, got '$out'"
   pass "fm_backend_herdr_composer_state: a scrolled viewport cannot hide the current empty composer"
 
   printf '❯\n' > "$resp/visible-ansi.txt"
   printf '────────────────────────\n❯ unfinished draft\n────────────────────────\n' > "$resp/recent-ansi.txt"
-  out=$(herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" "$HERDR_SCROLLED_OFFSET" 58 fm_backend_herdr_composer_state)
   [ "$out" = pending ] || fail "a scrolled empty prompt must not hide the current draft, got '$out'"
-  out=$(herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_content)
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" "$HERDR_SCROLLED_OFFSET" 58 fm_backend_herdr_composer_content)
   [ "$out" = 'unfinished draft' ] || fail "payload proof must extract the current draft, got '$out'"
   pass "fm_backend_herdr_composer_state: a scrolled empty prompt cannot hide a current draft"
 
   printf '❯\n' > "$resp/recent-ansi.txt"
   for ((i = 0; i < 58; i++)); do printf 'current screen without a composer\n' >> "$resp/recent-ansi.txt"; done
-  out=$(herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" "$HERDR_SCROLLED_OFFSET" 58 fm_backend_herdr_composer_state)
   [ "$out" = unknown ] || fail "a historical prompt outside the current screen must stay unknown, got '$out'"
   pass "fm_backend_herdr_composer_state: a scrollback prompt cannot prove the current screen empty"
 }
 
-test_composer_capture_preserves_full_height_and_blank_rows() {
+test_composer_reads_unscrolled_pane_visible_screen() {
+  local dir log resp fb out
+  dir="$TMP_ROOT/composer-unscrolled"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  printf '────────────────────────\n❯\n────────────────────────\n' > "$resp/visible-ansi.txt"
+  printf '────────────────────────\n❯ recent rows are not read\n────────────────────────\n' > "$resp/recent-ansi.txt"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" 0 58 fm_backend_herdr_composer_state)
+  [ "$out" = empty ] || fail "an unscrolled pane must read its visible empty composer, got '$out'"
+
+  printf '────────────────────────\n❯ unfinished draft\n────────────────────────\n' > "$resp/visible-ansi.txt"
+  printf '────────────────────────\n❯\n────────────────────────\n' > "$resp/recent-ansi.txt"
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" 0 58 fm_backend_herdr_composer_state)
+  [ "$out" = pending ] || fail "an unscrolled pane must read its visible draft as pending, got '$out'"
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" 0 58 fm_backend_herdr_composer_content)
+  [ "$out" = 'unfinished draft' ] || fail "an unscrolled payload proof must extract the visible draft, got '$out'"
+  assert_contains "$(cat "$log")" $'--source\x1fvisible\x1f--format\x1fansi' "an unscrolled pane must read its visible screen"
+  assert_not_contains "$(cat "$log")" $'--source\x1frecent' "an unscrolled pane must not read recent rows"
+  pass "fm_backend_herdr_composer_state: an unscrolled pane reads exactly its visible screen"
+}
+
+test_composer_capture_preserves_full_height_and_bottom_composer() {
   local dir log resp fb out expected i
   dir="$TMP_ROOT/composer-height"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
   printf 'Old chat\n' > "$resp/visible-ansi.txt"
@@ -3929,31 +3953,40 @@ test_composer_capture_preserves_full_height_and_blank_rows() {
   for ((i = 3; i < 300; i++)); do printf '  popup option\n' >> "$dir/current"; done
   cat "$dir/current" >> "$resp/recent-ansi.txt"
   fb=$(make_herdr_fakebin "$dir")
-  out=$(herdr_composer_probe "$fb" "$log" "$resp" 300 fm_backend_herdr_composer_capture ansi)
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" "$HERDR_SCROLLED_OFFSET" 300 fm_backend_herdr_composer_capture ansi)
   expected=$(cat "$dir/current")
   [ "$out" = "$expected" ] || fail "a 300-row screen must retain its entire composer and popup without scrollback"
   assert_contains "$(cat "$log")" $'--lines\x1f300' "the read must request at least the actual screen height"
   pass "fm_backend_herdr_composer_capture: a screen taller than 200 rows retains every composer and overlay row"
 
-  printf '❯\n' > "$resp/recent-ansi.txt"
-  for ((i = 0; i < 58; i++)); do printf '\n' >> "$resp/recent-ansi.txt"; done
-  out=$(herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
-  [ "$out" = unknown ] || fail "trailing blank rows must not pull an old empty prompt into the screen, got '$out'"
-  pass "fm_backend_herdr_composer_state: trailing blank rows cannot expose a stale empty prompt"
+  {
+    printf '────────────────────────\n❯\n────────────────────────\n'
+    printf 'Older chat above the current screen\n'
+    printf '────────────────────────\n❯ unfinished draft\n────────────────────────\n'
+  } > "$resp/recent-ansi.txt"
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" "$HERDR_SCROLLED_OFFSET" 58 fm_backend_herdr_composer_state)
+  [ "$out" = pending ] || fail "an older empty prompt inside the trimmed read must not hide the current draft, got '$out'"
+  pass "fm_backend_herdr_composer_state: the bottom-most current draft outranks an older prompt the trim reaches"
 }
 
 test_composer_state_unproved_height_stays_unknown() {
-  local dir log resp fb out rows
+  local dir log resp fb out rows offset
   dir="$TMP_ROOT/composer-bad-height"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
   printf '❯\n' > "$resp/visible-ansi.txt"
   printf '❯\n' > "$resp/recent-ansi.txt"
   fb=$(make_herdr_fakebin "$dir")
-  for rows in null 0 -1 1.5 '"58"'; do
-    out=$(herdr_composer_probe "$fb" "$log" "$resp" "$rows" fm_backend_herdr_composer_state)
-    [ "$out" = unknown ] || fail "unproved viewport height '$rows' must stay unknown, got '$out'"
+  for offset in 0 "$HERDR_SCROLLED_OFFSET"; do
+    for rows in null 0 -1 1.5 '"58"'; do
+      out=$(herdr_composer_probe "$fb" "$log" "$resp" "$offset" "$rows" fm_backend_herdr_composer_state)
+      [ "$out" = unknown ] || fail "unproved viewport height '$rows' at offset $offset must stay unknown, got '$out'"
+    done
   done
-  for info in '{"result":{"pane":{"scroll":{}}}}' '{"result":{"pane":{"scroll":5}}}' '{"result":{}}'; do
-    out=$(FM_HERDR_PANE_INFO=$info herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+  for offset in null -1 1.5 '"0"'; do
+    out=$(herdr_composer_probe "$fb" "$log" "$resp" "$offset" 58 fm_backend_herdr_composer_state)
+    [ "$out" = unknown ] || fail "unproved scroll offset '$offset' must stay unknown, got '$out'"
+  done
+  for info in '{"result":{"pane":{"scroll":{}}}}' '{"result":{"pane":{"scroll":{"viewport_rows":58}}}}' '{"result":{"pane":{"scroll":5}}}' '{"result":{}}'; do
+    out=$(FM_HERDR_PANE_INFO=$info herdr_composer_probe "$fb" "$log" "$resp" 0 58 fm_backend_herdr_composer_state)
     [ "$out" = unknown ] || fail "malformed pane info '$info' must stay unknown, got '$out'"
   done
   pass "fm_backend_herdr_composer_state: a reported but malformed scroll cannot prove emptiness"
@@ -3965,14 +3998,14 @@ test_composer_reads_protocol_14_pane_without_scroll() {
   printf '────────────────────────\n❯\n────────────────────────\n' > "$resp/visible-ansi.txt"
   printf '────────────────────────\n❯ recent rows are not read\n────────────────────────\n' > "$resp/recent-ansi.txt"
   fb=$(make_herdr_fakebin "$dir")
-  out=$(FM_HERDR_PANE_INFO=$HERDR_PROTOCOL_14_PANE_INFO herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+  out=$(FM_HERDR_PANE_INFO=$HERDR_PROTOCOL_14_PANE_INFO herdr_composer_probe "$fb" "$log" "$resp" 0 58 fm_backend_herdr_composer_state)
   [ "$out" = empty ] || fail "a protocol-14 pane must read its visible empty composer, got '$out'"
 
   printf '────────────────────────\n❯ unfinished draft\n────────────────────────\n' > "$resp/visible-ansi.txt"
   printf '────────────────────────\n❯\n────────────────────────\n' > "$resp/recent-ansi.txt"
-  out=$(FM_HERDR_PANE_INFO=$HERDR_PROTOCOL_14_PANE_INFO herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+  out=$(FM_HERDR_PANE_INFO=$HERDR_PROTOCOL_14_PANE_INFO herdr_composer_probe "$fb" "$log" "$resp" 0 58 fm_backend_herdr_composer_state)
   [ "$out" = pending ] || fail "a protocol-14 pane must read its visible draft as pending, got '$out'"
-  out=$(FM_HERDR_PANE_INFO=$HERDR_PROTOCOL_14_PANE_INFO herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_content)
+  out=$(FM_HERDR_PANE_INFO=$HERDR_PROTOCOL_14_PANE_INFO herdr_composer_probe "$fb" "$log" "$resp" 0 58 fm_backend_herdr_composer_content)
   [ "$out" = 'unfinished draft' ] || fail "a protocol-14 payload proof must extract the visible draft, got '$out'"
   assert_contains "$(cat "$log")" $'--source\x1fvisible\x1f--format\x1fansi' "a protocol-14 pane must read its visible viewport"
   assert_not_contains "$(cat "$log")" $'--source\x1frecent' "a protocol-14 pane must not read recent rows"
@@ -3985,7 +4018,7 @@ test_composer_state_plain_fallback_reads_current_draft() {
   printf '1\n' > "$resp/1.exit"
   printf '────────────────────────\n❯ unfinished draft\n────────────────────────\n' > "$resp/2.out"
   fb=$(make_herdr_fakebin "$dir")
-  out=$(herdr_composer_probe "$fb" "$log" "$resp" 58 fm_backend_herdr_composer_state)
+  out=$(herdr_composer_probe "$fb" "$log" "$resp" "$HERDR_SCROLLED_OFFSET" 58 fm_backend_herdr_composer_state)
   [ "$out" = unknown ] || fail "the plain fallback must still reject the current draft, got '$out'"
   assert_not_contains "$(cat "$log")" $'--source\x1fvisible' "the fallback must never trust a scrolled visible screen"
   pass "fm_backend_herdr_composer_state: failed ANSI read falls back to the current plain draft"
@@ -5250,11 +5283,11 @@ test_composer_state_claude_slash_popup_pushes_composer_above_tail_window() {
   dir="$TMP_ROOT/composer-claude-slash-popup"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
   herdr_popup_composer_screen '/exit' > "$resp/1.out"
   fb=$(make_herdr_fakebin "$dir")
-  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_HERDR_SCROLL_OFFSET="$HERDR_SCROLLED_OFFSET" \
     bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_composer_state default:w1:p2' "$ROOT" )
   [ "$out" = pending ] || fail "a composer above a slash-command popup must read pending, got '$out'"
   grep -F $'\x1f''pane'$'\x1f''read'$'\x1f''w1:p2'$'\x1f''--source'$'\x1f''recent' "$log" >/dev/null \
-    || fail "the composer state read must use the current bottom screen"
+    || fail "the composer state read of a scrolled pane must use recent rows"
 
   pass "fm_backend_herdr_composer_state: a slash-command popup cannot hide a typed composer"
 }
@@ -5268,14 +5301,14 @@ test_send_text_submit_claude_slash_popup_composer_is_still_proven_and_submitted(
   printf '{"result":{"agent":{"agent_status":"working"}}}\n' > "$resp/7.out"
   herdr_popup_composer_screen "$text" > "$resp/4.out"
   fb=$(make_herdr_fakebin "$dir")
-  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 \
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" FM_BACKEND_HERDR_SUBMIT_POLLS=1 FM_HERDR_SCROLL_OFFSET="$HERDR_SCROLLED_OFFSET" \
     bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_text_submit default:w1:p2 "$1" 3 0.01 0.01' "$ROOT" "$text" )
   [ "$out" = empty ] || fail "a composer proven above a slash-command popup must be submitted, got '$out'"
   enter_count=$(grep -c $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f''enter' "$log")
   [ "$enter_count" -eq 1 ] || fail "the proven typed command should be submitted once, sent $enter_count Enter(s)"
   [ "$(herdr_ctrl_u_count "$log")" -eq 0 ] || fail "a proven composer must not be cleared"
   grep -F $'\x1f''pane'$'\x1f''read'$'\x1f''w1:p2'$'\x1f''--source'$'\x1f''recent' "$log" >/dev/null \
-    || fail "the payload proof must use the current bottom screen"
+    || fail "the payload proof of a scrolled pane must use recent rows"
 
   pass "fm_backend_herdr_send_text_submit: a typed slash command hidden behind its popup is still proven and submitted"
 }
@@ -6196,7 +6229,8 @@ test_busy_state_done_and_blocked_map_to_idle
 test_busy_state_unknown_on_no_agent
 export FM_HERDR_VIEWPORT_ROWS=58
 test_composer_state_scrolled_viewport_uses_current_screen
-test_composer_capture_preserves_full_height_and_blank_rows
+test_composer_reads_unscrolled_pane_visible_screen
+test_composer_capture_preserves_full_height_and_bottom_composer
 test_composer_state_unproved_height_stays_unknown
 test_composer_reads_protocol_14_pane_without_scroll
 test_composer_state_plain_fallback_reads_current_draft
