@@ -1,0 +1,210 @@
+[
+  {
+    "scenario": "100 percent, prepaid only",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=445.63\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "cursor",
+    "expected": "cursor",
+    "pass": true
+  },
+  {
+    "scenario": "100 percent, fractional prepaid only",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=0.01\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "cursor",
+    "expected": "cursor",
+    "pass": true
+  },
+  {
+    "scenario": "100 percent, on-demand only",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=10\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "cursor",
+    "expected": "cursor",
+    "pass": true
+  },
+  {
+    "scenario": "100 percent, final cent on-demand",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=399.99\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "cursor",
+    "expected": "cursor",
+    "pass": true
+  },
+  {
+    "scenario": "100 percent, both credit sources",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=445.63\nmonthly_additional_usage_used=138.38\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "cursor",
+    "expected": "cursor",
+    "pass": true
+  },
+  {
+    "scenario": "100 percent, exhausted credits",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "expected": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "pass": true
+  },
+  {
+    "scenario": "100 percent, overrun and negative prepaid",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=-1\nmonthly_additional_usage_used=401\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "expected": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "pass": true
+  },
+  {
+    "scenario": "100 percent, zero additional limit",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=0\nmonthly_additional_usage_limit=0\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "expected": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "pass": true
+  },
+  {
+    "scenario": "100 percent, missing credit fields",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=\nmonthly_additional_usage_used=\nmonthly_additional_usage_limit=\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "expected": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "pass": true
+  },
+  {
+    "scenario": "Prepaid credit does not bypass pstack pin",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=445.63\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.22"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "grok pstack plugin version is '0.15.22', not the pinned 0.15.21",
+    "expected": "grok pstack plugin version is '0.15.22', not the pinned 0.15.21",
+    "pass": true
+  },
+  {
+    "scenario": "On-demand credit does not bypass pstack pin",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=10\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.22"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "grok pstack plugin version is '0.15.22', not the pinned 0.15.21",
+    "expected": "grok pstack plugin version is '0.15.22', not the pinned 0.15.21",
+    "pass": true
+  },
+  {
+    "scenario": "No credit room takes precedence over off-pin pstack",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.22"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "expected": "codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt",
+    "pass": true
+  },
+  {
+    "scenario": "Custom pstack pin remains authoritative",
+    "spending_file": "cursor_models_pct=100\nprepaid_balance=445.63\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.22"
+    },
+    "config": {
+      "pstack_version": "0.15.22"
+    },
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "cursor",
+    "expected": "cursor",
+    "pass": true
+  },
+  {
+    "scenario": "Configured included-usage threshold with credits",
+    "spending_file": "cursor_models_pct=50\nprepaid_balance=0.01\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {
+      "cursor_fallback": {
+        "models_pct": 50
+      }
+    },
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "cursor",
+    "expected": "cursor",
+    "pass": true
+  },
+  {
+    "scenario": "Below threshold needs no credits",
+    "spending_file": "cursor_models_pct=84\nprepaid_balance=0\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n",
+    "pstack": {
+      "version": "0.15.21"
+    },
+    "config": {},
+    "command": "bash bin/fm-cursor-guard.sh fallback credit-probe",
+    "stdout": "cursor",
+    "expected": "cursor",
+    "pass": true
+  },
+  {
+    "scenario": "Recorded Cursor limit takes precedence over credit room",
+    "stdout": "codex prior Cursor usage limit",
+    "pass": true
+  },
+  {
+    "scenario": "Stale reading with prepaid credits is refused",
+    "stdout": "codex newest Cursor spending file is 234867 h old (limit 26 h)",
+    "pass": true
+  },
+  {
+    "scenario": "Historical counterfactual 67669705, pstack 0.15.21",
+    "stdout": "codex Cursor Models at 100% (limit 85%)",
+    "expected": "codex Cursor Models at 100% (limit 85%)",
+    "pass": true
+  },
+  {
+    "scenario": "Historical counterfactual ab7251f8, pstack 0.15.22",
+    "stdout": "cursor",
+    "expected": "cursor",
+    "pass": true
+  }
+]

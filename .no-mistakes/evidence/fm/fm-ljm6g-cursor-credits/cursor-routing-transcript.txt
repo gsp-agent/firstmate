@@ -1,0 +1,124 @@
+Observed Cursor guard CLI behavior against disposable files; no vendor harness or guard command was replaced.
+Command: bash bin/fm-cursor-guard.sh fallback credit-probe
+
+1. 100 percent, prepaid only
+Spending input: cursor_models_pct=100; prepaid_balance=445.63; monthly_additional_usage_used=400; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: cursor
+Outcome: expected behavior observed
+
+2. 100 percent, fractional prepaid only
+Spending input: cursor_models_pct=100; prepaid_balance=0.01; monthly_additional_usage_used=400; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: cursor
+Outcome: expected behavior observed
+
+3. 100 percent, on-demand only
+Spending input: cursor_models_pct=100; prepaid_balance=0; monthly_additional_usage_used=10; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: cursor
+Outcome: expected behavior observed
+
+4. 100 percent, final cent on-demand
+Spending input: cursor_models_pct=100; prepaid_balance=0; monthly_additional_usage_used=399.99; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: cursor
+Outcome: expected behavior observed
+
+5. 100 percent, both credit sources
+Spending input: cursor_models_pct=100; prepaid_balance=445.63; monthly_additional_usage_used=138.38; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: cursor
+Outcome: expected behavior observed
+
+6. 100 percent, exhausted credits
+Spending input: cursor_models_pct=100; prepaid_balance=0; monthly_additional_usage_used=400; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt
+Outcome: expected behavior observed
+
+7. 100 percent, overrun and negative prepaid
+Spending input: cursor_models_pct=100; prepaid_balance=-1; monthly_additional_usage_used=401; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt
+Outcome: expected behavior observed
+
+8. 100 percent, zero additional limit
+Spending input: cursor_models_pct=100; prepaid_balance=0; monthly_additional_usage_used=0; monthly_additional_usage_limit=0
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt
+Outcome: expected behavior observed
+
+9. 100 percent, missing credit fields
+Spending input: cursor_models_pct=100; prepaid_balance=; monthly_additional_usage_used=; monthly_additional_usage_limit=
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt
+Outcome: expected behavior observed
+
+10. Prepaid credit does not bypass pstack pin
+Spending input: cursor_models_pct=100; prepaid_balance=445.63; monthly_additional_usage_used=400; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.22"}
+Dispatch config input: {}
+Observed stdout: grok pstack plugin version is '0.15.22', not the pinned 0.15.21
+Outcome: expected behavior observed
+
+11. On-demand credit does not bypass pstack pin
+Spending input: cursor_models_pct=100; prepaid_balance=0; monthly_additional_usage_used=10; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.22"}
+Dispatch config input: {}
+Observed stdout: grok pstack plugin version is '0.15.22', not the pinned 0.15.21
+Outcome: expected behavior observed
+
+12. No credit room takes precedence over off-pin pstack
+Spending input: cursor_models_pct=100; prepaid_balance=0; monthly_additional_usage_used=400; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.22"}
+Dispatch config input: {}
+Observed stdout: codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in live-spending.txt
+Outcome: expected behavior observed
+
+13. Custom pstack pin remains authoritative
+Spending input: cursor_models_pct=100; prepaid_balance=445.63; monthly_additional_usage_used=400; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.22"}
+Dispatch config input: {"pstack_version": "0.15.22"}
+Observed stdout: cursor
+Outcome: expected behavior observed
+
+14. Configured included-usage threshold with credits
+Spending input: cursor_models_pct=50; prepaid_balance=0.01; monthly_additional_usage_used=400; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {"cursor_fallback": {"models_pct": 50}}
+Observed stdout: cursor
+Outcome: expected behavior observed
+
+15. Below threshold needs no credits
+Spending input: cursor_models_pct=84; prepaid_balance=0; monthly_additional_usage_used=400; monthly_additional_usage_limit=400
+Plugin input: {"version": "0.15.21"}
+Dispatch config input: {}
+Observed stdout: cursor
+Outcome: expected behavior observed
+
+16. Recorded Cursor limit takes precedence over credit room
+Observed stdout: codex prior Cursor usage limit
+Outcome: expected behavior observed
+
+17. Stale reading with prepaid credits is refused
+Observed stdout: codex newest Cursor spending file is 234867 h old (limit 26 h)
+Outcome: expected behavior observed
+
+18. Historical counterfactual 67669705, pstack 0.15.21
+Observed stdout: codex Cursor Models at 100% (limit 85%)
+Outcome: expected behavior observed
+
+19. Historical counterfactual ab7251f8, pstack 0.15.22
+Observed stdout: cursor
+Outcome: expected behavior observed
+

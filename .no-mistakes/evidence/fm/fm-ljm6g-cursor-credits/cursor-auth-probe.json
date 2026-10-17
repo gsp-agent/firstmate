@@ -1,0 +1,8 @@
+{
+  "command": "cursor-agent status (HOME and XDG directories isolated in worktree)",
+  "cli": "/Users/dalecarman/.local/bin/cursor-agent",
+  "credential_environment_present": false,
+  "exit_code": 0,
+  "output_characters": 14,
+  "authentication_verdict": "Not logged in"
+}

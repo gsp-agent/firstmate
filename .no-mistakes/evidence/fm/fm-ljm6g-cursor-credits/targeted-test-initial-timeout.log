@@ -1,0 +1,16 @@
+Command: TMPDIR=$PWD/.nm-cursor-validation/tmp FM_TEST_MACHINE_GATE= bash bin/fm-test-run.sh tests/fm-cursor-guard.test.sh
+FM_TEST_BEGIN 2026-10-17T03:17:16Z tests/fm-cursor-guard.test.sh family=unclassified expected_gate_skip=none
+ok - no distinct-bead cap; a bead's 3rd launch in a day is refused
+ok - failed spawns give the launch back
+ok - day rollover resets the count
+ok - mkdir lock honoured; a stale one is removed
+ok - fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit
+ok - an off-pin pstack falls back to grok only while the pool is fine; a short pool still goes to codex
+ok - a usage-limit error is recorded and the bead's next launch goes to codex
+ok - exceededLimit false is not a usage limit; an exceeded-quota line is
+out
+out
+ok - cursor exit code survives the tee
+ok - crew guard: refuses git symbolic-ref and update-ref in every command position, leaves reads and branch creation alone
+
+Test driver stopped the initial run after its 120-second allowance; no assertion failure was emitted. Retried with a 600-second allowance.

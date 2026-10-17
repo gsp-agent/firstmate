@@ -1,0 +1,6 @@
+{
+  "command": "cursor-agent --print --mode ask --workspace <isolated-workspace> \"Reply exactly CURSOR_CREDIT_PROBE. Do not invoke tools.\"",
+  "home_isolated": true,
+  "exit_code": 1,
+  "output": "Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.\n"
+}
