@@ -22,6 +22,9 @@
 # the invocation's original start across re-execution, so timing and the runner's
 # wall-clock budget include admission waits. They are consumed and unset here
 # so a nested invocation measures its own start rather than the parent's wait.
+# FM_TEST_MACHINE_LINE_OWNER_PID carries the invoked runner's pid across the
+# same re-execution as RUN_OWNER_PID, so script supervision follows the process
+# the caller launched rather than the gate's child; it is consumed the same way.
 # tests/fm-test-run.test.sh covers admission, release, cross-entry-point exclusion,
 # relative launch paths, and invocation timing.
 
@@ -30,7 +33,9 @@ MACHINE_LINE_RETRY_SECS=15
 
 RUN_STARTED_ISO=${FM_TEST_MACHINE_LINE_STARTED_ISO:-$RUN_STARTED_ISO}
 RUN_STARTED_MS=${FM_TEST_MACHINE_LINE_STARTED_MS:-$RUN_STARTED_MS}
-unset FM_TEST_MACHINE_LINE_STARTED_ISO FM_TEST_MACHINE_LINE_STARTED_MS
+RUN_OWNER_PID=${FM_TEST_MACHINE_LINE_OWNER_PID:-$$}
+unset FM_TEST_MACHINE_LINE_STARTED_ISO FM_TEST_MACHINE_LINE_STARTED_MS \
+  FM_TEST_MACHINE_LINE_OWNER_PID
 
 enter_machine_line() {
   local runner=$1
@@ -77,6 +82,7 @@ enter_machine_line() {
       FM_TEST_MACHINE_LINE_ADMITTED="$admitted" \
       FM_TEST_MACHINE_LINE_STARTED_ISO="$RUN_STARTED_ISO" \
       FM_TEST_MACHINE_LINE_STARTED_MS="$RUN_STARTED_MS" \
+      FM_TEST_MACHINE_LINE_OWNER_PID="$RUN_OWNER_PID" \
       MACHINE_LINE_NAME="$line_name" \
       bash "$gate" run --cap "$MACHINE_LINE_CAP_MINUTES" -- "$runner" "$@"
     rc=$?

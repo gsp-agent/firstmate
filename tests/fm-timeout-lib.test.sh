@@ -204,28 +204,34 @@ test_a_signal_to_the_bounding_process_reaches_the_command() {
 # A caller that names its owner before launching the watchdog is watched even
 # when that owner died while the watchdog was still starting: the watchdog's
 # parent is then not the named owner, so the escalation starts at once rather
-# than at the bound.
+# than at the bound. That TERM usually lands while the command is still being
+# started, and must end it there instead of being lost to the grace's KILL;
+# several launches make a lost TERM show as 137 rather than 143.
 test_a_named_owner_that_is_gone_ends_the_command() {
-  local dir gone rc=0 started elapsed pid
+  local dir gone rc started elapsed pid launch
   dir="$TMP_ROOT/owner"
   mkdir -p "$dir"
   sleep 0 &
   gone=$!
   wait "$gone" 2>/dev/null || true
-  started=$SECONDS
-  (
-    . "$ROOT/bin/fm-timeout-lib.sh"
-    PATH=$PERL_ONLY FM_EXEC_TIMED_OWNER_PID=$gone \
-      fm_exec_timed 60 1 bash -c 'echo $$ > "$1"; exec sleep 300' _ "$dir/pid"
-  ) || rc=$?
-  elapsed=$((SECONDS - started))
-  [ "$elapsed" -lt 15 ] || fail "a watchdog whose named owner was gone ran to its bound (${elapsed}s)"
-  [ "$rc" -ne 0 ] || fail "a command ended by its owner's death reported success"
-  if [ -s "$dir/pid" ]; then
-    pid=$(cat "$dir/pid")
-    ! kill -0 "$pid" 2>/dev/null || fail "the bounded command outlived its named owner"
-  fi
-  pass "fm_exec_timed ends the command when its named owner is already gone"
+  for launch in 1 2 3 4 5; do
+    rm -f "$dir/pid"
+    rc=0
+    started=$SECONDS
+    (
+      . "$ROOT/bin/fm-timeout-lib.sh"
+      PATH=$PERL_ONLY FM_EXEC_TIMED_OWNER_PID=$gone \
+        fm_exec_timed 60 1 bash -c 'echo $$ > "$1"; exec sleep 300' _ "$dir/pid"
+    ) || rc=$?
+    elapsed=$((SECONDS - started))
+    [ "$elapsed" -lt 15 ] || fail "a watchdog whose named owner was gone ran to its bound (${elapsed}s)"
+    [ "$rc" -eq 143 ] || fail "launch $launch whose named owner was gone did not end at its TERM (rc=$rc)"
+    if [ -s "$dir/pid" ]; then
+      pid=$(cat "$dir/pid")
+      ! kill -0 "$pid" 2>/dev/null || fail "the bounded command outlived its named owner"
+    fi
+  done
+  pass "fm_exec_timed ends the command at its TERM when its named owner is already gone"
 }
 
 # With no named owner the calling script is captured before the watchdog
