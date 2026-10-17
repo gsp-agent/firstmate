@@ -240,6 +240,7 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
       exit 127 unless defined $child;
       if ($child == 0) {
         $SIG{$_} = "DEFAULT" for qw(TERM INT HUP);
+        kill $pending, $$ if $pending;
         setpgid(0, 0);
         exec @ARGV;
         exit 127;
