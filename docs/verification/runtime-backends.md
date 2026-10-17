@@ -186,7 +186,7 @@ On macOS the pane command reflected the rewritable title while the full install 
 The classifier therefore accepts a harness basename first, then an exact harness path component in the full executable path, then the same component in argv[0], without depending on which field carries it on a given platform.
 
 The portable regression is CI-enforced.
-The real-harness drift guard spends no model tokens, so under the policy in `.agents/skills/firstmate-coding-guidelines/SKILL.md` it runs by default wherever tmux is installed and reports a capability skip elsewhere; `FM_HARNESS_LIVENESS_DRIFT=1` additionally turns an absent tool into a failure.
+The real-harness drift guard spends no model tokens, but it is opt-in because every launch writes the real HOME's harness configuration; portable serial CI opts in, and `FM_HARNESS_LIVENESS_DRIFT=1` both runs it and turns an absent tool into a failure.
 Run the live guard after any harness upgrade and before trusting or refreshing the table above:
 
 ```sh
