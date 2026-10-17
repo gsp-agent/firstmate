@@ -205,8 +205,9 @@ test_a_signal_to_the_bounding_process_reaches_the_command() {
 # when that owner died while the watchdog was still starting: the watchdog's
 # parent is then not the named owner, so the escalation starts at once rather
 # than at the bound. That TERM usually lands while the command is still being
-# started, and must end it there instead of being lost to the grace's KILL;
-# several launches make a lost TERM show as 137 rather than 143.
+# started, and must end it there instead of being lost to the grace's KILL.
+# Only some launches put it in the few Perl ops before the forked child resets
+# its handlers, so a hundred launches make a lost TERM show as 137, not 143.
 test_a_named_owner_that_is_gone_ends_the_command() {
   local dir gone rc started elapsed pid launch
   dir="$TMP_ROOT/owner"
@@ -214,7 +215,7 @@ test_a_named_owner_that_is_gone_ends_the_command() {
   sleep 0 &
   gone=$!
   wait "$gone" 2>/dev/null || true
-  for launch in 1 2 3 4 5; do
+  for ((launch = 1; launch <= 100; launch++)); do
     rm -f "$dir/pid"
     rc=0
     started=$SECONDS
