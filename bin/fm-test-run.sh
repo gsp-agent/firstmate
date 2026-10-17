@@ -77,8 +77,10 @@
 #                   after the run and so cannot catch a hang on its own.
 #                   With or without a bound, each script runs in its own
 #                   process group under fm_exec_timed (bin/fm-timeout-lib.sh),
-#                   so a runner killed or interrupted mid-run takes the running
-#                   script's group down with it rather than leaving it behind.
+#                   so the runner the caller launched, killed or interrupted
+#                   mid-run, takes the running script's group down with it
+#                   rather than leaving it behind, also when the machine gate
+#                   re-executed it, and no further script starts.
 #   --max-wall-ms N fail the run when its measured invocation wall clock exceeds
 #                   N milliseconds, including an empty selection. It is
 #                   evaluated after selection and suite execution and cannot
@@ -2504,7 +2506,9 @@ record_script_result() {
 # Run <script>, capturing output to <out>. <stream> 1 also echoes it live.
 # <id> only has to be unique within this run. Every script runs in its own
 # process group under fm_exec_timed, which ends that group when this runner
-# dies, so an interrupted run cannot leave a suite and its watchers behind.
+# or the runner the caller launched (RUN_OWNER_PID, across a machine-gate
+# re-execution) dies, so an interrupted run cannot leave a suite and its
+# watchers behind.
 # When PER_SCRIPT_TIMEOUT_SECS is positive, a script that outruns it is
 # terminated and reported as exit 124: a hung script must become a bounded
 # failure rather than an unbounded suite, because an unbounded suite is what
@@ -2526,11 +2530,13 @@ run_script_bounded() {  # <script> <out> <stream> <id>
   if [ "$stream" -eq 1 ]; then
     # Expansion is intentionally deferred to the child bash passed to -c.
     # shellcheck disable=SC2016
-    (fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash -c \
-      'bash "$1" 2>&1 | tee "$2"; exit "${PIPESTATUS[0]}"' _ "$script" "$out")
+    (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
+      fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash -c \
+        'bash "$1" 2>&1 | tee "$2"; exit "${PIPESTATUS[0]}"' _ "$script" "$out")
     rc=$?
   else
-    (fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash "$script") >"$out" 2>&1
+    (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
+      fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash "$script") >"$out" 2>&1
     rc=$?
   fi
   if [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ] && [ "$rc" -eq 124 ]; then
@@ -2541,9 +2547,21 @@ run_script_bounded() {  # <script> <out> <stream> <id>
   return "$rc"
 }
 
+# Once the runner the caller launched is gone, every running script's watchdog
+# is already ending its group: wait for those, start nothing further, and
+# leave, so a gated re-execution does not hold the machine line for a run
+# nobody is waiting on. Called before each script starts, on every path.
+stop_when_owner_gone() {
+  kill -0 "$RUN_OWNER_PID" 2>/dev/null && return 0
+  log "the runner the caller launched (pid $RUN_OWNER_PID) is gone; starting no further scripts"
+  wait
+  exit 143
+}
+
 run_one_serial() {
   local script=$1
   local base family expected out begin_iso begin_ms end_ms end_iso duration rc
+  stop_when_owner_gone
   base=$(basename "$script")
   family=$(family_for_basename "$base")
   expected=$(expected_gate_skip_for_family "$family")
@@ -2660,6 +2678,7 @@ else
     while [ "$active_workers" -ge "$JOBS" ]; do
       wait_one_completed_job_worker
     done
+    stop_when_owner_gone
     worker_n=$((worker_n + 1))
     work="$RUN_TMP/w$worker_n"
     mkdir -p "$work/tmp"

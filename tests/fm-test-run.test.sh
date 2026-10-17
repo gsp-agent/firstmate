@@ -1582,51 +1582,93 @@ SH
 }
 
 # A runner stopped from outside mid-script (a lane killed, a terminal closed)
-# must take that script's whole process group with it, bounded or not;
-# otherwise the suite and every watcher it started keep running unowned.
+# must take that script's whole process group with it, bounded or not, and
+# also when the machine gate re-executed it under a second runner: the caller
+# holds only the pid of the runner it launched. No later script may start
+# after that on either scheduler. Otherwise the suite and every watcher it
+# started keep running unowned, and the gate keeps the line.
 test_killed_runner_takes_its_script_down() {
-  local tmp repo runner script sig runner_pid child grandchild waited
+  local tmp repo runner name gate sig shape running runner_pid pids waited gated=0
+  local -a selection
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-killed.XXXXXX")
   repo="$tmp/repo"
   runner="$repo/bin/fm-test-run.sh"
-  script=tests/fm-orphan-fixture.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
   cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
-  cat >"$repo/$script" <<'SH'
+  # Proven-isolated names admit the jobs scheduler. Every fixture blocks until
+  # it is killed, so a script beyond the first <running> can start only if the
+  # run moved on after its owner died.
+  for name in fm-orphan-fixture fm-later-fixture fm-lint fm-brief fm-crew-state; do
+    cat >"$repo/tests/$name.test.sh" <<'SH'
 #!/usr/bin/env bash
 sleep 600 &
-echo "$$ $!" >"$PIDS_FILE"
+echo "$$ $!" >>"$STARTS_FILE"
 wait
 SH
-  chmod +x "$runner" "$repo/$script"
+  done
+  chmod +x "$runner" "$repo"/tests/*.test.sh
+  write_machine_gate_standin "$tmp/machine-gate.sh"
 
-  for sig in TERM KILL; do
-    rm -f "$tmp/pids"
-    PIDS_FILE="$tmp/pids" FM_TEST_MACHINE_GATE='' "$runner" "$script" >"$tmp/out.$sig" 2>&1 &
-    runner_pid=$!
-    waited=0
-    while [ ! -s "$tmp/pids" ] && [ "$waited" -lt 100 ]; do
-      sleep 0.1
-      waited=$((waited + 1))
+  for gate in '' "$tmp/machine-gate.sh"; do
+    for sig in TERM KILL; do
+      for shape in serial jobs; do
+        if [ "$shape" = serial ]; then
+          running=1
+          selection=(--jobs 1 tests/fm-orphan-fixture.test.sh tests/fm-later-fixture.test.sh)
+        else
+          running=2
+          selection=(--jobs 2 tests/fm-lint.test.sh tests/fm-brief.test.sh tests/fm-crew-state.test.sh)
+        fi
+        : >"$tmp/starts"
+        env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+          STARTS_FILE="$tmp/starts" FM_TEST_MACHINE_GATE="$gate" \
+          MACHINE_LINE_DIR="$tmp/line" MACHINE_LINE_NAME=fm-test-run \
+          FM_TEST_MACHINE_LINE_RETRY_SECS=0 \
+          "$runner" "${selection[@]}" >"$tmp/out" 2>&1 &
+        runner_pid=$!
+        waited=0
+        while [ "$(wc -l <"$tmp/starts")" -lt "$running" ] && [ "$waited" -lt 100 ]; do
+          sleep 0.1
+          waited=$((waited + 1))
+        done
+        [ "$(wc -l <"$tmp/starts")" -ge "$running" ] || { kill -KILL "$runner_pid" 2>/dev/null; fail "the $shape fixtures never started under the runner: $(cat "$tmp/out")"; }
+        kill -"$sig" "$runner_pid"
+        wait "$runner_pid" 2>/dev/null || true
+        if [ -n "$gate" ]; then
+          gated=$((gated + 1))
+          waited=0
+          while [ "$(line_row_count "$tmp/line/log.tsv" end '^rc ')" != "$gated" ] && [ "$waited" -lt 100 ]; do
+            sleep 0.1
+            waited=$((waited + 1))
+          done
+        fi
+        # Every recorded script and its child; kill -0 succeeds while any lives.
+        pids=$(cat "$tmp/starts")
+        waited=0
+        # shellcheck disable=SC2086
+        while kill -0 $pids 2>/dev/null && [ "$waited" -lt 100 ]; do
+          sleep 0.1
+          waited=$((waited + 1))
+        done
+        # shellcheck disable=SC2086
+        if kill -0 $pids 2>/dev/null; then
+          kill -KILL $pids 2>/dev/null || true
+          fail "a runner killed with SIG$sig${gate:+ through the machine gate} left a $shape script or its child running ($pids)"
+        fi
+        [ "$(wc -l <"$tmp/starts")" -eq "$running" ] \
+          || fail "a $shape run killed with SIG$sig${gate:+ through the machine gate} started another script after its runner died"
+        [ -n "$gate" ] || continue
+        [ "$(line_row_count "$tmp/line/log.tsv" start 'cap 180m')" = "$gated" ] \
+          || fail "the gated SIG$sig $shape leg did not run its scripts through the machine gate"
+        [ "$(line_row_count "$tmp/line/log.tsv" end '^rc ')" = "$gated" ] \
+          || fail "a $shape runner killed with SIG$sig through the machine gate left the gate holding the line"
+      done
     done
-    [ -s "$tmp/pids" ] || { kill -KILL "$runner_pid" 2>/dev/null; fail "the fixture never started under the runner: $(cat "$tmp/out.$sig")"; }
-    read -r child grandchild <"$tmp/pids"
-    kill -"$sig" "$runner_pid"
-    wait "$runner_pid" 2>/dev/null || true
-    waited=0
-    while { kill -0 "$child" || kill -0 "$grandchild"; } 2>/dev/null && [ "$waited" -lt 100 ]; do
-      sleep 0.1
-      waited=$((waited + 1))
-    done
-    if kill -0 "$child" 2>/dev/null || kill -0 "$grandchild" 2>/dev/null; then
-      kill -KILL "$child" "$grandchild" 2>/dev/null || true
-      fail "a runner killed with SIG$sig left its script ($child) or the script's child ($grandchild) running"
-    fi
   done
 
   rm -rf "$tmp"
-  pass "a killed runner takes its running script's process group down with it"
+  pass "a killed runner takes its running scripts down and starts no other, through the machine gate too"
 }
 
 # The duration regression this guard exists for: a suite whose scripts are all
