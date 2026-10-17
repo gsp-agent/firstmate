@@ -14,9 +14,11 @@
 //      the previous call left that shell, not in the workspace. A single
 //      earlier call with an explicit working directory in another checkout
 //      can therefore redirect the next empty-directory call. The hook rewrites an
-//      empty directory to --worktree (updated_input.working_directory), so a call that names
-//      no directory always runs in the task worktree. A call that names a
-//      directory is left alone.
+//      empty directory to --worktree, so a call that names no directory always
+//      runs in the task worktree. A call that names a directory is left alone.
+//      cursor-agent 2026.10.16 sends tool_input.cwd ("" for no directory) and
+//      applies only updated_input.cwd, so the pin is written there; it is also
+//      written to working_directory, the field the payload may name instead.
 //
 //   2. Refuses git symbolic-ref and git update-ref. Both move HEAD or a ref
 //      with none of checkout's checks, so they can bypass a branch-creation
@@ -129,8 +131,8 @@ function decide(input, worktree) {
   if (refuses(command)) {
     return { permission: "deny", user_message: REFUSAL, agent_message: REFUSAL };
   }
-  if (worktree && !toolInput.working_directory) {
-    return { permission: "allow", updated_input: { ...toolInput, working_directory: worktree } };
+  if (worktree && !toolInput.cwd && !toolInput.working_directory) {
+    return { permission: "allow", updated_input: { ...toolInput, cwd: worktree, working_directory: worktree } };
   }
   return null;
 }

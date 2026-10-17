@@ -145,8 +145,9 @@ pass "exceededLimit false is not a usage limit; an exceeded-quota line is"
 # ---- crew guard: the preToolUse hook a crew session loads ----
 CREW_GUARD="$ROOT/bin/fm-cursor-crew-guard.mjs"
 SLOT="$TMP_ROOT/slot"
-# crew_hook <command> [working-directory]: Cursor's native Shell payload.
-crew_hook() { jq -nc --arg c "$1" --arg d "${2-}" '{tool_name:"Shell",tool_input:{command:$c,working_directory:$d}}' | node "$CREW_GUARD" --worktree "$SLOT"; }
+# crew_hook <command> [cwd]: the Shell payload cursor-agent 2026.10.16 sends,
+# whose cwd is "" when the call names no directory.
+crew_hook() { jq -nc --arg c "$1" --arg d "${2-}" '{tool_name:"Shell",tool_input:{command:$c,cwd:$d,timeout:30000}}' | node "$CREW_GUARD" --worktree "$SLOT"; }
 
 while IFS= read -r cmd; do
   out=$(crew_hook "$cmd" "$SLOT")
@@ -187,15 +188,17 @@ assert_contains "$out" 'blocked [at=<epoch>]' "the refusal must say a refused co
 pass "crew guard: refuses git symbolic-ref and update-ref in every command position, leaves reads and branch creation alone"
 
 out=$(crew_hook 'pwd' '')
-[ "$(printf '%s' "$out" | jq -c '.')" = "{\"permission\":\"allow\",\"updated_input\":{\"command\":\"pwd\",\"working_directory\":\"$SLOT\"}}" ] \
-  || fail "an empty working directory must be rewritten to the worktree: $out"
+printf '%s' "$out" | jq -e --arg slot "$SLOT" '. == {permission:"allow",updated_input:{command:"pwd",cwd:$slot,timeout:30000,working_directory:$slot}}' >/dev/null \
+  || fail "an empty cwd must be rewritten to the worktree, keeping other Shell inputs: $out"
 out=$(printf '{"tool_name":"Shell","tool_input":{"command":"pwd","timeout":123}}' | node "$CREW_GUARD" --worktree "$SLOT")
-printf '%s' "$out" | jq -e --arg slot "$SLOT" '.updated_input == {command:"pwd",timeout:123,working_directory:$slot}' >/dev/null \
+printf '%s' "$out" | jq -e --arg slot "$SLOT" '.updated_input == {command:"pwd",timeout:123,cwd:$slot,working_directory:$slot}' >/dev/null \
   || fail "an omitted working directory must be pinned without dropping other Shell inputs: $out"
-[ -z "$(crew_hook 'pwd' /elsewhere)" ] || fail "an explicit working directory must be left alone"
+[ -z "$(crew_hook 'pwd' /elsewhere)" ] || fail "an explicit cwd must be left alone"
+[ -z "$(jq -nc '{tool_name:"Shell",tool_input:{command:"pwd",working_directory:"/elsewhere"}}' | node "$CREW_GUARD" --worktree "$SLOT")" ] \
+  || fail "an explicit working_directory must be left alone"
 [ -z "$(printf '{"tool_name":"Read","tool_input":{"path":"x"}}' | node "$CREW_GUARD" --worktree "$SLOT")" ] \
   || fail "a non-Shell tool must be left alone"
-[ -z "$(jq -nc '{tool_name:"Shell",tool_input:{command:"pwd",working_directory:""}}' | node "$CREW_GUARD")" ] \
+[ -z "$(jq -nc '{tool_name:"Shell",tool_input:{command:"pwd",cwd:""}}' | node "$CREW_GUARD")" ] \
   || fail "without --worktree there is nothing to pin to"
 out=$(printf 'not json' | node "$CREW_GUARD" --worktree "$SLOT"); expect_code 0 $? "unparseable input must fail open"
 [ -z "$out" ] || fail "unparseable input must produce no decision"

@@ -743,16 +743,18 @@ test_cursor_threads_model_workspace_and_omits_effort_axis() {
 # left its persistent shell, and an explicit directory moves that shell. This
 # applies those rules to the hook command a spawn really generated, against
 # scratch repositories only. REPLAY_CWD is the persistent shell's directory.
+# The payload is the Shell shape cursor-agent 2026.10.16 sends ({command, cwd,
+# timeout}, cwd "" for no directory), and only updated_input.cwd moves the call.
 REPLAY_CWD=
 REPLAY_RAN=
 REPLAY_OUT=
 cursor_shell_call() {  # <hook-command> <command> [working-directory]
   local hook=$1 command=$2 dir=${3-} decision
-  decision=$(jq -nc --arg c "$command" --arg d "$dir" '{tool_name:"Shell",tool_input:{command:$c,working_directory:$d}}' | sh -c "$hook")
+  decision=$(jq -nc --arg c "$command" --arg d "$dir" '{tool_name:"Shell",tool_input:{command:$c,cwd:$d,timeout:30000}}' | sh -c "$hook")
   REPLAY_RAN=0
   REPLAY_OUT=$(printf '%s' "$decision" | jq -r '.agent_message // empty')
   [ "$(printf '%s' "$decision" | jq -r '.permission // empty')" != deny ] || return 0
-  [ -n "$dir" ] || dir=$(printf '%s' "$decision" | jq -r '.updated_input.working_directory // empty')
+  [ -n "$dir" ] || dir=$(printf '%s' "$decision" | jq -r '.updated_input.cwd // empty')
   [ -n "$dir" ] || dir=$REPLAY_CWD
   REPLAY_CWD=$dir
   REPLAY_RAN=1

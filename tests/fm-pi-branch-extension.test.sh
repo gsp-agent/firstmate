@@ -1062,19 +1062,28 @@ if (operational.status !== 0) throw new Error(`could not create operational inpu
 await fire("before_agent_start", { messageType: "user", prompt: operational.stdout }, mainCtx);
 entries.push({ type: "message", message: { role: "user", content: operational.stdout } });
 const unsolicitedPrompt = "Please keep responses concise while monitoring the fleet.";
-await fire("before_agent_start", { messageType: "user", prompt: unsolicitedPrompt }, mainCtx);
-entries.push({ type: "message", message: { role: "user", content: unsolicitedPrompt } });
-await fire("agent_start", {}, mainCtx);
-await fire("agent_end", {}, mainCtx);
-const legacyOperational = "⁣FIRSTMATE_OP: give me a fresh system-resource report.";
-await fire("before_agent_start", { messageType: "user", prompt: legacyOperational }, mainCtx);
-entries.push({ type: "message", message: { role: "user", content: legacyOperational } });
+// Pi 0.85 raises this event without messageType; Pi 1.x adds messageType
+// "user". A fleet wake can land before Pi persists the prompt, so the branch
+// sees the captain's current words only because before_agent_start staged them.
+await fire("before_agent_start", { prompt: unsolicitedPrompt }, mainCtx);
 await fire("agent_start", {}, mainCtx);
 const unsolicited = dispatch("signal: healthy resource result");
 if (!unsolicited.accepted) throw new Error("branch did not accept the unsolicited result");
 // The accepted offer owns an asynchronous drain and acknowledgement. Wait for
 // that public completion contract rather than racing a fixed polling window.
 await unsolicited.settlement;
+const inFlightMirror = globalThis.__fmSessions[0].ops
+  .filter((op) => op.kind === "custom" && op.message.customType === "fm-main-mirror")
+  .map((op) => op.message.content);
+if (!inFlightMirror.includes(`[captain] ${unsolicitedPrompt}`)) {
+  throw new Error(`a wake before Pi persisted the captain prompt lost it from the branch mirror: ${JSON.stringify(inFlightMirror)}`);
+}
+entries.push({ type: "message", message: { role: "user", content: unsolicitedPrompt } });
+await fire("agent_end", {}, mainCtx);
+const legacyOperational = "⁣FIRSTMATE_OP: give me a fresh system-resource report.";
+await fire("before_agent_start", { messageType: "user", prompt: legacyOperational }, mainCtx);
+entries.push({ type: "message", message: { role: "user", content: legacyOperational } });
+await fire("agent_start", {}, mainCtx);
 if (sentToMain.length !== 1 || sentToMain[0].options.triggerTurn) {
   throw new Error(`unsolicited healthy result opened a main turn: ${JSON.stringify(sentToMain)}`);
 }

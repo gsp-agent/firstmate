@@ -1200,7 +1200,9 @@ export default function (pi: ExtensionAPI) {
   }
 
   pi.on?.("before_agent_start", (event) => {
-    if (event.messageType !== "user") return;
+    // A custom message (no prompt) cannot consume a pending user wake, even
+    // with equal text. Pi 0.85 sends its prompt events with no messageType.
+    if (!("prompt" in event)) return;
     consumeWake(generation, event.prompt);
   });
   pi.on?.("message_start", (event) => {

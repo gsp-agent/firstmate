@@ -3525,12 +3525,13 @@ const pi = {
   registerTool() {},
   // The real Pi prompt path: a follow-up sent while the agent is streaming is
   // queued for the running run and raises no before_agent_start; only a send
-  // to an idle agent starts a run and raises it with the exact text.
+  // to an idle agent starts a run and raises it with the exact text. This is
+  // Pi 0.85's event, which has no messageType; Pi 1.x adds messageType "user".
   sendUserMessage: async (message) => {
     prompts.push(message);
     if (streaming) return;
     beforeAgentStarts += 1;
-    handlers.get("before_agent_start")?.({ messageType: "user", prompt: message }, {});
+    handlers.get("before_agent_start")?.({ prompt: message }, {});
   },
   events: { on() {}, emit() {} },
 };
