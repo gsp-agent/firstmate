@@ -1991,6 +1991,7 @@ contribution_tasks_json() {
     [ -f "$meta" ] && [ ! -L "$meta" ] || continue
     id=${meta##*/}
     id=${id%.meta}
+    # Merge authority is home-wide (the away contract), so one resolution serves every task.
     if [ -z "$merge_authority" ]; then
       merge_authority=unknown
       if fm_merge_authority_resolve "$FM_HOME" "$STATE" "$meta" "$id"; then

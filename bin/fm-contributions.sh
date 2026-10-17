@@ -172,6 +172,7 @@ read_saved() {
     count=$((count + 1))
   done
   if ! valid_saved ${records[@]+"${records[@]}"} --argjson count "$count" > "$TMP/saved.json"; then
+    # One failed batch must not drop healthy records, or poll overwrites their retained state.
     for ((i = 0; i < count; i++)); do
       valid_saved --arg task0 "${tasks[i]}" --rawfile record0 "${files[i]}" --argjson count 1 || :
     done | jq -s 'add // []' > "$TMP/saved.json"
