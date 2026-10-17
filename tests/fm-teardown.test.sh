@@ -5756,8 +5756,10 @@ SH
   assert_present "$case_dir/data/aa-stuck/.cleanup-hold/scratch.bin" "a hold cut off by the budget lost its data"
   assert_contains "$(cat "$case_dir/err")" "task data aa-stuck expiry stopped after" \
     "teardown did not name the hold it cut off"
-  assert_contains "$(cat "$case_dir/err")" "keeps its data; the next teardown that reaches it allows it at least 60s" \
+  assert_contains "$(cat "$case_dir/err")" "the next teardown that reaches it gives it one full 60s attempt" \
     "teardown did not say what happens to the hold it cut off"
+  [ "$(jq -r '.expiry' "$case_dir/data/aa-stuck/record/data-cleanup.json")" = cut-off ] \
+    || fail "the cleanup record did not say the budget cut its expiry off"
   tasks-axi add task-next "next teardown fixture task" --kind ship --file "$case_dir/data/backlog.md" >/dev/null
   tasks-axi start task-next --file "$case_dir/data/backlog.md" >/dev/null
   fm_write_meta "$case_dir/state/task-next.meta" \
@@ -5773,7 +5775,72 @@ SH
     "a hold cut off before it recorded anything kept first place and starved the next hold"
   assert_absent "$case_dir/data/aa-stuck/.cleanup-hold" \
     "a hold that needs longer than the budget never expired on a later teardown: $(cat "$case_dir/next.err")"
+  jq -e '.expired == true and (has("expiry") | not)' "$case_dir/data/aa-stuck/record/data-cleanup.json" >/dev/null \
+    || fail "a completed full attempt left its expiry marker behind"
   pass "fm-teardown: a hold cut off by the budget moves behind the other holds and expires on a later teardown"
+}
+
+# Start and tear down one more local-only task in the same home.
+run_next_teardown() { # <case-dir> <task>
+  local case_dir=$1 task=$2
+  tasks-axi add "$task" "next teardown fixture task" --kind ship --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi start "$task" --file "$case_dir/data/backlog.md" >/dev/null
+  fm_write_meta "$case_dir/state/$task.meta" \
+    "window=firstmate:fm-$task" "endpoint_task_id=$task" \
+    "worktree=$case_dir/missing" "project=$case_dir/project" \
+    "kind=ship" "mode=local-only" "spawn_gen=$task"
+  FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
+    FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+    PATH="$case_dir/fakebin:$PATH" "$TEARDOWN" "$task" > "$case_dir/$task.out" 2> "$case_dir/$task.err"
+}
+
+test_task_data_expire_too_large_hold_skipped() {
+  local case_dir real_python record started
+  case_dir=$(make_case task-data-too-large-hold)
+  write_pending_hold "$case_dir" aa-huge
+  record="$case_dir/data/aa-huge/record/data-cleanup.json"
+  real_python=$(command -v python3)
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+case " \$* " in
+  *" expire "*" aa-huge "*) echo attempt >> "$case_dir/attempts"; exec sleep 30 ;;
+esac
+exec "$real_python" "\$@"
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/python3" "$case_dir/fakebin/dcg"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 run_teardown "$case_dir" \
+    > "$case_dir/out" 2> "$case_dir/err" || fail "teardown with a huge hold failed: $(cat "$case_dir/err")"
+  [ "$(wc -l < "$case_dir/attempts" | tr -d ' ')" = 1 ] || fail "the first teardown did not try the huge hold once"
+  assert_contains "$(cat "$case_dir/err")" "the next teardown that reaches it gives it one full 4s attempt" \
+    "the first cut-off did not promise one full attempt"
+  [ "$(jq -r '.expiry' "$record")" = cut-off ] || fail "the first cut-off was not recorded"
+
+  started=$SECONDS
+  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 run_next_teardown "$case_dir" task-next \
+    || fail "second teardown failed: $(cat "$case_dir/task-next.err")"
+  [ "$(wc -l < "$case_dir/attempts" | tr -d ' ')" = 2 ] || fail "the second teardown did not try the huge hold again"
+  [ $((SECONDS - started)) -ge 4 ] || fail "the full attempt stopped before its 4s cap"
+  assert_contains "$(cat "$case_dir/task-next.err")" "task data aa-huge expiry stopped after its one full 4s attempt" \
+    "the second cut-off did not name the full attempt"
+  assert_contains "$(cat "$case_dir/task-next.err")" "too large to expire automatically, so later teardowns skip it" \
+    "the second cut-off did not say later teardowns skip the hold"
+  [ "$(jq -r '.expiry' "$record")" = too-large ] || fail "the record did not mark the hold too large"
+
+  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 run_next_teardown "$case_dir" task-last \
+    || fail "third teardown failed: $(cat "$case_dir/task-last.err")"
+  [ "$(wc -l < "$case_dir/attempts" | tr -d ' ')" = 2 ] || fail "a hold marked too large was tried again"
+  assert_contains "$(cat "$case_dir/task-last.err")" \
+    "holds too large to expire automatically, skipped and kept for expiry by hand: aa-huge" \
+    "a later teardown did not name the hold it skipped"
+  assert_present "$case_dir/data/aa-huge/.cleanup-hold/scratch.bin" "a hold too large to expire lost its data"
+  [ "$(jq -r '.expiry' "$record")" = too-large ] || fail "skipping the hold cleared its too-large mark"
+  pass "fm-teardown: a hold that outlasts the budget and its one full attempt is skipped and named"
 }
 
 test_task_data_refusals() {
@@ -7586,6 +7653,7 @@ test_task_data_oversized_kept_evidence
 test_task_data_slow_expire_releases_locks
 test_task_data_expire_skips_expired_receipts
 test_task_data_expire_cut_off_hold_moves_back
+test_task_data_expire_too_large_hold_skipped
 test_task_data_refusals
 test_task_data_references_and_guard
 test_task_data_bead_backlog_sources
