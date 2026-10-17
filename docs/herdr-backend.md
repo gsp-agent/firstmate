@@ -554,7 +554,7 @@ Every Herdr adapter composer read (`fm_backend_herdr_composer_state`, `fm_backen
 When `pane get` reports `scroll.offset_from_bottom` 0, or reports no `scroll` at all as Herdr 0.7.1 (protocol 14) does, both reads use the visible viewport, which is exactly the current screen.
 When the pane is scrolled, the visible viewport shows old chat, so both reads take `recent` rows trimmed to `scroll.viewport_rows`.
 Herdr ends a `recent` read at the current screen's last non-blank or cursor row, and its text format also drops trailing blank rows, so when the bottom of the screen is blank the trimmed read includes rows from above the current screen.
-The trim keeps the full composer and any popup below it; the classifier's bottom-most composer selection, not the trim, keeps an older prompt above the current screen from deciding the verdict.
+The trim keeps the full composer and any popup below it; the classifier's bottom-most composer selection, not the trim, keeps an older prompt above a live composer from deciding the verdict.
 A reported `scroll` without a non-negative integer `offset_from_bottom` and a positive integer `viewport_rows` fails closed.
 The shared inbox pending-line confirmation read (`bin/fm-task-inbox-lib.sh`) stays a bounded tail on every backend.
 Dated measurement: docs/verification/runtime-backends.md "Claude exit behind the slash-command popup".

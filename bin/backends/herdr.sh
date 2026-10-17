@@ -3169,8 +3169,8 @@ fm_backend_herdr_visible_capture() {  # <target>
 # height. Herdr ends that read at the current screen's last non-blank or cursor
 # row, so when the screen's bottom is blank the trim reaches rows above it; the
 # classifier's bottom-most composer selection, not the trim, keeps an older
-# prompt from deciding the verdict. A reported scroll must carry a valid
-# offset and height.
+# prompt above a live composer from deciding the verdict. A reported scroll
+# must carry a valid offset and height.
 fm_backend_herdr_composer_capture() {  # <target> [text|ansi]
   fm_backend_herdr_target_observable "$1" || return 1
   local info rows fetch format=${2:-text}
