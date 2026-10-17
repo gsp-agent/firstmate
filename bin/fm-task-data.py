@@ -6,8 +6,9 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py expire DATA STATE ID
 The caller must hold STATE/.meta-ID.lock, the lock also used by spawn.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
-Without metadata or a cleanup record, prepare reads the latest completed markdown
-backlog row, including the configured archive (legacy mode needs tomllib).
+Without metadata, prepare reads the latest completed markdown backlog row,
+including the configured archive (legacy mode needs tomllib), when there is no
+cleanup record or the expired record holds a legacy row.
 Checked rows in the current backlog take precedence over archived rows.
 Within that source, completion dates order rows; missing or tied dates cannot
 resolve different projects or PRs, so those folders remain whole.
