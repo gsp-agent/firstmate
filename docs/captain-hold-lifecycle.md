@@ -565,6 +565,8 @@ A real watcher subprocess proves the existing periodic pass routes before surfac
 Standalone holds and retirement of the last unrelated task preserve supervision until routing finishes.
 Fresh deferred holds and postponements preserve supervision, remain unrouted before their date, and route once through the watcher when due.
 Protected and human-owned deferrals, including a deferred hold whose question or owner changes, never enter pending routing or keep an idle home supervised.
+A sweep probes tasks-axi once, reads only captain-held and pending rows, and routes nothing without the captain-hold contract; lifecycle commands read only metadata files no listed task id names.
+Deferrals follow the local calendar date for routing and release recovery, and a re-hold, answer or reconciliation over an unreleased routed hold resolves that lifecycle's own parent occurrence.
 Fault-injected answer, release and reconciliation closures stay protected from immediate and periodic routing, while a new lifecycle preserves historical decisions and still routes.
 Zero-retention archival clears pending routing without treating an unreadable backlog as an absent task.
 Persistent reason drift, transport failures and release failures still allow ordinary scheduled checks to execute before the routing error surfaces.
