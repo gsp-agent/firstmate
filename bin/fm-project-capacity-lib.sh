@@ -13,8 +13,9 @@
 # (AGENTS.md section 7).
 #
 # This file is the single owner of the declaration format, of what holds a
-# place, and of the admission verdict. docs/configuration.md "Project capacity"
-# is the operator reference, and bin/fm-spawn.sh owns where the check runs.
+# place, of the optional headroom command, and of the admission verdict.
+# docs/configuration.md "Project capacity" is the operator reference, and
+# bin/fm-spawn.sh owns where the check runs.
 #
 # Declaration: config/project-capacity in the local root Firstmate home (the home
 # bin/fm-wake-lib.sh's fm_firstmate_root_home resolves), so every home on this
@@ -22,7 +23,8 @@
 # project:
 #   <project-name> <capacity>
 # <project-name> is the project's registered name, which is the basename of its
-# clone directory, and <capacity> is a positive integer of at most six digits.
+# clone directory, and <capacity> is 0 or a positive integer of at most six
+# digits. 0 admits no worker. The headroom reading below does not raise it.
 # The capacity is the last whitespace-separated field, so the name before it may
 # contain spaces. Blank lines are ignored. A line is a comment when it is `#`,
 # when `#` is followed by whitespace, or when it starts with `#` and its last
@@ -67,15 +69,55 @@
 # place needs no lock, because removing a record or adding pr= only ever lowers
 # the count.
 #
+# Headroom command: config/project-capacity-headroom in that same config
+# directory. The file is off when it is absent or has no non-whitespace line,
+# and a spawn at the declared count is then deferred exactly as above.
+# Otherwise the file holds one line. That line is the program and its
+# arguments, split on whitespace, and it is not a shell command. A program
+# path that contains whitespace cannot be named. A second non-empty line, a
+# file that exists but cannot be read, a program that is not executable, a
+# non-zero exit, an exit 0 whose first stdout line is empty, or a run that is
+# still going after FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT seconds is no room.
+# The spawn is deferred and the window below is not consumed. Standard error
+# from the program is discarded. When the extra start is admitted, the
+# program's first stdout line, with a trailing carriage return removed and cut
+# at 240 characters, is written to standard error as "headroom: <line>". A
+# line from a reading that is not admitted is discarded.
+# The program runs only when the project is already at its declared count and
+# its extra-start window is open. Exit 0 with a non-empty first stdout line
+# admits one spawn past that count.
+# Before that spawn continues, the epoch second is written as the only line of
+# <config-dir>/../state/project-capacity-overshare/<project-name>. A second
+# extra spawn for that project is deferred while that epoch is less than
+# FM_PROJECT_CAPACITY_OVERSHARE_WINDOW seconds old. The window is 420 seconds,
+# about one starter pass. Each project has its own file, so two projects do
+# not rewrite one record. bin/fm-spawn.sh holds the project lock across the
+# reading and the write, so two spawns of one project cannot both take the
+# extra start. An extra start whose record cannot be written is not admitted.
+# Workers already running are never stopped. A name that is empty, ".", "..",
+# or that contains a slash or a newline cannot be recorded, so it is not
+# admitted past its count.
+#
 # Requires bin/fm-wake-lib.sh (root home, local homes, project lock path),
 # bin/fm-secondmate-registry-lib.sh (which the local-homes walk reads), and
-# bin/fm-backend.sh (fm_meta_get) to be sourced first. No side effects on source.
+# bin/fm-backend.sh (fm_meta_get) to be sourced first. The headroom reading
+# loads bin/fm-timeout-lib.sh when that reading runs. No side effects on source.
 
 # Exit status of a spawn deferred because the project is at capacity: the
 # sysexits "temporary failure" code, so a caller can tell a deferral that leaves
 # the task queued from an ordinary failure.
 # shellcheck disable=SC2034 # read by bin/fm-spawn.sh after sourcing.
 FM_PROJECT_CAPACITY_DEFER_EXIT=75
+
+# How long one extra start remains that project's extra start. 7 * 60 seconds
+# matches one starter pass of about 7 minutes.
+FM_PROJECT_CAPACITY_OVERSHARE_WINDOW=420
+
+# A reading that has not exited by this many seconds is no room. The shared
+# reading samples the CPU over a few seconds and has taken up to 12.7 seconds
+# on a loaded machine. The spawn holds the project lock for as long as the
+# reading runs.
+FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT=30
 
 # The config directory holding this machine's declaration: the spawning home's
 # own <config-dir> when that home is the local root (so an override of it
@@ -136,6 +178,7 @@ fm_project_capacity_lookup() {  # <config-dir> <project-name>
       return 1
     fi
     case "$pcap" in
+      0) ;;
       '' | *[!0-9]* | 0*)
         FM_PROJECT_CAPACITY_ERROR="$FM_PROJECT_CAPACITY_FILE line $lineno gives $pname a capacity that is not a positive integer"
         FM_PROJECT_CAPACITY=
@@ -225,5 +268,156 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
       FM_PROJECT_CAPACITY_OCCUPANT_IDS="${FM_PROJECT_CAPACITY_OCCUPANT_IDS:+$FM_PROJECT_CAPACITY_OCCUPANT_IDS, }$label"
     done
   done
+  return 0
+}
+
+# Load bin/fm-timeout-lib.sh the first time a headroom reading needs a bound.
+_fm_project_capacity_require_timeout() {
+  command -v fm_run_timed >/dev/null 2>&1 && return 0
+  # shellcheck source=bin/fm-timeout-lib.sh
+  . "$(dirname "${BASH_SOURCE[0]}")/fm-timeout-lib.sh"
+}
+
+# Directory of per-project extra-start records for the home that owns <config-dir>.
+fm_project_capacity_overshare_dir() {  # <config-dir>
+  local config=$1 parent
+  parent=${config%/*}
+  [ -n "$parent" ] && [ "$parent" != "$config" ] || return 1
+  printf '%s\n' "$parent/state/project-capacity-overshare"
+}
+
+# Read config/project-capacity-headroom.
+# Sets FM_PROJECT_CAPACITY_HEADROOM_STATE to off, ready, or no, and when ready
+# sets FM_PROJECT_CAPACITY_HEADROOM_CMD to the program and its arguments.
+fm_project_capacity_headroom_load() {  # <config-dir>
+  local file="$1/project-capacity-headroom" line count=0 bin resolved rest token
+  local -a cmd=()
+  FM_PROJECT_CAPACITY_HEADROOM_CMD=()
+  FM_PROJECT_CAPACITY_HEADROOM_STATE=no
+  if [ ! -e "$file" ] && [ ! -L "$file" ]; then
+    FM_PROJECT_CAPACITY_HEADROOM_STATE=off
+    return 0
+  fi
+  if [ ! -f "$file" ] || [ ! -r "$file" ]; then
+    return 0
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    line=${line%$'\r'}
+    line=${line#"${line%%[![:space:]]*}"}
+    line=${line%"${line##*[![:space:]]}"}
+    [ -n "$line" ] || continue
+    count=$((count + 1))
+    if [ "$count" -gt 1 ]; then
+      return 0
+    fi
+    rest=$line
+    while [ -n "$rest" ]; do
+      rest=${rest#"${rest%%[![:space:]]*}"}
+      [ -n "$rest" ] || break
+      token=${rest%%[[:space:]]*}
+      [ -n "$token" ] || break
+      cmd+=("$token")
+      rest=${rest#"$token"}
+    done
+  done < "$file"
+  if [ "$count" -eq 0 ]; then
+    FM_PROJECT_CAPACITY_HEADROOM_STATE=off
+    return 0
+  fi
+  if [ "${#cmd[@]}" -eq 0 ]; then
+    return 0
+  fi
+  bin=${cmd[0]}
+  case "$bin" in
+    */*) resolved=$bin ;;
+    *) resolved=$(command -v -- "$bin" 2>/dev/null) || resolved= ;;
+  esac
+  if [ -z "$resolved" ] || [ ! -x "$resolved" ] || [ -d "$resolved" ]; then
+    return 0
+  fi
+  cmd[0]=$resolved
+  FM_PROJECT_CAPACITY_HEADROOM_CMD=("${cmd[@]}")
+  FM_PROJECT_CAPACITY_HEADROOM_STATE=ready
+  return 0
+}
+
+# Returns 0 when <project> already took its extra start inside the window.
+fm_project_capacity_overshare_spent() {  # <dir> <project> <now>
+  local dir=$1 name=$2 now=$3 file epoch
+  file="$dir/$name"
+  [ -f "$file" ] && [ ! -L "$file" ] && [ -r "$file" ] || return 1
+  IFS= read -r epoch < "$file" || return 1
+  epoch=${epoch%$'\r'}
+  epoch=${epoch#"${epoch%%[![:space:]]*}"}
+  epoch=${epoch%"${epoch##*[![:space:]]}"}
+  # A leading zero would make bash arithmetic read the value as octal.
+  case "$epoch" in
+    '' | *[!0-9]* | 0?*) return 1 ;;
+  esac
+  [ "$now" -lt $((epoch + FM_PROJECT_CAPACITY_OVERSHARE_WINDOW)) ]
+}
+
+# Record that <project> took its extra start at <now>. Returns 1 when the
+# record could not be written, which the caller treats as no admission.
+fm_project_capacity_overshare_record() {  # <dir> <project> <now>
+  local dir=$1 name=$2 now=$3 tmp
+  mkdir -p -- "$dir" || return 1
+  [ -d "$dir" ] && [ ! -L "$dir" ] || return 1
+  tmp=$(mktemp "$dir/.recording.XXXXXX") || return 1
+  if ! printf '%s\n' "$now" > "$tmp"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+  if ! mv -f -- "$tmp" "$dir/$name"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+}
+
+# Decide whether a project already at its declared count may start one more
+# worker. The caller holds the project lock.
+# Sets FM_PROJECT_CAPACITY_OVERSHARE to off, admit, no, or spent.
+# off means the command is not configured. admit records the window before
+# returning. no means the reading failed, printed no line, was missing, or
+# could not be recorded.
+# spent means this project already used its extra start in the window.
+fm_project_capacity_overshare() {  # <config-dir> <project-name>
+  local config=$1 name=$2 now dir rc=0 line
+  FM_PROJECT_CAPACITY_OVERSHARE=no
+  fm_project_capacity_headroom_load "$config"
+  case "$FM_PROJECT_CAPACITY_HEADROOM_STATE" in
+    off)
+      FM_PROJECT_CAPACITY_OVERSHARE=off
+      return 0
+      ;;
+    ready) ;;
+    *) return 0 ;;
+  esac
+  case "$name" in
+    '' | '.' | '..' | *'/'* | *$'\n'*) return 0 ;;
+  esac
+  now=$(date +%s 2>/dev/null) || now=
+  # A leading zero would make bash arithmetic read the value as octal.
+  case "$now" in
+    '' | *[!0-9]* | 0?*) return 0 ;;
+  esac
+  dir=$(fm_project_capacity_overshare_dir "$config") || return 0
+  if fm_project_capacity_overshare_spent "$dir" "$name" "$now"; then
+    FM_PROJECT_CAPACITY_OVERSHARE=spent
+    return 0
+  fi
+  _fm_project_capacity_require_timeout || return 0
+  line=$(fm_run_timed "$FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT" "${FM_PROJECT_CAPACITY_HEADROOM_CMD[@]}" 2>/dev/null) || rc=$?
+  [ "$rc" -eq 0 ] || return 0
+  line=${line%%$'\n'*}
+  line=${line%$'\r'}
+  # An exit 0 with no reading line has shown no headroom.
+  [ -n "$line" ] || return 0
+  if [ "${#line}" -gt 240 ]; then
+    line=${line:0:240}
+  fi
+  fm_project_capacity_overshare_record "$dir" "$name" "$now" || return 0
+  printf '%s\n' "headroom: $line" >&2
+  FM_PROJECT_CAPACITY_OVERSHARE=admit
   return 0
 }

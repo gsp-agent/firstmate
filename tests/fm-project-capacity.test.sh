@@ -9,7 +9,8 @@
 # markdown backlog when tasks-axi is installed. A deferred spawn is judged by
 # what it left behind - no task record, no rendered launch brief, no endpoint,
 # no worktree allocation, and a backlog item still queued - never by wording
-# alone.
+# alone. A configured headroom program can admit one extra start per project
+# inside a window. With that program absent, the deferral above is unchanged.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -126,6 +127,24 @@ declare_capacity() {  # <home> <line>...
   local home=$1
   shift
   printf '%s\n' "$@" > "$home/config/project-capacity"
+}
+
+# Body on stdin, after the shebang. The body is the reading program.
+install_reading() {  # <path>
+  { printf '%s\n' '#!/usr/bin/env bash'; cat; } > "$1"
+  chmod +x "$1"
+}
+
+write_headroom() {  # <home> <line>
+  printf '%s\n' "$2" > "$1/config/project-capacity-headroom"
+}
+
+reading_runs() {  # <log>
+  if [ ! -f "$1" ]; then
+    printf '0\n'
+    return 0
+  fi
+  wc -l < "$1" | tr -d ' '
 }
 
 # A live worker already on a project: the record shape bin/fm-spawn.sh
@@ -529,7 +548,7 @@ test_unreadable_declaration_refuses_every_spawn() {
     assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
   done <<'ROWS'
 missing capacity|project\n
-zero capacity|project 0\n
+leading zero|project 00\n
 non-numeric capacity|other-project two\n
 trailing text|project 2 # suite\n
 named twice|project 2\nproject 3\n
@@ -624,6 +643,353 @@ SH
   pass "an Orca spawn takes the shared project lock whenever a same-origin clone is capped and defers before creating anything"
 }
 
+# A denying reading does not apply while the project still has a free place,
+# and the worker already running is left as it was.
+test_share_starts_without_reading_headroom() {
+  local case_dir home out rc=0 held runs
+  case_dir=$(make_case share-quiet task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 2"
+  write_live "$home" live-a "$case_dir/project"
+  held=$(cat "$home/state/live-a.meta")
+  install_reading "$case_dir/reading" <<EOF
+printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
+exit 1
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  out=$(spawn_ship "$case_dir" task-c) || rc=$?
+  expect_code 0 "$rc" "a free place was refused while a denying reading was configured: $out"
+  assert_contains "$out" "spawned task-c" "a free place did not launch"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 0 ] || fail "the reading ran for a start inside the declared count (runs=$runs)"
+  [ "$held" = "$(cat "$home/state/live-a.meta")" ] || fail "a share start changed the worker already running"
+  pass "a start inside the declared count does not consult the headroom reading"
+}
+
+# One exit-0 reading admits one start past the count. The next start in the
+# window waits, and the reading is not run again until that window has passed.
+# The worker already running is left as it was.
+test_headroom_admits_one_extra_start_per_window() {
+  local case_dir home out rc=0 held runs before worktrees now record
+  case_dir=$(make_case extra-window task-c task-d task-e task-f)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  held=$(cat "$home/state/live-a.meta")
+  install_reading "$case_dir/reading" <<EOF
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+printf '%s\n' 'second line stays off the log'
+printf '%s\n' "\$1" >> $(printf '%q' "$case_dir/reading.log")
+[ "\$1" = room ]
+EOF
+  write_headroom "$home" "$case_dir/reading room"
+  out=$(spawn_ship "$case_dir" task-c) || rc=$?
+  expect_code 0 "$rc" "a reading that exits 0 did not admit one start past the count: $out"
+  assert_contains "$out" "spawned task-c" "the extra start did not launch"
+  assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" \
+    "the extra start did not log the reading's line"
+  assert_not_contains "$out" "second line stays off the log" \
+    "the extra start logged more than the reading's first line"
+  [ "$held" = "$(cat "$home/state/live-a.meta")" ] || fail "the extra start changed the worker already running"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 1 ] || fail "the extra start did not run the reading once (runs=$runs)"
+  [ "$(cat "$case_dir/reading.log")" = room ] || fail "the reading did not receive its argument: $(cat "$case_dir/reading.log")"
+  record="$home/state/project-capacity-overshare/project"
+  case "$(cat "$record")" in
+    '' | *[!0-9]*) fail "the extra-start record is not an epoch: $(cat "$record")" ;;
+  esac
+
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  rc=0
+  out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a second extra start in the window was admitted: $out"
+  assert_contains "$out" "is cleaned up. This project already started one worker past that count in the current window." \
+    "the second extra start did not say the window was used"
+  assert_nothing_created "$case_dir" "$home" task-d "$before" "$worktrees"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 1 ] || fail "the reading ran again while the window was still in force (runs=$runs)"
+
+  now=$(date +%s)
+  printf '%s\n' "$((now - 360))" > "$record"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  rc=0
+  out=$(spawn_ship "$case_dir" task-e "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "an extra start 360 seconds old was admitted again: $out"
+  assert_nothing_created "$case_dir" "$home" task-e "$before" "$worktrees"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 1 ] || fail "the reading ran for an extra start still inside the window (runs=$runs)"
+
+  printf '%s\n' "$((now - 480))" > "$record"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-f) || rc=$?
+  expect_code 0 "$rc" "an extra start 480 seconds old did not open the window: $out"
+  assert_contains "$out" "spawned task-f" "the start after the window did not launch"
+  assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" \
+    "the start after the window did not log the reading's line"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 2 ] || fail "the reading did not run again once the window had passed (runs=$runs)"
+  [ "$held" = "$(cat "$home/state/live-a.meta")" ] || fail "a later extra start changed the worker already running"
+  pass "one extra start is admitted per window, and a later one waits until that window has passed"
+}
+
+# The shared reading samples the CPU over a few seconds and has taken up to
+# 12.7 seconds on a loaded machine. A reading that slow which reports room
+# still admits the extra start.
+test_slow_reading_that_reports_room_admits() {
+  local case_dir home out rc=0
+  case_dir=$(make_case reading-slow task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  install_reading "$case_dir/slow" <<EOF
+sleep 9
+printf '%s\n' 'cpu_idle_pct=25.3 load1=31.22 disk_free_gb=563.8'
+EOF
+  write_headroom "$home" "$case_dir/slow"
+  out=$(spawn_ship "$case_dir" task-c) || rc=$?
+  expect_code 0 "$rc" "a slow reading that reports room did not admit the extra start: $out"
+  assert_contains "$out" "spawned task-c" "the extra start after a slow reading did not launch"
+  assert_contains "$out" "headroom: cpu_idle_pct=25.3 load1=31.22 disk_free_gb=563.8" \
+    "the extra start after a slow reading did not log the reading's line"
+  assert_present "$home/state/project-capacity-overshare/project" "the slow reading's extra start was not recorded"
+  pass "a reading that takes several seconds and reports room admits the extra start"
+}
+
+# No program, a blank file, and a program that exists only in a secondmate
+# home all keep the original deferral. The secondmate's program does not run.
+test_absent_headroom_command_keeps_the_capacity_deferral() {
+  local case_dir home mate out rc=0 before worktrees mate_project
+  case_dir=$(make_case reading-off task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "an absent headroom program did not defer: $out"
+  assert_contains "$out" "deferred: project project admits 1 worker(s) at once on this machine ($home/config/project-capacity) and 1 already hold a place (live-a)" \
+    "an absent headroom program changed the deferral"
+  assert_contains "$out" "task task-c was not launched and its backlog item stays queued" \
+    "an absent headroom program did not leave the task queued"
+  assert_not_contains "$out" "headroom" "an absent headroom program was mentioned in the deferral"
+  assert_not_contains "$out" "no room" "an absent headroom program was reported as no room"
+  assert_not_contains "$out" "current window" "an absent headroom program was reported as a used window"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+
+  printf '\n   \n' > "$home/config/project-capacity-headroom"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a blank headroom file did not defer: $out"
+  assert_not_contains "$out" "headroom" "a blank headroom file was mentioned in the deferral"
+  assert_not_contains "$out" "no room" "a blank headroom file was reported as no room"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+
+  mate="$case_dir/mate"
+  make_home "$mate" task-m
+  mate_project="$mate/projects/project"
+  git clone -q "$(git -C "$case_dir/project" remote get-url origin)" "$mate_project"
+  printf '%s\n' schema=fm-secondmate-parent.v1 route=local "parent_home=$home" > "$mate/.fm-secondmate-parent"
+  printf -- '- mate - a local mate (home: %s; scope: project work; projects: project; added 2026-09-01)\n' "$mate" \
+    > "$home/data/secondmates.md"
+  install_reading "$case_dir/mate-reading" <<EOF
+printf 'ran\n' >> $(printf '%q' "$case_dir/mate-reading.log")
+exit 0
+EOF
+  write_headroom "$mate" "$case_dir/mate-reading"
+  git -C "$mate_project" worktree add --quiet -b wt-m "$case_dir/wt-m"
+  rc=0
+  out=$(run_spawn "$case_dir" "$mate" "$case_dir/wt-m" task-m "$mate_project" --mode no-mistakes --yolo off) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a secondmate program admitted a start the root home did not configure: $out"
+  assert_contains "$out" "admits 1 worker(s) at once on this machine ($home/config/project-capacity) and 1 already hold a place (live-a in $home)" \
+    "the secondmate did not use the root home's deferral"
+  assert_not_contains "$out" "no room" "a program outside the root home was treated as a failed reading"
+  assert_absent "$mate/state/task-m.meta" "the secondmate spawn published a record"
+  [ "$(reading_runs "$case_dir/mate-reading.log")" = 0 ] || fail "a program outside the root home ran"
+  pass "an absent or blank headroom program keeps the capacity deferral, including for a secondmate home"
+}
+
+# A failing, missing, unreadable, or hung program does not admit and does not
+# consume the window. The hung program is stopped. A later exit 0 still admits.
+test_failed_missing_and_hung_readings_defer() {
+  local case_dir home out rc=0 before worktrees held started elapsed pid
+  case_dir=$(make_case reading-deny task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  held=$(cat "$home/state/live-a.meta")
+  install_reading "$case_dir/deny" <<EOF
+printf '%s\n' 'cpu_idle_pct=1 load1=90 disk_free_gb=1'
+printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
+exit 2
+EOF
+  write_headroom "$home" "$case_dir/deny"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a reading that exits 2 was admitted: $out"
+  assert_contains "$out" "is cleaned up. The headroom reading reported no room." "a failed reading did not say there was no room"
+  assert_not_contains "$out" "headroom:" "a failed reading logged its line"
+  assert_not_contains "$out" "cpu_idle_pct=1" "a failed reading's line reached the spawn"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  assert_absent "$home/state/project-capacity-overshare/project" "a failed reading consumed the window"
+  [ "$(reading_runs "$case_dir/reading.log")" = 1 ] || fail "the failing reading did not run"
+
+  write_headroom "$home" "$case_dir/missing-reading"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a missing reading was admitted: $out"
+  assert_contains "$out" "The headroom reading reported no room." "a missing reading did not say there was no room"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  assert_absent "$home/state/project-capacity-overshare/project" "a missing reading consumed the window"
+
+  printf '%s\n' "$case_dir/deny" 'exit 0' > "$home/config/project-capacity-headroom"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a two-line headroom file was admitted: $out"
+  assert_contains "$out" "The headroom reading reported no room." "a two-line headroom file did not say there was no room"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  [ "$(reading_runs "$case_dir/reading.log")" = 1 ] || fail "a two-line headroom file ran the program"
+
+  if [ "$(id -u)" != 0 ]; then
+    write_headroom "$home" "$case_dir/deny"
+    chmod 000 "$home/config/project-capacity-headroom"
+    before=$(call_count "$case_dir")
+    worktrees=$(worktree_list "$case_dir")
+    rc=0
+    out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+    chmod 600 "$home/config/project-capacity-headroom"
+    expect_code "$DEFER_EXIT" "$rc" "an unreadable headroom file was admitted: $out"
+    assert_contains "$out" "The headroom reading reported no room." "an unreadable headroom file did not say there was no room"
+    assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  fi
+
+  install_reading "$case_dir/hang" <<EOF
+printf '%s\n' "\$\$" > $(printf '%q' "$case_dir/hang.pid")
+sleep 90
+exit 0
+EOF
+  write_headroom "$home" "$case_dir/hang"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  started=$SECONDS
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  elapsed=$((SECONDS - started))
+  expect_code "$DEFER_EXIT" "$rc" "a hung reading was admitted: $out"
+  assert_contains "$out" "The headroom reading reported no room." "a hung reading did not say there was no room"
+  [ "$elapsed" -ge 29 ] && [ "$elapsed" -lt 60 ] || fail "a hung reading was not bounded (took ${elapsed}s): $out"
+  assert_present "$case_dir/hang.pid" "the hung reading never started"
+  pid=$(cat "$case_dir/hang.pid")
+  if kill -0 "$pid" 2>/dev/null; then
+    fail "the hung reading was still running ($pid)"
+  fi
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  assert_absent "$home/state/project-capacity-overshare/project" "a hung reading consumed the window"
+
+  # A reading that exits 0 without printing a line has shown no headroom.
+  install_reading "$case_dir/silent" <<EOF
+exit 0
+EOF
+  write_headroom "$home" "$case_dir/silent"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a reading that exits 0 but prints nothing was admitted: $out"
+  assert_contains "$out" "The headroom reading reported no room." "a silent reading did not say there was no room"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  assert_absent "$home/state/project-capacity-overshare/project" "a silent reading consumed the window"
+
+  install_reading "$case_dir/allow" <<EOF
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$home" "$case_dir/allow"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c) || rc=$?
+  expect_code 0 "$rc" "a later reading that exits 0 did not admit after earlier failures: $out"
+  assert_contains "$out" "spawned task-c" "the start after a failed reading did not launch"
+  assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" \
+    "the start after a failed reading did not log the reading's line"
+  [ "$held" = "$(cat "$home/state/live-a.meta")" ] || fail "a denied reading changed the worker already running"
+  pass "a failed, missing, hung, or silent reading defers without consuming the window"
+}
+
+# A declared count of 0 admits nobody. An exit-0 reading does not raise it,
+# and the reading is not run.
+test_zero_capacity_admits_no_overshare() {
+  local case_dir home out rc=0 before worktrees runs
+  case_dir=$(make_case zero-brake task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 0"
+  install_reading "$case_dir/reading" <<EOF
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80' >> $(printf '%q' "$case_dir/reading.log")
+exit 0
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a capacity of 0 admitted a spawn: $out"
+  assert_contains "$out" "admits 0 worker(s) at once on this machine ($home/config/project-capacity) and 0 already hold a place" \
+    "a capacity of 0 did not keep the capacity deferral"
+  assert_not_contains "$out" "headroom" "a capacity of 0 consulted the reading"
+  assert_not_contains "$out" "no room" "a capacity of 0 was reported as no room"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  assert_absent "$home/state/project-capacity-overshare/project" "a capacity of 0 consumed the extra-start window"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 0 ] || fail "the reading ran for a capacity of 0 (runs=$runs)"
+  pass "a capacity of 0 admits no extra start"
+}
+
+# The root home's program and its window apply to a local secondmate spawn.
+test_local_homes_share_one_extra_start() {
+  local case_dir root mate mate_project out rc=0 held runs
+  case_dir=$(make_case reading-shared task-c)
+  root="$case_dir/home"
+  mate="$case_dir/mate"
+  make_home "$mate" task-m
+  mate_project="$mate/projects/project"
+  git clone -q "$(git -C "$case_dir/project" remote get-url origin)" "$mate_project"
+  printf '%s\n' schema=fm-secondmate-parent.v1 route=local "parent_home=$root" > "$mate/.fm-secondmate-parent"
+  printf -- '- mate - a local mate (home: %s; scope: project work; projects: project; added 2026-09-01)\n' "$mate" \
+    > "$root/data/secondmates.md"
+  declare_capacity "$root" "project 1"
+  write_live "$root" live-a "$case_dir/project"
+  held=$(cat "$root/state/live-a.meta")
+  install_reading "$case_dir/reading" <<EOF
+printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$root" "$case_dir/reading"
+  git -C "$mate_project" worktree add --quiet -b wt-m "$case_dir/wt-m"
+  out=$(run_spawn "$case_dir" "$mate" "$case_dir/wt-m" task-m "$mate_project" --mode no-mistakes --yolo off) || rc=$?
+  expect_code 0 "$rc" "a secondmate was not admitted by the root home's reading: $out"
+  assert_contains "$out" "spawned task-m" "the secondmate extra start did not launch"
+  assert_present "$root/state/project-capacity-overshare/project" "the extra start was not recorded in the root home"
+  assert_absent "$mate/state/project-capacity-overshare/project" "the extra start was recorded in the secondmate home"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 1 ] || fail "the root home's reading did not run once (runs=$runs)"
+
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the root home admitted a second extra start in the same window: $out"
+  assert_contains "$out" "already started one worker past that count in the current window" \
+    "the root home did not see the secondmate's extra start"
+  assert_absent "$root/state/task-c.meta" "the second extra start published a record"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 1 ] || fail "the reading ran again for an extra start already taken by the secondmate (runs=$runs)"
+  [ "$held" = "$(cat "$root/state/live-a.meta")" ] || fail "the shared extra start changed the worker already running"
+  pass "every local home shares one extra start per project per window"
+}
+
 test_undeclared_capacity_keeps_dispatch_uncapped
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind
@@ -640,3 +1006,10 @@ test_failed_spawn_after_admission_holds_no_place
 test_unreadable_declaration_refuses_every_spawn
 test_batch_reports_a_deferred_pair
 test_orca_spawn_is_admitted_under_the_shared_project_lock
+test_share_starts_without_reading_headroom
+test_headroom_admits_one_extra_start_per_window
+test_slow_reading_that_reports_room_admits
+test_absent_headroom_command_keeps_the_capacity_deferral
+test_failed_missing_and_hung_readings_defer
+test_zero_capacity_admits_no_overshare
+test_local_homes_share_one_extra_start
