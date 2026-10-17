@@ -84,7 +84,8 @@
 # at 240 characters, is written to standard error as "headroom: <line>". A
 # line from a reading that is not admitted is discarded.
 # The program runs only when the project is already at its declared count and
-# its extra-start window is open. Exit 0 admits one spawn past that count.
+# its extra-start window is open. Exit 0 with a non-empty first stdout line
+# admits one spawn past that count.
 # Before that spawn continues, the epoch second is written as the only line of
 # <config-dir>/../state/project-capacity-overshare/<project-name>. A second
 # extra spawn for that project is deferred while that epoch is less than
