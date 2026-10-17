@@ -352,7 +352,15 @@ case "${1:-} ${2:-}" in
         printf '%s\n' "{\"headRefOid\":\"${FM_TEST_GH_HEAD:-0123456789abcdef0123456789abcdef01234567}\",\"reviewDecision\":\"APPROVED\"}"
         exit 0
         ;;
+      *" --json body "*)
+        "$FM_TEST_REAL_JQ" -n '{body: "Body."}'
+        exit 0
+        ;;
     esac
+    ;;
+  "pr edit")
+    cp "$5" "$FM_TEST_GH_LOG.body"
+    exit 0
     ;;
   "pr merge")
     [ -z "${FM_TEST_GH_MERGE_HOOK:-}" ] || "$FM_TEST_GH_MERGE_HOOK"
@@ -875,6 +883,34 @@ test_draft_pull_request_is_not_armed() {
     > "$dir/stdout" 2> "$dir/stderr" || fail "an unreadable draft state blocked arming"
   [ -f "$dir/home/state/task-a.check.sh" ] || fail "an unreadable draft state was not armed"
   pass "arming refuses a draft pull request, naming it, and arms a ready or unreadable one"
+}
+
+# Registration names the engine that wrote a GitHub pull request in its body,
+# so a review gate that routes by model family can read it. A stamp that fails
+# still arms the watch, and the merge-time re-record leaves the body alone.
+test_registration_stamps_the_engines_that_wrote_the_pr() {
+  local dir
+  dir=$(make_case made-with-stamp)
+  ln -s "$REAL_JQ" "$dir/fakebin/jq"
+  write_task_meta "$dir"
+  printf 'harness=claude\nmodel=claude-opus-5-5\n' >> "$dir/home/state/task-a.meta"
+  NM_HOME="$dir/nm" run_check_entry "$dir" task-a https://github.com/o/r/pull/9 \
+    > "$dir/stdout" 2> "$dir/stderr" || fail "arming a stampable pull request failed: $(cat "$dir/stderr")"
+  assert_equals "$(cat "$dir/gh.log.body")" $'Body.\n\nMade-with: claude (claude-opus-5-5)' \
+    "registration did not append the worker's engine to the pull request body"
+  assert_not_contains "$(cat "$dir/stderr")" 'may not name every engine' "a successful stamp was reported as failed"
+  NM_HOME="$dir/nm" FM_PR_CHECK_MERGE=1 run_check_entry "$dir" task-a https://github.com/o/r/pull/9 \
+    > "$dir/stdout" 2> "$dir/stderr" || fail "the merge-time re-record failed: $(cat "$dir/stderr")"
+  assert_equals "$(grep -c '^pr edit ' "$dir/gh.log")" 1 "the merge-time re-record edited the pull request body"
+
+  dir=$(make_case made-with-unnamed)
+  write_task_meta "$dir"
+  run_check_entry "$dir" task-a https://github.com/o/r/pull/9 > "$dir/stdout" 2> "$dir/stderr" \
+    || fail "a failed stamp blocked arming: $(cat "$dir/stderr")"
+  [ -f "$dir/home/state/task-a.check.sh" ] || fail "a failed stamp left the pull request unwatched"
+  assert_contains "$(cat "$dir/stderr")" 'https://github.com/o/r/pull/9 is registered but its body may not name every engine' \
+    "a failed stamp was not reported as actionable"
+  pass "registration stamps the engines that wrote a GitHub pull request and arms even when that fails"
 }
 
 # A secondmate is a persistent worker, not a delivery lane: it never owns a
@@ -5750,6 +5786,7 @@ test_retirement_queue_failure_and_receipt_tampering
 test_gitlab_merged_poll_retires
 test_invalid_entrypoints_have_zero_side_effects
 test_draft_pull_request_is_not_armed
+test_registration_stamps_the_engines_that_wrote_the_pr
 test_secondmate_record_refuses_a_pr_watch
 test_unpushed_named_head_refuses_registration
 test_direct_pr_unpushed_commit_refuses_registration
