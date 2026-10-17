@@ -5514,6 +5514,47 @@ SH
   pass "fm-teardown: completed task scratch is held for one cycle and linked evidence stays"
 }
 
+test_task_data_large_kept_evidence() {
+  local case_dir task recovery rc
+  case_dir=$(make_case task-data-large-report)
+  task="$case_dir/data/task-x1"
+  recovery="$task/.cleanup-hold"
+  mkdir -p "$task/proof"
+  { head -c 1400000 /dev/zero | tr '\0' 'x'; printf '\nfinal link [capture](proof/capture.png)\n'; } > "$task/report.md"
+  printf 'keep this image\n' > "$task/proof/capture.png"
+  printf 'scratch\n' > "$task/scratch.bin"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/dcg"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err"
+  rc=$?
+  expect_code 0 "$rc" "teardown with a report over 1 MiB"
+  [ "$(backlog_row_state "$case_dir")" = "done" ] \
+    || fail "a report over 1 MiB left the backlog item at $(backlog_row_state "$case_dir"): $(cat "$case_dir/err")"
+  assert_absent "$case_dir/state/task-x1.backlog-close" "a report over 1 MiB left its pending-close record behind"
+  assert_present "$recovery/scratch.bin" "a report over 1 MiB blocked staging"
+  assert_present "$task/proof/capture.png" "a link at the end of a large report was not read"
+  [ "$(wc -c < "$task/report.md" | tr -d ' ')" = 1400041 ] || fail "large report bytes changed"
+  tasks-axi add task-next "next teardown fixture task" --kind ship --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi start task-next --file "$case_dir/data/backlog.md" >/dev/null
+  fm_write_meta "$case_dir/state/task-next.meta" \
+    "window=firstmate:fm-task-next" "endpoint_task_id=task-next" \
+    "worktree=$case_dir/missing" "project=$case_dir/project" \
+    "kind=ship" "mode=local-only" "spawn_gen=task-next"
+  FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
+    FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+    PATH="$case_dir/fakebin:$PATH" "$TEARDOWN" task-next > "$case_dir/next.out" 2> "$case_dir/next.err" \
+    || fail "next teardown failed: $(cat "$case_dir/next.err")"
+  assert_absent "$recovery" "next completed task did not expire the large-report recovery"
+  assert_present "$task/report.md" "large report removed"
+  assert_present "$task/proof/capture.png" "large-report link lost at expiry"
+  pass "fm-teardown: a kept report over 1 MiB prepares, stages and expires like a small one"
+}
+
 test_task_data_refusals() {
   local case_dir task rc
   case_dir=$(make_case task-data-refusals)
@@ -7319,6 +7360,7 @@ test_task_data_legacy_ordering
 test_task_data_legacy_reused_id
 test_task_data_github_reader
 test_task_data_cleanup
+test_task_data_large_kept_evidence
 test_task_data_refusals
 test_task_data_references_and_guard
 test_task_data_bead_backlog_sources
