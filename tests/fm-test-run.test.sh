@@ -93,7 +93,7 @@ test_changed_file_selection_is_conservative() {
 init_changed_fixture_repo() {
   local repo=$1 script
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   chmod +x "$repo/bin/fm-test-run.sh"
   for script in \
@@ -130,7 +130,6 @@ init_changed_fixture_repo() {
   : >"$repo/tests/fm-backend-herdr-eventwait.test.py"
   : >"$repo/bin/fm-supervisor-target-lib.sh"
   : >"$repo/bin/fm-control-lib.sh"
-  : >"$repo/bin/fm-timeout-lib.sh"
   : >"$repo/bin/fm-procevent-quota.sh"
   : >"$repo/bin/fm-quota-axi-lib.sh"
   : >"$repo/bin/fm-quota-choose.sh"
@@ -188,7 +187,7 @@ init_primary_and_linked_worktree() {
   git -C "$repo" worktree add --quiet -b linked-probe "$linked"
   for tree in "$repo" "$linked"; do
     mkdir -p "$tree/bin" "$tree/tests"
-    cp "$RUNNER" "$tree/bin/fm-test-run.sh"
+    cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$tree/bin/"
     cp "$ROOT/tests/git-config-helpers.sh" "$tree/tests/"
     chmod +x "$tree/bin/fm-test-run.sh"
     cat >"$tree/tests/probe.test.sh" <<PROBE
@@ -513,7 +512,6 @@ test_changed_uses_bounded_automatic_concurrency() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-changed-consent.XXXXXX")
   repo="$tmp/repo"
   init_changed_fixture_repo "$repo"
-  cp "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/fm-timeout-lib.sh"
   for script in fm-backend-herdr-smoke.test.sh fm-daemon.test.sh fm-pi-watch-extension.test.sh; do
     cat >"$repo/tests/$script" <<'SH'
 #!/usr/bin/env bash
@@ -558,12 +556,12 @@ PY
   timeout_repo="$tmp/timeout-repo"
   timeout_script=tests/fm-calm-pi-extension.test.sh
   mkdir -p "$timeout_repo/bin" "$timeout_repo/tests"
-  cp "$RUNNER" "$timeout_repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$timeout_repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$timeout_repo/tests/"
   cat >"$timeout_repo/bin/fm-timeout-lib.sh" <<'SH'
-fm_run_timed() {
-  [ "$1" -eq 1500 ] || return 99
-  return 124
+fm_exec_timed() {
+  [ "$1" -eq 1500 ] || exit 99
+  exit 124
 }
 SH
   cat >"$timeout_repo/$timeout_script" <<'SH'
@@ -644,7 +642,6 @@ test_script_list_uses_bounded_automatic_concurrency() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-script-list.XXXXXX")
   repo="$tmp/repo"
   init_changed_fixture_repo "$repo"
-  rm -f "$repo/bin/fm-timeout-lib.sh"
   # fm-cd-pretool-check and fm-pr-merge are individually proven isolated;
   # fm-backend-orca is not, so it must still land in the serial tail.
   for script in fm-cd-pretool-check.test.sh fm-pr-merge.test.sh fm-backend-orca.test.sh; do
@@ -710,9 +707,8 @@ test_family_proofs_run_in_separate_concurrent_phases() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-family-phases.XXXXXX")
   repo="$tmp/repo"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
-  cp "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/fm-timeout-lib.sh"
   chmod +x "$repo/bin/fm-test-run.sh"
   for script in \
     fm-calm-pi-extension.test.sh fm-vendor-auth-probe.test.sh \
@@ -1063,7 +1059,7 @@ test_list_scheduled_non_lane_selections_use_serial_weights() {
   tmp=$(fm_test_tmproot fm-test-run-non-lane-schedule)
   repo="$tmp/repo"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   for script in "${scripts[@]}"; do
     printf '#!/usr/bin/env bash\nexit 0\n' >"$repo/$script"
     chmod +x "$repo/$script"
@@ -1277,7 +1273,7 @@ test_portable_serial_packing_budget_boundary() {
   done < <("$RUNNER" --list --all)
 
   for weight in 1200000 1200001; do
-    cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+    cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
     python3 - "$repo/bin/fm-test-run.sh" "$weight" <<'PY' \
       || fail "could not seed the fixture's measured timing input"
 from pathlib import Path
@@ -1415,7 +1411,7 @@ test_unmapped_new_test_never_inherits_family_concurrency() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-unmapped.XXXXXX")
   repo="$tmp/repo"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   chmod +x "$repo/bin/fm-test-run.sh"
   # Two members of the proven residual family, plus a test basename the family
@@ -1533,9 +1529,8 @@ test_per_script_timeout_bounds_a_hang() {
   runner="$repo/bin/fm-test-run.sh"
   hang=tests/fm-hang-fixture.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$runner"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
-  cp "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/fm-timeout-lib.sh"
   grandchild_pid="$tmp/grandchild.pid"
   cat >"$repo/$hang" <<'SH'
 #!/usr/bin/env bash
@@ -1586,6 +1581,54 @@ SH
   pass "--per-script-timeout-secs turns a hung script into a bounded failure"
 }
 
+# A runner stopped from outside mid-script (a lane killed, a terminal closed)
+# must take that script's whole process group with it, bounded or not;
+# otherwise the suite and every watcher it started keep running unowned.
+test_killed_runner_takes_its_script_down() {
+  local tmp repo runner script sig runner_pid child grandchild waited
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-killed.XXXXXX")
+  repo="$tmp/repo"
+  runner="$repo/bin/fm-test-run.sh"
+  script=tests/fm-orphan-fixture.test.sh
+  mkdir -p "$repo/bin" "$repo/tests"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
+  cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
+  cat >"$repo/$script" <<'SH'
+#!/usr/bin/env bash
+sleep 600 &
+echo "$$ $!" >"$PIDS_FILE"
+wait
+SH
+  chmod +x "$runner" "$repo/$script"
+
+  for sig in TERM KILL; do
+    rm -f "$tmp/pids"
+    PIDS_FILE="$tmp/pids" FM_TEST_MACHINE_GATE='' "$runner" "$script" >"$tmp/out.$sig" 2>&1 &
+    runner_pid=$!
+    waited=0
+    while [ ! -s "$tmp/pids" ] && [ "$waited" -lt 100 ]; do
+      sleep 0.1
+      waited=$((waited + 1))
+    done
+    [ -s "$tmp/pids" ] || { kill -KILL "$runner_pid" 2>/dev/null; fail "the fixture never started under the runner: $(cat "$tmp/out.$sig")"; }
+    read -r child grandchild <"$tmp/pids"
+    kill -"$sig" "$runner_pid"
+    wait "$runner_pid" 2>/dev/null || true
+    waited=0
+    while { kill -0 "$child" || kill -0 "$grandchild"; } 2>/dev/null && [ "$waited" -lt 100 ]; do
+      sleep 0.1
+      waited=$((waited + 1))
+    done
+    if kill -0 "$child" 2>/dev/null || kill -0 "$grandchild" 2>/dev/null; then
+      kill -KILL "$child" "$grandchild" 2>/dev/null || true
+      fail "a runner killed with SIG$sig left its script ($child) or the script's child ($grandchild) running"
+    fi
+  done
+
+  rm -rf "$tmp"
+  pass "a killed runner takes its running script's process group down with it"
+}
+
 # The duration regression this guard exists for: a suite whose scripts are all
 # green but whose wall clock outgrew its caller's invocation budget. The caller
 # gets killed mid-run and retries invisibly, so an over-budget run has to be a
@@ -1600,13 +1643,13 @@ test_changed_bound_gives_slow_watcher_suites_headroom() {
   repo="$tmp/repo"
   script=tests/fm-watch-triage.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$repo/bin/fm-test-run.sh"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cat >"$repo/bin/fm-timeout-lib.sh" <<'SH'
-fm_run_timed() {
+fm_exec_timed() {
   printf '%s\n' "$1" >bound-secs
-  shift
-  "$@"
+  shift 2
+  exec "$@"
 }
 SH
   cat >"$repo/$script" <<'SH'
@@ -1638,7 +1681,7 @@ test_max_wall_ms_is_a_result_not_advice() {
   runner="$repo/bin/fm-test-run.sh"
   fast=tests/fm-budget-fixture.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$runner"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cat >"$repo/$fast" <<'SH'
 #!/usr/bin/env bash
@@ -1703,7 +1746,7 @@ test_jobs_parallel_scheduler_and_failure_propagation() {
   c=tests/fm-lint.test.sh
   d=tests/fm-supervision-instructions.test.sh
   mkdir -p "$repo/bin" "$repo/tests" "$evidence" "$fake_bin"
-  cp "$RUNNER" "$runner"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cat >"$fake_bin/stat" <<'SH'
 #!/usr/bin/env bash
@@ -1901,6 +1944,475 @@ assert len(doc["scripts"])==3
   pass "aggregate-json merges lane timing artifacts"
 }
 
+# Stand-in for machine-gate.sh run. Same turn contract: one lock, exit 75 when
+# that lock is already held, and start/end rows in the line log.
+write_machine_gate_standin() {
+  local dest=$1
+  cat >"$dest" <<'SH'
+#!/usr/bin/env bash
+set -eu
+line_dir=${MACHINE_LINE_DIR:?}
+mkdir -p "$line_dir"
+lock="$line_dir/slot.lock"
+log="$line_dir/log.tsv"
+name=${MACHINE_LINE_NAME:-fm-test-run}
+row() {
+  printf '%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$name" "$2" >>"$log"
+}
+if [ "${1:-}" = __holding ]; then
+  mark=$2
+  cap=$3
+  shift 3
+  : >"$mark"
+  row start "pid $$ cap ${cap}m"
+  set +e
+  "$@"
+  rc=$?
+  set -e
+  row end "rc $rc"
+  exit "$rc"
+fi
+[ "${1:-}" = run ] || { echo "usage: machine-gate.sh run [--cap <minutes>] -- <command>" >&2; exit 2; }
+shift
+cap=60
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --cap) cap=$2; shift 2 ;;
+    --) shift; break ;;
+    *) echo "usage: machine-gate.sh run [--cap <minutes>] -- <command>" >&2; exit 2 ;;
+  esac
+done
+[ "$#" -gt 0 ] || { echo "usage: machine-gate.sh run [--cap <minutes>] -- <command>" >&2; exit 2; }
+mark=$(mktemp "${TMPDIR:-/tmp}/fm-line-standin.XXXXXX")
+rm -f "$mark"
+rc=0
+if command -v lockf >/dev/null 2>&1; then
+  set +e
+  lockf -k -s -t 0 "$lock" "$0" __holding "$mark" "$cap" "$@"
+  rc=$?
+  set -e
+elif command -v flock >/dev/null 2>&1; then
+  exec 9>>"$lock"
+  if ! flock -n 9; then
+    echo "machine-gate run: NOT STARTED: the turn is held" >&2
+    row busy "held"
+    exit 75
+  fi
+  set +e
+  "$0" __holding "$mark" "$cap" "$@"
+  rc=$?
+  set -e
+else
+  echo "machine-gate stand-in: need lockf or flock" >&2
+  exit 2
+fi
+if [ -e "$mark" ]; then
+  rm -f "$mark"
+  exit "$rc"
+fi
+rm -f "$mark"
+echo "machine-gate run: NOT STARTED: the turn is held" >&2
+row busy "held"
+exit 75
+SH
+  chmod +x "$dest"
+}
+
+# Prefer the installed gate so the proof uses the same run command as gj.
+# A machine without that file still has to prove the turn contract.
+machine_line_gate() {
+  local real dest
+  real=${HOME}/.agent-state/machine-gate.sh
+  if [ -x "$real" ]; then
+    printf '%s\n' "$real"
+    return 0
+  fi
+  dest=$1/machine-gate.sh
+  write_machine_gate_standin "$dest"
+  printf '%s\n' "$dest"
+}
+
+line_row_count() { # <log> <kind> <detail-regex>
+  local log=$1 kind=$2 detail=$3
+  [ -f "$log" ] || { printf '0\n'; return 0; }
+  awk -F '\t' -v kind="$kind" -v detail="$detail" '
+    $2 == kind && $3 == "fm-test-run" && $4 ~ detail { n++ }
+    END { print n + 0 }
+  ' "$log"
+}
+
+kill_pid_tree() {
+  local pid child
+  for pid in "$@"; do
+    [ -n "$pid" ] || continue
+    for child in $(pgrep -P "$pid" 2>/dev/null || true); do
+      kill_pid_tree "$child"
+    done
+    kill "$pid" 2>/dev/null || true
+  done
+}
+
+test_machine_line_absent_or_inspection_does_not_take_the_turn() {
+  local tmp probe out rc self_nice probe_nice stub listed
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-skip.XXXXXX")
+  probe="$tmp/ok.test.sh"
+  cat >"$probe" <<'SH'
+#!/usr/bin/env bash
+ps -o nice= -p $$ | tr -d ' ' >"$PRI_FILE"
+echo ran
+exit 0
+SH
+  chmod +x "$probe"
+  self_nice=$(ps -o nice= -p $$ | tr -d ' ')
+  env -u FM_TEST_MACHINE_GATE -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    HOME="$tmp/home" MACHINE_LINE_DIR="$tmp/unused-line" PRI_FILE="$tmp/nice" \
+    "$RUNNER" "$probe" >"$tmp/out" 2>"$tmp/err"
+  rc=$?
+  [ "$rc" -eq 0 ] || { rm -rf "$tmp"; fail "missing gate must still run the suite, got $rc"; }
+  grep -qx ran "$tmp/out" || { rm -rf "$tmp"; fail "missing gate did not run the probe"; }
+  [ ! -e "$tmp/unused-line" ] || { rm -rf "$tmp"; fail "missing gate created a machine line directory"; }
+  probe_nice=$(cat "$tmp/nice")
+  [ "$probe_nice" = "$self_nice" ] \
+    || { rm -rf "$tmp"; fail "missing gate changed nice from $self_nice to $probe_nice"; }
+
+  stub="$tmp/stub-gate.sh"
+  cat >"$stub" <<'SH'
+#!/usr/bin/env bash
+echo called >"$STUB_MARK"
+exit 9
+SH
+  chmod +x "$stub"
+  listed=$(env -u FM_TEST_MACHINE_LINE_HELD FM_TEST_MACHINE_GATE="$stub" STUB_MARK="$tmp/stub-mark" \
+    "$RUNNER" --list tests/fm-lint.test.sh 2>"$tmp/list.err") || {
+    rm -rf "$tmp"
+    fail "inspection must not call the machine gate"
+  }
+  [ "$listed" = "tests/fm-lint.test.sh" ] \
+    || { rm -rf "$tmp"; fail "list output changed when a gate is configured: $listed"; }
+  [ ! -e "$tmp/stub-mark" ] || { rm -rf "$tmp"; fail "--list took the machine line"; }
+
+  out=$(env -u FM_TEST_MACHINE_LINE_HELD FM_TEST_MACHINE_GATE="$stub" STUB_MARK="$tmp/held-mark" \
+    PRI_FILE="$tmp/held-nice" FM_TEST_MACHINE_LINE_HELD=1 "$RUNNER" "$probe" 2>"$tmp/held.err") || {
+    rm -rf "$tmp"
+    fail "an already admitted run must not call the gate again"
+  }
+  grep -qx ran <<<"$out" || { rm -rf "$tmp"; fail "already admitted run did not execute the probe"; }
+  [ ! -e "$tmp/held-mark" ] || { rm -rf "$tmp"; fail "already admitted run called the gate"; }
+  rm -rf "$tmp"
+  pass "a missing gate, --list, and an already admitted run do not take the turn"
+}
+
+test_machine_line_takes_and_releases() {
+  local tmp probe gate line log home starts ends rc count self_pri probe_pri self_nice probe_nice pid deadline
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-take.XXXXXX")
+  gate=$(machine_line_gate "$tmp")
+  line="$tmp/line"
+  log="$line/log.tsv"
+  probe="$tmp/ok.test.sh"
+  cat >"$probe" <<'SH'
+#!/usr/bin/env bash
+ps -o pri= -p $$ | tr -d ' ' >"$PRI_FILE"
+ps -o nice= -p $$ | tr -d ' ' >"$NICE_FILE"
+echo ran
+exit 0
+SH
+  chmod +x "$probe"
+  self_pri=$(ps -o pri= -p $$ | tr -d ' ')
+  self_nice=$(ps -o nice= -p $$ | tr -d ' ')
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$line" MACHINE_LINE_NAME=fm-test-run \
+    FM_TEST_MACHINE_LINE_CAP=ignored \
+    MACHINE_GATE_READ='printf "%s\n" "SLOT FREE = YES"' \
+    PRI_FILE="$tmp/pri" NICE_FILE="$tmp/nice" \
+    "$RUNNER" "$probe" >"$tmp/out" 2>"$tmp/err"
+  rc=$?
+  [ "$rc" -eq 0 ] || { rm -rf "$tmp"; fail "gated suite failed: $rc $(cat "$tmp/err")"; }
+  grep -qx ran "$tmp/out" || { rm -rf "$tmp"; fail "gated suite did not run the probe"; }
+  starts=$(line_row_count "$log" start "cap 180m")
+  ends=$(line_row_count "$log" end "^rc 0$")
+  [ "$starts" = 1 ] || { rm -rf "$tmp"; fail "expected one start row with cap 180m, got $starts"; }
+  [ "$ends" = 1 ] || { rm -rf "$tmp"; fail "expected one end row rc 0, got $ends"; }
+  probe_pri=$(cat "$tmp/pri")
+  probe_nice=$(cat "$tmp/nice")
+  [ "$probe_pri" = "$self_pri" ] \
+    || { rm -rf "$tmp"; fail "suite pri $probe_pri differed from the caller pri $self_pri"; }
+  [ "$probe_nice" = "$self_nice" ] \
+    || { rm -rf "$tmp"; fail "suite nice $probe_nice differed from the caller nice $self_nice"; }
+
+  # The default path is $HOME/.agent-state/machine-gate.sh, not only the override.
+  home="$tmp/home"
+  mkdir -p "$home/.agent-state"
+  ln -s "$gate" "$home/.agent-state/machine-gate.sh"
+  env -u FM_TEST_MACHINE_GATE -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    HOME="$home" MACHINE_LINE_DIR="$tmp/default-line" MACHINE_LINE_NAME=fm-test-run \
+    MACHINE_GATE_READ='printf "%s\n" "SLOT FREE = YES"' \
+    "$RUNNER" "$probe" >"$tmp/default.out" 2>"$tmp/default.err"
+  rc=$?
+  [ "$rc" -eq 0 ] || { rm -rf "$tmp"; fail "default gate path failed: $rc $(cat "$tmp/default.err")"; }
+  [ "$(line_row_count "$tmp/default-line/log.tsv" start "cap 180m")" = 1 ] \
+    || { rm -rf "$tmp"; fail "default gate path did not record a start row"; }
+  [ "$(line_row_count "$tmp/default-line/log.tsv" end "^rc 0$")" = 1 ] \
+    || { rm -rf "$tmp"; fail "default gate path did not record an end row"; }
+
+  cat >"$probe" <<'SH'
+#!/usr/bin/env bash
+n=0
+[ -f "$COUNT" ] && n=$(cat "$COUNT")
+n=$((n + 1))
+printf '%s\n' "$n" >"$COUNT"
+exit 75
+SH
+  chmod +x "$probe"
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$tmp/failed" MACHINE_LINE_NAME=fm-test-run \
+    MACHINE_GATE_READ='printf "%s\n" "SLOT FREE = YES"' \
+    FM_TEST_MACHINE_LINE_RETRY_SECS=1 COUNT="$tmp/count" \
+    "$RUNNER" "$probe" >"$tmp/failed.out" 2>"$tmp/failed.err" &
+  pid=$!
+  deadline=$((SECONDS + 8))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.25
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill_pid_tree "$pid"
+    wait "$pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "a failing suite was retried as if the turn was refused"
+  fi
+  wait "$pid"
+  rc=$?
+  count=$(cat "$tmp/count" 2>/dev/null || echo 0)
+  # The runner reports one suite failure as exit 1, including a script that
+  # itself exits 75. That 75 must not be read as a refused turn.
+  [ "$rc" -eq 1 ] || { rm -rf "$tmp"; fail "failing suite exited $rc"; }
+  [ "$count" = 1 ] || { rm -rf "$tmp"; fail "failing suite ran $count times"; }
+  [ "$(line_row_count "$tmp/failed/log.tsv" end "^rc 1$")" = 1 ] \
+    || { rm -rf "$tmp"; fail "failing suite did not record a single end row"; }
+  rm -rf "$tmp"
+  pass "the suite takes and releases the machine line at the caller's priority"
+}
+
+test_machine_line_relative_runner_paths() {
+  local tmp repo gate invocation from rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-relative.XXXXXX")
+  repo="$tmp/repo"
+  gate="$tmp/machine-gate.sh"
+  mkdir -p "$repo/bin" "$repo/tests" "$repo/skills/tools/harness"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
+  cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
+  printf '#!/usr/bin/env bash\necho ran\n' >"$repo/tests/probe.test.sh"
+  write_machine_gate_standin "$gate"
+  for invocation in ./fm-test-run.sh ../../../bin/fm-test-run.sh; do
+    case "$invocation" in
+      ./fm-test-run.sh) from=bin ;;
+      *) from=skills/tools/harness ;;
+    esac
+    set +e
+    (cd "$repo/$from" && env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+      FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$tmp/line" MACHINE_LINE_NAME=fm-test-run \
+      "$invocation" tests/probe.test.sh) >"$tmp/out" 2>"$tmp/err"
+    rc=$?
+    set -e
+    [ "$rc" -eq 0 ] || fail "relative launch $invocation failed: $(cat "$tmp/err")"
+    grep -qx ran "$tmp/out" || fail "relative launch $invocation did not run the probe"
+  done
+  [ "$(line_row_count "$tmp/line/log.tsv" start 'cap 180m')" = 2 ] \
+    || fail "relative launches did not each take the line"
+  [ "$(line_row_count "$tmp/line/log.tsv" end '^rc 0$')" = 2 ] \
+    || fail "relative launches did not each release the line"
+  rm -rf "$tmp"
+  pass "relative runner paths survive machine-line re-execution"
+}
+
+test_machine_line_wait_counts_toward_budget() {
+  local tmp gate probe inner rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-timing.XXXXXX")
+  gate="$tmp/gate.sh"
+  probe="$tmp/outer.test.sh"
+  inner="$tmp/inner.test.sh"
+  cat >"$gate" <<'SH'
+#!/usr/bin/env bash
+set -eu
+[ "$1" = run ] || exit 2
+shift
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --cap) shift 2 ;;
+    --) shift; break ;;
+    *) exit 2 ;;
+  esac
+done
+attempt=0
+[ ! -f "$WAIT_STATE/attempts" ] || attempt=$(cat "$WAIT_STATE/attempts")
+attempt=$((attempt + 1))
+printf '%s\n' "$attempt" >"$WAIT_STATE/attempts"
+python3 - "$WAIT_STATE" "$attempt" <<'PY'
+import datetime, json, pathlib, sys, time
+root = pathlib.Path(sys.argv[1])
+now = {"ms": int(time.time() * 1000), "iso": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+if sys.argv[2] == "1":
+    (root / "wait-start.json").write_text(json.dumps(now))
+elif sys.argv[2] == "3":
+    started = json.loads((root / "wait-start.json").read_text())
+    (root / "wait.json").write_text(json.dumps({"started_at": started["iso"], "admitted_at": now["iso"], "duration_ms": now["ms"] - started["ms"]}))
+PY
+[ "$attempt" -ge 3 ] || exit 75
+"$@"
+SH
+  cat >"$probe" <<'SH'
+#!/usr/bin/env bash
+"$NESTED_RUNNER" --json "$NESTED_JSON" "$NESTED_PROBE"
+SH
+  printf '#!/usr/bin/env bash\necho ran\n' >"$inner"
+  chmod +x "$gate"
+  set +e
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" FM_TEST_MACHINE_LINE_RETRY_SECS=1 WAIT_STATE="$tmp" \
+    NESTED_RUNNER="$RUNNER" NESTED_JSON="$tmp/inner.json" NESTED_PROBE="$inner" \
+    "$RUNNER" --max-wall-ms 1500 --json "$tmp/outer.json" "$probe" >"$tmp/out" 2>"$tmp/err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 1 ] || fail "admission wait did not exceed the invocation budget: rc=$rc $(cat "$tmp/err")"
+  [ "$(cat "$tmp/attempts")" = 3 ] || fail "nested suite took the line again"
+  python3 - "$tmp" <<'PY' || fail "admission wait was lost or inherited by a nested invocation"
+import json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+outer = json.loads((root / "outer.json").read_text())
+inner = json.loads((root / "inner.json").read_text())
+wait = json.loads((root / "wait.json").read_text())
+assert wait["duration_ms"] >= 2000
+assert outer["started_at"] <= wait["started_at"]
+assert outer["summary"]["duration_ms"] >= wait["duration_ms"]
+assert outer["summary"]["failed"] == 0
+assert inner["started_at"] >= wait["admitted_at"]
+assert inner["summary"]["failed"] == 0
+PY
+  rm -rf "$tmp"
+  pass "admission wait counts toward timing and budget only for its invocation"
+}
+
+test_machine_line_second_run_does_not_overlap() {
+  local tmp gate line probe_a probe_b a_pid b_pid events deadline debug err repo proof
+  local first_mode=${1:-runner} second_mode=${2:-runner}
+  local -a first_command second_command
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-machine-line-overlap.XXXXXX")
+  write_machine_gate_standin "$tmp/machine-gate.sh"
+  gate="$tmp/machine-gate.sh"
+  line="$tmp/line"
+  events="$tmp/events"
+  : >"$events"
+  probe_a="$tmp/a.test.sh"
+  probe_b="$tmp/b.test.sh"
+  cat >"$probe_a" <<'SH'
+#!/usr/bin/env bash
+printf 'A-in\n' >>"$EVENTS"
+while [ ! -f "$RELEASE" ]; do sleep 0.05; done
+printf 'A-out\n' >>"$EVENTS"
+SH
+  cat >"$probe_b" <<'SH'
+#!/usr/bin/env bash
+printf 'B-in\n' >>"$EVENTS"
+SH
+  chmod +x "$probe_a" "$probe_b"
+  repo="$tmp/repo"
+  proof="$repo/bin/fm-test-isolation-proof.sh"
+  mkdir -p "$repo/bin" "$repo/tests"
+  cp "$RUNNER" "$ROOT/bin/fm-test-isolation-proof.sh" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
+  cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
+  first_command=("$RUNNER" "$probe_a")
+  second_command=("$RUNNER" "$probe_b")
+  if [ "$first_mode" = proof ]; then
+    cp "$probe_a" "$repo/tests/fm-test-run.test.sh"
+    first_command=("$proof" --pool pure-contract-unit --jobs 4)
+  fi
+  if [ "$second_mode" = proof ]; then
+    cp "$probe_b" "$repo/tests/fm-test-run.test.sh"
+    second_command=("$proof" --pool pure-contract-unit --jobs 4)
+  fi
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$line" MACHINE_LINE_NAME=fm-test-run \
+    FM_TEST_MACHINE_LINE_RETRY_SECS=1 EVENTS="$events" RELEASE="$tmp/release" \
+    "${first_command[@]}" >"$tmp/a.out" 2>"$tmp/a.err" &
+  a_pid=$!
+  deadline=$((SECONDS + 15))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    grep -qx A-in "$events" 2>/dev/null && [ "$(line_row_count "$line/log.tsv" start "cap 180m")" = 1 ] && break
+    sleep 0.1
+  done
+  grep -qx A-in "$events" 2>/dev/null || {
+    err=$(cat "$tmp/a.err" 2>/dev/null || true)
+    kill_pid_tree "$a_pid"
+    wait "$a_pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "first suite never entered its probe: $err"
+  }
+  env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
+    FM_TEST_MACHINE_GATE="$gate" MACHINE_LINE_DIR="$line" MACHINE_LINE_NAME=fm-test-run \
+    FM_TEST_MACHINE_LINE_RETRY_SECS=1 EVENTS="$events" \
+    "${second_command[@]}" >"$tmp/b.out" 2>"$tmp/b.err" &
+  b_pid=$!
+  sleep 1.2
+  if grep -qx B-in "$events" 2>/dev/null; then
+    kill_pid_tree "$a_pid" "$b_pid"
+    wait "$a_pid" 2>/dev/null || true
+    wait "$b_pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "second suite ran while the first still held the line"
+  fi
+  grep -q "NOT STARTED" "$tmp/b.err" || {
+    err=$(cat "$tmp/b.err" 2>/dev/null || true)
+    kill_pid_tree "$a_pid" "$b_pid"
+    wait "$a_pid" 2>/dev/null || true
+    wait "$b_pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "second suite was not refused while the line was held: $err"
+  }
+  : >"$tmp/release"
+  deadline=$((SECONDS + 15))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    kill -0 "$a_pid" 2>/dev/null || kill -0 "$b_pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  if kill -0 "$a_pid" 2>/dev/null || kill -0 "$b_pid" 2>/dev/null; then
+    {
+      echo "events=$(tr '\n' '|' <"$events" 2>/dev/null || true)"
+      echo "release_exists=$([ -f "$tmp/release" ] && echo yes || echo no)"
+      echo "--- a.err ---"
+      cat "$tmp/a.err" 2>/dev/null || true
+      echo "--- b.err ---"
+      cat "$tmp/b.err" 2>/dev/null || true
+      echo "--- log ---"
+      cat "$line/log.tsv" 2>/dev/null || true
+      echo "--- ps ---"
+      ps -o pid,ppid,state,command -p "$a_pid","$b_pid" 2>/dev/null || true
+    } >"$tmp/debug.txt"
+    debug=$(cat "$tmp/debug.txt")
+    kill_pid_tree "$a_pid" "$b_pid"
+    wait "$a_pid" 2>/dev/null || true
+    wait "$b_pid" 2>/dev/null || true
+    rm -rf "$tmp"
+    fail "suites did not finish after the line was released: $debug"
+  fi
+  wait "$a_pid"
+  wait "$b_pid"
+  [ "$(cat "$events")" = $'A-in\nA-out\nB-in' ] \
+    || { err=$(tr '\n' ' ' <"$events"); rm -rf "$tmp"; fail "overlap order was $err"; }
+  [ "$(line_row_count "$line/log.tsv" start "cap 180m")" = 2 ] \
+    || { rm -rf "$tmp"; fail "expected two start rows after both suites"; }
+  [ "$(line_row_count "$line/log.tsv" end "^rc 0$")" = 2 ] \
+    || { rm -rf "$tmp"; fail "expected two end rows after both suites"; }
+  rm -rf "$tmp"
+  pass "$second_mode waits until $first_mode releases the machine line"
+}
+
+test_machine_line_absent_or_inspection_does_not_take_the_turn
+test_machine_line_takes_and_releases
+test_machine_line_relative_runner_paths
+test_machine_line_wait_counts_toward_budget
+test_machine_line_second_run_does_not_overlap
+test_machine_line_second_run_does_not_overlap runner proof
+test_machine_line_second_run_does_not_overlap proof runner
 test_list_all_exact_suite_coverage
 test_family_selection
 test_single_script_selection
@@ -1939,6 +2451,7 @@ test_unmapped_new_test_never_inherits_family_concurrency
 test_changed_shared_fixture_selects_its_readers
 test_concurrent_runs_are_ordered_longest_first
 test_per_script_timeout_bounds_a_hang
+test_killed_runner_takes_its_script_down
 test_changed_bound_gives_slow_watcher_suites_headroom
 test_max_wall_ms_is_a_result_not_advice
 test_jobs_parallel_scheduler_and_failure_propagation
