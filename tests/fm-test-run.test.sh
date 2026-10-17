@@ -97,7 +97,7 @@ test_changed_file_selection_is_conservative() {
 init_changed_fixture_repo() {
   local repo=$1 script
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   chmod +x "$repo/bin/fm-test-run.sh"
   for script in \
@@ -134,7 +134,6 @@ init_changed_fixture_repo() {
   : >"$repo/tests/fm-backend-herdr-eventwait.test.py"
   : >"$repo/bin/fm-supervisor-target-lib.sh"
   : >"$repo/bin/fm-control-lib.sh"
-  : >"$repo/bin/fm-timeout-lib.sh"
   : >"$repo/bin/fm-procevent-quota.sh"
   : >"$repo/bin/fm-quota-axi-lib.sh"
   : >"$repo/bin/fm-quota-choose.sh"
@@ -192,7 +191,7 @@ init_primary_and_linked_worktree() {
   git -C "$repo" worktree add --quiet -b linked-probe "$linked"
   for tree in "$repo" "$linked"; do
     mkdir -p "$tree/bin" "$tree/tests"
-    cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$tree/bin/"
+    cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$tree/bin/"
     cp "$ROOT/tests/git-config-helpers.sh" "$tree/tests/"
     chmod +x "$tree/bin/fm-test-run.sh"
     cat >"$tree/tests/probe.test.sh" <<PROBE
@@ -472,7 +471,6 @@ test_changed_uses_bounded_automatic_concurrency() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-changed-consent.XXXXXX")
   repo="$tmp/repo"
   init_changed_fixture_repo "$repo"
-  cp "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/fm-timeout-lib.sh"
   for script in fm-backend-herdr-smoke.test.sh fm-daemon.test.sh fm-pi-watch-extension.test.sh; do
     cat >"$repo/tests/$script" <<'SH'
 #!/usr/bin/env bash
@@ -517,12 +515,12 @@ PY
   timeout_repo="$tmp/timeout-repo"
   timeout_script=tests/fm-calm-pi-extension.test.sh
   mkdir -p "$timeout_repo/bin" "$timeout_repo/tests"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$timeout_repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$timeout_repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$timeout_repo/tests/"
   cat >"$timeout_repo/bin/fm-timeout-lib.sh" <<'SH'
-fm_run_timed() {
-  [ "$1" -eq 1500 ] || return 99
-  return 124
+fm_exec_timed() {
+  [ "$1" -eq 1500 ] || exit 99
+  exit 124
 }
 SH
   cat >"$timeout_repo/$timeout_script" <<'SH'
@@ -603,7 +601,6 @@ test_script_list_uses_bounded_automatic_concurrency() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-script-list.XXXXXX")
   repo="$tmp/repo"
   init_changed_fixture_repo "$repo"
-  rm -f "$repo/bin/fm-timeout-lib.sh"
   # fm-cd-pretool-check and fm-pr-merge are individually proven isolated;
   # fm-backend-orca is not, so it must still land in the serial tail.
   for script in fm-cd-pretool-check.test.sh fm-pr-merge.test.sh fm-backend-orca.test.sh; do
@@ -669,9 +666,8 @@ test_family_proofs_run_in_separate_concurrent_phases() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-family-phases.XXXXXX")
   repo="$tmp/repo"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
-  cp "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/fm-timeout-lib.sh"
   chmod +x "$repo/bin/fm-test-run.sh"
   for script in \
     fm-calm-pi-extension.test.sh fm-vendor-auth-probe.test.sh \
@@ -1022,7 +1018,7 @@ test_list_scheduled_non_lane_selections_use_serial_weights() {
   tmp=$(fm_test_tmproot fm-test-run-non-lane-schedule)
   repo="$tmp/repo"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   for script in "${scripts[@]}"; do
     printf '#!/usr/bin/env bash\nexit 0\n' >"$repo/$script"
     chmod +x "$repo/$script"
@@ -1208,7 +1204,7 @@ test_portable_serial_packing_budget_boundary() {
   done < <("$RUNNER" --list --all)
 
   for weight in 1200000 1200001; do
-    cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+    cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
     python3 - "$repo/bin/fm-test-run.sh" "$weight" <<'PY' \
       || fail "could not seed the fixture's measured timing input"
 from pathlib import Path
@@ -1346,7 +1342,7 @@ test_unmapped_new_test_never_inherits_family_concurrency() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-unmapped.XXXXXX")
   repo="$tmp/repo"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   chmod +x "$repo/bin/fm-test-run.sh"
   # Two members of the proven residual family, plus a test basename the family
@@ -1464,9 +1460,8 @@ test_per_script_timeout_bounds_a_hang() {
   runner="$repo/bin/fm-test-run.sh"
   hang=tests/fm-hang-fixture.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
-  cp "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/fm-timeout-lib.sh"
   grandchild_pid="$tmp/grandchild.pid"
   cat >"$repo/$hang" <<'SH'
 #!/usr/bin/env bash
@@ -1517,6 +1512,54 @@ SH
   pass "--per-script-timeout-secs turns a hung script into a bounded failure"
 }
 
+# A runner stopped from outside mid-script (a lane killed, a terminal closed)
+# must take that script's whole process group with it, bounded or not;
+# otherwise the suite and every watcher it started keep running unowned.
+test_killed_runner_takes_its_script_down() {
+  local tmp repo runner script sig runner_pid child grandchild waited
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-killed.XXXXXX")
+  repo="$tmp/repo"
+  runner="$repo/bin/fm-test-run.sh"
+  script=tests/fm-orphan-fixture.test.sh
+  mkdir -p "$repo/bin" "$repo/tests"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
+  cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
+  cat >"$repo/$script" <<'SH'
+#!/usr/bin/env bash
+sleep 600 &
+echo "$$ $!" >"$PIDS_FILE"
+wait
+SH
+  chmod +x "$runner" "$repo/$script"
+
+  for sig in TERM KILL; do
+    rm -f "$tmp/pids"
+    PIDS_FILE="$tmp/pids" FM_TEST_MACHINE_GATE='' "$runner" "$script" >"$tmp/out.$sig" 2>&1 &
+    runner_pid=$!
+    waited=0
+    while [ ! -s "$tmp/pids" ] && [ "$waited" -lt 100 ]; do
+      sleep 0.1
+      waited=$((waited + 1))
+    done
+    [ -s "$tmp/pids" ] || { kill -KILL "$runner_pid" 2>/dev/null; fail "the fixture never started under the runner: $(cat "$tmp/out.$sig")"; }
+    read -r child grandchild <"$tmp/pids"
+    kill -"$sig" "$runner_pid"
+    wait "$runner_pid" 2>/dev/null || true
+    waited=0
+    while { kill -0 "$child" || kill -0 "$grandchild"; } 2>/dev/null && [ "$waited" -lt 100 ]; do
+      sleep 0.1
+      waited=$((waited + 1))
+    done
+    if kill -0 "$child" 2>/dev/null || kill -0 "$grandchild" 2>/dev/null; then
+      kill -KILL "$child" "$grandchild" 2>/dev/null || true
+      fail "a runner killed with SIG$sig left its script ($child) or the script's child ($grandchild) running"
+    fi
+  done
+
+  rm -rf "$tmp"
+  pass "a killed runner takes its running script's process group down with it"
+}
+
 # The duration regression this guard exists for: a suite whose scripts are all
 # green but whose wall clock outgrew its caller's invocation budget. The caller
 # gets killed mid-run and retries invisibly, so an over-budget run has to be a
@@ -1531,13 +1574,13 @@ test_changed_bound_gives_slow_watcher_suites_headroom() {
   repo="$tmp/repo"
   script=tests/fm-watch-triage.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cat >"$repo/bin/fm-timeout-lib.sh" <<'SH'
-fm_run_timed() {
+fm_exec_timed() {
   printf '%s\n' "$1" >bound-secs
-  shift
-  "$@"
+  shift 2
+  exec "$@"
 }
 SH
   cat >"$repo/$script" <<'SH'
@@ -1569,7 +1612,7 @@ test_max_wall_ms_is_a_result_not_advice() {
   runner="$repo/bin/fm-test-run.sh"
   fast=tests/fm-budget-fixture.test.sh
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cat >"$repo/$fast" <<'SH'
 #!/usr/bin/env bash
@@ -1634,7 +1677,7 @@ test_jobs_parallel_scheduler_and_failure_propagation() {
   c=tests/fm-lint.test.sh
   d=tests/fm-supervision-instructions.test.sh
   mkdir -p "$repo/bin" "$repo/tests" "$evidence" "$fake_bin"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   cat >"$fake_bin/stat" <<'SH'
 #!/usr/bin/env bash
@@ -2087,7 +2130,7 @@ test_machine_line_relative_runner_paths() {
   repo="$tmp/repo"
   gate="$tmp/machine-gate.sh"
   mkdir -p "$repo/bin" "$repo/tests" "$repo/skills/tools/harness"
-  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   printf '#!/usr/bin/env bash\necho ran\n' >"$repo/tests/probe.test.sh"
   write_machine_gate_standin "$gate"
@@ -2206,7 +2249,7 @@ SH
   repo="$tmp/repo"
   proof="$repo/bin/fm-test-isolation-proof.sh"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$RUNNER" "$ROOT/bin/fm-test-isolation-proof.sh" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$RUNNER" "$ROOT/bin/fm-test-isolation-proof.sh" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   first_command=("$RUNNER" "$probe_a")
   second_command=("$RUNNER" "$probe_b")
@@ -2337,6 +2380,7 @@ test_unmapped_new_test_never_inherits_family_concurrency
 test_changed_shared_fixture_selects_its_readers
 test_concurrent_runs_are_ordered_longest_first
 test_per_script_timeout_bounds_a_hang
+test_killed_runner_takes_its_script_down
 test_changed_bound_gives_slow_watcher_suites_headroom
 test_max_wall_ms_is_a_result_not_advice
 test_jobs_parallel_scheduler_and_failure_propagation
