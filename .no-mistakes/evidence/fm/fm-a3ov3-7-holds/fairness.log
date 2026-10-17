@@ -1,0 +1,8 @@
+# head: ef046061c4f61268aab12826366d53e4f4076a4f + uncommitted row-contract change
+# started: 2026-10-17T08:44:55Z load: 27.63 25.82 33.92
+ok - bounded sweep 1 preserves ordinary checks and cleans up interrupted routing
+ok - bounded sweep 2 preserves ordinary checks and cleans up interrupted routing
+ok - bounded sweep 3 preserves ordinary checks and cleans up interrupted routing
+ok - bounded sweep 4 preserves ordinary checks and cleans up interrupted routing
+ok - interrupted sweeps fairly route later and new holds once while blocked rows retain receipt recovery
+# exit: 0 elapsed: 344s

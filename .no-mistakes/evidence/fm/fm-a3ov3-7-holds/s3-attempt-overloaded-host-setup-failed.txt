@@ -1,0 +1,17 @@
+lab home: /tmp/fm-lab.HztdJL   worktree head: ef046061
+host: 16 cores, load averages: 130.04 105.92 84.31
+tasks-axi startup sample 1: .4s
+tasks-axi startup sample 2: 1.6s
+tasks-axi startup sample 3: 1.6s
+
+== hold 11 captain calls through the CLI at 02:00:00Z (2 technical, 9 protected/human)
+fm-captain-hold: tasks-axi show capacity exceeded its 10s backlog read bound
+FAIL  hold capacity exited non-zero
+fm-captain-hold: tasks-axi show money exceeded its 10s backlog read bound
+FAIL  hold money exited non-zero
+fm-captain-hold: tasks-axi show credential exceeded its 10s backlog read bound
+FAIL  hold credential exited non-zero
+fm-captain-hold: tasks-axi show person exceeded its 10s backlog read bound
+FAIL  hold person exited non-zero
+fm-captain-hold: tasks-axi show client exceeded its 10s backlog read bound
+FAIL  hold client exited non-zero

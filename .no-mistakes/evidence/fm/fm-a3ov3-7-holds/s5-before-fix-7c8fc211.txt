@@ -1,0 +1,8 @@
+host: load averages: 58.26 88.19 115.88   timing allowance: widened read/row/check bounds
+lab home: /tmp/fm-lab.A2SsZF   code under test: /tmp/fm-old-7c8fc211   TZ=America/Chicago
+
+== hold dated --until 2098-10-20 at 2098-10-19T20:00:00Z (15:00 CDT Oct 19)
+PASS  deferral spooled for routing (= yes)
+PASS  supervision required while the deferral is pending (= yes)
+
+== real watcher cycle at 2098-10-20T00:00:00Z (19:00 CDT Oct 19; already Oct 20 in UTC)

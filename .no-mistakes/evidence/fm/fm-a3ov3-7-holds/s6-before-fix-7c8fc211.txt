@@ -1,0 +1,39 @@
+host: load averages: 43.61 114.17 129.89   timing allowance: widened read/row/check bounds
+lab home: /tmp/fm-lab.Afz53K   code under test: /tmp/fm-old-7c8fc211
+parent channel after holds:
+  needs-decision [key=captain-hold-rehold-1] [at=1792216770]: captain hold rehold: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+  needs-decision [key=captain-hold-answered-1] [at=1792216782]: captain hold answered: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+  needs-decision [key=captain-hold-reconciled-1] [at=1792216791]: captain hold reconciled: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+== sweep at 02:01:00Z reaches the owners but every release fails
+route-due exit 1
+PASS  three owner prompts (= 3)
+
+== on top of the unreleased routed holds: re-hold, captain answer, reconciliation
+re-hold exit 1 (expected non-zero while unhold fails): backend unavailable fm-captain-hold: could not release routed hold rehold 
+answer exit 0
+reconcile-requests exit 0
+reconcile close exit 0
+open parent decisions before release: captain-hold-rehold-1	needs-decision	captain hold rehold: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. captain-hold-answered-1	needs-decision	captain hold answered: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. captain-hold-reconciled-1	needs-decision	captain hold reconciled: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. captain-hold-rehold-2	needs-decision	captain hold rehold: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+== backend restored; sweep at 02:02:00Z finishes the releases
+route-due exit 0
+parent channel after release:
+  needs-decision [key=captain-hold-rehold-1] [at=1792216770]: captain hold rehold: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+  needs-decision [key=captain-hold-answered-1] [at=1792216782]: captain hold answered: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+  needs-decision [key=captain-hold-reconciled-1] [at=1792216791]: captain hold reconciled: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+  needs-decision [key=captain-hold-rehold-2] [at=1792216812]: captain hold rehold: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+  resolved [key=captain-hold-answered-2] [at=1792216820]: captain hold answered: answered
+  resolved [key=captain-hold-reconciled-2] [at=1792216826]: captain hold reconciled: reconciled
+  resolved [key=captain-hold-rehold-1] [at=1792216832]: captain hold rehold: agent-routed to ep-firstmate
+FAIL  no parent decision left open: expected [] got [captain-hold-answered-1	needs-decision	captain hold answered: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. captain-hold-reconciled-1	needs-decision	captain hold reconciled: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. captain-hold-rehold-2	needs-decision	captain hold rehold: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.]
+PASS  rehold resolved its first occurrence (= 1)
+FAIL  answered resolved its first occurrence: expected [1] got [0]
+FAIL  reconciled resolved its first occurrence: expected [1] got [0]
+PASS  releases added no owner prompt (= 3)
+
+== a genuinely new lifecycle opens and closes the next occurrence
+PASS  new lifecycle published key 2 (= 1)
+PASS  new lifecycle closed key 2 (= 1)
+FAIL  still no parent decision open: expected [] got [captain-hold-answered-1	needs-decision	captain hold answered: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. captain-hold-reconciled-1	needs-decision	captain hold reconciled: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.]
+FAILS=4

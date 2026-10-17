@@ -1,0 +1,10 @@
+host: load averages: 102.28 172.15 149.34   timing allowance: widened read/row/check bounds
+lab home: /tmp/fm-lab.PNJMMC   code under test: /tmp/fm-old-be367123
+diverged exit 0 output:
+still-held	origin-a	still-held	Call still-held, with a comma
+PASS  reports exactly the still-held call (= still-held	origin-a	still-held	Call still-held, with a comma)
+PASS  exit status (= 0)
+diverged with an unreadable listing: exit 0 output: []
+PASS  unreadable listing stays silent (= )
+PASS  unreadable listing exits 0 (= 0)
+FAILS=0

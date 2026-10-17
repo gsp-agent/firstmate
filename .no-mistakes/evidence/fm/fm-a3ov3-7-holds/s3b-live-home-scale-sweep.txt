@@ -1,0 +1,39 @@
+lab home: /tmp/fm-lab.HEGql5   worktree head: ef046061
+host: 16 cores, load averages: 71.31 148.18 160.08
+tasks-axi startup sample 1: .1s
+tasks-axi startup sample 2: .2s
+tasks-axi startup sample 3: .1s
+
+== hold 11 captain calls through the CLI at 02:00:00Z (2 technical, 9 protected/human)
+PASS  open rows in the home (= 233)
+PASS  captain-held rows (= 11)
+PASS  state/*.meta files (= 62)
+
+== real watcher cycle at 02:01:00Z (both technical holds due)
+watcher wake: check: hold-domain routing failed: exit 124: fm-captain-hold: routing row human failed (exit 124) 
+watcher cycle wall time: 141.5s
+PASS  branch routed and released (= no)
+PASS  capacity routed and released (= no)
+PASS  exactly two owner prompts (= 2)
+FAIL  watcher reported no routing failure: expected [no] got [yes]
+tasks-axi calls during the cycle: 64
+  show calls on ordinary rows: 0
+  show calls on captain rows:  16
+  compatibility probes:        33
+
+== steady-state sweep at 02:10:00Z (9 protected holds remain, nothing due)
+steady-state route-due exit 0, wall time 36.2s (watcher bound 90s, row bound 30s)
+PASS  steady-state sweep reads no ordinary row (= 0)
+PASS  steady-state sweep adds no prompts (= 2)
+  tasks-axi calls: 68 (probes 40)
+
+== Dale's keyed answer to a held call without its own meta (answers intake)
+closed: money
+answers: closed=1 skipped=0
+answers exit 0, wall time 9.1s
+PASS  answer closed the call (= done)
+PASS  answer read no listed meta id (= 0)
+  tasks-axi calls: 18
+host at end: load averages: 67.81 103.71 132.75
+FAILS=1
+script wall 397s

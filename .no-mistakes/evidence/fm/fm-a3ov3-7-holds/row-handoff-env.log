@@ -1,0 +1,18 @@
+# fm-captain-hold.sh from: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53WD160N0NF286RBDJ0Y2WA (ef046061 + uncommitted row hand-off)
+$ fm-captain-hold.sh route-due   # sweep over two captain holds
+# route-due exit: 0
+# calls made during the sweep:
+tasks-axi --version      pid=34662 ppid=34658 CONTRACT=unset COMPAT=unset
+tasks-axi update --help  pid=35252 ppid=35250 CONTRACT=unset COMPAT=unset
+tasks-axi mv --help      pid=35699 ppid=35695 CONTRACT=unset COMPAT=unset
+tasks-axi hold --help    pid=36170 ppid=34421 CONTRACT=unset COMPAT=unset
+tasks-axi list --fields  pid=36778 ppid=36575 CONTRACT=unset COMPAT=unset
+tasks-axi show ask-a     pid=37404 ppid=37394 CONTRACT=unset COMPAT=unset
+tasks-axi show ask-a     pid=38188 ppid=38179 CONTRACT=unset COMPAT=unset
+router    route --task   pid=38559 ppid=38556 CONTRACT=unset COMPAT=unset
+tasks-axi show ask-b     pid=39010 ppid=39006 CONTRACT=unset COMPAT=unset
+tasks-axi show ask-b     pid=39135 ppid=39134 CONTRACT=unset COMPAT=unset
+router    route --task   pid=39810 ppid=39808 CONTRACT=unset COMPAT=unset
+# calls that saw CONTRACT=1 or COMPAT=1: 0
+# hold --help probes: 1   --version probes: 1
+# router calls: 2

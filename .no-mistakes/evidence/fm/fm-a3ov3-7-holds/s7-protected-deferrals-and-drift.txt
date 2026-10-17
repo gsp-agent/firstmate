@@ -1,0 +1,28 @@
+host: load averages: 83.59 164.61 147.05   timing allowance: widened read/row/check bounds
+lab home: /tmp/fm-lab.wG7cHI   worktree head: ef046061
+== future-dated protected and human-owned holds (until 2099-01-01)
+PASS  no routing state created for protected or human-owned holds (= absent)
+PASS  supervision not kept awake by them (= no)
+PASS  prod-later held with its date (= yes 2099-01-01)
+PASS  money-later held with its date (= yes 2099-01-01)
+PASS  human-later held with its date (= yes 2099-01-01)
+watcher wake well after their date: signal: /tmp/fm-lab.wG7cHI/state/lab-stop.status 
+PASS  still no prompt after the date passes (= 0)
+PASS  prod-later not released by routing (= no)
+PASS  money-later not released by routing (= no)
+PASS  human-later not released by routing (= no)
+
+== technical hold, postponed, then changed into a production question
+PASS  postponed technical hold pending (= yes)
+PASS  supervision required for it (= yes)
+PASS  no prompt before its date despite elapsed timeout (= 0)
+PASS  question change retired the pending routing (= no)
+PASS  supervision released (= no)
+PASS  production question still held (= yes)
+
+== live reason changed underneath the routing fields (tasks-axi directly)
+route-due exit 1: fm-captain-hold: task changed has divergent hold and routing reasons; leaving the hold intact
+PASS  stale routing refused (non-zero exit) (= yes)
+PASS  changed hold still held (= yes)
+PASS  no owner prompted for the changed hold (= 0)
+FAILS=0

@@ -1,0 +1,6 @@
+lab home: /tmp/fm-lab.HEGql5   host: load averages: 68.58 79.85 103.89
+route-due human: exit 0, wall 29.2s, tasks-axi calls 7 
+route-due taste: exit 0, wall 4.2s, tasks-axi calls 7 
+route-due mixed: exit 0, wall 5.2s, tasks-axi calls 7 
+router startup: .1s
+host at end: load averages: 68.92 79.01 102.51

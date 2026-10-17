@@ -1,0 +1,8 @@
+worktree head: ef046061   router: /Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py (agent-config 5b52a7cd1)
+host before: load averages: 187.69 182.62 155.44
+command: FM_TEST_HOLD_DOMAIN_ROUTER=$ROUTER FM_TEST_HOLD_ROUTING_REGRESSION=live-home FM_BACKLOG_ROW_TIMEOUT_SECS=90 FM_HOLD_ROUTE_TIMEOUT_SECS=300 bash tests/fm-captain-hold-lifecycle.test.sh
+ok - protected holds create no routing state and the sweep reads only captain-held and pending rows
+ok - lifecycle commands read only metas that are not listed task ids and keep alias authority
+ok - deferrals follow the local calendar date when routing and when guarding release recovery
+ok - release recovery, answers and reconciliations over a routed hold share its parent occurrence
+exit 0   wall 554s   host after: load averages: 71.31 148.18 160.08

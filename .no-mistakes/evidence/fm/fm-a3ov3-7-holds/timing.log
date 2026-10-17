@@ -1,0 +1,8 @@
+# head: ef046061c4f61268aab12826366d53e4f4076a4f + uncommitted row-contract change
+# started: 2026-10-17T08:41:26Z load: 19.40 26.33 36.46
+ok - blocked lock permits the healthy later hold, scheduled checks and a single recovery delivery
+ok - blocked update permits the healthy later hold, scheduled checks and a single recovery delivery
+ok - blocked unhold permits the healthy later hold, scheduled checks and a single recovery delivery
+ok - blocked locks, resolution writes and releases preserve pending rows while healthy holds and scheduled checks finish
+ok - native and fallback watcher bounds stop blocked unhold without starving checks
+# exit: 0 elapsed: 204s

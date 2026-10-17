@@ -1,0 +1,5 @@
+host: load averages: 60.51 71.88 96.91
+tasks-axi show human --full: exit 0, .42s, 573 bytes
+tasks-axi show taste --full: exit 0, .42s, 512 bytes
+tasks-axi show mixed --full: exit 0, .91s, 645 bytes
+tasks-axi show human --full: exit 0, .36s, 573 bytes

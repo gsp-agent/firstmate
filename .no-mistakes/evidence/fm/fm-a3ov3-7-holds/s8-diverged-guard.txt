@@ -1,0 +1,10 @@
+host: load averages: 141.30 184.79 152.97   timing allowance: widened read/row/check bounds
+lab home: /tmp/fm-lab.dSFrNW   code under test: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M53WD160N0NF286RBDJ0Y2WA
+diverged exit 0 output:
+still-held	origin-a	still-held	Call still-held, with a comma
+PASS  reports exactly the still-held call (= still-held	origin-a	still-held	Call still-held, with a comma)
+PASS  exit status (= 0)
+diverged with an unreadable listing: exit 0 output: []
+PASS  unreadable listing stays silent (= )
+PASS  unreadable listing exits 0 (= 0)
+FAILS=0

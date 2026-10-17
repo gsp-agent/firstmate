@@ -1,0 +1,2 @@
+$ shellcheck -x bin/fm-captain-hold.sh
+# exit: 0

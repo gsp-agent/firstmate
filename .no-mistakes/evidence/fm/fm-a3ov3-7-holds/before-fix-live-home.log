@@ -1,0 +1,4 @@
+# tree: committed ef046061c4f61268aab12826366d53e4f4076a4f bin/, with only the uncommitted test change applied
+# bin/fm-captain-hold.sh differs from worktree: yes
+not ok - the routing sweep repeated the tasks-axi probe '--version ' per row (expected '1', got '4')
+# exit: 1 elapsed: 56s
