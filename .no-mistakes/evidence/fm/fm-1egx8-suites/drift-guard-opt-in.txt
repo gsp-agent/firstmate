@@ -1,0 +1,15 @@
+FM_HARNESS_LIVENESS_DRIFT in caller env: unset
+before: 5e658611f7d516859b9a379b5b710fbfa68849f3  /Users/dalecarman/.claude.json
+harness CLI processes before:       71
+FM_TEST_BEGIN 2026-10-17T19:18:02Z tests/fm-harness-liveness-drift-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+skip: live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run
+fm-test-run: gate skip: tests/fm-harness-liveness-drift-live-e2e.test.sh: live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run
+FM_TEST_END 2026-10-17T19:18:03Z tests/fm-harness-liveness-drift-live-e2e.test.sh exit=0 duration_ms=1391 gate_skip=true
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=1 duration_ms=2161
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=1391 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-harness-liveness-drift-live-e2e.test.sh duration_ms=1391
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M55HJTRBRYSY0T25FYTV2WT8/drift-guard.timing.json
+runner rc=0
+after: 5e658611f7d516859b9a379b5b710fbfa68849f3  /Users/dalecarman/.claude.json
+tmux sockets/labs left in temp root: 
+timing artifact scripts: [{"duration_ms": 1391, "exit": 0, "expected_gate_skip": "live-capability", "family": "live-harness-optin", "gate_skip": true, "gate_skip_reason": "live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run", "path": "tests/fm-harness-liveness-drift-live-e2e.test.sh"}]

@@ -1,0 +1,4 @@
+before: 5e658611f7d516859b9a379b5b710fbfa68849f3 | cfg leak keys=0
+ok - watch liveness: a Claude relaunch writes trust only inside the case HOME
+rc=0 wall=28s
+after: 5e658611f7d516859b9a379b5b710fbfa68849f3 | leak keys naming fms.lwclCS: home=0 cfg=0

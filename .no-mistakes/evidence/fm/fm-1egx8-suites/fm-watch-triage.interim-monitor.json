@@ -1,0 +1,14 @@
+{
+ "samples": 375,
+ "pre_run_load1": 101.6,
+ "peak_load1_during_run": 143.23,
+ "peak_minus_pre": 41.63,
+ "done1_load_within_pre_plus_100": true,
+ "swap_used_start_mb": 1498.44,
+ "swap_used_end_mb": 1490.44,
+ "swap_used_max_mb": 1498.44,
+ "swapouts_delta": 0,
+ "done2_swap_end_le_start": true,
+ "swap_growth_windows": 0,
+ "swap_windows_top_growers": []
+}

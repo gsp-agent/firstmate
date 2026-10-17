@@ -1,0 +1,54 @@
+== version=base stop=term args=--jobs 1 tests/fm-orphan-fixture.test.sh tests/fm-later-fixture.test.sh ==
+runner rc=143; checked 1792263780-1792263720=60s after the stop
+suite pid + child pid recorded at start: 41786 42351 
+still alive after stop:  41786 42351
+suite TERM cleanup records: 0
+FM_TEST_BEGIN count: 1
+runner output:
+  | FM_TEST_BEGIN 2026-10-17T19:01:57Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+  | fixture 41786 started, child 42351
+
+killcmp.sh: line 58:  6147 Killed: 9                  ( cd "$repo" && exec env TMPDIR="$W/$V/scratch" STARTS_FILE="$d/starts" CLEANED_FILE="$d/cleaned" FM_TEST_MACHINE_GATE= bin/fm-test-run.sh "$@" > "$d/out" 2>&1 )
+== version=base stop=kill args=--jobs 1 tests/fm-orphan-fixture.test.sh tests/fm-later-fixture.test.sh ==
+runner rc=137; checked 1792263830-1792263784=46s after the stop
+suite pid + child pid recorded at start: 8313 8709 
+still alive after stop:  8313 8709
+suite TERM cleanup records: 0
+FM_TEST_BEGIN count: 1
+runner output:
+  | FM_TEST_BEGIN 2026-10-17T19:03:03Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+  | fixture 8313 started, child 8709
+
+== version=base stop=ctrl-c args=--jobs 1 tests/fm-orphan-fixture.test.sh tests/fm-later-fixture.test.sh ==
+runner rc=1; checked 1792264433-1792263831=602s after the stop
+suite pid + child pid recorded at start: 32967 32991 34043 34055 
+still alive after stop: none
+suite TERM cleanup records: 0
+FM_TEST_BEGIN count: 2
+runner output:
+  | FM_TEST_BEGIN 2026-10-17T19:03:50Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+  | fixture 32967 started, child 32991
+  | FM_TEST_END 2026-10-17T19:03:52Z tests/fm-orphan-fixture.test.sh exit=141 duration_ms=1895 gate_skip=false
+  | FM_TEST_BEGIN 2026-10-17T19:03:52Z tests/fm-later-fixture.test.sh family=unclassified expected_gate_skip=none
+  | fixture 34043 started, child 34055
+  | FM_TEST_END 2026-10-17T19:13:53Z tests/fm-later-fixture.test.sh exit=0 duration_ms=600377 gate_skip=false
+  | FM_TEST_SUMMARY total=2 failed=1 skipped_gate=0 duration_ms=603363
+  | FM_TEST_SUMMARY_FAMILY family=unclassified count=2 duration_ms=602272 failed=1
+  | FM_TEST_SLOWEST rank=1 script=tests/fm-later-fixture.test.sh duration_ms=600377
+  | FM_TEST_SLOWEST rank=2 script=tests/fm-orphan-fixture.test.sh duration_ms=1895
+
+== version=base stop=bound args=--per-script-timeout-secs 2 tests/fm-orphan-fixture.test.sh ==
+runner rc=1; checked 1792264437-1792264436=1s after the stop
+suite pid + child pid recorded at start: 67533 67549 
+still alive after stop: none
+suite TERM cleanup records: 0
+FM_TEST_BEGIN count: 1
+runner output:
+  | FM_TEST_BEGIN 2026-10-17T19:13:54Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+  | fixture 67533 started, child 67549
+  | not ok - tests/fm-orphan-fixture.test.sh exceeded the per-script bound of 2s and was terminated
+  | FM_TEST_END 2026-10-17T19:13:57Z tests/fm-orphan-fixture.test.sh exit=124 duration_ms=2380 gate_skip=false
+  | FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=3119
+  | FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=2380 failed=1
+  | FM_TEST_SLOWEST rank=1 script=tests/fm-orphan-fixture.test.sh duration_ms=2380
+

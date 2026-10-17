@@ -1,4 +1,4 @@
-FM_TEST_BEGIN 2026-10-17T15:31:16Z tests/fm-watch-triage.test.sh family=watcher-wake-lock expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-17T19:14:03Z tests/fm-watch-triage.test.sh family=watcher-wake-lock expected_gate_skip=none
 ok - status_span_has_actionable: benign absorbed, captain events surfaced, classified events not re-fired
 ok - an actionable event is not hidden by later routine appends, and is named as itself
 ok - span classification retires closed decisions and surfaces rejected transitions for reconciliation
@@ -70,15 +70,4 @@ ok - a pane becoming active again resets the consecutive wedge-escalation counte
 ok - a record whose endpoint is dead or missing reports itself once and is never re-escalated
 ok - a live wedged agent, an unattributable one, and an unreadable endpoint escalate unchanged
 ok - the once-only gone report re-arms when the endpoint comes back, and reports a later death again
-ok - a second death after a same-window relaunch reports in full without a live probe, and an unchanged dead pane stays silent
-ok - a successor's byte-identical dead display reports in full, and the same incarnation still absorbs
-ok - TERM stops a watcher blocked inside a poll and still runs its cleanup
-watcher: recovery state could not be persisted; retaining stale lock evidence
-ok - TERM stops a watcher whose downtime-marker lock is held, retaining stale evidence
-ok - the cleanup marker-lock bound is decimal and zero falls back to the default
-ok - a busy worker below the turn-age bound remains working with no escalation
-ok - a busy worker with a stable pane hash still escalates once its completed-turn age reaches the bound
-ok - a busy worker whose pane hash changes every poll still escalates once its completed-turn age reaches the bound
-ok - touching a busy worker's completed-turn marker resets the age and prevents an old-age escalation
-ok - native progress resets busy age without a completed turn or notification
 Terminated: 15             sleep 0.1

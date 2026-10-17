@@ -1,0 +1,138 @@
+suite=fm-supervision-host
+pre: 2026-10-17 14:23:26 CDT { 133.85 107.44 93.76 } total = 2048.00M  used = 1498.44M  free = 549.56M  (encrypted)
+pre-store: /Users/dalecarman/.claude.json sha=5e658611f7d516859b9a379b5b710fbfa68849f3 leak_keys=0
+pre-store: /Users/dalecarman/.claude-accounts/george/.claude.json sha=d5fed8d11409059047264ea941c2b625961e6a3d leak_keys=0
+pre-survivors: 0
+rc=143 wall_s=1155
+post: 2026-10-17 14:43:13 CDT { 107.21 107.84 100.98 } total = 2048.00M  used = 1490.44M  free = 557.56M  (encrypted)
+post-store: /Users/dalecarman/.claude.json sha=5e658611f7d516859b9a379b5b710fbfa68849f3 leak_keys=0
+post-store: /Users/dalecarman/.claude-accounts/george/.claude.json sha=520b11326614d3cd3be703fb567274d6720b33d1 leak_keys=0
+killed9_lines=0
+watcher_exit_timeout_lines=0
+summary_line: 
+survivors_4s_after (fm-watch/home-summary/fleet-snapshot/crew-state from this worktree):
+20745 92544 93023 00:09 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-watch.sh
+20752 92544 20745 00:10 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-inactive-reconcile.sh scan
+21213 21213 20752 00:09 timeout -k 1 11 bash -c \012    status_file=$1\012    shift\012    "$@"\012    command_rc=$?\012    printf "%s\n" "$command_rc" > "$status_file"\012    exit "$command_rc"\012   _ /tmp/fma.Rn61nw/fm-supervision-host/tmp/fm-timeout-status.9dOg5h /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-inactive-reconcile.sh _scan-locked 0
+21230 21213 21213 00:09 bash -c \012    status_file=$1\012    shift\012    "$@"\012    command_rc=$?\012    printf "%s\n" "$command_rc" > "$status_file"\012    exit "$command_rc"\012   _ /tmp/fma.Rn61nw/fm-supervision-host/tmp/fm-timeout-status.9dOg5h /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-inactive-reconcile.sh _scan-locked 0
+21279 21213 21230 00:09 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-inactive-reconcile.sh _scan-locked 0
+69056 69056     1 06:37 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-watch-arm.sh
+92544 92544     1 03:36 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-watch-arm.sh
+93023 92544 92544 03:36 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-watch.sh
+survivors_12s_after:
+69056 69056     1 06:51 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-watch-arm.sh
+new entries in caller TMPDIR during run:
+.br-jsonl-write-186a15e011e341a75654159f.lock
+.com.google.Chrome.E7ytLC
+.com.google.Chrome.F2mKnI
+.com.google.Chrome.IRIkXR
+.com.google.Chrome.MCfMB1
+.com.google.Chrome.SMeN7Q
+.com.google.Chrome.ViPwS2
+.com.google.Chrome.hqpum9
+.fm-test-cleanup.89147.hwaZys
+.fm-test-cleanup.92569.FIa0Gh
+.fm-test-procevent.89147.hTv6TA
+.fm-test-procevent.92569.MU9jyq
+.fm-test-watcher.89147.Y5lOf5
+.fm-test-watcher.92569.zNExer
+.tmp0fec1R
+.tmp5XgwKC
+.tmp5pi5ac
+.tmp9EpIa3
+.tmp9Yfeyb
+.tmpBu7AgN
+.tmpGUZhbZ
+.tmpGiNFY6
+.tmpJ8gWbn
+.tmpK5CK0s
+.tmpPGnV0V
+.tmpRZDYb7
+.tmpSirjDH
+.tmpUYOBLf
+.tmpUtrkP9
+.tmpVsw7sp
+.tmpVxzEmS
+.tmpWLC66f
+.tmpYiNjAd
+.tmpa4amaK
+.tmpcadOqx
+.tmpdapS31
+.tmpfL6TtS
+.tmpfXbMZ4
+.tmpgI6nCb
+.tmpjjLlH8
+.tmpjuLAv8
+.tmpl8E9GG
+.tmplvwQdx
+.tmpniFkHU
+.tmpoV8hhB
+.tmpowKq8U
+.tmpr3EYxJ
+.tmpt9GUQY
+.tmpvSWm6I
+.tmpwQvSQ8
+.tmpwVyf1E
+.tmpwyOrfj
+.tmpxNXsLO
+.tmpyg8fbV
+claude-context-stow-fired-ef930c24-095c-40ab-99d2-bfbb02d35064
+claude-statusline-pane.c0b7bc60-75de-4982-8694-e8d2c2d854fd
+claude-statusline-pane.d749568a-e5fa-4f8d-996d-01e6963acea2
+com.google.Chrome.chrome_chrome_url_fetcher_.3quxcJ
+com.google.Chrome.chrome_chrome_url_fetcher_.Gdxkic
+com.google.Chrome.chrome_chrome_url_fetcher_.X1pTeb
+com.google.Chrome.chrome_chrome_url_fetcher_.bK0IDo
+com.google.Chrome.chrome_chrome_url_fetcher_.dcjbGK
+com.google.Chrome.chrome_chrome_url_fetcher_.fXMZa0
+com.google.Chrome.zTJCQX
+disk-sweep.LYDgBf
+fm-bearings.y1IopT
+fm-fleet-tasks.CGkbo7
+fm-fleet-tasks.M2nEuW
+fm-fleet-tasks.TwPg3n
+fm-fleet-tasks.V8vwnx
+fm-fleet-tasks.b01qh7
+fm-fleet-tasks.jdzEc9
+fm-fleet-tasks.v7gE7T
+fm-project-capacity.ifRqm0
+fm-test-machine-line.wSaFYX
+fm-test-run.keV5LT
+fm-timeout-status.9oC0vo
+fm-timeout-status.N60cFZ
+fm-timeout-status.P2dQTf
+fm-timeout-status.U5AoyL
+fm-timeout-status.XQAFKE
+fm-timeout-status.lZbXM8
+fm-timeout-status.pv9epS
+fm-timeout-status.zsBuh4
+test-disk-sweep-agent-scratch.BWPh2k
+tmp.JqJ1w2xXAZ
+tmp.VIO8X3HzY6
+tmp.gTUKr31gq8
+tmp.i9aVs5gA6M
+tmp.rgdamHNgeo
+tmpyy0iijv1
+left in suite TMPDIR root:
+fm-supervision-host.tyNM0h
+fm-timeout-status.I0aKFx
+fm-timeout-status.JoVDn9
+fm-timeout-status.Mdj7Mb
+fm-timeout-status.ZIAoWg
+fm-timeout-status.aKyNMJ
+fm-timeout-status.qeQSrs
+monitor summary:
+{
+ "samples": 259,
+ "pre_run_load1": 132.18,
+ "peak_load1_during_run": 143.23,
+ "peak_minus_pre": 11.05,
+ "done1_load_within_pre_plus_100": true,
+ "swap_used_start_mb": 1498.44,
+ "swap_used_end_mb": 1490.44,
+ "swap_used_max_mb": 1498.44,
+ "swapouts_delta": 0,
+ "done2_swap_end_le_start": true,
+ "swap_growth_windows": 0,
+ "swap_windows_top_growers": []
+}

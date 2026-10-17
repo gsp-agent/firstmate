@@ -1,0 +1,45 @@
+suite=fm-watch-triage
+pre: 2026-10-17 14:13:54 CDT { 101.91 84.91 79.54 } total = 2048.00M  used = 1498.44M  free = 549.56M  (encrypted)
+pre-store: /Users/dalecarman/.claude.json sha=5e658611f7d516859b9a379b5b710fbfa68849f3 leak_keys=0
+pre-store: /Users/dalecarman/.claude-accounts/george/.claude.json sha=31c330e6c114ac88cfc63c16bee52d5d34b7b941 leak_keys=0
+pre-survivors: 0
+(driver detached at 14:24; runner pid 70502 finished on its own; exit code read from the runner log)
+wall_s=1731
+post: 2026-10-17 14:43:13 CDT { 107.21 107.84 100.98 } total = 2048.00M  used = 1490.44M  free = 557.56M  (encrypted)
+post-store: /Users/dalecarman/.claude.json sha=5e658611f7d516859b9a379b5b710fbfa68849f3 leak_keys=0
+post-store: /Users/dalecarman/.claude-accounts/george/.claude.json sha=520b11326614d3cd3be703fb567274d6720b33d1 leak_keys=0
+killed9_lines=0
+watcher_exit_timeout_lines=0
+summary_line: 
+survivors_4s_after (any process naming this run root in env or args):
+survivors_12s_after:
+left in suite TMPDIR root:
+fm-fleet-snapshot.E9pFxa
+fm-fleet-snapshot.Nlfc5M
+fm-fleet-snapshot.QdBPuO
+fm-fleet-snapshot.rPKZYo
+fm-fleet-tasks.0LUEg8
+fm-fleet-tasks.LQyPtN
+fm-fleet-tasks.QUyT6r
+fm-fleet-tasks.zV6jqO
+fm-timeout-status.1Yk5d3
+fm-timeout-status.MVk2z0
+fm-timeout-status.QcFA4I
+fm-timeout-status.Rj0XYe
+fm-timeout-status.ma1rXy
+fm-timeout-status.znLFY9
+monitor summary:
+{
+ "samples": 386,
+ "pre_run_load1": 101.6,
+ "peak_load1_during_run": 143.23,
+ "peak_minus_pre": 41.63,
+ "done1_load_within_pre_plus_100": true,
+ "swap_used_start_mb": 1498.44,
+ "swap_used_end_mb": 1490.44,
+ "swap_used_max_mb": 1498.44,
+ "swapouts_delta": 0,
+ "done2_swap_end_le_start": true,
+ "swap_growth_windows": 0,
+ "swap_windows_top_growers": []
+}

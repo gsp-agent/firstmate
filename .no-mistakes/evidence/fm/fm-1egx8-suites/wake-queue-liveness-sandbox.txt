@@ -1,0 +1,13 @@
+before: 5e658611f7d516859b9a379b5b710fbfa68849f3  /Users/dalecarman/.claude.json | 1f38385ef4bddb627b16b3a9e1c4b017e4f258e3  /Users/dalecarman/.claude-accounts/george/.claude.json
+leak keys before: home=0 cfg=0
+ok - drain asserts watcher liveness: warns on a lapse, stays silent for a live watcher with a fresh beacon
+ok - watch liveness: a dead secondmate is relaunched once, ledgered, and quiet afterwards
+ok - watch liveness: a missing secondmate endpoint is relaunched without a pre-kill
+ok - watch liveness: one tick relaunches every dead mate, queues a row each, and wakes once
+ok - watch liveness: alive and ambiguous endpoints are probed, logged, and never touched
+ok - watch liveness: the cadence marker gates probing and survives across legs
+not ok - a live probe did not clear the bound marker
+suite-subset rc=1 wall=108s
+after: 5e658611f7d516859b9a379b5b710fbfa68849f3  /Users/dalecarman/.claude.json | 1f38385ef4bddb627b16b3a9e1c4b017e4f258e3  /Users/dalecarman/.claude-accounts/george/.claude.json
+leak keys after (keys naming this run's temp root fml.od9ka7): home=0 cfg=0
+left in temp root: fm-fleet-snapshot.RBBwGD fm-timeout-status.zU1BXS 

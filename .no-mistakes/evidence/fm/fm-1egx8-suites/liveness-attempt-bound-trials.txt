@@ -1,0 +1,6 @@
+new#1 rc=0 57s ok - watch liveness: the attempt bound parks a flapping mate once and a live probe rearms a full budget load={ 83.23 93.90 86.70 }
+base#1 rc=1 33s not ok - a live probe did not clear the bound marker load={ 86.27 93.67 86.92 }
+new#2 rc=1 40s not ok - a live probe did not clear the bound marker load={ 92.09 94.21 87.43 }
+base#2 rc=1 46s not ok - a live probe did not clear the bound marker load={ 89.95 93.59 87.56 }
+new#3 rc=1 39s not ok - a live probe did not clear the bound marker load={ 92.84 93.51 87.78 }
+base#3 rc=1 32s not ok - a live probe did not clear the bound marker load={ 102.44 95.48 88.68 }

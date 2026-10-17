@@ -1,0 +1,10 @@
+== run root /tmp/fma.8pktNT before TERM (14:42:38): 6 processes, fm-watch.sh: 1
+== run root /tmp/fma.Rn61nw before TERM (14:42:43): 34 processes, fm-watch.sh: 8
+both runners exited 1s after TERM
+== run root /tmp/fma.8pktNT 12s after both runners exited (14:43:04):
+== run root /tmp/fma.Rn61nw 12s after both runners exited (14:43:06):
+69056 69056 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55HJTRBRYSY0T25FYTV2WT8/bin/fm-watch-arm.sh
+survivor after runner TERM (14:44:04):
+  PID  PPID  PGID ELAPSED STAT COMMAND
+FM_HOME exists: yes
+left in pgid 69056 after cleanup TERM:        0

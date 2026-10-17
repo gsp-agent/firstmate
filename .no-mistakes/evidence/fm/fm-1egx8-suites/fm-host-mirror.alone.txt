@@ -1,0 +1,58 @@
+suite=fm-host-mirror
+pre: 2026-10-17 13:59:04 CDT { 87.54 87.79 75.51 } total = 2048.00M  used = 1498.44M  free = 549.56M  (encrypted)
+pre-store: /Users/dalecarman/.claude.json sha=5e658611f7d516859b9a379b5b710fbfa68849f3 leak_keys=0
+pre-store: /Users/dalecarman/.claude-accounts/george/.claude.json sha=a5ab65c3d822a8e3968ae8879c6c49b443ced618 leak_keys=0
+pre-survivors: 0
+rc=0 wall_s=110
+post: 2026-10-17 14:01:21 CDT { 68.22 81.28 74.80 } total = 2048.00M  used = 1498.44M  free = 549.56M  (encrypted)
+post-store: /Users/dalecarman/.claude.json sha=5e658611f7d516859b9a379b5b710fbfa68849f3 leak_keys=0
+post-store: /Users/dalecarman/.claude-accounts/george/.claude.json sha=8aa0bf1b45bcb148987446bd35f5bf9bc7ed8062 leak_keys=0
+killed9_lines=0
+watcher_exit_timeout_lines=0
+summary_line: FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=108452
+survivors_4s_after (fm-watch/home-summary/fleet-snapshot/crew-state from this worktree):
+survivors_12s_after:
+new entries in caller TMPDIR during run:
+.fm-test-cleanup.69945.vKYpcW
+.fm-test-procevent.69945.TiAaWy
+.fm-test-watcher.69945.Dkut8Q
+.tmp1AbiSe
+.tmp3woeLO
+.tmp6DQZHa
+.tmpD3CTLZ
+.tmpHoQztJ
+.tmpJ9MvI5
+.tmpJQMnkJ
+.tmpS8jAHs
+.tmps0x1aC
+.tmpxwefNT
+claude-statusline-pane.0c30073c-569c-49f0-903e-a66903682ce2
+ds-base.sh
+fm-fleet-tasks.3Rb687
+fm-fleet-tasks.pZ1M5O
+fm-lab2.Ks1BfF
+fm-project-capacity.2rFv9d
+fm-timeout-status.06chGz
+fm-timeout-status.WVTS9y
+obs-g7d3k-r2-ceremony-head.rZvXGG
+obs-g7d3k-r2-linked-reader.XOIujV
+obs-g7d3k-r2-sibling-evidence-wt.ZDtmKw
+prjobs-any-Nb00KH
+tmp.L5RdMIqejE
+tmp.RjOlVaXuIn
+left in suite TMPDIR root:
+monitor summary:
+{
+ "samples": 28,
+ "pre_run_load1": 89.25,
+ "peak_load1_during_run": 93.89,
+ "peak_minus_pre": 4.64,
+ "done1_load_within_pre_plus_100": true,
+ "swap_used_start_mb": 1498.44,
+ "swap_used_end_mb": 1498.44,
+ "swap_used_max_mb": 1498.44,
+ "swapouts_delta": 0,
+ "done2_swap_end_le_start": true,
+ "swap_growth_windows": 0,
+ "swap_windows_top_growers": []
+}
