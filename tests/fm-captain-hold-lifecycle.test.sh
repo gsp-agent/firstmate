@@ -5253,6 +5253,52 @@ ASKS
   pass 'money, credentials, people, client words, production, accounts, taste and human endpoints stay reserved'
 }
 
+test_domain_protected_deferrals_never_enter_pending() {
+  local domain_home id show technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+  domain_home=$(make_domain_home domain-protected-deferral)
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold production-ask --title 'Production ask' \
+    --decision-owner captain --timeout-seconds 60 --until 2099-01-01 \
+    --reason 'Should I deploy this to production?' >/dev/null || fail 'could not defer the production ask'
+  assert_absent "$domain_home/state/hold-domain/pending/production-ask.body" 'deferred production ask entered pending routing'
+  if domain_supervision_needed "$domain_home"; then
+    fail 'deferred production ask kept an otherwise idle home supervised'
+  fi
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold human-deferred --title 'Human-owned deferral' \
+    --decision-owner captain --timeout-seconds 60 --until 2099-01-01 --reason "$technical" >/dev/null \
+    || fail 'could not defer the human-owned technical hold'
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold money-deferred --title 'Agent-owned money ask' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --until 2099-01-01 \
+    --reason 'Should I spend money to buy more seats?' >/dev/null || fail 'could not defer the money ask'
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold postponed --title 'Credential ask' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --reason 'Could you provide the OAuth token?' >/dev/null \
+    || fail 'could not hold the credential ask'
+  run_domain "$domain_home" 2026-10-14T02:00:01Z hold postponed --until 2099-01-01 \
+    --reason 'Could you provide the OAuth token?' >/dev/null || fail 'could not postpone the credential ask'
+  for id in switched reowned; do
+    run_domain "$domain_home" 2026-10-14T02:00:00Z hold "$id" --title "Deferred technical $id" \
+      --decision-owner ep-firstmate --timeout-seconds 60 --until 2099-01-01 --reason "$technical" >/dev/null \
+      || fail "could not defer technical hold $id"
+    assert_present "$domain_home/state/hold-domain/pending/$id.body" "eligible technical deferral $id lost its routing wake"
+  done
+  run_domain "$domain_home" 2026-10-14T02:00:01Z hold switched --until 2099-01-01 \
+    --reason 'Should I deploy this to production?' >/dev/null || fail 'could not change the deferred question'
+  run_domain "$domain_home" 2026-10-14T02:00:01Z hold reowned --decision-owner captain --until 2099-01-01 \
+    --reason "$technical" >/dev/null || fail 'could not hand the deferred hold to the captain'
+  for id in production-ask human-deferred money-deferred postponed switched reowned; do
+    assert_absent "$domain_home/state/hold-domain/pending/$id.body" "protected or human-owned deferral $id stayed pending"
+    assert_absent "$domain_home/state/hold-domain/pending/.route.$id" "protected deferral $id left its staged routing body"
+    show=$(tasks_in "$domain_home" show "$id" --full)
+    assert_contains "$show" 'held: yes' "protected deferral $id was released"
+    assert_contains "$show" 'hold_until: 2099-01-01' "protected deferral $id lost its date"
+    assert_not_contains "$show" 'Resolution mode:' "protected deferral $id gained a resolution"
+  done
+  if domain_supervision_needed "$domain_home"; then
+    fail 'protected or human-owned deferrals kept an otherwise idle home supervised'
+  fi
+  assert_absent "$domain_home/owner.log" 'a protected or human-owned deferral reached an agent'
+  pass 'protected and human-owned deferrals stay plain captain holds without keeping supervision awake'
+}
+
 test_domain_retries_failed_delivery_and_release() {
   local domain_home show before mode=${1:-active} held=yes receipt pending
   domain_home=$(make_domain_home "domain-retry-$mode")
@@ -5942,6 +5988,7 @@ case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
     exit $?
     ;;
   deferred) test_domain_deferred_holds_keep_their_routing_wake; exit $? ;;
+  protected-deferral) test_domain_protected_deferrals_never_enter_pending; exit $? ;;
   fairness) test_domain_interrupted_sweeps_make_fair_progress; exit $? ;;
   rows) test_domain_row_bounds_preserve_later_holds; exit $? ;;
   runtime) test_domain_runtime_metadata_aliases; exit $? ;;
@@ -6006,6 +6053,7 @@ test_domain_archival_retires_pending_only_after_a_readable_lookup
 test_domain_pending_holds_keep_supervision_after_task_retirement
 test_domain_holds_route_after_timeout_and_record_evidence
 test_domain_keeps_reserved_human_and_answered_holds
+test_domain_protected_deferrals_never_enter_pending
 test_domain_retries_failed_delivery_and_release
 test_domain_retries_failed_delivery_and_release expired
 test_watcher_routes_due_holds_before_surfacing_signals
