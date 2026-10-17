@@ -5554,6 +5554,87 @@ SH
   pass "fm-teardown: a kept report over 1 MiB prepares, stages and expires like a small one"
 }
 
+test_task_data_slow_expire_releases_locks() {
+  local case_dir old young held beads started send_pid teardown_pid rc i seconds
+  case_dir=$(make_case task-data-slow-expire)
+  old="$case_dir/data/old-done"
+  young="$case_dir/data/young-done"
+  mkdir -p "$case_dir/project"
+  for held in old-done young-done; do
+    beads='[]'
+    [ "$held" = young-done ] || beads='["tst-slow1", "tst-slow2", "tst-slow3"]'
+    mkdir -p "$case_dir/data/$held/record" "$case_dir/data/$held/.cleanup-hold"
+    printf 'held scratch\n' > "$case_dir/data/$held/.cleanup-hold/scratch.bin"
+    jq -n --arg task "$held" --arg project "$case_dir/project" --arg data "$case_dir/data" --argjson beads "$beads" \
+      '{version: 1, task: $task, complete: true, expired: false,
+        sources: [{project: $project, pr: "", beads: $beads, backlog: {data: $data, task: null}}]}' \
+      > "$case_dir/data/$held/record/data-cleanup.json"
+  done
+  touch -t 202001010000 "$old/record/data-cleanup.json"
+  touch -t 202101010000 "$young/record/data-cleanup.json"
+  cat > "$case_dir/fakebin/br" <<SH
+#!/usr/bin/env bash
+: > "$case_dir/br-started"
+exec sleep 12
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  fm_write_meta "$case_dir/state/live-y.meta" "window=sess:fm-live-y" "kind=ship" "harness=claude"
+  FM_SUPERVISION_ACTOR=main FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=3 run_teardown "$case_dir" \
+    > "$case_dir/out" 2> "$case_dir/err" &
+  teardown_pid=$!
+  for ((i = 0; i < 300; i++)); do
+    [ -e "$case_dir/br-started" ] && break
+    sleep 0.1
+  done
+  [ -e "$case_dir/br-started" ] || {
+    wait "$teardown_pid"
+    fail "teardown never read the other task's bead: $(cat "$case_dir/err")"
+  }
+  started=$SECONDS
+  env PATH="$case_dir/fakebin:$PATH" FM_SUPERVISION_ACTOR=main FM_HOME="$case_dir" FM_SEND_SETTLE=0 \
+    "$ROOT/bin/fm-send.sh" live-y "steer during expiry" > "$case_dir/send.out" 2> "$case_dir/send.err" &
+  send_pid=$!
+  for ((i = 0; i < 50; i++)); do
+    kill -0 "$send_pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  if kill -0 "$send_pid" 2>/dev/null; then
+    wait "$send_pid" "$teardown_pid"
+    fail "a concurrent fm-send waited $((SECONDS - started))s on a teardown expiring another task's data"
+  fi
+  wait "$send_pid" || fail "concurrent fm-send failed: $(cat "$case_dir/send.err")"
+  assert_present "$case_dir/state/live-y.inbox/001.msg" "concurrent fm-send recorded no steer"
+  wait "$teardown_pid"
+  rc=$?
+  seconds=$((SECONDS - started))
+  expect_code 0 "$rc" "teardown with a slow expiry of another task"
+  [ "$seconds" -le 10 ] || fail "teardown spent ${seconds}s expiring another task's data with a 3s budget"
+  [ "$(backlog_row_state "$case_dir")" = "done" ] \
+    || fail "a slow expiry left the backlog item at $(backlog_row_state "$case_dir")"
+  assert_present "$old/.cleanup-hold/scratch.bin" "an unfinished expiry removed held data"
+  assert_present "$young/.cleanup-hold/scratch.bin" "teardown kept expiring holds past its budget"
+  tasks-axi add task-next "next teardown fixture task" --kind ship --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi start task-next --file "$case_dir/data/backlog.md" >/dev/null
+  fm_write_meta "$case_dir/state/task-next.meta" \
+    "window=firstmate:fm-task-next" "endpoint_task_id=task-next" \
+    "worktree=$case_dir/missing" "project=$case_dir/project" \
+    "kind=ship" "mode=local-only" "spawn_gen=task-next"
+  FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
+    FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
+    FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=3 PATH="$case_dir/fakebin:$PATH" \
+    "$TEARDOWN" task-next > "$case_dir/next.out" 2> "$case_dir/next.err" \
+    || fail "next teardown failed: $(cat "$case_dir/next.err")"
+  assert_absent "$young/.cleanup-hold" "a slow hold took the next teardown's whole expiry budget"
+  assert_present "$old/.cleanup-hold/scratch.bin" "the slow hold expired without its references"
+  pass "fm-teardown: a slow expiry of another task's data neither blocks fm-send, outlasts its budget, nor starves other holds"
+}
+
 test_task_data_refusals() {
   local case_dir task rc
   case_dir=$(make_case task-data-refusals)
@@ -7360,6 +7441,7 @@ test_task_data_legacy_reused_id
 test_task_data_github_reader
 test_task_data_cleanup
 test_task_data_large_kept_evidence
+test_task_data_slow_expire_releases_locks
 test_task_data_refusals
 test_task_data_references_and_guard
 test_task_data_bead_backlog_sources
