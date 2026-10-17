@@ -1512,6 +1512,13 @@ SH
   pass "--per-script-timeout-secs turns a hung script into a bounded failure"
 }
 
+runner_scratch_entries() { # <dir>: the runner's and the stand-in gate's temp entries in <dir>
+  local entry
+  for entry in "$1"/fm-test-run.* "$1"/fm-test-sched.* "$1"/fm-test-machine-line.* "$1"/fm-line-standin.*; do
+    [ ! -e "$entry" ] || printf '%s\n' "${entry##*/}"
+  done | LC_ALL=C sort
+}
+
 # A runner stopped from outside mid-script (a lane killed, a terminal closed)
 # must take that script's whole process group with it, bounded or not, and
 # also when the machine gate re-executed it under a second runner: the caller
@@ -1519,17 +1526,18 @@ SH
 # after that on either scheduler. Otherwise the suite and every watcher it
 # started keep running unowned, and the gate keeps the line.
 test_killed_runner_takes_its_script_down() {
-  local tmp repo runner name gate sig shape running runner_pid pids waited gated=0
+  local tmp repo runner name gate sig shape running runner_pid pids waited gated=0 scratch_before leaked
   local -a selection
+  scratch_before=$(runner_scratch_entries "${TMPDIR:-/tmp}")
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-killed.XXXXXX")
   repo="$tmp/repo"
   runner="$repo/bin/fm-test-run.sh"
-  mkdir -p "$repo/bin" "$repo/tests"
+  mkdir -p "$repo/bin" "$repo/tests" "$tmp/scratch"
   cp "$RUNNER" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$repo/tests/"
   # Proven-isolated names admit the jobs scheduler. Every fixture blocks until
-  # it is killed, so a script beyond the first <running> can start only if the
-  # run moved on after its owner died.
+  # it is killed, so the runner announces a script beyond the first <running>
+  # with FM_TEST_BEGIN only if it moved on after its owner died.
   for name in fm-orphan-fixture fm-later-fixture fm-lint fm-brief fm-crew-state; do
     cat >"$repo/tests/$name.test.sh" <<'SH'
 #!/usr/bin/env bash
@@ -1553,7 +1561,7 @@ SH
         fi
         : >"$tmp/starts"
         env -u FM_TEST_MACHINE_LINE_HELD -u FM_TEST_MACHINE_LINE_ADMITTED \
-          STARTS_FILE="$tmp/starts" FM_TEST_MACHINE_GATE="$gate" \
+          TMPDIR="$tmp/scratch" STARTS_FILE="$tmp/starts" FM_TEST_MACHINE_GATE="$gate" \
           MACHINE_LINE_DIR="$tmp/line" MACHINE_LINE_NAME=fm-test-run \
           FM_TEST_MACHINE_LINE_RETRY_SECS=0 \
           "$runner" "${selection[@]}" >"$tmp/out" 2>&1 &
@@ -1587,8 +1595,8 @@ SH
           kill -KILL $pids 2>/dev/null || true
           fail "a runner killed with SIG$sig${gate:+ through the machine gate} left a $shape script or its child running ($pids)"
         fi
-        [ "$(wc -l <"$tmp/starts")" -eq "$running" ] \
-          || fail "a $shape run killed with SIG$sig${gate:+ through the machine gate} started another script after its runner died"
+        [ "$(grep -c '^FM_TEST_BEGIN ' "$tmp/out")" -eq "$running" ] \
+          || fail "a $shape run killed with SIG$sig${gate:+ through the machine gate} launched another script after its runner died: $(cat "$tmp/out")"
         [ -n "$gate" ] || continue
         [ "$(line_row_count "$tmp/line/log.tsv" start 'cap 180m')" = "$gated" ] \
           || fail "the gated SIG$sig $shape leg did not run its scripts through the machine gate"
@@ -1597,6 +1605,8 @@ SH
       done
     done
   done
+  leaked=$(LC_ALL=C comm -13 <(printf '%s\n' "$scratch_before") <(runner_scratch_entries "${TMPDIR:-/tmp}"))
+  [ -z "$leaked" ] || fail "killed runners left scratch in the caller's TMPDIR rather than the test's temp root: $leaked"
 
   rm -rf "$tmp"
   pass "a killed runner takes its running scripts down and starts no other, through the machine gate too"
