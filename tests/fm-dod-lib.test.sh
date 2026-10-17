@@ -382,6 +382,24 @@ test_pr_based_dod_draft_check_uses_gh_axi() {
   pass "PR-based DoD draft check uses gh-axi"
 }
 
+# A worker that opens or receives a GitHub PR stamps the engines that wrote it
+# at once, because a review gate routes by them before firstmate registers it.
+test_pr_dod_runs_the_made_with_stamp() {
+  local mode out
+  for mode in direct-PR no-mistakes; do
+    out="$TMP_ROOT/dod-stamp-$mode.md"
+    fm_dod_block "$mode" stamp-task fm/stamp-task none '' '' /fm/home /fm/root > "$out"
+    # shellcheck disable=SC2016  # literal backticks in rendered prose must stay unexpanded
+    assert_grep 'run `FM_HOME=/fm/home /fm/root/bin/fm-pr-made-with.sh stamp-task <PR url>`' "$out" \
+      "$mode: DoD does not hand the worker the stamp command for its own home and task"
+    fm_dod_block "$mode" stamp-task fm/stamp-task forgejo '' '' /fm/home /fm/root > "$out"
+    assert_no_grep 'fm-pr-made-with' "$out" "$mode: a Forgejo DoD names the GitHub-only stamp"
+  done
+  fm_dod_block local-only stamp-task fm/stamp-task none '' '' /fm/home /fm/root > "$out"
+  assert_no_grep 'fm-pr-made-with' "$out" "local-only: a DoD with no PR names the stamp"
+  pass "PR-based DoD on GitHub hands the worker the Made-with stamp"
+}
+
 # A scout spawned on a named base keeps that base through promotion: the ship
 # instructions start from it and the PR targets it; local-only cannot carry it.
 test_promotion_keeps_the_recorded_base_branch() {
@@ -415,6 +433,8 @@ EOF
       assert_grep 'against the base branch `feature/hub`' "$home/data/$id/ship-instructions.md" \
         "promotion did not target the PR at the recorded base"
       assert_grep 'base_branch=feature/hub' "$meta" "promotion dropped the recorded base"
+      assert_grep "FM_HOME=$home $ROOT/bin/fm-pr-made-with.sh $id <PR url>" "$home/data/$id/ship-instructions.md" \
+        "promotion did not hand the worker the stamp command for this home"
     else
       [ "$status" -ne 0 ] || fail "promoting a based scout to local-only should be refused"
       assert_contains "$out" "mode=local-only" "the local-only promotion refusal did not explain itself"
@@ -442,6 +462,7 @@ test_standalone_local_only_needs_project_ref
 test_non_done_lines_are_not_gated
 test_fenced_and_indented_captain_lines_are_not_intent
 test_pr_based_dod_draft_check_uses_gh_axi
+test_pr_dod_runs_the_made_with_stamp
 test_promotion_keeps_the_recorded_base_branch
 
 # The launch role is the generated text a worker receives. It must keep the
