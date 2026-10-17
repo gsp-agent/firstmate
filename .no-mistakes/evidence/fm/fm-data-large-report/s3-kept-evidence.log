@@ -1,0 +1,42 @@
+=================== teardown t-bigreport (report.md is 1400041 bytes; its last line links proof/capture.png)
+task data t-bigreport: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.PwGac3/data/t-bigreport/.cleanup-hold until the next completed task
+teardown t-bigreport complete (window firstmate:fm-t-bigreport, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.PwGac3/missing-t-bigreport)
+warning: task data retained for recovery: dcg refused cleanup: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by dcg\n\nTip: dcg explain \"rm -f -- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.PwGac3/data/t-route/.cleanup-hold/discard.bin\"\n\nReason: dcg could not finish evaluating this command within 200ms (spent 953ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging.\n\nExplanation: dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n             \n             Ways through, in order of preference:\n             - Split the command into smaller commands and run them separately.\n             - Approve this one command with the allow-once code below.\n             - Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.\n\nRule: core.limits:evaluation-timeout\n\nIf this is a false positive: dcg allow-once 21289\n\nIf this operation is truly needed, ask the user for explicit permission and have them run the command manually.","allowOnceCode":"21289","allowOnceFullHash":"5d6346a7c88ab039434f5838fcd6e4cf938e63e12aeb99ee1df93678cf8245e9","ruleId":"core.limits:evaluation-timeout","packId":"core.limits","remediation":{"safeAlternative":"Use 'git clean -n' first to preview what would be deleted.","explanation":"dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n\nWays through, in order of preference:\n- Split the command into smaller commands and run them separately.\n- Approve this one command with the allow-once code below.\n- Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.","allowOnceCommand":"dcg allow-once 21289"}}}
+warning: task data t-unread-gsp expiry stopped after 3s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+warning: t-bigreport teardown completed, but expiring other tasks' held data needs a retry
+--- exit 0
+--- data/t-bigreport (bytes path):
+8 ./.cleanup-hold/scratch.bin
+51 ./proof/capture.png
+1400041 ./report.md
+--- backlog row: done
+--- pending close: none
+--- record: {"complete":true,"expired":false,"expiry":null,"sources":[{"beads":[],"unread":[]}]}
+
+=================== teardown t-hugelog (record/run.log is 16777217 bytes, one byte over 16 MiB)
+warning: task data t-hugelog retained whole for retry: kept evidence over 16 MiB: record/run.log
+teardown t-hugelog complete (window firstmate:fm-t-hugelog, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.PwGac3/missing-t-hugelog)
+warning: task data retained for recovery: unread references: gsp-zzz999
+warning: t-hugelog teardown completed, but expiring other tasks' held data needs a retry
+--- exit 0 after 43s
+--- data/t-hugelog (bytes path):
+16777217 ./record/run.log
+8 ./scratch.bin
+--- backlog row: done
+--- pending close: none
+--- record: {"complete":false,"expired":null,"expiry":null,"sources":[{"beads":[],"unread":["record/run.log"]}]}
+
+=================== shrink the log, then a different task's teardown retries t-hugelog and expires t-bigreport
+teardown t-after-big complete (window firstmate:fm-t-after-big, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.PwGac3/missing-t-after-big)
+task data t-hugelog: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.PwGac3/data/t-hugelog/.cleanup-hold until the next completed task
+warning: task data retained for recovery: unread references: gsp-zzz999
+warning: t-after-big teardown completed, but expiring other tasks' held data needs a retry
+--- exit 0
+--- data/t-hugelog:
+8 ./.cleanup-hold/scratch.bin
+10 ./record/run.log
+--- record: {"complete":true,"expired":false,"expiry":null,"sources":[{"beads":[],"unread":[]}]}
+--- data/t-bigreport:
+51 ./proof/capture.png
+1400041 ./report.md
+--- record: {"complete":true,"expired":true,"expiry":null,"sources":[{"beads":[],"unread":[]}]}

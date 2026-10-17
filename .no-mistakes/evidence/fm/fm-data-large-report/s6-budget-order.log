@@ -1,0 +1,21 @@
+=================== (a) 3,000 expired records dated 2020 plus one live hold dated 2021
+records in data/: 3002 folders; pending listing: zz-live: 
+[ 16.3s] teardown t-a complete (window firstmate:fm-t-a, worktree <lab>/missing-t-a)
+[ 19.1s] warning: task data retained for recovery: dcg refused cleanup: <dcg evaluation-timeout JSON elided>
+[ 19.3s] warning: t-a teardown completed, but expiring other tasks' held data needs a retry
+after t-a: zz-live {"expired":false,"expiry":null}; hold left: scratch.bin 
+
+=================== (b) a hold whose expiry needs longer than the 2s budget
+cc-medium brief names 15 beads
+[ 28.5s] teardown t-b1 complete (window firstmate:fm-t-b1, worktree <lab>/missing-t-b1)
+[ 33.8s] warning: task data zz-live expiry stopped after 2s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+[ 33.9s] warning: the 2s task-data expiry budget ran out; holds left for a later teardown: cc-medium
+[ 33.9s] warning: t-b1 teardown completed, but expiring other tasks' held data needs a retry
+after t-b1: cc-medium {"expired":false,"expiry":null}; hold: scratch.bin 
+[ 32.8s] teardown t-b2 complete (window firstmate:fm-t-b2, worktree <lab>/missing-t-b2)
+[ 41.4s] warning: task data cc-medium expiry stopped after 2s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+[ 41.5s] warning: the 2s task-data expiry budget ran out; holds left for a later teardown: zz-live
+[ 41.5s] warning: t-b2 teardown completed, but expiring other tasks' held data needs a retry
+t-b2 took 41s
+after t-b2: cc-medium {"expired":false,"expiry":"cut-off"}; hold: scratch.bin ; brief kept: yes
+pending now: zz-live:cut-off cc-medium:cut-off 

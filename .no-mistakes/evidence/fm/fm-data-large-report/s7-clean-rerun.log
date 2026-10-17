@@ -1,0 +1,22 @@
+=================== settle the leftover cc-medium hold with a 60s budget
+pending: cc-medium: 
+[ 29.5s] teardown t-c0 complete (window firstmate:fm-t-c0, worktree <lab>/missing-t-c0)
+t-c0 took 39s
+after t-c0: cc-medium {"expired":true,"expiry":null}; hold: ; pending: 
+
+=================== (a) one live hold dated 2021 behind 3,000 expired records dated 2020, default 10s budget
+expired records dated 2020: 3000; pending: yy-live: 
+listing pending holds across 3010 records took 0.76s
+[ 26.7s] teardown t-c1 complete (window firstmate:fm-t-c1, worktree <lab>/missing-t-c1)
+t-c1 took 34s
+after t-c1: yy-live {"expired":true,"expiry":null}; hold left: 
+
+=================== (b) ee-medium needs longer than a 2s budget: cut off once, then one full attempt finishes it
+[ 27.9s] teardown t-c2 complete (window firstmate:fm-t-c2, worktree <lab>/missing-t-c2)
+[ 41.0s] warning: task data ee-medium expiry stopped after 2s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+[ 41.0s] warning: t-c2 teardown completed, but expiring other tasks' held data needs a retry
+t-c2 took 43s
+after t-c2: ee-medium {"expired":false,"expiry":"cut-off"}; hold: scratch.bin 
+[ 28.8s] teardown t-c3 complete (window firstmate:fm-t-c3, worktree <lab>/missing-t-c3)
+t-c3 took 34s
+after t-c3: ee-medium {"expired":true,"expiry":null}; hold: ; brief kept: yes; pending: 

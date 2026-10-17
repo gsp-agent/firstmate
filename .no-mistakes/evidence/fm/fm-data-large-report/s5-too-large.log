@@ -1,0 +1,18 @@
+before: aa-slow mtime 1792255098 {"expired":false,"expiry":"cut-off"}; pending: aa-slow:cut-off t-hugelog: t-unread-gsp:cut-off 
+=================== teardown t-full1 (budget 2s, full attempt 5s)
+[ 21.4s] teardown t-full1 complete (window firstmate:fm-t-full1, worktree <lab>/missing-t-full1)
+[ 27.7s] warning: task data aa-slow expiry stopped after its one full 5s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55A0A5N047PA0YGGSS6K3ZV/bin/fm-task-data.py expire <lab>/data <lab>/state aa-slow
+[ 27.8s] warning: the 2s task-data expiry budget ran out; holds left for a later teardown: t-hugelog t-unread-gsp
+[ 27.8s] warning: t-full1 teardown completed, but expiring other tasks' held data needs a retry
+t-full1 took 28s
+after t-full1: aa-slow mtime 1792255261 {"expired":false,"expiry":"too-large"}; hold: scratch.bin 
+
+=================== teardown t-skip (same budgets): aa-slow must be skipped, not attempted
+[ 17.7s] teardown t-skip complete (window firstmate:fm-t-skip, worktree <lab>/missing-t-skip)
+[ 18.1s] warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: aa-slow
+[ 20.1s] warning: the 2s task-data expiry budget ran out; holds left for a later teardown: t-unread-gsp
+t-skip exit 0, took 21s; expire process for aa-slow observed during t-skip: never
+after t-skip: aa-slow mtime 1792255261 {"expired":false,"expiry":"too-large"} (mtime before t-skip 1792255261); hold: scratch.bin 
+
+=================== expire it by hand with the command the warning names (full time, no cap)
+manual expire exit 0 after 6s: aa-slow mtime 1792255289 {"expired":true,"expiry":null}; hold: 

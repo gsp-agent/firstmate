@@ -1,0 +1,13 @@
+=================== (a) 3,000 expired records dated 2020 plus one live hold dated 2021
+
+=================== (b, continued) next teardowns with the same 2s budget give each cut-off hold its one full attempt
+[ 25.2s] teardown t-b3 complete (window firstmate:fm-t-b3, worktree <lab>/missing-t-b3)
+[ 28.3s] warning: the 2s task-data expiry budget ran out; holds left for a later teardown: cc-medium
+t-b3 took 28s; zz-live {"expired":true,"expiry":null}; cc-medium {"expired":false,"expiry":"cut-off"}; cc-medium hold: scratch.bin 
+pending now: cc-medium:cut-off 
+[ 25.7s] teardown t-b4 complete (window firstmate:fm-t-b4, worktree <lab>/missing-t-b4)
+[ 41.4s] warning: task data retained for recovery: dcg refused cleanup: <dcg evaluation-timeout JSON elided>
+[ 41.7s] warning: t-b4 teardown completed, but expiring other tasks' held data needs a retry
+t-b4 took 42s; zz-live {"expired":true,"expiry":null}; cc-medium {"expired":false,"expiry":null}; cc-medium hold: scratch.bin 
+pending now: cc-medium: 
+(note added after the run: the "(a)" heading above is a stray copy of s6's header line; nothing for (a) ran in this continuation)

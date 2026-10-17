@@ -1,0 +1,3 @@
+[ 17.7s] teardown t-skip complete (window firstmate:fm-t-skip, worktree <lab>/missing-t-skip)
+[ 18.1s] warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: aa-slow
+[ 20.1s] warning: the 2s task-data expiry budget ran out; holds left for a later teardown: t-unread-gsp

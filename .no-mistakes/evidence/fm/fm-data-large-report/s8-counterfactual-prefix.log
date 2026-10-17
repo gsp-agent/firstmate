@@ -1,0 +1,19 @@
+=================== (1) pre-fix: teardown of a task with a 1.4 MB report.md
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+warning: task data retained for recovery: reference text exceeds 1 MiB: <lab>/data/t-bigreport/report.md
+error: t-bigreport's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for t-bigreport); the pending close is recorded and the next session start retries it
+--- exit 1; backlog row: in_flight; pending close: id=t-bigreport data=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.hXkqAW/data spawn_gen=lab-t-bigreport cleanup_incomplete=0 arg=--note arg=local%20main ; task record: present
+
+=================== (2) pre-fix: concurrent fm-send while teardown expires another task's slow hold
+pre-fix teardown began expiring aa-slow after 52s; printed 'complete' yet: no
+locks held in state/ while the pre-fix teardown expires aa-slow:
+    held: .fm-lease-command.lock
+    held: .meta-aa-slow.lock
+    held: .meta-t-main.lock
+pre-fix concurrent fm-send exit 0 in 28.68s; expire of aa-slow still running when it returned: no
+pre-fix t-main teardown exit 0 after 81s
+--- pre-fix t-main output:
+[  1.1s] fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+[ 67.5s] warning: task data retained for recovery: dcg refused cleanup: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by dcg\n\nTip: dcg explain \"rm -f -- <lab>/data/aa-slow/.cleanup-hold/scratch.bin\"\n\nReason: dcg could not finish evaluating this command within 200ms (spent 335ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging.\n\nExplanation: dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n             \n             Ways through, in order of preference:\n             - Split the command into smaller commands and run them separately.\n             - Approve this one command with the allow-once code below.\n             - Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.\n\nRule: core.limits:evaluation-timeout\n\nIf this is a false positive: dcg allow-once 57372\n\nIf this operation is truly needed, ask the user for explicit permission and have them run the command manually.","allowOnceCode":"57372","allowOnceFullHash":"b9fcb1d16443f52a47b2b5e42ae26dd94452a644c4e1ddc1868961b86bc1b6dc","ruleId":"core.limits:evaluation-timeout","packId":"core.limits","remediation":{"safeAlternative":"Use 'git clean -n' first to preview what would be deleted.","explanation":"dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n\nWays through, in order of preference:\n- Split the command into smaller commands and run them separately.\n- Approve this one command with the allow-once code below.\n- Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.","allowOnceCommand":"dcg allow-once 57372"}}}
+[ 71.1s] warning: t-main teardown completed, but task-data cleanup needs a retry
+[ 75.2s] teardown t-main complete (window firstmate:fm-t-main, worktree <lab>/missing-t-main)

@@ -1,0 +1,48 @@
+holds before: aa-slow bb-young t-hugelog t-unread-gsp 
+aa-slow brief names 40 beads
+=================== teardown t-main as the main supervision actor, expiry budget 8s
+t-main printed 'complete' after 62s; teardown process still running: yes
+locks held in state/ while t-main expires other holds:
+    held: .meta-aa-slow.lock (pid 26009)
+children of the teardown now:
+    80283 timeout -k 1 8 bash -c 
+        status_file=$1
+        shift
+        "$@"
+        command_rc=$?
+        printf "%s\n" "$command_rc" > "$status_file"
+        exit "$command_rc"
+       _ /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-timeout-status.rit2Wm python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55A0A5N047PA0YGGSS6K3ZV/bin/fm-task-data.py expire <lab>/data <lab>/state aa-slow
+    80289 bash -c 
+        status_file=$1
+        shift
+        "$@"
+        command_rc=$?
+        printf "%s\n" "$command_rc" > "$status_file"
+        exit "$command_rc"
+       _ /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-timeout-status.rit2Wm python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55A0A5N047PA0YGGSS6K3ZV/bin/fm-task-data.py expire <lab>/data <lab>/state aa-slow
+    80300 /opt/homebrew/Cellar/python@3.14/3.14.8/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55A0A5N047PA0YGGSS6K3ZV/bin/fm-task-data.py expire <lab>/data <lab>/state aa-slow
+concurrent fm-send exit 0 in 7.19s; teardown still running when it returned: yes
+    inbox: 001.msg
+    inbox: handled
+t-main teardown exit 0 after 70s total
+--- t-main output (elapsed since start):
+[  0.3s] fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+[ 60.2s] teardown t-main complete (window firstmate:fm-t-main, worktree <lab>/missing-t-main)
+[ 69.4s] warning: task data aa-slow expiry stopped after 8s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+[ 69.6s] warning: the 8s task-data expiry budget ran out; holds left for a later teardown: bb-young t-hugelog t-unread-gsp
+[ 69.6s] warning: t-main teardown completed, but expiring other tasks' held data needs a retry
+--- aa-slow: scratch.bin  record {"expired":false,"expiry":"cut-off"}
+--- bb-young: scratch.bin  record {"expired":false,"expiry":null}
+--- pending order now: bb-young: t-hugelog: t-unread-gsp: aa-slow:cut-off 
+
+=================== next teardown t-next (default budgets): the skipped young hold goes first
+[ 41.2s] teardown t-next complete (window firstmate:fm-t-next, worktree <lab>/missing-t-next)
+[ 50.8s] warning: task data retained for recovery: dcg refused cleanup: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by dcg\n\nTip: dcg explain \"rm -f -- <lab>/data/t-hugelog/.cleanup-hold/scratch.bin\"\n\nReason: dcg could not finish evaluating this command within 200ms (spent 267ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging.\n\nExplanation: dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n             \n             Ways through, in order of preference:\n             - Split the command into smaller commands and run them separately.\n             - Approve this one command with the allow-once code below.\n             - Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.\n\nRule: core.limits:evaluation-timeout\n\nIf this is a false positive: dcg allow-once 48422\n\nIf this operation is truly needed, ask the user for explicit permission and have them run the command manually.","allowOnceCode":"48422","allowOnceFullHash":"3896082205165c113bced67d814e8a8bd976e7dee41d3c234e4f8f5a163dcb06","ruleId":"core.limits:evaluation-timeout","packId":"core.limits","remediation":{"safeAlternative":"Use 'git clean -n' first to preview what would be deleted.","explanation":"dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n\nWays through, in order of preference:\n- Split the command into smaller commands and run them separately.\n- Approve this one command with the allow-once code below.\n- Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.","allowOnceCommand":"dcg allow-once 48422"}}}
+[ 52.8s] warning: task data t-unread-gsp expiry stopped after 1s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+[ 52.9s] warning: the 10s task-data expiry budget ran out; holds left for a later teardown: aa-slow
+[ 52.9s] warning: t-next teardown completed, but expiring other tasks' held data needs a retry
+t-next teardown took 53s
+--- aa-slow: hold scratch.bin  record {"expired":false,"expiry":"cut-off"}
+--- bb-young: hold  record {"expired":true,"expiry":null}
+--- pending order now: aa-slow:cut-off t-hugelog: t-unread-gsp:cut-off 

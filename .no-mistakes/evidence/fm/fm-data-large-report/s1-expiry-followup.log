@@ -1,0 +1,18 @@
+=== state of earlier holds after the later teardowns (each later teardown expires other tasks' holds)
+--- t-agentcfg:
+./ac-proof.png
+./brief.md
+{"complete":true,"expired":true,"expiry":null}
+--- t-gsp:
+./brief.md
+./gsp-proof.png
+{"complete":true,"expired":true,"expiry":null}
+--- t-project:
+./brief.md
+./demo-proof.png
+{"complete":true,"expired":true,"expiry":null}
+--- t-fallback:
+./.cleanup-hold/discard.bin
+./brief.md
+./fb-proof.png
+{"complete":true,"expired":false,"expiry":null}
