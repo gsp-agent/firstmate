@@ -17,7 +17,7 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
 }
 
 fm_task_data_expire_others() { # <data> <state> <id>
-  local data=$1 state=$2 id=$3 helper listed other lock budget start remaining status rc=0 i
+  local data=$1 state=$2 id=$3 helper listed other lock budget start remaining limit cut_off status rc=0 i
   local pending=()
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   command -v python3 >/dev/null 2>&1 || return 1
@@ -44,11 +44,17 @@ fm_task_data_expire_others() { # <data> <state> <id>
     lock=$(fm_meta_lock_path "$state/$other.meta") || continue
     fm_lock_try_acquire "$lock" || continue
     if [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ]; then
+      cut_off="$state/.task-data-$other.cut-off"
+      limit=$remaining
+      if [ -e "$cut_off" ] && [ "$limit" -lt 60 ]; then limit=60; fi
       touch -h -c "$data/$other/record/data-cleanup.json" 2>/dev/null || true
       status=0
-      fm_run_timed "$remaining" python3 "$helper" expire "$data" "$state" "$other" || status=$?
+      fm_run_timed "$limit" python3 "$helper" expire "$data" "$state" "$other" || status=$?
       if fm_timed_out "$status"; then
-        echo "warning: task data $other expiry stopped at the ${budget}s teardown budget; a later teardown retries it" >&2
+        : > "$cut_off" || true
+        echo "warning: task data $other expiry stopped after ${limit}s and keeps its data; the next teardown that reaches it allows it at least 60s" >&2
+      elif [ -e "$cut_off" ]; then
+        rm -f "$cut_off"
       fi
       [ "$status" = 0 ] || rc=1
     fi
