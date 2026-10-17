@@ -1,0 +1,14 @@
+23:02:35 load1=147.23 runnable_total=74 runnable_suite=2 suite_procs=35
+23:02:42 load1=147.40 runnable_total=87 runnable_suite=2 suite_procs=33
+23:02:48 load1=148.73 runnable_total=100 runnable_suite=1 suite_procs=33
+23:02:57 load1=147.78 runnable_total=86 runnable_suite=2 suite_procs=36
+23:03:08 load1=147.38 runnable_total=87 runnable_suite=1 suite_procs=39
+23:03:19 load1=145.51 runnable_total=91 runnable_suite=3 suite_procs=36
+ 116 -zsh
+  94 node
+  89 /System/Library/PrivateFrameworks/CascadeSets.framework/Versions/A/XPCServices/SetStoreUpdateService.xpc/Contents/MacOS/SetStoreUpdateService
+  88 /bin/zsh
+  53 treehouse
+  51 bash
+  41 claude
+  37 /Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Applications/ResolvePython

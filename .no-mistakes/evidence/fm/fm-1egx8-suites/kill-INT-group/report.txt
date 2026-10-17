@@ -1,0 +1,20 @@
+mode=INT-group runner_pid=43424 (its own process group)
+--- processes carrying TMPDIR=/private/tmp/fm-kill-INT-group.6dTsM0 just before the signal:
+43424 43424 bash bin/fm-test-run.sh --jobs 1 tests/fm-wake-queue.test.sh tests/fm-host-mirror.test.sh
+43745 43745 bash -c \012        trap " " HUP INT TERM\012        bash "$1" 2>&1 | (trap "" HUP INT TERM; exec tee "$2")\012        exit "${PIPESTATUS[0]}"\012  
+43775 43745 bash tests/fm-wake-queue.test.sh
+79045 43745 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55Y5XKTJTJD73274HVHFNG1/bin/fm-watch.sh
+watchers live: 1
+--- signal sent at 2026-10-17T22:39:10Z; runner exited rc=130 after 1s
+t+1s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+3s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+6s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+10s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+15s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+20s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+30s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+--- still alive at t+30s:
+--- scripts the runner announced (a second one means it moved on):
+FM_TEST_BEGIN 2026-10-17T22:38:41Z tests/fm-wake-queue.test.sh family=watcher-wake-lock expected_gate_skip=none
+FM_TEST_END 2026-10-17T22:39:10Z tests/fm-wake-queue.test.sh exit=130 duration_ms=28387 gate_skip=false
+fm-test-run: a script was interrupted; starting no further scripts

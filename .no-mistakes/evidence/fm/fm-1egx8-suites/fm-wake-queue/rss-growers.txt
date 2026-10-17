@@ -1,0 +1,12 @@
+swapout windows (start end delta_pages): 0
+top RSS growers between snapshots 1792275724 and 1792276189 (whole run):
+  +532 MiB  pid 78815  now 532 MiB  /Users/dalecarman/.local/bin/claude
+  +527 MiB  pid 58003  now 527 MiB  claude
+  +512 MiB  pid 52576  now 512 MiB  claude
+  +348 MiB  pid 61724  now 348 MiB  /Applications/Blender.app/Contents/MacOS/Blender
+  +202 MiB  pid 17253  now 202 MiB  /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+  +149 MiB  pid 60174  now 149 MiB  /Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node
+  +146 MiB  pid 56236  now 206 MiB  /System/Library/PrivateFrameworks/PhotoAnalysis.framework/Versions/A/Support/photoanalysisd
+  +135 MiB  pid 60216  now 135 MiB  node
+  +127 MiB  pid 57413  now 690 MiB  claude
+  +112 MiB  pid 7088  now 604 MiB  /Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/155.0.8059.40/Helpers/Codex (Renderer).app/Contents/MacOS/Codex (Renderer)

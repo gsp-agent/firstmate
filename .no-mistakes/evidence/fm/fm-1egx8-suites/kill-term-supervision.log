@@ -1,0 +1,23 @@
+mode=TERM-group runner_pid=61587 (its own process group)
+--- processes carrying TMPDIR=/private/tmp/fm-kill-TERM-group.FtDn7N just before the signal:
+61587 61587 bash bin/fm-test-run.sh --jobs 1 tests/fm-supervision-host.test.sh tests/fm-host-mirror.test.sh
+61666 61666 bash -c \012        trap " " HUP INT TERM\012        bash "$1" 2>&1 | (trap "" HUP INT TERM; exec tee "$2")\012        exit "${PIPESTATUS[0]}"\012  
+61670 61666 bash tests/fm-supervision-host.test.sh
+62061 61666 bash /private/tmp/fm-kill-TERM-group.FtDn7N/fm-supervision-host.mBZAoO/hook-successor-closed-before-return/bin/fm-claude-stop-autoarm.sh
+62298 61666 bash /private/tmp/fm-kill-TERM-group.FtDn7N/fm-supervision-host.mBZAoO/hook-successor-closed-before-return/bin/fm-supervision-host.sh park
+64033 64033 bash /private/tmp/fm-kill-TERM-group.FtDn7N/fm-supervision-host.mBZAoO/hook-successor-closed-before-return/bin/fm-watch-arm.sh
+64061 64033 bash /private/tmp/fm-kill-TERM-group.FtDn7N/fm-supervision-host.mBZAoO/hook-successor-closed-before-return/bin/fm-watch.sh
+64261 64033 bash /private/tmp/fm-kill-TERM-group.FtDn7N/fm-supervision-host.mBZAoO/hook-successor-closed-before-return/bin/fm-watch.sh
+64262 64033 bash /private/tmp/fm-kill-TERM-group.FtDn7N/fm-supervision-host.mBZAoO/hook-successor-closed-before-return/bin/fm-inactive-reconcile.sh scan
+watchers live: 1
+--- signal sent at 2026-10-17T22:45:22Z; runner exited rc=143 after 0s
+t+1s: 2 processes left (1 fm-watch.sh, 0 summary/snapshot)
+t+3s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+6s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+10s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+15s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+20s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+30s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+--- still alive at t+30s:
+--- scripts the runner announced (a second one means it moved on):
+FM_TEST_BEGIN 2026-10-17T22:45:17Z tests/fm-supervision-host.test.sh family=afk expected_gate_skip=none

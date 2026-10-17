@@ -1,0 +1,35 @@
+mode=KILL-runner-gated runner_pid=72492 (its own process group)
+--- processes carrying TMPDIR=/private/tmp/fm-kill-KILL-runner-gated.U6IEEH just before the signal:
+30793 72492 bash /Users/dalecarman/.agent-state/machine-gate.sh run --cap 180 -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55Y5XKTJTJD73274HVHFNG
+72492 72492 bash bin/fm-test-run.sh --jobs 1 tests/fm-wake-queue.test.sh tests/fm-host-mirror.test.sh
+watchers live: 0
+--- signal sent at 2026-10-17T22:34:44Z; runner exited rc=137 after 1s
+t+1s: 1 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+3s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+6s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+10s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+15s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+20s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+30s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+--- still alive at t+30s:
+--- scripts the runner announced (a second one means it moved on):
+--- private machine-line log (start/end rows; an end row means the gate let go):
+2026-10-17T22:32:05Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:32:12Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:32:20Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:32:27Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:32:35Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:32:43Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:33:00Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:33:10Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:33:19Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:33:29Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:33:37Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:33:45Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:33:52Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:34:00Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:34:08Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:34:18Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:34:26Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:34:35Z	gate-no	fm-kill-proof	SLOT FREE = NO
+2026-10-17T22:34:45Z	gate-no	fm-kill-proof	SLOT FREE = NO

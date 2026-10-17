@@ -1,0 +1,3 @@
+ci.yml steps setting FM_HARNESS_LIVENESS_DRIFT: tests-portable-serial / Run portable serial shard ${{ matrix.shard }} -> 1 | lane: portable-serial-${{ matrix.shard }}of${{ strategy.job-total }}
+FM_HARNESS_LIVENESS_DRIFT=unset -> rc=0 : skip: live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run
+FM_HARNESS_LIVENESS_DRIFT=1 -> rc=0 : gate open: the drift guard body would run

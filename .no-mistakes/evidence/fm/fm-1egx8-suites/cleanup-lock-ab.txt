@@ -1,0 +1,6 @@
+round 1 head rc=1 27s load1=29.57 :: ok - TERM stops a watcher whose downtime-marker lock is held, retaining stale evidence|not ok - cleanup lock bound 08 gave up before the marker lock freed|
+round 1 base rc=1 28s load1=29.25 :: ok - TERM stops a watcher whose downtime-marker lock is held, retaining stale evidence|not ok - cleanup lock bound 08 gave up before the marker lock freed|
+round 2 head rc=1 49s load1=41.19 :: ok - TERM stops a watcher whose downtime-marker lock is held, retaining stale evidence|not ok - cleanup lock bound 08 gave up before the marker lock freed|
+round 2 base rc=1 27s load1=48.94 :: ok - TERM stops a watcher whose downtime-marker lock is held, retaining stale evidence|not ok - cleanup lock bound 08 gave up before the marker lock freed|
+round 3 head rc=1 34s load1=57.30 :: ok - TERM stops a watcher whose downtime-marker lock is held, retaining stale evidence|not ok - cleanup lock bound 08 gave up before the marker lock freed|
+round 3 base rc=1 40s load1=68.72 :: ok - TERM stops a watcher whose downtime-marker lock is held, retaining stale evidence|not ok - cleanup lock bound 08 gave up before the marker lock freed|

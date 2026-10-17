@@ -1,0 +1,10 @@
+start 2026-10-17T22:45:23Z load1=18.65 swap_used=1490.44M swapouts=96924
+suite=tests/fm-supervision-host.test.sh rc=143 wall=1339s
+load1: pre=18.65 peak=151.73 post=107.86 limit=118.65 ok=no
+swap used: pre=1490.44M post=1490.44M ; swapouts: pre=96924 post=96924 delta=0
+~/.claude.json sha: pre=5e658611f7d516859b9a379b5b710fbfa68849f3 post=5e658611f7d516859b9a379b5b710fbfa68849f3 same=yes ; fixture-path keys=0
+$CLAUDE_CONFIG_DIR/.claude.json sha: pre=6e4ff95c74dda22ac61d92d02a032f379b6ce3ba post=1854e555e04d93cf8620b4a1cc25f32019682523 same=no ; fixture-path keys=0
+test-spawned watcher/summary/snapshot survivors after run: 12 (before: 0)
+Killed:9 / watcher-exit-timeout lines in run.log: 0
+runner tail: 
+TMPDIR top-level leftovers:    1 fm-supervision-host.*;   5 fm-timeout-status.*;

@@ -1,0 +1,24 @@
+$ env -u FM_HARNESS_LIVENESS_DRIFT -u FM_LIVE FM_TEST_MACHINE_GATE= bin/fm-test-run.sh tests/fm-harness-liveness-drift-live-e2e.test.sh --json drift.json
+FM_TEST_BEGIN 2026-10-17T22:22:15Z tests/fm-harness-liveness-drift-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+skip: live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run
+fm-test-run: gate skip: tests/fm-harness-liveness-drift-live-e2e.test.sh: live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run
+FM_TEST_END 2026-10-17T22:22:15Z tests/fm-harness-liveness-drift-live-e2e.test.sh exit=0 duration_ms=244 gate_skip=true
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=1 duration_ms=422
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=244 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-harness-liveness-drift-live-e2e.test.sh duration_ms=244
+fm-test-run: wrote timing artifact: /tmp/fm-drift.tB0EUb/drift.json
+rc=0
+--- json script record:
+[
+ {
+  "duration_ms": 244,
+  "exit": 0,
+  "expected_gate_skip": "live-capability",
+  "family": "live-harness-optin",
+  "gate_skip": true,
+  "gate_skip_reason": "live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run",
+  "path": "tests/fm-harness-liveness-drift-live-e2e.test.sh"
+ }
+]
+~/.claude.json sha before=5e658611f7d5 after=5e658611f7d5
+harness processes under drift TMPDIR: 0

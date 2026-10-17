@@ -1,0 +1,12 @@
+swapout windows (start end delta_pages): 0
+top RSS growers between snapshots 1792277123 and 1792278460 (whole run):
+  +539 MiB  pid 21892  now 539 MiB  /Users/dalecarman/.local/bin/claude
+  +486 MiB  pid 68178  now 486 MiB  /Users/dalecarman/.local/bin/claude
+  +473 MiB  pid 23547  now 473 MiB  git
+  +457 MiB  pid 97358  now 457 MiB  /Users/dalecarman/.local/bin/claude
+  +456 MiB  pid 34544  now 456 MiB  git
+  +443 MiB  pid 36971  now 443 MiB  git
+  +416 MiB  pid 41126  now 416 MiB  /Users/dalecarman/.local/bin/claude
+  +383 MiB  pid 42352  now 383 MiB  git
+  +310 MiB  pid 98552  now 310 MiB  /opt/homebrew/Cellar/node/26.12.0/bin/node
+  +195 MiB  pid 56933  now 195 MiB  /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent

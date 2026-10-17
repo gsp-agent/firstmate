@@ -1,0 +1,12 @@
+swapout windows (start end delta_pages): 0
+top RSS growers between snapshots 1792276279 and 1792277104 (whole run):
+  +751 MiB  pid 44362  now 1367 MiB  /opt/homebrew/bin/node
+  +585 MiB  pid 62578  now 585 MiB  claude
+  +575 MiB  pid 19058  now 575 MiB  /Users/dalecarman/.local/bin/claude
+  +549 MiB  pid 53101  now 549 MiB  claude
+  +244 MiB  pid 788  now 629 MiB  /System/Library/PrivateFrameworks/ScreenTimeCore.framework/Versions/A/ScreenTimeAgent
+  +202 MiB  pid 15280  now 202 MiB  /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+  +174 MiB  pid 55087  now 524 MiB  /Users/dalecarman/.local/bin/claude
+  +164 MiB  pid 11887  now 164 MiB  grok
+  +150 MiB  pid 32047  now 150 MiB  /Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node
+  +134 MiB  pid 32099  now 134 MiB  node

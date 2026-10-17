@@ -1,0 +1,10 @@
+start 2026-10-17T22:30:08Z load1=25.68 swap_used=1490.44M swapouts=96924
+suite=tests/fm-host-mirror.test.sh rc=0 wall=57s
+load1: pre=25.68 peak=45.14 post=35.76 limit=125.68 ok=yes
+swap used: pre=1490.44M post=1490.44M ; swapouts: pre=96924 post=96924 delta=0
+~/.claude.json sha: pre=5e658611f7d516859b9a379b5b710fbfa68849f3 post=5e658611f7d516859b9a379b5b710fbfa68849f3 same=yes ; fixture-path keys=0
+$CLAUDE_CONFIG_DIR/.claude.json sha: pre=e78105d8ab308be357a0b98a02ae771278515cd5 post=e78105d8ab308be357a0b98a02ae771278515cd5 same=yes ; fixture-path keys=0
+test-spawned watcher/summary/snapshot survivors after run: 0 (before: 0)
+Killed:9 / watcher-exit-timeout lines in run.log: 0
+runner tail: FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=56149 FM_TEST_SUMMARY_FAMILY family=afk count=1 duration_ms=55961 failed=0 
+TMPDIR top-level leftovers: none

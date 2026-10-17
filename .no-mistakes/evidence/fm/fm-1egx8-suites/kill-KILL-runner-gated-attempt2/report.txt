@@ -1,0 +1,24 @@
+mode=KILL-runner-gated runner_pid=55331 (its own process group)
+--- processes carrying TMPDIR=/private/tmp/fm-kill-KILL-runner-gated.Iz50cx just before the signal:
+55331 55331 bash bin/fm-test-run.sh --jobs 1 tests/fm-wake-queue.test.sh tests/fm-host-mirror.test.sh
+55819 55331 bash /Users/dalecarman/.agent-state/machine-gate.sh run --cap 180 -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55Y5XKTJTJD73274HVHFNG
+55967 55331 bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M55Y5XKTJTJD73274HVHFNG1/bin/fm-test-run.sh --jobs 1 tests/fm-wake-queue.test.sh tests/
+56168 56168 bash -c \012        trap " " HUP INT TERM\012        bash "$1" 2>&1 | (trap "" HUP INT TERM; exec tee "$2")\012        exit "${PIPESTATUS[0]}"\012  
+56178 56168 bash tests/fm-wake-queue.test.sh
+watchers live: 0
+--- signal sent at 2026-10-17T22:41:08Z; runner exited rc=137 after 0s
+t+1s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+3s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+6s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+10s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+15s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+20s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+t+30s: 0 processes left (0 fm-watch.sh, 0 summary/snapshot)
+--- still alive at t+30s:
+--- scripts the runner announced (a second one means it moved on):
+FM_TEST_BEGIN 2026-10-17T22:40:43Z tests/fm-wake-queue.test.sh family=watcher-wake-lock expected_gate_skip=none
+FM_TEST_END 2026-10-17T22:41:08Z tests/fm-wake-queue.test.sh exit=143 duration_ms=25093 gate_skip=false
+fm-test-run: the runner the caller launched (pid 55331) is gone; starting no further scripts
+--- private machine-line log (start/end rows; an end row means the gate let go):
+2026-10-17T22:40:43Z	start	fm-kill-proof	pid 55877 cap 180m
+2026-10-17T22:41:08Z	end	fm-kill-proof	rc 143

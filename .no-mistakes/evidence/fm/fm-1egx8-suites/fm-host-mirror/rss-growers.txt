@@ -1,0 +1,12 @@
+swapout windows (start end delta_pages): 0
+top RSS growers between snapshots 1792276208 and 1792276259 (whole run):
+  +706 MiB  pid 27258  now 706 MiB  git
+  +681 MiB  pid 30711  now 681 MiB  git
+  +654 MiB  pid 31668  now 654 MiB  git
+  +222 MiB  pid 33756  now 222 MiB  /opt/homebrew/Cellar/node/26.12.0/bin/node
+  +110 MiB  pid 32708  now 110 MiB  node
+  +52 MiB  pid 11553  now 52 MiB  /opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python
+  +49 MiB  pid 33515  now 49 MiB  node
+  +44 MiB  pid 47685  now 44 MiB  gh
+  +42 MiB  pid 47789  now 42 MiB  (pandoc)
+  +37 MiB  pid 52576  now 562 MiB  claude

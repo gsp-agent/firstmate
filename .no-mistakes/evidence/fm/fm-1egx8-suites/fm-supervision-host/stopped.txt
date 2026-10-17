@@ -1,0 +1,1 @@
+stopped by the test agent with TERM to runner pid 64822 at 2026-10-17T23:07:42Z (time budget; 45 of 76 cases had passed, 0 failed)

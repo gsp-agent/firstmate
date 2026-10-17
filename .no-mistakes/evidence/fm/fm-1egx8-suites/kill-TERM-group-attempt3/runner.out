@@ -1,0 +1,2 @@
+FM_TEST_BEGIN 2026-10-17T22:45:17Z tests/fm-supervision-host.test.sh family=afk expected_gate_skip=none
+Terminated: 15             sleep 0.1
