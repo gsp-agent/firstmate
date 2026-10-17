@@ -5,10 +5,11 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py stage DATA STATE ID PROJECT PR
        fm-task-data.py expire DATA STATE ID
        fm-task-data.py pending DATA
-Prepare, stage and expire need the caller to hold STATE/.meta-ID.lock, the lock
-also used by spawn.
-Pending takes no lock and prints, in one pass, the task ids of cleanup records
-that have not expired, least recently tried first.
+       fm-task-data.py mark DATA ID cut-off|too-large
+Prepare, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
+lock also used by spawn.
+Pending takes no lock and prints, in one pass, each unexpired cleanup record's
+task id and expiry mark, tab-separated, least recently tried first.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
 Without metadata, prepare reads the latest completed markdown backlog row,
 including the configured archive (legacy mode needs tomllib), when there is no
@@ -67,8 +68,14 @@ tried first, while FM_TEARDOWN_DATA_EXPIRE_TIMEOUT seconds (default 10) counted
 from the end of the listing remain.
 Each attempt marks its record tried before it starts, so a hold cut off before
 it writes anything still moves behind the others.
-A hold whose attempt is cut off keeps its data, and the next teardown that
-reaches it allows that attempt at least 60 seconds, even past the budget.
+An attempt cut off by the budget leaves the deletions it already made done and
+the rest of the hold in place, and mark sets expiry "cut-off" in its record.
+The next teardown that reaches it gives it one full attempt of
+FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT seconds (default 60), even past the budget.
+If that attempt is cut off too, mark sets expiry "too-large": later teardowns
+skip the hold, keep what remains of it, and name it in a warning each time so
+it can be expired by hand with the expire command above.
+Prepare, stage and expire clear the mark at their first record write.
 The holds the budget never reached are named in one warning.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.
@@ -107,6 +114,7 @@ TEXT = {".txt", ".md", ".log", ".json"}
 HOLD = ".cleanup-hold"
 RECEIPT = "record/data-cleanup.json"
 TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+MARKS = ("cut-off", "too-large")
 
 
 class UnreadReferences(ValueError):
@@ -537,9 +545,25 @@ def pending(data):
             except (OSError, ValueError):
                 pass
         if not (isinstance(record, dict) and record.get("version") == 1 and record.get("expired") is True):
-            tried.append((info.st_mtime, task_id))
-    for _, task_id in sorted(tried):
-        print(task_id)
+            expiry = record.get("expiry") if isinstance(record, dict) else None
+            tried.append((info.st_mtime, task_id, expiry if expiry in MARKS else ""))
+    for _, task_id, expiry in sorted(tried):
+        print(f"{task_id}\t{expiry}")
+
+
+def mark(data, task_id, expiry):
+    if not TASK_ID.fullmatch(task_id) or expiry not in MARKS:
+        raise ValueError("invalid expiry mark")
+    root = real_directory(real_directory(data) / task_id)
+    receipt = root / RECEIPT
+    if (receipt.is_symlink() or not receipt.is_file() or receipt.stat().st_nlink != 1
+            or receipt.stat().st_size > LIMIT):
+        raise ValueError("unsafe cleanup record")
+    record = json.loads(receipt.read_text())
+    if not isinstance(record, dict) or record.get("version") != 1 or record.get("task") != task_id:
+        raise ValueError("invalid cleanup record")
+    record["expiry"] = expiry
+    write_record(root, record)
 
 
 def cleanup(action, data, state, task_id, project="", pr=""):
@@ -646,6 +670,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     for source in record["sources"]:
         source.setdefault("backlog", {"data": str(data), "task": None})
     views = [(root, files, repos)]
+    record.pop("expiry", None)
     write_record(root, record)
     if action == "prepare":
         try:
@@ -730,11 +755,13 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(0)
     try:
-        arities = {"prepare": {5, 6}, "stage": {7}, "expire": {5}, "pending": {3}}
+        arities = {"prepare": {5, 6}, "stage": {7}, "expire": {5}, "pending": {3}, "mark": {5}}
         if len(sys.argv) < 2 or len(sys.argv) not in arities.get(sys.argv[1], ()):
             raise ValueError(__doc__)
         if sys.argv[1] == "pending":
             pending(sys.argv[2])
+        elif sys.argv[1] == "mark":
+            mark(*sys.argv[2:])
         elif sys.argv[1] == "prepare" and len(sys.argv) == 6:
             cleanup(*sys.argv[1:5], pr=sys.argv[5])
         else:

@@ -17,23 +17,34 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
 }
 
 fm_task_data_expire_others() { # <data> <state> <id>
-  local data=$1 state=$2 id=$3 helper listed other lock budget start remaining limit cut_off status rc=0 i
-  local pending=()
+  local data=$1 state=$2 id=$3 helper listed other expiry lock budget full start remaining limit status rc=0 i
+  local pending=() marks=() too_large=()
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   command -v python3 >/dev/null 2>&1 || return 1
   budget=${FM_TEARDOWN_DATA_EXPIRE_TIMEOUT:-10}
   case "$budget" in ''|0*|*[!0-9]*) budget=10 ;; esac
+  full=${FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT:-60}
+  case "$full" in ''|0*|*[!0-9]*) full=60 ;; esac
   listed=$(python3 "$helper" pending "$data") || return 1
-  while IFS= read -r other; do
-    if [ -n "$other" ] && [ "$other" != "$id" ] && fm_task_id_path_safe "$other"; then
+  while IFS=$'\t' read -r other expiry; do
+    if [ -z "$other" ] || [ "$other" = "$id" ] || ! fm_task_id_path_safe "$other"; then
+      continue
+    elif [ "$expiry" = too-large ]; then
+      too_large+=("$other")
+    else
       pending+=("$other")
+      marks+=("$expiry")
     fi
   done <<< "$listed"
+  if [ "${#too_large[@]}" -gt 0 ]; then
+    echo "warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: ${too_large[*]}" >&2
+  fi
   start=$SECONDS
   # A concurrent teardown holds its own lock. Skip it instead of waiting on a
   # cycle of locks; only a later, different completed task expires a recovery.
   # Each attempt touches its record first, so ordering by record age keeps one
-  # slow hold from taking every teardown's budget.
+  # slow hold from taking every teardown's budget. A hold the budget cut off
+  # gets one full attempt; if that is cut off too, it is marked too large.
   for ((i = 0; i < ${#pending[@]}; i++)); do
     remaining=$((budget - (SECONDS - start)))
     if [ "$remaining" -le 0 ]; then
@@ -44,17 +55,17 @@ fm_task_data_expire_others() { # <data> <state> <id>
     lock=$(fm_meta_lock_path "$state/$other.meta") || continue
     fm_lock_try_acquire "$lock" || continue
     if [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ]; then
-      cut_off="$state/.task-data-$other.cut-off"
       limit=$remaining
-      if [ -e "$cut_off" ] && [ "$limit" -lt 60 ]; then limit=60; fi
+      if [ "${marks[i]}" = cut-off ] && [ "$limit" -lt "$full" ]; then limit=$full; fi
       touch -h -c "$data/$other/record/data-cleanup.json" 2>/dev/null || true
       status=0
       fm_run_timed "$limit" python3 "$helper" expire "$data" "$state" "$other" || status=$?
-      if fm_timed_out "$status"; then
-        : > "$cut_off" || true
-        echo "warning: task data $other expiry stopped after ${limit}s and keeps its data; the next teardown that reaches it allows it at least 60s" >&2
-      elif [ -e "$cut_off" ]; then
-        rm -f "$cut_off"
+      if fm_timed_out "$status" && [ "${marks[i]}" = cut-off ]; then
+        python3 "$helper" mark "$data" "$other" too-large || true
+        echo "warning: task data $other expiry stopped after its one full ${limit}s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with $helper expire $data $state $other" >&2
+      elif fm_timed_out "$status"; then
+        python3 "$helper" mark "$data" "$other" cut-off || true
+        echo "warning: task data $other expiry stopped after ${limit}s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full ${full}s attempt" >&2
       fi
       [ "$status" = 0 ] || rc=1
     fi
