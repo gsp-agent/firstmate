@@ -42,6 +42,19 @@ REC
 chmod +x "$_fm_wedge_rec_dir/rec"
 export FM_WEDGE_ALARM_EXEC="$_fm_wedge_rec_dir/rec"
 
+# bound_home_summary_refresh: for a suite whose cases never read the published
+# home summary. Every fresh fixture lacks one, so each watcher starts a refresh
+# (fm-fleet-snapshot.sh 8-wide plus the real fm-crew-state.sh) on its first poll
+# and again on each signal batch, detached in its own process group so it can
+# outlive the watcher; across a suite's watchers that fan-out stormed an idle
+# laptop. An interval above age_of's 999999 answer for a missing summary keeps
+# the per-poll path from firing, and a one-second bound ends a signal-batch
+# refresh before its watcher does. Publication itself is unchanged, and suites
+# that assert it (fm-session-start) do not call this.
+bound_home_summary_refresh() {
+  export FM_HOME_SUMMARY_INTERVAL=9999999 FM_HOME_SUMMARY_TIMEOUT=1
+}
+
 # append_wake <state> <kind> <key> <payload>: append a wake record to the durable
 # queue in a subshell scoped to <state>, using the production wake library.
 append_wake() {
