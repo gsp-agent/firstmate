@@ -49,6 +49,10 @@ Unread task or bead ids appear in teardown warnings and each source's unread
 list in record/data-cleanup.json; prepare still permits the backlog close.
 Stage and expiry retain all data without moving or deleting it while any
 reference is unreadable; the next successful teardown of a different task retries.
+Stage runs under the task's locks, so its reference matching stops
+FM_TEARDOWN_DATA_STAGE_TIMEOUT seconds (default 10) after stage starts, before
+anything moves: the folder stays whole, the warning and the record's retained
+field name the limit, and the next teardown of a different task retries it.
 Paths mentioned in these sources or retained evidence override the size/type limit.
 File references conservatively match basenames; directory references use path/link
 syntax and protect all descendants, including symlinks below a linked directory.
@@ -107,6 +111,7 @@ import string
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 from urllib.parse import unquote
 
@@ -351,7 +356,9 @@ def linked(rel, text, directory, normalized, offsets):
         pattern = prefix + pattern + r'''(?=/?(?:$|[\s)\]}>'",;?#]))'''
     for match in re.finditer(pattern, normalized, re.IGNORECASE):
         start, end = match.span(1)
-        alias = rel.with_name(text[offsets[start]:offsets[end - 1] + 1])
+        if offsets is not None:
+            start, end = offsets[start], offsets[end - 1] + 1
+        alias = rel.with_name(text[start:end])
         try:
             if os.path.samestat(alias.lstat(), rel.lstat()):
                 return True
@@ -364,7 +371,11 @@ def protected(path, targets):
     return path in targets or any(parent in targets for parent in path.parents)
 
 
-def retention_paths(root, files, all_directories, repos, text):
+def retention_paths(root, files, all_directories, repos, text, limit=None):
+    def check_limit():
+        if limit and time.monotonic() > limit[0]:
+            raise RetainWhole(f"reference matching passed its {limit[1]}s stage limit")
+
     targets, directories = set(), set()
     decoded = []
     for match in re.finditer(r'"(?:[^"\\]|\\.)*"', text):
@@ -374,9 +385,11 @@ def retention_paths(root, files, all_directories, repos, text):
             pass
     text = "\n".join([text, *decoded])
     text += "\n" + re.sub(r"\\([" + re.escape(string.punctuation) + r"])", r"\1", text)
+    check_limit()
     normalized = unicodedata.normalize("NFD", text)
-    offsets = [index for index, character in enumerate(text)
-               for _ in unicodedata.normalize("NFD", character)]
+    offsets = None if normalized == text else [
+        index for index, character in enumerate(text) for _ in unicodedata.normalize("NFD", character)]
+    check_limit()
     entries = {root / rel: (root / rel).lstat() for rel in files + all_directories}
     children = {}
     for path, info in entries.items():
@@ -420,6 +433,7 @@ def retention_paths(root, files, all_directories, repos, text):
         return None, path, path
 
     for rel in files + all_directories:
+        check_limit()
         if rel == Path(HOLD):
             continue
         actual = root / rel
@@ -434,6 +448,7 @@ def retention_paths(root, files, all_directories, repos, text):
     while pending_links:
         remaining = []
         for actual in pending_links:
+            check_limit()
             virtual = virtual_path(actual)
             if not protected(virtual, targets):
                 remaining.append(actual)
@@ -569,9 +584,16 @@ def mark(data, task_id, expiry):
     write_record(root, record)
 
 
+def stage_limit():
+    value = os.environ.get("FM_TEARDOWN_DATA_STAGE_TIMEOUT", "")
+    seconds = int(value) if value.isdigit() and not value.startswith("0") else 10
+    return time.monotonic() + seconds, seconds
+
+
 def cleanup(action, data, state, task_id, project="", pr=""):
     if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
+    limit = stage_limit() if action == "stage" else None
     data, state = real_directory(data), real_directory(state)
     meta = state / f"{task_id}.meta"
     values = None
@@ -674,6 +696,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         source.setdefault("backlog", {"data": str(data), "task": None})
     views = [(root, files, repos)]
     record.pop("expiry", None)
+    record.pop("retained", None)
     write_record(root, record)
     if action == "prepare":
         try:
@@ -692,7 +715,13 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         return
     finally:
         write_record(root, record)
-    targets, directories = retention_paths(root, files, all_directories, repos, text)
+    try:
+        targets, directories = retention_paths(root, files, all_directories, repos, text, limit)
+    except RetainWhole as error:
+        record["retained"] = str(error)
+        write_record(root, record)
+        print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
+        return
 
     scratch = [(path, [rel for rel in leaves if rel.parts[0] not in (HOLD, "record")
                       and not protected(path / rel, targets)]) for path, leaves, _ in views]
