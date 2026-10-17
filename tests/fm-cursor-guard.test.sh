@@ -66,6 +66,9 @@ rm -f "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
 # pct 100 with prepaid/on-demand credit room stays on cursor (Dale 10-16)
 printf 'cursor_models_pct=100\nprepaid_balance=445.63\nmonthly_additional_usage_used=138.38\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "100% with prepaid credit must stay on cursor: $(fb e1)"
+printf '{"name":"pstack","version":"0.15.22"}\n' > "$FM_PSTACK_DIR/.cursor-plugin/plugin.json"
+case "$(fb e1)" in "grok pstack plugin version is '0.15.22', not the pinned 0.15.21") ;; *) fail "100% with prepaid credit and an off-pin pstack must fall back to grok: $(fb e1)" ;; esac
+printf '{"name":"pstack","version":"0.15.21"}\n' > "$FM_PSTACK_DIR/.cursor-plugin/plugin.json"
 printf 'cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=10\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "100% with on-demand room must stay on cursor: $(fb e1)"
 printf 'cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"

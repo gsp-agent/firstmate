@@ -71,11 +71,10 @@ if [ "$op" = fallback ]; then
     prepaid=$(sed -n 's/^prepaid_balance=//p' "$f" | tail -1)
     add_used=$(sed -n 's/^monthly_additional_usage_used=//p' "$f" | tail -1)
     add_limit=$(sed -n 's/^monthly_additional_usage_limit=//p' "$f" | tail -1)
-    if awk -v p="${prepaid:-0}" 'BEGIN { exit !(p + 0 > 0) }' \
-      || awk -v u="${add_used:-0}" -v l="${add_limit:-0}" 'BEGIN { exit !(l + 0 > 0 && u + 0 < l + 0) }'; then
-      echo cursor; exit 0
+    if ! awk -v p="${prepaid:-0}" 'BEGIN { exit !(p + 0 > 0) }' \
+      && ! awk -v u="${add_used:-0}" -v l="${add_limit:-0}" 'BEGIN { exit !(l + 0 > 0 && u + 0 < l + 0) }'; then
+      pool "Cursor Models at ${pct}% (limit ${pct_max}%) and no prepaid/on-demand credit room in $(basename "$f")"; exit 0
     fi
-    pool "Cursor Models at ${pct}% (limit ${pct_max}%) and no prepaid/on-demand credit room in $(basename "$f")"; exit 0
   fi
   # Only once the pool is fine: an off-pin pstack is a Cursor-only problem.
   if [ "$have" != "$want" ]; then echo "grok pstack plugin version is '${have:-unreadable}', not the pinned $want"; exit 0; fi
