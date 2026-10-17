@@ -2531,8 +2531,11 @@ run_script_bounded() {  # <script> <out> <stream> <id>
     # Expansion is intentionally deferred to the child bash passed to -c.
     # shellcheck disable=SC2016
     (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
-      fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash -c \
-        'bash "$1" 2>&1 | tee "$2"; exit "${PIPESTATUS[0]}"' _ "$script" "$out")
+      fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash -c '
+        trap : HUP INT TERM
+        set -o pipefail
+        bash "$1" 2>&1 | (trap "" HUP INT TERM; exec tee "$2")
+      ' _ "$script" "$out")
     rc=$?
   else
     (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
