@@ -19,6 +19,7 @@ set -u
 
 # shellcheck source=tests/wake-helpers.sh
 . "$(dirname "${BASH_SOURCE[0]}")/wake-helpers.sh"
+bound_home_summary_refresh
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-classify-lib.sh"
 
