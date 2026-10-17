@@ -1,0 +1,42 @@
+# scrolled-empty: pane get scroll = {"max_offset_from_bottom":287,"offset_from_bottom":120,"viewport_rows":40}
+# HEAD source: fm_backend_herdr_composer_capture (text format)
+     1	old scrollback line 282
+     2	old scrollback line 283
+     3	old scrollback line 284
+     4	old scrollback line 285
+     5	old scrollback line 286
+     6	old scrollback line 287
+     7	old scrollback line 288
+     8	old scrollback line 289
+     9	old scrollback line 290
+    10	old scrollback line 291
+    11	old scrollback line 292
+    12	old scrollback line 293
+    13	old scrollback line 294
+    14	old scrollback line 295
+    15	old scrollback line 296
+    16	old scrollback line 297
+    17	old scrollback line 298
+    18	old scrollback line 299
+    19	old scrollback line 300
+    20	
+    21	╭─x/xx-xxxxx-xxxx.8xx2xx/xxx
+    22	╰─❯ xxxxxx_xxxxxxxx_xxx=1 xxxxxx_xxxx_xxxxxx_xxxxxx_xxxxxxxxxx=xxxxx xxxxxx
+    23	 ▐▛███▛█   xxxxxx xxxx x2.1.302
+    24	▝▜██████▀  xxxx 5.5 xxxx xxxxx xxxxxx · xxxxxx xxx
+    25	 ▝▝   ▝▝   /xxxxxxx/xxx/xxxxxxx/2x/3xx17x5x7xx10xxxxx1xxxx40000xx/x/xx-xxxxx-xxxx.8xx2xx/xxx
+    26	
+    27	  xxxxxxx xx xxxxxx. xxx 19 xxxxxxxx, 96 xxxxxxxx, xxx 24 xxxxx xxxxxxx.
+    28	  xxxx.xxxxxx.xxx/xxxx/xx/xxxxxxxxx xxx xxxxxxx
+    29	
+    30	
+    31	xxx    xxxxx xxxx xxx xxxxx xxxx xxxx 1 xxxxxxx xxxx xxxx 70, xxxx xx xxx xxx xxxx, xxx xxxxxxx xxxx. xx xxx xxx  01:13
+    32	       xxxxx.
+    33	
+    34	xxxxxx xxx xxxxxx xx · xxxxxx xxx /xxxxx
+    35	
+    36	───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    37	❯
+    38	───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    39	  ╭─xxx │ xxxx 5.5 │ ✉ xxx-40                                                            xxxx xxxxx · /xxxx xx xxxxxx
+    40	  ⏵⏵ xxxxxx xxxxxxxxxxx xx (xxxxx+xxx xx xxxxx) · ← 1 xxxxx

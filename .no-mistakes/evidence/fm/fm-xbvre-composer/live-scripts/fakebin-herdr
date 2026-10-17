@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Routes every adapter herdr call through the lab helper, like
+# tests/fm-herdr-submit-confirm-live-e2e.test.sh does.
+set -u
+args=("$@")
+n=${#args[@]}
+if [ "$n" -ge 2 ] && [ "${args[$((n-2))]}" = --session ]; then
+  [ "${args[$((n-1))]}" = "fm-lab-xbvre-scroll-<pid>-<rand>" ] || { echo "wrapper refused foreign session" >&2; exit 97; }
+  args=("${args[@]:0:$((n-2))}")
+else
+  echo "wrapper requires trailing --session fm-lab-xbvre-scroll-<pid>-<rand>" >&2
+  exit 98
+fi
+exec env PATH="<original PATH>" "<run worktree>/bin/fm-herdr-lab.sh" run "fm-lab-xbvre-scroll-<pid>-<rand>" "${args[@]}"

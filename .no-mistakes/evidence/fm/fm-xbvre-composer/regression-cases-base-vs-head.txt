@@ -1,0 +1,38 @@
+### BASE adapter (20dcbf91 bin/) with this change's tests: the new cases must fail
+test_composer_state_scrolled_viewport_uses_current_screen rc=1
+not ok - the current empty composer behind a scrolled viewport must read empty, got 'unknown'
+test_composer_reads_unscrolled_pane_visible_screen rc=0
+ok - fm_backend_herdr_composer_state: an unscrolled pane reads exactly its visible screen
+test_composer_capture_preserves_full_height_and_bottom_composer rc=1
+not ok - a 300-row screen must retain its entire composer and popup without scrollback
+test_composer_state_unproved_height_stays_unknown rc=1
+not ok - unproved viewport height 'null' at offset 0 must stay unknown, got 'empty'
+test_composer_reads_protocol_14_pane_without_scroll rc=0
+ok - fm_backend_herdr_composer_state: a protocol-14 pane without scroll reads its visible composer and payload
+test_composer_state_plain_fallback_reads_current_draft rc=1
+not ok - the fallback must never trust a scrolled visible screen (unexpected: '--sourcevisible')
+test_send_text_submit_claude_selected_slash_popup_is_submitted rc=1
+not ok - the selected /exit popup must allow submission, got 'send-failed'
+test_send_text_submit_claude_exit_on_protocol_14_pane rc=0
+ok - fm_backend_herdr_send_text_submit: a protocol-14 Claude pane without scroll still types and submits /exit
+
+### HEAD adapter (a3e0a975) with the committed fixtures
+test_composer_state_scrolled_viewport_uses_current_screen rc=0
+ok - fm_backend_herdr_composer_state: a scrolled viewport cannot hide the current empty composer
+ok - fm_backend_herdr_composer_state: a scrolled empty prompt cannot hide a current draft
+ok - fm_backend_herdr_composer_state: a scrollback prompt cannot prove the current screen empty
+test_composer_reads_unscrolled_pane_visible_screen rc=0
+ok - fm_backend_herdr_composer_state: an unscrolled pane reads exactly its visible screen
+test_composer_capture_preserves_full_height_and_bottom_composer rc=0
+ok - fm_backend_herdr_composer_capture: a screen taller than 200 rows retains every composer and overlay row
+ok - fm_backend_herdr_composer_state: the bottom-most current draft outranks an older prompt the trim reaches
+test_composer_state_unproved_height_stays_unknown rc=0
+ok - fm_backend_herdr_composer_state: a reported but malformed scroll cannot prove emptiness
+test_composer_reads_protocol_14_pane_without_scroll rc=0
+ok - fm_backend_herdr_composer_state: a protocol-14 pane without scroll reads its visible composer and payload
+test_composer_state_plain_fallback_reads_current_draft rc=0
+ok - fm_backend_herdr_composer_state: failed ANSI read falls back to the current plain draft
+test_send_text_submit_claude_selected_slash_popup_is_submitted rc=0
+ok - fm_backend_herdr_send_text_submit: Claude's captured selected slash popup submits without clearing
+test_send_text_submit_claude_exit_on_protocol_14_pane rc=0
+ok - fm_backend_herdr_send_text_submit: a protocol-14 Claude pane without scroll still types and submits /exit

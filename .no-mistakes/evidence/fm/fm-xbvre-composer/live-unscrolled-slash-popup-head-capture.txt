@@ -1,0 +1,23 @@
+# unscrolled-slash-popup: pane get scroll = {"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40}
+# HEAD source: fm_backend_herdr_composer_capture (text format)
+     1	xxxxxx --xxxxxx 59xx5902-xxx6-479x-9168-53x48xx6xx8x
+     2	
+     3	╭─x/xx-xxxxx-xxxx.8xx2xx/xxx
+     4	╰─❯ xxxxxx --xxxxxx 59xx5902-xxx6-479x-9168-53x48xx6xx8x
+     5	 ▐▛███▛█   xxxxxx xxxx x2.1.302
+     6	▝▜██████▀  xxxx 5.5 xxxx xxxxx xxxxxx · xxxxxx xxx
+     7	 ▝▝   ▝▝   /xxxxxxx/xxx/xxxxxxx/2x/3xx17x5x7xx10xxxxx1xxxx40000xx/x/xx-xxxxx-xxxx.8xx2xx/xxx
+     8	
+     9	⚠ 1 xxx xxxxxx xxxxx xxxxxxxxxxxxxx · xxx /xxx
+    10	
+    11	xxx    xxxxx xxxx xxx xxxxx xxxx xxxx 1 xxxxxxx xxxx xxxx 70, xxxx xx xxx xxx xxxx, xxx xxxxxxx xxxx. xx xxx xxx xxxxx.
+    12	
+    13	xxxxxx xxx xxxxxx xx · xxxxxx xxx /xxxxx
+    14	
+    15	────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    16	❯ /xxxx
+    17	────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    18	  ❯ /xxxx                                           xxxx xxx xxx
+    19	    /context                                        Visualize current context usage as a colored grid
+    20	    /usage-credits                                  Configure usage credits or request them from your admin when you
+    21	                                                    xxx x xxxxx

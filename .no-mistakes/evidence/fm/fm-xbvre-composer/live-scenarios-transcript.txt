@@ -1,0 +1,48 @@
+herdr 0.9.1 (lab session fm-lab-*, isolated), 2.1.302 (Claude Code)
+
+== S1 unscrolled empty composer
+[S1] scroll={"max_offset_from_bottom":338,"offset_from_bottom":0,"viewport_rows":40}
+[S1] HEAD composer_state=empty   composer_content(rc=0)=''
+[S1] BASE composer_state=empty   composer_content(rc=0)=''
+
+== S2 fault A: user scrolled 150 rows up into old output; composer is empty
+[S2] scroll={"max_offset_from_bottom":338,"offset_from_bottom":150,"viewport_rows":40}
+[S2] HEAD composer_state=empty   composer_content(rc=0)=''
+[S2] BASE composer_state=unknown   composer_content(rc=1)=''
+[HEAD] rendered=idle composer=empty => reset gate PASSES (would type /clear)
+[BASE] rendered=idle composer=unknown => reset gate DEFERS (composer is unknown; never type into a draft)
+
+== S3 scrolled pane with a typed draft must not read empty
+[S3] scroll={"max_offset_from_bottom":338,"offset_from_bottom":150,"viewport_rows":40}
+[S3] HEAD composer_state=pending   composer_content(rc=0)=fm\ draft\ probe
+[S3] BASE composer_state=unknown   composer_content(rc=1)=''
+[HEAD] rendered=idle composer=pending => reset gate DEFERS (composer is pending; never type into a draft)
+[S3] HEAD send_text_submit "reset" onto the scrolled draft -> send-failed
+[S3-after-send] HEAD composer_state=pending   composer_content(rc=0)=fm\ draft\ probe
+
+== S4 scrolled pane with Claude's slash popup open over a typed /clear
+[S4] scroll={"max_offset_from_bottom":340,"offset_from_bottom":152,"viewport_rows":40}
+[S4] HEAD composer_state=pending   composer_content(rc=0)=/clear
+[S4] BASE composer_state=unknown   composer_content(rc=1)=''
+[HEAD] rendered=idle composer=pending => reset gate DEFERS (composer is pending; never type into a draft)
+
+== S5 the planned reset: gate passes on the scrolled empty composer, then /clear is sent as the revive job does
+[HEAD] rendered=idle composer=empty => reset gate PASSES (would type /clear)
+[S5] herdr agent prompt w1:p1 /clear -> rc=0 agent_prompted
+[S5] current screen shows 1 submitted "❯ /clear" row(s) above the composer
+[S5-after-reset] scroll={"max_offset_from_bottom":340,"offset_from_bottom":150,"viewport_rows":40}
+[S5-after-reset] HEAD composer_state=empty   composer_content(rc=0)=''
+[S5-after-reset] BASE composer_state=unknown   composer_content(rc=1)=''
+
+== S6 adversarial: plain shell pane (prompt glyph ╰─❯, no agent), scrolled vs unscrolled
+[S6] unscrolled: HEAD=unknown BASE=unknown
+[S6] scroll={"offset_from_bottom":80,"max_offset_from_bottom":166,"viewport_rows":40}
+[S6] scrolled 80: HEAD=unknown BASE=unknown
+[S6] scrolled 80 with typed shell text: HEAD=unknown BASE=unknown
+
+== S7 typed /exit behind the slash popup (unscrolled) is proven and submitted
+[S7] scroll={"max_offset_from_bottom":340,"offset_from_bottom":0,"viewport_rows":40}
+[S7] HEAD composer_state=pending   composer_content(rc=0)=/exit
+[S7] BASE composer_state=pending   composer_content(rc=0)=/exit\ Exit\ the\ CLI\ /context\ Visualize\ current\ context\ usage\ as\ a\ colored\ grid\ /usage-credits\ Configure\ usage\ credits\ or\ request\ them\ from\ your\ admin\ when\ you\ hit\ a\ limit
+[S7] BASE send_text_submit /exit -> send-failed; agent after: claude
+[S7] HEAD send_text_submit /exit -> empty; agent after: none

@@ -1,0 +1,9 @@
+### FM_HERDR_COMPOSER_REPLAY_DIR=<private ac-xbvre-2 captures: visible-ansi.txt 57 rows, recent-ansi.txt 199 rows> (contents not reproduced)
+## BASE adapter
+test_composer_state_scrolled_viewport_uses_current_screen rc=1
+not ok - the current empty composer behind a scrolled viewport must read empty, got 'unknown'
+## HEAD adapter
+test_composer_state_scrolled_viewport_uses_current_screen rc=0
+ok - fm_backend_herdr_composer_state: a scrolled viewport cannot hide the current empty composer
+ok - fm_backend_herdr_composer_state: a scrolled empty prompt cannot hide a current draft
+ok - fm_backend_herdr_composer_state: a scrollback prompt cannot prove the current screen empty
