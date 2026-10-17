@@ -19,6 +19,8 @@
 # skips this refusal, because its own merge-time draft refusal is authoritative.
 # The recorded pr= also frees the task's place in a declared project capacity
 # (bin/fm-project-capacity-lib.sh).
+# A registered GitHub pull request is also stamped with the engines that wrote
+# it through bin/fm-pr-made-with.sh, except on the merge-time re-record.
 # Usage: fm-pr-check.sh <task-id> <pr-url>
 set -eu
 
@@ -247,6 +249,13 @@ else
   PR_POLL_PUBLISH_LOCK_HELD=0
   echo "error: could not publish PR poll" >&2
   exit 1
+fi
+# A GitHub pull request is stamped with the engines that wrote it
+# (bin/fm-pr-made-with.sh), repeating the worker's own stamp because a later
+# pipeline run rewrites the body. A failed stamp leaves the watch armed.
+if [ "$PROVIDER" = github ] && [ "${FM_PR_CHECK_MERGE:-}" != 1 ]; then
+  FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE "$SCRIPT_DIR/fm-pr-made-with.sh" "$ID" "$URL" >/dev/null \
+    || printf 'actionable: PR %s is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh %s %s\n' "$URL" "$ID" "$URL" >&2
 fi
 # Opt-in fleet activity ledger (docs/fleet-ledger.md); off costs one file test.
 # The merge-time re-record is not a new review-ready PR, so it writes nothing.
