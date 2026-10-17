@@ -1986,7 +1986,7 @@ scout_report_lines() {
 
 BACKLOG_JSON=$(backlog_json) || { echo "fm-fleet-snapshot: backlog read failed" >&2; exit 1; }
 contribution_tasks_json() {
-  local meta id kind url head merge_authority=''
+  local meta id task_kind url head merge_authority=''
   for meta in "$STATE"/*.meta; do
     [ -f "$meta" ] && [ ! -L "$meta" ] || continue
     id=${meta##*/}
@@ -1998,10 +1998,10 @@ contribution_tasks_json() {
         merge_authority=$FM_MERGE_AUTHORITY
       fi
     fi
-    fm_meta_get "$meta" kind kind
+    fm_meta_get "$meta" kind task_kind
     fm_meta_get "$meta" pr url
     fm_meta_get "$meta" pr_head head
-    printf '%s\0' id "$id" kind "$kind" url "$url" head "$head" \
+    printf '%s\0' id "$id" kind "$task_kind" url "$url" head "$head" \
       merge_authority "$merge_authority" '' ''
   done | snapshot_fields_json | jq 'map({id,kind,pr:{url,head},merge_authority})'
 }
