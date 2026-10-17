@@ -6901,6 +6901,10 @@ SH
       "$case_dir/data" "$case_dir/state" task-x1 "$project" https://github.com/test/repo/pull/1 \
       || fail "$variant first stage failed"
     if [ "$variant" != unexpired ]; then
+      if [ "$variant" != empty ]; then
+        printf 'late historical row evidence\n' > "$task/.cleanup-hold/late-row.bin"
+        printf '  [late historical evidence](late-row.bin)\n' >> "$case_dir/history/completed.md"
+      fi
       FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
         "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant first expiry failed"
       jq -e '.expired == true' "$task/record/data-cleanup.json" >/dev/null || fail "$variant first retirement not expired"
@@ -6920,13 +6924,15 @@ SH
     if [ "$variant" = legacy ]; then
       FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" prepare \
         "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant second prepare failed"
+      jq -e '.sources[-1].pr == "https://github.com/test/repo/pull/2" and .sources[-1].backlog.legacy' \
+        "$task/record/data-cleanup.json" >/dev/null || fail "$variant prepare recorded closed history as the new retirement"
     fi
     FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
       "$case_dir/data" "$case_dir/state" task-x1 "$project" https://github.com/test/repo/pull/2 \
       > "$case_dir/out" 2> "$case_dir/err" || fail "$variant second stage failed"
     if [ "$variant" = unexpired ]; then
       for action in stage expire; do
-        assert_grep 'task-x1.*changed project or PR' "$case_dir/err" "$action failed to warn about an unexpired conflict"
+        assert_grep 'completed row task-x1 changed project or PR' "$case_dir/err" "$action failed to warn about an unexpired conflict"
         assert_present "$task/new-scratch.bin" "$action moved scratch despite unexpired conflict"
         assert_present "$task/.cleanup-hold/old-scratch.bin" "$action lost the old recovery"
         assert_present "$task/new-pr.bin" "$action lost current PR evidence"
@@ -6947,6 +6953,7 @@ SH
     [ "$(cat "$task/new-pr.bin")" = 'current PR evidence' ] || fail "$variant deleted current PR evidence"
     assert_present "$task/old-row.bin" "$variant lost historical row evidence"
     assert_present "$task/old-pr.bin" "$variant lost historical PR evidence"
+    [ "$variant" = empty ] || assert_present "$task/late-row.bin" "$variant lost refreshed historical row evidence"
     jq -e '.expired == true' "$task/record/data-cleanup.json" >/dev/null || fail "$variant second retirement not expired"
   done
   pass "fm-teardown: expired legacy history permits reused retirement while unexpired conflicts retain recovery"

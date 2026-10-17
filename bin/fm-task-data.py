@@ -16,9 +16,11 @@ continuation notes; multiple distinct PRs retain the whole folder.
 Named repositories resolve below the backlog home's projects/; absolute repo
 paths remain absolute.
 Missing, ambiguous, or active rows retain the whole folder.
-Legacy row references are refreshed before staging and expiry, with the original
-row retained as evidence in the cleanup record.
-A changed project or PR identity retains the whole folder.
+Legacy row references in the open recovery cycle are refreshed before staging
+and expiry, with the original row retained as evidence in the cleanup record.
+A changed project or PR identity in that cycle retains the whole folder.
+Expired legacy rows and their last refreshed references remain historical
+evidence and are no longer compared with the current row when the task id is reused.
 Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
 Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
@@ -248,8 +250,7 @@ def completed_row_source(data, title, text):
 def backlog_references(source, task_id):
     backlog = source["backlog"]
     legacy = backlog.get("legacy", False)
-    legacy_text = ""
-    if legacy:
+    if legacy and not backlog.get("closed", False):
         try:
             completed = completed_source(Path(backlog["data"]), task_id)
         except (OSError, ValueError, subprocess.SubprocessError) as error:
@@ -258,8 +259,9 @@ def backlog_references(source, task_id):
         if (completed["project"], completed["pr"]) != (source["project"], source["pr"]):
             source["unread"] = [task_id]
             raise RetainWhole(f"completed row {task_id} changed project or PR")
-        legacy_text = backlog["text"] + "\n" + completed["text"]
+        backlog["refreshed_text"] = completed["text"]
         source["beads"] = sorted(set(source["beads"]) | set(completed["beads"]))
+    legacy_text = backlog["text"] + "\n" + backlog.get("refreshed_text", "") if legacy else ""
     try:
         response = json.loads(read_command([
             "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
@@ -541,22 +543,27 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                         or not Path(backlog["data"]).is_absolute()
                         or "task" not in backlog or backlog["task"] not in (None, task_id)
                         or not isinstance(backlog.get("legacy", False), bool)
+                        or not isinstance(backlog.get("closed", False), bool)
+                        or not isinstance(backlog.get("refreshed_text", ""), str)
                         or (backlog.get("legacy") and not isinstance(backlog.get("text"), str))):
                     raise ValueError("invalid backlog source")
         if action == "expire" and record.get("expired"):
             return
     elif action == "expire":
         return
-    if (action == "prepare" and values is None and record is None) or (
-            values is None and record
-            and any(source.get("backlog", {}).get("legacy") for source in record["sources"])):
+    new_legacy = action == "prepare" and values is None and (
+        record is None or (record.get("expired") and any(
+            source.get("backlog", {}).get("legacy") for source in record["sources"])))
+    if new_legacy or (values is None and record and not record.get("expired")
+                      and any(source.get("backlog", {}).get("legacy")
+                              and not source["backlog"].get("closed", False) for source in record["sources"])):
         try:
             legacy = completed_source(data, task_id)
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
             return
     if action == "prepare" and values is None:
-        if record is None:
+        if new_legacy:
             project, pr = legacy["project"], legacy["pr"]
         else:
             project = record["sources"][-1]["project"]
@@ -570,13 +577,16 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     local = unquote(html.unescape(local_references(root, files, repos)))
     if record is None:
         record = {"version": 1, "task": task_id, "sources": [], "complete": False}
-        if legacy:
-            record["sources"].append({
-                "project": project, "pr": pr, "beads": legacy["beads"],
-                "backlog": {"data": str(data), "task": task_id, "legacy": True, "text": legacy["text"]},
-            })
     if record.get("expired"):
+        for source in record["sources"]:
+            if source.get("backlog", {}).get("legacy"):
+                source["backlog"]["closed"] = True
         record.update(complete=False, expired=False)
+    if new_legacy:
+        record["sources"].append({
+            "project": project, "pr": pr, "beads": legacy["beads"],
+            "backlog": {"data": str(data), "task": task_id, "legacy": True, "text": legacy["text"]},
+        })
     if action in ("prepare", "stage"):
         source = next((item for item in record["sources"]
                        if item["project"] == project and item["pr"] == pr
