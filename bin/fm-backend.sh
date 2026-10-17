@@ -31,7 +31,7 @@
 # docs/codex-app-backend.md owns that blocked backend contract.
 #
 # Compatibility contract: a task's meta may omit `backend=`; every reader here
-# treats that as `tmux` (fm_backend_of_meta), and fm-spawn.sh does not write
+# treats that as `tmux` (fm_backend_endpoint_of_fields), and fm-spawn.sh does not write
 # `backend=tmux` for a default-backend task, so existing and newly spawned
 # default-path metas stay byte-identical. Only a task spawned on a non-tmux
 # spawn-capable backend, currently herdr, zellij, orca, or cmux, carries an
@@ -332,34 +332,44 @@ fm_backend_required_tool_available() {  # <backend> <tool>
 # fm_meta_get: the LAST value of `key=` in <meta-file>, or empty (never
 # errors) if the file or key is absent. Mirrors the ad hoc `grep '^key=' |
 # tail -1 | cut -d= -f2-` snippet every fm-*.sh script used to repeat inline.
-fm_meta_get() {  # <meta-file> <key>
-  local meta=$1 key=$2 line value=''
-  [ -f "$meta" ] || return 0
-  while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in
-      "$key="*) value=${line#*=} ;;
-    esac
-  done < "$meta" 2>/dev/null || true
-  printf '%s' "$value"
+fm_meta_get() {  # <meta-file> <key> [<out-var>]
+  local fm_meta=$1 fm_key=$2 fm_line fm_value=''
+  if [ -f "$fm_meta" ]; then
+    while IFS= read -r fm_line || [ -n "$fm_line" ]; do
+      case "$fm_line" in
+        "$fm_key="*) fm_value=${fm_line#*=} ;;
+      esac
+    done < "$fm_meta" 2>/dev/null || true
+  fi
+  if [ "$#" -gt 2 ]; then printf -v "$3" '%s' "$fm_value"
+  else printf '%s' "$fm_value"; fi
 }
 
-# fm_backend_of_meta: the backend recorded in <meta-file>, defaulting to
-# `tmux` when the field is absent - the P1 compatibility contract.
+# fm_backend_endpoint_of_fields: the backend/target rule over meta fields the
+# caller already read. The backend defaults to `tmux` when the field is absent -
+# the P1 compatibility contract; an orca task with a terminal targets it, every
+# other task its window.
+fm_backend_endpoint_of_fields() {  # <backend> <window> <terminal> <backend-var> <target-var>
+  printf -v "$4" '%s' "${1:-tmux}"
+  if [ "${1:-tmux}" = orca ] && [ -n "$3" ]; then printf -v "$5" '%s' "$3"
+  else printf -v "$5" '%s' "$2"; fi
+}
+
+# fm_backend_of_meta: the backend recorded in <meta-file>.
 fm_backend_of_meta() {  # <meta-file>
-  local v
-  v=$(fm_meta_get "$1" backend)
-  printf '%s' "${v:-tmux}"
+  local backend target
+  fm_meta_get "$1" backend backend
+  fm_backend_endpoint_of_fields "$backend" '' '' backend target
+  printf '%s' "$backend"
 }
 
 fm_backend_target_of_meta() {  # <meta-file>
-  local meta=$1 backend terminal window
-  backend=$(fm_backend_of_meta "$meta")
-  if [ "$backend" = orca ]; then
-    terminal=$(fm_meta_get "$meta" terminal)
-    [ -n "$terminal" ] && { printf '%s' "$terminal"; return 0; }
-  fi
-  window=$(fm_meta_get "$meta" window)
-  [ -n "$window" ] && printf '%s' "$window"
+  local meta=$1 backend window terminal target
+  fm_meta_get "$meta" backend backend
+  fm_meta_get "$meta" window window
+  fm_meta_get "$meta" terminal terminal
+  fm_backend_endpoint_of_fields "$backend" "$window" "$terminal" backend target
+  [ -n "$target" ] && printf '%s' "$target"
 }
 
 # fm_backend_validate_task_endpoint: validate a task cleanup record entirely

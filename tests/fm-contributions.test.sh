@@ -570,6 +570,51 @@ test_unreadable_pending_is_not_empty() {
   pass 'unreadable pending signals refuse an empty-inbox claim'
 }
 
+# A sibling record that cannot be read, or a whole-batch read that fails, costs
+# only its own error: the healthy record keeps its verdict, seen and pending
+# state through a poll, and the read-only snapshot still measures it.
+test_unreadable_sibling_keeps_healthy_record() {
+  local home mode out token real_jq url=https://github.com/o/r/pull/8
+  real_jq=$(command -v jq)
+  for mode in batch fallback; do
+    home=$(new_home "unreadable-sibling-$mode")
+    forge_home "$home"
+    jq -n '[12, 13] | map({id:.,user:{login:"maintainer"},author_association:"OWNER",
+      body:"Please clarify \(.)",html_url:"https://github.com/o/r/pull/8#issuecomment-\(.)",
+      updated_at:"2026-09-16T08:01:00Z"})' > "$home/forge/comments.json"
+    with_home "$home" "$ROOT/bin/fm-contributions.sh" poll >/dev/null || fail "initial poll failed ($mode)"
+    token=$(with_home "$home" "$ROOT/bin/fm-contributions.sh" pending | jq -er 'map(.token) | sort | first') \
+      || fail "initial poll captured no pending signal ($mode)"
+    with_home "$home" "$ROOT/bin/fm-contributions.sh" ack delivery "$url" "$token" || fail "ack failed ($mode)"
+    with_home "$home" "$ROOT/bin/fm-contributions.sh" verdict delivery "$url" "$HEAD_A" "$url#issuecomment-12" captain 'choose scope' \
+      || fail "verdict failed ($mode)"
+    jq -e '.records[0] | (.verdict.actor == "captain") and (.seen | length) == 2 and (.pending | length) == 1' \
+      "$home/data/delivery/contributions.json" >/dev/null || fail "healthy record fixture lacks retained state ($mode)"
+    cp "$home/data/delivery/contributions.json" "$home/prior.json"
+    mkdir -p "$home/data/malformed" "$home/data/unreadable"
+    printf 'incomplete JSON\n' > "$home/data/malformed/contributions.json"
+    printf 'incomplete JSON\n' > "$home/data/unreadable/contributions.json"
+    chmod 000 "$home/data/unreadable/contributions.json"
+    if [ "$mode" = fallback ]; then
+      # Refuse every multi-record read so only per-record reads succeed.
+      # shellcheck disable=SC2016 # the single-quoted fake jq expands when it runs
+      printf '#!/usr/bin/env bash\nn=0\nfor arg; do [ "$arg" != --rawfile ] || n=$((n + 1)); done\n[ "$n" -le 1 ] || exit 2\nexec %q "$@"\n' \
+        "$real_jq" > "$home/fakebin/jq"
+      chmod +x "$home/fakebin/jq"
+    fi
+    out=$(with_home "$home" "$ROOT/bin/fm-contributions.sh" poll) || fail "poll beside unreadable siblings failed ($mode)"
+    [ "$out" = 'contributions: 2 unreadable durable record(s)' ] || fail "unreadable siblings were miscounted ($mode): $out"
+    cmp -s "$home/prior.json" "$home/data/delivery/contributions.json" \
+      || fail "poll beside unreadable siblings rewrote the healthy record ($mode): $(cat "$home/data/delivery/contributions.json")"
+    with_home "$home" "$ROOT/bin/fm-fleet-snapshot.sh" --contribution-input > "$home/input.json" || fail "contribution input failed ($mode)"
+    with_home "$home" "$ROOT/bin/fm-contributions.sh" snapshot "$home/input.json" --all \
+      | jq -e '.unreadable_records == 2 and .known == 1 and .checked == 1' >/dev/null \
+      || fail "snapshot lost the healthy record beside unreadable siblings ($mode)"
+    chmod 600 "$home/data/unreadable/contributions.json"
+  done
+  pass 'an unreadable sibling or failed batch read costs one error and keeps healthy records whole'
+}
+
 # Each record's durable task identity is the directory the snapshot loop finds
 # it in, exactly as `basename "$(dirname "$file")"` named it, however the data
 # root is spelled and whatever bytes the directory name carries.
@@ -1183,7 +1228,7 @@ test_retire_is_idempotent_and_refuses_unknown_pairs() {
 }
 
 failures=0
-for test_name in test_actor_coverage test_stale_verdict test_unchecked_is_not_silence test_newest_check_has_no_verdict test_comment_wake test_review_wake test_inline_wake test_ready_issue_wake test_fresh_issue_requires_maintainer test_missing_lane_remains_missing test_partial_freshness_keeps_measured_rows test_malformed_record_cannot_prove_silence test_issue_timeline_and_exact_ack test_verdict_retains_judged_head test_verdict_actor_values_are_discoverable test_observed_replacement_refreshes_verdict test_unobserved_head_leaves_verdict_unknown test_away_yolo_is_fleet_work test_away_yolo_cross_home_is_fleet_work test_retired_and_unsupported_coverage test_unsupported_forge_is_not_fleet_work test_held_unsupported_forge_is_not_captain_work test_shared_contribution_signal_wakes_once test_watcher_keeps_diagnostics_separate_from_contribution_wakes test_expired_child_unsupported_forge_stays_unmeasured test_watcher_surfaces_new_contribution_once test_home_summary_coverage test_unreadable_pending_is_not_empty test_record_task_identity_matches_dirname_basename test_read_only_views_create_no_state test_budget_refusal_between_calls test_budget_bounded_call_timeout test_genuine_failure_near_deadline_is_unavailable test_shared_url_observed_once test_terminal_contribution_settles test_late_owner_inherits_terminal_observation test_interrupted_multi_owner_poll_settles_every_owner test_done_task_open_pr_still_observed test_reservation_defers_later_url_when_fifteen_seconds_do_not_remain test_three_second_pr_reads_complete_fresh_in_one_cycle test_slow_read_deadline_kill_is_budget_refusal test_unmeasured_url_does_not_starve_the_tail test_budget_is_cut_down_to_the_watcher_check_bound test_arm_plumbs_a_configured_budget_into_the_check_shim test_unavailable_forge_records_error_and_wakes_once_per_episode test_late_owner_keeps_failure_episode_suppressed test_retire_ends_observation_of_a_gone_contribution test_late_owner_of_a_retired_final_contribution_is_not_retired test_retire_is_idempotent_and_refuses_unknown_pairs; do
+for test_name in test_actor_coverage test_stale_verdict test_unchecked_is_not_silence test_newest_check_has_no_verdict test_comment_wake test_review_wake test_inline_wake test_ready_issue_wake test_fresh_issue_requires_maintainer test_missing_lane_remains_missing test_partial_freshness_keeps_measured_rows test_malformed_record_cannot_prove_silence test_issue_timeline_and_exact_ack test_verdict_retains_judged_head test_verdict_actor_values_are_discoverable test_observed_replacement_refreshes_verdict test_unobserved_head_leaves_verdict_unknown test_away_yolo_is_fleet_work test_away_yolo_cross_home_is_fleet_work test_retired_and_unsupported_coverage test_unsupported_forge_is_not_fleet_work test_held_unsupported_forge_is_not_captain_work test_shared_contribution_signal_wakes_once test_watcher_keeps_diagnostics_separate_from_contribution_wakes test_expired_child_unsupported_forge_stays_unmeasured test_watcher_surfaces_new_contribution_once test_home_summary_coverage test_unreadable_pending_is_not_empty test_unreadable_sibling_keeps_healthy_record test_record_task_identity_matches_dirname_basename test_read_only_views_create_no_state test_budget_refusal_between_calls test_budget_bounded_call_timeout test_genuine_failure_near_deadline_is_unavailable test_shared_url_observed_once test_terminal_contribution_settles test_late_owner_inherits_terminal_observation test_interrupted_multi_owner_poll_settles_every_owner test_done_task_open_pr_still_observed test_reservation_defers_later_url_when_fifteen_seconds_do_not_remain test_three_second_pr_reads_complete_fresh_in_one_cycle test_slow_read_deadline_kill_is_budget_refusal test_unmeasured_url_does_not_starve_the_tail test_budget_is_cut_down_to_the_watcher_check_bound test_arm_plumbs_a_configured_budget_into_the_check_shim test_unavailable_forge_records_error_and_wakes_once_per_episode test_late_owner_keeps_failure_episode_suppressed test_retire_ends_observation_of_a_gone_contribution test_late_owner_of_a_retired_final_contribution_is_not_retired test_retire_is_idempotent_and_refuses_unknown_pairs; do
   ( "$test_name" ) || failures=$((failures + 1))
 done
 [ "$failures" -eq 0 ] || fail "$failures contribution regressions"
