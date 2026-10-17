@@ -1,0 +1,83 @@
+21:39  up 2 days,  6:58, 4 users, load averages: 37.76 84.71 99.58
+FM_TEST_BEGIN 2026-10-17T02:39:16Z tests/fm-teardown.test.sh family=pr-forge expected_gate_skip=none
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-archive/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-current/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-no-pr/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-gitlab-note/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-gerrit-note/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-repeated-note/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: legacy preparation uses the latest completed row and preserves missing or active tasks
+ok - fm-teardown: current completed rows beat archives and unprovable conflicting sources stay whole
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-reuse-expired/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-reuse-unexpired/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-reuse-legacy/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-legacy-reuse-direct/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: expired legacy history permits reused retirement while unexpired conflicts retain recovery
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-github-reader/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: GitHub reads use explicit PR identity and unread PRs preserve data without failing the pass
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data/data/task-x1/.cleanup-hold until the next completed task
+task data live-old: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data/data/live-old/.cleanup-hold until the next completed task
+ok - fm-teardown: completed task scratch is held for one cycle and linked evidence stays
+ok - fm-teardown: live data and paths outside the task directory are untouched
+task data finished: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-refs/data/finished/.cleanup-hold until the next completed task
+task data pending: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-refs/data/pending/.cleanup-hold until the next completed task
+ok - fm-teardown: PR and bead links survive, and dcg denial or unreadable references retain recovery
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-bead-backlog/data/proof-owner/.cleanup-hold until the next completed task
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-bead-backlog/data/proof-owner/.cleanup-hold until the next completed task
+ok - fm-teardown: owning and named Bead links use the configured graph across retirement, replay, staging, expiry and unavailable-backend retries
+ok - fm-teardown: agent-config named bead resolves safely and backlog closes
+ok - fm-teardown: gsp named bead resolves safely and backlog closes
+ok - fm-teardown: project named bead resolves safely and backlog closes
+ok - fm-teardown: fallback named bead resolves safely and backlog closes
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-named-unread/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: unread named bead resolves safely and backlog closes
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-reuse/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-reuse/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: reusing a completed id keeps its earlier recovery's reference sources
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-expired-held/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-expired-held/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-expired-empty/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: both expiry transitions preserve earlier PR and bead sources
+task data finished: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-symlinks/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: retained directory links preserve transitive and held targets, component order, escapes and cycle safety
+task data local: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-linked-directories/data/local/.cleanup-hold until the next completed task
+task data pr: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-linked-directories/data/pr/.cleanup-hold until the next completed task
+ok - fm-teardown: local and PR directory links retain binary descendants, nested symlink targets and newly linked held contents
+ok - fm-teardown: local ordinary-path Unicode checks; normalization-sensitive filesystem: False
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-spellings-local/data/proof-owner/.cleanup-hold until the next completed task
+ok - fm-teardown: pr ordinary-path Unicode checks; normalization-sensitive filesystem: False
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-spellings-pr/data/proof-owner/.cleanup-hold until the next completed task
+ok - fm-teardown: bead ordinary-path Unicode checks; normalization-sensitive filesystem: False
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-spellings-bead/data/proof-owner/.cleanup-hold until the next completed task
+ok - fm-teardown: local, PR and owning-bead links preserve NFC/NFD directories and escaped Markdown through staging, held recovery and expiry
+task data finished: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-name-aliases/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: real filesystem name aliases retain direct, directory, prefix, owned-root and held evidence
+task data finished: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-ancestor-alias-fixture/physical/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: fixture ancestor aliases preserve owned targets and recovery paths through staging and expiry
+task data finished: scratch recoverable in /private/tmp/fm-task-data-alias.PRhGoB/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: macos ancestor aliases preserve owned targets and recovery paths through staging and expiry
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-collision/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-collision/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: reused data scratch paths progress without overwriting either generation
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-replay-close/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-replay-retain/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: failed receipt writes preserve metadata and close/retain replay records retryable cleanup
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-discovered-close/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-discovered-retain/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-discovered-replay-close/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-discovered-replay-retain/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-discovered-replay-absent/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-discovered-replay-absent-retain/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-discovered-direct/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: discovered PR references survive interrupted close, retain, replay and direct retirement
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-forgejo/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-gerrit/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: GitLab, Forgejo and Gerrit references protect evidence during staging and expiry
+task data finished: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.ed3CSq/task-data-scope/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: data cleanup leaves named and referenced TMPDIR scratch untouched
+FM_TEST_END 2026-10-17T02:50:16Z tests/fm-teardown.test.sh exit=0 duration_ms=660310 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=665073
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=660310 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-teardown.test.sh duration_ms=660310
+exit=0
+21:50  up 2 days,  7:09, 4 users, load averages: 43.91 47.88 68.62

@@ -1,0 +1,10 @@
+GSP PR reader, read-only against real GitHub with the machine's existing gh login (PR content deliberately not captured; client data).
+$ bash bin/fm-task-data-lib.sh references https://github.com/groovejones/groove-sight-platform/pull/4364
+  -> exit 0, 16338 bytes, first line "pull_request:"
+$ bash bin/fm-task-data-lib.sh references https://github.com/groovejones/groove-sight-platform/pull/4365
+  -> exit 0, 26533 bytes, first line "pull_request:"
+Counterfactual, the pre-fix invocation the helper used to emit:
+$ gh-axi pr view https://github.com/groovejones/groove-sight-platform/pull/4364 --full --comments --reviews
+  -> exit 2: error: Missing PR number code: VALIDATION_ERROR
+$ gh-axi pr view https://github.com/groovejones/groove-sight-platform/pull/4365 --full --comments --reviews
+  -> exit 2: error: Missing PR number code: VALIDATION_ERROR

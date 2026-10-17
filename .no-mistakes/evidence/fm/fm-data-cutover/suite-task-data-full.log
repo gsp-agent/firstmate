@@ -1,0 +1,9 @@
+FM_TEST_BEGIN 2026-10-17T02:25:18Z tests/fm-teardown.test.sh family=pr-forge expected_gate_skip=none
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.SOiZYd/task-data-legacy-archive/data/task-x1/.cleanup-hold until the next completed task
+warning: task data retained for recovery: unread references: task-x1
+not ok - legacy archive expiry failed
+FM_TEST_END 2026-10-17T02:26:33Z tests/fm-teardown.test.sh exit=1 duration_ms=75082 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=86244
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=75082 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-teardown.test.sh duration_ms=75082
+exit=1

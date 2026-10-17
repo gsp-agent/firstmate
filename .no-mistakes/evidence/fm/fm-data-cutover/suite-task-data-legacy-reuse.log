@@ -1,0 +1,18 @@
+FM_TEST_BEGIN 2026-10-17T02:13:50Z tests/fm-teardown.test.sh family=pr-forge expected_gate_skip=none
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.hg4XAZ/task-data-legacy-reuse-expired/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.hg4XAZ/task-data-legacy-reuse-unexpired/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.hg4XAZ/task-data-legacy-reuse-legacy/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.hg4XAZ/task-data-legacy-reuse-direct/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: expired legacy history permits reused retirement while unexpired conflicts retain recovery
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.hg4XAZ/task-data-reuse/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.hg4XAZ/task-data-reuse/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: reusing a completed id keeps its earlier recovery's reference sources
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.hg4XAZ/task-data-expired-held/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.hg4XAZ/task-data-expired-held/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.hg4XAZ/task-data-expired-empty/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: both expiry transitions preserve earlier PR and bead sources
+FM_TEST_END 2026-10-17T02:17:14Z tests/fm-teardown.test.sh exit=0 duration_ms=203862 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=215731
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=203862 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-teardown.test.sh duration_ms=203862
+exit=0
