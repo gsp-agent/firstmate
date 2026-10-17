@@ -2264,24 +2264,16 @@ EOF
 # Output: one `<task-id>\t<origin>\t<key>\t<title>` line per divergence, in
 # status-log then key order; nothing when the two records agree.
 
-# Every still-open task id in this home's backlog, one per line. Only the first
-# two comma-separated listing fields are read - both are slugs that precede any
-# quoted title - so a title containing commas or quotes cannot shift them.
+# Every still-open task id in this home's backlog, one per line.
 open_task_ids() {
-  local data listing
-  data=$(fm_backlog_data_absolute "$DATA") || return 1
-  listing=$(fm_backlog_row_list "$data" 2>/dev/null) || return 1
-  printf '%s\n' "$listing" | awk -F, '
-    /^  [A-Za-z0-9._-]+,/ {
-      id = $1
-      sub(/^ +/, "", id)
-      if ($2 != "done") print id
-    }
-  '
+  local rows
+  rows=$(listed_task_rows) || return 1
+  printf '%s\n' "$rows" | awk 'NF && $2 != "done" { print $1 }'
 }
 
-# Every listed row as "<id> <state> <hold-kind>". hold_kind is the one extra
-# field requested, so it is the last field, after any quoted title.
+# Every listed row as "<id> <state> <hold-kind>". The id and state are slugs
+# that precede any quoted title, and hold_kind is the one extra field requested,
+# so it is the last field; a title containing commas or quotes cannot shift them.
 listed_task_rows() {
   local data listing
   data=$(fm_backlog_data_absolute "$DATA") || return 1
