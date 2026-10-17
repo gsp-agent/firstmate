@@ -1302,7 +1302,7 @@ The shared classifier's popup matcher in `bin/fm-composer-lib.sh` owns selection
 Verified live in the lab: with the popup up the state read answers `pending` (previously `empty`) and the payload proof returns `/exit` (previously empty), the submit presses Enter, and the Claude process exits, leaving the shell prompt.
 Growing the window only adds rows above the composer, so the bottom-most-shape selection, the footer zone, and every previously passing verdict are unchanged.
 
-Portable regressions (they fail against the short bounded-tail reads and pass with a complete current screen):
+Portable regressions (they fail against the short bounded-tail reads and pass with a full viewport-height read):
 
 ```sh
 tests/fm-backend-herdr.test.sh

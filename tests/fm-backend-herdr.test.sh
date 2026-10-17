@@ -5064,7 +5064,9 @@ herdr_wrapped_composer() {  # <text> <width> <drop>
 # composer row lands outside a 20-row tail window - a bounded tail read
 # reports the composer as empty while it holds typed text, which broke
 # fm-control exit (the typed /exit was judged unsent and cleared). The
-# composer reads capture the full current screen instead. The composer
+# composer reads capture a full viewport height instead: the visible viewport
+# when the pane is unscrolled or reports no scroll, and a viewport-height
+# recent trim when it is scrolled. The composer
 # sits inside a solid-rule pair (rule above, rule below), exactly as live
 # Claude draws it, with the menu rows below the closing rule; the rules are
 # structural edge rows, so the composer's content block ends there and the
@@ -5275,7 +5277,7 @@ test_send_text_submit_refuses_marked_digest_missing_its_head() {
 
 # Claude Code 2.1.283 renders a slash-command popup between the composer and
 # the pane bottom, pushing the composer row outside a 20-row tail window. The
-# composer reads must capture the full current screen: the old bounded read
+# composer reads must capture a full viewport height: the old bounded read
 # reported the composer empty, so the typed /exit was judged unsent, cleared,
 # and never submitted (fm-control exit never exited).
 test_composer_state_claude_slash_popup_pushes_composer_above_tail_window() {

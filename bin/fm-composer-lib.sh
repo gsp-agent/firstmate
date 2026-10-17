@@ -550,8 +550,10 @@ fm_composer_strip_braille() {
 # for the shared inbox confirmation read. One shared policy (previously three
 # per-backend variables that had drifted to 20/20/200) keeps stale scrollback
 # (startup banners, old transcript boxes) out of those candidate sets. tmux
-# and Herdr adapter composer reads use complete current screens instead; Herdr
-# also uses this value as the minimum Ctrl+U clear budget after a refused proof.
+# adapter composer reads use the visible viewport instead. Herdr's use the
+# visible viewport when the pane is unscrolled or reports no scroll, and a
+# viewport-height recent trim when it is scrolled; Herdr also uses this value
+# as the minimum Ctrl+U clear budget after a refused proof.
 FM_COMPOSER_CAPTURE_LINES=${FM_COMPOSER_CAPTURE_LINES:-20}
 
 # Pi allows a multi-line composer between its horizontal separators. Bound the
@@ -1650,11 +1652,7 @@ EOF
   row=$FM_COMPOSER_SELECTED_FIRST
   while [ "$row" -le "$FM_COMPOSER_SELECTED_LAST" ]; do
     raw=$(_fm_composer_screen_row "$row" "$screen")
-    if [ "$FM_COMPOSER_SELECTED_KIND" = bare ] && [ "$row" = "$FM_COMPOSER_SLASH_QUERY_ROW" ]; then
-      content=$(FM_COMPOSER_GHOST_LUMA_MAX=0 _fm_composer_row_content "$raw" "$styled")
-    else
-      content=$(_fm_composer_row_content "$raw" "$styled")
-    fi
+    content=$(_fm_composer_row_content "$raw" "$styled")
     placeholder_position=0
     case "$FM_COMPOSER_SELECTED_KIND" in
       bare)

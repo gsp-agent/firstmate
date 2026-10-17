@@ -1024,7 +1024,7 @@ test_claude_slash_popup_extracts_only_the_composer() {
       || fail "the $name capture must extract only '$expected', got '$out'"
     screen=${screen/"$expected"/"${ESC}[38;2;112;112;112m${expected}${ESC}[0m"}
     assert_screen "a muted slash command must still refuse injection" pending "$CAPS_STYLED_NOID" "$screen"
-    out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+    out=$(FM_COMPOSER_GHOST_LUMA_MAX=0 fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
     [ "$out" = "$expected" ] || fail "the muted query must remain in the payload, got '$out'"
     assert_screen "a plain slash-popup capture must refuse injection" unknown "$CAPS_PLAIN" "$screen"
   done
