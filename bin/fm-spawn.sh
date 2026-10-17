@@ -210,10 +210,10 @@
 #   publication. A spawn that finds
 #   every place held prints one `deferred:` line and exits 75 before any brief
 #   render, endpoint, worktree, record, or backlog move exists, so the task stays
-#   exactly as queued as it was, unless config/project-capacity-headroom names a
-#   reading command that exits 0 and this project has not already taken its one
-#   extra start in the current window (bin/fm-project-capacity-lib.sh owns that
-#   rule). An unreadable declaration refuses with exit 1.
+#   exactly as queued as it was, unless the reading named in
+#   config/project-capacity-headroom admits this project's one extra start for
+#   the current window (bin/fm-project-capacity-lib.sh owns that rule). An
+#   unreadable declaration refuses with exit 1.
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
