@@ -85,6 +85,8 @@ make_settle_case() {
   fm_git_init_commit "$stale"
   mkdir -p "$home/data/$id"
   cat > "$home/data/$id/brief.md" <<EOF
+Decision owner: ep-sample
+
 # Task
 ## Captain's intent
 Exercise settled-worktree detection for $id.
@@ -131,6 +133,8 @@ test_single_stale_first_read_is_not_accepted() {
     "meta did not record the settled worktree"
   assert_no_grep "worktree=$STALE_DIR" "$HOME_DIR/state/$id.meta" \
     "meta wrongly recorded the transient stale path as the worktree"
+  assert_grep 'decision_owner=ep-sample' "$HOME_DIR/state/$id.meta" 'dispatch lost the declared decision owner'
+  assert_grep 'Decision owner for this dispatch: ep-sample' "$HOME_DIR/data/$id/launch-brief.md" 'worker did not receive its decision owner'
   pass "a single transient stale pane_current_path read is not accepted as the worktree"
 }
 

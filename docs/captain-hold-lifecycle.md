@@ -34,6 +34,7 @@ It never reads report bodies, review artifacts, terminal output, or chat.
 | Subcommand | What it does | Details |
 | --- | --- | --- |
 | `hold` | Creates or reuses a task and holds it for the captain. | [Creating a hold](#creating-a-hold-hold) |
+| `route-due` | Transfers an expired technical hold to its declared agent owner. | [Technical hold routing](#technical-hold-routing) |
 | `answer` | Records the captain's exact words and resolves the call. | [Answering a call](#answering-a-call-answer) |
 | `complete` | Records the reviewed captain-held task ids in the originating task's metadata. | [Recording a reviewed inventory](#recording-a-reviewed-inventory-complete) |
 | `verify` | Read-only check that scout teardown runs before removing source state. | [Checking before scout teardown](#checking-before-scout-teardown-verify) |
@@ -52,8 +53,8 @@ It works in this order:
 1. It uses an existing task, or creates one when nothing exists to hold.
 2. It records the task's UTC hold-set timestamp as the leading line of the task body.
 3. When `--origin` is supplied, it records the origin on the task, replacing any previous association.
-4. It invokes the underlying tasks-axi hold operation.
-5. It verifies the hold and timestamp.
+4. It invokes the underlying tasks-axi hold operation, records the routing fields only after that succeeds, and verifies the hold and timestamp.
+5. It asks the optional hold-domain router to classify the hold and route it when due.
 
 Publishing the stamp first ensures a snapshot cannot observe a newly captain-held task without the timestamp that defines its age.
 
@@ -67,6 +68,25 @@ Repeat and edge cases:
   If that write fails, the backend hold is not attempted.
 - The reason may contain parentheses, semicolons, quotes, and line breaks.
   [`bin/fm-hold-reason-lib.sh`](../bin/fm-hold-reason-lib.sh) owns the storage encoding and compatibility rules; [`bin/fm-tasks-axi.sh --help`](../bin/fm-tasks-axi.sh) owns the public read commands and output contract.
+
+### Technical hold routing
+
+The optional agent-config router owns classification of technical holds and protection of human endpoints.
+Firstmate reconciles task and origin backend identities with runtime metadata aliases for authority lookup and the task control lock, and uses the canonical backend identity for routing bodies and receipts.
+It checks live captain-held rows and pending routing bodies on the watcher's existing periodic pass, whose tracked check subprocess bounds the whole routing sweep; each row also has a deadline so a blocked row preserves its pending work without starving healthy later rows.
+Repeated passes resume after interrupted attempts so later holds make progress even as rows retire or new rows appear.
+[`bin/fm-watch.sh`](../bin/fm-watch.sh)'s header owns the whole-sweep deadline and failure-notification order.
+Pending per-home routing bodies keep that supervision required even with no other work.
+Every hold, re-hold and sweep row asks the router before it spools, so a protected ask or human-owned hold is retired at once and stays a plain captain hold without creating routing state.
+A deferral dated after the local calendar date, the date tasks-axi gates on, is classified at its hold-set instant, so an eligible deferred entry stays pending without prompting anyone before its date, while the watcher retires answered, closed or replaced entries against live state.
+An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new stamp separates the previous body from the current header before the backend hold, so a failed header publication preserves historical words and permits retry without reusing historical authority.
+Confirmed archival retires pending routing, while an unreadable backlog leaves it supervised and reports the read failure.
+A successful prompt transfers responsibility to the owner and releases the hold without completing the task.
+The `agent-routed` resolution records the matching receipt under `Agent routing evidence:` and never supplies captain words.
+Retries use that receipt to finish interrupted recording or release without prompting the owner again.
+An absent router preserves ordinary captain-hold behavior.
+[`bin/fm-captain-hold.sh --help`](../bin/fm-captain-hold.sh) owns the routing fields, defaults, paths, timeout, and retry contract.
+[`bin/fm-brief.sh --help`](../bin/fm-brief.sh) owns decision-owner declaration at dispatch.
 
 ### Answering a call (`answer`)
 
@@ -184,7 +204,7 @@ The refusal names the record and the validation reason, so the captain can repai
 ### What `--force` does not lift
 
 `--force` does not lift the deferral, because it authorizes discarding unlanded work, never the captain's question.
-Only `answer` with the captain's words or evidence-backed `reconcile close` resolves the call, by either closing the question or releasing the gated work.
+The [captain-hold policy](../.agents/skills/captain-hold-lifecycle/SKILL.md#policy) owns resolution authority, including the distinction between captain calls and technical decisions.
 `bin/fm-backlog-transition-lib.sh` owns the transition and its record, and `bin/fm-captain-hold.sh --help` owns the predicate's contract.
 
 ## Answer-time resolution
@@ -402,7 +422,7 @@ Re-holding through the wrapper with `--until` remains the durable fix rather tha
 [`bin/fm-landed-lib.sh`](../bin/fm-landed-lib.sh) owns Recently Landed's shared selection and artifact-display compatibility rules.
 A local-only landing's note is written by `tasks-axi done --note` as the last of the row's indented body lines rather than into the row title.
 The snapshot therefore reads that final line as the note as well as parsing the title, and the landing is published carrying its recorded note.
-A body that carries a captain resolution record is the captain's own prose and is never mined for that note, so a decision worded `local main` does not become a delivery artifact.
+A body that carries a lifecycle resolution record is never mined for that note, so decision text or routing evidence worded `local main` does not become a delivery artifact.
 The projection remains read-only and uses the canonical snapshot's structured fields, including the machine-written hold-set timestamp.
 
 ### Merge-to-cleanup window
@@ -419,7 +439,7 @@ The away-posture restriction on queued merges and its residual limits are owned 
 A captain call can have two records, and closing one does not close the other.
 The status-log fold is the open-decision set `bin/fm-classify-lib.sh` reads from a task's status log, where a keyed `needs-decision` or `blocked` line opens a decision.
 A `resolved [key=...]` line closes the status-log fold.
-The structured captain-held task closes only through `answer`.
+Changes to the structured captain-held task belong to the [lifecycle subcommands](#subcommands-at-a-glance).
 
 Until this guard existed, closing on the status side alone left no trace of the disagreement.
 The fold went quiet, the durable record kept saying the captain owed an answer, and nothing warned.
@@ -534,6 +554,31 @@ The suite does not test the accepted merge-to-cleanup re-hold window or asynchro
 - Hold-set stamping precedes visible hold state, preserves an active lifecycle's timestamp, and resets after release.
 - Interrupted answer closure retains the stamp until close and restores resolution-first ordering on retry.
 - Deferral through `--until` leaves `captain_actionable` false until due.
+
+### Technical routing coverage
+
+The lifecycle suite replays update-branch and EP-approved capacity holds through the public hold and route commands.
+It checks pending deadlines, exact owner delivery, durable routing evidence, repeated sweeps, new lifecycles, failed sends, and interrupted releases for both active and expired dated holds.
+It also checks that money, credentials, people, client words, production, accounts, taste, mixed asks, and human endpoints remain held.
+An answered hold never routes from its stale pending body.
+A real watcher subprocess proves the existing periodic pass routes before surfacing ordinary status signals.
+Standalone holds and retirement of the last unrelated task preserve supervision until routing finishes.
+Fresh deferred holds and postponements preserve supervision, remain unrouted before their date, and route once through the watcher when due.
+Protected and human-owned deferrals, including a deferred hold whose question or owner changes, never enter pending routing or keep an idle home supervised.
+A sweep probes tasks-axi once, reads only captain-held and pending rows, and routes nothing without the captain-hold contract; lifecycle commands read only metadata files no listed task id names.
+Deferrals follow the local calendar date for routing and release recovery, and a re-hold, answer or reconciliation over an unreleased routed hold resolves that lifecycle's own parent occurrence.
+Fault-injected answer, release and reconciliation closures stay protected from immediate and periodic routing, while a new lifecycle preserves historical decisions and still routes.
+Zero-retention archival clears pending routing without treating an unreadable backlog as an absent task.
+Persistent reason drift, transport failures and release failures still allow ordinary scheduled checks to execute before the routing error surfaces.
+Native and fallback watcher bounds cover blocked listing, control locks, body writes and release, terminate blocked subprocesses, and preserve pending work and scheduled checks.
+Origin and task aliases preserve authority inheritance, shared control locks and canonical receipt identity, including new tasks and retries after interrupted release.
+Runtime-named metadata supplies the same authority and control lock for alias, canonical and self-origin holds, while routing bodies and receipts retain backend identity.
+Two-hold fixtures block the first row's control lock, resolution write or release and prove that the later row and ordinary checks still finish, with pending work retained and no duplicate delivery on retry.
+Repeated watcher sweeps exhaust their total budget across multiple blocked rows and still deliver a later healthy hold exactly once.
+Retiring attempted rows and adding new ones preserves progress, pending receipt recovery, subprocess cleanup, and eventual supervision retirement.
+An interrupted new lifecycle header preserves the historical answer and retries safely; repeated isolated remote dispatch preserves the declared owner and rejects invalid declarations before transport.
+The portable fixture implements the router protocol; `FM_TEST_HOLD_DOMAIN_ROUTER` selects an installed agent-config router for the same cases with an isolated transport.
+`FM_TEST_HOLD_DOMAIN_ONLY=1` runs only these routing cases.
 
 ### Legacy paths
 

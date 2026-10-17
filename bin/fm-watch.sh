@@ -165,6 +165,12 @@
 #                          budget and is parked until a probe reads it live
 #                          again (FM_SECONDMATE_LIVENESS_MAX_ATTEMPTS and
 #                          FM_SECONDMATE_LIVENESS_WINDOW_SECS)
+# The periodic hold-domain sweep uses the tracked check runner with
+# FM_CHECK_TIMEOUT seconds (default 90 for this sweep). A failure queues a
+# `check: hold-domain routing failed: exit <code>` wake before ordinary checks
+# run; that reason closes the sweep's one collected delivery, after the other
+# check results. fm-captain-hold.sh owns row deadlines and resumable sweep
+# ordering.
 # For normal supervision, resume the session-start primary-harness protocol
 # after each printed reason. Direct duplicate invocations of this script still
 # no-op through the watcher singleton lock. A live holder whose beacon is stale
@@ -2100,6 +2106,7 @@ procevent_surface_queued() {
 run_check_process() {
   local c=$1
   shift
+  [ "${FM_CHECK_CAPTURE_STDERR:-0}" != 1 ] || exec 2>&1
   # The merge-queue sweep bounds each GitHub page itself. An outer deadline
   # would kill the rest of a scan that is already making progress.
   if [ "${FM_CHECK_UNBOUNDED:-0}" = 1 ]; then
@@ -2874,6 +2881,15 @@ while :; do
   # never run until the fleet went quiet. Checks are due only every
   # CHECK_INTERVAL, so most cycles skip this block and fall straight through.
   if [ "$(age_of "$STATE/.last-check")" -ge "$CHECK_INTERVAL" ]; then
+    hold_route_reason=
+    if [ -d "$STATE/hold-domain" ]; then
+      CHECK_TIMEOUT=${FM_CHECK_TIMEOUT:-90} FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CHECK_CAPTURE_STDERR=1 \
+        run_check_capture "$SCRIPT_DIR/fm-captain-hold.sh" route-due || exit 1
+      if [ "$FM_CHECK_STATUS" -ne 0 ]; then
+        hold_route_reason="check: hold-domain routing failed: exit $FM_CHECK_STATUS${FM_CHECK_RESULT:+: $FM_CHECK_RESULT}"
+        fm_wake_append check hold-domain "$hold_route_reason" || exit 1
+      fi
+    fi
     rejected_checks=
     contribution_check_output=
     check_sweep_output=
@@ -3129,6 +3145,7 @@ EOF
     fi
     touch "$STATE/.last-check"
     check_sweep_output="${check_sweep_output}${contribution_check_output}"
+    [ -z "$hold_route_reason" ] || check_sweep_output="${check_sweep_output}${hold_route_reason}"$'\n'
     if [ -n "$check_sweep_output" ]; then
       wake "${check_sweep_output%$'\n'}"
     fi
