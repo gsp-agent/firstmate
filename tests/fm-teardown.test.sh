@@ -5598,7 +5598,7 @@ SH
 }
 
 test_task_data_stage_stops_at_its_limit() {
-  local case_dir task record started seconds
+  local case_dir task record started seconds python peak
   case_dir=$(make_case task-data-stage-limit)
   task="$case_dir/data/task-x1"
   record="$task/record/data-cleanup.json"
@@ -5609,8 +5609,9 @@ import sys
 
 task = sys.argv[1]
 line = "Ordinary review notes that name none of the cloned files.\n"
-with open(os.path.join(task, "report.md"), "w") as stream:
+with open(os.path.join(task, "report.md"), "w", encoding="utf-8") as stream:
     stream.write(line * ((16 * 1024 * 1024 - 4096) // len(line)))
+    stream.write("Reviewed by Jos\u00e9.\n")
 for number in range(200):
     with open(os.path.join(task, "clone", f"scratch-{number:03}.bin"), "w") as stream:
         stream.write("scratch\n")
@@ -5619,7 +5620,18 @@ PY
 #!/usr/bin/env bash
 cat >/dev/null
 SH
-  chmod +x "$case_dir/fakebin/dcg"
+  python=$(command -v python3)
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+[ "\${2:-}" = stage ] || exec "$python" "\$@"
+exec "$python" -c 'import resource, subprocess, sys
+status = subprocess.call(sys.argv[2:])
+peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+with open(sys.argv[1], "w") as stream:
+    stream.write(str(peak if sys.platform == "darwin" else peak * 1024))
+sys.exit(status)' "$case_dir/stage-peak" "$python" "\$@"
+SH
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/python3"
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
   started=$SECONDS
@@ -5635,11 +5647,14 @@ SH
   jq -e '.retained == "reference matching passed its 2s stage limit"' "$record" >/dev/null \
     || fail "the cleanup record did not name the stage limit"
   [ "$seconds" -le 20 ] || fail "teardown spent ${seconds}s with a 2s stage limit"
+  peak=$(cat "$case_dir/stage-peak")
+  [ "$peak" -le $((1024 * 1024 * 1024)) ] \
+    || fail "the stage peaked at $((peak / 1024 / 1024)) MiB matching a 16 MiB report with one accented letter"
   printf 'short report\n' > "$task/report.md"
   run_next_teardown "$case_dir" task-next || fail "next teardown failed: $(cat "$case_dir/task-next.err")"
   assert_present "$task/.cleanup-hold/clone/scratch-000.bin" "the next teardown did not retry the folder its stage limit kept whole"
   jq -e 'has("retained") | not' "$record" >/dev/null || fail "the retry left the stage-limit note in the record"
-  pass "fm-teardown: a stage past its limit moves nothing, keeps the folder whole, closes the backlog item and is retried"
+  pass "fm-teardown: a stage past its limit moves nothing, keeps the folder whole, stays within memory on accented text, closes the backlog item and is retried"
 }
 
 test_task_data_slow_expire_releases_locks() {

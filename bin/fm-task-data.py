@@ -98,6 +98,7 @@ An unread PR is named in the warning and record, retains the whole folder, and
 does not fail the cleanup pass; later cleanup retries it before moving any data.
 """
 
+from array import array
 from datetime import date
 import html
 import json
@@ -118,6 +119,7 @@ from urllib.parse import unquote
 
 LIMIT = 1024 * 1024
 KEPT_LIMIT = 16 * LIMIT
+CHUNK = 1024 * 1024
 TEXT = {".txt", ".md", ".log", ".json"}
 HOLD = ".cleanup-hold"
 RECEIPT = "record/data-cleanup.json"
@@ -376,6 +378,7 @@ def retention_paths(root, files, all_directories, repos, text, limit=None):
         if limit and time.monotonic() > limit[0]:
             raise RetainWhole(f"reference matching passed its {limit[1]}s stage limit")
 
+    check_limit()
     targets, directories = set(), set()
     decoded = []
     for match in re.finditer(r'"(?:[^"\\]|\\.)*"', text):
@@ -387,8 +390,14 @@ def retention_paths(root, files, all_directories, repos, text, limit=None):
     text += "\n" + re.sub(r"\\([" + re.escape(string.punctuation) + r"])", r"\1", text)
     check_limit()
     normalized = unicodedata.normalize("NFD", text)
-    offsets = None if normalized == text else [
-        index for index, character in enumerate(text) for _ in unicodedata.normalize("NFD", character)]
+    offsets = None
+    if normalized != text:
+        offsets = array("l")
+        for start in range(0, len(text), CHUNK):
+            check_limit()
+            piece = text[start:start + CHUNK]
+            offsets.extend(range(start, start + len(piece)) if unicodedata.is_normalized("NFD", piece) else (
+                index for index, character in enumerate(piece, start) for _ in unicodedata.normalize("NFD", character)))
     check_limit()
     entries = {root / rel: (root / rel).lstat() for rel in files + all_directories}
     children = {}
