@@ -32,8 +32,9 @@ Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
 
 Keep brief.md, report.md, status, findings, review, and record/ regardless of size,
-and read them for references up to 16 MiB each. A larger one is an unread
-reference: the folder stays whole and the file is named in the warning and record.
+and read those files and record/'s .txt/.md/.log/.json files for references up to
+16 MiB each. A larger one is an unread reference: the folder stays whole and the
+file is named in the warning and record.
 Also keep .txt/.md/.log/.json files up to 1 MiB outside nested repositories.
 Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
