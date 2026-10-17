@@ -704,7 +704,7 @@ EOF
   rc=0
   out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
   expect_code "$DEFER_EXIT" "$rc" "a second extra start in the window was admitted: $out"
-  assert_contains "$out" "already started one worker past that count in the current window" \
+  assert_contains "$out" "is cleaned up. This project already started one worker past that count in the current window." \
     "the second extra start did not say the window was used"
   assert_nothing_created "$case_dir" "$home" task-d "$before" "$worktrees"
   runs=$(reading_runs "$case_dir/reading.log")
@@ -808,7 +808,7 @@ EOF
   worktrees=$(worktree_list "$case_dir")
   out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
   expect_code "$DEFER_EXIT" "$rc" "a reading that exits 2 was admitted: $out"
-  assert_contains "$out" "The headroom reading reported no room." "a failed reading did not say there was no room"
+  assert_contains "$out" "is cleaned up. The headroom reading reported no room." "a failed reading did not say there was no room"
   assert_not_contains "$out" "headroom:" "a failed reading logged its line"
   assert_not_contains "$out" "cpu_idle_pct=1" "a failed reading's line reached the spawn"
   assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
@@ -871,17 +871,32 @@ EOF
   assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
   assert_absent "$home/state/project-capacity-overshare/project" "a hung reading consumed the window"
 
-  install_reading "$case_dir/allow" <<EOF
+  # A reading that exits 0 without printing a line has shown no headroom.
+  install_reading "$case_dir/silent" <<EOF
 exit 0
+EOF
+  write_headroom "$home" "$case_dir/silent"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a reading that exits 0 but prints nothing was admitted: $out"
+  assert_contains "$out" "The headroom reading reported no room." "a silent reading did not say there was no room"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  assert_absent "$home/state/project-capacity-overshare/project" "a silent reading consumed the window"
+
+  install_reading "$case_dir/allow" <<EOF
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
 EOF
   write_headroom "$home" "$case_dir/allow"
   rc=0
   out=$(spawn_ship "$case_dir" task-c) || rc=$?
   expect_code 0 "$rc" "a later reading that exits 0 did not admit after earlier failures: $out"
   assert_contains "$out" "spawned task-c" "the start after a failed reading did not launch"
-  assert_not_contains "$out" "headroom:" "a reading that printed nothing was logged"
+  assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" \
+    "the start after a failed reading did not log the reading's line"
   [ "$held" = "$(cat "$home/state/live-a.meta")" ] || fail "a denied reading changed the worker already running"
-  pass "a failed, missing, or hung reading defers without consuming the window"
+  pass "a failed, missing, hung, or silent reading defers without consuming the window"
 }
 
 # A declared count of 0 admits nobody. An exit-0 reading does not raise it,
@@ -928,7 +943,7 @@ test_local_homes_share_one_extra_start() {
   held=$(cat "$root/state/live-a.meta")
   install_reading "$case_dir/reading" <<EOF
 printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
-exit 0
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
 EOF
   write_headroom "$root" "$case_dir/reading"
   git -C "$mate_project" worktree add --quiet -b wt-m "$case_dir/wt-m"

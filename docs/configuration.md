@@ -1125,10 +1125,10 @@ The declaration is matched by the spawning clone's directory name, so clones of 
 A clone of that origin under a different directory name finds no declaration and is not capped, though its workers are still counted as holders for a same-origin clone that is capped.
 When every place is held, `bin/fm-spawn.sh` launches nothing, creates no record, leaves the backlog item queued, prints one `deferred:` line naming the holders, and exits 75, so Firstmate dispatches the item again once a place frees.
 That deferral is unchanged when `config/project-capacity-headroom` is absent or contains no non-whitespace line.
-When the file's one line names a reading program and that program exits 0, one spawn past the declared count can launch for that project.
+When the file's one line names a reading program and that program prints a line and exits 0, one spawn past the declared count can launch for that project.
 When that extra start is admitted, the spawn logs the program's first stdout line; [`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns that log line.
 A second extra spawn for the same project waits until 420 seconds after that start.
-A program that is missing, unreadable, or not executable, that exits non-zero, or that is still running after 5 seconds, counts as no room, and the spawn is deferred.
+A program that is missing, unreadable, or not executable, that exits non-zero, that exits 0 with an empty first stdout line, or that is still running after 5 seconds, counts as no room, and the spawn is deferred.
 The line is the program and its arguments, split on whitespace.
 The shell does not evaluate the line, so a program path that contains whitespace cannot be named.
 One reading that fits the line is `node` followed by the absolute path of `machine-headroom.mjs`.
