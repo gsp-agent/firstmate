@@ -5597,6 +5597,51 @@ SH
   pass "fm-teardown: kept evidence over 16 MiB is not read, keeps the folder whole, closes the backlog item and is retried"
 }
 
+test_task_data_stage_stops_at_its_limit() {
+  local case_dir task record started seconds
+  case_dir=$(make_case task-data-stage-limit)
+  task="$case_dir/data/task-x1"
+  record="$task/record/data-cleanup.json"
+  mkdir -p "$task/clone"
+  python3 - "$task" <<'PY'
+import os
+import sys
+
+task = sys.argv[1]
+line = "Ordinary review notes that name none of the cloned files.\n"
+with open(os.path.join(task, "report.md"), "w") as stream:
+    stream.write(line * ((16 * 1024 * 1024 - 4096) // len(line)))
+for number in range(200):
+    with open(os.path.join(task, "clone", f"scratch-{number:03}.bin"), "w") as stream:
+        stream.write("scratch\n")
+PY
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/dcg"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  started=$SECONDS
+  FM_TEARDOWN_DATA_STAGE_TIMEOUT=2 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "teardown with a large report and many unmatched files failed: $(cat "$case_dir/err")"
+  seconds=$((SECONDS - started))
+  [ "$(backlog_row_state "$case_dir")" = "done" ] \
+    || fail "a stage past its limit left the backlog item at $(backlog_row_state "$case_dir")"
+  assert_absent "$task/.cleanup-hold" "a stage past its limit moved data"
+  [ "$(find "$task/clone" -type f | wc -l | tr -d ' ')" = 200 ] || fail "a stage past its limit moved scratch"
+  assert_contains "$(cat "$case_dir/err")" "task data task-x1 retained whole for retry: reference matching passed its 2s stage limit" \
+    "teardown did not name the task its stage limit kept whole"
+  jq -e '.retained == "reference matching passed its 2s stage limit"' "$record" >/dev/null \
+    || fail "the cleanup record did not name the stage limit"
+  [ "$seconds" -le 20 ] || fail "teardown spent ${seconds}s with a 2s stage limit"
+  printf 'short report\n' > "$task/report.md"
+  run_next_teardown "$case_dir" task-next || fail "next teardown failed: $(cat "$case_dir/task-next.err")"
+  assert_present "$task/.cleanup-hold/clone/scratch-000.bin" "the next teardown did not retry the folder its stage limit kept whole"
+  jq -e 'has("retained") | not' "$record" >/dev/null || fail "the retry left the stage-limit note in the record"
+  pass "fm-teardown: a stage past its limit moves nothing, keeps the folder whole, closes the backlog item and is retried"
+}
+
 test_task_data_slow_expire_releases_locks() {
   local case_dir old young held beads started send_pid teardown_pid rc i seconds
   case_dir=$(make_case task-data-slow-expire)
@@ -7710,6 +7755,7 @@ test_task_data_github_reader
 test_task_data_cleanup
 test_task_data_large_kept_evidence
 test_task_data_oversized_kept_evidence
+test_task_data_stage_stops_at_its_limit
 test_task_data_slow_expire_releases_locks
 test_task_data_expire_skips_expired_receipts
 test_task_data_expire_cut_off_hold_moves_back
