@@ -68,6 +68,33 @@ plist_args() { # <plist> -> ProgramArguments, one per line, read by a strict XML
   python3 -I -c 'import plistlib, sys; print("\n".join(plistlib.load(open(sys.argv[1], "rb"))["ProgramArguments"]))' "$1"
 }
 
+plist_value() { # <plist> <key> -> that string value, read by a strict XML plist parser
+  python3 -I -c 'import plistlib, sys; print(plistlib.load(open(sys.argv[1], "rb"))[sys.argv[2]])' "$1" "$2"
+}
+
+nightly_fixture() { # <root>: <root>/repo clones <root>/upstream as its kunchenguid remote; <root>/home is a scratch Firstmate home
+  fm_git_init_commit "$1/upstream"
+  git clone -q "$1/upstream" "$1/repo"
+  git -C "$1/repo" remote rename origin kunchenguid
+  mkdir -p "$1/home"
+}
+
+run_nightly() { # <root>: one scheduled run, its output appended to <root>/drift.log as launchd does
+  NIGHTLY_RC=0
+  # nightly only names --log in its note; launchd owns the append, as here.
+  # shellcheck disable=SC2094
+  FM_HOME="$1/home" FM_STATE_OVERRIDE="$1/home/state" FM_DATA_OVERRIDE="$1/home/data" \
+    "$SCRIPT" nightly --repo "$1/repo" --log "$1/drift.log" >> "$1/drift.log" 2>&1 || NIGHTLY_RC=$?
+}
+
+note_count() { # <home>
+  find "$1/state/inbox" -maxdepth 1 -name '*.note' 2>/dev/null | wc -l | tr -d ' '
+}
+
+note_body() { # <home> -> the body of its only note
+  sed '1,/^--$/d' "$1"/state/inbox/*.note
+}
+
 test_unproven_file_is_path_drift_and_exits_1() {
   local repo sha out
   repo=$(fm_test_tmproot drift-unproven)
@@ -597,34 +624,95 @@ merge: $merge merge side" "$CHECK_OUT" "the merge commit is labeled merge"
   pass "a merge commit is labeled merge and adds no path-drift when its tree matches upstream"
 }
 
+test_nightly_red_sends_one_note_a_day_and_green_sends_none() {
+  local root day
+  root=$(fm_test_tmproot drift-nightly-note)
+  nightly_fixture "$root"
+  run_nightly "$root"
+  expect_code 0 "$NIGHTLY_RC" "a green nightly exits 0: $(cat "$root/drift.log")"
+  assert_equals 0 "$(note_count "$root/home")" "a green nightly sent a note"
+  printf 'custom\n' > "$root/repo/notes.txt"
+  git -C "$root/repo" add notes.txt
+  fixture_commit "$root/repo" "add notes"
+  day=$(date +%F)
+  run_nightly "$root"
+  expect_code 1 "$NIGHTLY_RC" "a nightly with path-drift exits 1"
+  run_nightly "$root"
+  expect_code 1 "$NIGHTLY_RC" "a same-day rerun still exits 1"
+  assert_equals 1 "$(note_count "$root/home")" "a red nightly and its same-day rerun make exactly one note"
+  assert_equals "Nightly drift check red on $day: exit 1 for $root/repo.
+path-drift: notes.txt
+Log: $root/drift.log" "$(note_body "$root/home")" "the note names the red line and the log"
+  assert_grep "request_id=fm-drift-nightly-$day" "$root/home/state/inbox/"*.note "the note is keyed to the run date"
+  assert_grep 'ahead: 0' "$root/drift.log" "the log keeps the green run's report"
+  assert_grep 'path-drift: notes.txt' "$root/drift.log" "the log keeps the red run's report"
+  pass "a red nightly sends one note a day naming its red lines and log, and a green one sends none"
+}
+
+test_nightly_check_error_is_red() {
+  local root
+  root=$(fm_test_tmproot drift-nightly-error)
+  fm_git_init_commit "$root/repo"
+  mkdir -p "$root/home"
+  run_nightly "$root"
+  expect_code 2 "$NIGHTLY_RC" "a nightly whose check cannot run exits 2"
+  assert_equals "Nightly drift check red on $(date +%F): exit 2 for $root/repo.
+error: kunchenguid remote is missing
+Log: $root/drift.log" "$(note_body "$root/home")" "the note names the check error and the log"
+  pass "a nightly whose check exits 2 sends one note naming the error"
+}
+
+test_nightly_note_names_at_most_ten_red_lines() {
+  local root i body
+  root=$(fm_test_tmproot drift-nightly-cap)
+  nightly_fixture "$root"
+  for i in 01 02 03 04 05 06 07 08 09 10 11 12; do
+    printf 'custom\n' > "$root/repo/notes-$i.txt"
+  done
+  git -C "$root/repo" add .
+  fixture_commit "$root/repo" "add twelve notes"
+  run_nightly "$root"
+  expect_code 1 "$NIGHTLY_RC" "a nightly with twelve drifted paths exits 1"
+  body=$(note_body "$root/home")
+  assert_contains "$body" "path-drift: notes-10.txt
+2 more red lines in the log.
+Log: $root/drift.log" "the note stops after ten red lines and points at the log"
+  assert_not_contains "$body" "notes-11.txt" "the note pasted an eleventh red line"
+  assert_grep 'path-drift: notes-12.txt' "$root/drift.log" "the log keeps every red line"
+  pass "a nightly note names at most ten red lines and counts the rest in the log"
+}
+
 test_install_dry_run_writes_nothing() {
   local dir out rc
   dir=$(fm_test_tmproot drift-dry-install)
   rc=0
-  out=$(FM_DRIFT_AGENT_DIR="$dir" "$SCRIPT" install --dry-run --hour 4 --minute 5 --repo /tmp/example-repo) || rc=$?
+  out=$(HOME="$dir/home" FM_DRIFT_AGENT_DIR="$dir" "$SCRIPT" install --dry-run --hour 4 --minute 5 --repo /tmp/example-repo) || rc=$?
   expect_code 0 "$rc" "install --dry-run exits 0"
   assert_equals "dry-run: install
 label: dev.firstmate.drift-nightly
 hour: 4
 minute: 5
 plist: $dir/dev.firstmate.drift-nightly.plist
-repo: /tmp/example-repo" "$out" "install --dry-run prints the job and does not describe a write"
+repo: /tmp/example-repo
+log: $dir/home/Library/Logs/dev.firstmate.drift-nightly.log" "$out" "install --dry-run prints the job and does not describe a write"
   assert_absent "$dir/dev.firstmate.drift-nightly.plist" "install --dry-run created a plist"
+  assert_absent "$dir/home" "install --dry-run created the log directory"
   pass "install --dry-run prints the job and writes nothing"
 }
 
 test_install_and_uninstall_round_trip() {
-  local dir log fake repo out rc plist lint
+  local dir log fake repo out rc plist lint joblog
   dir=$(fm_test_tmproot drift-install)
   log=$dir/launchctl.log
   fake=$(fake_launchctl "$dir")
   lint=$(lint_path "$dir")
   repo=$dir/repo
+  joblog=$dir/logs/drift.log
   mkdir -p "$repo"
   plist=$dir/agents/dev.firstmate.drift-nightly.plist
   rc=0
   out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
-    "$SCRIPT" install --hour 3 --minute 17 --repo "$repo") || rc=$?
+    "$SCRIPT" install --hour 3 --minute 17 --repo "$repo" --log "$joblog") || rc=$?
   expect_code 0 "$rc" "install exits 0"
   assert_equals "installed: $plist" "$out" "install names the plist it wrote"
   assert_present "$plist" "install did not write the plist"
@@ -632,6 +720,10 @@ test_install_and_uninstall_round_trip() {
   assert_grep '<integer>3</integer>' "$plist" "the plist hour is not 3"
   assert_grep '<integer>17</integer>' "$plist" "the plist minute is not 17"
   assert_grep "$repo" "$plist" "the plist does not name the repo"
+  assert_present "$dir/logs" "install did not create the log directory launchd writes into"
+  assert_equals "$joblog" "$(plist_value "$plist" StandardOutPath)" "the job's stdout does not go to the log"
+  assert_equals "$joblog" "$(plist_value "$plist" StandardErrorPath)" "the job's stderr does not go to the log"
+  printf 'red run report\n' > "$joblog"
   : > "$log"
   rc=0
   out=$(FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
@@ -640,37 +732,42 @@ test_install_and_uninstall_round_trip() {
   assert_equals "uninstalled: removed" "$out" "uninstall reports removed"
   assert_absent "$plist" "uninstall left the plist"
   assert_grep "bootout gui/$(id -u)/dev.firstmate.drift-nightly" "$log" "uninstall did not bootout the agent"
+  assert_equals "red run report" "$(cat "$joblog")" "uninstall did not keep the log"
   rc=0
   out=$(FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
     "$SCRIPT" uninstall) || rc=$?
   expect_code 0 "$rc" "a second uninstall exits 0"
   assert_equals "uninstalled: absent" "$out" "a second uninstall reports absent"
-  pass "install writes the nightly agent and uninstall removes it, including a second call"
+  pass "install writes the nightly agent and its log path, and uninstall removes it, keeps the log, and repeats"
 }
 
-test_install_escapes_xml_in_script_and_repo_paths() {
-  local dir log fake lint tools repo out rc plist
+test_install_escapes_xml_in_script_repo_and_log_paths() {
+  local dir log fake lint tools repo joblog out rc plist
   dir=$(fm_test_tmproot drift-install-xml)
   log=$dir/launchctl.log
   fake=$(fake_launchctl "$dir")
   lint=$(lint_path "$dir")
   tools="$dir/tools & <bin>"
   repo="$dir/repo & <copy> \"it's\""
+  joblog="$dir/logs & <x>/drift.log"
   mkdir -p "$tools" "$repo"
   cp "$SCRIPT" "$tools/fm-drift-nightly.sh"
   plist=$dir/agents/dev.firstmate.drift-nightly.plist
   rc=0
   out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
-    bash "$tools/fm-drift-nightly.sh" install --repo "$repo" 2>&1) || rc=$?
+    bash "$tools/fm-drift-nightly.sh" install --repo "$repo" --log "$joblog" 2>&1) || rc=$?
   expect_code 0 "$rc" "install from paths holding XML specials exits 0: $out"
   assert_equals "/bin/bash
 $tools/fm-drift-nightly.sh
-check
+nightly
 --repo
-$repo" "$(plist_args "$plist" 2>&1)" "a plist parser reads back the exact script and repo paths"
+$repo
+--log
+$joblog" "$(plist_args "$plist" 2>&1)" "a plist parser reads back the exact script, repo and log paths"
+  assert_equals "$joblog" "$(plist_value "$plist" StandardOutPath 2>&1)" "a plist parser reads back the exact log path"
   assert_equals "bootout gui/$(id -u)/dev.firstmate.drift-nightly
 bootstrap gui/$(id -u) $plist" "$(cat "$log")" "install boots out the old job, then bootstraps the new plist"
-  pass "install escapes &, <, > and quotes in the script and repo paths"
+  pass "install escapes &, <, > and quotes in the script, repo and log paths"
 }
 
 test_install_keeps_the_installed_job_when_the_plist_is_invalid() {
@@ -684,13 +781,13 @@ test_install_keeps_the_installed_job_when_the_plist_is_invalid() {
   plist=$dir/agents/dev.firstmate.drift-nightly.plist
   rc=0
   out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
-    "$SCRIPT" install --repo "$repo" 2>&1) || rc=$?
+    "$SCRIPT" install --repo "$repo" --log "$dir/drift.log" 2>&1) || rc=$?
   expect_code 0 "$rc" "the first install exits 0: $out"
   before=$(cat "$plist")
   : > "$log"
   rc=0
   out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
-    "$SCRIPT" install --repo "$dir/not-utf8-"$'\377' 2>&1) || rc=$?
+    "$SCRIPT" install --repo "$dir/not-utf8-"$'\377' --log "$dir/drift.log" 2>&1) || rc=$?
   expect_code 2 "$rc" "a reinstall whose plist fails lint exits 2"
   assert_contains "$out" "installed job unchanged" "the refusal says the installed job is unchanged"
   assert_equals "" "$(cat "$log")" "a refused reinstall called launchctl"
@@ -712,7 +809,7 @@ test_uninstall_keeps_the_plist_unless_launchctl_reports_the_job_gone() {
   exiting_launchctl "$dir/launchctl-absent" 3 113
   rc=0
   out=$(PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$dir/launchctl-ok" FM_DRIFT_LAUNCHCTL_LOG="$log" \
-    "$SCRIPT" install --repo "$repo" 2>&1) || rc=$?
+    "$SCRIPT" install --repo "$repo" --log "$dir/drift.log" 2>&1) || rc=$?
   expect_code 0 "$rc" "install exits 0: $out"
   rc=0
   out=$(FM_DRIFT_AGENT_DIR="$dir/agents" FM_DRIFT_LAUNCHCTL="$dir/launchctl-71" FM_DRIFT_LAUNCHCTL_LOG="$log" \
@@ -755,13 +852,17 @@ test_documented_cut_recovery_restores_a_cut_from_the_bundle() {
   pass "the documented cut recovery restores a cut commit from the bundle alone"
 }
 
-test_bad_hour_exits_2() {
+test_bad_install_arguments_exit_2() {
   local rc out
   rc=0
   out=$("$SCRIPT" install --hour 24 2>&1) || rc=$?
   expect_code 2 "$rc" "hour 24 exits 2"
   assert_equals "error: --hour must be 0 through 23" "$out" "hour 24 names the rejected range"
-  pass "install rejects hour 24"
+  rc=0
+  out=$("$SCRIPT" install --dry-run --log drift.log 2>&1) || rc=$?
+  expect_code 2 "$rc" "a relative log path exits 2"
+  assert_equals "error: --log must be an absolute path" "$out" "a relative log path is named as the error"
+  pass "install rejects hour 24 and a relative log path"
 }
 
 test_unproven_file_is_path_drift_and_exits_1
@@ -786,10 +887,13 @@ test_accepted_merge_carries_only_proven_or_pending_commits
 test_unknown_proof_commit_is_an_error
 test_behind_count_is_reported_and_does_not_fail_alone
 test_merge_commit_is_labeled_merge
+test_nightly_red_sends_one_note_a_day_and_green_sends_none
+test_nightly_check_error_is_red
+test_nightly_note_names_at_most_ten_red_lines
 test_install_dry_run_writes_nothing
 test_install_and_uninstall_round_trip
-test_install_escapes_xml_in_script_and_repo_paths
+test_install_escapes_xml_in_script_repo_and_log_paths
 test_install_keeps_the_installed_job_when_the_plist_is_invalid
 test_uninstall_keeps_the_plist_unless_launchctl_reports_the_job_gone
 test_documented_cut_recovery_restores_a_cut_from_the_bundle
-test_bad_hour_exits_2
+test_bad_install_arguments_exit_2
