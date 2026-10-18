@@ -647,3 +647,37 @@ R17 finalization
 The manifest lists 516926a9 and every R17 commit above, and its fixed-parent entry names 5491620c so it selects only the commit delivering this manifest.
 Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
 Required result: exit 0 and zero path-drift lines on the resulting head.
+
+R18 merge of upstream-lean
+Measured: 2026-10-18 (Central), git 2.56.0, jq-1.8.2, Pi 0.85.0
+upstream-lean 9ed80766 carried 26 commits this branch lacked, none in kunchenguid/main: PR 34 (9ed80766), which replaced PR 20, and 25 commits from PRs #21, #27, #28, #30, #31, #32, #33, #35 and #39 merged after the 10-14 cut.
+Firstmate decision (key post-cut-upstream-lean, option B): merge, prove or cut PR 34's portions, and accept the 25 with proof pending .agent-config-dtjsb.
+1f45a22e merges 9ed80766 (merge, not rebase, so every manifest commit keeps its hash). The 15 conflicted files keep upstream-lean's changes and the steer-007 calls; features the cut removed stay cut.
+The manifest accepts the merge through its first-parent patch, so the check passes for the 25 and still flags any later unproven commit.
+
+PR 34 portions kept, each with a regression that fails on kunchenguid/main's files and passes here:
+CI trigger: parsed .github/workflows/ci.yml; kunchenguid/main pull_request.branches=['main'], this branch ['main', 'upstream-lean'] (push likewise), so a PR into upstream-lean gets CI where upstream's filter gave PR 25 zero checks. GitHub currently registers no Actions runs on this repository at all, so the runtime effect is unconfirmed. CONTRIBUTING.md and docs/fm-test-portable-shards.md now name the workflow as owner of those filters.
+Crew guard working_directory pin: test_cursor_crew_guard_pins_working_directory_and_refuses_ref_plumbing passes; kunchenguid/main has no crew guard ("R17 crew isolation").
+Ship branch held by a sibling worktree: test_ship_branch_refuses_a_sibling_worktree passes (fm-spawn-pool-base-freshen, 30 checks); kunchenguid/main's spawn creates no ship branch.
+Cursor guard: the portable spending-file selection and GNU stat age pass "GNU stat supports spending-file age"; kunchenguid/main has no Cursor guard.
+Cursor secondmate interactive and allowlisted launch exit code: both pass; the allowlisted test keeps its exit and visible-output checks.
+Fixtures for kept behavior: the backlog fixture answers a merged recorded PR, which restored teardown record keeping reads; the herdr presentation fixture recovers through scouts because a fresh ship spawn now creates its branch; the two GitLab captain-hold tests pass (fm-captain-hold-lifecycle, 61 checks).
+
+PR 34 portions cut:
+In the merge: the headless pstack launch with stream tee and its /bin/bash launch-env wrapper, the Cursor settings reassert, the daily launch cap, the pstack pin, the after-run usage-limit marker, and the 2048-byte Task limit header; decimal-spelling refusal is superseded by 5491620c (on jq-1.8.2, jq -r prints 85.0, 1E+2 and 26.0 as written; the floor check reads them as 85, 100 and 26).
+6373a197: the brief header line naming spawn as owner of the cut Task limit, and the stream-capture assertion.
+9c86a2e0: the Pi 1.2 narrowing, its doc line and fixture edits (tests/fm-pi-primary-types.test.sh passes strict typecheck against Pi 0.85.0 and fm-pi-watch-extension passes 60 checks both with and without it); the supervision-host away Grok quarantine, which skipped a case.
+Recover any of them with git checkout 9ed80766 -- <path>.
+
+Two reds arrive from upstream-lean itself and fail identically on a full export of 9ed80766 (recorded on .agent-config-dtjsb):
+PR #35: test_secondmate_pr_registration_publishes_ready_line (fm-pr-made-with prints actionable: for a fixture record with no harness).
+PR #27: test_recovery_preserves_both_records_when_meta_removal_fails (the record is labelled "task record" where upstream's test expects "the interrupted task record could not be removed").
+fm-pi-branch-extension cannot run on this machine: the installed Pi package lacks @earendil-works/pi-server.
+
+Suites on the merged tree, with only those two inherited cases skipped:
+fm-teardown 154 + 44 checks, fm-backlog-atomicity 99 + 66, fm-spawn-dispatch-profile 90, fm-bootstrap 28, fm-dispatch-resolve 25, fm-cursor-guard 5, fm-brief 39, fm-session-start 60, fm-spawn-pool-base-freshen 30, fm-pi-watch-extension 60, fm-drift-nightly 27, fm-captain-hold-lifecycle 61, fm-supervision-host 75 with the away Grok case running, all passing.
+
+R18 finalization
+The manifest lists a56cef1a, the merge 1f45a22e, 6373a197 and 9c86a2e0, names the 25 accepted commits with proof pending .agent-config-dtjsb, and its fixed-parent entry names 9c86a2e0.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
+Required result: exit 0 and zero path-drift lines on the resulting head.
