@@ -1,0 +1,6 @@
+$ (worktree at 718da894) env GITHUB_ACTIONS=true CI=true PATH=/bin:/usr/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin /bin/bash parse-sweep.sh
+== tree: target 718da894 (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56XEXQ8DXKJ9QBGBNJH85JY)
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+files in shell inventory: 476
+PARSE SWEEP: PASS
+exit=0

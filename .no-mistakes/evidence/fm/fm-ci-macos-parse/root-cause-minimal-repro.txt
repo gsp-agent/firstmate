@@ -1,0 +1,28 @@
+== before.sh:
+   | out=$(node --input-type=module 2>&1 <<'EOF'
+   | // This is Pi 0.85's event, which has no messageType.
+   | console.log("hi");
+   | EOF
+   | )
+   | echo "$out"
+   /bin/bash 3.2.57 -n: before.sh: line 2: unexpected EOF while looking for matching `''
+before.sh: line 7: syntax error: unexpected end of file
+
+   bash 5.3 -n:         OK
+
+   /bin/bash 3.2.57 run: before.sh: line 2: unexpected EOF while looking for matching `''
+before.sh: line 7: syntax error: unexpected end of file
+
+== after.sh:
+   | out=$(node --input-type=module 2>&1 <<'EOF'
+   | // This is the Pi 0.85 event, which has no messageType.
+   | console.log("hi");
+   | EOF
+   | )
+   | echo "$out"
+   /bin/bash 3.2.57 -n: OK
+
+   bash 5.3 -n:         OK
+
+   /bin/bash 3.2.57 run: hi
+

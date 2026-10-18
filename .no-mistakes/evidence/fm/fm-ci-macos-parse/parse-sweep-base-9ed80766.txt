@@ -1,0 +1,10 @@
+$ git archive 9ed80766 (upstream-lean base) | tar -x; env GITHUB_ACTIONS=true CI=true PATH=/bin:/usr/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin /bin/bash parse-sweep.sh
+== tree: base 9ed80766 (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-base-tree.C6Ds4B)
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+files in shell inventory: 476
+tests/fm-pi-watch-extension.test.sh: line 3512: unexpected EOF while looking for matching `)'
+tests/fm-pi-watch-extension.test.sh: line 5258: syntax error: unexpected end of file
+::error::stock macOS Bash 3.2 failed to parse tests/fm-pi-watch-extension.test.sh
+::error::stock macOS Bash 3.2 parse sweep failed
+PARSE SWEEP: FAIL
+exit=1
