@@ -6,6 +6,22 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py expire DATA STATE ID
 The caller must hold STATE/.meta-ID.lock, the lock also used by spawn.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
+Without metadata, prepare reads the latest completed markdown backlog row,
+including the configured archive (legacy mode needs tomllib), when there is no
+cleanup record or the expired record holds a legacy row.
+Checked rows in the current backlog take precedence over archived rows.
+Within that source, completion dates order rows; missing or tied dates cannot
+resolve different projects or PRs, so those folders remain whole.
+PR identity and named beads come from the entire selected row, including its
+continuation notes; multiple distinct PRs retain the whole folder.
+Named repositories resolve below the backlog home's projects/; absolute repo
+paths remain absolute.
+Missing, ambiguous, or active rows retain the whole folder.
+Legacy row references in the open recovery cycle are refreshed before staging
+and expiry, with the original row retained as evidence in the cleanup record.
+A changed project or PR identity in that cycle retains the whole folder.
+Expired legacy rows and their last refreshed references remain historical
+evidence and are no longer compared with the current row when the task id is reused.
 Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
 Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
@@ -50,8 +66,11 @@ Expiry checks each exact, nonrecursive rm/rmdir command through dcg's Bash hook
 before executing it. A denial, unknown response, missing dcg, or command failure
 retains the remaining recovery and reports an error. No allowlist is modified.
 Moving to the hold does not reclaim disk space; expiry does.
+An unread PR is named in the warning and record, retains the whole folder, and
+does not fail the cleanup pass; later cleanup retries it before moving any data.
 """
 
+from datetime import date
 import html
 import json
 import os
@@ -75,6 +94,10 @@ RECEIPT = "record/data-cleanup.json"
 
 
 class UnreadReferences(ValueError):
+    pass
+
+
+class RetainWhole(UnreadReferences):
     pass
 
 
@@ -106,13 +129,13 @@ def inventory(root):
                 files.append(path.relative_to(root))
             else:
                 raise ValueError(f"special file in task data: {path}")
-    return files, directories, repos
+    return files, directories, set(repos)
 
 
 def ordinary_evidence(path, rel, repos):
     if rel.parts[0] == "record" or str(rel) in ("brief.md", "report.md", "status", "findings", "review"):
         return True
-    if any(repo == rel or repo in rel.parents for repo in repos):
+    if any(parent in repos for parent in (rel, *rel.parents)):
         return False
     return path.suffix.lower() in TEXT and path.lstat().st_size <= LIMIT
 
@@ -139,28 +162,128 @@ def local_references(root, files, repos):
     return "\n".join(texts)
 
 
+def completed_source(data, task_id):
+    try:
+        import tomllib
+    except ImportError as error:
+        raise ValueError("legacy preparation needs Python with tomllib") from error
+    location = json.loads(read_command([
+        "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
+        "backlog-location", str(data),
+    ], str(data.parent)))
+    if (not isinstance(location, dict) or not isinstance(location.get("root"), str)
+            or not isinstance(location.get("file"), str) or not location["file"]
+            or Path(location["root"]) != data.parent):
+        raise ValueError("legacy preparation requires a markdown backlog in its owning home")
+    backlog = Path(location["file"])
+    archive = backlog.parent / "done-archive.md"
+    for config in (Path.home() / ".tasks-axi/config.toml", data.parent / ".tasks.toml"):
+        if config.exists() or config.is_symlink():
+            markdown = tomllib.loads(config.read_text()).get("markdown", {})
+            if not isinstance(markdown, dict):
+                raise ValueError(f"invalid markdown configuration in {config}")
+            value = markdown.get("archive")
+            if value is not None:
+                if not isinstance(value, str) or not value.strip():
+                    raise ValueError(f"invalid markdown archive in {config}")
+                archive = data.parent / value
+    if archive == backlog:
+        raise ValueError("archive path must not be the active backlog path")
+    candidates = []
+    bullet = re.compile(r"^- (?:\[([ x])\] ([A-Za-z0-9][A-Za-z0-9._-]*)|\*\*([A-Za-z0-9][A-Za-z0-9._-]*)\*\*) - (.*)$")
+    for path in dict.fromkeys((archive, backlog)):
+        if path != backlog and not path.exists() and not path.is_symlink():
+            continue
+        if not path.is_file() or path.is_symlink():
+            raise ValueError(f"unreadable completed-row source: {path}")
+        lines = path.read_text().splitlines()
+        for index, line in enumerate(lines):
+            match = bullet.fullmatch(line)
+            if not match or (match[2] or match[3]) != task_id:
+                continue
+            if match[1] != "x":
+                if path == backlog:
+                    raise ValueError("task still has a live backlog row")
+                continue
+            end = index + 1
+            while end < len(lines) and (not lines[end] or lines[end].startswith("  ")):
+                end += 1
+            dates = set(re.findall(r"\((?:merged|reported|done|closed) (\d{4}-\d{2}-\d{2})\)", match[4]))
+            try:
+                completed = date.fromisoformat(next(iter(dates))).isoformat() if len(dates) == 1 else ""
+            except ValueError:
+                completed = ""
+            candidates.append((path == backlog, completed, match[4], "\n".join(lines[index:end])))
+    if not candidates:
+        raise ValueError("no completed backlog row")
+    candidates = [row for row in candidates if row[0]] or candidates
+    latest = max(row[1] for row in candidates)
+    sources = [completed_row_source(data, title, text)
+               for _, completed, title, text in candidates if not completed or completed == latest]
+    if len({(source["project"], source["pr"]) for source in sources}) > 1:
+        raise ValueError("completed backlog rows have different projects or PRs with unproven order")
+    source = sources[-1]
+    source["text"] = "\n".join(item["text"] for item in sources)
+    if len(source["text"].encode()) > LIMIT:
+        raise ValueError("completed backlog evidence exceeds 1 MiB")
+    source["beads"] = sorted({bead for item in sources for bead in item["beads"]})
+    return source
+
+
+def completed_row_source(data, title, text):
+    repos = re.findall(r"\((?:[^()]*\+\s*)?repo:\s*([^)]+)\)", title)
+    if not repos:
+        raise ValueError("completed backlog row has no project")
+    project = Path(repos[-1].strip()).expanduser()
+    if not project.is_absolute():
+        if len(project.parts) != 1 or str(project) in (".", ".."):
+            raise ValueError("completed backlog row has an ambiguous project path")
+        project = data.parent / "projects" / project
+    prs = set(re.findall(r"https://[^\s<>\"']+/(?:pulls?|merge_requests)/\d+|https://[^\s<>\"']+/c/[^\s<>\"']+/\+/\d+", text))
+    if len(prs) > 1:
+        raise ValueError("completed backlog row has multiple PRs")
+    if len(text.encode()) > LIMIT:
+        raise ValueError("completed backlog row exceeds 1 MiB")
+    beads = sorted(set(re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", text)))
+    return {"project": str(project), "pr": next(iter(prs), ""), "beads": beads, "text": text}
+
+
 def backlog_references(source, task_id):
     backlog = source["backlog"]
+    legacy = backlog.get("legacy", False)
+    if legacy and not backlog.get("closed", False):
+        try:
+            completed = completed_source(Path(backlog["data"]), task_id)
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            source["unread"] = [task_id]
+            raise RetainWhole(f"unread completed row {task_id}: {error}") from error
+        if (completed["project"], completed["pr"]) != (source["project"], source["pr"]):
+            source["unread"] = [task_id]
+            raise RetainWhole(f"completed row {task_id} changed project or PR")
+        backlog["refreshed_text"] = completed["text"]
+        source["beads"] = sorted(set(source["beads"]) | set(completed["beads"]))
+    legacy_text = backlog["text"] + "\n" + backlog.get("refreshed_text", "") if legacy else ""
     try:
         response = json.loads(read_command([
             "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
             "backlog-references", backlog["data"], task_id,
-            "1" if backlog["task"] is not None else "0", source["project"], *source["beads"],
+            "1" if backlog["task"] is not None and not legacy else "0", source["project"], *source["beads"],
         ], str(Path(backlog["data"]).parent)))
         if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
                 or response.get("task") not in (None, task_id)
-                or (backlog["task"] is not None and response.get("task") != task_id)
+                or (backlog["task"] is not None and not legacy and response.get("task") != task_id)
                 or not isinstance(response.get("unread"), list)
                 or any(not isinstance(item, str) for item in response["unread"])):
             raise ValueError("invalid backlog reference response")
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         source["unread"] = sorted(set([task_id, *source["beads"]]))
         raise UnreadReferences(f"unread references {', '.join(source['unread'])}: {error}") from error
-    backlog["task"] = response["task"]
+    if not legacy:
+        backlog["task"] = response["task"]
     source["unread"] = response["unread"]
     if source["unread"]:
         raise UnreadReferences(f"unread references: {', '.join(source['unread'])}")
-    return response["text"]
+    return legacy_text + "\n" + response["text"]
 
 
 def references(views, sources, task_id):
@@ -170,10 +293,14 @@ def references(views, sources, task_id):
     sources[-1]["beads"] = sorted(set(sources[-1]["beads"]) | beads)
     for source in sources:
         project, pr = source["project"], source["pr"]
-        if pr:
-            texts.append(read_command(["bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
-                                       "references", pr], project))
         texts.append(backlog_references(source, task_id))
+        if pr:
+            try:
+                texts.append(read_command(["bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
+                                           "references", pr], project))
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                source["unread"] = sorted(set(source.get("unread", [])) | {pr})
+                raise RetainWhole(f"unread PR {pr}: {error}") from error
     return unquote(html.unescape("\n".join(texts)))
 
 
@@ -394,6 +521,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if receipt.parent.is_symlink() or (receipt.parent.exists() and not receipt.parent.is_dir()):
         raise ValueError("unsafe record directory")
     record = None
+    legacy = None
     if receipt.exists() or receipt.is_symlink():
         if (receipt.is_symlink() or receipt.stat().st_nlink != 1
                 or receipt.stat().st_size > LIMIT):
@@ -414,17 +542,33 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                 backlog = source["backlog"]
                 if (not isinstance(backlog, dict) or not isinstance(backlog.get("data"), str)
                         or not Path(backlog["data"]).is_absolute()
-                        or "task" not in backlog or backlog["task"] not in (None, task_id)):
+                        or "task" not in backlog or backlog["task"] not in (None, task_id)
+                        or not isinstance(backlog.get("legacy", False), bool)
+                        or not isinstance(backlog.get("closed", False), bool)
+                        or not isinstance(backlog.get("refreshed_text", ""), str)
+                        or (backlog.get("legacy") and not isinstance(backlog.get("text"), str))):
                     raise ValueError("invalid backlog source")
         if action == "expire" and record.get("expired"):
             return
     elif action == "expire":
         return
+    new_legacy = action == "prepare" and values is None and (
+        record is None or (record.get("expired") and any(
+            source.get("backlog", {}).get("legacy") for source in record["sources"])))
+    if new_legacy or (values is None and record and not record.get("expired")
+                      and any(source.get("backlog", {}).get("legacy")
+                              and not source["backlog"].get("closed", False) for source in record["sources"])):
+        try:
+            legacy = completed_source(data, task_id)
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
+            return
     if action == "prepare" and values is None:
-        if record is None:
-            raise ValueError("missing retiring task record and cleanup sources")
-        project = record["sources"][-1]["project"]
-        pr = pr or record["sources"][-1]["pr"]
+        if new_legacy:
+            project, pr = legacy["project"], legacy["pr"]
+        else:
+            project = record["sources"][-1]["project"]
+            pr = pr or record["sources"][-1]["pr"]
     hold = root / HOLD
     if hold.is_symlink() or (hold.exists() and not hold.is_dir()):
         raise ValueError("unsafe recovery directory")
@@ -435,7 +579,15 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if record is None:
         record = {"version": 1, "task": task_id, "sources": [], "complete": False}
     if record.get("expired"):
+        for source in record["sources"]:
+            if source.get("backlog", {}).get("legacy"):
+                source["backlog"]["closed"] = True
         record.update(complete=False, expired=False)
+    if new_legacy:
+        record["sources"].append({
+            "project": project, "pr": pr, "beads": legacy["beads"],
+            "backlog": {"data": str(data), "task": task_id, "legacy": True, "text": legacy["text"]},
+        })
     if action in ("prepare", "stage"):
         source = next((item for item in record["sources"]
                        if item["project"] == project and item["pr"] == pr
@@ -461,6 +613,9 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         raise ValueError("dcg is unavailable")
     try:
         text = references(views, record["sources"], task_id)
+    except RetainWhole as error:
+        print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
+        return
     finally:
         write_record(root, record)
     targets, directories = retention_paths(root, files, all_directories, repos, text)

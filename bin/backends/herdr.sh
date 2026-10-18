@@ -3140,8 +3140,7 @@ fm_backend_herdr_send_key() {  # <target> <key>
 # does not merely ignore the bound, it drops the read entirely. This silently
 # broke exactly the small bounded reads this adapter relies on most (the peek
 # and watch tails, the rendered busy-footer read, and the shared inbox
-# pending-line read; the adapter's own composer reads now take the viewport
-# instead, so they need no line count at all). Workaround:
+# pending-line read). Workaround:
 # always request a generous fetch far above any realistic viewport height, then
 # trim to the caller's requested bound ourselves with `tail`.
 fm_backend_herdr_capture() {  # <target> <lines>
@@ -3163,24 +3162,44 @@ fm_backend_herdr_visible_capture() {  # <target>
   fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source visible 2>/dev/null
 }
 
-fm_backend_herdr_visible_capture_ansi() {  # <target>
+# Capture the screen the composer reads classify. An unscrolled pane
+# (offset_from_bottom 0) reads the visible viewport, which is then exactly the
+# current screen. A pane that reports no scroll, as Herdr 0.7.1 (protocol 14)
+# does, reads the visible viewport as before scroll support, so a scrolled 0.7.1
+# pane remains scroll-blind. A scrolled pane's visible viewport is old chat, so
+# it reads recent rows trimmed to the viewport height. Herdr ends that read at
+# the current screen's last non-blank or cursor row, so when the screen's
+# bottom is blank the trim reaches rows above it; the classifier's bottom-most
+# composer selection, not the trim, keeps an older prompt above a live composer
+# from deciding the verdict. A reported scroll must carry a valid offset and
+# height.
+fm_backend_herdr_composer_capture() {  # <target> [text|ansi]
   fm_backend_herdr_target_observable "$1" || return 1
-  fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source visible --format ansi 2>/dev/null
+  local info rows fetch format=${2:-text}
+  info=$(fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane get "$FM_BACKEND_HERDR_PANE" 2>/dev/null) || return 1
+  rows=$(printf '%s' "$info" | jq -er '.result.pane
+    | if type != "object" then error("no pane")
+      elif .scroll == null then "visible"
+      elif .scroll | type == "object"
+        and (.viewport_rows | type == "number" and . > 0 and . == floor)
+        and (.offset_from_bottom | type == "number" and . >= 0 and . == floor)
+      then if .scroll.offset_from_bottom == 0 then "visible" else .scroll.viewport_rows end
+      else error("invalid scroll") end') || return 1
+  if [ "$rows" = visible ]; then
+    fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source visible --format "$format" 2>/dev/null
+    return
+  fi
+  fetch=$rows
+  [ "$fetch" -ge 200 ] || fetch=200
+  (
+    set -o pipefail
+    fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source recent --lines "$fetch" --format "$format" 2>/dev/null |
+      tail -n "$rows"
+  )
 }
 
-# --- herdr composer capture and capability primitives -----------------------
-#
-# These functions are the ONLY herdr-specific composer knowledge left: the
-# ANSI viewport capture (`--source visible`, which needs no line count and so
-# no small-N workaround), the native `agent get` identity probe, and the
-# capability descriptor. Every shape - the bordered
-# box, the bare agent-glyph row, opencode's left-bar, and pi's
-# identity-gated separated pair (which this adapter pioneered) - now lives in
-# the shared owner (bin/fm-composer-lib.sh, fm_composer_classify_screen), so
-# a new harness shape is taught there once and every backend learns it in the
-# same commit. The muse `⟩` glyph this adapter's local bare-prompt pattern
-# silently omitted is exactly the drift class that consolidation removes.
-
+# The capture and native identity probe provide Herdr's capabilities to the
+# shared classifier in bin/fm-composer-lib.sh, which owns every composer shape.
 fm_backend_herdr_agent_identity_raw() {  # <session> <pane> -> <agent>\t<status>
   local out
   out=$(fm_backend_herdr_cli "$1" agent get "$2" 2>/dev/null) || return 1
@@ -3203,21 +3222,14 @@ fm_backend_herdr_composer_identity() {  # <target> -> "<agent>\t<status>"
 # only when the classifier reports the verdict depends on it (a pi separator
 # pair below every other candidate), preserving this adapter's original
 # consult-only-when-needed behavior.
-# The capture is the FULL VISIBLE VIEWPORT, never a bounded tail: an overlay
-# a harness renders between the composer and the pane bottom - Claude Code's
-# slash-command popup is the verified shape (2.1.283, ~19 menu rows) - pushes
-# the composer above a tail window, and the bounded read then reports the
-# composer as empty while it actually holds typed text. That blindness broke
-# fm-control exit (the typed /exit was judged unsent and cleared) and would
-# equally defeat this state read's pre-submit concat guard. The composer is
-# by definition inside the viewport, and `--source visible` needs none of the
-# small-N --lines workaround.
+# Both styled and plain reads use fm_backend_herdr_composer_capture. A scrolled
+# visible viewport can show old chat without the live composer.
 fm_backend_herdr_composer_state() {  # <target> -> empty|pending|pending-unproven|unknown
   local target=$1 cap caps verdict identity
   fm_backend_herdr_parse_target "$target" || { printf 'unknown'; return 0; }
-  if cap=$(fm_backend_herdr_visible_capture_ansi "$target" 2>/dev/null); then
+  if cap=$(fm_backend_herdr_composer_capture "$target" ansi 2>/dev/null); then
     caps=$(printf 'styled=1\ncursor=0\nidentity=1')
-  elif cap=$(fm_backend_herdr_visible_capture "$target"); then
+  elif cap=$(fm_backend_herdr_composer_capture "$target"); then
     caps=$(printf 'styled=0\ncursor=0\nidentity=1')
   else
     printf 'unknown'
@@ -3361,8 +3373,8 @@ fm_backend_herdr_queued_enter_busy() {  # <target> <allow-rendered>
 # occupy, bounding the Ctrl+U presses a verified clear may need. A literal
 # payload wraps, and clearing a multi-row leftover is one press per rendered
 # row (live Claude deletes one wrapped row per press). The composer read
-# itself is the full visible viewport (fm_backend_herdr_composer_content), so
-# this bound no longer sizes a capture.
+# source is owned by fm_backend_herdr_composer_capture, so this bound sizes
+# only clearing, never a capture.
 fm_backend_herdr_proof_lines() {  # <text>
   local text=$1 lines
   lines=$(( (${#text} / 40) + 8 ))
@@ -3376,12 +3388,7 @@ fm_backend_herdr_proof_lines() {  # <text>
 }
 
 # fm_backend_herdr_composer_content: the selected composer's visible text.
-# The capture is the FULL VISIBLE VIEWPORT, never a bounded tail: an overlay
-# rendered between the composer and the pane bottom - Claude Code's
-# slash-command popup is the verified shape (2.1.283) - pushes the composer
-# above a tail window, so the pre-Enter payload proof would read empty, judge
-# the typed command unsent, and clear it (the fm-control exit breakage). The
-# viewport is the one bound that always contains the composer.
+# Uses the same capture as the pre-submit state guard.
 # Styled capture is preferred. An empty or failed styled read falls through to
 # the plain capture so a missing ANSI format does not look like an empty draft.
 # This read serves only the Claude payload proof, so the grok-tuned
@@ -3391,9 +3398,9 @@ fm_backend_herdr_proof_lines() {  # <text>
 # ghost suggestion is SGR-2 dim and is still stripped.
 fm_backend_herdr_composer_content() {  # <target>
   local target=$1 cap caps
-  if cap=$(fm_backend_herdr_visible_capture_ansi "$target" 2>/dev/null) && [ -n "$cap" ]; then
+  if cap=$(fm_backend_herdr_composer_capture "$target" ansi 2>/dev/null) && [ -n "$cap" ]; then
     caps=$(printf 'styled=1\ncursor=0\nidentity=0')
-  elif cap=$(fm_backend_herdr_visible_capture "$target") && [ -n "$cap" ]; then
+  elif cap=$(fm_backend_herdr_composer_capture "$target") && [ -n "$cap" ]; then
     caps=$(printf 'styled=0\ncursor=0\nidentity=0')
   else
     return 1

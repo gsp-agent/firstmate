@@ -61,14 +61,34 @@ case "$(fb e1)" in "codex newest Cursor spending file is"*) ;; *) fail "a stale 
 printf 'cursor_models_pct=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "the newest fresh low file must keep cursor"
 printf '{"cursor_fallback":{"models_pct":10,"max_age_h":26}}\n' > "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
-case "$(fb e1)" in "codex Cursor Models at 10% (limit 10%)") ;; *) fail "threshold must come from crew-dispatch.json: $(fb e1)" ;; esac
+case "$(fb e1)" in "codex Cursor Models at 10% (limit 10%)"*) ;; *) fail "threshold must come from crew-dispatch.json: $(fb e1)" ;; esac
 rm -f "$FM_CONFIG_OVERRIDE/crew-dispatch.json"
+# pct 100 stays on cursor only with prepaid credit and enabled on-demand room (Dale 10-16)
+printf 'cursor_models_pct=100\non_demand=enabled\nprepaid_balance=445.63\nmonthly_additional_usage_used=138.38\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+[ "$(fb e1)" = cursor ] || fail "100% with prepaid credit and enabled on-demand room must stay on cursor: $(fb e1)"
+printf '{"name":"pstack","version":"0.15.22"}\n' > "$FM_PSTACK_DIR/.cursor-plugin/plugin.json"
+case "$(fb e1)" in "grok pstack plugin version is '0.15.22', not the pinned 0.15.21") ;; *) fail "100% with prepaid credit and an off-pin pstack must fall back to grok: $(fb e1)" ;; esac
+printf '{"name":"pstack","version":"0.15.21"}\n' > "$FM_PSTACK_DIR/.cursor-plugin/plugin.json"
+printf 'cursor_models_pct=100\non_demand=enabled\nprepaid_balance=0\nmonthly_additional_usage_used=10\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with on-demand room but prepaid 0 must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=100\non_demand=enabled\nprepaid_balance=184.05\nmonthly_additional_usage_used=400.00\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with prepaid credit but on-demand used at the limit must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=100\non_demand=disabled\nprepaid_balance=84.07\nmonthly_additional_usage_used=10\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with prepaid credit but on-demand disabled must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=100\nprepaid_balance=0\nmonthly_additional_usage_used=400\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with no credit room must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=100\non_demand=enabled\nprepaid_balance=445.63\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with on-demand used missing must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=100\non_demand=enabled\nprepaid_balance=445.63\nmonthly_additional_usage_used=not-available\nmonthly_additional_usage_limit=400\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with non-numeric on-demand used must fall back: $(fb e1)" ;; esac
+printf 'cursor_models_pct=100\non_demand=enabled\nprepaid_balance=445.63\nmonthly_additional_usage_used=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb e1)" in "codex Cursor Models at 100%"*"no prepaid/on-demand credit room"*) ;; *) fail "100% with on-demand limit missing must fall back: $(fb e1)" ;; esac
 # the live 89% reading goes to codex; a codex-limit marker sends the bead to claude
 printf 'cursor_models_pct=89\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
-[ "$(fb e1)" = "codex Cursor Models at 89% (limit 85%)" ] || fail "89% must fall back to codex: $(fb e1)"
+case "$(fb e1)" in "codex Cursor Models at 89% (limit 85%)"*) ;; *) fail "89% must fall back to codex: $(fb e1)" ;; esac
 printf 'codex run for e1 hit its usage limit\n' > "$FM_STATE_OVERRIDE/e1.codex-limit"
-[ "$(fb e1)" = "claude Cursor Models at 89% (limit 85%); codex run for e1 hit its usage limit" ] || fail "a codex-limit marker must fall back to claude: $(fb e1)"
-[ "$(fb e2)" = "codex Cursor Models at 89% (limit 85%)" ] || fail "another bead's codex-limit must not move this one: $(fb e2)"
+case "$(fb e1)" in "claude Cursor Models at 89% (limit 85%)"*) ;; *) fail "a codex-limit marker must fall back to claude: $(fb e1)" ;; esac
+case "$(fb e2)" in "codex Cursor Models at 89% (limit 85%)"*) ;; *) fail "another bead's codex-limit must not move this one: $(fb e2)" ;; esac
 rm -f "$FM_STATE_OVERRIDE/e1.codex-limit"
 printf 'cursor_models_pct=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "under the limit must stay on cursor: $(fb e1)"
@@ -114,7 +134,7 @@ printf 'cursor_models_pct=26\nother_models_pct=45\non_demand=disabled\ncycle_res
 printf '{"name":"pstack","version":"0.15.22"}\n' > "$FM_PSTACK_DIR/.cursor-plugin/plugin.json"
 case "$(fb e1)" in "grok pstack plugin version is '0.15.22', not the pinned 0.15.21") ;; *) fail "a different pstack version must fall back: $(fb e1)" ;; esac
 printf 'cursor_models_pct=89\n' > "$FM_CURSOR_USAGE_DIR/20261015-spending.txt"
-[ "$(fb e1)" = "codex Cursor Models at 89% (limit 85%)" ] || fail "an off-pin pstack with a short pool must go to codex, not grok: $(fb e1)"
+case "$(fb e1)" in "codex Cursor Models at 89% (limit 85%)"*) ;; *) fail "an off-pin pstack with a short pool must go to codex, not grok: $(fb e1)" ;; esac
 rm -f "$FM_CURSOR_USAGE_DIR/20261015-spending.txt"
 printf '{"name":"pstack","version":"0.15.21"}\n' > "$FM_PSTACK_DIR/.cursor-plugin/plugin.json"
 pass "an off-pin pstack falls back to grok only while the pool is fine; a short pool still goes to codex"
