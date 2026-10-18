@@ -78,6 +78,11 @@ make_case() {  # <name> [task-id...]
   cat > "$fakebin/tmux" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FM_FAKE_CALL_LOG"
+# A spawn told to fail its launch fails when it types the launch command, after
+# its task record is published and the project lock is released.
+if [ -n "${FM_FAKE_FAIL_LAUNCH:-}" ]; then
+  case "$*" in send-keys*' -l '*launch.*) exit 1 ;; esac
+fi
 case "$*" in
   *"#{pane_current_path}"*)
     # A spawn that is told to hold waits here, after its capacity check and
@@ -734,6 +739,62 @@ EOF
   pass "one extra start is admitted per window, and a later one waits until that window has passed"
 }
 
+# An admitted extra start whose spawn then fails launched no worker, so the
+# next valid task still gets that window's extra start.
+test_failed_extra_start_leaves_the_window_open() {
+  local case_dir home out rc=0 runs
+  case_dir=$(make_case extra-failed task-a task-b)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  install_reading "$case_dir/reading" <<EOF
+printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  printf '%s\n' '# Task' "## Captain's intent" '{TASK}' '' '## Firstmate spec' 'x' > "$home/data/task-a/brief.md"
+  out=$(spawn_ship "$case_dir" task-a "$case_dir/unused") || rc=$?
+  [ "$rc" -ne 0 ] && [ "$rc" -ne "$DEFER_EXIT" ] || fail "an invalid brief did not fail after its extra start was admitted (exit $rc): $out"
+  assert_contains "$out" "still contains {TASK}" "the extra start did not fail where expected"
+  assert_absent "$home/state/task-a.meta" "the failed extra start left a record"
+  assert_absent "$home/state/project-capacity-overshare/project" "the failed extra start used the window"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-b) || rc=$?
+  expect_code 0 "$rc" "a failed extra start used the window, so a valid task was deferred: $out"
+  assert_contains "$out" "spawned task-b" "the valid task did not get the extra start"
+  assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" \
+    "the valid task's extra start did not log the reading"
+  assert_present "$home/state/project-capacity-overshare/project" "the launched extra start was not recorded"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 2 ] || fail "the reading did not run once for each admitted extra start (runs=$runs)"
+  pass "an extra start whose spawn fails leaves the window open for the next task"
+}
+
+# The same holds when the launch itself fails, after the extra start's task
+# record was published and the project lock released.
+test_failed_extra_launch_leaves_the_window_open() {
+  local case_dir home out rc=0
+  case_dir=$(make_case extra-launch-failed task-a task-b)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  install_reading "$case_dir/reading" <<'EOF'
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  out=$(FM_FAKE_FAIL_LAUNCH=1 spawn_ship "$case_dir" task-a) || rc=$?
+  [ "$rc" -ne 0 ] && [ "$rc" -ne "$DEFER_EXIT" ] || fail "a failed launch did not fail the extra start (exit $rc): $out"
+  assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" "the failed launch was not an admitted extra start"
+  assert_absent "$home/state/task-a.meta" "the failed launch left a record"
+  assert_absent "$home/state/project-capacity-overshare/project" "the failed launch used the window"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-b) || rc=$?
+  expect_code 0 "$rc" "a failed launch used the window, so a valid task was deferred: $out"
+  assert_contains "$out" "spawned task-b" "the valid task did not get the extra start after a failed launch"
+  assert_present "$home/state/project-capacity-overshare/project" "the launched extra start was not recorded"
+  pass "an extra start whose launch fails leaves the window open for the next task"
+}
+
 # The shared reading samples the CPU over a few seconds and has taken up to
 # 12.7 seconds on a loaded machine. A reading that slow which reports room
 # still admits the extra start.
@@ -1008,6 +1069,8 @@ test_batch_reports_a_deferred_pair
 test_orca_spawn_is_admitted_under_the_shared_project_lock
 test_share_starts_without_reading_headroom
 test_headroom_admits_one_extra_start_per_window
+test_failed_extra_start_leaves_the_window_open
+test_failed_extra_launch_leaves_the_window_open
 test_slow_reading_that_reports_room_admits
 test_absent_headroom_command_keeps_the_capacity_deferral
 test_failed_missing_and_hung_readings_defer
