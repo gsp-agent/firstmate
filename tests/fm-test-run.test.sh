@@ -1580,6 +1580,15 @@ SH
     || fail "a script ended by the bound's TERM was not recorded as exit 124: $(cat "$tmp/o3")"
   [ ! -s "$tmp/e3" ] || fail "a script ended by the bound's TERM left a job notice on the runner's stderr: $(cat "$tmp/e3")"
 
+  # A zero-padded bound is still a count of seconds, so the script's own
+  # status is recorded.
+  printf '#!/usr/bin/env bash\necho "ok - fixture ran"\nexit 3\n' >"$repo/tests/fm-padded-bound-fixture.test.sh"
+  set +e
+  "$runner" --per-script-timeout-secs 0600 tests/fm-padded-bound-fixture.test.sh >"$tmp/o4" 2>"$tmp/e4"
+  set -e
+  grep -Eq 'FM_TEST_END .* exit=3 ' "$tmp/o4" \
+    || fail "a zero-padded bound did not record the script's own exit status: $(cat "$tmp/o4" "$tmp/e4")"
+
   # 0 keeps the historical unbounded behavior, so no existing caller changes.
   set +e
   "$runner" --per-script-timeout-secs nope "$hang" >"$tmp/o2" 2>"$tmp/e2"
