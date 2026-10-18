@@ -1,0 +1,263 @@
+Live lab: real bin/fm-spawn.sh at c19ce654, real tmux (private fm-lab socket), real treehouse (pool inside the lab), real tasks-axi markdown backlog,
+a marked disposable lab home (bin/fm-lab-home.sh), and a stand-in worker launched as a raw launch command (worker.sh: logs its start, then sleeps).
+Watcher-down banners (lab has no watcher) are filtered out.
+
+################ s0-lab-a ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+notice: lab-a ships mode=local-only while the standing posture for labproj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned lab-a harness=worker.sh kind=ship mode=local-only yolo=on window=primary:fm-lab-a worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj-d9f416/1/labproj
+[spawn lab-a exit=0 after 12s]
+
+################ s1-off-absent ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 1 already hold a place (lab-a); task lab-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+[spawn lab-b exit=75 after 2s]
+
+################ s1-off-blank ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 1 already hold a place (lab-a); task lab-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+[spawn lab-b exit=75 after 8s]
+
+################ s2-share-start ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+notice: lab-b ships mode=local-only while the standing posture for labproj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned lab-b harness=worker.sh kind=ship mode=local-only yolo=on window=primary:fm-lab-b worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj-d9f416/2/labproj
+[spawn lab-b exit=0 after 12s]
+
+################ s5-no-room ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 2 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab-a, lab-b); task lab-c was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab-c exit=75 after 4s]
+
+################ s8a-failed-before-launch ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+headroom: cpu_idle_pct=41.5 load1=18.20 disk_free_gb=540.2
+error: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/data/lab-x/brief.md still contains {TASK} or {FIRSTMATE_SPEC}; fill ## Captain's intent and ## Firstmate spec before spawn
+[spawn lab-x exit=1 after 1s]
+
+################ s3-real-reading ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 2 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab-a, lab-b); task lab-c was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab-c exit=75 after 5s]
+
+################ s3-real-reading-retries ################
+=== attempt 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 2 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab-a, lab-b); task lab-c was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab-c exit=75 after 29s]
+04:43:05Z exit=1 line=cpu_idle_pct=0.0 load1=50.48 disk_free_gb=535.8
+=== attempt 2
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 2 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab-a, lab-b); task lab-c was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab-c exit=75 after 12s]
+04:43:17Z exit=1 line=cpu_idle_pct=5.4 load1=48.48 disk_free_gb=535.7
+=== attempt 3
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 2 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab-a, lab-b); task lab-c was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab-c exit=75 after 15s]
+04:43:32Z exit=1 line=cpu_idle_pct=20.6 load1=47.34 disk_free_gb=535.9
+=== attempt 4
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 2 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab-a, lab-b); task lab-c was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab-c exit=75 after 20s]
+04:43:52Z exit=1 line=cpu_idle_pct=0.2 load1=45.52 disk_free_gb=535.8
+
+################ s4-admit ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+headroom: cpu_idle_pct=41.5 load1=18.20 disk_free_gb=540.2
+notice: lab-c ships mode=local-only while the standing posture for labproj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned lab-c harness=worker.sh kind=ship mode=local-only yolo=on window=primary:fm-lab-c worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj-d9f416/3/labproj
+[spawn lab-c exit=0 after 22s]
+
+################ s4-spent ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 2 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 3 already hold a place (lab-a, lab-b, lab-c); task lab-x was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+[spawn lab-x exit=75 after 1s]
+
+################ s9-labproj2-share ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+notice: lab2-a ships mode=local-only while the standing posture for labproj2 is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned lab2-a harness=worker.sh kind=ship mode=local-only yolo=on window=primary:fm-lab2-a worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj2-9dc82d/1/labproj2
+[spawn lab2-a exit=0 after 37s]
+
+################ s9-concurrent ################
+=== s9-conc-lab2-b.log
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+WARNING: watcher still down (same stale episode; last beat: 309s ago, grace 300s) - full banner already printed this episode.
+headroom: cpu_idle_pct=33.0 load1=20.00 disk_free_gb=540.0
+notice: lab2-b ships mode=local-only while the standing posture for labproj2 is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned lab2-b harness=worker.sh kind=ship mode=local-only yolo=on window=primary:fm-lab2-b worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj2-9dc82d/2/labproj2
+[spawn lab2-b exit=0 after 40s]
+=== s9-conc-lab2-c.log
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+error: this home's task set is locked by another spawn; refusing to create task lab2-c rather than racing it
+[spawn lab2-c exit=1 after 5s]
+slow reading runs: 1
+labproj2 record epoch=1792298765
+
+################ s10-labproj3-share ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+notice: lab3-a ships mode=local-only while the standing posture for labproj3 is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned lab3-a harness=worker.sh kind=ship mode=local-only yolo=on window=primary:fm-lab3-a worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj3-e13842/1/labproj3
+[spawn lab3-a exit=0 after 43s]
+
+################ s10-cross-home-race ################
+=== s10-conc-root.log
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+headroom: cpu_idle_pct=33.0 load1=20.00 disk_free_gb=540.0
+notice: lab3-r ships mode=local-only while the standing posture for labproj3 is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned lab3-r harness=worker.sh kind=ship mode=local-only yolo=on window=primary:fm-lab3-r worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj3-e13842/2/labproj3
+[spawn lab3-r exit=0 after 28s]
+=== s10-conc-mate.log
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+error: another Treehouse slot allocation or return is in progress for /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate/projects/labproj3; refusing to race it
+[spawn lab3-m exit=1 after 3s]
+slow reading runs: 1
+record /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/state/project-capacity-overshare/labproj3 epoch=1792298914
+no record at /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate/state/project-capacity-overshare/labproj3
+labproj3 task records: lab3-a.meta lab3-r.meta 
+
+################ s10-mate-retry ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+[spawn lab3-m exit=75 after 3s]
+
+################ s7-before-window-end ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+deferred: project labproj admits 2 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 3 already hold a place (lab-a, lab-b, lab-c); task lab-x was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+[spawn lab-x exit=75 after 2s]
+
+################ s7-window-reopened ################
+record age before: 429s (old epoch 1792298647)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+headroom: cpu_idle_pct=33.0 load1=20.00 disk_free_gb=540.0
+notice: lab-x ships mode=local-only while the standing posture for labproj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned lab-x harness=worker.sh kind=ship mode=local-only yolo=on window=primary:fm-lab-x worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj-d9f416/4/labproj
+[spawn lab-x exit=0 after 27s]
+slow reading runs: 1
+new record epoch 1792299079
+
+################ s8b-launch-sent-then-failed ################
+labproj2 old record epoch 1792298765, age 431s
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+headroom: cpu_idle_pct=33.0 load1=20.00 disk_free_gb=540.0
+notice: lab2-d ships mode=local-only while the standing posture for labproj2 is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: task lab2-d's backlog item could not be moved to In flight (tasks-axi: injected lab failure); its record was removed so no worker is left that the backlog does not own - close out endpoint primary:fm-lab2-d and local copy /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj2-9dc82d/3/labproj2 by hand, then re-run the spawn
+warning: leaving task lab2-d's slot claim on /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj2-9dc82d/3/labproj2 in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+[spawn lab2-d exit=1 after 24s]
+--- injected tasks-axi calls:
+tasks-axi start lab2-d --file /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/data/backlog.md -> injected failure
+tasks-axi start lab2-d --file /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/data/backlog.md -> injected failure
+--- after the failed spawn:
+slow reading runs: 1
+labproj2 record epoch=1792299199 (kept)
+lab2-d.meta absent
+lab2-d started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj2-9dc82d/3/labproj2 at 04:53:37Z
+fm-lab2-d sleep
+
+################ s8b-next-in-window ################
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh
+WARNING: watcher still down (same stale episode; last beat: 385s ago, grace 300s) - full banner already printed this episode.
+deferred: project labproj2 admits 1 worker(s) at once on this machine (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab2-a, lab2-b); task lab2-e was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+[spawn lab2-e exit=75 after 2s]
+slow reading runs: 0
+lab2-e.meta absent
+no lab2-e window
+- [ ] lab2-e - lab item lab2-e (kind: ship) (since 2026-10-17)
+
+################ s6-running-work ################
+Every worker window on the lab socket, its foreground command, and its pane shell PID, at 04:53:54Z:
+fm-lab-a cmd=sleep pane_pid=64326
+fm-lab-b cmd=sleep pane_pid=30963
+fm-lab-c cmd=sleep pane_pid=61650
+fm-lab2-a cmd=sleep pane_pid=47886
+fm-lab2-b cmd=sleep pane_pid=15449
+fm-lab3-a cmd=sleep pane_pid=26103
+fm-lab3-r cmd=sleep pane_pid=19059
+fm-lab-x cmd=sleep pane_pid=56870
+fm-lab2-d cmd=sleep pane_pid=43600
+
+Workers' own start log (each started once, none restarted):
+lab-a started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj-d9f416/1/labproj at 04:40:20Z
+lab-b started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj-d9f416/2/labproj at 04:41:18Z
+lab-c started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj-d9f416/3/labproj at 04:44:25Z
+lab2-a started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj2-9dc82d/1/labproj2 at 04:45:37Z
+lab2-b started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj2-9dc82d/2/labproj2 at 04:46:35Z
+lab3-a started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj3-e13842/1/labproj3 at 04:48:01Z
+lab3-r started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj3-e13842/2/labproj3 at 04:48:56Z
+lab-x started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj-d9f416/4/labproj at 04:51:40Z
+lab2-d started in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj2-9dc82d/3/labproj2 at 04:53:37Z
+
+################ s3-real-reading-final ################
+=== attempt 1 (04:55:42Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 5s]
+the reading the spawn ran: 04:55:47Z exit=1 line=cpu_idle_pct=24.9 load1=21.00 disk_free_gb=535.9
+=== attempt 2 (04:55:47Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 6s]
+the reading the spawn ran: 04:55:53Z exit=1 line=cpu_idle_pct=15.2 load1=21.16 disk_free_gb=535.9
+=== attempt 3 (04:55:53Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 8s]
+the reading the spawn ran: 04:56:01Z exit=1 line=cpu_idle_pct=18.3 load1=20.83 disk_free_gb=535.9
+=== attempt 4 (04:56:01Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 14s]
+the reading the spawn ran: 04:56:14Z exit=1 line=cpu_idle_pct=3.5 load1=32.87 disk_free_gb=535.9
+=== attempt 5 (04:56:15Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 24s]
+the reading the spawn ran: 04:56:40Z exit=1 line=cpu_idle_pct=0.1 load1=40.35 disk_free_gb=535.9
+labproj3 record epoch=1792298914 age=486s
+=== attempt 6 (04:56:49Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 13s]
+the reading the spawn ran: 04:57:02Z exit=1 line=cpu_idle_pct=0.5 load1=40.64 disk_free_gb=535.8
+=== attempt 7 (04:57:17Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 7s]
+the reading the spawn ran: 04:57:24Z exit=1 line=cpu_idle_pct=18.9 load1=38.48 disk_free_gb=535.8
+=== attempt 8 (04:57:39Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 6s]
+the reading the spawn ran: 04:57:45Z exit=1 line=cpu_idle_pct=19.9 load1=32.77 disk_free_gb=535.8
+=== attempt 9 (04:58:00Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 23s]
+the reading the spawn ran: 04:58:23Z exit=1 line=cpu_idle_pct=7.3 load1=38.71 disk_free_gb=535.8
+=== attempt 10 (04:58:38Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+[spawn lab3-m exit=75 after 11s]
+the reading the spawn ran: 04:58:49Z exit=1 line=cpu_idle_pct=7.5 load1=38.86 disk_free_gb=535.8
+=== attempt 11 (04:59:05Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+headroom: cpu_idle_pct=30.9 load1=30.47 disk_free_gb=535.6
+notice: lab3-m ships mode=local-only while the standing posture for labproj3 is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned lab3-m harness=worker.sh kind=ship mode=local-only yolo=on window=primary:fm-lab3-m worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/treehouse/.treehouse/labproj3-e13842/3/labproj3
+[spawn lab3-m exit=0 after 15s]
+the reading the spawn ran: 04:59:10Z exit=0 line=cpu_idle_pct=30.9 load1=30.47 disk_free_gb=535.6
+=== attempt 12 (04:59:35Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+[spawn lab3-m exit=75 after 1s]
+the reading the spawn ran: 04:59:10Z exit=0 line=cpu_idle_pct=30.9 load1=30.47 disk_free_gb=535.6
+=== attempt 13 (04:59:51Z)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/mate
+WARNING: watcher still down (same stale episode; last beat: 751s ago, grace 300s) - full banner already printed this episode.
+deferred: project labproj3 admits 1 worker(s) at once on this machine (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh/config/project-capacity) and 2 already hold a place (lab3-a in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh, lab3-r in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.BFS0bh); task lab3-m was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+[spawn lab3-m exit=75 after 1s]
+the reading the spawn ran: 04:59:10Z exit=0 line=cpu_idle_pct=30.9 load1=30.47 disk_free_gb=535.6
+labproj3 record epoch=1792299545 age=63s
+
+NOTE: attempts 12 and 13 are an artifact of the driver loop (it ran under zsh, where PIPESTATUS is unset, so it did not stop after the attempt-11 success). They re-dispatched the already-running task lab3-m inside the window that attempt 11 had just used; both were deferred with exit 75 before creating anything, the reading did not run again (its log still ends at 04:59:10Z), and the running lab3-m worker was left as it was.

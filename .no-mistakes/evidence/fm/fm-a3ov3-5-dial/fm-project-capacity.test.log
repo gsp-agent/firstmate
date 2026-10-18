@@ -16,8 +16,12 @@ ok - a batch reports a capacity deferral as deferred, not failed
 ok - an Orca spawn takes the shared project lock whenever a same-origin clone is capped and defers before creating anything
 ok - a start inside the declared count does not consult the headroom reading
 ok - one extra start is admitted per window, and a later one waits until that window has passed
+ok - an extra start whose spawn fails leaves the window open for the next task
+ok - an extra start that fails before its launch is sent leaves the window open for the next task
+ok - an extra start whose launch was sent keeps its window even when its spawn then fails
+ok - a reading that takes several seconds and reports room admits the extra start
 ok - an absent or blank headroom program keeps the capacity deferral, including for a secondmate home
-ok - a failed, missing, or hung reading defers without consuming the window
+ok - a failed, missing, hung, or silent reading defers without consuming the window
 ok - a capacity of 0 admits no extra start
 ok - every local home shares one extra start per project per window
 exit=0

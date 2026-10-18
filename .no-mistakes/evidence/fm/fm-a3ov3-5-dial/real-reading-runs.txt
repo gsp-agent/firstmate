@@ -1,0 +1,16 @@
+Real shared reading log (node ~/dev/agent-observer/machine-headroom.mjs, via a wrapper that only records its line and exit code), one line per run made by a spawn:
+04:43:05Z exit=1 line=cpu_idle_pct=0.0 load1=50.48 disk_free_gb=535.8
+04:43:17Z exit=1 line=cpu_idle_pct=5.4 load1=48.48 disk_free_gb=535.7
+04:43:32Z exit=1 line=cpu_idle_pct=20.6 load1=47.34 disk_free_gb=535.9
+04:43:52Z exit=1 line=cpu_idle_pct=0.2 load1=45.52 disk_free_gb=535.8
+04:55:47Z exit=1 line=cpu_idle_pct=24.9 load1=21.00 disk_free_gb=535.9
+04:55:53Z exit=1 line=cpu_idle_pct=15.2 load1=21.16 disk_free_gb=535.9
+04:56:01Z exit=1 line=cpu_idle_pct=18.3 load1=20.83 disk_free_gb=535.9
+04:56:14Z exit=1 line=cpu_idle_pct=3.5 load1=32.87 disk_free_gb=535.9
+04:56:40Z exit=1 line=cpu_idle_pct=0.1 load1=40.35 disk_free_gb=535.9
+04:57:02Z exit=1 line=cpu_idle_pct=0.5 load1=40.64 disk_free_gb=535.8
+04:57:24Z exit=1 line=cpu_idle_pct=18.9 load1=38.48 disk_free_gb=535.8
+04:57:45Z exit=1 line=cpu_idle_pct=19.9 load1=32.77 disk_free_gb=535.8
+04:58:23Z exit=1 line=cpu_idle_pct=7.3 load1=38.71 disk_free_gb=535.8
+04:58:49Z exit=1 line=cpu_idle_pct=7.5 load1=38.86 disk_free_gb=535.8
+04:59:10Z exit=0 line=cpu_idle_pct=30.9 load1=30.47 disk_free_gb=535.6

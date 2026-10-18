@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Fault injection for one lab spawn: the backlog commit (tasks-axi start) fails;
+# every other tasks-axi call goes to the real binary.
+if [ "${1:-}" = start ]; then
+  printf 'tasks-axi %s -> injected failure\n' "$*" >> /tmp/fm-cap-drive/shim-calls.log
+  echo "tasks-axi: injected lab failure" >&2
+  exit 1
+fi
+exec /opt/homebrew/bin/tasks-axi "$@"
