@@ -1722,12 +1722,6 @@ test_primary_without_a_verified_mirror_runs_away_only() {
     assert_re "	pass-through	attended	no verified dialog mirror for $harness	" "$home/state/.supervision-host.log" \
       "the ledger must record that no verified mirror kept the close on main"
   done
-  # Quarantined in .agent-config-tvu1l.1: passes alone, fails in the CI shard.
-  if [ "${FM_TEST_SUPERVISION_HOST_AWAY_GROK:-0}" != 1 ]; then
-    pass "host: a primary with no verified dialog mirror keeps every attended close on main"
-    pass "SKIP (.agent-config-tvu1l.1): away Grok; set FM_TEST_SUPERVISION_HOST_AWAY_GROK=1 to run"
-    return 0
-  fi
   home=$(make_home away-grok away claude)
   FM_SUPERVISION_HOST_PRIMARY=grok start_host "$home"
   wait_until 150 watcher_live "$home" || fail "away grok: the host never started a watcher cycle"
