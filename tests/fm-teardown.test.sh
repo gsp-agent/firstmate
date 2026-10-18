@@ -5770,6 +5770,13 @@ SH
   seconds=$((SECONDS - started))
   expect_code 0 "$rc" "teardown with a slow expiry of another task"
   [ "$seconds" -le 15 ] || fail "teardown spent ${seconds}s expiring another task's data with an 8s budget"
+  for ((i = 0; i < 20; i++)); do
+    pgrep -f "backlog-references $case_dir/data old-done" >/dev/null || break
+    sleep 0.1
+  done
+  if pgrep -f "backlog-references $case_dir/data old-done" >/dev/null; then
+    fail "the slow hold's reference reader outlived the expiry budget that cut it off"
+  fi
   [ "$(backlog_row_state "$case_dir")" = "done" ] \
     || fail "a slow expiry left the backlog item at $(backlog_row_state "$case_dir")"
   assert_present "$old/.cleanup-hold/scratch.bin" "an unfinished expiry removed held data"

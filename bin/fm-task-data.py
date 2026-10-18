@@ -195,14 +195,17 @@ def read_command(args, project, limit=None):
     # and must not hold this read open past the stage limit.
     with tempfile.TemporaryFile("w+") as out, tempfile.TemporaryFile("w+") as err:
         process = subprocess.Popen(args, cwd=project if Path(project).is_dir() else None,
-                                   stdout=out, stderr=err, start_new_session=True)
+                                   stdout=out, stderr=err, start_new_session=bool(limit))
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+            if limit:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            else:
+                process.kill()
             process.wait()
             check_limit(limit)
             raise
