@@ -750,3 +750,31 @@ Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --up
 Required result: exit 0, zero path-drift and carried-unproven lines, and 25 pending lines naming .agent-config-dtjsb on the resulting head.
 Before, an unreferenced scratch commit with this tree on e3bca491, checked with e3bca491's manifest (--fork <scratch sha> --proof <e3bca491's drift-proof.txt>): exit 1, path-drift for the five restored paths, drift-measurements.txt and drift-proof.txt, and the scratch commit printed as unproven.
 Checked before the commit on that scratch commit with this manifest (--fork <scratch sha>): exit 0, 25 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, keep for e3bca491 and the scratch commit, and the same 35 unproven cut commits that e3bca491's own check prints.
+
+R22 nightly log and red note
+Measured: 2026-10-18 (Central), stock /bin/bash 3.2.57 and Bash 5.3.20, plutil as shipped with macOS.
+Baseline at f9e520b1: the plist names no StandardOutPath or StandardErrorPath, so launchd discards every scheduled run's report, and a red check reaches no one; its only trace is launchctl's last exit code.
+Cause: install wrote a job that ran check alone, and check reports only on stdout, stderr and its exit code.
+Fix: the job runs nightly, which appends the run time, check's report and check's exit code to the log the plist names (default ~/Library/Logs/dev.firstmate.drift-nightly.log; install creates its directory).
+On a nonzero check, nightly sends one fm-inbox.sh note keyed fm-drift-nightly-<local date>, naming the exit code, at most ten path-drift, carried-unproven or error lines with a count of the rest, and the log; a green check sends nothing, and uninstall never touches the log.
+Regression first, before the fix (d636014a with the unchanged guard): all nine new or changed cases fail, each exit 1, including "a green nightly exits 0: error: unknown command: nightly" and "install exits 0: error: unknown install argument: --log".
+After the fix:
+$ bash tests/fm-drift-nightly.test.sh: 32 checks passed, exit 0, under Bash 5.3.20 and stock /bin/bash 3.2.57.
+The plist's exact command under launchd's environment (env -i, PATH=/usr/bin:/bin:/usr/sbin:/sbin, /bin/bash 3.2.57), on a scratch repository whose kunchenguid remote is a scratch upstream, with a scratch FM_HOME:
+  green run: exit 0, notes 0
+  forced red run, one unproven commit: exit 1, notes 1
+  same-day rerun: exit 1, notes 1, fm-inbox.sh printed replay
+  green again: exit 0, notes 1
+  wake queue lines: 1
+  the note: "Nightly drift check red on 2026-10-18: exit 1 for <repo>.", "path-drift: notes.txt", "Log: <log>"
+  the log: all four runs, each with its run time, check report and exit code
+Install into a scratch LaunchAgents directory with launchctl stubbed: plutil -lint OK; ProgramArguments are /bin/bash <script> nightly --repo /Users/dalecarman/dev/firstmate-upstream --log <log>, and StandardOutPath and StandardErrorPath are that log.
+$ bin/fm-drift-nightly.sh install --dry-run --repo /Users/dalecarman/dev/firstmate-upstream
+plist ~/Library/LaunchAgents/dev.firstmate.drift-nightly.plist, repo /Users/dalecarman/dev/firstmate-upstream, log ~/Library/Logs/dev.firstmate.drift-nightly.log, 03:17; exit 0.
+
+R22 finalization
+The manifest lists f9e520b1 with its CI1 proof and d636014a with the section above, and its fixed-parent entry names d636014a so it selects only the commit delivering this manifest and the fix.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Required result: exit 0, zero path-drift and carried-unproven lines, and 25 pending lines naming .agent-config-dtjsb on the resulting head.
+Before, an unreferenced scratch commit with this tree on d636014a, checked with f9e520b1's manifest (--fork <scratch sha> --proof <f9e520b1's drift-proof.txt>): exit 1, path-drift for bin/fm-drift-nightly.sh, docs/scripts.md, drift-measurements.txt, drift-proof.txt and tests/fm-drift-nightly.test.sh, and d636014a and the scratch commit printed as unproven.
+Checked before the commit on that scratch commit with this manifest (--fork <scratch sha>): exit 0, 25 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, keep for f9e520b1, d636014a and the scratch commit, and the same 35 unproven cut commits that f9e520b1's own check prints.

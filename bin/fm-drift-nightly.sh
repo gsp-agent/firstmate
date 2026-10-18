@@ -3,7 +3,8 @@
 #
 # Usage:
 #   fm-drift-nightly.sh check [--repo <dir>] [--fork <ref>] [--upstream <ref>] [--proof <file>] [--no-fetch]
-#   fm-drift-nightly.sh install [--dry-run] [--hour <0-23>] [--minute <0-59>] [--repo <dir>]
+#   fm-drift-nightly.sh nightly [--repo <dir>] [--log <file>]
+#   fm-drift-nightly.sh install [--dry-run] [--hour <0-23>] [--minute <0-59>] [--repo <dir>] [--log <file>]
 #   fm-drift-nightly.sh uninstall [--dry-run]
 #   fm-drift-nightly.sh --help
 #
@@ -47,17 +48,29 @@
 # that remote exists in the repo. --no-fetch skips that. A missing remote
 # with fetch left on is an error.
 #
+# nightly is the installed job's command. It prints the run time, check's
+# output for --repo with the default refs, fetch and proof file, and check's
+# exit code, then exits with that code. A nonzero check sends one note through
+# fm-inbox.sh beside this script, which picks the Firstmate home (FM_HOME, else
+# the home holding this script). The note names the exit code, the first ten
+# path-drift, carried-unproven and error lines, a count of the rest, and the
+# log, under request id fm-drift-nightly-<local date>, so a same-day rerun
+# makes no second note. A green check sends nothing.
+# --log names the job's log in the note and defaults to
+# ~/Library/Logs/dev.firstmate.drift-nightly.log; it must be absolute.
+#
 # install writes ~/Library/LaunchAgents/dev.firstmate.drift-nightly.plist and
-# bootstraps the job for the current user. The job runs check once a night,
-# defaulting to 03:17 in the machine's local time. It passes only --repo, so
-# the installed job uses the default refs, fetch, and repository proof file;
-# alternate check options are not persisted by install.
+# bootstraps the job for the current user. The job runs nightly once a night,
+# defaulting to 03:17 in the machine's local time, with --repo and --log only,
+# and appends its stdout and stderr to that log. install creates the log's
+# directory, because launchd does not.
 # install XML-escapes each string it writes and replaces the plist only after
 # plutil -lint accepts the new one; a rejected plist exits 2 before launchctl
 # runs, leaving the installed plist and job unchanged.
 # uninstall bootstraps nothing, removes that job, and deletes the plist only
 # when launchctl bootout succeeds or exits 3 because no such job is loaded;
-# any other bootout failure keeps the plist and exits 2.
+# any other bootout failure keeps the plist and exits 2. uninstall never
+# touches the log.
 # A second uninstall, when the plist is already gone, exits 0.
 # --dry-run prints the action and does not write a file or call launchctl.
 # FM_DRIFT_AGENT_DIR selects the LaunchAgents directory.
@@ -177,6 +190,10 @@ agent_dir() {
   fi
 }
 
+default_log() {
+  printf '%s\n' "${HOME:?HOME is unset}/Library/Logs/$LABEL.log"
+}
+
 launchctl_bin() {
   if [ -n "${FM_DRIFT_LAUNCHCTL:-}" ]; then
     printf '%s\n' "$FM_DRIFT_LAUNCHCTL"
@@ -196,11 +213,12 @@ xml_escape() { # <var> <value>
   printf -v "$1" '%s' "$s"
 }
 
-write_plist() { # <path> <repo> <hour> <minute>
-  local label script repo
+write_plist() { # <path> <repo> <log> <hour> <minute>
+  local label script repo log
   xml_escape label "$LABEL"
   xml_escape script "$SCRIPT_PATH"
   xml_escape repo "$2"
+  xml_escape log "$3"
   cat > "$1" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -212,16 +230,22 @@ write_plist() { # <path> <repo> <hour> <minute>
   <array>
     <string>/bin/bash</string>
     <string>$script</string>
-    <string>check</string>
+    <string>nightly</string>
     <string>--repo</string>
     <string>$repo</string>
+    <string>--log</string>
+    <string>$log</string>
   </array>
+  <key>StandardOutPath</key>
+  <string>$log</string>
+  <key>StandardErrorPath</key>
+  <string>$log</string>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>
-    <integer>$3</integer>
-    <key>Minute</key>
     <integer>$4</integer>
+    <key>Minute</key>
+    <integer>$5</integer>
   </dict>
 </dict>
 </plist>
@@ -232,7 +256,8 @@ cmd_help() {
   cat <<EOF
 Usage:
   fm-drift-nightly.sh check [--repo <dir>] [--fork <ref>] [--upstream <ref>] [--proof <file>] [--no-fetch]
-  fm-drift-nightly.sh install [--dry-run] [--hour <0-23>] [--minute <0-59>] [--repo <dir>]
+  fm-drift-nightly.sh nightly [--repo <dir>] [--log <file>]
+  fm-drift-nightly.sh install [--dry-run] [--hour <0-23>] [--minute <0-59>] [--repo <dir>] [--log <file>]
   fm-drift-nightly.sh uninstall [--dry-run]
   fm-drift-nightly.sh --help
 EOF
@@ -308,19 +333,57 @@ cmd_check() {
   [ "$drift" -eq 0 ]
 }
 
+cmd_nightly() {
+  local repo=$DEFAULT_REPO log='' day out rc red
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --repo) [ $# -ge 2 ] || die "--repo needs a directory"; repo=$2; shift 2 ;;
+      --log) [ $# -ge 2 ] || die "--log needs a file"; log=$2; shift 2 ;;
+      *) die "unknown nightly argument: $1" ;;
+    esac
+  done
+  [ -n "$log" ] || log=$(default_log)
+  require_absolute_log "$log"
+  day=$(date +%F)
+  printf 'run: %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')"
+  rc=0
+  out=$(cmd_check --repo "$repo" 2>&1) || rc=$?
+  printf '%s\n' "$out"
+  printf 'exit: %s\n' "$rc"
+  [ "$rc" -ne 0 ] || return 0
+  red=$(printf '%s\n' "$out" | awk '/^(path-drift|carried-unproven|error): / { if (++n <= 10) print } END { if (n > 10) printf "%d more red lines in the log.\n", n - 10 }')
+  {
+    printf 'Nightly drift check red on %s: exit %s for %s.\n' "$day" "$rc" "$repo"
+    [ -z "$red" ] || printf '%s\n' "$red"
+    printf 'Log: %s\n' "$log"
+  } | "$SCRIPT_DIR/fm-inbox.sh" note --request-id "fm-drift-nightly-$day" - ||
+    printf 'error: fm-inbox.sh note failed with exit %s\n' "$?" >&2
+  return "$rc"
+}
+
+require_absolute_log() {
+  case $1 in
+    /*) ;;
+    *) die "--log must be an absolute path" ;;
+  esac
+}
+
 cmd_install() {
-  local dry=0 hour=3 minute=17 repo=$DEFAULT_REPO
+  local dry=0 hour=3 minute=17 repo=$DEFAULT_REPO log=''
   while [ $# -gt 0 ]; do
     case $1 in
       --dry-run) dry=1; shift ;;
       --hour) [ $# -ge 2 ] || die "--hour needs a number"; hour=$2; shift 2 ;;
       --minute) [ $# -ge 2 ] || die "--minute needs a number"; minute=$2; shift 2 ;;
       --repo) [ $# -ge 2 ] || die "--repo needs a directory"; repo=$2; shift 2 ;;
+      --log) [ $# -ge 2 ] || die "--log needs a file"; log=$2; shift 2 ;;
       *) die "unknown install argument: $1" ;;
     esac
   done
   int_in_range "$hour" 23 || die "--hour must be 0 through 23"
   int_in_range "$minute" 59 || die "--minute must be 0 through 59"
+  [ -n "$log" ] || log=$(default_log)
+  require_absolute_log "$log"
   local dir plist next lint uid bin
   dir=$(agent_dir)
   plist=$dir/$LABEL.plist
@@ -333,16 +396,21 @@ cmd_install() {
     printf 'minute: %s\n' "$minute"
     printf 'plist: %s\n' "$plist"
     printf 'repo: %s\n' "$repo"
+    printf 'log: %s\n' "$log"
     return 0
   fi
   mkdir -p -- "$dir" || die "cannot create $dir"
-  if ! write_plist "$next" "$repo" "$hour" "$minute"; then
+  if ! write_plist "$next" "$repo" "$log" "$hour" "$minute"; then
     rm -f -- "$next"
     die "cannot write $next"
   fi
   if ! lint=$(plutil -lint "$next" 2>&1); then
     rm -f -- "$next"
     die "plutil -lint rejected the new plist, installed job unchanged: $lint"
+  fi
+  if ! mkdir -p -- "$(dirname -- "$log")"; then
+    rm -f -- "$next"
+    die "cannot create the log directory for $log, installed job unchanged"
   fi
   mv -f -- "$next" "$plist" || die "cannot replace $plist"
   bin=$(launchctl_bin)
@@ -394,6 +462,7 @@ main() {
   case $cmd in
     -h|--help|help) cmd_help ;;
     check) shift; cmd_check "$@" ;;
+    nightly) shift; cmd_nightly "$@" ;;
     install) shift; cmd_install "$@" ;;
     uninstall) shift; cmd_uninstall "$@" ;;
     *) die "unknown command: $cmd" ;;
