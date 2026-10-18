@@ -1,0 +1,28 @@
+======== bash 3.2.57(1)-release
+### --repos: one well-formed sidecar (o/r) and one with an extra trailing line (o/x)
+watched repos: [o/r ]
+### --scan with armed-poll marker: none
+dequeued https://github.com/o/r/pull/1 reason=CI failed event=EVT1
+queue-empty o/r
+exit=0
+### --scan with armed-poll marker: valid
+queue-empty o/r
+exit=0
+### --scan with armed-poll marker: trailing
+dequeued https://github.com/o/r/pull/1 reason=CI failed event=EVT1
+queue-empty o/r
+exit=0
+======== bash 5.3.20(1)-release
+### --repos: one well-formed sidecar (o/r) and one with an extra trailing line (o/x)
+watched repos: [o/r ]
+### --scan with armed-poll marker: none
+dequeued https://github.com/o/r/pull/1 reason=CI failed event=EVT1
+queue-empty o/r
+exit=0
+### --scan with armed-poll marker: valid
+queue-empty o/r
+exit=0
+### --scan with armed-poll marker: trailing
+dequeued https://github.com/o/r/pull/1 reason=CI failed event=EVT1
+queue-empty o/r
+exit=0

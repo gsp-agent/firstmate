@@ -1,0 +1,5 @@
+== HEAD 4d5bc3c0 ==
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+parsed 73 files; parse_fail=0
+parse sweep: PASS
+exit=0

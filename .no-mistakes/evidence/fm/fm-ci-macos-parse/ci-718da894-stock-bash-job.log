@@ -1,0 +1,323 @@
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	﻿2026-10-18T07:47:00.4109980Z Current runner version: '2.337.0'
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4127830Z ##[group]Runner Image Provisioner
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4128590Z Hosted Compute Agent
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4129080Z Version: 20261012.601
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4129610Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4130210Z Build Date: 2026-10-12T17:48:21Z
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4130690Z Worker ID: {1bfb02d1-a287-42b9-bc82-0d048888c8bf}
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4131200Z Region: westus
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4131630Z Cloud: MacCloud
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4132060Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4136710Z ##[group]Operating System
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4138100Z macOS
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4139020Z 26.6.2
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4139920Z 25G83
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4140830Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4141820Z ##[group]Runner Image
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4142890Z Image: macos-26-arm64
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4143920Z Version: 20261013.0424.1
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4146360Z Included Software: https://github.com/actions/runner-images/blob/macos-26-arm64/20261013.0424/images/macos/macos-26-arm64-Readme.md
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4157570Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-26-arm64%2F20261013.0424
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4170760Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4171840Z ##[group]GITHUB_TOKEN Permissions
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4175220Z Contents: read
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4175700Z Metadata: read
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4176240Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4178500Z Secret source: Actions
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4179090Z Cache mode: write
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4179610Z Prepare workflow directory
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4608570Z Prepare all required actions
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.4663910Z Getting action download info
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:00.7654160Z Download action repository 'actions/checkout@v6' (SHA:d23441a48e516b6c34aea4fa41551a30e30af803)
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.2780370Z Complete job name: Stock macOS Bash snapshot compatibility
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3482580Z ##[group]Run actions/checkout@v6
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3483380Z with:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3483730Z   repository: gsp-agent/firstmate
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3486720Z   token: ***
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3487030Z   ssh-strict: true
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3487350Z   ssh-user: git
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3487700Z   persist-credentials: true
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3488140Z   clean: true
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3488490Z   sparse-checkout-cone-mode: true
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3488950Z   fetch-depth: 1
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3489340Z   fetch-tags: false
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3489710Z   show-progress: true
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3490080Z   lfs: false
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3490450Z   submodules: false
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3490780Z   set-safe-directory: true
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3491160Z   allow-unsafe-pr-checkout: false
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.3491780Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.8587050Z Syncing repository: gsp-agent/firstmate
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.8588870Z ##[group]Getting Git version info
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.8589600Z Working directory is '/Users/runner/work/firstmate/firstmate'
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.8590550Z [command]/opt/homebrew/bin/git version
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.8950220Z git version 2.56.0
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.8984680Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9005170Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/b3c21012-4f4c-4d5a-8c93-09aa28408cc9/.gitconfig'
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9008240Z Temporarily overriding HOME='/Users/runner/work/_temp/b3c21012-4f4c-4d5a-8c93-09aa28408cc9' before making global git config changes
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9009650Z Adding repository directory to the temporary git global config as a safe directory
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9014870Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/firstmate/firstmate
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9213420Z Deleting the contents of '/Users/runner/work/firstmate/firstmate'
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9219850Z ##[group]Determining repository object format
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9222630Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9224650Z ##[group]Initializing the repository
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9227620Z [command]/opt/homebrew/bin/git init /Users/runner/work/firstmate/firstmate
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9570840Z hint: Using 'master' as the name for the initial branch. This default branch name
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9572160Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9573240Z hint: to use in all of your new repositories, which will suppress this warning,
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9573910Z hint: call:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9574350Z hint:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9600200Z hint: 	git config --global init.defaultBranch <name>
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9602160Z hint:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9603420Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9605740Z hint: 'development'. The just-created branch can be renamed via this command:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9607420Z hint:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9608350Z hint: 	git branch -m <name>
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9609440Z hint:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9611010Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9613330Z Initialized empty Git repository in /Users/runner/work/firstmate/firstmate/.git/
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9617260Z [command]/opt/homebrew/bin/git remote add origin https://github.com/gsp-agent/firstmate
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9702420Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9704340Z ##[group]Disabling automatic garbage collection
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9706930Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9797040Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9798660Z ##[group]Setting up auth
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9799850Z Removing SSH command configuration
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9803160Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:01.9893660Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.1173670Z Removing HTTP extra header
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.1177990Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.1255400Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.2197080Z Removing includeIf entries pointing to credentials config files
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.2201150Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.2272890Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.3885090Z [command]/opt/homebrew/bin/git config --file /Users/runner/work/_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.3936430Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/Users/runner/work/firstmate/firstmate/.git.path /Users/runner/work/_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.3938920Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/Users/runner/work/firstmate/firstmate/.git/worktrees/*.path /Users/runner/work/_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.3940910Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.3957290Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.4030290Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.4031010Z ##[group]Fetching the repository
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:02.4034820Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +23b2ffdf452a985212d39fa0548e8f555930e0ea:refs/remotes/pull/42/merge
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.5989960Z From https://github.com/gsp-agent/firstmate
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.5991170Z  * [new ref]         23b2ffdf452a985212d39fa0548e8f555930e0ea -> pull/42/merge
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.6011540Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.6013690Z ##[group]Determining the checkout info
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.6016270Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.6020400Z [command]/opt/homebrew/bin/git sparse-checkout disable
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.6163920Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.6278050Z ##[group]Checking out the ref
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.6286710Z [command]/opt/homebrew/bin/git checkout --progress --force refs/remotes/pull/42/merge
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8031000Z HEAD is now at 23b2ffd Merge 718da89463224b59b440753502ef181d74a75e67 into 9ed8076692548e9cbeb9d90e28c4a5898d499cfd
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8055660Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8175570Z [command]/opt/homebrew/bin/git log -1 --format=%H
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8256870Z 23b2ffdf452a985212d39fa0548e8f555930e0ea
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8620360Z ##[group]Run set -eu
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8621310Z ^[[36;1mset -eu^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8622010Z ^[[36;1mcase "$BASH_VERSION" in^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8622970Z ^[[36;1m  3.2.57*) ;;^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8624180Z ^[[36;1m  *) echo "::error::expected stock macOS Bash 3.2.57, got $BASH_VERSION"; exit 1 ;;^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8625760Z ^[[36;1mesac^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8626440Z ^[[36;1m/bin/bash --version | head -1^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8627760Z ^[[36;1mcommand -v jq >/dev/null || { echo "::error::jq is required"; exit 1; }^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8629040Z ^[[36;1m^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8629930Z ^[[36;1mshell_inventory="$RUNNER_TEMP/fm-shell-inventory"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8631330Z ^[[36;1mbin/fm-lint.sh --list-files > "$shell_inventory"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8632470Z ^[[36;1mparse_fail=0^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8633420Z ^[[36;1mwhile IFS= read -r f; do^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8635190Z ^[[36;1m  /bin/bash -n "$f" || { echo "::error::stock macOS Bash 3.2 failed to parse $f"; parse_fail=1; }^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8636980Z ^[[36;1mdone < "$shell_inventory"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8638370Z ^[[36;1m[ "$parse_fail" -eq 0 ] || { echo "::error::stock macOS Bash 3.2 parse sweep failed"; exit 1; }^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8639950Z ^[[36;1m^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8641330Z ^[[36;1mcommand -v npm >/dev/null || { echo "::error::npm is required to install tasks-axi"; exit 1; }^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8643770Z ^[[36;1mnpm install -g tasks-axi@0.2.6 >/dev/null^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8646530Z ^[[36;1mPATH="$(npm prefix -g)/bin:$PATH"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8648700Z ^[[36;1mexport PATH^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8652020Z ^[[36;1mcommand -v tasks-axi >/dev/null || { echo "::error::tasks-axi is required for the stock Bash regressions"; exit 1; }^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8655670Z ^[[36;1m^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8657840Z ^[[36;1msnapshot_output=$(/bin/bash tests/fm-fleet-snapshot-view.test.sh)^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8660750Z ^[[36;1mprintf '%s\n' "$snapshot_output"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8664400Z ^[[36;1msnapshot_count=$(printf '%s\n' "$snapshot_output" | grep -c '^ok - ')^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8667940Z ^[[36;1m[ "$snapshot_count" -eq 18 ] || {^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8671770Z ^[[36;1m  echo "::error::expected 18 snapshot/fleet-view tests, got $snapshot_count"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8674670Z ^[[36;1m  exit 1^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8678340Z ^[[36;1m}^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8679040Z ^[[36;1m^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8679950Z ^[[36;1mbearings_output=$(/bin/bash tests/fm-bearings-snapshot.test.sh)^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8681130Z ^[[36;1mprintf '%s\n' "$bearings_output"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8682510Z ^[[36;1mbearings_count=$(printf '%s\n' "$bearings_output" | grep -c '^ok - ')^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8683960Z ^[[36;1m[ "$bearings_count" -eq 60 ] || {^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8685130Z ^[[36;1m  echo "::error::expected 60 Bearings tests, got $bearings_count"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8686450Z ^[[36;1m  exit 1^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8687160Z ^[[36;1m}^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8688570Z ^[[36;1m^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8689500Z ^[[36;1m# The full public-followup suite is not a stock-bash snapshot; run only^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8690930Z ^[[36;1m# the empty-lock register regression under real /bin/bash 3.2.^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8692590Z ^[[36;1mpf_output=$(FM_TEST_ONLY=test_first_register_succeeds_with_empty_lock_list_under_bash32 \^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8694350Z ^[[36;1m  /bin/bash tests/fm-public-followup.test.sh)^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8695500Z ^[[36;1mprintf '%s\n' "$pf_output"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8696450Z ^[[36;1mpf_count=$(printf '%s\n' "$pf_output" | grep -c '^ok - ')^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8697470Z ^[[36;1m[ "$pf_count" -eq 1 ] || {^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8698820Z ^[[36;1m  echo "::error::expected 1 public-followup bash 3.2 register regression, got $pf_count"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8700130Z ^[[36;1m  exit 1^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8700690Z ^[[36;1m}^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8701240Z ^[[36;1m^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8702140Z ^[[36;1m# Same shape for the watcher's churn-deferral regression: an already-^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8704590Z ^[[36;1m# marked churn window expands an empty array that only stock Bash^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8705980Z ^[[36;1m# treats as an unbound variable under set -u.^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8707270Z ^[[36;1mchurn_output=$(FM_TEST_ONLY=test_turn_ended_churn_existing_marker_absorbed \^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8708560Z ^[[36;1m  /bin/bash tests/fm-watch-triage.test.sh)^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8709600Z ^[[36;1mprintf '%s\n' "$churn_output"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8710790Z ^[[36;1mchurn_count=$(printf '%s\n' "$churn_output" | grep -c '^ok - ')^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8711840Z ^[[36;1m[ "$churn_count" -eq 1 ] || {^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8713140Z ^[[36;1m  echo "::error::expected 1 watcher churn-deferral bash 3.2 regression, got $churn_count"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8714630Z ^[[36;1m  exit 1^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8715290Z ^[[36;1m}^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8716060Z ^[[36;1m^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8716970Z ^[[36;1m# The fork-free hot-path helpers must stay byte-identical to the^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8718540Z ^[[36;1m# commands they replace under stock Bash 3.2, which lacks the^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8719850Z ^[[36;1m# printf %(...)T clock and falls back to date.^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8721200Z ^[[36;1mhelpers_output=$(/bin/bash tests/fm-fork-free-helpers.test.sh)^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8722420Z ^[[36;1mprintf '%s\n' "$helpers_output"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8723670Z ^[[36;1mhelpers_count=$(printf '%s\n' "$helpers_output" | grep -c '^ok - ')^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8724880Z ^[[36;1m[ "$helpers_count" -eq 6 ] || {^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8726320Z ^[[36;1m  echo "::error::expected 6 fork-free helper bash 3.2 regressions, got $helpers_count"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8727770Z ^[[36;1m  exit 1^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8728360Z ^[[36;1m}^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8728900Z ^[[36;1m^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8729800Z ^[[36;1mbackend_output=$(FM_TEST_ONLY=test_backend_source_requires_adapter_file \^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8731070Z ^[[36;1m  FM_TEST_BASH=/bin/bash \^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8731890Z ^[[36;1m  /bin/bash tests/fm-backend.test.sh)^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8732770Z ^[[36;1mprintf '%s\n' "$backend_output"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8733820Z ^[[36;1mbackend_count=$(printf '%s\n' "$backend_output" | grep -c '^ok - ')^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8734930Z ^[[36;1m[ "$backend_count" -eq 2 ] || {^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8736180Z ^[[36;1m  echo "::error::expected 2 backend adapter-file bash 3.2 regressions, got $backend_count"^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8737670Z ^[[36;1m  exit 1^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8738290Z ^[[36;1m}^[[0m
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8744120Z shell: /bin/bash {0}
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8744710Z env:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8745510Z   PATH: /bin:/usr/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.8746500Z ##[endgroup]
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:03.9147530Z GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25)
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3764860Z ok - empty fleet snapshot and view use explicit absence markers
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3770880Z ok - fixture snapshot covers task rows, backlog rows, pointers, stable ordering, and emission-time event age
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3778940Z ok - home-summary excludes kind=secondmate from unowned_current and terminal_in_flight
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3779620Z ok - undated captain holds age after a configurable threshold, decided only from structured fields
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3780280Z ok - captain-hold buckets are total, mutually exclusive, and never decided by prose
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3781360Z ok - main_inventory discloses orphan/unstructured and clears when inventory is consistent
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3782170Z ok - backlog normalization preserves strict roles and resolves every blocker compatibly
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3782680Z ok - snapshot event hints follow reconciled current state
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3783170Z ok - durable fold keeps an open decision past a later unrelated event
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3783630Z ok - a live secondmate endpoint preserves unrelated open decisions
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3784140Z ok - durable captain-held transfer closes the duplicate live status decision
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3790690Z ok - durable fold clears a decision only on a keyed resolution
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3791520Z ok - a completed scout's stale decision surfaces as a report pointer, not pending
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3792190Z ok - a scout still parked at a decision stays pending (terminal clear does not over-fire)
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3793380Z ok - snapshot includes durable scout reports after teardown
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3794230Z ok - snapshot parses tasks-axi rows and respects operational overrides
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3794830Z ok - fleet view renders the snapshot without secondmate peek guidance
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:47:48.3795360Z ok - fleet view renders secondmate agent liveness
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8352280Z ok - task teardown during metadata capture is omitted without aborting the snapshot
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8353520Z ok - current state and decision hints share one captured status observation
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8354210Z ok - reused live state is discarded when task generation changes
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8355800Z ok - large local snapshot overlaps local reads with byte-identical serial and concurrent projections
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8356870Z ok - remote ledgers collect concurrently under one budget, reuse aged cache, and cancel wedged collectors
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8357670Z ok - a missing remote ledger stays explicitly unreadable without remote summary computation
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8358430Z ok - Domain Alpha structured state overrides a stale parent Phase 7 event
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8359080Z ok - GNU stat file reads select -c without BSD filesystem-report pollution
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8359730Z ok - parent activity evidence is bounded and disclosed
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8360430Z ok - Bearings excludes a status-only child decision
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8361020Z ok - a structured child captain hold reaches Captain's Call
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8361920Z ok - missing, invalid, unreadable, malformed, and unavailable-child homes stay explicit unknowns
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8362750Z ok - oversized ledgers stay strict unknown
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8363360Z ok - secondmate and per-home child counts are bounded, disclosed, and explicitly expandable
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8363970Z ok - parent decisions remain untrusted contradiction evidence
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8364620Z ok - parent evidence reconciliation distinguishes matching holds, blocks, and decisions
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8365260Z ok - nonprogressing child states are explicit and inconsistent terminal rows invalidate
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8366000Z ok - registry unavailability and bounded truncation remain explicit
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8366550Z ok - repeated snapshots keep the same current landed baseline and ignore prior reports
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8367110Z ok - default output is bounded, local-only, and marks omitted surfaces
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8367640Z ok - TOON and JSON are parity representations of the same model
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8368120Z ok - landed includes secondmate-managed merges alongside main-home merges
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8368670Z ok - landed accepts only kind-owned delivery artifacts while answered questions stay out
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8370500Z ok - kind fallback matches tasks-axi word boundaries and preserves scout deliveries
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8371090Z ok - kindless v1 summaries retain report artifacts from fresh and cached ledgers
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8371570Z ok - default landed selection balances one dominant home with sparse homes
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8372080Z ok - landed selection refills capacity after sparse homes exhaust
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8372570Z ok - landed selection uses deterministic home order when homes exceed the cap
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8373220Z ok - landed selection preserves deterministic home and internal tie ordering
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8373710Z ok - landed selection handles no landed items
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8374110Z ok - --all-landed keeps the complete global landed output
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8374520Z ok - landed stays bounded with per-home + overall caps and omitted[] disclosure
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8380520Z ok - Bearings keeps a live blocker in structured live state and never converts it to Charted Next queue work
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8381430Z ok - action-free items (working/done/queued/landed) do not leak into Captain's Call
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8382060Z ok - main orphan in-flight stays out of Underway and is disclosed in omitted/gates
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8382600Z ok - main unstructured current is disclosed while structured siblings still project
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8383190Z ok - counterfactual meta clears main inventory warning and projects the live task
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8383760Z ok - working captain holds retain main and secondmate bucket surfaces
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8384190Z ok - active children reach Underway independently of a home captain hold
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8384790Z ok - blank legacy summary names use their durable identifier
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8385310Z ok - newest filed gates are selected before snapshot bounds
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8385830Z ok - Underway rows carry the durable task name and gates carry their filed date
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8386530Z ok - mixed secondmate roles, partial state, and captain readiness project independently
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8387100Z ok - main and secondmate captain actionability use the same blocker readiness
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8387670Z ok - a completed scout with decision-like report prose is a pointer, not pending
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8388150Z ok - an authoritative captain hold surfaces end-to-end
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8388680Z ok - current report pointers surface
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8388990Z ok - queued body prose never hides an item from the board
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8389460Z ok - --include-prs is the only path that fetches, and it enriches correctly
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8389920Z ok - --include-prs maps a custom branch-prefix PR back to its recorded task
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8390380Z ok - a partial GitHub failure degrades gracefully
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8390760Z ok - Perl fallback bounds stalled GitHub calls without coreutils timeout
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8391240Z ok - all fleet-sized sections are capped with counted opt-in expansion
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8391840Z ok - captain-held tasks of any kind reach Captain's Call, deferral is honored, and landed excludes answered calls
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8392510Z ok - structured hold buckets decide Captain's Call, Charted Next, and the reveal
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8393100Z ok - a blocked deferred hold stays gated when its date arrives and is revealed by --all-decisions
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8393670Z ok - revealed deferred holds display their deferral reason while live calls stay unannotated
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8394360Z ok - live PR enrichment caps repositories with counted expansion
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8394800Z ok - per-repository open-PR caps are disclosed with an expansion knob
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:44.8395290Z ok - projection and TOON rendering failures exit nonzero with diagnostics
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:45.7961170Z ok - first register succeeds with an empty lock list under /bin/bash
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:48.7082830Z ok - a churning turn-end inside an already-open deferral window is absorbed without re-marking
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:52.2301100Z ok - fm_dirname_to and fm_basename_to match dirname and basename on every edge case
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:52.2302800Z ok - fm_epoch_seconds_to reads the clock like date +%s and forks date at most as often
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:52.2304700Z ok - signal seen paths and absolute lock paths are byte-identical to the dirname/basename/tr forms
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:52.2306370Z ok - recovery marker reads accept exactly the one-line records wc -l accepted
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:52.2311840Z ok - window_to_task resolves every recorded window exactly as the grep/tail/cut pipeline did
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:52.2313210Z ok - classify stat helpers resolve the kernel name once per process
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:52.3775190Z ok - fm_backend_source: missing adapter fails before lifecycle continuation
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:52.3775910Z ok - fm_backend_source: unreadable adapter fails before lifecycle continuation
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:52.4092670Z Post job cleanup.
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.0196410Z [command]/opt/homebrew/bin/git version
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.0526370Z git version 2.56.0
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.0559300Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/92288cd1-d799-4500-a6f9-78c8545d98f6/.gitconfig'
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.0570680Z Temporarily overriding HOME='/Users/runner/work/_temp/92288cd1-d799-4500-a6f9-78c8545d98f6' before making global git config changes
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.0572680Z Adding repository directory to the temporary git global config as a safe directory
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.0574610Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/firstmate/firstmate
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.0749850Z Removing SSH command configuration
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.0756540Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.0862070Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.2420040Z Removing HTTP extra header
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.2423750Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.2553990Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.3776570Z Removing includeIf entries pointing to credentials config files
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.3782340Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.3859700Z includeif.gitdir:/Users/runner/work/firstmate/firstmate/.git.path
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.3860490Z includeif.gitdir:/Users/runner/work/firstmate/firstmate/.git/worktrees/*.path
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.3860970Z includeif.gitdir:/github/workspace/.git.path
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.3861350Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.3874640Z [command]/opt/homebrew/bin/git config --local --get-all includeif.gitdir:/Users/runner/work/firstmate/firstmate/.git.path
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.3950940Z /Users/runner/work/_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.3970940Z [command]/opt/homebrew/bin/git config --local --unset includeif.gitdir:/Users/runner/work/firstmate/firstmate/.git.path /Users/runner/work/_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4083290Z [command]/opt/homebrew/bin/git config --local --get-all includeif.gitdir:/Users/runner/work/firstmate/firstmate/.git/worktrees/*.path
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4156990Z /Users/runner/work/_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4165720Z [command]/opt/homebrew/bin/git config --local --unset includeif.gitdir:/Users/runner/work/firstmate/firstmate/.git/worktrees/*.path /Users/runner/work/_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4247810Z [command]/opt/homebrew/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4313700Z /github/runner_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4322920Z [command]/opt/homebrew/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4420320Z [command]/opt/homebrew/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4504960Z /github/runner_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4546910Z [command]/opt/homebrew/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.4583380Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.5621960Z Removing credentials config '/Users/runner/work/_temp/git-credentials-805a0f2e-dd04-429b-bf22-92eac85f283f.config'
+Stock macOS Bash snapshot compatibility	UNKNOWN STEP	2026-10-18T07:51:53.5798950Z Cleaning up orphan processes

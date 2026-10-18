@@ -1,0 +1,33 @@
+--- base bin/fm-pr-made-with.sh, jq-1.7.1
+jq: error: syntax error, unexpected '+', expecting '}' (Unix shell quoting issues?) at <top-level>, line 7:
+     body: (if $body == "" then "" else $body + "\n\n" end) + ($missing | join("\n"))}                                                            
+jq: 1 compile error
+fm-pr-made-with: could not parse the body of https://github.com/o/r/pull/7
+exit=1
+PR body after:
+  | Body.
+--- head bin/fm-pr-made-with.sh, jq-1.7.1
+fm-pr-made-with: added to https://github.com/o/r/pull/7:
+Made-with: claude (claude-opus-5-5)
+exit=0
+PR body after:
+  | Body.
+  | 
+  | Made-with: claude (claude-opus-5-5)
+=========== same scenario with the machine's jq 1.8.2
+--- base bin/fm-pr-made-with.sh, jq-1.8.2
+fm-pr-made-with: added to https://github.com/o/r/pull/7:
+Made-with: claude (claude-opus-5-5)
+exit=0
+PR body after:
+  | Body.
+  | 
+  | Made-with: claude (claude-opus-5-5)
+--- head bin/fm-pr-made-with.sh, jq-1.8.2
+fm-pr-made-with: added to https://github.com/o/r/pull/7:
+Made-with: claude (claude-opus-5-5)
+exit=0
+PR body after:
+  | Body.
+  | 
+  | Made-with: claude (claude-opus-5-5)

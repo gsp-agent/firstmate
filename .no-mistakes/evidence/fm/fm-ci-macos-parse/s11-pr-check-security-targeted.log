@@ -1,0 +1,12 @@
+== test_registration_stamps_the_engines_that_wrote_the_pr (jq: jq-1.7.1)
+ok - registration stamps the engines that wrote a GitHub pull request and arms even when that fails
+== test_registration_stamps_the_engines_that_wrote_the_pr (jq: jq-1.8.2)
+ok - registration stamps the engines that wrote a GitHub pull request and arms even when that fails
+== test_recovered_merged_watch_still_sweeps_its_repo (jq: jq-1.7.1)
+ok - a recovered merged watch retains its repository through the first completed sweep
+== test_recovered_merged_watch_still_sweeps_its_repo (jq: jq-1.8.2)
+ok - a recovered merged watch retains its repository through the first completed sweep
+== test_completed_repo_removals_survive_another_repo_failure (jq: jq-1.7.1)
+ok - completed repository removals are delivered once despite earlier or later repository failures
+== test_completed_repo_removals_survive_another_repo_failure (jq: jq-1.8.2)
+ok - completed repository removals are delivered once despite earlier or later repository failures

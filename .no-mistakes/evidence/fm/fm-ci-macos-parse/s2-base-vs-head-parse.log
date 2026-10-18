@@ -1,0 +1,8 @@
+== base upstream-lean 9ed80766 tests/fm-pi-watch-extension.test.sh under /bin/bash -n ==
+$WORK/base-fm-pi-watch-extension.test.sh: line 3512: unexpected EOF while looking for matching `)'
+$WORK/base-fm-pi-watch-extension.test.sh: line 5258: syntax error: unexpected end of file
+exit=2
+== HEAD tests/fm-pi-watch-extension.test.sh under /bin/bash -n ==
+exit=0
+== HEAD under bash 5 (-n) ==
+exit=0

@@ -1,0 +1,12 @@
+== base (9ed80766) test_secondmate_pr_registration_publishes_ready_line against HEAD bin
+ok - a missing teardown startup source refuses before cleanup
+ok - an unreadable teardown startup source refuses before cleanup
+ok - a missing adapter sibling refuses before cleanup
+ok - a forced descendant with a missing adapter sibling refuses before cleanup
+ok - a forced secondmate with a missing own adapter sibling refuses before child cleanup
+ok - present required sources still reach the ordinary teardown refusal
+ok - fm-teardown: fixture ancestor aliases preserve owned targets and recovery paths through staging and expiry
+ok - fm-teardown: macos ancestor aliases preserve owned targets and recovery paths through staging and expiry
+ok - fm-teardown: data cleanup leaves named and referenced TMPDIR scratch untouched
+not ok - mate-pr-ready: registration reported a channel problem: fm-pr-made-with: task record $TMP/mate-pr-ready/state/task-x1.meta names no harness
+actionable: PR https://github.com/example/repo/pull/7 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh task-x1 https://github.com/example/repo/pull/7

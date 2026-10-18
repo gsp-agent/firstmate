@@ -1,0 +1,12 @@
+ 6:08  up 3 days, 15:28, 3 users, load averages: 52.50 59.64 80.60
+ok - first register succeeds with an empty lock list under /bin/bash
+ok - a churning turn-end inside an already-open deferral window is absorbed without re-marking
+ok - fm_dirname_to and fm_basename_to match dirname and basename on every edge case
+ok - fm_epoch_seconds_to reads the clock like date +%s and forks date at most as often
+ok - signal seen paths and absolute lock paths are byte-identical to the dirname/basename/tr forms
+ok - recovery marker reads accept exactly the one-line records wc -l accepted
+ok - window_to_task resolves every recorded window exactly as the grep/tail/cut pipeline did
+ok - classify stat helpers resolve the kernel name once per process
+ok - fm_backend_source: missing adapter fails before lifecycle continuation
+ok - fm_backend_source: unreadable adapter fails before lifecycle continuation
+exit=0

@@ -1,0 +1,6 @@
+not ok - stale suppressor not advanced on paused absorb
+base run 1 5s
+not ok - stale suppressor not advanced on paused absorb
+base run 2 7s
+not ok - stale suppressor not advanced on paused absorb
+base run 3 4s

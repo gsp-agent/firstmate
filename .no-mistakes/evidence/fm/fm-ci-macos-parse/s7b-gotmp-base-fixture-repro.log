@@ -1,0 +1,8 @@
+== base tests/fm-gotmp.test.sh fixtures (ROOT=worktree) against HEAD bin/fm-teardown.sh
+not ok - teardown exited non-zero with a valid tasktmp
+exit=1
+== head tests/fm-gotmp.test.sh fixtures (ROOT=worktree) against HEAD bin/fm-teardown.sh
+ok - fm-teardown removes the dir pointed to by tasktmp= in meta
+ok - fm-teardown skips gracefully when tasktmp= is absent (backward compat)
+ok - fm-teardown skips gracefully when tasktmp= points to a nonexistent dir
+exit=0

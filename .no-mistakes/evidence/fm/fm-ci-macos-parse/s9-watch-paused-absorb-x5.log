@@ -1,0 +1,11 @@
+ 6:20  up 3 days, 15:39, 3 users, load averages: 27.70 47.71 65.42
+ok - a declared pause is absorbed on first sight, then re-surfaced as a recheck past the threshold, never wedge-escalated
+run 1 exit=? 60s
+ok - a declared pause is absorbed on first sight, then re-surfaced as a recheck past the threshold, never wedge-escalated
+run 2 exit=? 19s
+ok - a declared pause is absorbed on first sight, then re-surfaced as a recheck past the threshold, never wedge-escalated
+run 3 exit=? 25s
+ok - a declared pause is absorbed on first sight, then re-surfaced as a recheck past the threshold, never wedge-escalated
+run 4 exit=? 19s
+ok - a declared pause is absorbed on first sight, then re-surfaced as a recheck past the threshold, never wedge-escalated
+run 5 exit=? 20s

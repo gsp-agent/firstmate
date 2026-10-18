@@ -1,0 +1,100 @@
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+ok - empty fleet snapshot and view use explicit absence markers
+ok - fixture snapshot covers task rows, backlog rows, pointers, stable ordering, and emission-time event age
+ok - home-summary excludes kind=secondmate from unowned_current and terminal_in_flight
+ok - undated captain holds age after a configurable threshold, decided only from structured fields
+ok - captain-hold buckets are total, mutually exclusive, and never decided by prose
+ok - main_inventory discloses orphan/unstructured and clears when inventory is consistent
+ok - backlog normalization preserves strict roles and resolves every blocker compatibly
+ok - snapshot event hints follow reconciled current state
+ok - durable fold keeps an open decision past a later unrelated event
+ok - a live secondmate endpoint preserves unrelated open decisions
+ok - durable captain-held transfer closes the duplicate live status decision
+ok - durable fold clears a decision only on a keyed resolution
+ok - a completed scout's stale decision surfaces as a report pointer, not pending
+ok - a scout still parked at a decision stays pending (terminal clear does not over-fire)
+ok - snapshot includes durable scout reports after teardown
+ok - snapshot parses tasks-axi rows and respects operational overrides
+ok - fleet view renders the snapshot without secondmate peek guidance
+ok - fleet view renders secondmate agent liveness
+not ok - terminal in-flight rows discarded the readable home: {
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-07-11T18:00:00Z",
+  "fm_home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.Vwj2bR/child-state-classification",
+  "roots": {
+    "fm_root": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.Vwj2bR/fixture-root",
+    "state": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.Vwj2bR/child-state-classification/state",
+    "data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.Vwj2bR/child-state-classification/data",
+    "config": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.Vwj2bR/child-state-classification/config",
+    "projects": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.Vwj2bR/child-state-classification/projects"
+  },
+  "backlog": {
+    "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.Vwj2bR/child-state-classification/data/backlog.md",
+    "present": false,
+    "records": []
+  },
+  "tasks": [],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": false,
+    "proven_clear": false,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 1,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": true,
+      "available": false,
+      "complete": false,
+      "reason": "registered secondmate table read timed out",
+      "provenance": "registered-table",
+      "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.Vwj2bR/child-state-classification/data/secondmates.md",
+      "freshness": {
+        "status": "unavailable",
+        "observed_at": "2026-07-11T18:00:00Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [
+        "registered secondmate table read timed out"
+      ],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [],
+    "total_registered": 0,
+    "total": 0,
+    "shown": 0,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}
+exit=1 elapsed=880s

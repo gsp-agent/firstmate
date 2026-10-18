@@ -1,0 +1,168 @@
+ 5:57  up 3 days, 15:16, 3 users, load averages: 90.23 148.61 121.79
+not ok - live blocked work was projected as queued/deferred work: {
+  "schema": "fm-bearings.v1",
+  "home": "fm-bearings.IL2cYc/live-blocker",
+  "generated": "2026-07-11T18:00:00Z",
+  "prs": "not_requested (run: /bearings include PRs)",
+  "contributions": {
+    "scope": "owned contributions per home",
+    "known": 3,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 3,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "complete": false,
+    "proven_clear": false,
+    "unmeasured_homes": 0,
+    "unreadable_records": 0,
+    "unmeasured": 0,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "captain_omitted": 0,
+    "captain": []
+  },
+  "in_flight": [
+    {
+      "id": "external-wait",
+      "kind": "ship",
+      "state": "unknown",
+      "repo": "firstmate",
+      "name": "external-wait",
+      "doing": "paused: declared external-wait for upstream release"
+    },
+    {
+      "id": "scout-x",
+      "kind": "scout",
+      "state": "unknown",
+      "repo": "firstmate",
+      "name": "Investigate the thing",
+      "doing": "done: report ready"
+    },
+    {
+      "id": "ship-task",
+      "kind": "ship",
+      "state": "unknown",
+      "repo": "firstmate",
+      "name": "Ship the thing",
+      "doing": "blocked [key=synthetic-dependency]: firstmate can refresh the synthetic token"
+    }
+  ],
+  "secondmates": [
+    {
+      "id": "mate",
+      "state": "captain_decision",
+      "doing": "Choose subscription order",
+      "provenance": "structured-home",
+      "freshness": "fresh",
+      "age_seconds": 0,
+      "contradiction": false,
+      "reason": "-"
+    }
+  ],
+  "secondmate_reconcile": [
+    {
+      "id": "mate",
+      "spawn_gen": null,
+      "host": null,
+      "kind": null,
+      "ids": []
+    }
+  ],
+  "decisions_open": [
+    {
+      "id": "mate/mate-decision-race",
+      "key": "mate-decision-race",
+      "verb": "captain-hold",
+      "summary": "Choose subscription order: captain choice pending",
+      "owner": "mate"
+    }
+  ],
+  "landed": [
+    {
+      "id": "done-a",
+      "what": "Landed thing",
+      "artifact": "https://github.com/kunchenguid/firstmate/pull/7",
+      "owner": "(main)"
+    },
+    {
+      "id": "mate-landed",
+      "what": "Secondmate-managed fix",
+      "artifact": "https://github.com/kunchenguid/firstmate/pull/50",
+      "owner": "mate"
+    }
+  ],
+  "gates": [
+    {
+      "id": "live-gate",
+      "title": "Real queued work",
+      "blocked_by": "ship-task",
+      "reason": "-",
+      "owner": "(main)",
+      "filed": null
+    },
+    {
+      "id": "dead-gate",
+      "title": "Old conditional work",
+      "blocked_by": "-",
+      "reason": "-",
+      "owner": "(main)",
+      "filed": null
+    }
+  ],
+  "reports": [
+    {
+      "id": "scout-x",
+      "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.IL2cYc/live-blocker/data/scout-x/report.md"
+    }
+  ],
+  "recorded_prs": [
+    {
+      "id": "ship-task",
+      "url": "https://github.com/kunchenguid/firstmate/pull/9"
+    }
+  ],
+  "unhealthy_endpoints": [
+    {
+      "id": "mate",
+      "backend": "tmux",
+      "target": "firstmate:fm-mate",
+      "exists": true,
+      "agent": "dead"
+    }
+  ],
+  "omitted": [
+    {
+      "surface": "backlog item bodies",
+      "reveal": "--fields bodies"
+    },
+    {
+      "surface": "task paths",
+      "reveal": "--fields paths"
+    },
+    {
+      "surface": "watch/steer actions",
+      "reveal": "--fields actions"
+    },
+    {
+      "surface": "healthy endpoint detail",
+      "reveal": "--fields endpoints"
+    },
+    {
+      "surface": "full scout-report inventory",
+      "reveal": "--all-reports"
+    },
+    {
+      "surface": "secondmate parent activity evidence unavailable for 1 record(s)",
+      "reveal": "inspect the parent status logs"
+    },
+    {
+      "surface": "live PR discovery + checks",
+      "reveal": "--include-prs"
+    }
+  ]
+}
+exit=1 elapsed=598s
+ 6:07  up 3 days, 15:26, 3 users, load averages: 69.65 64.77 84.49

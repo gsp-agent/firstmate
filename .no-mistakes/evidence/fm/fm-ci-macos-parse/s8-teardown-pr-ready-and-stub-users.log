@@ -1,0 +1,44 @@
+ok - a missing teardown startup source refuses before cleanup
+ok - an unreadable teardown startup source refuses before cleanup
+ok - a missing adapter sibling refuses before cleanup
+ok - a forced descendant with a missing adapter sibling refuses before cleanup
+ok - a forced secondmate with a missing own adapter sibling refuses before child cleanup
+ok - present required sources still reach the ordinary teardown refusal
+task data finished: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/task-data-ancestor-alias-fixture/physical/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: fixture ancestor aliases preserve owned targets and recovery paths through staging and expiry
+task data finished: scratch recoverable in /private/tmp/fm-task-data-alias.qe3d38/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: macos ancestor aliases preserve owned targets and recovery paths through staging and expiry
+task data finished: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/task-data-scope/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: data cleanup leaves named and referenced TMPDIR scratch untouched
+ok - fm-pr-check publishes the PR-ready line on a secondmate's parent channel once
+ok - dirty worktree is refused even when its committed work has landed (dirty always wins)
+ok - merged PR does not allow teardown after a later local commit
+ok - teardown discovers a merged PR by branch name and tears down when no pr= was ever recorded
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/pr-check-stale/state/task-x1.meta names no harness
+actionable: PR https://github.com/example/repo/pull/7 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh task-x1 https://github.com/example/repo/pull/7
+fm-contributions: data directory unavailable
+contributions: observation not armed; coverage is unconfirmed
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/pr-check-stale/state/task-x1.meta names no harness
+actionable: PR https://github.com/example/repo/pull/7 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh task-x1 https://github.com/example/repo/pull/7
+fm-contributions: data directory unavailable
+contributions: observation not armed; coverage is unconfirmed
+ok - fm-pr-check does not refresh PR head after HEAD moves
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/pr-check-local-lags/state/task-x1.meta names no harness
+actionable: PR https://github.com/example/repo/pull/7 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh task-x1 https://github.com/example/repo/pull/7
+fm-contributions: data directory unavailable
+contributions: observation not armed; coverage is unconfirmed
+ok - fm-pr-check records the remote PR head when the local worktree lags
+ok - squash-merged + deleted-branch worktree (PR merged) is torn down (the fix)
+ok - squash-merged PR accepts replayed unpushed local patches contained in the PR head
+ok - squash-merged PR accepts a local HEAD that is an ancestor of the final PR head
+ok - squash-merged task whose local branch followed the pipeline rebase is torn down
+ok - squash-merged rebased local still refuses a genuinely unlanded follow-up commit
+ok - squash-merged same-path different content still refuses
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/task-data-discovered-close/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/task-data-discovered-retain/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/task-data-discovered-replay-close/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/task-data-discovered-replay-retain/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/task-data-discovered-replay-absent/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/task-data-discovered-replay-absent-retain/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.L6a22c/task-data-discovered-direct/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: discovered PR references survive interrupted close, retain, replay and direct retirement
