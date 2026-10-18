@@ -1599,10 +1599,10 @@ runner_scratch_entries() { # <dir>: the runner's and the stand-in gate's temp en
 }
 
 # A runner stopped from outside mid-script (a lane killed, a terminal closed,
-# a TERM to its whole process group) must take that script's whole process
-# group with it, bounded or not, and also when the machine gate re-executed it
-# under a second runner (a pid kill only, since the stand-in gate does not
-# survive a group TERM): the caller
+# a TERM or KILL to its whole process group) must take that script's whole
+# process group with it, bounded or not, and also when the machine gate
+# re-executed it under a second runner (a pid kill only, since the stand-in
+# gate does not survive a group signal): the caller
 # holds only the pid of the runner it launched. No later script may start
 # after that on either scheduler. Otherwise the suite and every watcher it
 # started keep running unowned, and the gate keeps the line.
@@ -1634,8 +1634,8 @@ SH
   write_machine_gate_standin "$tmp/machine-gate.sh"
 
   for gate in '' "$tmp/machine-gate.sh"; do
-    for sig in TERM KILL group-TERM; do
-      [ "$sig" != group-TERM ] || [ -z "$gate" ] || continue
+    for sig in TERM KILL group-TERM group-KILL; do
+      case $sig in group-*) [ -z "$gate" ] || continue ;; esac
       for shape in serial jobs; do
         if [ "$shape" = serial ]; then
           running=1
@@ -1659,9 +1659,9 @@ SH
           waited=$((waited + 1))
         done
         [ "$(wc -l <"$tmp/starts")" -ge "$running" ] || { kill -KILL "$runner_pid" 2>/dev/null; fail "the $shape fixtures never started under the runner: $(cat "$tmp/out")"; }
-        if [ "$sig" = group-TERM ]; then
-          how="SIGTERM to its process group"
-          kill -TERM -- "-$runner_pid"
+        if [ "$sig" != "${sig#group-}" ]; then
+          how="SIG${sig#group-} to its process group"
+          kill -"${sig#group-}" -- "-$runner_pid"
         else
           how="SIG$sig"
           kill -"$sig" "$runner_pid"

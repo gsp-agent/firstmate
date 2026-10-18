@@ -330,6 +330,45 @@ test_a_top_level_parent_that_dies_during_startup_ends_the_command() {
   pass "fm_exec_timed preserves a top-level shell's parent across exec startup"
 }
 
+# The watchdog stays in its caller's process group so that group's signals
+# reach it, so a KILL to that whole group - an outer timeout or cancellation
+# escalating - kills the watchdog with its caller. The command's own group must
+# still get its TERM, and then the KILL after the grace, instead of running on
+# with nobody left to end it.
+test_a_kill_to_the_callers_group_still_ends_the_command() {
+  local dir caller started pids
+  dir="$TMP_ROOT/group-kill"
+  mkdir -p "$dir"
+  cat > "$dir/command.sh" <<'SH'
+trap 'echo cleaned > "$2"; exit 143' TERM
+sleep 300 &
+echo "$$ $!" > "$1"
+wait
+SH
+  PATH=$PERL_ONLY perl -e 'setpgrp(0, 0); exec @ARGV' bash -c '
+    . "$1/bin/fm-timeout-lib.sh"
+    (fm_exec_timed 60 2 bash "$2/command.sh" "$2/pids" "$2/cleaned")
+  ' _ "$ROOT" "$dir" >/dev/null 2>&1 &
+  caller=$!
+  wait_for_file "$dir/pids"
+  kill -KILL -- "-$caller"
+  wait "$caller" 2>/dev/null || true
+  pids=$(cat "$dir/pids")
+  started=$SECONDS
+  # shellcheck disable=SC2086
+  while kill -0 $pids 2>/dev/null; do
+    if [ "$((SECONDS - started))" -ge 10 ]; then
+      # shellcheck disable=SC2086
+      kill -KILL $pids 2>/dev/null || true
+      fail "a KILL to the caller's group left the bounded command or its child running ($pids)"
+    fi
+    sleep 0.05
+  done
+  [ "$(cat "$dir/cleaned" 2>/dev/null)" = cleaned ] \
+    || fail "a KILL to the caller's group ended the bounded command without its TERM"
+  pass "fm_exec_timed ends the command at its TERM when the caller's whole group is KILLed"
+}
+
 # perl is preferred whenever it exists, because only its watchdog can reap a
 # leftover descendant after replacing the caller.
 test_perl_is_preferred_over_timeout() {
@@ -440,6 +479,7 @@ test_an_interrupt_is_reported_as_130
 test_a_named_owner_that_is_gone_ends_the_command
 test_an_owner_that_dies_during_startup_ends_the_command
 test_a_top_level_parent_that_dies_during_startup_ends_the_command
+test_a_kill_to_the_callers_group_still_ends_the_command
 test_perl_is_preferred_over_timeout
 test_refuses_rather_than_running_unbounded
 test_rejects_malformed_bounds_before_running_anything
