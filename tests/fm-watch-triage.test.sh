@@ -74,9 +74,14 @@ wait_live() {
 # beacon left by an earlier round, waits for THIS watcher to write a fresh one
 # (some poll's top), then waits for that one to advance (the next poll's top) -
 # and the whole cycle in between is what the caller's assertions describe.
+# A due check sweep also touches the beacon mid-poll, before the signal scan and
+# window triage, and then touches .last-check. Every watcher here runs with
+# FM_CHECK_INTERVAL=999999, so that sweep runs at most once, in a fresh home's
+# first poll; the next poll's top lands at least one FM_POLL second later. So
+# only an advance newer than .last-check is a poll's top, never the sweep.
 # 0 if the watcher is still alive after a completed cycle, 1 if it exited.
 wait_poll_cycle() {  # <state> <pid> [limit-ticks]
-  local state=$1 pid=$2 limit=${3:-300} beat first now i=0
+  local state=$1 pid=$2 limit=${3:-300} beat first now checked i=0
   beat="$state/.last-watcher-beat"
   rm -f "$beat"
   first=""
@@ -90,7 +95,9 @@ wait_poll_cycle() {  # <state> <pid> [limit-ticks]
   while [ "$i" -lt "$limit" ]; do
     kill -0 "$pid" 2>/dev/null || return 1
     now=$(file_mtime "$beat")
-    if [ -n "$now" ] && [ "$now" != "$first" ]; then
+    checked=$(file_mtime "$state/.last-check")
+    if [ -n "$now" ] && [ "$now" != "$first" ] \
+      && [ -n "$checked" ] && [ "$now" -gt "$checked" ]; then
       return 0
     fi
     sleep 0.1
