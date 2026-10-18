@@ -5960,6 +5960,8 @@ SH
   assert_absent "$case_dir/data/aa-huge/late.bin" "the by-hand command left the never-staged scratch"
   jq -e '.expired == true and (has("expiry") | not)' "$record" >/dev/null \
     || fail "the by-hand command did not expire a never-staged too-large hold: $(cat "$record")"
+  [ "$(tail -n 1 "$case_dir/aa.out")" = "task data aa-huge expired; nothing of it stays held" ] \
+    || fail "the by-hand command left a recovery promise as its last word: $(cat "$case_dir/aa.out")"
 
   write_pending_hold "$case_dir" bb-huge
   record="$case_dir/data/bb-huge/record/data-cleanup.json"
@@ -5976,6 +5978,33 @@ SH
   assert_present "$case_dir/data/bb-huge/late.bin" "an unexpirable hold lost its unstaged data"
   [ "$(jq -r '.expiry' "$record")" = too-large ] || fail "the by-hand command dropped the too-large mark before expiry finished"
   pass "fm-teardown: by-hand expiry finishes a never-staged too-large hold, or fails, names it and keeps its mark"
+}
+
+test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold() {
+  local case_dir record
+  case_dir=$(make_case task-data-by-hand-staged)
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$case_dir/fakebin/br"
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/br"
+  write_pending_hold "$case_dir" aa-huge
+  record="$case_dir/data/aa-huge/record/data-cleanup.json"
+  jq '.expiry = "too-large"' "$record" > "$record.next" && mv "$record.next" "$record"
+  printf 'moved back from the hold\n' > "$case_dir/data/aa-huge/late.bin"
+  if PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" aa-huge \
+      > "$case_dir/out" 2> "$case_dir/err"; then
+    fail "the by-hand command reported success while it held new scratch from a staged hold"
+  fi
+  assert_present "$case_dir/data/aa-huge/.cleanup-hold/late.bin" \
+    "the by-hand command deleted scratch it had just re-held from a staged hold"
+  assert_absent "$case_dir/data/aa-huge/.cleanup-hold/scratch.bin" "the by-hand command did not expire the staged hold"
+  assert_contains "$(cat "$case_dir/err")" "task data aa-huge is not expired" \
+    "the by-hand command did not name the hold it re-held"
+  jq -e '.complete == true and .expired == false and .expiry == "too-large"' "$record" >/dev/null \
+    || fail "the by-hand command did not keep a re-held hold marked too large: $(cat "$record")"
+  pass "fm-teardown: by-hand expiry of a staged hold keeps scratch it re-held, fails, names it and keeps its mark"
 }
 
 test_task_data_full_attempt_uses_its_own_limit() {
@@ -7823,6 +7852,7 @@ test_task_data_expire_skips_expired_receipts
 test_task_data_expire_cut_off_hold_moves_back
 test_task_data_expire_too_large_hold_skipped
 test_task_data_by_hand_expiry_finishes_an_unstaged_hold
+test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
 test_task_data_full_attempt_uses_its_own_limit
 test_task_data_refusals
 test_task_data_references_and_guard
