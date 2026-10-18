@@ -2197,6 +2197,7 @@ fi
 case "$PER_SCRIPT_TIMEOUT_SECS" in
   ''|*[!0-9]*) die "--per-script-timeout-secs requires a whole number of seconds (0 disables)" ;;
 esac
+PER_SCRIPT_TIMEOUT_SECS=$((10#$PER_SCRIPT_TIMEOUT_SECS))
 
 # Refuse before any suite is selected or run. The inspection modes execute
 # nothing: --list-families, --list-concurrent-safe-families, --list-lanes,
