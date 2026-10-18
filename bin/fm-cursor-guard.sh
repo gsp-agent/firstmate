@@ -3,8 +3,8 @@
 #   fallback <id>      prints "cursor", "codex <reason>", "claude <reason>" or "grok <reason>".
 #                      Codex when the shared Cursor/Grok pool is short or unknown: the newest
 #                      <usage dir>/*-spending.txt says cursor_models_pct >= the crew-dispatch.json
-#                      cursor_fallback.models_pct (default 85), or there is no readable file, or
-#                      it is older than max_age_h (default 26) by mtime, or the bead's last Cursor
+#                      cursor_fallback.models_pct (integer 1..100, default 85), or there is no readable file, or
+#                      it is older than max_age_h (positive integer, default 26) by mtime, or the bead's last Cursor
 #                      run hit a usage limit (state/<id>.cursor-limit). At pct >= the limit,
 #                      credit room in the same file keeps Cursor (Dale 10-16) only when
 #                      on_demand=enabled, a numeric monthly_additional_usage_used is below a
@@ -33,7 +33,13 @@ op=${1:-}; id=${2:-}
 case "$op" in take | give | fallback | after) ;; *) op= ;; esac
 [ -n "$op" ] && [ -n "$id" ] || { echo "usage: fm-cursor-guard.sh take|give|fallback <bead-id> | after <bead-id> <rc>" >&2; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "cursor guard: jq required" >&2; exit 1; }
-mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0; }
+mtime() {
+  if [ "$(uname)" = Darwin ]; then
+    /usr/bin/stat -f %m "$1" 2>/dev/null || echo 0
+  else
+    stat -c %Y "$1" 2>/dev/null || echo 0
+  fi
+}
 
 if [ "$op" = after ]; then
   rc=${3:-0}
@@ -60,9 +66,13 @@ if [ "$op" = fallback ]; then
     if [ -s "$STATE/$id.codex-limit" ]; then echo "claude $1; $(head -1 "$STATE/$id.codex-limit")"; else echo "codex $1"; fi
   }
   if [ -s "$STATE/$id.cursor-limit" ]; then pool "$(head -1 "$STATE/$id.cursor-limit")"; exit 0; fi
-  # Newest-by-mtime needs ls -t; find has no portable equivalent on macOS.
-  # shellcheck disable=SC2012
-  f=$(ls -t "$USAGE"/*-spending.txt 2>/dev/null | head -1)
+  f=
+  for spending_file in "$USAGE"/*-spending.txt; do
+    [ -e "$spending_file" ] || continue
+    if [ -z "$f" ] || [ "$spending_file" -nt "$f" ]; then
+      f=$spending_file
+    fi
+  done
   if [ -z "$f" ] || [ ! -r "$f" ]; then pool "no Cursor spending file in $USAGE"; exit 0; fi
   age=$(( $(date +%s) - $(mtime "$f") ))
   if [ "$age" -gt $(( age_max * 3600 )) ]; then pool "newest Cursor spending file is $((age / 3600)) h old (limit $age_max h)"; exit 0; fi

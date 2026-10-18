@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Behavior tests for bin/fm-cursor-guard.sh (per-bead stop, usage fallback, limit
-# record), for the cursor pane command keeping the agent's exit status, and for
+# record), and for
 # bin/fm-cursor-crew-guard.mjs, the preToolUse hook a crew session loads.
 set -u
 # shellcheck source=tests/lib.sh
@@ -94,6 +94,40 @@ printf 'cursor_models_pct=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "under the limit must stay on cursor: $(fb e1)"
 pass "fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit"
 
+stat_bin="$TMP_ROOT/stat-bin"
+stat_usage="$TMP_ROOT/stat-usage"
+stat_state="$TMP_ROOT/stat-state"
+mkdir -p "$stat_bin" "$stat_usage" "$stat_state/cursor-dispatch.lock"
+cat > "$stat_bin/uname" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' Linux
+SH
+cat > "$stat_bin/stat" <<'SH'
+#!/usr/bin/env bash
+case "${1:-} ${2:-}" in
+  '-f %m') printf '%s\n' 'File: "fixture"' 'Type: ext4'; exit 1 ;;
+  '-c %Y') python3 -c 'import os, sys; print(int(os.stat(sys.argv[1]).st_mtime))' "$3" ;;
+  *) exit 2 ;;
+esac
+SH
+chmod +x "$stat_bin/uname" "$stat_bin/stat"
+printf 'cursor_models_pct=10\n' > "$stat_usage/current-spending.txt"
+out=$(PATH="$stat_bin:$PATH" FM_CURSOR_USAGE_DIR="$stat_usage" "$TOOL" fallback linux-stat 2> "$TMP_ROOT/stat.err")
+expect_code 0 $? "GNU stat accepts a fresh spending file"
+[ "$out" = cursor ] || fail "GNU stat must keep fresh low usage on Cursor: $out"
+[ ! -s "$TMP_ROOT/stat.err" ] || fail "GNU stat emitted an age-arithmetic error: $(cat "$TMP_ROOT/stat.err")"
+touch -t 200001010000 "$stat_usage/current-spending.txt" "$stat_state/cursor-dispatch.lock"
+out=$(PATH="$stat_bin:$PATH" FM_CURSOR_USAGE_DIR="$stat_usage" "$TOOL" fallback linux-stat 2> "$TMP_ROOT/stat.err")
+expect_code 0 $? "GNU stat detects stale spending evidence"
+case "$out" in "codex newest Cursor spending file is"*) ;; *) fail "GNU stat must reject stale evidence: $out" ;; esac
+PATH="$stat_bin:$PATH" FM_STATE_OVERRIDE="$stat_state" g 2030-01-03 take linux-stat
+expect_code 0 $? "GNU stat recovers a stale dispatch lock"
+assert_contains "$(cat "$TMP_ROOT/err")" "removed a stale lock" "GNU stat must announce stale-lock recovery"
+[ ! -e "$stat_state/cursor-dispatch.lock" ] || fail "GNU stat must release the recovered lock"
+jq -e '.beads["linux-stat"] == 1' "$stat_state/cursor-dispatch.json" >/dev/null \
+  || fail "GNU stat recovery did not record the launch"
+pass "GNU stat supports spending age and stale-lock recovery"
+
 # real fixture shape (Chip-Grok's 2026-10-12-1512-spending.txt)
 printf 'cursor_models_pct=26\nother_models_pct=45\non_demand=disabled\ncycle_resets=2026-10-14\nread_at=2026-10-12T15:12-05:00\n' > "$FM_CURSOR_USAGE_DIR/20261014-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "the real spending file shape at 26% must keep cursor: $(fb e1)"
@@ -128,21 +162,12 @@ printf '%s\n' '{"type":"error","message":"You have exceeded your usage quota"}' 
 case "$(fb u5)" in codex*) ;; *) fail "an exceeded-quota line must route the next launch to codex: $(fb u5)" ;; esac
 pass "exceededLimit false is not a usage limit; an exceeded-quota line is"
 
-# The pane command keeps the agent's exit status past the tee, in bash and zsh.
-tpl=$(grep -o '> >(tee __CURSORSTREAM__)' "$ROOT/bin/fm-spawn.sh" | head -1)
-[ -n "$tpl" ] || fail "cursor template no longer tees through process substitution"
-for sh in bash zsh; do
-  command -v "$sh" >/dev/null 2>&1 || continue
-  "$sh" -c "(echo out; exit 7) ${tpl//__CURSORSTREAM__/\"$TMP_ROOT/stream.jsonl\"}"
-  expect_code 7 $? "$sh: pane command exits with the agent's status, not tee's"
-done
-pass "cursor exit code survives the tee"
-
 # ---- crew guard: the preToolUse hook a crew session loads ----
 CREW_GUARD="$ROOT/bin/fm-cursor-crew-guard.mjs"
 SLOT="$TMP_ROOT/slot"
-# crew_hook <command> [cwd]: Cursor's preToolUse payload for a Shell call.
-crew_hook() { jq -nc --arg c "$1" --arg d "${2-}" '{tool_name:"Shell",tool_input:{command:$c,cwd:$d}}' | node "$CREW_GUARD" --worktree "$SLOT"; }
+# crew_hook <command> [cwd]: the Shell payload cursor-agent 2026.10.16 sends,
+# whose cwd is "" when the call names no directory.
+crew_hook() { jq -nc --arg c "$1" --arg d "${2-}" '{tool_name:"Shell",tool_input:{command:$c,cwd:$d,timeout:30000}}' | node "$CREW_GUARD" --worktree "$SLOT"; }
 
 while IFS= read -r cmd; do
   out=$(crew_hook "$cmd" "$SLOT")
@@ -183,9 +208,14 @@ assert_contains "$out" 'blocked [at=<epoch>]' "the refusal must say a refused co
 pass "crew guard: refuses git symbolic-ref and update-ref in every command position, leaves reads and branch creation alone"
 
 out=$(crew_hook 'pwd' '')
-[ "$(printf '%s' "$out" | jq -c '.')" = "{\"permission\":\"allow\",\"updated_input\":{\"command\":\"pwd\",\"cwd\":\"$SLOT\"}}" ] \
-  || fail "an empty working directory must be rewritten to the worktree: $out"
-[ -z "$(crew_hook 'pwd' /elsewhere)" ] || fail "an explicit working directory must be left alone"
+printf '%s' "$out" | jq -e --arg slot "$SLOT" '. == {permission:"allow",updated_input:{command:"pwd",cwd:$slot,timeout:30000,working_directory:$slot}}' >/dev/null \
+  || fail "an empty cwd must be rewritten to the worktree, keeping other Shell inputs: $out"
+out=$(printf '{"tool_name":"Shell","tool_input":{"command":"pwd","timeout":123}}' | node "$CREW_GUARD" --worktree "$SLOT")
+printf '%s' "$out" | jq -e --arg slot "$SLOT" '.updated_input == {command:"pwd",timeout:123,cwd:$slot,working_directory:$slot}' >/dev/null \
+  || fail "an omitted working directory must be pinned without dropping other Shell inputs: $out"
+[ -z "$(crew_hook 'pwd' /elsewhere)" ] || fail "an explicit cwd must be left alone"
+[ -z "$(jq -nc '{tool_name:"Shell",tool_input:{command:"pwd",working_directory:"/elsewhere"}}' | node "$CREW_GUARD" --worktree "$SLOT")" ] \
+  || fail "an explicit working_directory must be left alone"
 [ -z "$(printf '{"tool_name":"Read","tool_input":{"path":"x"}}' | node "$CREW_GUARD" --worktree "$SLOT")" ] \
   || fail "a non-Shell tool must be left alone"
 [ -z "$(jq -nc '{tool_name:"Shell",tool_input:{command:"pwd",cwd:""}}' | node "$CREW_GUARD")" ] \

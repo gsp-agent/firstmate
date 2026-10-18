@@ -65,7 +65,7 @@
 #   ambiguous -> confidence below the floor; decide as today from the probabilities
 #   escalate  -> the rule requires captain approval, no candidate is rankable, or a genuine tie
 #   error     -> API, network, response, or quota-axi failure; decide as today
-#   Every outcome exits 0 so an intake is never blocked by this tool.
+#   Every brief-matching outcome exits 0 so an intake is never blocked by this tool.
 #   Exit 2 only for a usage or configuration error (unreadable brief, an
 #   existing unreadable rules file, malformed rules, or missing jq), which is
 #   actionable, never selected around.
@@ -204,7 +204,7 @@ rules_err=$(jq -r --argjson verified_harnesses "$VERIFIED_HARNESSES" --arg provi
   elif any((.rules // [])[]; duplicate_profiles(profiles(.use))) then "each rule use must not contain duplicate harness, model, and effort profiles"
   elif any((.rules // [])[] | profiles(.use)[]; (verified(.harness) | not)) then "each use profile must name a verified harness"
   elif any((.rules // [])[] | profiles(.use)[]; (effort_ok(.harness; .model; .effort) | not)) then "each use profile effort must be supported by its harness and model"
-  elif has("cursor_fallback") and ((.cursor_fallback | type) != "object" or ((.cursor_fallback.models_pct | type) != "number") or .cursor_fallback.models_pct < 1 or .cursor_fallback.models_pct > 100 or ((.cursor_fallback.max_age_h | type) != "number") or .cursor_fallback.max_age_h <= 0) then "cursor_fallback needs models_pct 1..100 and max_age_h > 0"
+  elif has("cursor_fallback") and ((.cursor_fallback | type) != "object" or ((.cursor_fallback.models_pct | type) != "number") or .cursor_fallback.models_pct < 1 or .cursor_fallback.models_pct > 100 or (.cursor_fallback.models_pct | tostring | test("^[0-9]+$") | not) or ((.cursor_fallback.max_age_h | type) != "number") or .cursor_fallback.max_age_h <= 0 or (.cursor_fallback.max_age_h | tostring | test("^[0-9]+$") | not)) then "cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0"
   elif has("label_routes") and ((.label_routes | type) != "object" or any(.label_routes[]; (profiles(.) | length) != 1 or (. | type) != "object")) then "label_routes must map each label to one profile object"
   elif any((.label_routes // {})[]; profile_bad(.)) then "each label_routes profile needs harness; model and effort must be well formed"
   elif any((.label_routes // {})[]; (verified(.harness) | not)) then "each label_routes profile must name a verified harness"

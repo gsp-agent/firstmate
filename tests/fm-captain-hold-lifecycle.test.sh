@@ -32,6 +32,17 @@ make_home() {  # <name>
 EOF
   fakebin=$(fm_fakebin "$home")
   fm_fake_exit0 "$fakebin" tmux treehouse no-mistakes gh gh-axi
+  # Teardown reads a recorded GitHub pull request and refuses an empty answer.
+  cat > "$fakebin/gh" <<'SH'
+#!/usr/bin/env bash
+case " $* " in
+  *" api graphql "*)
+    printf '%s\n' 'state=MERGED' 'merged=true'
+    ;;
+esac
+exit 0
+SH
+  chmod +x "$fakebin/gh"
   printf '%s\n' "$home"
 }
 
@@ -3380,6 +3391,12 @@ test_teardown_retains_a_gitlab_captain_call_with_its_merge_request_url() {
   local gitlab_url=https://gitlab.example.com/group/sub/project/-/merge_requests/269
   home=$(make_home teardown-held-gitlab)
   id=sample-held-gitlab
+  cat > "$home/fakebin/glab" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-} ${2:-}" = "mr view" ] || exit 1
+printf '%s\n' '{"state":"merged"}'
+SH
+  chmod +x "$home/fakebin/glab"
   repo="$home/projects/sample"
   wt="$home/projects/$id"
   fm_git_worktree "$repo" "$wt" fm/held-gitlab

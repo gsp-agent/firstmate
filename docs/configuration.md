@@ -870,7 +870,7 @@ Pi-family secondmates can start unattended in Firstmate-seeded homes without acc
 For omp secondmate launches, `fm-spawn.sh` names only the parent home's `state/<id>.omp-ext.ts` busy extension with `-e`: omp auto-discovers the home's tracked `.omp/extensions/` with no trust gate, and naming a discovered file with `-e` as well loads it twice; every omp launch also carries the tracked `.omp/fm-worker-overlay.yml` posture overlay through `--config`, which [`fm-spawn.sh --help`](../bin/fm-spawn.sh) owns.
 
 For a Claude secondmate, `fm-spawn.sh` writes the busy hooks into the parent home's `state/<id>.claude-settings.json` and passes that file as Claude Code's one `--settings` value.
-The same file carries `feedbackDrafts`, `"autoMemoryEnabled": false`, and, unless `config/keep-ai-trailers` is present, the attribution policy every other Claude launch puts in its inline `--settings` JSON.
+The same file carries the session policy shared by every Claude launch, including disabled auto-memory; `fm-spawn.sh`'s `claude_session_settings_keys` owns those settings and the attribution opt-out.
 Claude Code applies `--settings` for that session and does not write the file into the mate home.
 A key the file sets overrides the same key in user, project, and local settings.
 A key it omits keeps the file-based value, so a `.claude/settings.local.json` already in the home is left untouched.
@@ -1129,7 +1129,7 @@ Firstmate cannot see which part of a worker's life uses the resource, so the num
 
 ## Crew dispatch profiles (config/crew-dispatch.json)
 
-`config/crew-dispatch.json` is an optional local, gitignored file containing natural-language rules and optional label-routing and Cursor launch settings.
+`config/crew-dispatch.json` is an optional local, gitignored file containing dispatch profiles, optional natural-language rules, and the label-routing and Cursor settings below.
 Firstmate chooses the best matching rule with judgment; shell scripts do not match the natural-language rules.
 Firstmate resolves the rule's profile object or array under `AGENTS.md` section 4 and `quota-array-dispatch`, then passes only concrete `--harness`, `--model`, and `--effort` flags to `fm-spawn.sh`.
 
@@ -1251,6 +1251,8 @@ The combination `docs-only` and `ep-opus` is refused so the bead can be relabele
 `cursor_fallback` and `pstack_version` configure [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh), whose header owns fallback selection, spending-file freshness, plugin compatibility, usage-limit markers, and daily launch accounting.
 An explicit Cursor ship or scout selection can switch harnesses before launch; the reason is printed and recorded with the task.
 Cursor launches that proceed invoke [`fm-cursor-assert.sh`](../bin/fm-cursor-assert.sh), whose header owns the per-user Cursor settings and pstack role rules reasserted on each launch.
+These writes affect subsequent Cursor sessions on the same user account, rather than only the task's workspace.
+[`fm-spawn.sh`](../bin/fm-spawn.sh) owns the worker print-mode launch, interactive secondmate launch, plugin loading, named-model catalog refusal, and stream capture, with regression coverage in [`fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) and [`fm-cursor-guard.test.sh`](../tests/fm-cursor-guard.test.sh).
 The [Cursor adapter reference](../.agents/skills/harness-adapters/references/harness/cursor.md) owns harness-specific operating guidance.
 
 ## Typed dispatch resolution (.env TYPESAFE_API_KEY)

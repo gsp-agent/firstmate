@@ -96,6 +96,8 @@ import {
   ToolExecutionComponent,
   VERSION,
   type AgentSession,
+  type BeforeAgentStartEvent,
+  type MessageStartEvent,
   type ExtensionAPI,
   type ExtensionCommandContext,
   type ToolDefinition,
@@ -228,6 +230,14 @@ const scriptEnv = {
 
 function offerEligible(offer: BranchDispatchOffer): boolean {
   return offer.eligible === true;
+}
+
+// Pi 1.x also raises before_agent_start for an idle custom message, which has
+// no prompt; Pi 0.85 raises it only for prompts and sends no messageType.
+function isCustomBeforeAgentStart(event: BeforeAgentStartEvent): event is BeforeAgentStartEvent & {
+  message: Extract<MessageStartEvent["message"], { role: "custom" }>;
+} {
+  return !("prompt" in event) && "message" in event;
 }
 
 function isProcessingCustomMessage(message: { role?: string; customType?: string }): boolean {
@@ -1676,14 +1686,18 @@ ${context.command}
     if (!(await enqueueDelivery(() => actingAsOwner(promptGeneration)))) return;
     if (promptGeneration !== generation || !currentMainSession || !collectCurrentMainDialog()) return;
 
-    // This event is Pi's authoritative complete current prompt. At this point
+    // A user-message event carries Pi's authoritative complete current prompt.
     // SessionManager still contains only the preceding dialog, so relying on
     // getEntries() here loses the captain request that the next wake may answer.
     // Stage it verbatim and remember the future persisted index for turn_end's
     // duplicate suppression. Operational extension injections are not dialog.
-    const prompt = event.prompt;
-    processingOpenedThisRun = queuedProcessingContent !== null && prompt === queuedProcessingContent;
-    const trimmed = prompt.trim();
+    processingOpenedThisRun =
+      isCustomBeforeAgentStart(event) &&
+      isProcessingCustomMessage(event.message) &&
+      queuedProcessingContent !== null &&
+      event.message.content === queuedProcessingContent;
+    if (!("prompt" in event)) return;
+    const trimmed = event.prompt.trim();
     if (!trimmed || isOperationalUserText(trimmed)) return;
     const file = currentMainSession.getSessionFile() ?? "";
     const index = mirrorCollection.collectAnchor?.index ?? currentMainSession.getEntries().length;

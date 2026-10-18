@@ -8,7 +8,7 @@ Cross-harness provider and credential identity is owned by `references/common/mo
 | Fact | Value |
 |---|---|
 | Binary | `fm_cursor_resolve_binary` in `../../../bin/fm-cursor-lib.sh` resolves stable launcher `cursor-agent` or legacy `agent`, never `cursor`; both symlink into `~/.local/share/cursor-agent/versions/<version>/cursor-agent`, whose target auto-update replaces. |
-| Launch | Firstmate launches in print mode with streamed output and unattended plugins; [`fm-spawn.sh`](../../../../../bin/fm-spawn.sh) owns the exact command. |
+| Launch | Follow [Cursor launch controls](../../../../../docs/configuration.md#cursor-launch-controls) for worker and secondmate behavior; [`fm-spawn.sh`](../../../../../bin/fm-spawn.sh) owns the exact command. |
 | Attribution | Cursor can append a Co-authored-by trailer after the typed message. Unless the home sets `config/keep-ai-trailers` (`../../../../../docs/configuration.md` "Commit attribution"), every fleet launch installs the pane-scoped commit-msg strip in `../../../bin/fm-git-strip-ai-trailers.sh`, which removes known AI trailers and leaves human co-authors and the author identity untouched. |
 | Models | Use the current-account catalog through `fm_cursor_list_models` in [`fm-cursor-lib.sh`](../../../../../bin/fm-cursor-lib.sh); for a concrete model selection other than `default`, spawn refuses an unreadable catalog or an unavailable model. |
 | Busy state | `../../../bin/fm-busy-lib.sh` folds the per-conversation transcript as `cursor-transcript`: `role:user` opens and typed `turn_ended` closes success or abort, covering manual interrupt; nothing is armed or seeded, and this backend-agnostic source was identical on tmux and Herdr. |
