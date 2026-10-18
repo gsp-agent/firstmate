@@ -107,6 +107,27 @@ fm_pid_identity() {
   printf '%s\n' "$out" | sed 's/^[[:space:]]*//'
 }
 
+# True when an identity from fm_pid_identity names this command text.
+# The ps fallback carries the command as text. The /proc form carries the
+# NUL-separated argv only as cmdline-hex, so the text is not a substring.
+fm_pid_identity_names_command() {  # <identity> <literal>
+  local identity=$1 literal=$2 hex
+  [ -n "$identity" ] && [ -n "$literal" ] || return 1
+  case "$identity" in
+    *"$literal"*) return 0 ;;
+  esac
+  case "$identity" in
+    *cmdline-hex=*) ;;
+    *) return 1 ;;
+  esac
+  hex=$(printf '%s' "$literal" | od -An -v -tx1 | tr -d '[:space:]') || return 1
+  [ -n "$hex" ] || return 1
+  case "$identity" in
+    *"$hex"*) return 0 ;;
+  esac
+  return 1
+}
+
 fm_path_mtime() {
   if [ "$_FM_UNAME" = Darwin ]; then
     /usr/bin/stat -f %m "$1" 2>/dev/null

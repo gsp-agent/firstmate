@@ -19,6 +19,50 @@
 #      agent exited.
 set -u
 
+# Background jobs inherit this shell's process group. A child leads a private
+# group so cleanup can signal those jobs without reaching the runner. This
+# process stays in the caller's group: the runner's per-script bound signals
+# only that group, and the signal is forwarded into the private one.
+_fm_relaunch_pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+if [ "$_fm_relaunch_pgid" != "$$" ] && command -v perl >/dev/null 2>&1; then
+  exec perl -e '
+    use Errno qw(EINTR);
+    my $pid = fork();
+    die "fork failed\n" unless defined $pid;
+    if ($pid == 0) {
+      setpgrp(0, 0);
+      exec @ARGV or die $!;
+    }
+    $SIG{PIPE} = "IGNORE";
+    $SIG{TERM} = $SIG{INT} = $SIG{HUP} = sub {
+      kill "TERM", -$pid;
+      kill "KILL", -$pid;
+    };
+    my $kid = -1;
+    while ($kid != $pid) {
+      $kid = waitpid($pid, 0);
+      if ($kid < 0) {
+        exit 1 if $! != EINTR;
+      }
+    }
+    my $status = $?;
+    exit(128 + ($status & 127)) if $status & 127;
+    exit($status >> 8);
+  ' -- bash "$0" "$@"
+fi
+unset _fm_relaunch_pgid
+
+# Re-exec probe for test_runner_bound_reaches_the_private_group. The sleeper
+# is in the private group. The runner bound has to stop it anyway.
+if [ "${FM_RELAUNCH_TIMEOUT_PROBE:-}" = 1 ]; then
+  sleep 60 &
+  _fm_probe_sleeper=$!
+  _fm_probe_pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+  printf '%s %s\n' "$_fm_probe_sleeper" "$_fm_probe_pgid" > "${FM_RELAUNCH_TIMEOUT_PROBE_PIDFILE:?}"
+  wait
+  exit 0
+fi
+
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # shellcheck source=/dev/null
@@ -40,8 +84,41 @@ mkdir -p "$TMP_ROOT"
 TMP_ROOT=$(cd "$TMP_ROOT" && pwd)
 TASK_TMPS=()
 
+# Stop every other member of this shell's process group. The metadata-race
+# case backgrounds fm-control, fm-spawn, and the fake tmux and mv loops.
+# Deleting the temp dir leaves those loops running, because they wait for a
+# release file that cleanup has already removed.
+relaunch_reap_group() {
+  local pgid saved_term saved_int saved_hup i survivors pid
+  pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+  [ -n "$pgid" ] && [ "$pgid" = "$$" ] || return 0
+  # trap -p prints nothing for a signal still at its default, so replaying
+  # that empty output would leave the ignore installed below.
+  saved_term=$(trap -p TERM)
+  saved_int=$(trap -p INT)
+  saved_hup=$(trap -p HUP)
+  trap '' TERM INT HUP
+  kill -TERM -"$pgid" 2>/dev/null || true
+  i=0
+  survivors=
+  while [ "$i" -lt 20 ]; do
+    survivors=$(ps -ax -o pid=,pgid= | awk -v g="$pgid" -v self="$$" '$2 == g && $1 != self { print $1 }')
+    [ -n "$survivors" ] || break
+    sleep 0.05
+    i=$((i + 1))
+  done
+  for pid in $survivors; do
+    kill -KILL "$pid" 2>/dev/null || true
+  done
+  wait 2>/dev/null || true
+  if [ -n "$saved_term" ]; then eval "$saved_term"; else trap - TERM; fi
+  if [ -n "$saved_int" ]; then eval "$saved_int"; else trap - INT; fi
+  if [ -n "$saved_hup" ]; then eval "$saved_hup"; else trap - HUP; fi
+}
+
 relaunch_cleanup() {
   local d
+  relaunch_reap_group
   for d in "${TASK_TMPS[@]:-}"; do
     [ -n "$d" ] && rm -rf "$d"
   done
@@ -2548,6 +2625,87 @@ SH
   pass "fm-control exit removes the dialog file before it releases the control lock"
 }
 
+test_cleanup_reaps_its_process_group() {
+  local sleeper
+  sleep 30 &
+  # shellcheck disable=SC2031 # Background $! is this shell's job, not a subshell copy.
+  sleeper=$!
+  relaunch_reap_group
+  if kill -0 "$sleeper" 2>/dev/null; then
+    kill -KILL "$sleeper" 2>/dev/null || true
+    fail "cleanup left process $sleeper in the test process group"
+  fi
+  pass "fm-control relaunch cleanup stops its process group"
+}
+
+# reap ignores termination while it signals its own group. A signal that had
+# no trap is at its default, and trap -p prints nothing for that default, so
+# replaying the saved output leaves the ignore in place for the rest of the run.
+test_reap_restores_a_signal_that_had_no_trap() {
+  local pgid suite_term suite_int suite_hup before_int after_int after_term after_hup
+  pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+  [ "$pgid" = "$$" ] || fail "reap must be the process group leader to change signal dispositions"
+  suite_term=$(trap -p TERM)
+  suite_int=$(trap -p INT)
+  suite_hup=$(trap -p HUP)
+  trap - TERM INT HUP
+  trap 'true' INT
+  before_int=$(trap -p INT)
+  relaunch_reap_group
+  after_int=$(trap -p INT)
+  after_term=$(trap -p TERM)
+  after_hup=$(trap -p HUP)
+  if [ -n "$suite_term" ]; then eval "$suite_term"; else trap - TERM; fi
+  if [ -n "$suite_int" ]; then eval "$suite_int"; else trap - INT; fi
+  if [ -n "$suite_hup" ]; then eval "$suite_hup"; else trap - HUP; fi
+  [ -n "$before_int" ] || fail "the saved INT trap was not installed"
+  [ "$after_int" = "$before_int" ] || fail "reap dropped the saved INT trap: ${after_int:-<default>}"
+  [ -z "$after_term" ] || fail "reap left TERM ignored: $after_term"
+  [ -z "$after_hup" ] || fail "reap left HUP ignored: $after_hup"
+  pass "reap restores default termination and keeps a signal that already had a trap"
+}
+
+# The per-script bound signals the group the runner started. This file's
+# private group has to die with that signal, including a sleeper it forked.
+test_runner_bound_reaches_the_private_group() {
+  local pidfile sleeper pgid outer rc canary alive survivors
+  pidfile="$TMP_ROOT/timeout-probe.pid"
+  rm -f "$pidfile"
+  # shellcheck source=/dev/null
+  . "$ROOT/bin/fm-timeout-lib.sh"
+  sleep 30 &
+  # shellcheck disable=SC2031 # Background $! is this shell's job, not a subshell copy.
+  canary=$!
+  fm_run_timed 4 env FM_RELAUNCH_TIMEOUT_PROBE=1 FM_RELAUNCH_TIMEOUT_PROBE_PIDFILE="$pidfile" \
+    bash "${BASH_SOURCE[0]}"
+  rc=$?
+  if kill -0 "$canary" 2>/dev/null; then
+    kill "$canary" 2>/dev/null || true
+    wait "$canary" 2>/dev/null || true
+  else
+    fail "the per-script bound stopped a process outside the probed group"
+  fi
+  [ "$rc" -eq 124 ] || fail "the per-script bound should report 124, got $rc"
+  [ -s "$pidfile" ] || fail "the probed group never recorded its sleeper"
+  read -r sleeper pgid < "$pidfile"
+  outer=$(ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]')
+  [ -n "$pgid" ] && [ "$pgid" != "$outer" ] || fail "the probe stayed in this shell's process group ($outer)"
+  alive=$(ps -o state= -p "$sleeper" 2>/dev/null | tr -d '[:space:]' || true)
+  case "$alive" in
+    ''|Z*) alive=0 ;;
+    *) alive=1 ;;
+  esac
+  survivors=$(ps -ax -o pid=,state=,pgid= | awk -v g="$pgid" '$3 == g && $2 !~ /^Z/ { print $1 }')
+  if [ "$alive" -eq 1 ] || [ -n "$survivors" ]; then
+    kill -KILL -- "-$pgid" 2>/dev/null || true
+    fail "the per-script bound left the probed group running: ${survivors:-$sleeper}"
+  fi
+  pass "the runner bound stops the relaunch test's private process group"
+}
+
+test_runner_bound_reaches_the_private_group
+test_cleanup_reaps_its_process_group
+test_reap_restores_a_signal_that_had_no_trap
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
