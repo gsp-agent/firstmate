@@ -83,6 +83,9 @@ If that attempt is cut off too, mark sets expiry "too-large": later teardowns
 skip the hold, keep what remains of it, and name it in a warning each time so
 it can be expired by hand with `bash fm-task-data-lib.sh expire DATA STATE ID`,
 which takes the task's meta lock and refuses a live task.
+That command stages a never-staged hold and expires it in the same run, so
+its scratch gets no recovery cycle, and it exits non-zero naming a hold it
+leaves unexpired.
 Prepare, stage and expire clear a cut-off mark at their first record write; a
 too-large mark stays until expiry finishes.
 The holds the budget never reached are named in one warning.
