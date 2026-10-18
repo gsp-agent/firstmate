@@ -5598,7 +5598,7 @@ SH
 }
 
 test_task_data_stage_stops_at_its_limit() {
-  local case_dir task record started seconds python peak
+  local case_dir task record seconds python peak
   case_dir=$(make_case task-data-stage-limit)
   task="$case_dir/data/task-x1"
   record="$task/record/data-cleanup.json"
@@ -5624,20 +5624,22 @@ SH
   cat > "$case_dir/fakebin/python3" <<SH
 #!/usr/bin/env bash
 [ "\${2:-}" = stage ] || exec "$python" "\$@"
-exec "$python" -c 'import resource, subprocess, sys
+date +%s > "$case_dir/stage-start"
+"$python" -c 'import resource, subprocess, sys
 status = subprocess.call(sys.argv[2:])
 peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
 with open(sys.argv[1], "w") as stream:
     stream.write(str(peak if sys.platform == "darwin" else peak * 1024))
 sys.exit(status)' "$case_dir/stage-peak" "$python" "\$@"
+status=\$?
+date +%s > "$case_dir/stage-end"
+exit "\$status"
 SH
   chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/python3"
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
-  started=$SECONDS
   FM_TEARDOWN_DATA_STAGE_TIMEOUT=2 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
     || fail "teardown with a large report and many unmatched files failed: $(cat "$case_dir/err")"
-  seconds=$((SECONDS - started))
   [ "$(backlog_row_state "$case_dir")" = "done" ] \
     || fail "a stage past its limit left the backlog item at $(backlog_row_state "$case_dir")"
   assert_absent "$task/.cleanup-hold" "a stage past its limit moved data"
@@ -5646,7 +5648,8 @@ SH
     "teardown did not name the task its stage limit kept whole"
   jq -e '.retained == "reference matching passed its 2s stage limit"' "$record" >/dev/null \
     || fail "the cleanup record did not name the stage limit"
-  [ "$seconds" -le 20 ] || fail "teardown spent ${seconds}s with a 2s stage limit"
+  seconds=$(($(cat "$case_dir/stage-end") - $(cat "$case_dir/stage-start")))
+  [ "$seconds" -le 10 ] || fail "the stage ran ${seconds}s with a 2s stage limit"
   peak=$(cat "$case_dir/stage-peak")
   [ "$peak" -le $((1024 * 1024 * 1024)) ] \
     || fail "the stage peaked at $((peak / 1024 / 1024)) MiB matching a 16 MiB report with one accented letter"
