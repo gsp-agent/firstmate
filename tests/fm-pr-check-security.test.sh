@@ -4608,7 +4608,7 @@ arm_previous_template_poll() {  # <dir> <url>
   local dir=$1 url=$2 state historical
   state="$dir/home/state"
   historical="$dir/historical-fm-pr-poll.sh"
-  git -C "$ROOT" show 38fa6f7bde25e4cd64235581ceb16ca92a8453bc:bin/fm-pr-poll.sh > "$historical"
+  git -C "$ROOT" show 20dcbf91520b1816663b81873ad67d0b93b3e4d6:bin/fm-pr-poll.sh > "$historical"
   chmod 0600 "$historical"
   fm_pr_poll_template_hash_shipped "$POLL" "$(fm_pr_sha256 "$historical")" \
     || fail "previous-template fixture is not a shipped template"
