@@ -1526,7 +1526,7 @@ spawn_abort_cleanup() {
   # gives its window back (bin/fm-project-capacity-lib.sh owns the record).
   # An abort after metadata publication has released the project lock, so it
   # retakes it for a bounded wait rather than racing another spawn's record.
-  if [ "$SPAWN_OVERSHARE_PENDING" = 1 ]; then
+  if [ "$SPAWN_OVERSHARE_PENDING" = 1 ] && [ "$SPAWN_LAUNCH_SENT" = 0 ]; then
     SPAWN_OVERSHARE_PENDING=0
     if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ] &&
       fm_lock_acquire_wait_max "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$FM_PROJECT_CAPACITY_RELEASE_WAIT"; then
@@ -6073,9 +6073,6 @@ else
     SPAWN_FRESH_COMMIT_PENDING=0
   fi
 fi
-# The spawn has committed, so an extra start it took past project capacity
-# stays recorded.
-[ "$SPAWN_BACKLOG_COMMIT_STATUS" -ne 0 ] || SPAWN_OVERSHARE_PENDING=0
 if [ "$SPAWN_BACKLOG_COMMIT_STATUS" -ne 0 ]; then
   if [ "$RELAUNCH" -eq 0 ]; then
     if spawn_fresh_commit_rollback; then

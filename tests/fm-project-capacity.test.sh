@@ -78,10 +78,11 @@ make_case() {  # <name> [task-id...]
   cat > "$fakebin/tmux" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FM_FAKE_CALL_LOG"
-# A spawn told to fail its launch fails when it types the launch command, after
-# its task record is published and the project lock is released.
-if [ -n "${FM_FAKE_FAIL_LAUNCH:-}" ]; then
-  case "$*" in send-keys*' -l '*launch.*) exit 1 ;; esac
+# A spawn told to fail before its launch fails when it exports the pane's
+# environment, after its task record is published and the project lock is
+# released, and before it types the launch command.
+if [ -n "${FM_FAKE_FAIL_PRELAUNCH:-}" ]; then
+  case "$*" in send-keys*'export GOTMPDIR='*) exit 1 ;; esac
 fi
 case "$*" in
   *"#{pane_current_path}"*)
@@ -770,11 +771,11 @@ EOF
   pass "an extra start whose spawn fails leaves the window open for the next task"
 }
 
-# The same holds when the launch itself fails, after the extra start's task
-# record was published and the project lock released.
-test_failed_extra_launch_leaves_the_window_open() {
+# The same holds when the spawn fails after the extra start's task record was
+# published and the project lock released, but before its launch was sent.
+test_failed_extra_delivery_leaves_the_window_open() {
   local case_dir home out rc=0
-  case_dir=$(make_case extra-launch-failed task-a task-b)
+  case_dir=$(make_case extra-delivery-failed task-a task-b)
   home="$case_dir/home"
   declare_capacity "$home" "project 1"
   write_live "$home" live-a "$case_dir/project"
@@ -782,17 +783,69 @@ test_failed_extra_launch_leaves_the_window_open() {
 printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
 EOF
   write_headroom "$home" "$case_dir/reading"
-  out=$(FM_FAKE_FAIL_LAUNCH=1 spawn_ship "$case_dir" task-a) || rc=$?
-  [ "$rc" -ne 0 ] && [ "$rc" -ne "$DEFER_EXIT" ] || fail "a failed launch did not fail the extra start (exit $rc): $out"
-  assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" "the failed launch was not an admitted extra start"
-  assert_absent "$home/state/task-a.meta" "the failed launch left a record"
-  assert_absent "$home/state/project-capacity-overshare/project" "the failed launch used the window"
+  out=$(FM_FAKE_FAIL_PRELAUNCH=1 spawn_ship "$case_dir" task-a) || rc=$?
+  [ "$rc" -ne 0 ] && [ "$rc" -ne "$DEFER_EXIT" ] || fail "a failed delivery did not fail the extra start (exit $rc): $out"
+  assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" "the failed delivery was not an admitted extra start"
+  assert_no_grep "/launch." "$case_dir/calls.log" "the failed delivery sent its launch"
+  assert_absent "$home/state/task-a.meta" "the failed delivery left a record"
+  assert_absent "$home/state/project-capacity-overshare/project" "the failed delivery used the window"
   rc=0
   out=$(spawn_ship "$case_dir" task-b) || rc=$?
-  expect_code 0 "$rc" "a failed launch used the window, so a valid task was deferred: $out"
-  assert_contains "$out" "spawned task-b" "the valid task did not get the extra start after a failed launch"
+  expect_code 0 "$rc" "a failed delivery used the window, so a valid task was deferred: $out"
+  assert_contains "$out" "spawned task-b" "the valid task did not get the extra start after a failed delivery"
   assert_present "$home/state/project-capacity-overshare/project" "the launched extra start was not recorded"
-  pass "an extra start whose launch fails leaves the window open for the next task"
+  pass "an extra start that fails before its launch is sent leaves the window open for the next task"
+}
+
+# Once the launch is sent, a worker may be running even though the spawn then
+# fails, so the extra start stays recorded and the next one in the window waits.
+test_extra_start_whose_launch_was_sent_keeps_its_window() {
+  local case_dir home out rc=0 real before worktrees runs starts
+  [ "$HAVE_TASKS_AXI" = 1 ] || {
+    printf 'ok - skipped the sent-launch extra start case (tasks-axi, whose start must fail after launch, is not installed)\n'
+    return 0
+  }
+  case_dir=$(make_case extra-launch-sent task-a task-b)
+  home="$case_dir/home"
+  real=$(command -v tasks-axi)
+  cat > "$case_dir/fakebin/tasks-axi" <<EOF
+#!/usr/bin/env bash
+if [ -n "\${FM_FAKE_FAIL_START:-}" ] && [ "\${1:-}" = start ]; then
+  printf 'tasks-axi %s\n' "\$*" >> "\$FM_FAKE_CALL_LOG"
+  exit 1
+fi
+exec $(printf '%q' "$real") "\$@"
+EOF
+  chmod +x "$case_dir/fakebin/tasks-axi"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  install_reading "$case_dir/reading" <<EOF
+printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  out=$(FM_FAKE_FAIL_START=1 spawn_ship "$case_dir" task-a) || rc=$?
+  [ "$rc" -ne 0 ] && [ "$rc" -ne "$DEFER_EXIT" ] || fail "a failed backlog commit did not fail the extra start (exit $rc): $out"
+  assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" "the failed commit was not an admitted extra start"
+  assert_contains "$out" "could not be moved to In flight" "the extra start did not fail at its backlog commit"
+  grep -Eq 'send-keys.* -l .*/launch\.' "$case_dir/calls.log" || fail "the extra start did not send its launch"
+  starts=$(grep -c '^tasks-axi start task-a' "$case_dir/calls.log")
+  [ "$starts" = 2 ] || fail "the backlog commit was not tried twice (starts=$starts)"
+  assert_absent "$home/state/task-a.meta" "the failed commit left its record"
+  assert_present "$home/state/project-capacity-overshare/project" \
+    "an extra start whose launch was sent gave its window back"
+
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  rc=0
+  out=$(spawn_ship "$case_dir" task-b "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a second extra start was admitted in the window of a sent launch: $out"
+  assert_contains "$out" "This project already started one worker past that count in the current window." \
+    "the second extra start did not say the window was used"
+  assert_nothing_created "$case_dir" "$home" task-b "$before" "$worktrees"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 1 ] || fail "the reading ran again inside the window of a sent launch (runs=$runs)"
+  pass "an extra start whose launch was sent keeps its window even when its spawn then fails"
 }
 
 # The shared reading samples the CPU over a few seconds and has taken up to
@@ -1070,7 +1123,8 @@ test_orca_spawn_is_admitted_under_the_shared_project_lock
 test_share_starts_without_reading_headroom
 test_headroom_admits_one_extra_start_per_window
 test_failed_extra_start_leaves_the_window_open
-test_failed_extra_launch_leaves_the_window_open
+test_failed_extra_delivery_leaves_the_window_open
+test_extra_start_whose_launch_was_sent_keeps_its_window
 test_slow_reading_that_reports_room_admits
 test_absent_headroom_command_keeps_the_capacity_deferral
 test_failed_missing_and_hung_readings_defer

@@ -94,9 +94,9 @@
 # not rewrite one record. bin/fm-spawn.sh holds the project lock across the
 # reading and the write, so two spawns of one project cannot both take the
 # extra start. An extra start whose record cannot be written is not admitted.
-# A spawn that exits before its commit point, where its worker has launched and
-# any backlog item has moved In flight, removes that record again under the
-# project lock, so a failed extra start leaves the window open. A spawn that
+# A spawn that fails before its worker launches removes that record again under
+# the project lock, so that failed extra start leaves the window open. Once the
+# launch is sent, the record stands whatever fails after it. A spawn that
 # has already released the lock retakes it for up to
 # FM_PROJECT_CAPACITY_RELEASE_WAIT seconds and otherwise leaves the record until
 # the window passes. A record that holds a different epoch is left in place.
