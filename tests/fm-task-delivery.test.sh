@@ -60,6 +60,24 @@ fill_brief_subsections() {  # <file> <intent> <spec>
   printf '%s\n' "$content" > "$file"
 }
 
+# Cursor imports these four denies and will not run a match. git switch -c is absent.
+pr9_guard_denies() {
+  case "$1" in
+    'git checkout -b '*|'git checkout -B '*|'git branch -c '*|'git branch -C '*)
+      return 0 ;;
+  esac
+  return 1
+}
+
+run_in_slot_under_pr9() {
+  local slot=$1 command=$2
+  if pr9_guard_denies "$command"; then
+    printf 'denied by PR 9 guard: %s\n' "$command" >&2
+    return 77
+  fi
+  ( cd "$slot" && eval "$command" )
+}
+
 run_spawn() {  # <home> <fakebin> <spawn-args...>
   local home=$1 fakebin=$2
   shift 2
@@ -349,7 +367,7 @@ STUB
       "$mode: promoted worker was not told to verify its repository root"
     assert_grep "If either does not resolve to the worktree you were launched in, stop and escalate to firstmate" "$payload" \
       "$mode: promoted worker was not told to stop for any wrong worktree"
-    assert_grep "git checkout -b fm/$id --" "$payload" \
+    assert_grep "git switch -c fm/$id --" "$payload" \
       "$mode: promoted worker was not told to leave the scratch base for its ship branch"
     assert_grep "## Captain's intent" "$payload" \
       "$mode: promoted worker did not receive the Captain's intent subsection"
@@ -428,7 +446,7 @@ test_promotion_persists_the_selected_ship_branch() {
   instructions="$home/data/$id/ship-instructions.md"
   assert_grep "branch=fix/$id" "$meta" \
     "promotion did not persist the selected full ship branch"
-  assert_grep "git checkout -b fix/$id --" "$instructions" \
+  assert_grep "git switch -c fix/$id --" "$instructions" \
     "promotion did not deliver the selected branch-creation command"
   assert_grep "Ship branch: fix/$id" "$instructions" \
     "promotion did not deliver the selected immutable branch contract"
@@ -436,9 +454,6 @@ test_promotion_persists_the_selected_ship_branch() {
   pass "fm-promote: a selected branch prefix reaches both worker instructions and durable task state"
 }
 
-# The promotion instructions embed the branch in the `git checkout -b` command
-# the worker executes, so a ref-format-valid metacharacter prefix must stay
-# literal there, exactly as it does in a generated ship brief.
 test_promotion_branch_command_is_shell_safe() {
   local home id prefix marker meta instructions command repo branch
   home="$TMP_ROOT/promote-branch-shell-safe/home"
@@ -467,6 +482,60 @@ test_promotion_branch_command_is_shell_safe() {
   [ "$branch" = "$prefix$id" ] \
     || fail "promotion branch command did not create the literal configured branch (got '$branch')"
   pass "fm-promote: ref-format-valid shell metacharacters stay literal in promotion branch commands"
+}
+
+test_promoted_scout_reaches_its_ship_branch_under_the_pr9_guard() {
+  local home id meta instructions command repo slot primary status slot_top repo_top
+  home="$TMP_ROOT/promote-pr9/home"
+  id=promote-pr9-e1
+  repo="$TMP_ROOT/promote-pr9/repo"
+  slot="$TMP_ROOT/promote-pr9/slot"
+  meta="$home/state/$id.meta"
+  mkdir -p "$home/state"
+  git init -q "$repo" || fail "could not initialize the promotion slot fixture"
+  git -C "$repo" config user.email test@example.com
+  git -C "$repo" config user.name test
+  printf 'base\n' > "$repo/base"
+  git -C "$repo" add base || fail "could not stage the promotion slot fixture"
+  git -C "$repo" commit -qm base || fail "could not commit the promotion slot fixture"
+  primary=$(git -C "$repo" branch --show-current)
+  git -C "$repo" worktree add --detach "$slot" HEAD >/dev/null \
+    || fail "could not add the scout slot"
+  status=0
+  run_in_slot_under_pr9 "$slot" "git checkout -b fm/$id --" || status=$?
+  [ "$status" -eq 77 ] || fail "PR 9 guard did not deny git checkout -b (status $status)"
+  [ -z "$(git -C "$slot" branch --show-current)" ] \
+    || fail "a denied git checkout -b left the slot on a branch"
+  [ "$(git -C "$repo" branch --show-current)" = "$primary" ] \
+    || fail "a denied git checkout -b moved the primary fixture"
+
+  printf 'window=fm-%s\nkind=scout\nworktree=%s\n' "$id" "$slot" > "$meta"
+  FM_HOME="$home" "$BRIEF" "$id" fixture-project --scout >/dev/null 2>&1 \
+    || fail "PR 9 promotion scout brief should scaffold"
+  fill_brief_subsections "$home/data/$id/brief.md" \
+    "Promote the scout onto its ship branch." "Create the branch inside the slot."
+  FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$PROMOTE" "$id" \
+    --mode no-mistakes --yolo off >/dev/null 2>&1 \
+    || fail "PR 9 promotion should succeed"
+  instructions="$home/data/$id/ship-instructions.md"
+  # shellcheck disable=SC2016
+  command=$(sed -n 's/.*create your branch: `\(.*\)`\.$/\1/p' "$instructions")
+  [ -n "$command" ] || fail "promotion instructions exposed no branch-creation command"
+  status=0
+  run_in_slot_under_pr9 "$slot" "$command" || status=$?
+  [ "$status" -eq 0 ] \
+    || fail "promoted scout did not reach its ship branch under the PR 9 guard (status $status): $command"
+  [ "$(git -C "$slot" branch --show-current)" = "fm/$id" ] \
+    || fail "promoted scout is not on fm/$id inside its slot (got '$(git -C "$slot" branch --show-current)')"
+  slot_top=$(git -C "$slot" rev-parse --show-toplevel)
+  repo_top=$(git -C "$repo" rev-parse --show-toplevel)
+  [ "$slot_top" = "$(cd -P -- "$slot" && pwd -P)" ] \
+    || fail "promoted scout branch command did not run inside its slot (toplevel $slot_top)"
+  [ "$slot_top" != "$repo_top" ] \
+    || fail "promoted scout slot collapsed into the primary fixture"
+  [ "$(git -C "$repo" branch --show-current)" = "$primary" ] \
+    || fail "reaching the ship branch moved the primary fixture off $primary"
+  pass "fm-promote: a promoted scout reaches fm/<task> inside its slot with the PR 9 guard on"
 }
 
 test_local_merge_uses_the_recorded_ship_branch() {
@@ -1687,6 +1756,7 @@ test_promote_refuses_a_symlinked_task_record
 test_promotion_delivers_the_real_definition_of_done
 test_promotion_persists_the_selected_ship_branch
 test_promotion_branch_command_is_shell_safe
+test_promoted_scout_reaches_its_ship_branch_under_the_pr9_guard
 test_local_merge_uses_the_recorded_ship_branch
 test_project_mode_matches_whole_multiword_names
 test_project_mode_maps_the_conditional_policy

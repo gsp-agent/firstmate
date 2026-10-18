@@ -480,6 +480,72 @@ test_unproven_mode_change_is_drift() {
   pass "unproven file modes cannot borrow content proof"
 }
 
+test_pending_commit_is_accepted_and_printed_with_its_bead() {
+  local repo sha
+  repo=$(fm_test_tmproot drift-pending)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'custom\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "add notes"
+  sha=$(git -C "$repo" rev-parse HEAD)
+  printf 'pending: %s bead-7\n' "$sha" > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 0 "$CHECK_RC" "a pending commit is accepted: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 1
+path-ok: notes.txt
+pending: $sha bead-7 add notes" "$CHECK_OUT" "a pending commit is printed with its bead, not as keep"
+  printf 'pending: %s\n' "$sha" > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 2 "$CHECK_RC" "a pending line without a bead exits 2"
+  assert_contains "$CHECK_ERR" "pending line is not '<full sha> <bead>'" "a bead-less pending line is an actionable error"
+  pass "a pending commit is accepted, printed with its bead on every run, and must name its bead"
+}
+
+test_accepted_merge_carries_only_proven_or_pending_commits() {
+  local repo kept proven pending merge
+  repo=$(fm_test_tmproot drift-carried)
+  fm_git_init_commit "$repo"
+  printf 'upstream\n' > "$repo/shared.txt"
+  git -C "$repo" add shared.txt
+  fixture_commit "$repo" "upstream shared"
+  git -C "$repo" branch upstream
+  git -C "$repo" branch side
+  printf 'fork\n' > "$repo/shared.txt"
+  git -C "$repo" add shared.txt
+  fixture_commit "$repo" "fork shared"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  git -C "$repo" switch -q side
+  printf 'side\n' > "$repo/shared.txt"
+  git -C "$repo" add shared.txt
+  fixture_commit "$repo" "side shared"
+  proven=$(git -C "$repo" rev-parse HEAD)
+  printf 'side\n' > "$repo/side.txt"
+  git -C "$repo" add side.txt
+  fixture_commit "$repo" "side file"
+  pending=$(git -C "$repo" rev-parse HEAD)
+  git -C "$repo" switch -q main
+  git -C "$repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' merge -q --no-ff --no-commit side >/dev/null 2>&1 || true
+  printf 'fork\n' > "$repo/shared.txt"
+  git -C "$repo" add shared.txt side.txt
+  fixture_commit "$repo" "merge side keeping the fork's shared"
+  merge=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n%s\n%s\npending: %s bead-9\n' "$kept" "$merge" "$proven" "$pending" > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 0 "$CHECK_RC" "a merge carrying proven and pending commits replays only its own patch: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" 'path-ok: shared.txt' "the merge's resolution is accepted without replaying the carried patch"
+  assert_contains "$CHECK_OUT" 'path-ok: side.txt' "the carried pending change is accepted through the merge"
+  assert_contains "$CHECK_OUT" "pending: $pending bead-9 side file" "the carried pending commit is printed with its bead"
+  assert_contains "$CHECK_OUT" "keep: $proven side shared" "the carried proven commit is a keep"
+  printf '%s\n%s\n%s\n' "$kept" "$merge" "$proven" > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 1 "$CHECK_RC" "a carried commit that is neither proven nor pending exits 1"
+  assert_contains "$CHECK_OUT" "carried-unproven: $pending side file" "the unlisted carried commit is named"
+  assert_not_contains "$CHECK_OUT" 'path-drift:' "the failure comes from the unlisted commit, not from its content"
+  pass "an accepted merge carries its commits only when each is proven or pending"
+}
+
 test_unknown_proof_commit_is_an_error() {
   local repo
   repo=$(fm_test_tmproot drift-unknown-proof)
@@ -715,6 +781,8 @@ test_cut_unproven_changes_do_not_fail_after_restoration
 test_proven_change_can_also_cut_unproven_changes
 test_missing_proven_patch_is_drift
 test_unproven_mode_change_is_drift
+test_pending_commit_is_accepted_and_printed_with_its_bead
+test_accepted_merge_carries_only_proven_or_pending_commits
 test_unknown_proof_commit_is_an_error
 test_behind_count_is_reported_and_does_not_fail_alone
 test_merge_commit_is_labeled_merge

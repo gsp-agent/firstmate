@@ -661,13 +661,13 @@ Crew guard working_directory pin: test_cursor_crew_guard_pins_working_directory_
 Ship branch held by a sibling worktree: test_ship_branch_refuses_a_sibling_worktree passes (fm-spawn-pool-base-freshen, 30 checks); kunchenguid/main's spawn creates no ship branch.
 Cursor guard: the portable spending-file selection and GNU stat age pass "GNU stat supports spending-file age"; kunchenguid/main has no Cursor guard.
 Cursor secondmate interactive and allowlisted launch exit code: both pass; the allowlisted test keeps its exit and visible-output checks.
-Fixtures for kept behavior: the backlog fixture answers a merged recorded PR, which restored teardown record keeping reads; the herdr presentation fixture recovers through scouts because a fresh ship spawn now creates its branch; the two GitLab captain-hold tests pass (fm-captain-hold-lifecycle, 61 checks).
+Fixtures for kept behavior: the backlog fixture answers a merged recorded PR, which restored teardown record keeping reads; the herdr presentation fixture recovers through scouts because a fresh ship spawn now creates its branch; fm-captain-hold-lifecycle passes 61 checks. The two GitLab captain-hold test bodies the merge brought back had no registrations and never ran; "R19 pending list and corrections" removes them.
 
 PR 34 portions cut:
 In the merge: the headless pstack launch with stream tee and its /bin/bash launch-env wrapper, the Cursor settings reassert, the daily launch cap, the pstack pin, the after-run usage-limit marker, and the 2048-byte Task limit header; decimal-spelling refusal is superseded by 5491620c (on jq-1.8.2, jq -r prints 85.0, 1E+2 and 26.0 as written; the floor check reads them as 85, 100 and 26).
 6373a197: the brief header line naming spawn as owner of the cut Task limit, and the stream-capture assertion.
 9c86a2e0: the Pi 1.2 narrowing, its doc line and fixture edits (tests/fm-pi-primary-types.test.sh passes strict typecheck against Pi 0.85.0 and fm-pi-watch-extension passes 60 checks both with and without it); the supervision-host away Grok quarantine, which skipped a case.
-Recover any of them with git checkout 9ed80766 -- <path>.
+Recover any of them by patch, as the manifest's PR 34 recovery line states; a whole-file checkout reverts kept commits in the same file ("R19 PR 34 recovery by patch").
 
 Two reds arrive from upstream-lean itself and fail identically on a full export of 9ed80766 (recorded on .agent-config-dtjsb):
 PR #35: test_secondmate_pr_registration_publishes_ready_line (fm-pr-made-with prints actionable: for a fixture record with no harness).
@@ -681,3 +681,35 @@ R18 finalization
 The manifest lists a56cef1a, the merge 1f45a22e, 6373a197 and 9c86a2e0, names the 25 accepted commits with proof pending .agent-config-dtjsb, and its fixed-parent entry names 9c86a2e0.
 Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch
 Required result: exit 0 and zero path-drift lines on the resulting head.
+
+R19 pending list and corrections
+Measured: 2026-10-18 (Central), git 2.56.0
+Decision (PM answer for .agent-config-a3ov3.9 at the PR 25 review gate, no-mistakes run 01M56QX9R8Y2P53Q7TCV02FEX0): option B for PR 25's scope only. PR 25 carries the 10-14 cut, PR 34's portions and the nightly guard, and does not claim the bead's done. The bead's done is not amended: .agent-config-a3ov3.9 stays open until .agent-config-dtjsb has proved or cut all 25 and the check prints no pending line.
+The manifest names each of the 25 as "pending: <sha> .agent-config-dtjsb", and 9ed80766 (PR 34) as proven. An accepted merge's patch carries the commits it merges, and those are never replayed on their own; a carried commit the manifest neither proves nor lists as pending prints carried-unproven and fails the check.
+Before, 93cb683f's guard and manifest: the 25 printed as "unproven:" beside the cut commits with exit 0, and deleting 116fdc52 from the comment list still exited 0.
+After, on the resulting head (check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1): exit 0, 25 lines of "pending: <sha> .agent-config-dtjsb <subject>", keep for 9ed80766, zero path-drift and carried-unproven lines.
+The same check with the pending line for 116fdc52 removed: exit 1 with "carried-unproven: 116fdc5281d21a9992d7a4bb83ab75ed7bc38740 fix(bin): cut home summary producer fan-out so it publishes within its 60s deadline (#39)".
+$ bash tests/fm-drift-nightly.test.sh: 29 checks passed, including test_pending_commit_is_accepted_and_printed_with_its_bead and test_accepted_merge_carries_only_proven_or_pending_commits.
+Crew guard header: bin/fm-cursor-crew-guard.mjs takes 9ed80766's header sentences and now equals that file. Its scope is any Firstmate-launched session (ship, scout or secondmate), and a tokenizer error or a missing --worktree still refuses git symbolic-ref and git update-ref, as the code does.
+Dead tests removed: test_answer_before_cleanup_replay_notes_a_retained_gitlab_merge_request and test_teardown_retains_a_gitlab_captain_call_with_its_merge_request_url (fm-captain-hold-lifecycle), and test_teardown_closes_a_gitlab_task_with_its_merge_request_url_as_a_note (fm-teardown), were defined and never called; GitLab notes (PR #16) stay cut. test_cursor_secondmate_stays_interactive no longer asserts that state/cursor-dispatch.json is absent, a file only the cut launch cap wrote.
+
+R19 PR 34 recovery by patch
+Measured: 2026-10-18 (Central), in a scratch clone at 93cb683f
+git checkout 9ed80766 -- bin/fm-spawn.sh, the old documented form: exit 0 with 119 insertions and 51 deletions, and the pre-0030e13b gate `if [ "$ARG3" = cursor ]` replaces 0030e13b's resolved-harness gate ("R17 Cursor fallback after harness choice").
+git checkout 9ed80766 -- bin/fm-cursor-guard.sh: both of 5491620c's integer refusals are gone.
+git show 9ed80766 -- bin/fm-spawn.sh > pr34.patch; git apply --3way pr34.patch: exit 1, the cut hunks are left as conflicts to keep or drop one by one, and 0030e13b's gate stays.
+git revert 6373a197 and git revert 9c86a2e0: each exits 0, and each patch's patch-id equals that cut's reverse.
+
+R19 promotion branch command
+Measured: 2026-10-18 (Central), Cursor Agent CLI 2026.10.16-e3cb207
+This machine's ~/.claude/settings.json denies Bash(git checkout -b *) and Bash(git checkout -B *), and Cursor imports those denies ("R17 crew isolation"). kunchenguid/main's promotion tells a promoted scout to run git checkout -b <branch> --, which those denies refuse, so on this machine a promoted Cursor scout cannot create its ship branch.
+Restored by replaying archived 9a849dd4's patch (bin/fm-promote.sh, tests/fm-task-delivery.test.sh, tests/fm-control-relaunch.test.sh) and 58573e63's bin/fm-promote.sh header; bin/fm-promote.sh now equals upstream-lean's.
+test_promoted_scout_reaches_its_ship_branch_under_the_pr9_guard, run with kunchenguid/main's bin/fm-promote.sh and then this head's:
+  upstream: not ok - promoted scout did not reach its ship branch under the PR 9 guard (status 77): git checkout -b fm/promote-pr9-e1 --
+  this head: ok - fm-promote: a promoted scout reaches fm/<task> inside its slot with the PR 9 guard on
+$ bash tests/fm-task-delivery.test.sh: 29 checks passed.
+
+R19 finalization
+The manifest lists 9ed80766 and 93cb683f, names the 25 as pending lines, and its fixed-parent entry names 93cb683f so it selects only the commit delivering this manifest.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Required result: exit 0, zero path-drift and carried-unproven lines, and 25 pending lines on the resulting head.

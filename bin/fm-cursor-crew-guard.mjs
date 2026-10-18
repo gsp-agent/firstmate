@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// fm-cursor-crew-guard.mjs - Cursor preToolUse hook for one crew (ship or scout)
-// session. bin/fm-spawn.sh writes it into a per-task plugin directory and loads
-// that directory with --plugin-dir, so it exists for the crew's session only and
-// never for the captain's own Cursor sessions.
+// fm-cursor-crew-guard.mjs - Cursor preToolUse hook for one Firstmate-launched
+// session (ship, scout, or secondmate). bin/fm-spawn.sh writes it into a per-task
+// plugin directory and loads that directory with --plugin-dir, so it exists for
+// the launched session only and never for the captain's own Cursor sessions.
 //
 // Usage (Cursor passes the payload on stdin):
 //   <preToolUse JSON> | fm-cursor-crew-guard.mjs --worktree <task-worktree>
@@ -35,9 +35,11 @@
 // checkout explicitly (git -C /primary switch -c ...) is allowed by design.
 //
 // Output is Cursor's preToolUse decision object on stdout with exit 0, or
-// nothing for "no change". Unparseable input, a missing --worktree, and a
-// command this classifier cannot tokenize all fail open: a broken hook must
-// never refuse every shell call. The shell tokenizer is the shared owner,
+// nothing for "no change". Unparseable input produces no decision; a missing
+// --worktree skips directory rewriting but leaves ref-plumbing refusals active.
+// A tokenizer error uses a conservative git/ref-subcommand pattern instead;
+// unrecognized commands remain unchanged. A broken hook must never refuse every
+// shell call. The shell tokenizer is the shared owner,
 // bin/fm-arm-command-policy.mjs; nothing here evaluates the command.
 
 import { Lexer, splitProgram, commandPosition } from "./fm-arm-command-policy.mjs";

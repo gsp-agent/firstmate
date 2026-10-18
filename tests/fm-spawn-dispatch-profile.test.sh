@@ -842,8 +842,7 @@ test_cursor_secondmate_stays_interactive() {
   if grep -Fx -- '--output-format' "$CASE_DIR/cursor-argv" >/dev/null; then
     fail "a persistent Cursor secondmate must not request headless stream output"
   fi
-  assert_absent "$HOME_DIR/state/cursor-dispatch.json" "a persistent secondmate must not consume the worker launch allowance"
-  pass "Cursor secondmates use the interactive CLI without the worker launch allowance"
+  pass "Cursor secondmates use the interactive CLI"
 }
 
 test_cursor_allowlist_launch_executes_and_preserves_exit() {
