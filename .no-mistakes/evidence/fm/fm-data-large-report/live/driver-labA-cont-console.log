@@ -1,0 +1,14 @@
+=== Lab A continued (S7 rerun as la-huge2, S8)
+## S7 kept report over 16 MiB keeps the folder whole and names the file; close completes
+--- teardown la-huge2 (lab labA) exit=0 in 24s
+PASS: S7 teardown exits 0, retired, backlog row done, no pending close
+PASS: S7 folder kept whole
+PASS: S7 report.md named in teardown output and record
+## S8 stage past FM_TEARDOWN_DATA_STAGE_TIMEOUT=1 (near-16 MiB report, 200 unmatched files) moves nothing; close completes
+--- teardown la-stage (lab labA) exit=0 in 26s
+PASS: S8 teardown exits 0, retired, backlog row done, no pending close
+PASS: S8 nothing moved: no .cleanup-hold, all 200 files and scratch in place
+PASS: S8 warning names the task and the stage limit
+PASS: S8 record retained field names the limit
+=== live checks failed: 0
+driver exit=0

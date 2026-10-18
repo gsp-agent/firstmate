@@ -1,0 +1,2 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/labA
+WARNING: watcher still down (same stale episode; last beat: 553s ago, grace 300s) - full banner already printed this episode.

@@ -1,0 +1,3 @@
+./brief.md
+./proof-gsp.png
+./record/data-cleanup.json

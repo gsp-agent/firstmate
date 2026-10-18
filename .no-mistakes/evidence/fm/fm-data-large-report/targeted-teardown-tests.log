@@ -1,0 +1,3 @@
+ok - fm-teardown: the stage limit also bounds slow reference reads before matching
+not ok - teardown finished before the concurrent fm-send, so the send never overlapped its expiry
+exit=1

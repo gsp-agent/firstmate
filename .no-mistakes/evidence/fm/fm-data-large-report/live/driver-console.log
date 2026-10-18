@@ -1,0 +1,43 @@
+beads: agent-config=.agent-config-dxg gsp=gsp-w1l project=proj-dl6 (decoy db at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/decoy/.beads)
+=== Lab A: named-bead resolution, unread retry, kept evidence size, stage limit
+## S1 dotted .agent-config bead resolves from HOME/.agent-config (inherited BEADS_DIR/BEADS_DB/BR_DB point at a decoy db)
+--- teardown la-ac (lab labA) exit=0 in 94s
+PASS: S1 teardown exits 0, task retired, backlog row done, no pending close
+PASS: S1 scratch staged into .cleanup-hold
+PASS: S1 file linked only from the .agent-config bead stays in place
+PASS: S1 record names the bead with nothing unread
+## S2 gsp bead resolves from HOME/dev/gsp-beads
+--- teardown la-gsp (lab labA) exit=0 in 101s
+PASS: S2 teardown exits 0, task retired, backlog row done, no pending close
+PASS: S2 scratch staged into .cleanup-hold
+PASS: S2 file linked only from the gsp bead stays in place
+PASS: S2 record has nothing unread
+FAIL: S2 next teardown expired la-ac's hold with real dcg and kept its linked file
+## S3 other bead resolves from the task's own project repo
+--- teardown la-proj (lab labA) exit=0 in 59s
+PASS: S3 teardown exits 0, retired, backlog row done
+PASS: S3 scratch staged, project-bead-linked file kept
+PASS: S3 record has nothing unread
+## S3b other bead absent from the project falls back to Firstmate's backlog row
+--- teardown la-fb (lab labA) exit=0 in 53s
+PASS: S3b teardown exits 0, retired, backlog row done
+PASS: S3b scratch staged, backlog-row-linked file kept
+PASS: S3b record has nothing unread
+## S4 unresolvable generic bead keeps the folder whole, close completes, named; next teardown retries it
+--- teardown la-unread (lab labA) exit=0 in 56s
+PASS: S4 teardown exits 0, retired, backlog row done, no pending close
+PASS: S4 folder kept whole (no .cleanup-hold, scratch in place)
+PASS: S4 unread id named in teardown output
+PASS: S4 unread id named in the record
+## S4b unresolvable dotted .agent-config bead keeps the folder whole, close completes, named
+--- teardown la-unread-dot (lab labA) exit=0 in 67s
+PASS: S4b teardown exits 0, retired, backlog row done, no pending close
+PASS: S4b folder kept whole
+PASS: S4b dotted id named in teardown output and record
+PASS: S4 still kept whole after a later teardown while unresolvable
+## S6 kept report over 1 MiB (1.4 MB with a link at its end) prepares, closes, stages, keeps the link; S4 retry once its bead becomes readable
+--- teardown la-large (lab labA) exit=0 in 66s
+PASS: S6 teardown exits 0, retired, backlog row done, no pending close
+PASS: S6 scratch staged, file linked at the end of the 1.4 MB report kept
+PASS: S4 retry: the next teardown re-read lab-ghost-ref, staged scratch, kept its linked file, cleared unread
+## S7 kept report over 16 MiB keeps the folder whole and names the file; close completes

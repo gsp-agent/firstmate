@@ -1,0 +1,7 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/labA
+WARNING: watcher still down (same stale episode; last beat: 1060s ago, grace 300s) - full banner already printed this episode.
+warning: task data la-stage retained whole for retry: reference matching passed its 1s stage limit
+warning: task data la-huge2 retained whole for retry: kept evidence over 16 MiB: report.md
+warning: task data retained for recovery: unread references: .agent-config-ghost9
+warning: task data la-huge retained whole for retry: kept evidence over 16 MiB: report.md
+warning: la-stage teardown completed, but expiring other tasks' held data needs a retry

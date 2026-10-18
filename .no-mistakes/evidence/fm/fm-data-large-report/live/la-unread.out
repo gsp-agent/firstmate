@@ -1,0 +1,2 @@
+teardown la-unread complete (window firstmate:fm-la-unread, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/gone-la-unread)
+Backlog: la-unread is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/labA/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.

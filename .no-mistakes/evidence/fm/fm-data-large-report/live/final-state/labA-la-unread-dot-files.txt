@@ -1,0 +1,4 @@
+./brief.md
+./discard.bin
+./proof-ghost.png
+./record/data-cleanup.json

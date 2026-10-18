@@ -1,0 +1,5 @@
+diag: fake br started 25s after teardown start; load 86.30 159.51 151.79
+diag: fm-send done 2s after br start; teardown alive: yes
+diag: teardown returned 33s after start
+ok - fm-teardown: a slow expiry of another task's data neither blocks fm-send, outlasts its budget, nor starves other holds
+exit=0

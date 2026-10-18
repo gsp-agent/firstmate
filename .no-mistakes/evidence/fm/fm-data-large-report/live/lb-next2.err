@@ -1,0 +1,3 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/labB2
+warning: task data lb-slow expiry stopped after its one full 2s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56XD0M9TJSW6A0ZH0DJAYSV/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/labB2/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/labB2/state lb-slow
+warning: lb-next2 teardown completed, but expiring other tasks' held data needs a retry

@@ -1,0 +1,37 @@
+=== Lab B: expiry after lock release, cut-off, full attempt, too-large, by-hand
+created 50 project beads for the slow hold
+--- teardown lb-slow (lab labB2) exit=0 in 74s
+PASS: S9 setup: slow hold staged by its own teardown
+## S9 a teardown expiring a slow hold releases its locks first: a concurrent fm-send finishes while expiry reads; budget cuts it off; reader dies with it
+expiry reader for lb-slow seen running: 1 (after 46s)
+while expiry reads: home lease-command lock absent; lb-next1 meta lock absent; teardown stdout so far: task data lb-next1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/labB2/data/lb-next1/.cleanup-hold until the next completed task teardown lb-next1 complete (window firstmate:fm-lb-next1, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/gone-lb-next1) Backlog: lb-next1 is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.rKV2lo/labB2/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due. 
+concurrent fm-send exit=0 in 5.72s; teardown still running when it finished: yes; inbox: 001.msg handled 
+--- teardown lb-next1 (lab labB2) exit=0 in 61s
+teardown lb-next1 returned exit=0 after 61s overall (15s expiry budget)
+lb-slow expiry reader gone within 2s of teardown return: yes
+PASS: S9 expiry reader was observed running (expiry really was slow)
+PASS: S9 home lease-command lock not held during expiry
+PASS: S9 concurrent fm-send exit 0 and finished while teardown was still expiring
+PASS: S9 fm-send recorded its steer in the live task's inbox
+PASS: S9 teardown lb-next1 retired and closed its row
+PASS: S9 budget cut-off warning names lb-slow and promises one full attempt
+PASS: S9 cut-off hold keeps its data and is marked cut-off
+PASS: S9 lb-slow's reference reader did not outlive the budget kill
+## S10 the one full attempt (FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=2) is cut off too: marked too-large, by-hand command advertised
+--- teardown lb-next2 (lab labB2) exit=0 in 54s
+PASS: S10 teardown lb-next2 retired and closed
+PASS: S10 warning says too large and advertises the by-hand command
+PASS: S10 hold kept and marked too-large
+## S11 later teardowns skip a too-large hold and name it
+--- teardown lb-next3 (lab labB2) exit=0 in 73s
+PASS: S11 teardown lb-next3 retired and closed
+PASS: S11 warning names lb-slow as too large and skipped
+PASS: S11 hold untouched and still too-large
+## S12 by-hand expiry: refuses while another process holds the task lock, then expires with no time limit
+by-hand while locked: exit=1; stderr: error: task lb-slow is locked by another process; nothing was expired, retry later
+PASS: S12 by-hand refuses a held task lock and expires nothing
+by-hand expire: exit=0 in 24s; stdout: ; stderr: 
+PASS: S12 by-hand expire exits 0 and expires the hold
+PASS: S12 lock released after by-hand run
+=== live checks failed: 0
+driver exit=0
