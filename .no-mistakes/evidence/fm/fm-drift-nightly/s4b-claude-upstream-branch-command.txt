@@ -1,0 +1,15 @@
+# upstream promotion branch command, run by a real headless Claude Code 2.1.302 (Claude Code) session in a detached scout slot
+# settings deny: ["Bash(git checkout -b *)","Bash(git checkout -B *)"]
+# allowedTools passed: Bash(git switch:*) Bash(git checkout:*)
+command: git checkout -b fm/promote-live-e1 --
+claude exit: 0
+slot branch before: ""
+slot branch after:  ""
+--- Bash tool calls ---
+tool_use: Bash git checkout -b fm/promote-live-e1 --
+--- tool results ---
+tool_result (is_error=true): Permission to use Bash with command git checkout -b fm/promote-live-e1 -- has been denied.
+--- permission denials reported by Claude Code ---
+[{"tool_name":"Bash","tool_use_id":"toolu_01UguUrRGXjxfb4ZRZitiGMU","tool_input":{"command":"git checkout -b fm/promote-live-e1 --","description":"Create and switch to branch fm/promote-live-e1"}}]
+--- final reply ---
+Permission to use Bash with command `git checkout -b fm/promote-live-e1 --` has been denied.

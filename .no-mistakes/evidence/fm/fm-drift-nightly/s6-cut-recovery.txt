@@ -1,0 +1,73 @@
+# Documented recovery lines from drift-proof.txt, driven in a clone at 5ababd2
+# Recover a cut: git fetch archives/fork-cuts.bundle refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts && git cherry-pick <sha>
+# Recover a PR 34 cut by its patch, never by checking out a whole file, which reverts the kept commits in that file: git revert 6373a197cc3e0ea04cc1026eeafd6afd27c8242d or git revert 9c86a2e092aa4ed54378289a5e3ede098c64e69b brings back those cuts; for a cut the merge made, git show 9ed8076692548e9cbeb9d90e28c4a5898d499cfd -- <path> > pr34.patch, keep only that portion's hunks, then git apply --3way pr34.patch
+
+# 0030e13b resolved-harness gate line kept on head: if [ "$HARNESS" = cursor ] && [ "$RAW_LAUNCH" = 0 ] && [ "$KIND" != secondmate ]; then
+present on head: 1
+
+## A. git revert 6373a197 (brings back the PR 34 portions that describe or test cut Cursor features)
+exit=0
+ bin/fm-brief.sh                         | 5 +++--
+ tests/fm-spawn-dispatch-profile.test.sh | 1 +
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+reverse-of-cut patch-id match: yes
+
+## B. git revert 9c86a2e0 (brings back the Pi 1.2 narrowing and supervision-host quarantine)
+exit=0
+ .pi/extensions/fm-branch-supervision.ts | 22 +++++++++++++++++----
+ .pi/extensions/fm-primary-pi-watch.ts   | 11 +++++++----
+ docs/pi-supervision-branch.md           |  2 +-
+ tests/fm-pi-branch-extension.test.sh    | 34 +++++++++++++++++++++++----------
+ tests/fm-pi-watch-extension.test.sh     |  7 ++++---
+ tests/fm-supervision-host.test.sh       |  6 ++++++
+ 6 files changed, 60 insertions(+), 22 deletions(-)
+
+## C. a cut the merge made, recovered by patch: hunk 1 of 9ed80766 bin/fm-spawn.sh (the 2048-byte Task limit header)
+$ git apply --3way pr34-hunk1.patch   (18 lines kept of 135)
+Applied patch to 'bin/fm-spawn.sh' with conflicts.
+U bin/fm-spawn.sh
+exit=1
+ bin/fm-spawn.sh | Unmerged
+ bin/fm-spawn.sh | 7 +++++++
+ 1 file changed, 7 insertions(+)
+@@@ -22,6 -22,10 +22,13 @@@
+  #   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}`
+  #   placeholders, an empty Task, an incomplete pair of Task subsections, or a
+  #   `## Captain's intent` line opening with a Captain label or address.
+++<<<<<<< ours
+++=======
++ #   A fresh ship/scout # Task body is limited to 2048 bytes, including both
++ #   subsections; link to a bead, PR, or file for longer detail. The scaffold
++ #   outside # Task is not counted, and relaunches retain their existing brief
++ #   without applying this fresh-launch cap.
+++>>>>>>> theirs
+  #   Every ship or scout spawn renders `launch-brief.md`; for a no-mistakes ship
+  #   it also carries the current `--intent` contract and the extracted captain
+  #   intent. A legacy mixed Task is accepted there only under bin/fm-dod-lib.sh's
+0030e13b gate still present after the patch recovery: 1
+
+## D. the forbidden whole-file form, for contrast: git checkout 9ed80766 -- bin/fm-spawn.sh
+exit=0
+ bin/fm-spawn.sh | 170 +++++++++++++++++++++++++++++++++++++++-----------------
+ 1 file changed, 119 insertions(+), 51 deletions(-)
+0030e13b gate still present after a whole-file checkout: 0
+
+## E. bundle archive recovery: fetch the snapshot ref and cherry-pick a cut commit (59299234)
+fetch exit=0 FETCH_HEAD=814465e
+cut 745991e8 reachable from archive: yes
+cut 8193b236 reachable from archive: yes
+cut 59299234 reachable from archive: yes
+cut 8bd57783 reachable from archive: yes
+cherry-pick 59299234 onto head exit=1
+  UU docs/configuration.md
+cherry-pick 8bd57783 onto head exit=1
+  UU docs/configuration.md
+cherry-pick 745991e8 onto head exit=1
+  UU bin/fm-bootstrap.sh
+  A  bin/fm-cursor-cap.sh
+  UU bin/fm-dispatch-resolve.sh
+  UU bin/fm-spawn.sh
+  UU tests/fm-bootstrap.test.sh
+cherry-pick 8193b236 onto head exit=1
+  UU bin/fm-cursor-guard.sh
+  UU tests/fm-cursor-guard.test.sh

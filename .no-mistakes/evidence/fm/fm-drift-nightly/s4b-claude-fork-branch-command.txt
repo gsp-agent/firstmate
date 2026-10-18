@@ -1,0 +1,15 @@
+# fork promotion branch command, run by a real headless Claude Code 2.1.302 (Claude Code) session in a detached scout slot
+# settings deny: ["Bash(git checkout -b *)","Bash(git checkout -B *)"]
+# allowedTools passed: Bash(git switch:*) Bash(git checkout:*)
+command: git switch -c fm/promote-live-e1 --
+claude exit: 0
+slot branch before: ""
+slot branch after:  "fm/promote-live-e1"
+--- Bash tool calls ---
+tool_use: Bash git switch -c fm/promote-live-e1 --
+--- tool results ---
+tool_result (is_error=false): Switched to a new branch 'fm/promote-live-e1'
+--- permission denials reported by Claude Code ---
+[]
+--- final reply ---
+Switched to a new branch 'fm/promote-live-e1'

@@ -1,0 +1,18 @@
+$ FM_HOME=<lab> bin/fm-promote.sh promote-live-e1 --mode no-mistakes --yolo off
+exit=0
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+promoted promote-live-e1 to ship mode=no-mistakes yolo=off (teardown protection restored)
+wrote ship instructions for mode=no-mistakes: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-nm-test.OdnuXF/promote/lab/data/promote-live-e1/ship-instructions.md
+next: FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-nm-test.OdnuXF/promote/lab bin/fm-send.sh fm-promote-live-e1 "$(cat /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-nm-test.OdnuXF/promote/lab/data/promote-live-e1/ship-instructions.md)"
+
+--- <lab>/data/promote-live-e1/ship-instructions.md (excerpt: promotion steps) ---
+1. **Verify isolation before anything else.** Run `pwd -P` and `git rev-parse --show-toplevel`; both must resolve to the disposable task worktree you were launched in, such as a treehouse pool path or an Orca-managed worktree, not the primary checkout firstmate operates from. If either does not resolve to the worktree you were launched in, stop and escalate to firstmate.
+2. Inventory this worktree's scratch state with `git status` and `git log` before changing anything.
+3. Return to a clean default-branch base, then create your branch: `git switch -c fm/promote-live-e1 --`.
+4. Carry over only the intended fix changes. Leave scratch commits, debug edits, and experiment files behind.

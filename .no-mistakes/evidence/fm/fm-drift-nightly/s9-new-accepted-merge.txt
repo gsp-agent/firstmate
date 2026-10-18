@@ -1,0 +1,30 @@
+# side commit X=d4e8018f4d14d22f2f970d2930b09d23e3bd1659, merge M=200da99b126405c765d539a21e6046e6c3768d9b on top of the shipped head
+
+## M accepted, X neither proven nor pending
+$ bash bin/fm-drift-nightly.sh check --fork adv-merge --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1 --no-fetch --proof <proof-m.txt>
+exit=1
+merge: 200da99b126405c765d539a21e6046e6c3768d9b merge side branch
+carried-unproven: d4e8018f4d14d22f2f970d2930b09d23e3bd1659 side: add an unreviewed feature file
+pending lines: 25
+
+## M accepted, X pending on a bead
+$ bash bin/fm-drift-nightly.sh check --fork adv-merge --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1 --no-fetch --proof <proof-m-xpending.txt>
+exit=0
+merge: 200da99b126405c765d539a21e6046e6c3768d9b merge side branch
+pending: d4e8018f4d14d22f2f970d2930b09d23e3bd1659 .agent-config-test side: add an unreviewed feature file
+pending lines: 26
+
+## M accepted, X proven
+$ bash bin/fm-drift-nightly.sh check --fork adv-merge --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1 --no-fetch --proof <proof-m-x.txt>
+exit=0
+merge: 200da99b126405c765d539a21e6046e6c3768d9b merge side branch
+keep: d4e8018f4d14d22f2f970d2930b09d23e3bd1659 side: add an unreviewed feature file
+pending lines: 25
+
+## nothing new accepted
+$ bash bin/fm-drift-nightly.sh check --fork adv-merge --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1 --no-fetch --proof <drift-proof.txt>
+exit=1
+path-drift: side-feature.txt
+merge: 200da99b126405c765d539a21e6046e6c3768d9b merge side branch
+unproven: d4e8018f4d14d22f2f970d2930b09d23e3bd1659 side: add an unreviewed feature file
+pending lines: 25

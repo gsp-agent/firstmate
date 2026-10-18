@@ -1,0 +1,4 @@
+# The proof file names 116fdc52 as pending without a bead.
+$ bash bin/fm-drift-nightly.sh check --repo /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-nm-test.OdnuXF/repo --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1 --no-fetch --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-nm-test.OdnuXF/proof-no-bead.txt
+error: pending line is not '<full sha> <bead>': pending: 116fdc5281d21a9992d7a4bb83ab75ed7bc38740
+exit=2

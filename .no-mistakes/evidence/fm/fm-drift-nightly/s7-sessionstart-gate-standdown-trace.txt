@@ -1,0 +1,49 @@
++ set -u
++++ dirname /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin/fm-sessionstart-run.sh
+++ cd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin
+++ pwd
++ SCRIPT_DIR=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin
+++ cd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin/..
+++ pwd
++ FM_ROOT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0
++ FM_HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.SFsRwL
++ STATE=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.SFsRwL/state
++ COMPLETION_FILE=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.SFsRwL/state/.session-start-complete
++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin/fm-gate-refuse-lib.sh
+++ FM_GATE_REFUSE_EXIT=3
+++ FM_GATE_LAB_MARKER=.fm-lab-home
+++ FM_GATE_LAB_TOKEN='fm-lab-home v1'
++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin/fm-primary-scope-lib.sh
++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin/fm-session-lock-lib.sh
+++ _FM_SESSION_LOCK_LIB_DIR=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin
+++ '[' /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin '!=' /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin/fm-session-lock-lib.sh ']'
+++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin/fm-cursor-lib.sh
++++ FM_CURSOR_PROBE_TIMEOUT=10
+++ unset _FM_SESSION_LOCK_LIB_DIR
+++ FM_HARNESS_RE='claude|codex|opencode|grok|kimi|^pi$|^pi-signed$|^omp$'
+++ FM_HARNESS_NAMES=(claude codex opencode grok kimi pi-signed pi omp)
+++ FM_HARNESS_IS_CLAUDE=0
+++ FM_SESSION_LOCK_FOREIGN_OWNER_PID=
+++ FM_LOCK_INSPECT_STATE=unknown
+++ FM_LOCK_INSPECT_PID=
+++ FM_LOCK_INSPECT_LIVE_HARNESS=unknown
++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0/bin/fm-hook-host-lib.sh
++ SOURCE=
++ PI_PREREQUISITE=0
++ '[' 0 -gt 0 ']'
++ fm_is_gate_agent /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0
++ local anchor=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0 common
++ '[' '' = 1 ']'
++ '[' '' = x ']'
+++ cd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56QX9R8Y2P53Q7TCV02FEX0
++++ git rev-parse --git-common-dir
+++ cd /Users/dalecarman/.no-mistakes/repos/a5e67f4ea77f.git
+++ pwd -P
++ common=/Users/dalecarman/.no-mistakes/repos/a5e67f4ea77f.git
++ case "$common" in
++ FM_GATE_REFUSE_REASON=path
++ FM_GATE_REFUSE_COMMON=/Users/dalecarman/.no-mistakes/repos/a5e67f4ea77f.git
++ return 0
++ stand_down
++ '[' 0 = 1 ']'
++ exit 0
