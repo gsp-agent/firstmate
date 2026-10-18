@@ -257,3 +257,4 @@ MIT - see [LICENSE](LICENSE).
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=kunchenguid/firstmate&type=date&legend=top-left" />
  </picture>
 </a>
+<!-- Temporary Actions registration probe; close unmerged. -->
