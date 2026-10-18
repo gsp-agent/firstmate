@@ -10,7 +10,6 @@ set -u
 
 # shellcheck source=tests/wake-helpers.sh
 . "$(dirname "${BASH_SOURCE[0]}")/wake-helpers.sh"
-bound_home_summary_refresh
 
 WATCH="$ROOT/bin/fm-watch.sh"
 DRAIN="$ROOT/bin/fm-wake-drain.sh"
@@ -18,6 +17,7 @@ GRANT="$ROOT/bin/fm-wake-grant.sh"
 GUARD="$ROOT/bin/fm-guard.sh"
 
 TMP_ROOT=$(fm_test_tmproot fm-wake-tests)
+bound_home_summary_refresh "$TMP_ROOT"
 # The Claude stores a leaked trust write would land in, read before any test
 # runs; test_liveness_relaunch_trust_write_stays_in_the_sandbox checks them.
 REAL_HOME_CLAUDE_STORE="${HOME:-}/.claude.json"

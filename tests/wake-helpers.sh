@@ -49,10 +49,13 @@ export FM_WEDGE_ALARM_EXEC="$_fm_wedge_rec_dir/rec"
 # outlive the watcher; across a suite's watchers that fan-out stormed an idle
 # laptop. An interval above age_of's 999999 answer for a missing summary keeps
 # the per-poll path from firing, and a one-second bound ends a signal-batch
-# refresh before its watcher does. Publication itself is unchanged, and suites
-# that assert it (fm-session-start) do not call this.
-bound_home_summary_refresh() {
+# refresh before its watcher does. A refresh that bound cuts off cannot remove
+# its scratch, so TMPDIR moves inside the suite's temp root <root>, which the
+# suite's cleanup removes. Publication itself is unchanged, and suites that
+# assert it (fm-session-start) do not call this.
+bound_home_summary_refresh() {  # <root>
   export FM_HOME_SUMMARY_INTERVAL=9999999 FM_HOME_SUMMARY_TIMEOUT=1
+  mkdir -p "$1/tmp" && export TMPDIR="$1/tmp"
 }
 
 # append_wake <state> <kind> <key> <payload>: append a wake record to the durable

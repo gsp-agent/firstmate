@@ -19,7 +19,6 @@ set -u
 
 # shellcheck source=tests/wake-helpers.sh
 . "$(dirname "${BASH_SOURCE[0]}")/wake-helpers.sh"
-bound_home_summary_refresh
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-classify-lib.sh"
 
@@ -27,6 +26,7 @@ WATCH="$ROOT/bin/fm-watch.sh"
 DRAIN="$ROOT/bin/fm-wake-drain.sh"
 
 TMP_ROOT=$(fm_test_tmproot fm-watch-triage-tests)
+bound_home_summary_refresh "$TMP_ROOT"
 
 ack_stopped_cycle() {  # <state>
   local state=$1 err sequence generation
