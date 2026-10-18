@@ -95,6 +95,11 @@ REAL_PS_FOR_TEST=$(command -v ps)
 export REAL_PS_FOR_TEST
 REAL_LSOF_FOR_TEST=$(command -v lsof)
 export REAL_LSOF_FOR_TEST
+# The task-data stage limit counts reference reads, so a loaded machine can
+# pass the 10s default and keep a folder whole that a test expects staged.
+# Tests about the limit set their own value, which overrides this one.
+FM_TEARDOWN_DATA_STAGE_TIMEOUT=${FM_TEARDOWN_DATA_STAGE_TIMEOUT:-600}
+export FM_TEARDOWN_DATA_STAGE_TIMEOUT
 
 # Build a fresh sandbox for one test case. Sets up:
 #   $CASE/state/        - firstmate state dir (with a fresh watcher beacon)
