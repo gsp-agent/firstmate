@@ -1116,6 +1116,35 @@ test_portable_parallel_lanes_stay_duration_balanced() {
   pass "portable parallel lanes are fully hinted and packed within 5% of each other"
 }
 
+test_supervision_host_lanes_partition_its_cases() {
+  local main lane_b defined listed dups lanes count shard a_shard b_shard listed_shard
+  main="$ROOT/tests/fm-supervision-host.test.sh"
+  lane_b="$ROOT/tests/fm-supervision-host-lane-b.test.sh"
+  [ -x "$lane_b" ] || fail "tests/fm-supervision-host-lane-b.test.sh must exist and be executable"
+  # Every case the file defines runs in exactly one of its two lanes.
+  defined=$(sed -n 's/^\(test_[a-z0-9_]*\)() {$/\1/p' "$main" | LC_ALL=C sort)
+  listed=$(awk '/^supervision_host_lane_[ab]\(\) \{$/ { f = 1; next } f && /^\}$/ { f = 0 } f { gsub(/^[ \t]+/, ""); print }' "$main" | LC_ALL=C sort)
+  [ -n "$listed" ] || fail "fm-supervision-host.test.sh has no supervision_host_lane_a/_b case lists"
+  dups=$(printf '%s\n' "$listed" | uniq -d)
+  [ -z "$dups" ] || fail "supervision-host cases listed in both lanes: $dups"
+  [ "$defined" = "$listed" ] \
+    || fail "supervision-host lanes must list every defined case exactly once: $(diff <(printf '%s\n' "$defined") <(printf '%s\n' "$listed") | tr '\n' ' ')"
+  # The two lanes pack onto different portable serial shards.
+  lanes=$("$RUNNER" --list-lanes)
+  count=$(printf '%s\n' "$lanes" | grep -c '^portable-serial-[0-9]*of[0-9]*$')
+  a_shard="" b_shard=""
+  shard=1
+  while [ "$shard" -le "$count" ]; do
+    listed_shard=$("$RUNNER" --list --lane "portable-serial-${shard}of${count}")
+    printf '%s\n' "$listed_shard" | grep -qx 'tests/fm-supervision-host.test.sh' && a_shard=$shard
+    printf '%s\n' "$listed_shard" | grep -qx 'tests/fm-supervision-host-lane-b.test.sh' && b_shard=$shard
+    shard=$((shard + 1))
+  done
+  [ -n "$a_shard" ] && [ -n "$b_shard" ] || fail "both supervision-host lanes must land on a portable serial shard (a=$a_shard b=$b_shard)"
+  [ "$a_shard" != "$b_shard" ] || fail "both supervision-host lanes packed onto serial shard $a_shard"
+  pass "supervision-host cases split into two lanes on different serial shards"
+}
+
 test_portable_serial_shards_partition_the_serial_lane() {
   local lanes count serial shard listed union dups shard_lane total cap
   lanes=$("$RUNNER" --list-lanes)
@@ -2328,6 +2357,7 @@ test_list_scheduled_non_lane_selections_use_serial_weights
 test_portable_shard_union_and_coverage_guard
 test_portable_parallel_lanes_stay_duration_balanced
 test_portable_serial_shards_partition_the_serial_lane
+test_supervision_host_lanes_partition_its_cases
 test_portable_serial_hint_coverage_is_reported_and_bounded
 test_portable_serial_packing_budget_boundary
 test_portable_serial_shard_lane_refusals

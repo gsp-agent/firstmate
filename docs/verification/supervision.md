@@ -708,6 +708,7 @@ Deterministic entry points:
 
 ```sh
 tests/fm-supervision-host.test.sh
+tests/fm-supervision-host-lane-b.test.sh
 tests/fm-claude-stop-autoarm.test.sh
 tests/fm-afk-launch.test.sh
 tests/fm-supervision-instructions.test.sh
@@ -761,6 +762,7 @@ Deterministic entry points:
 
 ```sh
 tests/fm-supervision-host.test.sh
+tests/fm-supervision-host-lane-b.test.sh
 tests/fm-wake-queue.test.sh
 tests/fm-cursor-primary.test.sh
 tests/fm-pi-watch-extension.test.sh
@@ -833,6 +835,7 @@ Deterministic entry points:
 
 ```sh
 tests/fm-supervision-host.test.sh
+tests/fm-supervision-host-lane-b.test.sh
 tests/fm-afk-return.test.sh
 tests/fm-branch-supervision.test.sh
 ```
