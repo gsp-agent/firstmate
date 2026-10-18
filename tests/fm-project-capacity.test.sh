@@ -145,6 +145,16 @@ write_headroom() {  # <home> <line>
   printf '%s\n' "$2" > "$1/config/project-capacity-headroom"
 }
 
+# The extra-start records in <home>'s state, one path per line.
+overshare_records() {  # <home>
+  local record
+  for record in "$1/state/project-capacity-overshare"/*; do
+    [ ! -f "$record" ] || printf '%s\n' "$record"
+  done
+}
+
+overshare_count() { overshare_records "$1" | wc -l | tr -d ' '; }
+
 reading_runs() {  # <log>
   if [ ! -f "$1" ]; then
     printf '0\n'
@@ -848,6 +858,59 @@ EOF
   pass "an extra start whose launch was sent keeps its window even when its spawn then fails"
 }
 
+# Two origins cloned under one directory name share that name's declared count
+# but are separate projects, serialized by separate project locks. Each keeps
+# its own extra-start window, so their concurrent extra starts never share one
+# record. The reading waits until both spawns are inside it.
+test_two_origins_under_one_name_keep_separate_windows() {
+  local case_dir root mate mate_project wt_c pid_c pid_m rc_c=0 rc_m=0 out rc=0
+  case_dir=$(make_case same-name-origins task-c task-d)
+  root="$case_dir/home"
+  mate="$case_dir/mate"
+  make_home "$mate" task-m
+  mate_project="$mate/projects/project"
+  git clone -q "$(git -C "$case_dir/other-project" remote get-url origin)" "$mate_project"
+  printf '%s\n' schema=fm-secondmate-parent.v1 route=local "parent_home=$root" > "$mate/.fm-secondmate-parent"
+  printf -- '- mate - a local mate (home: %s; scope: project work; projects: project; added 2026-09-01)\n' "$mate" \
+    > "$root/data/secondmates.md"
+  declare_capacity "$root" "project 1"
+  write_live "$root" live-a "$case_dir/project"
+  write_live "$mate" live-m "$mate_project"
+  mkdir "$case_dir/barrier"
+  install_reading "$case_dir/reading" <<EOF
+: > $(printf '%q' "$case_dir/barrier")/\$\$
+i=0
+while [ "\$(ls $(printf '%q' "$case_dir/barrier") | wc -l)" -lt 2 ]; do
+  i=\$((i + 1))
+  [ "\$i" -lt 200 ] || exit 1
+  sleep 0.05
+done
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$root" "$case_dir/reading"
+  wt_c=$(new_worktree "$case_dir" task-c)
+  git -C "$mate_project" worktree add --quiet -b wt-m "$case_dir/wt-m"
+  spawn_ship "$case_dir" task-c "$wt_c" > "$case_dir/c.out" 2>&1 &
+  pid_c=$!
+  run_spawn "$case_dir" "$mate" "$case_dir/wt-m" task-m "$mate_project" --mode no-mistakes --yolo off \
+    > "$case_dir/m.out" 2>&1 &
+  pid_m=$!
+  wait "$pid_c" || rc_c=$?
+  wait "$pid_m" || rc_m=$?
+  expect_code 0 "$rc_c" "the first origin's extra start was not admitted: $(cat "$case_dir/c.out")"
+  expect_code 0 "$rc_m" "the second origin's extra start was not admitted: $(cat "$case_dir/m.out")"
+  assert_contains "$(cat "$case_dir/c.out")" "spawned task-c" "the first origin's extra start did not launch"
+  assert_contains "$(cat "$case_dir/m.out")" "spawned task-m" "the second origin's extra start did not launch"
+  [ "$(overshare_count "$root")" = 2 ] ||
+    fail "two origins under one name took their extra starts against one record: $(overshare_records "$root")"
+
+  out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a second extra start for the first origin was admitted in its window: $out"
+  assert_contains "$out" "already started one worker past that count in the current window" \
+    "the first origin's window was not kept"
+  pass "two origins cloned under one name each keep their own extra-start window"
+}
+
 # The shared reading samples the CPU over a few seconds and has taken up to
 # 12.7 seconds on a loaded machine. A reading that slow which reports room
 # still admits the extra start.
@@ -1125,6 +1188,7 @@ test_headroom_admits_one_extra_start_per_window
 test_failed_extra_start_leaves_the_window_open
 test_failed_extra_delivery_leaves_the_window_open
 test_extra_start_whose_launch_was_sent_keeps_its_window
+test_two_origins_under_one_name_keep_separate_windows
 test_slow_reading_that_reports_room_admits
 test_absent_headroom_command_keeps_the_capacity_deferral
 test_failed_missing_and_hung_readings_defer
