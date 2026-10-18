@@ -713,3 +713,18 @@ R19 finalization
 The manifest lists 9ed80766 and 93cb683f, names the 25 as pending lines, and its fixed-parent entry names 93cb683f so it selects only the commit delivering this manifest.
 Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
 Required result: exit 0, zero path-drift and carried-unproven lines, and 25 pending lines on the resulting head.
+
+D2 crew guard scope documentation
+Measured: 2026-10-18 (Central), git 2.56.0
+fa3c93df changes two prose lines and no executable file or test. docs/scripts.md takes 9ed80766's pointer row for bin/fm-cursor-crew-guard.mjs, and the Cursor harness reference names every Firstmate-launched Cursor session (ship, scout, or secondmate) as loading the guard. Both had said crew sessions only.
+Both now match the guard's header (lines 2-5) and bin/fm-spawn.sh, whose Cursor launch writes the per-task guard plugin (:5571) whatever the launch kind.
+$ bash bin/fm-doc-audience-check.sh
+fm-doc-audience-check: ok surfaces=121 local_links=777
+exit: 0
+
+D2 finalization
+Before, at fa3c93df with the R19 manifest (check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1): exit 1, path-drift for .agents/skills/harness-adapters/references/harness/cursor.md and docs/scripts.md, and fa3c93df printed as unproven.
+The manifest now lists 5ababd20 with its R19 proof and fa3c93df with the section above, and its fixed-parent entry names fa3c93df so it selects only the commit delivering this manifest.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Required result: exit 0, zero path-drift and carried-unproven lines, and 25 pending lines naming .agent-config-dtjsb on the resulting head.
+Checked before the commit on an unreferenced scratch commit with this tree on fa3c93df (--fork <scratch sha>): exit 0, 25 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, and keep for 5ababd20, fa3c93df and the scratch commit.
