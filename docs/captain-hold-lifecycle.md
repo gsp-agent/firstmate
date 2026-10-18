@@ -185,6 +185,7 @@ The refusal names the record and the validation reason, so the captain can repai
 
 `--force` does not lift the deferral, because it authorizes discarding unlanded work, never the captain's question.
 Only `answer` with the captain's words or evidence-backed `reconcile close` resolves the call, by either closing the question or releasing the gated work.
+A Dale-step probe release is the one other release path, and it is evidence-backed in the same way.
 `bin/fm-backlog-transition-lib.sh` owns the transition and its record, and `bin/fm-captain-hold.sh --help` owns the predicate's contract.
 
 ## Answer-time resolution
@@ -309,6 +310,15 @@ A successful normal answer also retires any pending request, because an answered
 Every retirement is checked.
 If request removal fails after an answer, close, or note is already durable, the durable outcome stands, but the command fails and leaves the pending request visible for retry.
 No path here closes a captain call without either the captain's words through `answer` or the evidence through `reconcile close`.
+
+### Dale-step probe holds
+
+A hold created with `--dale-step sign-in|screen --probe <command>` waits on a step the captain performs elsewhere, not on a decision.
+Creation runs only the asks rule's answered and duplicate world checks, and the body carries the owner, timeout, reason and probe lines in the hold-domain format.
+`reprobe <task-id>` re-runs the recorded probe.
+A passing probe releases the gated work under the task control lock, only when the hold-set stamp still matches the one probed, and records the probe under a `Reconciliation evidence:` label with mode `probe-released`.
+A failing or unknown probe keeps the hold and wakes nobody.
+This releases work; it never closes a question and never records the captain's words.
 
 ## Card hygiene: a landed subject is not a live call
 

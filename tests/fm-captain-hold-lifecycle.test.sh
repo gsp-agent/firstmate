@@ -4701,3 +4701,80 @@ test_verify_names_the_unresolvable_legacy_id_once
 test_verify_resolves_a_pre_collapse_key_through_its_derived_marker
 test_captain_hold_mutations_address_the_beads_backend
 test_hold_creates_a_captain_row_when_beads_requires_due_without_custom_type
+
+test_dale_step_hold_probe_and_world_checks() {
+  local home show
+  home=$(make_home dale-step)
+  cat > "$home/fake-asks-rule.py" <<'PY'
+import os, sys
+mode = os.environ.get("FAKE_ASKS_MODE", "ok")
+if mode == "answered":
+    print("You answered this: Reply, \"already signed in\".")
+    sys.exit(3)
+if mode == "duplicate":
+    print("Asked already on the original page; your answer there covers this.")
+    sys.exit(3)
+if mode == "kind":
+    print("Not one of his kinds: names none of his kinds. Decide it yourself.")
+    sys.exit(3)
+sys.exit(0)
+PY
+  run_captain "$home" hold plain-task --title "Plain hold" \
+    --reason "captain must decide" --repo sample >/dev/null \
+    || fail "plain hold failed"
+  show=$(tasks_in "$home" show plain-task --full)
+  assert_not_contains "$show" "Hold probe:" "a hold not waiting on a Dale step gained a probe line"
+  assert_not_contains "$show" "Decision owner:" "a hold not waiting on a Dale step gained an owner line"
+  FM_CAPTAIN_HOLD_NOW=2026-06-01T12:00:00Z FAKE_ASKS_MODE=ok \
+    FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+    run_captain "$home" hold dale-task --title "Sign in needed" \
+    --reason "sign in to the service" --repo sample \
+    --dale-step sign-in --probe 'true' --hold-timeout 600 >/dev/null \
+    || fail "Dale-step hold failed"
+  show=$(tasks_in "$home" show dale-task --full)
+  assert_contains "$show" "Captain hold set: 2026-06-01T12:00:00Z" "the Dale-step hold lost its hold-set stamp"
+  assert_contains "$show" "Decision owner: dale" "the Dale-step hold did not write the owner line"
+  assert_contains "$show" "Hold timeout seconds: 600" "the Dale-step hold did not write the timeout line"
+  assert_contains "$show" "Hold reason: sign in to the service" "the Dale-step hold did not write the reason line"
+  assert_contains "$show" "Hold probe: true" "the Dale-step hold did not write the probe line"
+  if FAKE_ASKS_MODE=answered FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+    run_captain "$home" hold answered-task --title "Sign in again" \
+    --reason "sign in to the service" --repo sample \
+    --dale-step sign-in --probe 'true' >"$home/answered.out" 2>"$home/answered.err"; then
+    fail "a Dale-step hold already answered was created"
+  fi
+  assert_grep "You answered this" "$home/answered.err" "the answered refusal did not name the world-check reason"
+  if tasks_in "$home" show answered-task --full >/dev/null 2>&1; then
+    fail "the refused answered hold still created its task"
+  fi
+  if FAKE_ASKS_MODE=duplicate FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+    run_captain "$home" hold duplicate-task --title "Sign in once more" \
+    --reason "sign in to the service" --repo sample \
+    --dale-step sign-in --probe 'true' >"$home/duplicate.out" 2>"$home/duplicate.err"; then
+    fail "a Dale-step hold duplicating an earlier ask was created"
+  fi
+  assert_grep "Asked already" "$home/duplicate.err" "the duplicate refusal did not name the world-check reason"
+  FAKE_ASKS_MODE=kind FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+    run_captain "$home" hold kind-task --title "Sign in kindly" \
+    --reason "sign in to the service" --repo sample \
+    --dale-step sign-in --probe 'true' >/dev/null \
+    || fail "a kind-only refusal blocked a Dale-step hold before the one-way-door rule lands"
+  FAKE_ASKS_MODE=ok FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+    run_captain "$home" hold probe-fail-task --title "Sign in pending" \
+    --reason "sign in to the service" --repo sample \
+    --dale-step sign-in --probe 'false' >/dev/null \
+    || fail "the failing-probe hold was not created"
+  run_captain "$home" reprobe probe-fail-task >"$home/reprobe-fail.out" \
+    || fail "reprobe of a failing probe errored"
+  assert_grep "kept" "$home/reprobe-fail.out" "a failing probe did not keep the hold"
+  show=$(tasks_in "$home" show probe-fail-task --full)
+  assert_contains "$show" "held: yes" "a failing probe released the hold"
+  run_captain "$home" reprobe dale-task >"$home/reprobe-pass.out" \
+    || fail "reprobe of a passing probe errored"
+  assert_grep "released:" "$home/reprobe-pass.out" "a passing probe did not release the hold"
+  show=$(tasks_in "$home" show dale-task --full)
+  assert_contains "$show" "held: no" "a passing probe left the hold in place"
+  assert_contains "$show" "Resolution mode: probe-released" "the probe release left no evidence record"
+  pass "Dale-step holds write owner, timeout and probe lines, refuse answered or duplicate asks at creation, and release only on a passing probe"
+}
+test_dale_step_hold_probe_and_world_checks
