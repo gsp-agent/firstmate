@@ -4983,11 +4983,9 @@ test_recovered_merged_watch_still_sweeps_its_repo() {
   write_slow_sweep_page "$dir" page1 2 false ""
   fm_pr_poll_snapshot_capture "$state" task-a "$POLL" || fail "could not snapshot the merged watch"
   fm_pr_poll_retirement_publish "$state" task-a "$POLL" merged || fail "could not publish the retirement receipt"
-  (
-    export FM_STATE_OVERRIDE="$state" FM_HOME="$dir/home"
-    . "$ROOT/bin/fm-wake-lib.sh"
-    fm_wake_append check "$state/task-a.check.sh" "check: $state/task-a.check.sh: merged"
-  ) || fail "could not queue the merged wake"
+  FM_STATE_OVERRIDE="$state" FM_HOME="$dir/home" bash -c '. "$1"; fm_wake_append check "$2" "$3"' _ \
+    "$ROOT/bin/fm-wake-lib.sh" "$state/task-a.check.sh" "check: $state/task-a.check.sh: merged" \
+    || fail "could not queue the merged wake"
   retire_contributions_observer "$dir"
   add_stop_custom_check "$dir"
   FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
@@ -5164,8 +5162,8 @@ test_completed_repo_removals_survive_another_repo_failure() {
   for failing in task-a task-b; do
     dir=$(make_case "mixed-sweep-$failing")
     state="$dir/home/state"
-    success=task-a
-    [ "$failing" != task-a ] || success=task-b
+    success='task-a'
+    [ "$failing" != task-a ] || success='task-b'
     write_poll_meta "$state" "$success" https://github.com/o/r/pull/1
     seed_canonical_poll "$dir" "$success" https://github.com/o/r/pull/1
     write_poll_meta "$state" "$failing" https://github.com/o/unreadable/pull/1
