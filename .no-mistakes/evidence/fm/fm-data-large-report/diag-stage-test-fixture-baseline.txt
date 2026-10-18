@@ -1,0 +1,2 @@
+tiny report: teardown rc=0 wall 8.7s; stage-limit warning: 0; backlog: done; load 19.85 67.98 64.02
+huge report: teardown rc=0 wall 9.2s; stage-limit warning: 1; backlog: done; load 18.59 66.13 63.40

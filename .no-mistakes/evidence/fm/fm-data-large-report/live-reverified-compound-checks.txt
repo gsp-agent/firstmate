@@ -1,0 +1,20 @@
+== re-verified second conditions on final lab state (scenario 1, /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG)
+  PASS: A: discard.bin left the task root (staged, later expired)
+  PASS: A: bead-linked ac-proof.png kept after expiry
+  PASS: B: discard.bin left the task root
+  PASS: B: gsp-proof.png kept
+  PASS: C: discard.bin left the task root only on the final retry (now held)
+  PASS: C: staging message printed only by the final retry teardown (E), not C or D
+== scenario 2 (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6)
+  PASS: L1 report.md survived expiry
+  PASS: L3 staged only by L3-next (not by its own teardown)
+== scenario 4 Part A (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.U5FslN)
+  PASS: lab-h1 hold fully expired outside the locks
+  PASS: lab-h2 cut off by the 30s budget with its scratch intact
+== scenario 5 (/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR)
+  PASS: Tb's live hold record says expired
+  PASS: H record expired with no expiry mark
+  PASS: H hold gone
+  PASS: Tb gave H its full attempt only because Ta recorded cut-off (full-attempt warning in Tb)
+  PASS: Tc and Td skipped H because Tb recorded too-large
+  PASS: Tc listing excluded the 3000 expired records (no old-* in any warning)

@@ -1,0 +1,7 @@
+ok - fm-teardown: local ordinary-path Unicode checks; normalization-sensitive filesystem: False
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.atDLno/task-data-spellings-local/data/proof-owner/.cleanup-hold until the next completed task
+ok - fm-teardown: pr ordinary-path Unicode checks; normalization-sensitive filesystem: False
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.atDLno/task-data-spellings-pr/data/proof-owner/.cleanup-hold until the next completed task
+ok - fm-teardown: bead ordinary-path Unicode checks; normalization-sensitive filesystem: False
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.atDLno/task-data-spellings-bead/data/proof-owner/.cleanup-hold until the next completed task
+ok - fm-teardown: local, PR and owning-bead links preserve NFC/NFD directories and escaped Markdown through staging, held recovery and expiry

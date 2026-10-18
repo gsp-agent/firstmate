@@ -1,0 +1,59 @@
+== Scenario: a slow expiry of another task's hold runs after locks are released; fm-send is not blocked
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/slow-expire (private tmux dir /tmp/fml.VbuVmz)
+  PASS: teardown reached the other hold's bead read
+  while expiry reads beads: home lease lock held=no, t-slow meta lock held=no
+  PASS: home-wide lease lock is free during expiry
+  PASS: the retiring task's meta lock is free during expiry
+  concurrent fm-send (lease-guarded, FM_SUPERVISION_ACTOR=main) exit 0 in 3s; teardown still expiring=yes
+    | fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/slow-expire
+  PASS: fm-send finished within 3s
+  PASS: fm-send overlapped the expiry (teardown still running)
+  PASS: fm-send recorded the steer
+  $ FM_HOME=<lab> FM_SUPERVISION_ACTOR=main FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=8 bin/fm-teardown.sh t-slow  -> exit 0
+    | teardown t-slow complete (window firstmate:fm-t-slow, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/slow-expire/missing)
+    | warning: task data old-hold expiry stopped after 8s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+    | warning: the 8s task-data expiry budget ran out; holds left for a later teardown: young-hold
+    | warning: t-slow teardown completed, but expiring other tasks' held data needs a retry
+  PASS: teardown exits 0
+  teardown took 21s with an 8s expiry budget
+  FAIL: teardown finished within its 8s budget plus 10s
+  PASS: backlog row closed
+  PASS: unfinished hold keeps its data
+  PASS: unreached hold keeps its data
+  PASS: warning names the hold the budget never reached
+true
+  PASS: slow hold marked cut-off
+  $ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=5 bin/fm-teardown.sh next-four  -> exit 0
+    | teardown next-four complete (window firstmate:fm-next-four, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/slow-expire/missing)
+    | warning: task data retained for recovery: unread references: tst-slow1, tst-slow2, tst-slow3
+    | warning: next-four teardown completed, but expiring other tasks' held data needs a retry
+  PASS: next teardown exits 0
+  PASS: next teardown expired the hold the slow one starved
+  PASS: slow hold with unreadable beads still kept whole
+== Scenario: own stage stops at FM_TEARDOWN_DATA_STAGE_TIMEOUT under its locks, accented 16 MiB report
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/stage-limit (private tmux dir /tmp/fml.N9nhvA)
+  $ FM_HOME=<lab>  bin/fm-teardown.sh tiny  -> exit 0
+    | teardown tiny complete (window firstmate:fm-tiny, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/stage-limit/missing)
+  baseline: a tiny task's teardown took 18s
+  report.md is 16773097 bytes with one precomposed accent; clone/ has 200 unmatched files
+  $ FM_HOME=<lab> /usr/bin/time -l -o /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/stage-limit/slim.time env FM_TEARDOWN_DATA_STAGE_TIMEOUT=2 bin/fm-teardown.sh slim  -> exit 0
+    | teardown slim complete (window firstmate:fm-slim, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/stage-limit/missing)
+    | warning: task data slim retained whole for retry: reference matching passed its 2s stage limit
+  PASS: teardown exits 0
+  teardown with the 16 MiB report took 21s (baseline 18s); largest process peak RSS 87 MiB
+  PASS: backlog row closed (state=done)
+  PASS: nothing staged
+  PASS: all 200 clone files still in place
+  PASS: teardown warning names the task and its 2s stage limit
+true
+  PASS: record retained names the limit
+  PASS: teardown overran the tiny baseline by at most limit+8s
+  PASS: peak RSS of any teardown process at most 1 GiB
+  $ FM_HOME=<lab>  bin/fm-teardown.sh next-three  -> exit 0
+    | teardown next-three complete (window firstmate:fm-next-three, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/stage-limit/missing)
+    | task data slim: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/stage-limit/data/slim/.cleanup-hold until the next completed task
+  PASS: next teardown exits 0
+  PASS: later teardown staged the folder once the report shrank
+true
+  PASS: record stage-limit note cleared
+== failures: 1

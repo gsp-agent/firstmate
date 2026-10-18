@@ -1,0 +1,14 @@
+test_task_data_named_bead_resolution rc=0 173s
+test_task_data_large_kept_evidence rc=0 35s
+test_task_data_oversized_kept_evidence rc=0 54s
+test_task_data_stage_stops_at_its_limit rc=1 28s
+test_task_data_slow_expire_releases_locks rc=0 53s
+test_task_data_expire_skips_expired_receipts rc=0 24s
+test_task_data_expire_cut_off_hold_moves_back rc=0 44s
+test_task_data_expire_too_large_hold_skipped rc=0 28s
+test_task_data_full_attempt_uses_its_own_limit rc=0 8s
+test_task_data_reference_spellings rc=0 3s
+test_task_data_filesystem_name_aliases rc=0 1s
+done
+test_task_data_stage_stops_at_its_limit (rerun at load 25.97 76.71 66.72) rc=1 27s
+test_task_data_stage_stops_at_its_limit (rerun2, load at start 14.78 62.18 62.05) rc=0 27s

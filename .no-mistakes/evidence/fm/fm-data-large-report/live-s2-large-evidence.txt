@@ -1,0 +1,79 @@
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6 (tmux /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/tmux/tmux-501/fm-lab,70325,0)
+== L1: report.md of 1,400,041 bytes, link at the very end
+  out| task data lab-big: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/data/lab-big/.cleanup-hold until the next completed task
+  out| teardown lab-big complete (window firstmate:fm-lab-big, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/missing-lab-big)
+  out| Backlog: lab-big is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6
+  err|         7.50 real         3.09 user         3.34 sys
+  timing: teardown wall 7.5s, peak RSS of any process in the tree 51 MiB, load 47.53 100.29 72.78
+  PASS: teardown exit 0 (rc=0)
+  PASS: backlog row closed (state=done)
+  PASS: no pending backlog close (cleanup_incomplete) left
+  PASS: scratch staged
+  PASS: image linked at the end of the large report kept
+  PASS: report bytes unchanged
+== L1-next: a small task's teardown (baseline timing) expires L1's hold
+  out| teardown lab-small1 complete (window firstmate:fm-lab-small1, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/missing-lab-small1)
+  out| Backlog: lab-small1 is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6
+  err|         7.31 real         3.01 user         3.29 sys
+  timing: teardown wall 7.4s, peak RSS of any process in the tree 51 MiB, load 41.75 97.32 72.04
+  PASS: teardown exit 0 (rc=0)
+  PASS: L1 hold expired
+  PASS: L1 linked image survived expiry
+== L2: near-16 MiB report with one accented letter and 200 unmatched cloned files; stage limit 2s
+  out| teardown lab-huge complete (window firstmate:fm-lab-huge, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/missing-lab-huge)
+  out| Backlog: lab-huge is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6
+  err| warning: task data lab-huge retained whole for retry: reference matching passed its 2s stage limit
+  err|        10.90 real         4.79 user         4.20 sys
+  timing: teardown wall 11.0s, peak RSS of any process in the tree 477 MiB, load 36.26 94.31 71.27
+  PASS: teardown exit 0 (rc=0)
+  PASS: backlog row closed (state=done)
+  PASS: no pending backlog close left
+  PASS: nothing staged
+  PASS: all 200 cloned files still in place
+  PASS: warning names the task and the limit
+true
+  PASS: record's retained field names the limit
+  PASS: peak RSS under 1 GiB on accented 16 MiB text (477 MiB)
+  extra wall time over the small-task baseline: 3.6s (baseline 7.4s)
+== L2-next: report shrinks; the next teardown of a different task stages L2 and clears the note
+  out| teardown lab-small2 complete (window firstmate:fm-lab-small2, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/missing-lab-small2)
+  out| Backlog: lab-small2 is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  out| task data lab-huge: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/data/lab-huge/.cleanup-hold until the next completed task
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6
+  err|        15.50 real         3.75 user         4.99 sys
+  timing: teardown wall 15.7s, peak RSS of any process in the tree 50 MiB, load 35.70 90.52 70.45
+  PASS: teardown exit 0 (rc=0)
+  PASS: L2 scratch staged on retry
+true
+  PASS: stage-limit note cleared
+== L3: kept record/run.log of 16 MiB + 1 byte
+  out| teardown lab-over complete (window firstmate:fm-lab-over, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/missing-lab-over)
+  out| Backlog: lab-over is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6
+  err| warning: task data lab-over retained whole for retry: kept evidence over 16 MiB: record/run.log
+  err|        11.59 real         4.06 user         4.64 sys
+  timing: teardown wall 11.6s, peak RSS of any process in the tree 51 MiB, load 32.54 88.05 69.81
+  PASS: teardown exit 0 (rc=0)
+  PASS: backlog row closed (state=done)
+  PASS: no pending backlog close left
+  PASS: scratch not moved, nothing staged
+  PASS: teardown output names record/run.log
+true
+  PASS: record lists record/run.log as unread
+  PASS: L2 hold expired by this teardown
+== L3-next: log shrinks; next teardown retries and stages L3
+  out| teardown lab-small3 complete (window firstmate:fm-lab-small3, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/missing-lab-small3)
+  out| Backlog: lab-small3 is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  out| task data lab-over: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6/data/lab-over/.cleanup-hold until the next completed task
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.V7tUe6
+  err|         9.59 real         3.12 user         3.51 sys
+  timing: teardown wall 9.6s, peak RSS of any process in the tree 50 MiB, load 28.31 84.41 68.83
+  PASS: teardown exit 0 (rc=0)
+  PASS: L3 scratch staged on retry
+true
+  PASS: L3 unread list cleared
+== external calls the stubs absorbed:
+FAILS=0

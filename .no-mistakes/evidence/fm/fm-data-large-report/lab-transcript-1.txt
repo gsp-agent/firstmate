@@ -1,0 +1,90 @@
+== Scenario: kept report over 1 MiB prepares, closes, stages and expires
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/large-report (private tmux dir /tmp/fml.8N8phx)
+  report.md is 1400041 bytes
+  $ FM_HOME=<lab>  bin/fm-teardown.sh big-report  -> exit 0
+    | task data big-report: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/large-report/data/big-report/.cleanup-hold until the next completed task
+    | teardown big-report complete (window firstmate:fm-big-report, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/large-report/missing)
+  PASS: teardown exits 0
+  PASS: backlog row closed (state=done)
+  PASS: no pending backlog close left
+  PASS: scratch staged into .cleanup-hold
+  PASS: file linked at the end of the large report kept in place
+  PASS: report bytes unchanged
+  $ FM_HOME=<lab>  bin/fm-teardown.sh next-one  -> exit 0
+    | teardown next-one complete (window firstmate:fm-next-one, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/large-report/missing)
+  PASS: next teardown exits 0
+  PASS: next completed task expired the hold
+  PASS: report and linked capture survive expiry
+true
+  PASS: record says expired
+== Scenario: kept evidence over 16 MiB keeps the folder whole, closes, names the file, retried later
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/oversized (private tmux dir /tmp/fml.zRYE7i)
+  $ FM_HOME=<lab>  bin/fm-teardown.sh huge-log  -> exit 0
+    | teardown huge-log complete (window firstmate:fm-huge-log, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/oversized/missing)
+    | warning: task data huge-log retained whole for retry: kept evidence over 16 MiB: record/run.log
+  PASS: teardown exits 0
+  PASS: backlog row closed (state=done)
+  PASS: no pending backlog close left
+  PASS: scratch not moved
+  PASS: nothing staged
+  PASS: teardown output names record/run.log
+true
+  PASS: record: complete=false and unread lists record/run.log
+  record unread: ["record/run.log"]
+  $ FM_HOME=<lab>  bin/fm-teardown.sh next-two  -> exit 0
+    | teardown next-two complete (window firstmate:fm-next-two, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/oversized/missing)
+    | task data huge-log: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/oversized/data/huge-log/.cleanup-hold until the next completed task
+  PASS: next teardown exits 0
+  PASS: later teardown staged the folder once the log shrank
+true
+  PASS: record unread cleared
+== Scenario: 3,000 already-expired records never use up the expiry budget
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/expired-receipts (private tmux dir /tmp/fml.KzgyAm)
+  $ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=5 bin/fm-teardown.sh t-e  -> exit 0
+    | teardown t-e complete (window firstmate:fm-t-e, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/expired-receipts/missing)
+  PASS: teardown exits 0
+  teardown took 48s
+  PASS: the one live hold expired
+  PASS: no budget-exhausted warning
+== Scenario (intent): named beads resolve in the database that owns them; unresolvable id keeps data whole, close completes, retried
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads (private tmux dir /tmp/fml.BvaqsY)
+  real br databases: .agent-config-ikq in <lab>/home/.agent-config, gsp-79a in <lab>/home/dev/gsp-beads
+  $ FM_HOME=<lab> HOME=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/home BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong bin/fm-teardown.sh named-ac  -> exit 0
+    | task data named-ac: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/data/named-ac/.cleanup-hold until the next completed task
+    | teardown named-ac complete (window firstmate:fm-named-ac, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/missing)
+  PASS: .agent-config-ikq: teardown exits 0
+  PASS: .agent-config-ikq: backlog row closed
+  PASS: .agent-config-ikq: no pending close
+  PASS: .agent-config-ikq: bead-linked proof.png kept
+  PASS: .agent-config-ikq: unlinked scratch staged
+  $ FM_HOME=<lab> HOME=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/home BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong bin/fm-teardown.sh named-gsp  -> exit 0
+    | task data named-gsp: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/data/named-gsp/.cleanup-hold until the next completed task
+    | teardown named-gsp complete (window firstmate:fm-named-gsp, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/missing)
+  PASS: gsp-79a: teardown exits 0
+  PASS: gsp-79a: backlog row closed
+  PASS: gsp-79a: no pending close
+  PASS: gsp-79a: bead-linked proof.png kept
+  PASS: gsp-79a: unlinked scratch staged
+  $ FM_HOME=<lab> HOME=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/home BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong bin/fm-teardown.sh named-unread  -> exit 0
+    | teardown named-unread complete (window firstmate:fm-named-unread, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/missing)
+    | warning: task data named-unread retained whole for retry: unread references: nope-zz9
+    | warning: task data retained for recovery: unread references: nope-zz9
+    | warning: named-unread teardown completed, but task-data cleanup needs a retry
+  PASS: nope-zz9: teardown exits 0
+  PASS: nope-zz9: backlog row closed
+  PASS: nope-zz9: no pending close
+  PASS: nope-zz9: bead-linked proof.png kept
+  PASS: nope-zz9: scratch not moved
+  PASS: nope-zz9: nothing staged
+  PASS: nope-zz9: named in teardown output
+true
+  PASS: nope-zz9: record unread names it
+  $ FM_HOME=<lab> HOME=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/home bin/fm-teardown.sh named-next  -> exit 0
+    | teardown named-next complete (window firstmate:fm-named-next, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/missing)
+    | task data named-unread: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.xXfUrk/named-beads/data/named-unread/.cleanup-hold until the next completed task
+  PASS: retry teardown exits 0
+  PASS: nope-zz9 now read from Firstmate's backlog: scratch staged
+  PASS: nope-zz9: proof kept
+true
+  PASS: nope-zz9: unread cleared
+== failures: 0

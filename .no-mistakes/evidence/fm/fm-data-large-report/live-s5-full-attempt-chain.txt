@@ -1,0 +1,48 @@
+######## Part B': one slow hold: cut off, one full attempt, too large, skipped and named, expired by hand
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR (tmux /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR/tmux/tmux-501/fm-lab,61751,0)
+lab dcg config mirrors the operator's hook_timeout_ms = 5000
+real project beads: 200 in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR/projects/proj/.beads
+== Ta: budget 3s cuts H off
+  out| teardown lab-ta complete (window firstmate:fm-lab-ta, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR/missing-lab-ta)
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR
+  err| warning: task data lab-slow expiry stopped after 3s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 5s attempt
+  err| warning: lab-ta teardown completed, but expiring other tasks' held data needs a retry
+  timing: lab-ta teardown 16.0s (budget 3s, full 5s)
+  PASS: Ta exit 0 (rc=0)
+  PASS: warning promises one full 5s attempt
+== Tb: H gets exactly one full 5s attempt (past the 3s budget) and is marked too large
+  out| task data lab-tb: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR/data/lab-tb/.cleanup-hold until the next completed task
+  out| teardown lab-tb complete (window firstmate:fm-lab-tb, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR/missing-lab-tb)
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR
+  err| warning: task data lab-slow expiry stopped after its one full 5s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M561HYK2NJK7SVS9P7S2W9X9/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR/state lab-slow
+  err| warning: lab-tb teardown completed, but expiring other tasks' held data needs a retry
+  timing: lab-tb teardown 20.4s (budget 3s, full 5s)
+  PASS: Tb exit 0 (rc=0)
+  PASS: H marked too-large, scratch held
+  PASS: warning names the one full 5s attempt and the exact by-hand command
+== Tc: 3000 expired records dated 2020 plus Tb's live hold; H is skipped and named without using the budget
+  out| teardown lab-tc complete (window firstmate:fm-lab-tc, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR/missing-lab-tc)
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR
+  err| warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: lab-slow
+  timing: lab-tc teardown 12.4s (budget 20s, full 5s)
+  PASS: Tc exit 0 (rc=0)
+  PASS: H skipped and named as too large
+  PASS: H untouched: still too-large, scratch held
+  PASS: Tb's live hold expired despite 3000 older expired records
+  PASS: no expiry attempt on H in Tc (no stopped warning)
+== Td: H is skipped and named again
+  out| teardown lab-td complete (window firstmate:fm-lab-td, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR/missing-lab-td)
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.lwqbGR
+  err| warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: lab-slow
+  timing: lab-td teardown 8.4s (budget 3s, full 5s)
+  PASS: Td names H again
+== by hand: the advertised command expires H with no time limit under its lock
+  timing: by-hand expiry 11.0s
+  PASS: by-hand exit 0 (rc=0)
+  PASS: held H's task lock while running
+  PASS: lock released after
+  PASS: ran past the 5s full attempt (11.0s)
+  PASS: H expired and its mark cleared
+  PASS: H's kept brief survives
+== external calls the stubs absorbed:
+FAILS=0

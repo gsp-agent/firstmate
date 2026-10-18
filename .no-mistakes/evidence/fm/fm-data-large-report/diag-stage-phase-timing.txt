@@ -1,0 +1,8 @@
+warning: task data task-x1 retained whole for retry: unreadable completed-row source: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-diag.9edvSY/data/backlog.md
+warning: task data task-x1 retained whole for retry: reference matching passed its 2s stage limit
+inventory 0.00s
+local_references read 0.01s (16773096 chars)
+unquote+unescape 0.00s
+retention_paths raised after 2.07s: reference matching passed its 2s stage limit
+prepare wall 0.43s; stage wall 2.2s
+18:43  up 3 days,  4:03, 4 users, load averages: 94.08 116.30 76.43

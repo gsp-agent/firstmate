@@ -1,0 +1,84 @@
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG (tmux /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/tmux/tmux-501/fm-lab,16919,0)
+real beads: .agent-config-fmd and .agent-config-9du in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/home/.agent-config; gsp-nha in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/home/dev/gsp-beads; project db /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/projects/proj/.beads has none of them
+== A: dotted .agent-config id (.agent-config-fmd), with BEADS_DIR/BEADS_DB/BR_DB pointing elsewhere
+  out| task data lab-ac: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/data/lab-ac/.cleanup-hold until the next completed task
+  out| teardown lab-ac complete (window firstmate:fm-lab-ac, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/missing-lab-ac)
+  out| Backlog: lab-ac is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG
+  err| ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  err| ●  WATCHER DOWN - SUPERVISION IS OFF
+  err| ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  err| ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  err| ●  This is a supervision warning only; the guarded operation WILL still run.
+  err| ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  err| ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PASS: teardown exit 0 (rc=0)
+  PASS: backlog row closed (state=done)
+  PASS: no pending backlog close left
+  PASS: task record retired
+  PASS: lab tmux window fm-lab-ac killed
+  PASS: file linked only from the bead stays in place
+  PASS: scratch staged into the recovery hold
+true
+  PASS: record names the bead and nothing unread
+  record: {"complete":true,"expired":false,"sources":[{"beads":[".agent-config-fmd"],"unread":[]}]}
+== B: gsp-beads id (gsp-nha); this teardown also expires A's hold
+  out| task data lab-gsp: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/data/lab-gsp/.cleanup-hold until the next completed task
+  out| teardown lab-gsp complete (window firstmate:fm-lab-gsp, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/missing-lab-gsp)
+  out| Backlog: lab-gsp is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG
+  err| WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  PASS: teardown exit 0 (rc=0)
+  PASS: backlog row closed (state=done)
+  PASS: no pending backlog close left
+  PASS: file linked only from the gsp bead stays in place
+  PASS: scratch staged into the recovery hold
+true
+  PASS: record names the gsp bead and nothing unread
+  PASS: A's hold expired by B's teardown, bead-linked file kept
+true
+  PASS: A's record says expired
+== C: unreadable references: .agent-config-9du while its database is away, and lostid-zz9 that no database has
+  out| teardown lab-unread complete (window firstmate:fm-lab-unread, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/missing-lab-unread)
+  out| Backlog: lab-unread is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG
+  err| WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  err| warning: task data lab-unread retained whole for retry: unread references: .agent-config-9du, lostid-zz9
+  err| warning: task data retained for recovery: unread references: .agent-config-9du, lostid-zz9
+  err| warning: lab-unread teardown completed, but task-data cleanup needs a retry
+  PASS: teardown exit 0 (rc=0)
+  PASS: backlog row closed (state=done)
+  PASS: no pending backlog close left
+  PASS: task record retired
+  PASS: folder kept whole: scratch not moved
+  PASS: folder kept whole: nothing staged
+  PASS: teardown output names .agent-config-9du
+  PASS: teardown output names lostid-zz9
+true
+  PASS: record lists both unread and stays incomplete
+  record: {"complete":false,"sources":[{"beads":[".agent-config-9du","lostid-zz9"],"unread":[".agent-config-9du","lostid-zz9"]}]}
+== D: next teardown retries C with the .agent-config database back; lostid-zz9 still unread
+  out| teardown lab-next1 complete (window firstmate:fm-lab-next1, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/missing-lab-next1)
+  out| Backlog: lab-next1 is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG
+  err| WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  err| warning: task data retained for recovery: unread references: lostid-zz9
+  err| warning: lab-next1 teardown completed, but expiring other tasks' held data needs a retry
+  PASS: teardown exit 0 (rc=0)
+true
+  PASS: retry read .agent-config-9du; only lostid-zz9 stays unread
+  PASS: C still whole while one reference is unread
+  PASS: retry warning names lostid-zz9 again
+== E: lostid-zz9 now exists as a row in Firstmate's backlog; the next teardown stages C
+  out| teardown lab-next2 complete (window firstmate:fm-lab-next2, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/missing-lab-next2)
+  out| Backlog: lab-next2 is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  out| task data lab-unread: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG/data/lab-unread/.cleanup-hold until the next completed task
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Nq6BXG
+  err| WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  PASS: teardown exit 0 (rc=0)
+true
+  PASS: C has no unread references left
+  PASS: C's scratch staged on the retry
+  PASS: C's bead-linked file kept
+== external calls the stubs absorbed:
+FAILS=0

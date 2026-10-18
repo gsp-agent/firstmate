@@ -1,0 +1,103 @@
+== Scenario: kept report over 1 MiB prepares, closes, stages and expires
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/large-report (private tmux dir /tmp/fml.3awuYk)
+  report.md is 1400041 bytes
+  $ FM_HOME=<lab>  bin/fm-teardown.sh big-report  -> exit 1
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/large-report/data
+    | error: big-report's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for big-report); the pending close is recorded and the next session start retries it
+  FAIL: teardown exits 0
+  FAIL: backlog row closed (state=in_flight)
+  FAIL: no pending backlog close left
+  FAIL: scratch staged into .cleanup-hold
+  PASS: file linked at the end of the large report kept in place
+  PASS: report bytes unchanged
+  $ FM_HOME=<lab>  bin/fm-teardown.sh next-one  -> exit 0
+    | teardown next-one complete (window firstmate:fm-next-one, worktree /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/large-report/missing)
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/large-report/data
+    | warning: next-one teardown completed, but task-data cleanup needs a retry
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/large-report/data
+    | warning: next-one teardown completed, but expiring other tasks' held data needs a retry
+  PASS: next teardown exits 0
+  PASS: next completed task expired the hold
+  PASS: report and linked capture survive expiry
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/large-report/data/big-report/record/data-cleanup.json: No such file or directory
+  FAIL: record says expired
+== Scenario: kept evidence over 16 MiB keeps the folder whole, closes, names the file, retried later
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/oversized (private tmux dir /tmp/fml.6m3fQ4)
+  $ FM_HOME=<lab>  bin/fm-teardown.sh huge-log  -> exit 1
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/oversized/data
+    | error: huge-log's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for huge-log); the pending close is recorded and the next session start retries it
+  FAIL: teardown exits 0
+  FAIL: backlog row closed (state=in_flight)
+  FAIL: no pending backlog close left
+  PASS: scratch not moved
+  PASS: nothing staged
+  FAIL: teardown output names record/run.log
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/oversized/data/huge-log/record/data-cleanup.json: No such file or directory
+  FAIL: record: complete=false and unread lists record/run.log
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/oversized/data/huge-log/record/data-cleanup.json: No such file or directory
+  record unread: 
+  $ FM_HOME=<lab>  bin/fm-teardown.sh next-two  -> exit 0
+    | teardown next-two complete (window firstmate:fm-next-two, worktree /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/oversized/missing)
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/oversized/data
+    | warning: next-two teardown completed, but task-data cleanup needs a retry
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/oversized/data
+    | warning: next-two teardown completed, but expiring other tasks' held data needs a retry
+  PASS: next teardown exits 0
+  FAIL: later teardown staged the folder once the log shrank
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/oversized/data/huge-log/record/data-cleanup.json: No such file or directory
+  FAIL: record unread cleared
+== Scenario: 3,000 already-expired records never use up the expiry budget
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/expired-receipts (private tmux dir /tmp/fml.rDZuNr)
+  $ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=5 bin/fm-teardown.sh t-e  -> exit 0
+    | teardown t-e complete (window firstmate:fm-t-e, worktree /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/expired-receipts/missing)
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/expired-receipts/data
+    | warning: t-e teardown completed, but task-data cleanup needs a retry
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/expired-receipts/data
+    | warning: t-e teardown completed, but expiring other tasks' held data needs a retry
+  PASS: teardown exits 0
+  teardown took 10s
+  FAIL: the one live hold expired
+  PASS: no budget-exhausted warning
+== Scenario (intent): named beads resolve in the database that owns them; unresolvable id keeps data whole, close completes, retried
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/named-beads (private tmux dir /tmp/fml.hg7pVl)
+  real br databases: .agent-config-ypg in <lab>/home/.agent-config, gsp-6ew in <lab>/home/dev/gsp-beads
+  $ FM_HOME=<lab> HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/named-beads/home BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong bin/fm-teardown.sh named-ac  -> exit 1
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/named-beads/data
+    | error: named-ac's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for named-ac); the pending close is recorded and the next session start retries it
+  FAIL: .agent-config-ypg: teardown exits 0
+  FAIL: .agent-config-ypg: backlog row closed
+  FAIL: .agent-config-ypg: no pending close
+  PASS: .agent-config-ypg: bead-linked proof.png kept
+  FAIL: .agent-config-ypg: unlinked scratch staged
+  $ FM_HOME=<lab> HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/named-beads/home BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong bin/fm-teardown.sh named-gsp  -> exit 1
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/named-beads/data
+    | error: named-gsp's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for named-gsp); the pending close is recorded and the next session start retries it
+  FAIL: gsp-6ew: teardown exits 0
+  FAIL: gsp-6ew: backlog row closed
+  FAIL: gsp-6ew: no pending close
+  PASS: gsp-6ew: bead-linked proof.png kept
+  FAIL: gsp-6ew: unlinked scratch staged
+  $ FM_HOME=<lab> HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/named-beads/home BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong bin/fm-teardown.sh named-unread  -> exit 1
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/named-beads/data
+    | error: named-unread's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for named-unread); the pending close is recorded and the next session start retries it
+  FAIL: nope-zz9: teardown exits 0
+  FAIL: nope-zz9: backlog row closed
+  FAIL: nope-zz9: no pending close
+  PASS: nope-zz9: bead-linked proof.png kept
+  PASS: nope-zz9: scratch not moved
+  PASS: nope-zz9: nothing staged
+  FAIL: nope-zz9: named in teardown output
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/named-beads/data/named-unread/record/data-cleanup.json: No such file or directory
+  FAIL: nope-zz9: record unread names it
+  $ FM_HOME=<lab> HOME=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/named-beads/home bin/fm-teardown.sh named-next  -> exit 0
+    | teardown named-next complete (window firstmate:fm-named-next, worktree /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/named-beads/missing)
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/named-beads/data
+    | warning: named-next teardown completed, but task-data cleanup needs a retry
+    | warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.OqRwWn/named-beads/data
+    | warning: named-next teardown completed, but expiring other tasks' held data needs a retry
+  PASS: retry teardown exits 0
+  FAIL: nope-zz9 now read from Firstmate's backlog: scratch staged
+  PASS: nope-zz9: proof kept
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-drive.OqRwWn/named-beads/data/named-unread/record/data-cleanup.json: No such file or directory
+  FAIL: nope-zz9: unread cleared
+== failures: 28

@@ -1,0 +1,82 @@
+== Scenario: a slow expiry of another task's hold runs after locks are released; fm-send is not blocked
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/slow-expire (private tmux dir /tmp/fml.lRufRt)
+  PASS: teardown reached the other hold's bead read
+  while expiry reads beads: home lease lock held=no, t-slow meta lock held=no
+  PASS: home-wide lease lock is free during expiry
+  PASS: the retiring task's meta lock is free during expiry
+  concurrent fm-send (lease-guarded, FM_SUPERVISION_ACTOR=main) exit 0 in 3s; teardown still expiring=yes
+    | fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/slow-expire
+  PASS: fm-send finished within 3s
+  PASS: fm-send overlapped the expiry (teardown still running)
+  PASS: fm-send recorded the steer
+  $ FM_HOME=<lab> FM_SUPERVISION_ACTOR=main FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=8 bin/fm-teardown.sh t-slow  -> exit 0
+    | teardown t-slow complete (window firstmate:fm-t-slow, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/slow-expire/missing)
+    | warning: task data old-hold expiry stopped after 8s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+    | warning: the 8s task-data expiry budget ran out; holds left for a later teardown: young-hold
+    | warning: t-slow teardown completed, but expiring other tasks' held data needs a retry
+  PASS: teardown exits 0
+  teardown took 22s in all; 8s from the first bead read of the expiry to exit, with an 8s expiry budget
+  PASS: teardown exited within the 8s expiry budget plus 4s after expiry began
+  PASS: backlog row closed
+  PASS: unfinished hold keeps its data
+  PASS: unreached hold keeps its data
+  PASS: warning names the hold the budget never reached
+true
+  PASS: slow hold marked cut-off
+  $ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=5 bin/fm-teardown.sh next-four  -> exit 0
+    | teardown next-four complete (window firstmate:fm-next-four, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/slow-expire/missing)
+    | warning: task data retained for recovery: unread references: tst-slow1, tst-slow2, tst-slow3
+    | warning: next-four teardown completed, but expiring other tasks' held data needs a retry
+  PASS: next teardown exits 0
+  PASS: next teardown expired the hold the slow one starved
+  PASS: slow hold with unreadable beads still kept whole
+== Scenario: a genuinely large hold: budget cut-off, one full attempt, too-large skip, expiry by hand under its lock
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large (private tmux dir /tmp/fml.GODWtR)
+  $ FM_HOME=<lab> FM_TEARDOWN_DATA_STAGE_TIMEOUT=300 bin/fm-teardown.sh giant  -> exit 0
+    | task data giant: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large/data/giant/.cleanup-hold until the next completed task
+    | teardown giant complete (window firstmate:fm-giant, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large/missing)
+  PASS: staging teardown exits 0
+  PASS: 40,000 scratch files staged (hold has 40000)
+  $ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 bin/fm-teardown.sh t-a  -> exit 0
+    | teardown t-a complete (window firstmate:fm-t-a, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large/missing)
+    | warning: task data giant expiry stopped after 2s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 4s attempt
+    | warning: t-a teardown completed, but expiring other tasks' held data needs a retry
+  PASS: teardown A exits 0
+  hold files after the 2s budget attempt: 40000
+  PASS: A: warning says one full 4s attempt comes next
+true
+  PASS: A: record marked cut-off
+  PASS: A: hold still present
+  $ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 bin/fm-teardown.sh t-b  -> exit 0
+    | teardown t-b complete (window firstmate:fm-t-b, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large/missing)
+    | warning: task data giant expiry stopped after its one full 4s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M561HYK2NJK7SVS9P7S2W9X9/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large/state giant
+    | warning: t-b teardown completed, but expiring other tasks' held data needs a retry
+  PASS: teardown B exits 0
+  teardown B took 19s; hold files after the full 4s attempt: 40000
+  PASS: B: warning names the one full 4s attempt
+  PASS: B: warning says later teardowns skip it
+true
+  PASS: B: record marked too-large
+  $ FM_HOME=<lab> FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 bin/fm-teardown.sh t-c  -> exit 0
+    | teardown t-c complete (window firstmate:fm-t-c, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large/missing)
+    | warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: giant
+  PASS: teardown C exits 0
+  teardown C took 12s
+  PASS: C: warning names the skipped hold
+  PASS: C: hold untouched (40000 -> 40000 files)
+true
+  PASS: C: still marked too-large
+  advertised by-hand command: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M561HYK2NJK7SVS9P7S2W9X9/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-drive.AzoGoG/too-large/state giant
+  by hand while live pid 59713 holds the task lock -> exit 1: error: task giant is locked by another process; nothing was expired, retry later
+  PASS: by hand refuses a held task lock
+  PASS: nothing expired while locked (40000 -> 40000)
+  by hand while the task is live -> exit 1: error: task giant is live; nothing was expired
+  PASS: by hand refuses a live task
+  by hand, lock free -> exit 0 in 124s
+  PASS: by hand succeeds
+  PASS: hold expired
+true
+  PASS: record expired with no mark
+  PASS: task lock released
+  PASS: report kept
+== failures: 0

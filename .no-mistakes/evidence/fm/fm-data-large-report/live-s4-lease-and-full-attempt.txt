@@ -1,0 +1,86 @@
+######## Part A: lease lock engaged (FM_SUPERVISION_ACTOR=main)
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.U5FslN (tmux /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.U5FslN/tmux/tmux-501/fm-lab,33504,0)
+real project beads: 150 in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.U5FslN/projects/proj/.beads
+  idle fm-send baseline: rc=0 in 9.2s
+== control: fm-send waits while another process holds the lease lock
+  control fm-send still waiting after 20s: yes; finished rc=0 after 22.6s once the lock was released
+  PASS: control: fm-send blocks on a held lease lock
+== T1: teardown (actor main, budget 30s) expires two 150-bead holds after releasing its locks; fm-send runs meanwhile
+  PASS: teardown reached expiry of another task's hold
+  at expiry start (+9.2s): lease lock present: no; lab-t1 meta lock present: no; lab-t1 record present: no; row: done
+  PASS: home-wide lease lock not held during expiry
+  PASS: task meta lock not held during expiry
+  fm-send during expiry: rc=0 in 5.6s (idle baseline 9.2s); teardown still expiring when it returned: yes
+  PASS: fm-send during expiry succeeded
+  PASS: teardown was still expiring when fm-send returned (no wait on teardown)
+  PASS: fm-send during expiry within baseline + 5s
+  out| teardown lab-t1 complete (window firstmate:fm-lab-t1, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.U5FslN/missing-lab-t1)
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.U5FslN
+  err| warning: task data lab-h2 expiry stopped after 4s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 60s attempt
+  err| warning: lab-t1 teardown completed, but expiring other tasks' held data needs a retry
+  timing: T1 teardown 38.9s
+  PASS: T1 exit 0 (rc=0)
+  lab-h1 after T1: {"expired":true,"expiry":null}; hold present: no
+  lab-h2 after T1: {"expired":false,"expiry":"cut-off"}; hold present: yes
+  PASS: both lab tmux deliveries recorded (pane or inbox)
+######## Part B: one full attempt, then too large, skipped, by hand
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW (tmux /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW/tmux/tmux-501/fm-lab,15465,0)
+real project beads: 150 in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW/projects/proj/.beads
+== Ta: budget 4s: H (least recently tried) is cut off; F is left and named
+  out| teardown lab-ta complete (window firstmate:fm-lab-ta, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW/missing-lab-ta)
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW
+  err| warning: task data lab-slow expiry stopped after 4s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 6s attempt
+  err| warning: the 4s task-data expiry budget ran out; holds left for a later teardown: lab-fast
+  err| warning: lab-ta teardown completed, but expiring other tasks' held data needs a retry
+  timing: Ta teardown 22.8s
+  PASS: Ta exit 0 (rc=0)
+true
+  PASS: H marked cut-off, hold intact
+  PASS: H scratch still held
+  PASS: cut-off warning promises one full 6s attempt
+  PASS: F named as left for a later teardown
+== Tb: F (now least recently tried) expires; H gets exactly one full 6s attempt and is marked too large
+  out| task data lab-tb: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW/data/lab-tb/.cleanup-hold until the next completed task
+  out| teardown lab-tb complete (window firstmate:fm-lab-tb, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW/missing-lab-tb)
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW
+  err| warning: task data lab-fast expiry stopped after 4s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 6s attempt
+  err| warning: the 4s task-data expiry budget ran out; holds left for a later teardown: lab-slow
+  err| warning: lab-tb teardown completed, but expiring other tasks' held data needs a retry
+  timing: Tb teardown 21.2s
+  PASS: Tb exit 0 (rc=0)
+  FAIL: F expired first
+  PASS: H marked too-large, scratch still held
+  FAIL: too-large warning names the full 6s attempt and the by-hand command for this home
+== Tc: 3000 expired records dated 2020 plus G's live hold; H skipped and named without using budget
+  out| teardown lab-tc complete (window firstmate:fm-lab-tc, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW/missing-lab-tc)
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW
+  err| warning: task data lab-slow expiry stopped after its one full 6s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M561HYK2NJK7SVS9P7S2W9X9/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW/state lab-slow
+  err| warning: the 4s task-data expiry budget ran out; holds left for a later teardown: lab-tb lab-fast
+  err| warning: lab-tc teardown completed, but expiring other tasks' held data needs a retry
+  timing: Tc teardown 30.1s
+  PASS: Tc exit 0 (rc=0)
+  FAIL: G's live hold expired despite 3000 older expired records
+  FAIL: H skipped and named as too large
+  PASS: H untouched: still too-large, scratch held
+  FAIL: no budget-ran-out warning
+== by hand: refused while another process holds H's task lock
+  err| error: task lab-slow is locked by another process; nothing was expired, retry later
+  PASS: refused, exit 1 (rc=1)
+  PASS: says locked by another process
+  PASS: nothing expired
+== by hand: refused for a live task
+  err| error: task lab-live is live; nothing was expired
+  PASS: refused, exit 1 (rc=1)
+  PASS: says the task is live
+  PASS: live task's lock released
+== by hand: expires H with no time limit under its lock
+  err| warning: task data retained for recovery: dcg refused cleanup: {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by dcg\n\nTip: dcg explain \"rm -f -- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wQVzJW/data/lab-slow/.cleanup-hold/scratch.bin\"\n\nReason: dcg could not finish evaluating this command within 200ms (spent 226ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging.\n\nExplanation: dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n             \n             Ways through, in order of preference:\n             - Split the command into smaller commands and run them separately.\n             - Approve this one command with the allow-once code below.\n             - Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.\n\nRule: core.limits:evaluation-timeout\n\nIf this is a false positive: dcg allow-once 28213\n\nIf this operation is truly needed, ask the user for explicit permission and have them run the command manually.","allowOnceCode":"28213","allowOnceFullHash":"e99f7798e036ef3d93ca0487425e2bca66250d70371d9831b228908cd610d875","ruleId":"core.limits:evaluation-timeout","packId":"core.limits","remediation":{"safeAlternative":"Use 'git clean -n' first to preview what would be deleted.","explanation":"dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\n\nWays through, in order of preference:\n- Split the command into smaller commands and run them separately.\n- Approve this one command with the allow-once code below.\n- Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.","allowOnceCommand":"dcg allow-once 28213"}}}
+  timing: by-hand expiry 21.9s
+  FAIL: by-hand exit 0 (rc=1)
+  PASS: held H's task lock while running
+  PASS: lock released after
+  PASS: ran past the 6s full attempt (21.9s)
+  FAIL: H expired and its mark cleared
+  PASS: H's kept brief survives
+== external calls the stubs absorbed:
+FAILS=7

@@ -1,0 +1,87 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D
+real beads: .agent-config-8hb (agent-config db), gsp-6wa (gsp-beads db)
+=== Scenario: dotted .agent-config bead resolves in ~/.agent-config and the close completes
+--- teardown a1 rc=1 13.4s
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D
+  err| warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.EkLJ7D/data
+  err| error: a1's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for a1); the pending close is recorded and the next session start retries it
+FAIL: a1 teardown exits 0
+FAIL: a1 backlog row is done
+FAIL: a1 has no pending backlog close
+PASS: a1 bead-linked proof.png kept in place
+FAIL: a1 scratch staged into .cleanup-hold
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a1/record/data-cleanup.json: No such file or directory
+FAIL: a1 record: complete, bead listed, nothing unread
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a1/record/data-cleanup.json: No such file or directory
+  record a1: 
+=== Scenario: gsp-* bead resolves in ~/dev/gsp-beads; next teardown expires a1's hold
+--- teardown a2 rc=1 10.4s
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D
+  err| warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.EkLJ7D/data
+  err| error: a2's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for a2); the pending close is recorded and the next session start retries it
+FAIL: a2 teardown exits 0
+FAIL: a2 backlog row is done
+FAIL: a2 has no pending backlog close
+PASS: a2 bead-linked proof.png kept
+FAIL: a2 scratch staged
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a2/record/data-cleanup.json: No such file or directory
+FAIL: a2 record: complete, nothing unread
+PASS: a1 hold expired by a2's teardown
+PASS: a1 linked proof.png still kept after expiry
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a1/record/data-cleanup.json: No such file or directory
+FAIL: a1 record marked expired
+=== Scenario (adversarial): unresolvable bead keeps data whole, close completes, id named, retried later
+--- teardown a3 rc=1 9.4s
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D
+  err| warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.EkLJ7D/data
+  err| error: a3's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for a3); the pending close is recorded and the next session start retries it
+FAIL: a3 teardown exits 0
+FAIL: a3 backlog row is done
+FAIL: a3 has no pending backlog close
+FAIL: a3 meta retired
+PASS: a3 scratch NOT moved (data whole)
+PASS: a3 nothing staged
+FAIL: a3 teardown output names proof-nothere
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a3/record/data-cleanup.json: No such file or directory
+FAIL: a3 record: incomplete, unread == [proof-nothere]
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a3/record/data-cleanup.json: No such file or directory
+  record a3: 
+  (making proof-nothere readable through Firstmate's backlog fallback)
+=== Scenario: kept report over 1 MiB prepares, closes, stages; a3 retried by this teardown
+  report.md bytes: 1400041
+--- teardown a4 rc=1 11.6s
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D
+  err| warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.EkLJ7D/data
+  err| error: a4's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for a4); the pending close is recorded and the next session start retries it
+FAIL: a4 teardown exits 0
+FAIL: a4 backlog row is done
+FAIL: a4 has no pending backlog close
+PASS: a4 report.md intact
+PASS: a4 file linked at end of report kept
+FAIL: a4 scratch staged
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a4/record/data-cleanup.json: No such file or directory
+FAIL: a4 record complete with no cleanup error
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a3/record/data-cleanup.json: No such file or directory
+FAIL: a3 retry: unread cleared
+FAIL: a3 retry: scratch now staged
+PASS: a3 retry: backlog-linked proof.png kept
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a3/record/data-cleanup.json: No such file or directory
+  record a3 after retry: 
+=== Scenario (boundary): kept report over 16 MiB is an unread reference; folder whole, close completes
+--- teardown a5 rc=1 9.8s
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D
+  err| warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.EkLJ7D/data
+  err| error: a5's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for a5); the pending close is recorded and the next session start retries it
+FAIL: a5 teardown exits 0
+FAIL: a5 backlog row is done
+FAIL: a5 has no pending backlog close
+PASS: a5 scratch NOT moved
+PASS: a5 nothing staged
+FAIL: a5 teardown output names report.md
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a5/record/data-cleanup.json: No such file or directory
+FAIL: a5 record unread lists report.md
+PASS: a4 hold expired on the next teardown
+PASS: a4 linked capture.png and report kept after expiry
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.EkLJ7D/data/a5/record/data-cleanup.json: No such file or directory
+  record a5: 
+RESULT part=beads passes=13 fails=29

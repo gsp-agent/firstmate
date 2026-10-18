@@ -1,0 +1,6 @@
+ok - fm-teardown: agent-config named bead resolves safely and backlog closes
+ok - fm-teardown: gsp named bead resolves safely and backlog closes
+ok - fm-teardown: project named bead resolves safely and backlog closes
+ok - fm-teardown: fallback named bead resolves safely and backlog closes
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.9kbUm0/task-data-named-unread/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: unread named bead resolves safely and backlog closes

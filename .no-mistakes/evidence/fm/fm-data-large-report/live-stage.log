@@ -1,0 +1,36 @@
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.E87Iwt
+=== Scenario: a retiring task's stage stops at its limit under the locks; nothing moves, close completes
+--- teardown b1 rc=0 20.0s
+  out| teardown b1 complete (window firstmate:fm-b1, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.E87Iwt/missing)
+  out| Backlog: b1 is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.E87Iwt/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.E87Iwt
+  err| warning: task data b1 retained whole for retry: reference matching passed its 2s stage limit
+PASS: b1 teardown exits 0
+PASS: b1 backlog row is done
+PASS: b1 has no pending backlog close
+PASS: b1 all 200 unmatched files still in place
+PASS: b1 nothing staged
+PASS: b1 warning names the task and the 2s limit
+PASS: b1 record retained names the limit
+PASS: b1 lease and meta locks released at exit
+  record b1: {"complete":false,"retained":"reference matching passed its 2s stage limit"}
+=== Scenario: accented kept text stays within the limit and bounded memory (product CLI under /usr/bin/time)
+  stage rc=0
+  err| warning: task data b2 retained whole for retry: reference matching passed its 2s stage limit
+  err|         2.16 real         1.15 user         0.31 sys
+  err|            357318656  maximum resident set size
+PASS: b2 accented stage retained whole at its 2s limit
+PASS: b2 stage wall time within limit + 8s (2.16s)
+PASS: b2 peak RSS under 700 MB (was ~1.4 GB before) (340 MB)
+PASS: b2 nothing moved
+=== Scenario: once the report shrinks, a later teardown of a different task stages b1 and clears the note
+--- teardown b3 rc=0 25.5s
+  out| teardown b3 complete (window firstmate:fm-b3, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.E87Iwt/missing)
+  out| Backlog: b3 is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.E87Iwt/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+  out| task data b1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.E87Iwt/data/b1/.cleanup-hold until the next completed task
+  err| fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.E87Iwt
+PASS: b3 teardown exits 0
+PASS: b1 scratch now staged by the later teardown
+PASS: b1 retained note cleared
+  record b1: {"complete":true,"retained":null}
+RESULT part=stage passes=15 fails=0
