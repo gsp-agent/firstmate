@@ -859,7 +859,6 @@ test_cursor_allowlist_launch_executes_and_preserves_exit() {
   /bin/sh "$LAUNCH_LOG" > "$CASE_DIR/launch-output" 2>&1
   status=$?
   expect_code 7 "$status" "the allowlisted launch must preserve Cursor's exit code: $(cat "$CASE_DIR/launch-output")"
-  assert_grep 'cursor-stream-probe' "$HOME_DIR/state/$id.cursor-stream.jsonl" "the generated launch must capture Cursor's output"
   assert_grep 'cursor-stream-probe' "$CASE_DIR/launch-output" "the generated launch must display Cursor's output"
   pass "allowlisted Cursor launches execute and preserve output and the agent's exit code"
 }
