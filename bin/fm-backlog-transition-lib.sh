@@ -845,7 +845,7 @@ fm_backlog_dispatch_rollback() {
 fm_backlog_close_transition() {
   local meta=$1 marker=$2 data=$3 id=$4 state=$5
   shift 5
-  [ -z "$meta" ] || fm_backlog_record_remove "$meta" "task record" "$state" || return 1
+  [ -z "$meta" ] || fm_backlog_retire_task_record "$meta" "$data" "$id" "$state" "$@" || return 1
   fm_backlog_done "$data" "$id" "$@" || return 1
   fm_backlog_record_remove "$marker" "pending-close record" "$state"
 }
@@ -855,9 +855,31 @@ fm_backlog_close_transition() {
 fm_backlog_retain_transition() {
   local meta=$1 marker=$2 data=$3 id=$4 state=$5
   shift 5
-  [ -z "$meta" ] || fm_backlog_record_remove "$meta" "task record" "$state" || return 1
+  [ -z "$meta" ] || fm_backlog_retire_task_record "$meta" "$data" "$id" "$state" "$@" || return 1
   fm_backlog_retain "$data" "$id" "$@" || return 1
   fm_backlog_record_remove "$marker" "pending-close record" "$state"
+}
+
+fm_backlog_retire_task_record() {
+  local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0
+  shift 4
+  if [ "${1:-}" = --pr ]; then pr=${2:-}; fi
+  if [ -e "$meta" ] || [ -L "$meta" ]; then
+    fm_backlog_record_present "$meta" "task record" "$state" || return 1
+    [ "$meta" = "$state/$id.meta" ] || return 1
+    kind=$(sed -n 's/^kind=//p' "$meta" | tail -1)
+    prepare=1
+  elif [ -n "$pr" ] && { [ -e "$data/$id/record/data-cleanup.json" ] || [ -L "$data/$id/record/data-cleanup.json" ]; }; then
+    prepare=1
+  fi
+  if [ "$prepare" = 1 ] && [ "$kind" != secondmate ] && { [ -e "$data/$id" ] || [ -L "$data/$id" ]; }; then
+    helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
+    if ! python3 "$helper" prepare "$data" "$state" "$id" "$pr"; then
+      FM_BACKLOG_TRANSITION_ERROR="task-data cleanup could not be recorded for $id"
+      return 1
+    fi
+  fi
+  fm_backlog_record_remove "$meta" "task record" "$state"
 }
 
 fm_backlog_atomic_transition() {
@@ -870,6 +892,7 @@ fm_backlog_atomic_transition() {
     rollback) fm_backlog_dispatch_rollback "$@" ;;
     close) fm_backlog_close_transition "$@" ;;
     retain) fm_backlog_retain_transition "$@" ;;
+    retire) fm_backlog_retire_task_record "$@" ;;
     *) FM_BACKLOG_TRANSITION_ERROR="unknown backlog atomic transition $operation"; return 2 ;;
   esac
 }
@@ -1171,9 +1194,9 @@ fm_backlog_close_marker_replay() {  # <state-dir> <marker-path> <authorized-data
       "$marker_spawn_gen" "${mode_flags[@]+"${mode_flags[@]}"}" "${args[@]+"${args[@]}"}" \
       || return 1
     cleanup_incomplete=1
-    fm_backlog_atomic_transition remove "$meta" "the interrupted task record" "$state" \
-      || return 1
   fi
+  fm_backlog_atomic_transition retire "$meta" "$data" "$id" "$state" "${args[@]+"${args[@]}"}" \
+    || return 1
   if fm_backlog_row_probe "$data" "$id"; then
     row_state=$FM_BACKLOG_ROW_STATE
     if [ "${row_state%% *}" != "done" ] && [ "$FM_BACKLOG_ROW_HOLD_KIND" = captain ]; then

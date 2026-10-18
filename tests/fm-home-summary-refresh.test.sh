@@ -162,6 +162,62 @@ cmp -s "$TMP_ROOT/published-normalized.json" "$TMP_ROOT/fresh-normalized.json" \
   || fail "the status-triggered ledger differed from the real fresh producer"
 pass "watcher-carried status append publishes the real home summary"
 
+
+MANY_HOME="$TMP_ROOT/many-task-home"
+mkdir -p "$MANY_HOME/state" "$MANY_HOME/data" "$MANY_HOME/config"
+printf '## In flight\n' > "$MANY_HOME/data/backlog.md"
+i=1
+while [ "$i" -le 64 ]; do
+  id=$(printf 'task-%02d' "$i")
+  printf -- '- [ ] %s - Many task fixture (repo: firstmate) (kind: ship)\n' "$id" \
+    >> "$MANY_HOME/data/backlog.md"
+  fm_write_meta "$MANY_HOME/state/$id.meta" \
+    'kind=scout' 'kind=ship' 'harness=codex' 'remote_host=example.invalid' \
+    'remote_root=/remote home' 'remote_backend=herdr' "remote_target=remote:$id" \
+    'project=firstmate' 'mode=direct-PR' 'spawn_gen=many-generation'
+  : > "$MANY_HOME/state/$id.status"
+  j=1
+  while [ "$j" -le 20 ]; do
+    printf 'needs-decision [key=history]: prior gate\nresolved [key=history]: settled\n' \
+      >> "$MANY_HOME/state/$id.status"
+    j=$((j + 1))
+  done
+  printf 'needs-decision [key=closed]: old choice\nresolved [key=closed]: settled\nblocked [key=dependency]: wait for "fixture" \\ input\n' \
+    >> "$MANY_HOME/state/$id.status"
+  i=$((i + 1))
+done
+printf '\n## Queued\n\n## Done\n' >> "$MANY_HOME/data/backlog.md"
+PATH="$FAKEBIN:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$MANY_HOME" \
+  FM_SNAPSHOT_LOCAL_READ_CONCURRENCY=08 \
+  FM_SNAPSHOT_NOW="$NOW_ONE" FM_SNAPSHOT_NOW_EPOCH="$EPOCH_ONE" \
+  "$SNAPSHOT" --secondmate-home-summary > "$TMP_ROOT/many-summary.json" \
+  || fail "many-task home summary failed"
+jq -n --arg home "$MANY_HOME" --arg now "$NOW_ONE" --argjson epoch "$EPOCH_ONE" '
+  [range(1;65) | "task-" + (if . < 10 then "0" else "" end) + tostring] as $ids
+  | {
+      schema:"fm-secondmate-home-summary.v1",
+      hold_classifier_schema:"fm-captain-hold-buckets.v1",
+      contributions:{known:0,checked:0,counts:{captain:0,fleet:0,maintainer:0,nobody:0},
+        unmeasured:0,complete:true,proven_clear:true,stale_verdicts:0,missing_verdicts:0,
+        unreadable_records:0,valid_until:900,captain:[],captain_omitted:0},
+      generated:$now,generated_epoch:$epoch,home:$home,valid:false,
+      reason:("child current state unavailable: " + ($ids | join(", "))),
+      invalidity:{kind:"child_current_unavailable",ids:$ids},state:"unknown",
+      active_children:[],
+      decisions_open:[$ids[:20][] | {id:.,key:"dependency",verb:"blocked",
+        summary:"wait for \"fixture\" \\ input",reason:null,source:"status"}],
+      holds:[],queued:[],landed:[],
+      endpoints:[$ids[:20][] | {id:.,state:"unknown",source:"none",
+        endpoint:{target:("remote:" + .),exists:null,agent_alive:"unknown",status:"unknown",
+          observed_at:$now,freshness:"fresh"}}],
+      counts:{active_children:0,decisions_open:64,holds:0,queued:0,landed:0,endpoints:64},
+      omitted:[{surface:"decisions_open",count:44},{surface:"endpoints",count:44}]
+    }
+' > "$TMP_ROOT/many-expected.json"
+diff -u "$TMP_ROOT/many-expected.json" "$TMP_ROOT/many-summary.json" \
+  || fail "many-task summary changed its complete document"
+pass "many-task summary preserves bounded output, duplicate metadata, and keyed status text"
+
 # A structured in-flight inventory above Linux MAX_ARG_STRLEN must remain
 # publishable through every fleet snapshot mode and the real home-summary writer.
 mkdir -p "$LARGE_HOME/state" "$LARGE_HOME/data" "$LARGE_HOME/config" \

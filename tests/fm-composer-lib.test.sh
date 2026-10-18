@@ -1011,6 +1011,56 @@ test_selected_content_is_composer_scoped_and_wrap_normalized() {
   pass "fm_composer_extract_selected_content: scopes user content and excludes furniture"
 }
 
+# Verbatim composer-and-popup rows from Claude Code 2.1.302 on Herdr 0.9.1.
+# The selected menu item uses the same glyph as the composer above its rule.
+test_claude_slash_popup_extracts_only_the_composer() {
+  local name screen expected out
+  for name in exit-popup slash-popup; do
+    screen=$(cat "$ROOT/tests/captures/claude-code-2.1.302/$name.ansi")
+    case "$name" in exit-popup) expected=/exit ;; slash-popup) expected=/ ;; esac
+    assert_screen "Claude's selected slash-menu row is not its composer" pending "$CAPS_STYLED_NOID" "$screen"
+    out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+    [ "$out" = "$expected" ] \
+      || fail "the $name capture must extract only '$expected', got '$out'"
+    screen=${screen/"$expected"/"${ESC}[38;2;112;112;112m${expected}${ESC}[0m"}
+    assert_screen "a muted slash command must still refuse injection" pending "$CAPS_STYLED_NOID" "$screen"
+    out=$(FM_COMPOSER_GHOST_LUMA_MAX=0 fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+    [ "$out" = "$expected" ] || fail "the muted query must remain in the payload, got '$out'"
+    assert_screen "a plain slash-popup capture must refuse injection" unknown "$CAPS_PLAIN" "$screen"
+  done
+  pass "fm_composer_extract_selected_content: Claude's slash popup is excluded from the payload"
+}
+
+test_claude_slash_popup_selection_keeps_drafts() {
+  local screen out rule=────────────────────────
+  # A partial query and a later selected item still belong to the popup.
+  screen="$rule"$'\n❯ /ex\n'"$rule"$'\n    /export    Export conversation\n  ❯ /exit      Exit the CLI'
+  out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+  [ "$out" = /ex ] || fail "the partial query must survive a later menu selection, got '$out'"
+  # A named session's titled top rule carries the same composer proof.
+  screen=$'──────── Session ───────\n❯ /exit\n'"$rule"$'\n  ❯ /exit    Exit the CLI'
+  out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+  [ "$out" = /exit ] || fail "a titled slash composer must exclude its menu, got '$out'"
+  for screen in \
+    "$rule"$'\n❯\n'"$rule"$'\n  ❯ /exit    typed draft' \
+    "$rule"$'\n❯ /exit\n'"$rule"$'\n❯ /exit    typed draft' \
+    "$rule"$'\n❯ /exit\n'"$rule"$'\n  ❯ /clear    typed draft' \
+    "$rule"$'\n❯ /exit\n'"$rule"$'\n\n  ❯ /exit    typed draft' \
+    "$rule"$'\n❯ /exit\n'"$rule"$'\nWorking on request...\n  ❯ /exit    typed draft' \
+    "$rule"$'\n❯ /exit\n'"$rule"$'\n  ❯ /exit    Exit the CLI\n\n❯ typed draft'
+  do
+    assert_screen "a lower draft must not be mistaken for a slash popup" pending "$CAPS_STYLED_NOID" "$screen"
+    out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen")
+    case "$out" in *'typed draft') ;; *) fail "the lower draft must remain selected, got '$out'" ;; esac
+  done
+  screen="$rule"$'\n❯ /exit\n'"$rule"$'\n  ❯ /exit    Exit the CLI\n$ live shell'
+  assert_screen "a lower shell invalidates the slash composer" unknown "$CAPS_STYLED_NOID" "$screen"
+  if out=$(fm_composer_extract_selected_content "$CAPS_STYLED_NOID" "$screen"); then
+    fail "the slash popup must not hide a lower live shell, got '$out'"
+  fi
+  pass "fm_composer_extract_selected_content: slash-popup selection preserves lower drafts"
+}
+
 test_bare_shell_glyphs_are_unknown
 test_stripped_unbordered_content_uses_plain_content
 test_bare_shell_prompt_with_command_is_not_empty
@@ -1049,6 +1099,8 @@ test_incomplete_lower_box_invalidates_stale_candidate
 test_titled_bottom_requires_matching_width
 test_cursor_on_proven_box_bottom_classifies_content
 test_selected_content_is_composer_scoped_and_wrap_normalized
+test_claude_slash_popup_extracts_only_the_composer
+test_claude_slash_popup_selection_keeps_drafts
 
 test_queued_enter_verdict_busy_pending_is_empty() {
   local out

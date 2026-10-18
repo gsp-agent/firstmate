@@ -1197,7 +1197,7 @@ The CLI matrix was checked directly:
 | Keys | `herdr pane send-keys <pane> enter|escape|ctrl+c --session <name>` | Enter and Escape worked; Ctrl-C interrupted foreground work. |
 | Capture | `herdr pane read <pane> --source recent --lines N` | Small N could return empty below viewport height; a 200-line request plus local trim was stable. |
 | Viewport capture | `herdr pane read <pane> --source visible` | Verified on 2026-09-17 against Herdr 0.8.0 (protocol 19): `herdr pane read --help` documents `--source <SOURCE>` with `[possible values: visible, recent, recent-unwrapped, detection]`; `--source visible` exited 0 and returned 51 lines (the viewport) while `--source recent --lines 200` returned 200. This is the viewport-only read behind `fm_backend_herdr_visible_capture`, which Kimi's trust-dialog gate requires. |
-| Styled viewport capture | `herdr pane read <pane> --source visible --format ansi` | Verified on 2026-09-26 against Herdr 0.9.0 with Claude Code 2.1.283: the flag pair exited 0 and returned the viewport with SGR attributes intact, which is the styled read behind `fm_backend_herdr_visible_capture_ansi` that ghost/placeholder stripping needs (see "Claude exit behind the slash-command popup" below). |
+| Styled viewport capture | `herdr pane read <pane> --source visible --format ansi` | Verified on 2026-09-26 against Herdr 0.9.0 with Claude Code 2.1.283: the flag pair exited 0 and returned the viewport with SGR attributes intact, which preserves the styling that ghost/placeholder stripping needs. Composer reads use it while the pane is unscrolled and trimmed `recent` rows while it is scrolled (see "Scrolled Herdr composer capture" below). |
 | Native state | `herdr agent get <pane>` | Working and done transitions were visible on some harnesses; live Claude Code 2.1.236 on Herdr 0.8.0 kept `agent_status=idle` for an entire landed turn, including a multi-second tool call, so submit confirmation falls through to the shared composer verdict. Native `busy` remains positive activity evidence, while native `idle` cannot close a turn and the adapter's semantic lifecycle decides worker state. |
 | Restart | guarded named-session stop then start | Workspace, tab, pane, and labels persisted; the agent process and registration did not. |
 | Close | `herdr pane close <pane> --session <name>` | The exact one-pane task tab closed; closing a final tab could remove the workspace. |
@@ -1295,13 +1295,14 @@ Typing `/exit` makes Claude Code render its command popup between the composer a
 The composer row lands outside a bounded 20-row tail of the pane, so the adapter's bounded composer reads reported the composer as empty while it actually held `/exit`.
 The pre-Enter payload proof then judged the typed command unsent, pressed Ctrl+U, and reported `send-failed` without ever pressing Enter, so `bin/fm-control.sh exit` never exited the worker (and `bin/fm-secondmate-restart.sh` inherited the failure through its exit step).
 
-The fix captures the FULL VISIBLE VIEWPORT for every herdr adapter composer read (`pane read --source visible [--format ansi]`, `fm_backend_herdr_composer_state` and `fm_backend_herdr_composer_content`): the composer is by definition inside the viewport, and the viewport is the one bound that always contains it.
+Every Herdr adapter composer read retains a complete screen height so a popup cannot hide the composer.
+The current capture source is documented under "Scrolled Herdr composer capture" below.
 The shared inbox pending-line confirmation read (`bin/fm-task-inbox-lib.sh`) stays a bounded tail on every backend, herdr included; its payloads are task lines, not slash commands, so the popup shape does not arise there.
-The popup rows sit below the composer's closing rule, which is a structural edge row, so the shared classifier still selects only the composer and the menu rows never read as typed text.
+The shared classifier's popup matcher in `bin/fm-composer-lib.sh` owns selection when a menu item repeats the composer glyph; `tests/fm-composer-lib.test.sh` covers the captured Claude Code 2.1.302 popups and preserves lower drafts.
 Verified live in the lab: with the popup up the state read answers `pending` (previously `empty`) and the payload proof returns `/exit` (previously empty), the submit presses Enter, and the Claude process exits, leaving the shell prompt.
 Growing the window only adds rows above the composer, so the bottom-most-shape selection, the footer zone, and every previously passing verdict are unchanged.
 
-Portable regressions (they fail against the bounded-tail reads and pass against the viewport reads):
+Portable regressions (they fail against the short bounded-tail reads and pass with a full viewport-height read):
 
 ```sh
 tests/fm-backend-herdr.test.sh
@@ -1321,6 +1322,52 @@ FM_HERDR_SUBMIT_CONFIRM_LIVE=1 tests/fm-herdr-submit-confirm-live-e2e.test.sh
 ```text
 ok - live Herdr submit confirm: Claude Code (2.1.283 (Claude Code)) on herdr 0.9.0 proves and submits a typed /exit behind its command popup
 ```
+
+### Scrolled Herdr composer capture
+
+Verified read-only on 2026-10-16 with Herdr 0.9.1 and Claude Code 2.1.300.
+`visible` follows the user's scroll position, so it can contain only historical chat while `recent` includes the current composer.
+When `.result.pane.scroll.offset_from_bottom` is 0 the adapter reads `visible`, which is then exactly the current screen.
+When it is greater than 0 the adapter reads `.result.pane.scroll.viewport_rows`, requests at least that many recent rows with a 200-row minimum, and trims to that height before classification or payload extraction.
+That trimmed read is not exactly the current screen: Herdr ends a `recent` read at the current screen's last non-blank or cursor row, and the text format also drops trailing blank rows, so a screen whose bottom is blank lets the trim take rows from above it.
+The classifier's bottom-most composer selection is the guard that keeps an older prompt above a live composer from deciding the verdict.
+Both ANSI and plain fallback reads use the same source and height.
+
+```sh
+herdr --session default pane get wYK:p1 | jq -c '.result.pane.scroll'
+bash <<'SH'
+. bin/backends/herdr.sh
+fm_backend_herdr_composer_state default:wYK:p1
+SH
+```
+
+```text
+{"max_offset_from_bottom":6097,"offset_from_bottom":5669,"viewport_rows":58}
+empty
+```
+
+This read-only check proves composer classification, not an unattended reset.
+
+Herdr's own schema has no `PaneInfo.scroll` at v0.7.1 (protocol 14) and adds `scroll: Option<PaneScrollInfo>`, whose `viewport_rows` is required, at v0.7.2.
+Checked on 2026-10-17 against the upstream source tags:
+
+```sh
+for tag in v0.7.1 v0.7.2; do printf '%s ' "$tag"; gh api "repos/ogulcancelik/herdr/contents/src/api/schema/panes.rs?ref=$tag" --jq .content | base64 -d | grep -c 'pub scroll: Option<PaneScrollInfo>'; done
+```
+
+```text
+v0.7.1 0
+v0.7.2 1
+```
+
+When `pane get` reports no `scroll`, the adapter reads the visible viewport as it did before scroll support.
+A reported `scroll` without a non-negative integer `offset_from_bottom` and a positive integer `viewport_rows` fails closed.
+
+`bash tests/fm-backend-herdr.test.sh` covers scrolled captures, unscrolled panes reading the visible screen, stale scrollback prompts, an older empty prompt pulled into a trimmed read above a current draft, screens taller than 200 rows, malformed scroll reports, protocol-14 panes without `scroll` (including a Claude `/exit` submission), plain fallback drafts, and the existing slash-popup submission cases.
+The scrolled-capture regression uses committed fixtures derived from this pane: `tests/captures/claude-code-2.1.300/scrolled-recent.ansi` keeps the real recent capture's composer rows byte for byte with its footer's account, mailbox, pane, branch, and usage text replaced by same-length placeholders, and `tests/captures/claude-code-2.1.300/scrolled-visible.ansi` is the real 58-row visible screen with letters and digits masked and escapes unchanged.
+The recent fixture reads `empty` and the visible fixture alone reads `unknown`, as the real captures do.
+Setting `FM_HERDR_COMPOSER_REPLAY_DIR` to a directory containing the full verbatim `visible-ansi.txt` and `recent-ansi.txt` captures replays them through the same regression instead; those captures hold private chat and are never committed.
+The existing live guard, `FM_HERDR_SUBMIT_CONFIRM_LIVE=1 tests/fm-herdr-submit-confirm-live-e2e.test.sh`, remains the end-to-end check for actual submission and exit in an isolated lab.
 
 ### Claude background-task exit picker
 

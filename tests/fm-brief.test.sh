@@ -339,6 +339,8 @@ test_ship_mode_is_explicit_not_registry() {
     || fail "registered direct-PR posture overrode the explicit --mode"
   assert_grep "Firstmate will then instruct you to run /no-mistakes" "$brief" \
     "explicit no-mistakes brief did not render the pipeline definition of done"
+  assert_grep "FM_HOME=$home $ROOT/bin/fm-pr-made-with.sh brief-explicit-a5 <PR url>" "$brief" \
+    "the brief does not hand the worker the Made-with stamp for its own home"
 
   # An unregistered project is not a blocker either, because nothing is looked up.
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-explicit-a6 never-registered --mode local-only >/dev/null 2>&1 \

@@ -12,20 +12,23 @@
 //   1. Pins the working directory. Cursor keeps one persistent shell per
 //      conversation, and a call that omits its working directory runs wherever
 //      the previous call left that shell, not in the workspace. A single
-//      earlier call with an explicit working directory in the primary checkout
-//      therefore sent the next empty-directory call there. The hook rewrites an
-//      empty directory to --worktree (updated_input.cwd), so a call that names
-//      no directory always runs in the task worktree. A call that names a
-//      directory is left alone.
+//      earlier call with an explicit working directory in another checkout
+//      can therefore redirect the next empty-directory call. The hook rewrites an
+//      empty directory to --worktree, so a call that names no directory always
+//      runs in the task worktree. A call that names a directory is left alone.
+//      cursor-agent 2026.10.16 sends tool_input.cwd ("" for no directory) and
+//      applies only updated_input.cwd, so the pin is written there; it is also
+//      written to working_directory, the field the payload may name instead.
 //
 //   2. Refuses git symbolic-ref and git update-ref. Both move HEAD or a ref
-//      with none of checkout's checks, so they are how a refused branch
-//      creation was once repeated against the primary checkout. Reads of the
-//      same state have plain alternatives (git branch --show-current), which
+//      with none of checkout's checks, so they can bypass a branch-creation
+//      refusal. Reads of the same state have plain alternatives
+//      (git branch --show-current), which
 //      the refusal names. This is the only per-command policy here: git
-//      checkout -b is refused by permission rules Cursor imports from
-//      ~/.claude/settings.json, which no per-session setting can lift, and
-//      git switch -c is the in-worktree branch command that is not refused.
+//      checkout -b and checkout -B can be refused by permission rules Cursor
+//      imports from ~/.claude/settings.json or the repository's Claude
+//      settings. A deny outranks an allow, so a per-session allow cannot lift
+//      it; git switch -c is the branch command the generated brief recommends.
 //
 // Scope: this pins implicit working-directory drift and refuses HEAD and ref
 // plumbing. It is not repository confinement: a command that names another
@@ -126,8 +129,8 @@ function decide(input, worktree) {
   if (refuses(command)) {
     return { permission: "deny", user_message: REFUSAL, agent_message: REFUSAL };
   }
-  if (worktree && !toolInput.cwd) {
-    return { permission: "allow", updated_input: { command, cwd: worktree } };
+  if (worktree && !toolInput.cwd && !toolInput.working_directory) {
+    return { permission: "allow", updated_input: { ...toolInput, cwd: worktree, working_directory: worktree } };
   }
   return null;
 }

@@ -51,7 +51,10 @@
 # is still open, or when its forge state cannot be read, including when the
 # copy is already gone and when the slot was reassigned to another task. A
 # merged or closed request still proceeds, and --force remains the explicit
-# discard. Work has also landed, for a normal ship task
+# discard. --force also proceeds past a pending repository merge-queue sweep.
+# An invalid or unsafe retirement receipt still refuses, even with --force.
+# When that watch was the repository's last, discovery stops until the next
+# armed pull request there. Work has also landed, for a normal ship task
 # whose commits are not so reachable, when its PR is merged and
 # GitHub reports a PR head that contains the current local work, or its content is
 # already present in the up-to-date default branch. This recognizes the common
@@ -116,8 +119,8 @@
 # session-start sweep could still close, while a journal bound to any other pane
 # - or a version 1 attempt whose workspace is still present or unreadable - may
 # name a live quarantined space and is retained for that sweep.
-# data/<id>/ is deliberately left in place: a successor spawn reads brief.md
-# from it.
+# After successful task retirement, bin/fm-task-data.py owns pruning data/<id>/
+# and one-cycle scratch recovery; brief.md remains available to successor spawns.
 # Worktree-slot ownership (teardown-slot-collision): a treehouse pool slot is
 # reused across tasks, so a stale, duplicated, or drifted worktree= record can
 # name a slot a DIFFERENT live task now holds. Cleanup kills every process under
@@ -377,6 +380,8 @@ for _teardown_source in \
   fm-nm-run-lib.sh \
   fm-wake-lib.sh \
   fm-path-lib.sh \
+  fm-task-data-lib.sh \
+  fm-task-data.py \
   fm-lease-lib.sh
 do
   teardown_require_source "$SCRIPT_DIR/$_teardown_source"
@@ -408,6 +413,8 @@ unset _teardown_source
 . "$SCRIPT_DIR/fm-pending-reply-lib.sh"
 # shellcheck source=bin/fm-nm-run-lib.sh
 . "$SCRIPT_DIR/fm-nm-run-lib.sh"
+# shellcheck source=bin/fm-task-data-lib.sh
+. "$SCRIPT_DIR/fm-task-data-lib.sh"
 if [ "$#" -lt 1 ] || ! fm_task_id_path_safe "$1"; then
   echo "error: invalid teardown request" >&2
   exit 2
@@ -1455,10 +1462,11 @@ retire_busy_state() {
 }
 
 validate_pr_poll_cleanup() {
-  local state_dir=$1 id=$2 state_device artifact has_artifact=0
+  local state_dir=$1 id=$2 state_device artifact has_artifact=0 retirement_rc=0
   fm_task_id_path_safe "$id" || return 0
   for artifact in "$state_dir/$id.check.sh" "$state_dir/$id.pr-poll" \
     "$state_dir/$id.pr-poll-registration" "$state_dir/$id.pr-poll-retirement" \
+    "$state_dir/$id.pr-poll-queue-dropped" \
     "$state_dir/$id.merge-authority" "$state_dir/$id.check-trust"; do
     [ -e "$artifact" ] || [ -L "$artifact" ] || continue
     has_artifact=1
@@ -1468,6 +1476,7 @@ validate_pr_poll_cleanup() {
   state_device=$(fm_pr_file_device "$state_dir") || return 1
   for artifact in "$state_dir/$id.check.sh" "$state_dir/$id.pr-poll" \
     "$state_dir/$id.pr-poll-registration" "$state_dir/$id.pr-poll-retirement" \
+    "$state_dir/$id.pr-poll-queue-dropped" \
     "$state_dir/$id.merge-authority" "$state_dir/$id.check-trust"; do
     [ -e "$artifact" ] || [ -L "$artifact" ] || continue
     if [ ! -f "$artifact" ] || [ -L "$artifact" ] \
@@ -1479,13 +1488,20 @@ validate_pr_poll_cleanup() {
       return 1
     fi
   done
-  if [ -e "$state_dir/$id.pr-poll-retirement" ] \
-    || [ -L "$state_dir/$id.pr-poll-retirement" ]; then
-    fm_pr_poll_retirement_state_valid "$state_dir" "$id" || {
+  fm_pr_poll_retirement_ready "$state_dir" "$id" "$SCRIPT_DIR/fm-pr-poll.sh" || retirement_rc=$?
+  case "$retirement_rc" in
+    0) ;;
+    2)
+      # --force is the explicit discard of this task, including its last watch.
+      [ "$FORCE" = "--force" ] && return 0
+      echo "REFUSED: pending repository merge-queue sweep; preserving task state." >&2
+      return 1
+      ;;
+    *)
       echo "REFUSED: invalid PR-poll retirement receipt; preserving task state." >&2
       return 1
-    }
-  fi
+      ;;
+  esac
 }
 
 remove_pr_poll_artifacts() {
@@ -1495,6 +1511,7 @@ remove_pr_poll_artifacts() {
   fm_pr_poll_merge_notified_remove "$state_dir" "$id" || return 1
   rm -f "$state_dir/$id.check.sh" "$state_dir/$id.pr-poll" \
     "$state_dir/$id.pr-poll-registration" "$state_dir/$id.pr-poll-retirement" \
+    "$state_dir/$id.pr-poll-queue-dropped" \
     "$state_dir/$id.merge-authority" "$state_dir/$id.check-trust" || return 1
 }
 
@@ -3439,7 +3456,7 @@ cleanup_firstmate_home_children() {
     retire_busy_state "$sub_state" "$child_id" "$child_busy_gen" || return 1
     status_retire_presentation_task "$sub_state" "$child_id" || return 1
     fm_wake_queue_prune_task "$sub_state" "$child_id" "$child_t" 2>/dev/null || true
-    fm_backlog_atomic_transition remove "$sub_state/$child_id.meta" "task record" "$sub_state" || return 1
+    fm_backlog_atomic_transition retire "$sub_state/$child_id.meta" "$home/data" "$child_id" "$sub_state" || return 1
     rm -f "$sub_state/$child_id.turn-ended" "$sub_state/$child_id.progress" \
       "$(fm_wake_signal_seen_path "$sub_state" "$sub_state/$child_id.turn-ended")" \
       "$sub_state/$child_id.pi-ext.ts" "$sub_state/$child_id.omp-ext.ts" \
@@ -3983,12 +4000,16 @@ elif [ "$KIND" = secondmate ] && [ ! -e "$STATE" ] && [ ! -L "$STATE" ]; then
   # deletion; do not turn its confirmed absence into a false cleanup failure.
   :
 else
-  if ! fm_backlog_atomic_transition remove "$STATE/$ID.meta" "task record" "$STATE"; then
+  if ! fm_backlog_atomic_transition retire "$STATE/$ID.meta" "$DATA" "$ID" "$STATE" --pr "$PR_URL"; then
     fm_lock_release "$META_LOCK"
     META_LOCK_HELD=0
     echo "error: $ID's endpoint and local copy are cleaned up, but its task record could not be removed ($FM_BACKLOG_TRANSITION_ERROR)" >&2
     exit 1
   fi
+fi
+if [ "$KIND" != secondmate ]; then
+  fm_task_data_cleanup "$DATA" "$STATE" "$ID" "$PROJ" "$PR_URL" \
+    || echo "warning: $ID teardown completed, but task-data cleanup needs a retry" >&2
 fi
 fm_lock_release "$META_LOCK"
 META_LOCK_HELD=0

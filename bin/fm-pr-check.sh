@@ -19,6 +19,8 @@
 # skips this refusal, because its own merge-time draft refusal is authoritative.
 # The recorded pr= also frees the task's place in a declared project capacity
 # (bin/fm-project-capacity-lib.sh).
+# A registered GitHub pull request is also stamped with the engines that wrote
+# it through bin/fm-pr-made-with.sh, except on the merge-time re-record.
 # Usage: fm-pr-check.sh <task-id> <pr-url>
 set -eu
 
@@ -70,13 +72,21 @@ if [ "$KIND" = secondmate ]; then
   exit 1
 fi
 
-# A prior exact merged result may have queued its durable wake immediately
-# before interruption.
-# Finish only its identity-bound receipt before publishing a replacement poll.
+# Resume only identity-bound receipts under bin/fm-pr-lib.sh's retirement
+# contract; fm_pr_poll_retirement_ready below decides whether replacement
+# preserves repository discovery.
 fm_pr_poll_retirement_recover_one "$STATE" "$ID" "$SCRIPT_DIR/fm-pr-poll.sh" || {
   echo "error: pending PR poll retirement could not be validated" >&2
   exit 1
 }
+PR_RETIREMENT_RC=0
+fm_pr_poll_retirement_ready "$STATE" "$ID" "$SCRIPT_DIR/fm-pr-poll.sh" '' "$URL" \
+  || PR_RETIREMENT_RC=$?
+case "$PR_RETIREMENT_RC" in
+  0) ;;
+  2) echo "error: pending repository merge-queue sweep; preserving task state" >&2; exit 1 ;;
+  *) echo "error: pending PR poll retirement could not be validated" >&2; exit 1 ;;
+esac
 
 # Refuse to arm a watch with no CLI on PATH to read it. The poll is silent on
 # every error by design, so a missing CLI would be indistinguishable from a
@@ -240,13 +250,21 @@ else
   echo "error: could not publish PR poll" >&2
   exit 1
 fi
+# A GitHub pull request is stamped with the engines that wrote it
+# (bin/fm-pr-made-with.sh), repeating the worker's own stamp because a later
+# pipeline run rewrites the body. A failed stamp leaves the watch armed.
+if [ "$PROVIDER" = github ] && [ "${FM_PR_CHECK_MERGE:-}" != 1 ]; then
+  FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE "$SCRIPT_DIR/fm-pr-made-with.sh" "$ID" "$URL" >/dev/null \
+    || printf 'actionable: PR %s is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh %s %s\n' "$URL" "$ID" "$URL" >&2
+fi
 # Opt-in fleet activity ledger (docs/fleet-ledger.md); off costs one file test.
 # The merge-time re-record is not a new review-ready PR, so it writes nothing.
 [ ! -e "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}/fleet-ledger" ] || [ "${FM_PR_CHECK_MERGE:-}" = 1 ] \
   || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE "$SCRIPT_DIR/fm-fleet-ledger.sh" pr_ready "$ID" "$URL" || true
 # The contribution observer uses the same authenticated check mechanism and
 # owns verdict freshness, required actors and external feedback separately from
-# the exact merged-state poll. Registration is local and performs no forge read.
+# the static PR poll (bin/fm-pr-poll.sh).
+# Registration is local and performs no forge read.
 if command -v jq >/dev/null 2>&1; then
   "$SCRIPT_DIR/fm-contributions.sh" arm >/dev/null \
     || printf 'contributions: observation not armed; coverage is unconfirmed\n' >&2

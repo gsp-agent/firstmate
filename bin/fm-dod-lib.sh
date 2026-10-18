@@ -22,6 +22,9 @@
 # captain-approved <host>/<owner>/<repo> publication scope for this one task,
 # rendered as an `upstream-consent=<scope>` suffix token on the Delivery
 # contract line so brief, spawn record, and worker instructions agree.
+# The optional seventh and eighth arguments are the task's Firstmate home and
+# code root. Given both, a PR-opening block on forge=none tells the worker to
+# run bin/fm-pr-made-with.sh as soon as its PR is ready.
 # Callers of the gate are bin/fm-crew-state.sh (current-state done),
 # bin/fm-pr-check.sh (PR registration), and bin/fm-inactive-reconcile.sh
 # (secondmate ledger-first publish of a child done). A ship `done:` is not
@@ -408,9 +411,20 @@ There is no pull request, no \`gh-axi\` call, and no forge CI result to report: 
 EOF
 }
 
-fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>]
-  local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-}
+fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<home> <code-root>]
+  local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-} home=${7:-} root=${8:-}
   local branch=${3:-fm/$id} pr_base='' nm_base='' base_q contract_forge='' contract_consent='' forge_cli=gh-axi draft_check
+  local stamp_cmd stamp_why direct_stamp='' nm_stamp='' nm_stamp_why=''
+  if [ "$forge" = none ] && [ -n "$home" ] && [ -n "$root" ]; then
+    printf -v stamp_cmd 'FM_HOME=%q %q %q <PR url>' "$home" "$root/bin/fm-pr-made-with.sh" "$id"
+    stamp_why="That command names each engine that wrote the PR's commits on a \`Made-with:\` line in its body, so the review gate can route the PR away from a reviewer of the same model family; firstmate repeats it when it registers the PR, so a failure there does not hold your report."
+    direct_stamp="Right after you open it, run \`$stamp_cmd\`.
+$stamp_why
+"
+    nm_stamp="run \`$stamp_cmd\` at once, then "
+    nm_stamp_why="$stamp_why
+"
+  fi
   fm_forge_valid_for_mode "$forge" "$mode" fm_dod_block || return 1
   fm_base_branch_valid "$base" "$mode" "$forge" fm_dod_block || return 1
   if [ -n "$consent" ]; then
@@ -488,7 +502,7 @@ Ship branch: $branch
 This task ships **direct-PR**: you raise the PR yourself, without the no-mistakes pipeline.
 The task is complete only when committed on your branch.
 When it is implemented and committed, push your branch and open a PR with \`$forge_cli\` that is ready for review, not a draft$pr_base.
-Before you report done, read the PR back from the forge and confirm it is not a draft $draft_check
+${direct_stamp}Before you report done, read the PR back from the forge and confirm it is not a draft $draft_check
 A draft cannot be merged, so a done report on one leaves the merge unasked.
 Then append \`done [at=<epoch>]: PR {url}\` to the status file and stop.
 That \`done:\` is accepted only when this copy's HEAD - your latest commit - is pushed to your PR branch; the check tests that commit, not merely that a branch moved.
@@ -523,8 +537,8 @@ EOF
       fm_nm_driving_block "$forge"
       cat <<EOF
 
-After /no-mistakes reports CI green (the CI-ready return point - do not wait for it to keep monitoring in the background until merge), read the PR back from the forge and confirm it is not a draft $draft_check
-A draft cannot be merged, so a done report on one leaves the merge unasked.
+After /no-mistakes reports CI green (the CI-ready return point - do not wait for it to keep monitoring in the background until merge), ${nm_stamp}read the PR back from the forge and confirm it is not a draft $draft_check
+${nm_stamp_why}A draft cannot be merged, so a done report on one leaves the merge unasked.
 Then append \`done [at=<epoch>]: PR {url} checks green\` and stop. You are finished.
 That CI-ready \`done:\` is accepted only when this copy's HEAD - your latest commit - is one the /no-mistakes run pushed, so commit nothing after the run; the check tests that commit, not merely that a branch moved.
 If you deliberately keep the PR a draft, append \`paused [at=<epoch>]: {why the draft is held}\` instead of done.

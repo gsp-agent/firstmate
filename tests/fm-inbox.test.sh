@@ -5,7 +5,7 @@
 # between save and announce, saved-but-unannounced repair, the unknown
 # announced state of notes that predate the marker, bounded receipts JSON with
 # omission disclosure, the reply cursor's strict order, and the readiness
-# projection's model-aware verdict and unknown path. Human note/list/drain
+# projection's process-bound health and unknown lock path. Human note/list/drain
 # behaviour stays unchanged when the new flags are omitted.
 set -euo pipefail
 
@@ -433,50 +433,10 @@ mkdir -p "$home/state/.lock"
 ready=$(run_inbox "$home" ready) || fail "ready should succeed for a directory lock"
 assert_equals "unreadable" "$(printf '%s' "$ready" | python3 -c 'import json,sys; print(json.load(sys.stdin)["lock"]["state"])')" \
   "a non-file lock is unreadable rather than held"
-# A Claude primary mid-turn runs no watcher process - its watcher is armed at
-# turn end - so the model-aware supervision verdict, not the pid-strict watcher
-# check, owns whether the wake will be drained.
-home=$(make_home ready-midturn)
-touch "$home/state/.last-watcher-beat"
-midturn=$(FM_SUPERVISION_MODEL=autoarm run_inbox "$home" ready) \
-  || fail "ready should succeed for a mid-turn autoarm primary"
-assert_equals "healthy" "$(printf '%s' "$midturn" | json_get wake_consumer state)" \
-  "a mid-turn autoarm primary with a fresh beacon has a healthy wake consumer"
-
-# A home that never ran a watcher has no observation, so it reports no age
-# rather than the missing-path sentinel. With no lock holder the model is
-# unknown for this home, which is the honest caller path.
-home=$(make_home ready-no-beacon)
-nobeat=$(run_inbox "$home" ready) || fail "ready should succeed with no beacon"
-assert_equals "supervision-model-unknown-for-home" \
-  "$(printf '%s' "$nobeat" | json_get wake_consumer reason)" \
-  "no lock holder means the home's supervision model is unknown"
-assert_equals "None" "$(printf '%s' "$nobeat" | json_get wake_consumer beacon_age_seconds)" \
-  "a beacon that does not exist has no age"
-
-# The intended caller (HTTP backend, ssh host fm-inbox.sh ready) does not set
-# FM_SUPERVISION_MODEL. A live non-harness lock pid must not invent a model
-# from the caller's own process tree.
-home=$(make_home ready-no-override)
-printf '%s\n' "$$" > "$home/state/.lock"
-touch "$home/state/.last-watcher-beat"
-no_override=$(run_inbox "$home" ready) || fail "ready should succeed with no model override"
-assert_equals "unknown" "$(printf '%s' "$no_override" | json_get wake_consumer state)" \
-  "without a lock-holder harness, wake-consumer is unknown"
-assert_equals "supervision-model-unknown-for-home" \
-  "$(printf '%s' "$no_override" | json_get wake_consumer reason)" \
-  "the unknown reason names that the model could not be determined for this home"
-can=$(printf '%s' "$no_override" | json_get can_receive)
-assert_equals "unknown" "$can" "unknown lock plus unknown consumer is not can_receive true"
-
-# A live lock holder whose ancestry names a known harness, plus a fresh
-# beacon, is the yes path: the inspected home can receive work.
+# Readiness must not inherit the pull guard's autoarm mid-turn allowance.
 home=$(make_home ready-holder)
-# A process whose ps comm is the harness name, so lock inspect and
-# fm-harness.sh ancestry both classify it without PATH tricks.
-perl -e '$0="claude"; sleep 60' &
+perl -e '$0="claude"; sleep 300' &
 holder_pid=$!
-# Give ps a moment to report the renamed comm.
 sleep 0.2
 kill_holder() {
   kill "$holder_pid" 2>/dev/null || true
@@ -484,17 +444,127 @@ kill_holder() {
 }
 trap 'kill_holder; fm_test_cleanup' EXIT
 printf '%s\n' "$holder_pid" > "$home/state/.lock"
+printf 'acked:handling:ready-recovery\n' > "$home/state/.watcher-down"
+printf 'epoch=1 owner_pid=%s outcome=rewake session_pid=%s recovery_generation=ready-recovery\n' \
+  "$holder_pid" "$holder_pid" > "$home/state/.claude-autoarm-epoch"
+python3 - "$home/state/.last-watcher-beat" <<'PY_AGE'
+import os, sys, time
+path = sys.argv[1]
+open(path, "a").close()
+stamp = int(time.time()) - 3603
+os.utime(path, (stamp, stamp))
+PY_AGE
+stale=$(run_inbox "$home" ready) || fail "ready should succeed with a stale autoarm beacon"
+printf 'ready 3603-second regression: %s\n' "$stale"
+assert_equals "held" "$(printf '%s' "$stale" | json_get lock state)" \
+  "the stale-beacon regression holds a live primary lock"
+[ "$(printf '%s' "$stale" | json_get wake_consumer beacon_age_seconds)" -ge 3603 ] \
+  || fail "the regression beacon must be at least 3603 seconds old"
+assert_equals "down" "$(printf '%s' "$stale" | json_get wake_consumer state)" \
+  "a 3603-second beacon cannot inherit a healthy autoarm verdict"
+assert_equals "stale-beacon" "$(printf '%s' "$stale" | json_get wake_consumer reason)" \
+  "the stale-beacon regression reports its cause"
+assert_equals "False" "$(printf '%s' "$stale" | json_get can_receive)" \
+  "a held lock and old rewake record cannot receive without a watcher"
+
 touch "$home/state/.last-watcher-beat"
-held=$(run_inbox "$home" ready) || fail "ready should succeed for a lock-holder harness"
-assert_equals "held" "$(printf '%s' "$held" | python3 -c 'import json,sys; print(json.load(sys.stdin)["lock"]["state"])')" \
-  "a live claude-named holder is a held lock"
-assert_equals "healthy" "$(printf '%s' "$held" | json_get wake_consumer state)" \
-  "lock-holder ancestry plus a fresh beacon is a healthy wake consumer"
-assert_equals "True" "$(printf '%s' "$held" | json_get can_receive)" \
-  "a held lock with a healthy wake consumer can receive work"
+for model in autoarm extension persistent; do
+  ready=$(FM_SUPERVISION_MODEL="$model" run_inbox "$home" ready) \
+    || fail "ready should succeed for $model without a watcher"
+  assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
+    "$model requires a live watcher even with a fresh beacon"
+  assert_equals "no-watcher" "$(printf '%s' "$ready" | json_get wake_consumer reason)" \
+    "$model reports the missing watcher"
+  assert_equals "False" "$(printf '%s' "$ready" | json_get can_receive)" \
+    "$model cannot receive without a watcher"
+done
+
+watch_home=$(make_home ready-watcher)
+printf '%s\n' "$holder_pid" > "$watch_home/state/.lock"
+fm_test_track_watcher_state "$watch_home/state"
+FM_HOME="$watch_home" FM_STATE_OVERRIDE="$watch_home/state" \
+  FM_DATA_OVERRIDE="$watch_home/data" FM_CONFIG_OVERRIDE="$watch_home/config" \
+  FM_POLL=1 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+  bash "$ROOT/bin/fm-watch.sh" > "$watch_home/watch.out" 2>&1 &
+watch_pid=$!
+for _ in $(seq 1 200); do
+  [ -s "$watch_home/state/.watch.lock/pid-identity" ] \
+    && [ -e "$watch_home/state/.last-watcher-beat" ] && break
+  kill -0 "$watch_pid" 2>/dev/null || fail "the test watcher exited before publishing its beacon"
+  sleep 0.1
+done
+[ -e "$watch_home/state/.last-watcher-beat" ] || fail "the test watcher did not publish a beacon"
+for model in autoarm extension persistent; do
+  held=$(FM_SUPERVISION_MODEL="$model" run_inbox "$watch_home" ready) \
+    || fail "ready should succeed for $model with a live watcher"
+  assert_equals "healthy" "$(printf '%s' "$held" | json_get wake_consumer state)" \
+    "$model accepts a fresh beacon from its live watcher"
+  assert_equals "True" "$(printf '%s' "$held" | json_get can_receive)" \
+    "$model can receive with a held lock and healthy watcher"
+done
+printf 'ready live-watcher regression: %s\n' "$held"
+
+# A stopped watcher keeps its pid and identity but cannot refresh its beacon.
+kill -STOP "$watch_pid"
+python3 - "$watch_home/state/.last-watcher-beat" <<'PY_AGE'
+import os, sys, time
+stamp = int(time.time()) - 120
+os.utime(sys.argv[1], (stamp, stamp))
+PY_AGE
+ready=$(FM_GUARD_GRACE=60 run_inbox "$watch_home" ready)
+assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
+  "a live watcher cannot excuse a beacon beyond configured grace"
+assert_equals "False" "$(printf '%s' "$ready" | json_get can_receive)" \
+  "a stalled watcher cannot receive"
+ready=$(FM_GUARD_GRACE=300 run_inbox "$watch_home" ready)
+assert_equals "healthy" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
+  "the same live watcher and beacon are healthy within configured grace"
+ready=$(FM_WATCHER_STALE_GRACE=60 FM_GUARD_GRACE=300 run_inbox "$watch_home" ready)
+assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
+  "the watcher's explicit stale grace takes precedence"
+
+foreign_home=$(make_home ready-foreign-watcher)
+printf '%s\n' "$holder_pid" > "$foreign_home/state/.lock"
+cp -R "$watch_home/state/.watch.lock" "$foreign_home/state/.watch.lock"
+touch "$foreign_home/state/.last-watcher-beat"
+ready=$(run_inbox "$foreign_home" ready)
+assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
+  "another home's live watcher cannot make this home healthy"
+assert_equals "False" "$(printf '%s' "$ready" | json_get can_receive)" \
+  "another home's watcher cannot receive this home's notes"
+
+kill -CONT "$watch_pid"
+kill -TERM "$watch_pid"
+wait "$watch_pid" 2>/dev/null || true
+touch "$watch_home/state/.last-watcher-beat"
+ready=$(run_inbox "$watch_home" ready)
+assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
+  "a fresh leftover beacon cannot hide watcher exit"
+assert_equals "False" "$(printf '%s' "$ready" | json_get can_receive)" \
+  "watcher exit makes the held primary unable to receive"
 kill_holder
 trap fm_test_cleanup EXIT
-pass "readiness says unknown (or not-receivable) instead of inferring liveness from a lock"
+pass "readiness requires a fresh beacon and a live watcher belonging to the inspected home"
+
+home=$(make_home ready-no-beacon)
+nobeat=$(run_inbox "$home" ready) || fail "ready should succeed with no beacon"
+assert_equals "down" "$(printf '%s' "$nobeat" | json_get wake_consumer state)" \
+  "a home with no beacon has no healthy consumer"
+assert_equals "no-beacon" "$(printf '%s' "$nobeat" | json_get wake_consumer reason)" \
+  "a home with no beacon reports the missing observation"
+assert_equals "None" "$(printf '%s' "$nobeat" | json_get wake_consumer beacon_age_seconds)" \
+  "a beacon that does not exist has no age"
+
+home=$(make_home ready-no-override)
+printf '%s\n' "$$" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat"
+no_override=$(run_inbox "$home" ready) || fail "ready should succeed with no model override"
+assert_equals "unknown" "$(printf '%s' "$no_override" | json_get lock state)" \
+  "an unclassified session lock stays unknown"
+assert_equals "down" "$(printf '%s' "$no_override" | json_get wake_consumer state)" \
+  "an unknown primary cannot make a missing watcher healthy"
+assert_equals "False" "$(printf '%s' "$no_override" | json_get can_receive)" \
+  "a missing watcher is not receivable even when the lock is unknown"
 
 # --- invalid input ----------------------------------------------------------
 

@@ -3,8 +3,13 @@
 #   fallback <id>      prints "cursor", "codex <reason>" or "claude <reason>".
 #                      Codex when the shared Cursor/Grok pool is short or unknown: the newest
 #                      <usage dir>/*-spending.txt says cursor_models_pct >= the crew-dispatch.json
-#                      cursor_fallback.models_pct (default 85), or there is no readable file, or
-#                      it is older than max_age_h (default 26) by mtime. Bare Grok draws the same
+#                      cursor_fallback.models_pct (integer 1..100, default 85), or there is no readable file, or
+#                      it is older than max_age_h (positive integer, default 26) by mtime. At pct >= the limit,
+#                      credit room in the same file keeps Cursor (Dale 10-16) only when
+#                      on_demand=enabled, a numeric monthly_additional_usage_used is below a
+#                      numeric monthly_additional_usage_limit, and a numeric prepaid_balance is
+#                      above 0; anything else, a missing or non-numeric value included, is no
+#                      room and falls back. Bare Grok draws the same
 #                      pool, so it is no fallback there. Claude instead of Codex when the bead's
 #                      last Codex run hit a usage limit (state/<id>.codex-limit).
 # The usage directory defaults to ~/.agent-state/a3ov3/cursor-usage.
@@ -21,7 +26,13 @@ USAGE="${FM_CURSOR_USAGE_DIR:-$HOME/.agent-state/a3ov3/cursor-usage}"
 op=${1:-}; id=${2:-}
 [ "$op" = fallback ] && [ -n "$id" ] || { echo "usage: fm-cursor-guard.sh fallback <bead-id>" >&2; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "cursor guard: jq required" >&2; exit 1; }
-mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0; }
+mtime() {
+  if [ "$(uname)" = Darwin ]; then
+    /usr/bin/stat -f %m "$1" 2>/dev/null || echo 0
+  else
+    stat -c %Y "$1" 2>/dev/null || echo 0
+  fi
+}
 
 pct_max=85; age_max=26
 if [ -r "$CONFIG/crew-dispatch.json" ]; then
@@ -33,12 +44,30 @@ pool() {
 }
 case "$pct_max" in '' | *[!0-9]*) pool "cursor_fallback.models_pct '$pct_max' in crew-dispatch.json is not an integer"; exit 0 ;; esac
 case "$age_max" in '' | *[!0-9]*) pool "cursor_fallback.max_age_h '$age_max' in crew-dispatch.json is not an integer"; exit 0 ;; esac
-# shellcheck disable=SC2012
-f=$(ls -t "$USAGE"/*-spending.txt 2>/dev/null | head -1)
+f=
+for spending_file in "$USAGE"/*-spending.txt; do
+  [ -e "$spending_file" ] || continue
+  if [ -z "$f" ] || [ "$spending_file" -nt "$f" ]; then
+    f=$spending_file
+  fi
+done
 if [ -z "$f" ] || [ ! -r "$f" ]; then pool "no Cursor spending file in $USAGE"; exit 0; fi
 age=$(( $(date +%s) - $(mtime "$f") ))
 if [ "$age" -gt $(( age_max * 3600 )) ]; then pool "newest Cursor spending file is $((age / 3600)) h old (limit $age_max h)"; exit 0; fi
 pct=$(sed -n 's/^cursor_models_pct=//p' "$f" | tail -1)
 case "$pct" in '' | *[!0-9]*) pool "cursor_models_pct missing or not an integer in $(basename "$f")"; exit 0 ;; esac
-if [ "$pct" -ge "$pct_max" ]; then pool "Cursor Models at ${pct}% (limit ${pct_max}%)"; exit 0; fi
+if [ "$pct" -ge "$pct_max" ]; then
+  # Included usage is spent, but prepaid/on-demand credit room still carries
+  # Cursor (Dale 10-16: Grok/Cursor keep running on credits while they last).
+  # A missing or non-numeric value is unknown room, never zero use.
+  num='^[0-9]+([.][0-9]+)?$'
+  on_demand=$(sed -n 's/^on_demand=//p' "$f" | tail -1)
+  prepaid=$(sed -n 's/^prepaid_balance=//p' "$f" | tail -1)
+  add_used=$(sed -n 's/^monthly_additional_usage_used=//p' "$f" | tail -1)
+  add_limit=$(sed -n 's/^monthly_additional_usage_limit=//p' "$f" | tail -1)
+  if ! { [ "$on_demand" = enabled ] && [[ $prepaid =~ $num && $add_used =~ $num && $add_limit =~ $num ]] \
+    && awk -v p="$prepaid" -v u="$add_used" -v l="$add_limit" 'BEGIN { exit !(p + 0 > 0 && u + 0 < l + 0) }'; }; then
+    pool "Cursor Models at ${pct}% (limit ${pct_max}%) and no prepaid/on-demand credit room in $(basename "$f")"; exit 0
+  fi
+fi
 echo cursor

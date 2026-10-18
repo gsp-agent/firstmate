@@ -47,8 +47,10 @@
 #   already guarantees the worker's instructions match the branch. A fresh
 #   (non-relaunch) ship spawn creates and checks out that branch in the
 #   refreshed slot before the worker launches (prepare_ship_branch), so the
-#   worker only verifies it; a leftover branch of that name is moved only when
-#   its commits are already in the slot's HEAD and is otherwise resumed as it is.
+#   worker only verifies it. A branch checked out in another worktree refuses
+#   launch without detaching or changing that worktree; an available leftover
+#   branch is moved only when its commits are already in the slot's HEAD and
+#   is otherwise resumed as it is.
 #   --base-branch is the optional branch selected at intake for a ship or scout
 #   to start from and target instead of origin's default branch. A fresh launch
 #   resets its pooled copy to origin/<branch>, refusing when the project has no
@@ -480,14 +482,14 @@
 # busy turn - answering the dialog first if it renders anyway - before
 # reporting success (the rovo/kimi launch-then-confirm shape). Its busy state
 # is a screen-scrape fallback like grok and rovo, and it is crewmate/scout only.
-# cursor installs no per-task hook either: it writes state/<id>.cursor-session to
+# cursor installs no per-task busy hook: it writes state/<id>.cursor-session to
 # bind the pane to cursor's own conversation transcript (projects root, the exact
 # workspace path cursor records in .workspace-trusted, and the conversations that
 # already existed for that workspace). It is launched through the verified binary
 # resolver because `cursor` is not the CLI name. A cursor SECONDMATE instead runs
 # the tracked project-scope .cursor/hooks.json in its own home, whose stop-hook
 # park owns that home's supervision (docs/supervision-protocols/cursor.md).
-# claude is the one harness whose pre-launch setup can REFUSE the spawn: before
+# Claude's workspace-trust setup can REFUSE the spawn: before
 # any per-task state exists, and before its busy hooks are written, every
 # claude launch pre-registers the directory the pane
 # starts in - the task worktree, or the secondmate home for a --secondmate spawn -
@@ -3994,7 +3996,7 @@ else
     HERDR_LAUNCHER_RELATIONSHIP=launcher-home
     if [ "$KIND" = secondmate ]; then
       HERDR_LABEL_HOME=$PROJ_ABS
-      HERDR_LAUNCHER_RELATIONSHIP=other-home
+      HERDR_LAUNCHER_RELATIONSHIP='other-home'
     fi
     HERDR_PRESENTATION_JOURNAL=$(fm_backend_herdr_projection_journal_path "$STATE" "$ID")
     HERDR_PROJECTED=0
