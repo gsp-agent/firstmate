@@ -207,12 +207,11 @@ fm_watcher_healthy() {
 # identity-matched watcher PROCESS holds this home's lock with a fresh beacon. The
 # arm layer (bin/fm-watch-arm.sh, bin/fm-claude-stop-autoarm.sh) needs exactly
 # that - it decides whether to start, attach to, or replace a real watcher
-# process, so a leftover beacon must never satisfy it. bin/fm-inbox.sh ready
-# uses it to report a consumer that can receive now. bin/fm-turnend-guard.sh
+# process, so a leftover beacon must never satisfy it. bin/fm-turnend-guard.sh
 # also keeps this strict check because it fires at the turn boundary where the
-# auto-arm brings a fresh watcher up. The pull warning (bin/fm-guard.sh) fires
-# mid-turn, where the auto-arm model runs no watcher at all, so it wants a
-# different, model-aware question:
+# auto-arm brings a fresh watcher up. The pull warning (bin/fm-guard.sh) and
+# bin/fm-inbox.sh ready ask mid-turn too, where the auto-arm model runs no
+# watcher at all, so they want a different, model-aware question:
 
 # fm_supervision_model
 # Print the supervision model of this home's PRIMARY harness:
@@ -231,14 +230,15 @@ fm_watcher_healthy() {
 #               background arm, tmux, unknown): the watcher runs as a tracked live
 #               process, so a live identity-matched pid is the real liveness signal.
 # FM_SUPERVISION_MODEL overrides detection (tests, and callers that already know
-# the harness). Otherwise bin/fm-harness.sh is the single detection owner, so this
+# the harness). A caller inspecting another session passes that session's
+# harness. Otherwise bin/fm-harness.sh is the single detection owner, so this
 # stays consistent with the harness-specific repair line the guards already emit.
-fm_supervision_model() {
-  local harness
+fm_supervision_model() {  # [harness]
+  local harness=${1:-}
   case "${FM_SUPERVISION_MODEL:-}" in
     autoarm|extension|persistent) printf '%s\n' "$FM_SUPERVISION_MODEL"; return 0 ;;
   esac
-  harness=$("$FM_WAKE_LIB_DIR/fm-harness.sh" 2>/dev/null || printf unknown)
+  [ -n "$harness" ] || harness=$("$FM_WAKE_LIB_DIR/fm-harness.sh" 2>/dev/null || printf unknown)
   case "$harness" in
     claude|cursor) printf 'autoarm\n' ;;
     pi|pi-signed|omp) printf 'extension\n' ;;
@@ -400,7 +400,8 @@ fm_afk_mode() {
 
 # fm_watcher_supervision_verdict <state> <watch-path> [grace] [home] [root]
 # Model-aware "is supervision healthy right now" verdict for the pull warning
-# guard (bin/fm-guard.sh), NOT the arm layer or the turn-end guard. Sets:
+# guard (bin/fm-guard.sh) and, with a fresh beacon, bin/fm-inbox.sh ready, NOT
+# the arm layer or the turn-end guard. Sets:
 #   FM_WATCHER_VERDICT_OK      true when supervision is healthy for this model
 #   FM_WATCHER_VERDICT_REASON  when not ok, the true failing condition:
 #                              no-watcher   - a live watcher process is the real
