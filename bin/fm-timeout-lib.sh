@@ -31,16 +31,19 @@
 #       for a command that ignores TERM or is mid-way through work it will not
 #       abandon. A TERM, INT, or HUP delivered to the bounding process is
 #       forwarded to the group and starts the same grace. The perl watchdog
-#       also starts that escalation when its own parent dies before it could
-#       be signalled (an owner torn down by an outer group-kill cannot leave
-#       the bounded subtree orphaned behind it). The owner is captured before
+#       also starts that escalation when its owner dies before it could be
+#       signalled. The owner is captured before
 #       the watchdog starts: FM_EXEC_TIMED_OWNER_PID when the caller names it,
 #       else the calling script ($$) when fm_exec_timed runs in a subshell,
 #       else the shell's parent. The escalation starts once that owner is gone
 #       or the watchdog's parent changes, so an owner that dies while the
-#       watchdog is still starting is detected too. The timeout/gtimeout
-#       fallback does not track the owner: it bounds the command only by its
-#       deadline and grace, so owner death alone does not stop the command.
+#       watchdog is still starting is detected too. The watchdog stays in the
+#       caller's process group so that group's signals reach it, so a KILL to
+#       that whole group kills the watchdog too; a sentinel it starts in a
+#       group of its own, before the command, then runs the same escalation
+#       (TERM, then KILL after the grace) in its place. The timeout/gtimeout
+#       fallback does neither: it bounds the command only by its deadline and
+#       grace, so owner death alone does not stop the command.
 #       Exit status is the command's own, except 124 (the bound was hit) or
 #       137 (GNU timeout's status when its KILL had to fire); fm_timed_out
 #       accepts both. The perl watchdog also reports 130 once an INT has
@@ -246,12 +249,43 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
       # as a call to a sub named DEFAULT, which drops it.
       my $mask = POSIX::SigSet->new;
       sigprocmask(SIG_BLOCK, POSIX::SigSet->new(SIGTERM, SIGINT, SIGHUP), $mask);
+      # The sentinel exists before the command does, in a group of its own, so
+      # a KILL to the callers group cannot take it too. The command writes its
+      # pid, which is its group, before exec; EOF with no "done" from this
+      # watchdog means the watchdog was killed, and the sentinel ends that
+      # group in its place.
+      pipe(my $heard, my $tell) or exit 127;
+      my $sentinel = fork;
+      exit 127 unless defined $sentinel;
+      if ($sentinel == 0) {
+        $SIG{$_} = "IGNORE" for qw(TERM INT HUP);
+        setpgid(0, 0);
+        sigprocmask(SIG_SETMASK, $mask);
+        close $tell;
+        open STDIN, "<", "/dev/null";
+        open STDOUT, ">", "/dev/null";
+        open STDERR, ">", "/dev/null";
+        my $said = "";
+        while (sysread $heard, $said, 64, length $said) {
+          exit 0 if $said =~ /done/;
+        }
+        exit 0 unless $said =~ /^(\d+)/;
+        my $group = $1;
+        kill "TERM", -$group;
+        my $kill_group_at = time + $grace;
+        select undef, undef, undef, 0.05 while time < $kill_group_at && kill 0, -$group;
+        kill "KILL", -$group;
+        exit 0;
+      }
+      setpgid($sentinel, $sentinel);
+      close $heard;
       my $child = fork;
       exit 127 unless defined $child;
       if ($child == 0) {
         $SIG{$_} = "DEFAULT" for qw(TERM INT HUP);
         kill $pending, $$ if $pending;
         setpgid(0, 0);
+        { local $SIG{PIPE} = "IGNORE"; syswrite $tell, "$$\n"; }
         sigprocmask(SIG_SETMASK, $mask);
         exec @ARGV;
         exit 127;
@@ -264,6 +298,7 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
       sub finish {
         my $status = shift;
         kill "KILL", -$pid if $kill_at;
+        { local $SIG{PIPE} = "IGNORE"; syswrite $tell, "done"; }
         exit 124 if $timed_out;
         exit 130 if $interrupted;
         exit(($status & 127) ? 128 + ($status & 127) : $status >> 8);

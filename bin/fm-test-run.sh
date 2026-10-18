@@ -79,13 +79,12 @@
 #                   process group under fm_exec_timed (bin/fm-timeout-lib.sh),
 #                   whose watchdog stays in the runner's group. Killing the
 #                   runner the caller launched, even with KILL, also when the
-#                   machine gate re-executed it, or sending TERM, INT, or HUP
-#                   to the runner's group, takes the running script's group
-#                   down rather than leaving it behind, and no further script
-#                   starts; an interrupted script ends the run with exit 130
-#                   even when the runner inherited INT ignored. A KILL to the
-#                   runner's whole group kills the watchdog too, and a stop
-#                   (Ctrl-Z) does not reach the script's group, so either
+#                   machine gate re-executed it, or sending TERM, INT, HUP, or
+#                   KILL to the runner's group, takes the running script's
+#                   group down rather than leaving it behind, and no further
+#                   script starts; an interrupted script ends the run with
+#                   exit 130 even when the runner inherited INT ignored. A
+#                   stop (Ctrl-Z) does not reach the script's group, so it
 #                   leaves the script running. Taking the group down needs
 #                   perl: fm_exec_timed's timeout fallback bounds the script
 #                   only by its deadline.
