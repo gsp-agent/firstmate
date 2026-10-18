@@ -5665,6 +5665,48 @@ SH
   pass "fm-teardown: a stage past its limit moves nothing, keeps the folder whole, stays within memory on accented text, closes the backlog item and is retried"
 }
 
+test_task_data_stage_limit_bounds_reference_reads() {
+  local case_dir task record real_python seconds
+  case_dir=$(make_case task-data-stage-slow-reads)
+  task="$case_dir/data/task-x1"
+  record="$task/record/data-cleanup.json"
+  mkdir -p "$task"
+  printf 'Bead: tst-slow1\n' > "$task/brief.md"
+  printf 'scratch\n' > "$task/scratch.bin"
+  real_python=$(command -v python3)
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+case " \$* " in
+  *" stage "*)
+    date +%s > "$case_dir/stage-start"
+    "$real_python" "\$@"
+    status=\$?
+    date +%s > "$case_dir/stage-end"
+    exit "\$status" ;;
+esac
+exec "$real_python" "\$@"
+SH
+  printf '#!/usr/bin/env bash\nsleep 8\n' > "$case_dir/fakebin/br"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/python3" "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  FM_TEARDOWN_DATA_STAGE_TIMEOUT=1 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "teardown with a slow reference read failed: $(cat "$case_dir/err")"
+  seconds=$(($(cat "$case_dir/stage-end") - $(cat "$case_dir/stage-start")))
+  [ "$seconds" -le 5 ] || fail "the stage ran ${seconds}s with a 1s limit while a reference read took 8s"
+  [ "$(backlog_row_state "$case_dir")" = "done" ] \
+    || fail "a slow reference read left the backlog item at $(backlog_row_state "$case_dir")"
+  assert_present "$task/scratch.bin" "a stage stopped by its limit moved scratch"
+  assert_absent "$task/.cleanup-hold" "a stage stopped by its limit staged data"
+  jq -e '.retained == "reference matching passed its 1s stage limit"' "$record" >/dev/null \
+    || fail "the cleanup record did not name the stage limit a slow reference read passed: $(cat "$record")"
+  pass "fm-teardown: the stage limit also bounds slow reference reads before matching"
+}
+
 test_task_data_slow_expire_releases_locks() {
   local case_dir old young held beads started send_pid teardown_pid rc i seconds
   case_dir=$(make_case task-data-slow-expire)
@@ -7847,6 +7889,7 @@ test_task_data_cleanup
 test_task_data_large_kept_evidence
 test_task_data_oversized_kept_evidence
 test_task_data_stage_stops_at_its_limit
+test_task_data_stage_limit_bounds_reference_reads
 test_task_data_slow_expire_releases_locks
 test_task_data_expire_skips_expired_receipts
 test_task_data_expire_cut_off_hold_moves_back
