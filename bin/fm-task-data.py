@@ -82,7 +82,8 @@ If that attempt is cut off too, mark sets expiry "too-large": later teardowns
 skip the hold, keep what remains of it, and name it in a warning each time so
 it can be expired by hand with `bash fm-task-data-lib.sh expire DATA STATE ID`,
 which takes the task's meta lock and refuses a live task.
-Prepare, stage and expire clear the mark at their first record write.
+Prepare, stage and expire clear a cut-off mark at their first record write; a
+too-large mark stays until expiry finishes.
 The holds the budget never reached are named in one warning.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.
@@ -704,7 +705,8 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     for source in record["sources"]:
         source.setdefault("backlog", {"data": str(data), "task": None})
     views = [(root, files, repos)]
-    record.pop("expiry", None)
+    if record.get("expiry") != "too-large":
+        record.pop("expiry", None)
     record.pop("retained", None)
     write_record(root, record)
     if action == "prepare":
@@ -757,6 +759,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
             guard_command(["rmdir", "--", str(recovery)])
         if not any(leaves for _, leaves in scratch):
             record["expired"] = True
+            record.pop("expiry", None)
             write_record(root, record)
             return
     for path, leaves in scratch:
@@ -766,6 +769,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                 raise ValueError(f"recovery collision: {destination}")
     if not any(leaves for _, leaves in scratch) and not any((path / HOLD).exists() for path, _, _ in views):
         record.update(complete=True, expired=True)
+        record.pop("expiry", None)
         write_record(root, record)
         return
     record.update(complete=False, expired=False)

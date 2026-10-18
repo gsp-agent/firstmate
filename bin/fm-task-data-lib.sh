@@ -76,9 +76,13 @@ fm_task_data_expire_others() { # <data> <state> <id>
 }
 
 # Expire one hold with no time limit under the task meta lock teardown takes;
-# a held lock or a live task refuses.
+# a held lock or a live task refuses. A run that only staged a never-staged
+# hold is followed by one more under the same lock, and a hold still not
+# expired at the end is an error.
 fm_task_data_expire_by_hand() { # <data> <state> <id>
-  local data=$1 state=$2 id=$3 lock status=0
+  local data=$1 state=$2 id=$3 lock record helper status=0
+  helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
+  record="$data/$id/record/data-cleanup.json"
   fm_task_id_path_safe "$id" || { echo "error: unsafe task id: $id" >&2; return 1; }
   lock=$(fm_meta_lock_path "$state/$id.meta") || return 1
   if ! fm_lock_try_acquire "$lock"; then
@@ -89,7 +93,14 @@ fm_task_data_expire_by_hand() { # <data> <state> <id>
     echo "error: task $id is live; nothing was expired" >&2
     status=1
   else
-    python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py" expire "$data" "$state" "$id" || status=$?
+    python3 "$helper" expire "$data" "$state" "$id" || status=$?
+    if [ "$status" = 0 ] && jq -e '.complete == true and .expired != true' "$record" >/dev/null 2>&1; then
+      python3 "$helper" expire "$data" "$state" "$id" || status=$?
+    fi
+    if [ -e "$record" ] && ! jq -e '.expired == true' "$record" >/dev/null 2>&1; then
+      echo "error: task data $id is not expired; what remains of it stays held" >&2
+      [ "$status" != 0 ] || status=1
+    fi
   fi
   fm_lock_release "$lock"
   return "$status"
