@@ -1,0 +1,80 @@
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85 (tmux dir /tmp/fml.Ept7zU)
+beads: .agent-config-lpt gsp-7e6 lab-hg4 lab-wj6
+one real br show took about 0.1s
+
+=== S1: a task naming a dotted .agent-config bead, a gsp bead and a project bead
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/task-beads.out
+task data task-beads: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/data/task-beads/.cleanup-hold until the next completed task
+teardown task-beads complete (window firstmate:fm-task-beads, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/missing)
+Backlog: task-beads is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/task-beads.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85
+PASS: teardown exits 0
+PASS: backlog row closed (done)
+PASS: no pending backlog close left
+PASS: task record retired
+PASS: no 'Invalid id' or 'not found' in teardown output
+PASS: agent-proof.png linked from its bead stays in place
+PASS: gsp-proof.png linked from its bead stays in place
+PASS: proj-proof.png linked from its bead stays in place
+PASS: unlinked scratch staged into .cleanup-hold
+{"complete":true,"expired":false,"beads":[".agent-config-lpt","gsp-7e6","lab-hg4"],"unread":[]}
+true
+PASS: record names all three beads and none unread
+
+=== S2: a task naming beads that cannot be read (dotted missing, unknown prefix, project database unavailable)
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/task-unread.out
+teardown task-unread complete (window firstmate:fm-task-unread, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/missing)
+Backlog: task-unread is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/task-unread.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85
+warning: task data task-unread retained whole for retry: unread references: .agent-config-zzzzz, nope-qq1x
+warning: task data retained for recovery: unread references: .agent-config-zzzzz, nope-qq1x
+warning: task-unread teardown completed, but task-data cleanup needs a retry
+PASS: teardown exits 0 with unreadable beads
+PASS: backlog row closed (done) despite unread beads
+PASS: no pending backlog close left
+PASS: scratch not moved (folder whole)
+PASS: nothing staged
+PASS: teardown output names .agent-config-zzzzz
+PASS: teardown output names nope-qq1x
+{"complete":false,"expired":null,"unread":[".agent-config-zzzzz","nope-qq1x"]}
+true
+PASS: record complete=false and lists both unread ids
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/task-retry.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85
+warning: task data task-retry retained whole for retry: unread references: lab-wj6
+warning: task data retained for recovery: unread references: lab-wj6
+warning: task-retry teardown completed, but task-data cleanup needs a retry
+warning: task data retained for recovery: unread references: .agent-config-zzzzz, nope-qq1x
+warning: task-retry teardown completed, but expiring other tasks' held data needs a retry
+PASS: teardown exits 0 while the project bead database is unavailable
+PASS: backlog row closed (done)
+PASS: folder kept whole: scratch in place
+PASS: folder kept whole: nothing staged
+true
+PASS: record names lab-wj6 unread
+
+=== S2 retry: the next teardown of a different task retries every unread hold
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/task-next.out
+teardown task-next complete (window firstmate:fm-task-next, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/missing)
+Backlog: task-next is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+task data task-retry: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/data/task-retry/.cleanup-hold until the next completed task
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85/task-next.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.G00k85
+warning: task data retained for recovery: unread references: .agent-config-zzzzz, nope-qq1x
+warning: task-next teardown completed, but expiring other tasks' held data needs a retry
+PASS: next teardown exits 0
+PASS: retried hold now readable: scratch staged
+PASS: retried hold keeps its bead-linked evidence
+true
+PASS: retried hold's record clears its unread list
+PASS: still-unreadable hold still whole: scratch in place
+PASS: still-unreadable hold still whole: nothing staged
+PASS: S1 hold expired by the next different task (real dcg-guarded rm)
+PASS: S1 agent-proof.png survives expiry
+PASS: S1 gsp-proof.png survives expiry
+PASS: S1 proj-proof.png survives expiry
+true
+PASS: S1 record expired
+lab1 failures: 0

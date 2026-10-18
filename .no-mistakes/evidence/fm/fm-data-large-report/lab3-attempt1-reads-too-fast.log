@@ -1,0 +1,13 @@
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.2X6g0f (tmux dir /tmp/fml.QPZm3A)
+project beads: lab-p4r lab-kil lab-6m9 lab-tku lab-o6s lab-1s0 lab-clq lab-amd lab-zs1 lab-c5t lab-15n lab-xwt
+one real br show took about 0.05s
+
+=== setup: aa-staged names 12 beads and is staged by its own teardown
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.2X6g0f/aa-staged.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.2X6g0f
+PASS: aa-staged teardown exits 0
+PASS: aa-staged scratch staged
+true
+PASS: aa-staged record complete
+
+=== S6 + S5b: bb-unstaged's own stage passes its 2s limit; its expiry of aa-staged runs after its locks are released

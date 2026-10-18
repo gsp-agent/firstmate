@@ -1,0 +1,78 @@
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5 (tmux dir /tmp/fml.gOKJxY)
+
+=== S3: kept report.md of 1.4 MB with a link at its very end
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/big-report.out
+task data big-report: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/data/big-report/.cleanup-hold until the next completed task
+teardown big-report complete (window firstmate:fm-big-report, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/missing)
+Backlog: big-report is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/big-report.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5
+PASS: teardown exits 0
+PASS: backlog row closed (done)
+PASS: no pending backlog close (no cleanup_incomplete)
+PASS: scratch staged into .cleanup-hold
+PASS: file linked at the end of the large report stays
+PASS: report bytes unchanged (1400041)
+{"complete":true,"expired":false,"unread":[]}
+
+=== S4: kept record/run.log just over 16 MiB
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/huge-log.out
+teardown huge-log complete (window firstmate:fm-huge-log, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/missing)
+Backlog: huge-log is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/huge-log.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5
+warning: task data huge-log retained whole for retry: kept evidence over 16 MiB: record/run.log
+PASS: teardown exits 0
+PASS: backlog row closed (done)
+PASS: no pending backlog close
+PASS: scratch not moved
+PASS: nothing staged
+PASS: teardown output names record/run.log
+{"complete":false,"expired":null,"unread":["record/run.log"]}
+true
+PASS: record: complete=false, unread names record/run.log
+
+=== S5: stage limit: near-16 MiB report with one accented letter and 200 unmatched files, limit 2s
+stage-limit teardown wall time: 11s
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/stage-limit.out
+teardown stage-limit complete (window firstmate:fm-stage-limit, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/missing)
+Backlog: stage-limit is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/stage-limit.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5
+warning: task data stage-limit retained whole for retry: reference matching passed its 2s stage limit
+warning: task data huge-log retained whole for retry: kept evidence over 16 MiB: record/run.log
+PASS: teardown exits 0
+PASS: backlog row closed (done)
+PASS: no pending backlog close
+PASS: nothing staged
+PASS: all 200 scratch files still in place
+PASS: warning names the task and its 2s stage limit
+{"complete":false,"expired":null,"retained":"reference matching passed its 2s stage limit"}
+true
+PASS: record retained field names the limit
+
+=== S9 + retries: 3000 expired records dated 2020, then the next teardown (default 10s budget)
+pending listing over 3003 records took 0.2s and listed:
+stage-limit	
+huge-log	
+next teardown wall time: 9s
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/task-next.out
+teardown task-next complete (window firstmate:fm-task-next, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/missing)
+Backlog: task-next is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+task data stage-limit: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/data/stage-limit/.cleanup-hold until the next completed task
+task data huge-log: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/data/huge-log/.cleanup-hold until the next completed task
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5/task-next.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.dimlu5
+PASS: next teardown exits 0
+PASS: live large-report hold expired despite 3000 older expired records
+PASS: large report and its linked file survive expiry
+PASS: linked capture survives expiry
+true
+PASS: large-report record expired
+PASS: huge-log folder retried once the log shrank: scratch staged
+true
+PASS: huge-log record no longer lists run.log unread
+PASS: stage-limit folder retried: scratch staged
+true
+PASS: stage-limit retained note cleared
+lab2 failures: 0

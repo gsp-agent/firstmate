@@ -1,0 +1,147 @@
+lab home: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU (tmux dir /tmp/fml.igHx3z)
+project beads: 300 (first lab-086i)
+one real br show took about 0.04s
+
+=== setup: aa-staged names 300 beads and is staged by its own teardown
+aa-staged teardown (300 bead reads under its own lock, stage limit 600s) took 115s
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/aa-staged.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU
+PASS: aa-staged teardown exits 0
+PASS: aa-staged scratch staged
+true
+PASS: aa-staged record complete
+
+=== S6 + S5b: bb-unstaged's own stage passes its 2s limit; its expiry of aa-staged runs after its locks are released
+expiry of aa-staged running: yes
+locks present in state/ while expiry runs:
+.meta-aa-staged.lock
+PASS: expiry of another task's hold is running
+PASS: home-wide lease lock released during expiry
+PASS: bb-unstaged meta lock released during expiry
+PASS: bb-unstaged control lock released during expiry
+concurrent fm-send: rc=0 in 3.82s; teardown still running afterwards: yes
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/send.out
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/send.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU
+PASS: concurrent fm-send succeeded
+PASS: fm-send finished while the teardown was still expiring (not blocked behind it)
+PASS: fm-send recorded the steer in live-y's inbox
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bb-unstaged.out
+teardown bb-unstaged complete (window firstmate:fm-bb-unstaged, worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/missing)
+Backlog: bb-unstaged is closed in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bb-unstaged.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU
+warning: task data bb-unstaged retained whole for retry: unread references bb-unstaged, lab-086i, lab-08ev, lab-0cp, lab-0dw, lab-0ikc, lab-0jv, lab-0mis, lab-0s03, lab-0sn8, lab-0u04, lab-141, lab-14xa, lab-15l, lab-15x, lab-17go, lab-1c47, lab-1fy, lab-1ht2, lab-1su4, lab-1thq, lab-1v9, lab-1x6, lab-1zj, lab-21tw, lab-29hr, lab-2ab, lab-2aw, lab-2ks, lab-2wr, lab-2wu, lab-36h, lab-38b, lab-38j, lab-38k, lab-38t, lab-3du, lab-3igc, lab-3jl, lab-3ky, lab-3np, lab-3v9, lab-3w8x, lab-40iy, lab-47j3, lab-4fgz, lab-4j2, lab-4nwg, lab-4ocv, lab-4ql, lab-4v6, lab-4v7, lab-4x6, lab-4xx, lab-4yw, lab-50r0, lab-55v8, lab-59o, lab-5l5, lab-5sq, lab-5t9, lab-5uuo, lab-65eu, lab-67jf, lab-6go, lab-6j3l, lab-6omh, lab-6xb0, lab-7436, lab-7al, lab-7f5, lab-7g7, lab-7gn, lab-7jk, lab-7mr, lab-7th, lab-7wh, lab-7zt, lab-82bc, lab-82g, lab-83n, lab-8f4j, lab-8s7m, lab-8tn0, lab-94f, lab-963c, lab-9ji, lab-9u1, lab-9y05, lab-a0v, lab-a2f, lab-a9ku, lab-aaaf, lab-ac3a, lab-af0e, lab-ag8, lab-am4, lab-atz, lab-au21, lab-ayv, lab-b0u, lab-b56, lab-b8j, lab-be9, lab-bik, lab-bst, lab-btx3, lab-c1c, lab-c5y7, lab-c7eb, lab-cgn, lab-cic, lab-cwlv, lab-cz9, lab-d3x, lab-d4j, lab-d9xk, lab-dfy, lab-dh3, lab-dlje, lab-dod, lab-dxi, lab-dy9, lab-e9e, lab-e9k, lab-el00, lab-eos5, lab-ep2x, lab-etz, lab-evjp, lab-ew29, lab-exj, lab-exsl, lab-f0l8, lab-f11, lab-fa3, lab-fbof, lab-fe5r, lab-fk7, lab-flm, lab-fr6, lab-fx2n, lab-g1h, lab-gew, lab-ggit, lab-gi7, lab-goy, lab-grgz, lab-gtq, lab-gtz, lab-gu3, lab-gwt, lab-gwy, lab-gxmv, lab-h05h, lab-hapk, lab-hne, lab-hnfy, lab-hoe, lab-huyo, lab-i1u, lab-i2wr, lab-i3b, lab-iaav, lab-ii1, lab-ip8, lab-ir7p, lab-irnk, lab-ivsk, lab-j062, lab-j3vr, lab-jc48, lab-je7r, lab-jmcm, lab-jr7, lab-jz4, lab-k14, lab-k6z, lab-k8vv, lab-kaq, lab-kho, lab-ki2d, lab-kio, lab-kkw, lab-ksi, lab-kun, lab-kxec, lab-l0p, lab-l0z, lab-l3dt, lab-l3j, lab-l3zf, lab-l7fi, lab-lcg, lab-ld8, lab-lh2, lab-lhx, lab-lo1t, lab-lsh, lab-ltf6, lab-lxy, lab-m25, lab-m7k, lab-me7, lab-mmic, lab-mo46, lab-mox, lab-n4h, lab-n8z, lab-nac6, lab-nd41, lab-ngx, lab-ni48, lab-nn2, lab-npd, lab-oob, lab-op5, lab-oxaz, lab-p4jq, lab-p4p1, lab-p6w, lab-pi4j, lab-po5l, lab-pqab, lab-pxq9, lab-q62b, lab-qay, lab-qfum, lab-qhz, lab-r4bw, lab-r50m, lab-r6hn, lab-r7t, lab-r8kt, lab-r92, lab-rfxi, lab-rgh, lab-rhdf, lab-rhs, lab-rr2m, lab-rro, lab-rxy, lab-s21, lab-s8bz, lab-s931, lab-sfs, lab-sh4, lab-sid, lab-sjw, lab-sm0, lab-sob, lab-sr3k, lab-stj, lab-sumk, lab-svq9, lab-svrz, lab-t1iw, lab-t5r, lab-tibw, lab-tlic, lab-tpp6, lab-u5y, lab-u8w, lab-ukx, lab-ulv7, lab-ust, lab-v4o, lab-v6im, lab-vg96, lab-vgve, lab-vjf, lab-vpp, lab-vtvm, lab-w0t, lab-w1f7, lab-w7k, lab-wn3v, lab-wpi, lab-wvll, lab-wy86, lab-x4kx, lab-xa1r, lab-xdba, lab-xgr6, lab-xk8m, lab-xkt, lab-xm6, lab-xwgh, lab-xwm3, lab-xz2, lab-yk4, lab-yvl, lab-z1tl, lab-z3n6, lab-z4qt, lab-z4r, lab-z88t, lab-ze3a, lab-znz, lab-zpsm, lab-zwr: Command '['bash', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56DGT22TKWCVNN64F9YXP0J/bin/fm-task-data-lib.sh', 'backlog-references', '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/data', 'bb-unstaged', '0', '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/projects/proj', 'lab-086i', 'lab-08ev', 'lab-0cp', 'lab-0dw', 'lab-0ikc', 'lab-0jv', 'lab-0mis', 'lab-0s03', 'lab-0sn8', 'lab-0u04', 'lab-141', 'lab-14xa', 'lab-15l', 'lab-15x', 'lab-17go', 'lab-1c47', 'lab-1fy', 'lab-1ht2', 'lab-1su4', 'lab-1thq', 'lab-1v9', 'lab-1x6', 'lab-1zj', 'lab-21tw', 'lab-29hr', 'lab-2ab', 'lab-2aw', 'lab-2ks', 'lab-2wr', 'lab-2wu', 'lab-36h', 'lab-38b', 'lab-38j', 'lab-38k', 'lab-38t', 'lab-3du', 'lab-3igc', 'lab-3jl', 'lab-3ky', 'lab-3np', 'lab-3v9', 'lab-3w8x', 'lab-40iy', 'lab-47j3', 'lab-4fgz', 'lab-4j2', 'lab-4nwg', 'lab-4ocv', 'lab-4ql', 'lab-4v6', 'lab-4v7', 'lab-4x6', 'lab-4xx', 'lab-4yw', 'lab-50r0', 'lab-55v8', 'lab-59o', 'lab-5l5', 'lab-5sq', 'lab-5t9', 'lab-5uuo', 'lab-65eu', 'lab-67jf', 'lab-6go', 'lab-6j3l', 'lab-6omh', 'lab-6xb0', 'lab-7436', 'lab-7al', 'lab-7f5', 'lab-7g7', 'lab-7gn', 'lab-7jk', 'lab-7mr', 'lab-7th', 'lab-7wh', 'lab-7zt', 'lab-82bc', 'lab-82g', 'lab-83n', 'lab-8f4j', 'lab-8s7m', 'lab-8tn0', 'lab-94f', 'lab-963c', 'lab-9ji', 'lab-9u1', 'lab-9y05', 'lab-a0v', 'lab-a2f', 'lab-a9ku', 'lab-aaaf', 'lab-ac3a', 'lab-af0e', 'lab-ag8', 'lab-am4', 'lab-atz', 'lab-au21', 'lab-ayv', 'lab-b0u', 'lab-b56', 'lab-b8j', 'lab-be9', 'lab-bik', 'lab-bst', 'lab-btx3', 'lab-c1c', 'lab-c5y7', 'lab-c7eb', 'lab-cgn', 'lab-cic', 'lab-cwlv', 'lab-cz9', 'lab-d3x', 'lab-d4j', 'lab-d9xk', 'lab-dfy', 'lab-dh3', 'lab-dlje', 'lab-dod', 'lab-dxi', 'lab-dy9', 'lab-e9e', 'lab-e9k', 'lab-el00', 'lab-eos5', 'lab-ep2x', 'lab-etz', 'lab-evjp', 'lab-ew29', 'lab-exj', 'lab-exsl', 'lab-f0l8', 'lab-f11', 'lab-fa3', 'lab-fbof', 'lab-fe5r', 'lab-fk7', 'lab-flm', 'lab-fr6', 'lab-fx2n', 'lab-g1h', 'lab-gew', 'lab-ggit', 'lab-gi7', 'lab-goy', 'lab-grgz', 'lab-gtq', 'lab-gtz', 'lab-gu3', 'lab-gwt', 'lab-gwy', 'lab-gxmv', 'lab-h05h', 'lab-hapk', 'lab-hne', 'lab-hnfy', 'lab-hoe', 'lab-huyo', 'lab-i1u', 'lab-i2wr', 'lab-i3b', 'lab-iaav', 'lab-ii1', 'lab-ip8', 'lab-ir7p', 'lab-irnk', 'lab-ivsk', 'lab-j062', 'lab-j3vr', 'lab-jc48', 'lab-je7r', 'lab-jmcm', 'lab-jr7', 'lab-jz4', 'lab-k14', 'lab-k6z', 'lab-k8vv', 'lab-kaq', 'lab-kho', 'lab-ki2d', 'lab-kio', 'lab-kkw', 'lab-ksi', 'lab-kun', 'lab-kxec', 'lab-l0p', 'lab-l0z', 'lab-l3dt', 'lab-l3j', 'lab-l3zf', 'lab-l7fi', 'lab-lcg', 'lab-ld8', 'lab-lh2', 'lab-lhx', 'lab-lo1t', 'lab-lsh', 'lab-ltf6', 'lab-lxy', 'lab-m25', 'lab-m7k', 'lab-me7', 'lab-mmic', 'lab-mo46', 'lab-mox', 'lab-n4h', 'lab-n8z', 'lab-nac6', 'lab-nd41', 'lab-ngx', 'lab-ni48', 'lab-nn2', 'lab-npd', 'lab-oob', 'lab-op5', 'lab-oxaz', 'lab-p4jq', 'lab-p4p1', 'lab-p6w', 'lab-pi4j', 'lab-po5l', 'lab-pqab', 'lab-pxq9', 'lab-q62b', 'lab-qay', 'lab-qfum', 'lab-qhz', 'lab-r4bw', 'lab-r50m', 'lab-r6hn', 'lab-r7t', 'lab-r8kt', 'lab-r92', 'lab-rfxi', 'lab-rgh', 'lab-rhdf', 'lab-rhs', 'lab-rr2m', 'lab-rro', 'lab-rxy', 'lab-s21', 'lab-s8bz', 'lab-s931', 'lab-sfs', 'lab-sh4', 'lab-sid', 'lab-sjw', 'lab-sm0', 'lab-sob', 'lab-sr3k', 'lab-stj', 'lab-sumk', 'lab-svq9', 'lab-svrz', 'lab-t1iw', 'lab-t5r', 'lab-tibw', 'lab-tlic', 'lab-tpp6', 'lab-u5y', 'lab-u8w', 'lab-ukx', 'lab-ulv7', 'lab-ust', 'lab-v4o', 'lab-v6im', 'lab-vg96', 'lab-vgve', 'lab-vjf', 'lab-vpp', 'lab-vtvm', 'lab-w0t', 'lab-w1f7', 'lab-w7k', 'lab-wn3v', 'lab-wpi', 'lab-wvll', 'lab-wy86', 'lab-x4kx', 'lab-xa1r', 'lab-xdba', 'lab-xgr6', 'lab-xk8m', 'lab-xkt', 'lab-xm6', 'lab-xwgh', 'lab-xwm3', 'lab-xz2', 'lab-yk4', 'lab-yvl', 'lab-z1tl', 'lab-z3n6', 'lab-z4qt', 'lab-z4r', 'lab-z88t', 'lab-ze3a', 'lab-znz', 'lab-zpsm', 'lab-zwr']' timed out after 60 seconds
+warning: task data bb-unstaged retained whole for retry: reference matching passed its 2s stage limit
+warning: task data aa-staged expiry stopped after 8s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 3s attempt
+warning: bb-unstaged teardown completed, but expiring other tasks' held data needs a retry
+PASS: bb-unstaged teardown exits 0
+PASS: bb-unstaged backlog row closed (done)
+PASS: bb-unstaged: no pending backlog close
+PASS: bb-unstaged kept whole by its stage limit
+PASS: bb-unstaged nothing staged
+PASS: aa-staged cut off by the 8s budget and named
+PASS: aa-staged hold kept after the cut-off
+true
+PASS: aa-staged record marked cut-off
+
+=== S7: cut-off -> one full attempt -> too-large -> skipped and named (budget 2s, full attempt 3s)
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/task-c.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU
+warning: task data bb-unstaged expiry stopped after 2s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 3s attempt
+warning: the 2s task-data expiry budget ran out; holds left for a later teardown: aa-staged
+warning: task-c teardown completed, but expiring other tasks' held data needs a retry
+PASS: task-c exits 0
+PASS: least recently tried hold (bb-unstaged) went first and was cut off
+PASS: the hold the budget never reached is named
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/task-d.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU
+warning: task data aa-staged expiry stopped after its one full 3s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56DGT22TKWCVNN64F9YXP0J/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/state aa-staged
+warning: the 2s task-data expiry budget ran out; holds left for a later teardown: bb-unstaged
+warning: task-d teardown completed, but expiring other tasks' held data needs a retry
+PASS: task-d exits 0
+PASS: aa-staged got its one full 3s attempt (not the 2s budget)
+PASS: warning advertises the by-hand command
+true
+PASS: aa-staged marked too-large
+PASS: aa-staged hold still kept
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/task-e.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: 336s ago, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: aa-staged
+warning: task data bb-unstaged expiry stopped after its one full 3s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56DGT22TKWCVNN64F9YXP0J/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/state bb-unstaged
+warning: task-e teardown completed, but expiring other tasks' held data needs a retry
+PASS: task-e exits 0
+PASS: task-e skips and names aa-staged
+PASS: bb-unstaged got its one full 3s attempt
+true
+PASS: bb-unstaged marked too-large while still never staged
+task-f wall time 16s
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/task-f.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU
+WARNING: watcher still down (same stale episode; last beat: 354s ago, grace 300s) - full banner already printed this episode.
+warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: aa-staged bb-unstaged
+PASS: task-f exits 0
+PASS: task-f names both too-large holds and tries neither
+PASS: task-f made no new attempt
+advertised for aa-staged: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56DGT22TKWCVNN64F9YXP0J/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/state aa-staged
+advertised for bb-unstaged: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56DGT22TKWCVNN64F9YXP0J/bin/fm-task-data-lib.sh expire /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/data /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/state bb-unstaged
+
+=== S8a: the advertised command refuses while another live process holds the task lock
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bh-locked.out
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bh-locked.err
+error: task bb-unstaged is locked by another process; nothing was expired, retry later
+PASS: refuses with non-zero exit
+PASS: says the task is locked and nothing was expired
+PASS: record untouched
+PASS: scratch untouched
+
+=== S8b: the advertised command refuses a live task
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bh-live.err
+error: task aa-staged is live; nothing was expired
+PASS: refuses with non-zero exit
+PASS: says the task is live
+PASS: hold untouched
+
+=== S8c: by hand on the never-staged too-large hold (dead holder's stale lock left behind)
+by-hand bb-unstaged took 59s
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bh-bb.out
+task data bb-unstaged: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/data/bb-unstaged/.cleanup-hold until the next completed task
+task data bb-unstaged expired; nothing of it stays held
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bh-bb.err
+PASS: exits 0
+PASS: last line states the final state
+PASS: never-staged scratch gone
+PASS: no hold left
+true
+PASS: record expired, too-large mark cleared
+PASS: evidence kept (brief.md)
+PASS: task lock released
+
+=== S8d (adversarial): by hand on the already-staged too-large hold after the operator moved aa2.bin back
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bh-aa.out
+task data aa-staged: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/data/aa-staged/.cleanup-hold until the next completed task
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bh-aa.err
+error: task data aa-staged is not expired; what remains of it stays held
+PASS: exits non-zero
+PASS: names the hold as not expired
+PASS: the moved-back file is re-held, not deleted
+PASS: the old hold contents were expired
+true
+PASS: record complete, not expired, still too-large
+PASS: no false 'expired' claim on stdout
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bh-aa2.out
+--- /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Cor4dU/bh-aa2.err
+PASS: a second by-hand run then expires it (exit 0)
+PASS: hold gone after the second run
+true
+PASS: record expired, mark cleared
+lab3 failures: 0
+
+Note: this run ended with exit 144 after "lab3 failures: 0" because the original EXIT trap ran `kill 0` (HOLDER was empty); the trap is fixed in the script, and the lab tmux server, socket dir and home were removed by hand afterwards.

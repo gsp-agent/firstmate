@@ -1,0 +1,39 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj (tmux dir /tmp/fml.W3PVIY)
+beads: .agent-config-woa gsp-h6c lab-x75 lab-sn2
+one real br show took about 1.35s
+
+=== S1: a task naming a dotted .agent-config bead, a gsp bead and a project bead
+--- /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj/task-beads.out
+--- /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj/task-beads.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj
+warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.InBpVj/data
+error: task-beads's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for task-beads); the pending close is recorded and the next session start retries it
+FAIL: teardown exits 0
+FAIL: backlog row closed (done)
+FAIL: no pending backlog close left
+FAIL: task record retired
+PASS: no 'Invalid id' or 'not found' in teardown output
+PASS: agent-proof.png linked from its bead stays in place
+PASS: gsp-proof.png linked from its bead stays in place
+PASS: proj-proof.png linked from its bead stays in place
+FAIL: unlinked scratch staged into .cleanup-hold
+cat: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj/data/task-beads/record/data-cleanup.json: No such file or directory
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj/data/task-beads/record/data-cleanup.json: No such file or directory
+FAIL: record names all three beads and none unread
+
+=== S2: a task naming beads that cannot be read (dotted missing, unknown prefix, project database unavailable)
+--- /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj/task-unread.out
+--- /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj/task-unread.err
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj
+warning: task data retained for recovery: not a real directory: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.InBpVj/data
+error: task-unread's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data cleanup could not be recorded for task-unread); the pending close is recorded and the next session start retries it
+FAIL: teardown exits 0 with unreadable beads
+FAIL: backlog row closed (done) despite unread beads
+FAIL: no pending backlog close left
+PASS: scratch not moved (folder whole)
+PASS: nothing staged
+FAIL: teardown output names .agent-config-zzzzz
+FAIL: teardown output names nope-qq1x
+cat: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj/data/task-unread/record/data-cleanup.json: No such file or directory
+jq: error: Could not open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.InBpVj/data/task-unread/record/data-cleanup.json: No such file or directory
+FAIL: record complete=false and lists both unread ids
