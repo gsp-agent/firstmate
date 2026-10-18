@@ -1,0 +1,33 @@
+epoch	rss_kb	pid	command
+1792304150	2032480	44362	/opt/homebrew/bin/node
+1792304150	1339408	28542	/Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1
+1792304150	1190736	38306	/Applications/BlitzTree.app/Contents/MacOS/BlitzTree
+1792304150	1077104	5410	/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+1792304150	784048	7089	/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/155.0.8059.40/Helpers/Codex (Renderer).app/Contents/MacOS/Codex (Renderer)
+1792304150	777600	7099	/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex
+1792304150	773648	33708	git
+1792304150	762416	18555	/Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1
+1792304161	1447440	44362	/opt/homebrew/bin/node
+1792304161	1340688	28542	/Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1
+1792304161	1190736	38306	/Applications/BlitzTree.app/Contents/MacOS/BlitzTree
+1792304161	1077424	5410	/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+1792304161	784048	7089	/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/155.0.8059.40/Helpers/Codex (Renderer).app/Contents/MacOS/Codex (Renderer)
+1792304161	777648	7099	/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex
+1792304161	762416	18555	/Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1
+1792304161	725504	82455	claude
+1792304172	1505152	44362	/opt/homebrew/bin/node
+1792304172	1341680	28542	/Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1
+1792304172	1190736	38306	/Applications/BlitzTree.app/Contents/MacOS/BlitzTree
+1792304172	1077600	5410	/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+1792304172	784048	7089	/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/155.0.8059.40/Helpers/Codex (Renderer).app/Contents/MacOS/Codex (Renderer)
+1792304172	777648	7099	/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex
+1792304172	762416	18555	/Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1
+1792304172	729360	82455	claude
+1792304183	1505152	44362	/opt/homebrew/bin/node
+1792304183	1346336	28542	/Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1
+1792304183	1190736	38306	/Applications/BlitzTree.app/Contents/MacOS/BlitzTree
+1792304183	1077984	5410	/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+1792304183	784048	7089	/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/155.0.8059.40/Helpers/Codex (Renderer).app/Contents/MacOS/Codex (Renderer)
+1792304183	777648	7099	/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex
+1792304183	762416	18555	/Users/dalecarman/.local/bin/muse-bin-1.4.10-R6427.1
+1792304183	729440	82455	claude

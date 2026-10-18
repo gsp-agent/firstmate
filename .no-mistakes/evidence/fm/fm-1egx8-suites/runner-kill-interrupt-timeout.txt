@@ -1,0 +1,97 @@
+=== serial: KILL the runner pid
+runner pid 58679 (own group); script+child pids started: 58808 58816 
+sent: KILL to runner pid 58679
+/tmp/fm-nmtest.wZSukX/bin/runner-scenarios.sh: line 77: 58679 Killed: 9                  ( cd "$FX/repo" && exec env TMPDIR="$FX/tmp" STARTS_FILE="$FX/starts" CLEANED_FILE="$FX/cleaned" FM_TEST_MACHINE_GATE="$gate" perl -e "$launcher" "$RUNNER" "$@" ) > "$FX/out" 2>&1
+runner rc=137; still alive after 1s: []
+scripts that ran their TERM/INT cleanup: [58808 ]
+FM_TEST_BEGIN count=1 (expected 1: nothing starts after the kill)
+  | FM_TEST_BEGIN 2026-10-18T06:16:47Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+scratch left in runner TMPDIR: [fm-test-run.prp0bS ]
+
+=== serial: KILL the runner's whole process group (sentinel path)
+runner pid 59304 (own group); script+child pids started: 59419 59425 
+sent: group-KILL to runner group -59304
+/tmp/fm-nmtest.wZSukX/bin/runner-scenarios.sh: line 77: 59304 Killed: 9                  ( cd "$FX/repo" && exec env TMPDIR="$FX/tmp" STARTS_FILE="$FX/starts" CLEANED_FILE="$FX/cleaned" FM_TEST_MACHINE_GATE="$gate" perl -e "$launcher" "$RUNNER" "$@" ) > "$FX/out" 2>&1
+runner rc=137; still alive after 0s: []
+scripts that ran their TERM/INT cleanup: [59419 ]
+FM_TEST_BEGIN count=1 (expected 1: nothing starts after the kill)
+  | FM_TEST_BEGIN 2026-10-18T06:16:48Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+scratch left in runner TMPDIR: [fm-test-run.bABFSK fm-test-run.prp0bS ]
+
+=== serial: TERM the runner (suite gets its TERM grace)
+runner pid 59630 (own group); script+child pids started: 59727 59736 
+sent: TERM to runner pid 59630
+runner rc=143; still alive after 1s: []
+scripts that ran their TERM/INT cleanup: [59727 ]
+FM_TEST_BEGIN count=1 (expected 1: nothing starts after the kill)
+  | FM_TEST_BEGIN 2026-10-18T06:16:49Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+scratch left in runner TMPDIR: [fm-test-run.bABFSK fm-test-run.prp0bS ]
+
+=== jobs=2: KILL the runner pid
+runner pid 60217 (own group); script+child pids started: 60412 60435 60433 60452 
+sent: KILL to runner pid 60217
+/tmp/fm-nmtest.wZSukX/bin/runner-scenarios.sh: line 77: 60217 Killed: 9                  ( cd "$FX/repo" && exec env TMPDIR="$FX/tmp" STARTS_FILE="$FX/starts" CLEANED_FILE="$FX/cleaned" FM_TEST_MACHINE_GATE="$gate" perl -e "$launcher" "$RUNNER" "$@" ) > "$FX/out" 2>&1
+runner rc=137; still alive after 1s: []
+scripts that ran their TERM/INT cleanup: [60412 60433 ]
+FM_TEST_BEGIN count=2 (expected 2: nothing starts after the kill)
+  | FM_TEST_BEGIN 2026-10-18T06:16:51Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+  | FM_TEST_BEGIN 2026-10-18T06:16:51Z tests/fm-crew-state.test.sh family=pure-contract-unit expected_gate_skip=none
+scratch left in runner TMPDIR: [fm-test-run.SS7Xeh fm-test-run.bABFSK fm-test-run.prp0bS ]
+
+=== jobs=2: KILL the runner's whole process group
+runner pid 60981 (own group); script+child pids started: 61158 61164 61167 61171 
+sent: group-KILL to runner group -60981
+/tmp/fm-nmtest.wZSukX/bin/runner-scenarios.sh: line 77: 60981 Killed: 9                  ( cd "$FX/repo" && exec env TMPDIR="$FX/tmp" STARTS_FILE="$FX/starts" CLEANED_FILE="$FX/cleaned" FM_TEST_MACHINE_GATE="$gate" perl -e "$launcher" "$RUNNER" "$@" ) > "$FX/out" 2>&1
+runner rc=137; still alive after 1s: []
+scripts that ran their TERM/INT cleanup: [61158 61167 ]
+FM_TEST_BEGIN count=2 (expected 2: nothing starts after the kill)
+  | FM_TEST_BEGIN 2026-10-18T06:16:52Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+  | FM_TEST_BEGIN 2026-10-18T06:16:52Z tests/fm-crew-state.test.sh family=pure-contract-unit expected_gate_skip=none
+scratch left in runner TMPDIR: [fm-test-run.SS7Xeh fm-test-run.bABFSK fm-test-run.n9Gjqj fm-test-run.prp0bS ]
+
+=== serial via machine-gate re-exec: KILL the runner the caller launched
+runner pid 61457 (own group); script+child pids started: 61678 61685 ; gate-re-executed inner runner: 61558 
+sent: KILL to runner pid 61457
+/tmp/fm-nmtest.wZSukX/bin/runner-scenarios.sh: line 77: 61457 Killed: 9                  ( cd "$FX/repo" && exec env TMPDIR="$FX/tmp" STARTS_FILE="$FX/starts" CLEANED_FILE="$FX/cleaned" FM_TEST_MACHINE_GATE="$gate" perl -e "$launcher" "$RUNNER" "$@" ) > "$FX/out" 2>&1
+runner rc=137; still alive after 1s: []
+scripts that ran their TERM/INT cleanup: [61678 ]
+FM_TEST_BEGIN count=1 (expected 1: nothing starts after the kill)
+  | FM_TEST_BEGIN 2026-10-18T06:16:53Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+  | FM_TEST_END 2026-10-18T06:16:54Z tests/fm-orphan-fixture.test.sh exit=143 duration_ms=1252 gate_skip=false
+  | fm-test-run: the runner the caller launched (pid 61457) is gone; starting no further scripts
+scratch left in runner TMPDIR: [fm-test-machine-line.r2T3Sq fm-test-run.SS7Xeh fm-test-run.bABFSK fm-test-run.n9Gjqj fm-test-run.prp0bS ]
+
+=== serial: Ctrl-C (INT to runner group)
+runner pid 62469 (own group); script+child pids started: 62561 62570 
+sent: group-INT to runner group -62469
+runner rc=130; still alive after 10s: []
+scripts that ran their TERM/INT cleanup: [62561 ]
+FM_TEST_BEGIN count=1 (expected 1: nothing starts after the kill)
+  | FM_TEST_BEGIN 2026-10-18T06:16:55Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+  | FM_TEST_END 2026-10-18T06:17:05Z tests/fm-orphan-fixture.test.sh exit=130 duration_ms=10567 gate_skip=false
+  | fm-test-run: a script was interrupted; starting no further scripts
+scratch left in runner TMPDIR: [fm-test-machine-line.r2T3Sq fm-test-run.SS7Xeh fm-test-run.bABFSK fm-test-run.n9Gjqj fm-test-run.prp0bS ]
+
+=== serial, runner inherited INT ignored: INT to group
+runner pid 67034 (own group); script+child pids started: 67084 67091 
+sent: group-INT to runner group -67034
+runner rc=130; still alive after 10s: []
+scripts that ran their TERM/INT cleanup: [67084 ]
+FM_TEST_BEGIN count=1 (expected 1: nothing starts after the kill)
+  | FM_TEST_BEGIN 2026-10-18T06:17:06Z tests/fm-orphan-fixture.test.sh family=unclassified expected_gate_skip=none
+  | FM_TEST_END 2026-10-18T06:17:16Z tests/fm-orphan-fixture.test.sh exit=130 duration_ms=10197 gate_skip=false
+  | fm-test-run: a script was interrupted; starting no further scripts
+scratch left in runner TMPDIR: [fm-test-machine-line.r2T3Sq fm-test-run.SS7Xeh fm-test-run.bABFSK fm-test-run.n9Gjqj fm-test-run.prp0bS ]
+
+=== zero-padded --per-script-timeout-secs 0600
+runner rc=1
+  | FM_TEST_END 2026-10-18T06:17:16Z tests/fm-exit3-fixture.test.sh exit=3 duration_ms=242 gate_skip=false
+  | FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=341
+
+=== --per-script-timeout-secs 2 on a hanging script, then the next script
+runner rc=1 after 3s; hung script pids still alive: []
+  | FM_TEST_BEGIN 2026-10-18T06:17:16Z tests/fm-hang-fixture.test.sh family=unclassified expected_gate_skip=none
+  | FM_TEST_END 2026-10-18T06:17:19Z tests/fm-hang-fixture.test.sh exit=124 duration_ms=2392 gate_skip=false
+  | FM_TEST_BEGIN 2026-10-18T06:17:19Z tests/fm-exit3-fixture.test.sh family=unclassified expected_gate_skip=none
+  | FM_TEST_END 2026-10-18T06:17:19Z tests/fm-exit3-fixture.test.sh exit=3 duration_ms=143 gate_skip=false
+  | FM_TEST_SUMMARY total=2 failed=2 skipped_gate=0 duration_ms=2664
