@@ -51,8 +51,8 @@
 #       reached it, whatever the command then did: a caller started in the
 #       background by a non-interactive shell inherits INT ignored, so this
 #       status is the only way it learns of the interrupt. The seconds and
-#       grace values must be positive integers
-#       (125 otherwise). The perl watchdog is
+#       grace values must be positive integers written without a leading
+#       zero (125 otherwise). The perl watchdog is
 #       preferred: once termination has begun it also KILLs whatever the group
 #       left behind, so a descendant that outlives the command and holds its
 #       output cannot keep a capturing caller waiting, and GNU timeout, the
