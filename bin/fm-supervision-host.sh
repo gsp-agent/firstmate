@@ -135,7 +135,12 @@
 # left running (recorded with identities, never by name), including the
 # engine descendants its turn recorded, removes that turn's files, and
 # releases the branch actor's leases; it releases them again after every
-# engine turn. It also reads the record of a successor a pass-through left for
+# engine turn and in its EXIT cleanup. A teardown holds the lease-command lock
+# for its whole length, so each release waits for it at most
+# FM_SUPERVISION_HOST_LEASE_WAIT seconds; one still locked out is retried on
+# every pass while the host awaits a close, never during an engine turn, whose
+# own leases it would drop, and one left at exit falls to the next host's
+# activation. It also reads the record of a successor a pass-through left for
 # main: while that arm still runs under its recorded identity, the first cycle
 # without --restart requests a take-over rather than an ordinary attach.
 # Activation removes the
@@ -163,7 +168,9 @@
 # the boundary), FM_SUPERVISION_HOST_TURN_TIMEOUT (1200), FM_SUPERVISION_HOST_ROTATE_TURNS (20:
 # a new engine conversation after this many turns; every main session start
 # also opens a new one), FM_SUPERVISION_HOST_READY_TIMEOUT (25: how long a
-# successor cycle may take to verify), FM_SUPERVISION_HOST_POLL (1).
+# successor cycle may take to verify), FM_SUPERVISION_HOST_LEASE_WAIT (5: how
+# long a branch lease release waits for the lease-command lock),
+# FM_SUPERVISION_HOST_POLL (1).
 # Park duration uses Bash's process-relative SECONDS counter (including Bash
 # 3.2), while durable timestamps still use epoch time. This is not a portable
 # monotonic-clock guarantee. Arm exit probes use ordinary 0.5-second child
@@ -218,6 +225,7 @@ PARK_LIMIT=$(numeric_or "${FM_SUPERVISION_HOST_PARK_LIMIT:-}" "$PARK_SECONDS")
 TURN_TIMEOUT=$(numeric_or "${FM_SUPERVISION_HOST_TURN_TIMEOUT:-}" 1200)
 ROTATE_TURNS=$(numeric_or "${FM_SUPERVISION_HOST_ROTATE_TURNS:-}" 20)
 READY_TIMEOUT=$(numeric_or "${FM_SUPERVISION_HOST_READY_TIMEOUT:-}" 25)
+LEASE_WAIT=$(numeric_or "${FM_SUPERVISION_HOST_LEASE_WAIT:-}" 5)
 POLL=$(numeric_or "${FM_SUPERVISION_HOST_POLL:-}" 1)
 COOLDOWN=$FM_SUPERVISION_HOST_COOLDOWN
 COOLDOWN_MAX=3600
@@ -264,6 +272,8 @@ SUCCESSOR_OUT=
 SUCCESSOR_WATCHER=
 SUCCESSOR_GENERATION=
 ENGINE_RUNNING=0
+# 1 while a branch lease release is waiting for the lease-command lock.
+LEASES_PENDING=0
 # The successor arm a predecessor's pass-through left for main, which the
 # first cycle takes over.
 LEFT_ARM=
@@ -339,8 +349,16 @@ branch_env() {  # <command...>: run with the branch actor identity
   FM_SUPERVISION_ACTOR=branch "$@"
 }
 
-release_branch_leases() {
-  branch_env "$SCRIPT_DIR/fm-lease.sh" release-actor --actor branch >/dev/null 2>&1 || true
+release_branch_leases() {  # [wait-seconds]
+  local rc=0
+  branch_env "$SCRIPT_DIR/fm-lease.sh" --wait "${1:-$LEASE_WAIT}" release-actor --actor branch >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -eq 75 ]; then
+    [ "$LEASES_PENDING" -eq 1 ] || log_line "lease-release	deferred: the lease-command lock is held"
+    LEASES_PENDING=1
+  elif [ "$LEASES_PENDING" -eq 1 ]; then
+    log_line "lease-release	retried	rc=$rc"
+    LEASES_PENDING=0
+  fi
 }
 
 # Stop whatever a predecessor host left running, then take the record. The
@@ -536,6 +554,7 @@ await_close() {
   while fm_pid_alive "$ARM_PID"; do
     refresh_process "$ARM_PID"
     [ "$READY_PENDING" -eq 0 ] || stream_ready_line
+    [ "$LEASES_PENDING" -eq 0 ] || release_branch_leases 0
     boundary_reached && return 1
     # Probe the arm's exit twice a second between POLL-cadence checks, without
     # changing the outer identity refresh, readiness, or boundary cadence.

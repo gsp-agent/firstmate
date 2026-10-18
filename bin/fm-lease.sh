@@ -30,9 +30,17 @@
 #       (a lease held by a dead actor is cleared at session start); safe to
 #       run any time - a live lease is never touched.
 #
+# Every command first takes the home's lease-command lock, which a guarded
+# mutation such as a teardown holds for its whole length. A leading
+# --wait <seconds> bounds that wait: when the lock is still held after it,
+# nothing changes and the command exits 75, so a caller that must not block
+# (the supervision host) can retry later. Without it the command waits for as
+# long as the lock is held.
+#
 # The default actor is $FM_SUPERVISION_ACTOR (else main); when --actor is
 # supplied for a mutation, it must name that calling actor. Exit codes: 0 ok,
-# 1 check-miss, 2 usage, 6 refused (other actor holds or actor mismatch).
+# 1 check-miss, 2 usage, 6 refused (other actor holds or actor mismatch),
+# 75 the lease-command lock stayed held for the --wait bound.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,15 +52,17 @@ STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 # shellcheck source=bin/fm-wake-lib.sh
 . "$SCRIPT_DIR/fm-wake-lib.sh"
 
-mkdir -p "$STATE"
-LEASE_COMMAND_LOCK="$STATE/.fm-lease-command.lock"
-fm_lock_acquire_wait "$LEASE_COMMAND_LOCK"
-trap 'fm_lock_release "$LEASE_COMMAND_LOCK"' EXIT
-
 usage() {
-  echo "usage: fm-lease.sh claim|release <task> [--actor main|branch] | release-actor --actor main|branch | check <task> | sweep" >&2
+  echo "usage: fm-lease.sh [--wait <seconds>] claim|release <task> [--actor main|branch] | release-actor --actor main|branch | check <task> | sweep" >&2
   exit 2
 }
+
+LOCK_WAIT=
+if [ "${1:-}" = --wait ]; then
+  LOCK_WAIT=${2:-}
+  case "$LOCK_WAIT" in ''|*[!0-9]*) usage ;; esac
+  shift 2
+fi
 
 CMD=${1:-}
 shift 2>/dev/null || true
@@ -100,6 +110,16 @@ case "$CMD" in
     ;;
   *) usage ;;
 esac
+
+mkdir -p "$STATE"
+LEASE_COMMAND_LOCK="$STATE/.fm-lease-command.lock"
+if [ -z "$LOCK_WAIT" ]; then
+  fm_lock_acquire_wait "$LEASE_COMMAND_LOCK"
+elif ! fm_lock_acquire_wait_max "$LEASE_COMMAND_LOCK" "$LOCK_WAIT"; then
+  echo "error: $CMD skipped - the lease-command lock is still held after ${LOCK_WAIT}s (holder pid ${FM_LOCK_HELD_PID:-unknown}); nothing changed" >&2
+  exit 75
+fi
+trap 'fm_lock_release "$LEASE_COMMAND_LOCK"' EXIT
 
 case "$CMD" in
   claim)
