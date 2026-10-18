@@ -1,0 +1,9 @@
+sidecars: task-a o/r#1 (5 lines), task-b o/x#2 (6 lines: trailing extra line), task-c o/y#3 (5 lines)
+=== base 9ed80766: fm-pr-queue-sweep.sh --repos ===
+o/r
+o/y
+exit=0
+=== HEAD 9c5f55e6: fm-pr-queue-sweep.sh --repos ===
+o/r
+o/y
+exit=0

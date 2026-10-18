@@ -1,0 +1,30 @@
+== stock Bash snapshot consumers on HEAD 9c5f55e6 ==
+tasks-axi: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-nm-npm.rpGJlP/node_modules/.bin/tasks-axi 0.2.6
+PASS fleet-snapshot-view: 18/18 ok
+FAIL bearings-snapshot: 17 ok, expected 60
+      "reveal": "--fields actions"
+    },
+    {
+      "surface": "healthy endpoint detail",
+      "reveal": "--fields endpoints"
+    },
+    {
+      "surface": "full scout-report inventory",
+      "reveal": "--all-reports"
+    },
+    {
+      "surface": "secondmate registry unavailable: registered secondmate table read timed out",
+      "reveal": "inspect data/secondmates.md"
+    },
+    {
+      "surface": "live PR discovery + checks",
+      "reveal": "--include-prs"
+    }
+  ]
+}
+PASS public-followup-bash32: 1/1 ok
+PASS watch-triage-churn-bash32: 1/1 ok
+PASS fork-free-helpers: 6/6 ok
+PASS backend-adapter-file: 2/2 ok
+STOCK BASH CONSUMERS: FAIL
+exit=1 elapsed=728s

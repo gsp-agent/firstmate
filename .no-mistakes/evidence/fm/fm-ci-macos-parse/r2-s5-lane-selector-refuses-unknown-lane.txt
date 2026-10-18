@@ -1,0 +1,3 @@
+command: FM_SUPERVISION_HOST_LANE=c bash tests/fm-supervision-host.test.sh
+not ok - FM_SUPERVISION_HOST_LANE must be a, b or all, got c
+exit: 1  elapsed: 1s

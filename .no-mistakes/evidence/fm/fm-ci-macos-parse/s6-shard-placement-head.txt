@@ -1,0 +1,9 @@
+== bin/fm-test-run.sh --check-coverage (HEAD 9c5f55e6) ==
+FM_TEST_COVERAGE ok total=257 parallel=24 parallel_max_ms=665545 parallel_imbalance_ms=2 parallel_unhinted=0 serial=217 serial_shards=9 serial_unhinted=13 serial_max_ms=1092047 serial_budget_ms=1200000 herdr=16
+exit=
+
+== serial shard membership for the supervision-host lanes ==
+portable serial shards: 9
+serial 2: tests/fm-supervision-host-lane-b.test.sh 
+serial 3: tests/fm-supervision-host.test.sh 
+HEAD --check-coverage exit=0

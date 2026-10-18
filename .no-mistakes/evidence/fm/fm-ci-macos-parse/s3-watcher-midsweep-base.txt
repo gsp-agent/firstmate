@@ -1,0 +1,12 @@
+=== BEFORE: upstream-lean 9ed80766 watcher, state directory removed mid-sweep ===
+mode=midsweep tree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-nm-base.lHTaFz
+watcher pid: 24651
+watcher exited after ~1s
+arm exit=1
+--- arm + watcher output ---
+watcher: started pid=24651 (beacon fresh)
+fake-mktemp: moved state directory away mid-sweep
+mktemp: mkstemp failed on /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.FmwDmL/state/.fm-check-output.tY37O7: No such file or directory
+watcher: FAILED - watcher cycle exited 1 without an actionable reason
+--- end ---
+RESULT: NO exit reason logged

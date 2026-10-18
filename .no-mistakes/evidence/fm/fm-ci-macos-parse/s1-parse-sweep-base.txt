@@ -1,0 +1,8 @@
+== upstream-lean base 9ed80766 (before), CI=true full inventory ==
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+tests/fm-pi-watch-extension.test.sh: line 3512: unexpected EOF while looking for matching `)'
+tests/fm-pi-watch-extension.test.sh: line 5258: syntax error: unexpected end of file
+::error::stock macOS Bash 3.2 failed to parse tests/fm-pi-watch-extension.test.sh
+files swept: 476
+PARSE SWEEP: FAIL
+exit=1

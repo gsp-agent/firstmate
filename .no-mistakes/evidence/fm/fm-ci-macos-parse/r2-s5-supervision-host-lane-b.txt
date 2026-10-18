@@ -1,0 +1,12 @@
+command: bash tests/fm-supervision-host-lane-b.test.sh
+commit: 9c5f55e6  started: 2026-10-18T21:58:07Z
+ok - host: a turn that reports but leaves its granted rows queued hands the wake to main
+ok - host: a captain return during a failed engine turn still hands that turn's outcomes to main
+ok - host: an engine turn whose result is incomplete hands its wake to main
+ok - host: two engine errors latch the session, main keeps every away wake in the cooldown, a failed probe doubles it up to its cap, and a report recovers it silently
+ok - host: an attended close in a latched session reaches main as the arm printed it and leaves the latch as it was, and a home that opted out with off never reads it
+ok - host: attended, two engine errors latch the session, main keeps every close unchanged in the cooldown, a failed probe doubles it up to its cap, and a routine probe's recovery stays in the ledger, off main
+Terminated: 15             sleep 0.1
+rm: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.RuUE4L/away-latch/state: Directory not empty
+rm: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.RuUE4L/away-latch: Directory not empty
+rm: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.RuUE4L: Directory not empty

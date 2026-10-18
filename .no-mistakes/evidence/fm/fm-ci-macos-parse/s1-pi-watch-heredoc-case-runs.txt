@@ -1,0 +1,5 @@
+=== HEAD 9c5f55e6: test_pi_streaming_time_delivery_keeps_the_successor_chain (contains the edited heredoc) ===
+--- under stock 3.2.57(1)-release (/bin/bash) ---
+ok - Pi streaming-time wake delivery keeps the successor chain and replays only unconsumed wakes
+--- under 5.3.20(1)-release (bash on PATH) ---
+ok - Pi streaming-time wake delivery keeps the successor chain and replays only unconsumed wakes

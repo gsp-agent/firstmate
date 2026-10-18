@@ -1,0 +1,13 @@
+=== AFTER: HEAD 9c5f55e6 watcher, state directory removed between polls ===
+mode=between tree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M589BX3KMBHRQBYHNCX5E5PK
+watcher pid: 61080
+first poll's check sweep finished (.last-check present: yes); moving state directory away
+watcher exited after ~0s
+arm exit=1
+--- arm + watcher output ---
+watcher: started pid=61080 (beacon fresh)
+watcher: exiting - state directory no longer exists: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.sIwzh2/state
+watcher: FAILED - watcher cycle exited 1 without an actionable reason
+--- end ---
+RESULT: exit reason logged
+reason lines: 1

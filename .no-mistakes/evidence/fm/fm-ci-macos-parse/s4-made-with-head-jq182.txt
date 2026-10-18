@@ -1,0 +1,24 @@
+=== AFTER: HEAD 9c5f55e6 bin/fm-pr-made-with.sh, jq 1.8.2 (local) ===
+jq on PATH: /opt/homebrew/bin/jq (jq-1.8.2)
+--- PR body before ---
+Fixes the stock Bash parse.
+
+## Testing
+Ran it.
+--- run 1: fm-pr-made-with.sh task-x1 https://github.com/example/repo/pull/7 ---
+fm-pr-made-with: added to https://github.com/example/repo/pull/7:
+Made-with: claude (claude-opus-5-5)
+Made-with: codex (gpt-5.5) via no-mistakes
+exit=0
+--- run 2 (a rerun must change nothing) ---
+fm-pr-made-with: https://github.com/example/repo/pull/7 already names every engine found
+exit=0
+--- PR body after ---
+Fixes the stock Bash parse.
+
+## Testing
+Ran it.
+
+Made-with: claude (claude-opus-5-5)
+Made-with: codex (gpt-5.5) via no-mistakes
+--- gh body edits recorded: 1 ---

@@ -1,0 +1,5 @@
+== branch HEAD 9c5f55e6 (after), CI=true full inventory ==
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+files swept: 477
+PARSE SWEEP: PASS
+exit=0

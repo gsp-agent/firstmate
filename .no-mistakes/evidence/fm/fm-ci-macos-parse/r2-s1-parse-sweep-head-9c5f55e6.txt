@@ -1,0 +1,4 @@
+revision: 9c5f55e6
+parser: GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+files in inventory: 477
+RESULT: every inventoried shell file parses under stock Bash 3.2

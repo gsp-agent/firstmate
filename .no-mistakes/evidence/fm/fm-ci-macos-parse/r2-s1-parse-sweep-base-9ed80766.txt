@@ -1,0 +1,7 @@
+revision: 9ed80766
+parser: GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+files in inventory: 476
+::error::stock macOS Bash 3.2 failed to parse tests/fm-pi-watch-extension.test.sh
+    tests/fm-pi-watch-extension.test.sh: line 3512: unexpected EOF while looking for matching `)'
+    tests/fm-pi-watch-extension.test.sh: line 5258: syntax error: unexpected end of file
+RESULT: ::error::stock macOS Bash 3.2 parse sweep failed

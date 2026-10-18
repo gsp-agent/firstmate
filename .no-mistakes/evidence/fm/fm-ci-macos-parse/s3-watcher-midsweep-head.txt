@@ -1,0 +1,13 @@
+=== AFTER: HEAD 9c5f55e6 watcher, state directory removed mid-sweep ===
+mode=midsweep tree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M589BX3KMBHRQBYHNCX5E5PK
+watcher pid: 38006
+watcher exited after ~0s
+arm exit=1
+--- arm + watcher output ---
+watcher: started pid=38006 (beacon fresh)
+fake-mktemp: moved state directory away mid-sweep
+mktemp: mkstemp failed on /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.TbPhC0/state/.fm-check-output.pfjB4t: No such file or directory
+watcher: exiting - state directory no longer exists: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.TbPhC0/state
+watcher: FAILED - watcher cycle exited 1 without an actionable reason
+--- end ---
+RESULT: exit reason logged

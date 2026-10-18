@@ -1,0 +1,6 @@
+not ok - an engine tool process in its own process group outlived the turn:  4895  4895 sleep 120
+run 1 elapsed=69s
+not ok - an engine tool process in its own process group outlived the turn: 66184 66184 sleep 120
+run 2 elapsed=65s
+ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+run 3 elapsed=34s

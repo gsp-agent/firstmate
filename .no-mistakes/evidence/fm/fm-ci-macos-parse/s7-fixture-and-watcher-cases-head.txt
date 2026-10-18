@@ -1,0 +1,19 @@
+=== HEAD 9c5f55e6: fm-teardown test_secondmate_pr_registration_publishes_ready_line ===
+ok - a missing teardown startup source refuses before cleanup
+ok - an unreadable teardown startup source refuses before cleanup
+ok - a missing adapter sibling refuses before cleanup
+ok - a forced descendant with a missing adapter sibling refuses before cleanup
+ok - a forced secondmate with a missing own adapter sibling refuses before child cleanup
+ok - present required sources still reach the ordinary teardown refusal
+ok - fm-pr-check publishes the PR-ready line on a secondmate's parent channel once
+=== fm-gotmp test_teardown_removes_tasktmp_dir ===
+ok - fm-teardown removes the dir pointed to by tasktmp= in meta
+=== fm-watch-arm state-gone, home-gone, stop ===
+ok - watch-arm: a watcher exits when its state directory is removed
+not ok - arm did not start a watcher: watcher: FAILED - no live watcher with a fresh beacon
+=== fm-pr-check-security FM_TEST_ONLY=test_recovered_merged_watch_still_sweeps_its_repo ===
+ok - a recovered merged watch retains its repository through the first completed sweep
+=== fm-pr-check-security FM_TEST_ONLY=test_completed_repo_removals_survive_another_repo_failure ===
+ok - completed repository removals are delivered once despite earlier or later repository failures
+=== fm-pr-check-security FM_TEST_ONLY=test_old_template_watch_polls_after_upgrade ===
+ok - a watch armed on the previous template keeps polling after the template changes

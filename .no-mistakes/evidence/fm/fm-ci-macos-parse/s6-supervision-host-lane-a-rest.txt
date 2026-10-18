@@ -1,0 +1,18 @@
+ok - host+hook: an attended main-only pass-through rewakes main and keeps its successor watcher
+ok - host+hook: a captain outcome beside a quiet record rewakes the present captain with no away note
+ok - host+hook: a Claude home without config/supervision-host runs the host at the default engine, and an off file restores the plain arm
+ok - host+hook: a close that turns main-only at its turn rewakes main and keeps its successor watcher
+ok - host+hook: the successor a close that turns main-only at its turn leaves for main survives the hook's process group teardown
+ok - host+hook: failed at-turn downtime write notifies main despite a healthy successor
+ok - host+hook: a successor close that lands during main's turn is delivered at the next turn end
+ok - host+hook: a successor's routine close during main's turn is taken by the host at the next turn end, not resurfaced to main
+ok - host+hook: the successor a pass-through leaves for main survives the hook's process group teardown
+ok - host+hook: the next park takes over the cycle a main-only pass-through left, so one arm owns it
+ok - host+hook: a park stopped mid take-over leaves the take-over to the next park
+ok - host+hook: a successor that cannot be recorded is stopped, and main's next turn end arms a fresh cycle
+ok - host: a primary with no verified dialog mirror keeps every attended close on main
+ok - SKIP (.agent-config-tvu1l.1): away Grok; set FM_TEST_SUPERVISION_HOST_AWAY_GROK=1 to run
+ok - host: each wake carries the captain's dialog since the last wake, without operational input
+ok - host: the dialog mirror, its feed, and the wake file are owner-only
+not ok - the watcher's downtime resurface did not reach main: watcher: started pid=98202 (beacon fresh)
+exit=1 elapsed=851s

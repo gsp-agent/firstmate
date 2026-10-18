@@ -1,0 +1,12 @@
+== base 9ed80766: bin/fm-test-run.sh --check-coverage ==
+FM_TEST_COVERAGE ok total=255 parallel=24 parallel_max_ms=665545 parallel_imbalance_ms=2 parallel_unhinted=0 serial=215 serial_shards=9 serial_unhinted=12 serial_max_ms=1074843 serial_budget_ms=1200000 herdr=16
+exit=0
+portable serial shards: 9
+serial 2: tests/fm-supervision-host.test.sh
+
+== HEAD 9c5f55e6: bin/fm-test-run.sh --check-coverage ==
+FM_TEST_COVERAGE ok total=256 parallel=24 parallel_max_ms=665545 parallel_imbalance_ms=2 parallel_unhinted=0 serial=216 serial_shards=9 serial_unhinted=12 serial_max_ms=1087052 serial_budget_ms=1200000 herdr=16
+exit=0
+portable serial shards: 9
+serial 2: tests/fm-supervision-host-lane-b.test.sh
+serial 3: tests/fm-supervision-host.test.sh

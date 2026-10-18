@@ -1,0 +1,12 @@
+base 9ed80766 | test_engine_turn_is_bounded_and_its_descendants_reaped | run 1 | 28s | ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+base 9ed80766 | test_engine_turn_is_bounded_and_its_descendants_reaped | run 2 | 47s | not ok - an engine tool process in its own process group outlived the turn: 68583 68583 sleep 120
+base 9ed80766 | test_engine_turn_is_bounded_and_its_descendants_reaped | run 3 | 46s | not ok - an engine tool process in its own process group outlived the turn:  7410  7410 sleep 120
+HEAD | test_engine_turn_is_bounded_and_its_descendants_reaped | run 1 | 34s | ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+HEAD | test_engine_turn_is_bounded_and_its_descendants_reaped | run 2 | 29s | ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+HEAD | test_engine_turn_is_bounded_and_its_descendants_reaped | run 3 | 33s | ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+base 9ed80766 | test_attended_close_that_turns_main_only_before_its_turn_passes_to_main | run 1 | 27s | ok - host: an attended close whose task turns main-only before its turn still reaches main unchanged
+base 9ed80766 | test_attended_close_that_turns_main_only_before_its_turn_passes_to_main | run 2 | 29s | ok - host: an attended close whose task turns main-only before its turn still reaches main unchanged
+base 9ed80766 | test_attended_close_that_turns_main_only_before_its_turn_passes_to_main | run 3 | 23s | ok - host: an attended close whose task turns main-only before its turn still reaches main unchanged
+HEAD | test_attended_close_that_turns_main_only_before_its_turn_passes_to_main | run 1 | 25s | ok - host: an attended close whose task turns main-only before its turn still reaches main unchanged
+HEAD | test_attended_close_that_turns_main_only_before_its_turn_passes_to_main | run 2 | 29s | ok - host: an attended close whose task turns main-only before its turn still reaches main unchanged
+HEAD | test_attended_close_that_turns_main_only_before_its_turn_passes_to_main | run 3 | 27s | ok - host: an attended close whose task turns main-only before its turn still reaches main unchanged

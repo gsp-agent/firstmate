@@ -1,0 +1,10 @@
+=== BEFORE: base 9ed80766, test_recovery_preserves_both_records_when_meta_removal_fails ===
+not ok - session start did not surface the record-removal failure (missing: 'the interrupted task record could not be removed')
+--- output ---
+BACKLOG_RECONCILE: atomic-heal-remove-failure-b12: recorded backlog close could not be replayed: task record could not be removed at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-backlog-atomicity.QHnadi/heal-remove-failure/home/state/atomic-heal-remove-failure-b12.meta
+MISSING: treehouse (install: curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh)
+MISSING: no-mistakes (install: curl -fsSL https://raw.githubusercontent.com/kunchenguid/no-mistakes/main/docs/install.sh | sh)
+MISSING: gh-axi (install: npm install -g gh-axi && gh-axi setup hooks)
+
+=== AFTER: HEAD 9c5f55e6, test_recovery_preserves_both_records_when_meta_removal_fails ===
+ok - recovery preserves both records when meta removal fails
