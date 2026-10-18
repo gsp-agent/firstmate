@@ -94,6 +94,12 @@
 # not rewrite one record. bin/fm-spawn.sh holds the project lock across the
 # reading and the write, so two spawns of one project cannot both take the
 # extra start. An extra start whose record cannot be written is not admitted.
+# A spawn that exits before its commit point, where its worker has launched and
+# any backlog item has moved In flight, removes that record again under the
+# project lock, so a failed extra start leaves the window open. A spawn that
+# has already released the lock retakes it for up to
+# FM_PROJECT_CAPACITY_RELEASE_WAIT seconds and otherwise leaves the record until
+# the window passes. A record that holds a different epoch is left in place.
 # Workers already running are never stopped. A name that is empty, ".", "..",
 # or that contains a slash or a newline cannot be recorded, so it is not
 # admitted past its count.
@@ -112,6 +118,11 @@ FM_PROJECT_CAPACITY_DEFER_EXIT=75
 # How long one extra start remains that project's extra start. 7 * 60 seconds
 # matches one starter pass of about 7 minutes.
 FM_PROJECT_CAPACITY_OVERSHARE_WINDOW=420
+
+# How long a spawn that already released the project lock waits to retake it
+# and remove the record of an extra start that launched no worker.
+# shellcheck disable=SC2034 # read by bin/fm-spawn.sh after sourcing.
+FM_PROJECT_CAPACITY_RELEASE_WAIT=10
 
 # A reading that has not exited by this many seconds is no room. The shared
 # reading samples the CPU over a few seconds and has taken up to 12.7 seconds
@@ -374,16 +385,31 @@ fm_project_capacity_overshare_record() {  # <dir> <project> <now>
   fi
 }
 
+# Remove the record of an extra start that launched no worker. Returns 1 when
+# the record cannot be read or removed. The caller holds the project lock.
+fm_project_capacity_overshare_release() {  # <dir> <project> <epoch>
+  local file="$1/$2" epoch
+  [ -e "$file" ] || [ -L "$file" ] || return 0
+  [ -f "$file" ] && [ ! -L "$file" ] && [ -r "$file" ] || return 1
+  IFS= read -r epoch < "$file" || return 1
+  [ "$epoch" = "$3" ] || return 0
+  rm -f -- "$file"
+}
+
 # Decide whether a project already at its declared count may start one more
 # worker. The caller holds the project lock.
 # Sets FM_PROJECT_CAPACITY_OVERSHARE to off, admit, no, or spent.
 # off means the command is not configured. admit records the window before
-# returning. no means the reading failed, printed no line, was missing, or
-# could not be recorded.
+# returning, and sets FM_PROJECT_CAPACITY_OVERSHARE_DIR and
+# FM_PROJECT_CAPACITY_OVERSHARE_AT to the record's directory and epoch for
+# fm_project_capacity_overshare_release. no means the reading failed, printed
+# no line, was missing, or could not be recorded.
 # spent means this project already used its extra start in the window.
 fm_project_capacity_overshare() {  # <config-dir> <project-name>
   local config=$1 name=$2 now dir rc=0 line
   FM_PROJECT_CAPACITY_OVERSHARE=no
+  FM_PROJECT_CAPACITY_OVERSHARE_DIR=
+  FM_PROJECT_CAPACITY_OVERSHARE_AT=
   fm_project_capacity_headroom_load "$config"
   case "$FM_PROJECT_CAPACITY_HEADROOM_STATE" in
     off)
@@ -418,6 +444,8 @@ fm_project_capacity_overshare() {  # <config-dir> <project-name>
   fi
   fm_project_capacity_overshare_record "$dir" "$name" "$now" || return 0
   printf '%s\n' "headroom: $line" >&2
+  FM_PROJECT_CAPACITY_OVERSHARE_DIR=$dir
+  FM_PROJECT_CAPACITY_OVERSHARE_AT=$now
   FM_PROJECT_CAPACITY_OVERSHARE=admit
   return 0
 }

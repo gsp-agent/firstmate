@@ -1360,6 +1360,9 @@ SPAWN_TASK_SET_LOCK=
 SPAWN_TASK_SET_LOCK_HELD=0
 SPAWN_TREEHOUSE_PROJECT_LOCK=
 SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
+SPAWN_OVERSHARE_PENDING=0
+SPAWN_OVERSHARE_DIR=
+SPAWN_OVERSHARE_AT=
 SPAWN_SLOT_CLAIMED=0
 RELAUNCH_REPLACEMENT_PENDING=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
@@ -1517,6 +1520,21 @@ spawn_abort_cleanup() {
       fm_treehouse_slot_owner_release "$WT" "$ID" || true
     else
       echo "warning: leaving task $ID's slot claim on $WT in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it" >&2
+    fi
+  fi
+  # An admitted extra start past project capacity that launched no worker
+  # gives its window back (bin/fm-project-capacity-lib.sh owns the record).
+  # An abort after metadata publication has released the project lock, so it
+  # retakes it for a bounded wait rather than racing another spawn's record.
+  if [ "$SPAWN_OVERSHARE_PENDING" = 1 ]; then
+    SPAWN_OVERSHARE_PENDING=0
+    if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ] &&
+      fm_lock_acquire_wait_max "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$FM_PROJECT_CAPACITY_RELEASE_WAIT"; then
+      SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
+    fi
+    if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ] ||
+      ! fm_project_capacity_overshare_release "$SPAWN_OVERSHARE_DIR" "$(basename "$PROJ_ABS")" "$SPAWN_OVERSHARE_AT"; then
+      echo "warning: task $ID launched no worker, but its extra start past project $(basename "$PROJ_ABS")'s capacity stays recorded in $SPAWN_OVERSHARE_DIR until its window passes" >&2
     fi
   fi
   if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
@@ -3363,6 +3381,9 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
       echo "$SPAWN_CAPACITY_DEFER" >&2
       exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
     fi
+    SPAWN_OVERSHARE_DIR=$FM_PROJECT_CAPACITY_OVERSHARE_DIR
+    SPAWN_OVERSHARE_AT=$FM_PROJECT_CAPACITY_OVERSHARE_AT
+    SPAWN_OVERSHARE_PENDING=1
   fi
 fi
 [ -f "$BRIEF" ] || {
@@ -6052,6 +6073,9 @@ else
     SPAWN_FRESH_COMMIT_PENDING=0
   fi
 fi
+# The spawn has committed, so an extra start it took past project capacity
+# stays recorded.
+[ "$SPAWN_BACKLOG_COMMIT_STATUS" -ne 0 ] || SPAWN_OVERSHARE_PENDING=0
 if [ "$SPAWN_BACKLOG_COMMIT_STATUS" -ne 0 ]; then
   if [ "$RELAUNCH" -eq 0 ]; then
     if spawn_fresh_commit_rollback; then
