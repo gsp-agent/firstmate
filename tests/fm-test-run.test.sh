@@ -27,6 +27,8 @@ test_list_all_exact_suite_coverage() {
   expected=$(
     for f in "$ROOT"/tests/*.test.sh; do
       [ -f "$f" ] || continue
+      # A lane-split subject runs through its lane wrappers instead.
+      [ "$(basename "$f")" = fm-supervision-host.test.sh ] && continue
       printf 'tests/%s\n' "$(basename "$f")"
     done | LC_ALL=C sort
   )
@@ -39,7 +41,7 @@ test_list_all_exact_suite_coverage() {
   [ "$(printf '%s\n' "$listed" | uniq | wc -l | tr -d ' ')" = \
     "$(printf '%s\n' "$listed" | wc -l | tr -d ' ')" ] \
     || fail "--list --all must not duplicate scripts"
-  pass "exact suite coverage: --all lists every tests/*.test.sh once"
+  pass "exact suite coverage: --all lists every scheduled tests/*.test.sh once"
 }
 
 test_family_selection() {
@@ -1116,11 +1118,31 @@ test_portable_parallel_lanes_stay_duration_balanced() {
   pass "portable parallel lanes are fully hinted and packed within 5% of each other"
 }
 
+# Runs the dispatch at the end of tests/fm-supervision-host.test.sh with every
+# case stubbed to print its own name, so the lane selection is exercised without
+# the slow case bodies. <lane> - leaves FM_SUPERVISION_HOST_LANE unset.
+supervision_host_dispatched_cases() { # <main> <defined> <lane>
+  local main=$1 defined=$2 lane=$3 script
+  script=$(
+    printf 'set -eu\nfail() { printf "FAIL: %%s\\n" "$*"; exit 1; }\n'
+    printf '%s\n' "$defined" | sed 's/.*/&() { echo &; }/'
+    sed -n '/^supervision_host_lane_a() {$/,$p' "$main"
+  )
+  if [ "$lane" = - ]; then
+    env -u FM_SUPERVISION_HOST_LANE bash -c "$script"
+  else
+    FM_SUPERVISION_HOST_LANE=$lane bash -c "$script"
+  fi
+}
+
 test_supervision_host_lanes_partition_its_cases() {
-  local main lane_b defined listed dups lanes count shard a_shard b_shard listed_shard
+  local main lane_a lane_b wrapper defined listed dups lanes count shard a_shard b_shard main_shard listed_shard ran_all ran_a ran_b ran_explicit
   main="$ROOT/tests/fm-supervision-host.test.sh"
+  lane_a="$ROOT/tests/fm-supervision-host-lane-a.test.sh"
   lane_b="$ROOT/tests/fm-supervision-host-lane-b.test.sh"
-  [ -x "$lane_b" ] || fail "tests/fm-supervision-host-lane-b.test.sh must exist and be executable"
+  for wrapper in "$lane_a" "$lane_b"; do
+    [ -x "$wrapper" ] || fail "${wrapper#"$ROOT"/} must exist and be executable"
+  done
   # Every case the file defines runs in exactly one of its two lanes.
   defined=$(sed -n 's/^\(test_[a-z0-9_]*\)() {$/\1/p' "$main" | LC_ALL=C sort)
   listed=$(awk '/^supervision_host_lane_[ab]\(\) \{$/ { f = 1; next } f && /^\}$/ { f = 0 } f { gsub(/^[ \t]+/, ""); print }' "$main" | LC_ALL=C sort)
@@ -1129,20 +1151,37 @@ test_supervision_host_lanes_partition_its_cases() {
   [ -z "$dups" ] || fail "supervision-host cases listed in both lanes: $dups"
   [ "$defined" = "$listed" ] \
     || fail "supervision-host lanes must list every defined case exactly once: $(diff <(printf '%s\n' "$defined") <(printf '%s\n' "$listed") | tr '\n' ' ')"
-  # The two lanes pack onto different portable serial shards.
+  # Run directly with no lane, the file is the whole subject: every case runs.
+  ran_all=$(supervision_host_dispatched_cases "$main" "$defined" - | LC_ALL=C sort) \
+    || fail "supervision-host dispatch with no lane set failed: $ran_all"
+  [ "$ran_all" = "$defined" ] \
+    || fail "an unset FM_SUPERVISION_HOST_LANE must run all $(printf '%s\n' "$defined" | grep -c .) cases, ran $(printf '%s\n' "$ran_all" | grep -c .)"
+  ran_explicit=$(supervision_host_dispatched_cases "$main" "$defined" all | LC_ALL=C sort) || fail "lane all failed: $ran_explicit"
+  [ "$ran_explicit" = "$defined" ] || fail "FM_SUPERVISION_HOST_LANE=all must run every case"
+  ran_a=$(supervision_host_dispatched_cases "$main" "$defined" a) || fail "lane a failed: $ran_a"
+  ran_b=$(supervision_host_dispatched_cases "$main" "$defined" b) || fail "lane b failed: $ran_b"
+  [ -n "$ran_a" ] && [ -n "$ran_b" ] || fail "lanes a and b must each run cases"
+  [ "$(printf '%s\n%s\n' "$ran_a" "$ran_b" | LC_ALL=C sort)" = "$defined" ] \
+    || fail "lanes a and b together must run every case exactly once"
+  # CI schedules the two lane wrappers, never the whole file, on different
+  # portable serial shards, so each case runs there exactly once.
   lanes=$("$RUNNER" --list-lanes)
   count=$(printf '%s\n' "$lanes" | grep -c '^portable-serial-[0-9]*of[0-9]*$')
-  a_shard="" b_shard=""
+  a_shard="" b_shard="" main_shard=""
   shard=1
   while [ "$shard" -le "$count" ]; do
     listed_shard=$("$RUNNER" --list --lane "portable-serial-${shard}of${count}")
-    printf '%s\n' "$listed_shard" | grep -qx 'tests/fm-supervision-host.test.sh' && a_shard=$shard
+    printf '%s\n' "$listed_shard" | grep -qx 'tests/fm-supervision-host-lane-a.test.sh' && a_shard=$shard
     printf '%s\n' "$listed_shard" | grep -qx 'tests/fm-supervision-host-lane-b.test.sh' && b_shard=$shard
+    printf '%s\n' "$listed_shard" | grep -qx 'tests/fm-supervision-host.test.sh' && main_shard=$shard
     shard=$((shard + 1))
   done
+  [ -z "$main_shard" ] || fail "tests/fm-supervision-host.test.sh is scheduled on serial shard $main_shard beside its lane wrappers"
+  "$RUNNER" --list --all | grep -qx 'tests/fm-supervision-host.test.sh' \
+    && fail "tests/fm-supervision-host.test.sh must not be scheduled; its lane wrappers run its cases"
   [ -n "$a_shard" ] && [ -n "$b_shard" ] || fail "both supervision-host lanes must land on a portable serial shard (a=$a_shard b=$b_shard)"
   [ "$a_shard" != "$b_shard" ] || fail "both supervision-host lanes packed onto serial shard $a_shard"
-  pass "supervision-host cases split into two lanes on different serial shards"
+  pass "supervision-host: unset lane runs all cases; CI runs lanes a and b once each on different serial shards"
 }
 
 test_portable_serial_shards_partition_the_serial_lane() {

@@ -3020,11 +3020,14 @@ test_superseded_host_leaves_the_owner_untouched() {
   pass "host: a host under a superseded auto-arm generation stands down without touching the owner"
 }
 
-# The cases run in two lanes so neither nears the 30-minute CI tripwire on a
-# slow runner (docs/fm-test-portable-shards.md "Timeouts"): this file runs lane
-# a, and tests/fm-supervision-host-lane-b.test.sh runs lane b on another serial
-# shard. Each lane is about half the measured time. A new case joins either
-# list; tests/fm-test-run.test.sh requires every case in exactly one.
+# Run directly, this file runs every case. CI instead runs its cases in two
+# lanes so neither nears the 30-minute tripwire on a slow runner
+# (docs/fm-test-portable-shards.md "Timeouts"):
+# tests/fm-supervision-host-lane-a.test.sh and -lane-b.test.sh each set
+# FM_SUPERVISION_HOST_LANE and land on different serial shards, and
+# bin/fm-test-run.sh schedules them in place of this file. Each lane is about
+# half the measured time. A new case joins either list; tests/fm-test-run.test.sh
+# requires every case in exactly one.
 supervision_host_lane_a() {
   test_claude_stop_hook_restores_handoff_when_successor_closed_before_exit_to_main
   test_claude_stop_hook_restores_handoff_when_successor_closed_mid_engine_turn
@@ -3107,7 +3110,7 @@ supervision_host_lane_b() {
   test_superseded_host_leaves_the_owner_untouched
 }
 
-case "${FM_SUPERVISION_HOST_LANE:-a}" in
+case "${FM_SUPERVISION_HOST_LANE:-all}" in
   a) supervision_host_lane_a ;;
   b) supervision_host_lane_b ;;
   all) supervision_host_lane_a; supervision_host_lane_b ;;

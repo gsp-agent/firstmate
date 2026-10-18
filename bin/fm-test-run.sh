@@ -411,7 +411,8 @@ family_for_basename() {
       printf '%s\n' pr-forge
       ;;
     fm-afk-contract.test.sh|fm-afk-inject-e2e.test.sh|fm-afk-return.test.sh|\
-    fm-supervision-host.test.sh|fm-supervision-host-lane-b.test.sh|fm-host-mirror.test.sh)
+    fm-supervision-host.test.sh|fm-supervision-host-lane-a.test.sh|fm-supervision-host-lane-b.test.sh|\
+    fm-host-mirror.test.sh)
       printf '%s\n' afk
       ;;
     fm-bearings-board-render.test.sh|fm-bearings-snapshot.test.sh|fm-contributions.test.sh|\
@@ -866,8 +867,8 @@ tests/fm-subagent-pretool-check.test.sh 998
 tests/fm-supervision-events.test.sh 673
 tests/fm-supervision-host-attended-live-e2e.test.sh 49
 tests/fm-supervision-host-live-e2e.test.sh 75
+tests/fm-supervision-host-lane-a.test.sh 619000
 tests/fm-supervision-host-lane-b.test.sh 625000
-tests/fm-supervision-host.test.sh 619000
 tests/fm-tangle-guard.test.sh 8501
 tests/fm-task-delivery.test.sh 32789
 tests/fm-task-inbox.test.sh 31965
@@ -1160,7 +1161,7 @@ run_coverage_guard() {
   missing=$(comm -23 "$tmp/all" "$tmp/union" || true)
   extra=$(comm -13 "$tmp/all" "$tmp/union" || true)
   if [ -n "$missing" ] || [ -n "$extra" ]; then
-    log "coverage guard: union of portable shards + portable serial + Herdr must equal tests/*.test.sh"
+    log "coverage guard: union of portable shards + portable serial + Herdr must equal the scheduled tests/*.test.sh"
     [ -z "$missing" ] || { log "missing from union:"; printf '%s\n' "$missing" >&2; }
     [ -z "$extra" ] || { log "extra beyond inventory:"; printf '%s\n' "$extra" >&2; }
     rm -rf "$tmp"
@@ -1285,7 +1286,10 @@ print(f"FM_TEST_AGGREGATE lanes={len(lanes)} total={total} failed={failed} skipp
 PY
 }
 
-all_repo_tests() {
+# Every tests/*.test.sh file, including a lane-split subject. Reference scans
+# use this, because a subject's cases, not its lane wrappers, name what they
+# exercise.
+all_repo_test_files() {
   # Deterministic lexical order (same as bash glob expansion under LC_ALL=C).
   local f
   # shellcheck disable=SC2035
@@ -1293,6 +1297,13 @@ all_repo_tests() {
     [ -f "$f" ] || continue
     printf '%s\n' "$f"
   done | LC_ALL=C sort
+}
+
+# The scheduled suite: every test file except a lane-split subject, whose
+# cases run through its lane wrappers (tests/<subject>-lane-*.test.sh) so each
+# runs once. Named explicitly, the subject still runs, and runs every case.
+all_repo_tests() {
+  all_repo_test_files | grep -vx 'tests/fm-supervision-host.test.sh'
 }
 
 normalize_script_path() {
@@ -1360,7 +1371,7 @@ families_for_test_reference() {  # <needle>...
       family_for_basename "$(basename "$s")"
       found=1
     fi
-  done < <(all_repo_tests)
+  done < <(all_repo_test_files)
   [ "$found" -eq 1 ]
 }
 
@@ -1377,7 +1388,7 @@ scripts_for_test_reference() {
       printf '__script__:%s\n' "$(basename "$s")"
       found=1
     fi
-  done < <(all_repo_tests)
+  done < <(all_repo_test_files)
   [ "$found" -eq 1 ]
 }
 
@@ -1558,7 +1569,6 @@ families_for_changed_path() {
       printf '%s\n' __script__:fm-wake-queue.test.sh
       printf '%s\n' __script__:fm-pi-primary-types.test.sh
       printf '%s\n' __script__:fm-supervision-host.test.sh
-      printf '%s\n' __script__:fm-supervision-host-lane-b.test.sh
       # Whether an arriving outcome still lets the captain type is a fact only
       # a real Pi TUI can answer, so the live guards are selected too.
       printf '%s\n' live-harness-optin
