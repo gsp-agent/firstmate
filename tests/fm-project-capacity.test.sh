@@ -710,7 +710,8 @@ EOF
   runs=$(reading_runs "$case_dir/reading.log")
   [ "$runs" = 1 ] || fail "the extra start did not run the reading once (runs=$runs)"
   [ "$(cat "$case_dir/reading.log")" = room ] || fail "the reading did not receive its argument: $(cat "$case_dir/reading.log")"
-  record="$home/state/project-capacity-overshare/project"
+  [ "$(overshare_count "$home")" = 1 ] || fail "the extra start was not recorded once: $(overshare_records "$home")"
+  record=$(overshare_records "$home")
   case "$(cat "$record")" in
     '' | *[!0-9]*) fail "the extra-start record is not an epoch: $(cat "$record")" ;;
   esac
@@ -768,14 +769,14 @@ EOF
   [ "$rc" -ne 0 ] && [ "$rc" -ne "$DEFER_EXIT" ] || fail "an invalid brief did not fail after its extra start was admitted (exit $rc): $out"
   assert_contains "$out" "still contains {TASK}" "the extra start did not fail where expected"
   assert_absent "$home/state/task-a.meta" "the failed extra start left a record"
-  assert_absent "$home/state/project-capacity-overshare/project" "the failed extra start used the window"
+  [ "$(overshare_count "$home")" = 0 ] || fail "the failed extra start used the window"
   rc=0
   out=$(spawn_ship "$case_dir" task-b) || rc=$?
   expect_code 0 "$rc" "a failed extra start used the window, so a valid task was deferred: $out"
   assert_contains "$out" "spawned task-b" "the valid task did not get the extra start"
   assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" \
     "the valid task's extra start did not log the reading"
-  assert_present "$home/state/project-capacity-overshare/project" "the launched extra start was not recorded"
+  [ "$(overshare_count "$home")" = 1 ] || fail "the launched extra start was not recorded"
   runs=$(reading_runs "$case_dir/reading.log")
   [ "$runs" = 2 ] || fail "the reading did not run once for each admitted extra start (runs=$runs)"
   pass "an extra start whose spawn fails leaves the window open for the next task"
@@ -798,12 +799,12 @@ EOF
   assert_contains "$out" "headroom: cpu_idle_pct=40 load1=12 disk_free_gb=80" "the failed delivery was not an admitted extra start"
   assert_no_grep "/launch." "$case_dir/calls.log" "the failed delivery sent its launch"
   assert_absent "$home/state/task-a.meta" "the failed delivery left a record"
-  assert_absent "$home/state/project-capacity-overshare/project" "the failed delivery used the window"
+  [ "$(overshare_count "$home")" = 0 ] || fail "the failed delivery used the window"
   rc=0
   out=$(spawn_ship "$case_dir" task-b) || rc=$?
   expect_code 0 "$rc" "a failed delivery used the window, so a valid task was deferred: $out"
   assert_contains "$out" "spawned task-b" "the valid task did not get the extra start after a failed delivery"
-  assert_present "$home/state/project-capacity-overshare/project" "the launched extra start was not recorded"
+  [ "$(overshare_count "$home")" = 1 ] || fail "the launched extra start was not recorded"
   pass "an extra start that fails before its launch is sent leaves the window open for the next task"
 }
 
@@ -842,8 +843,7 @@ EOF
   starts=$(grep -c '^tasks-axi start task-a' "$case_dir/calls.log")
   [ "$starts" = 2 ] || fail "the backlog commit was not tried twice (starts=$starts)"
   assert_absent "$home/state/task-a.meta" "the failed commit left its record"
-  assert_present "$home/state/project-capacity-overshare/project" \
-    "an extra start whose launch was sent gave its window back"
+  [ "$(overshare_count "$home")" = 1 ] || fail "an extra start whose launch was sent gave its window back"
 
   before=$(call_count "$case_dir")
   worktrees=$(worktree_list "$case_dir")
@@ -930,7 +930,7 @@ EOF
   assert_contains "$out" "spawned task-c" "the extra start after a slow reading did not launch"
   assert_contains "$out" "headroom: cpu_idle_pct=25.3 load1=31.22 disk_free_gb=563.8" \
     "the extra start after a slow reading did not log the reading's line"
-  assert_present "$home/state/project-capacity-overshare/project" "the slow reading's extra start was not recorded"
+  [ "$(overshare_count "$home")" = 1 ] || fail "the slow reading's extra start was not recorded"
   pass "a reading that takes several seconds and reports room admits the extra start"
 }
 
@@ -1012,7 +1012,7 @@ EOF
   assert_not_contains "$out" "headroom:" "a failed reading logged its line"
   assert_not_contains "$out" "cpu_idle_pct=1" "a failed reading's line reached the spawn"
   assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
-  assert_absent "$home/state/project-capacity-overshare/project" "a failed reading consumed the window"
+  [ "$(overshare_count "$home")" = 0 ] || fail "a failed reading consumed the window"
   [ "$(reading_runs "$case_dir/reading.log")" = 1 ] || fail "the failing reading did not run"
 
   write_headroom "$home" "$case_dir/missing-reading"
@@ -1023,7 +1023,7 @@ EOF
   expect_code "$DEFER_EXIT" "$rc" "a missing reading was admitted: $out"
   assert_contains "$out" "The headroom reading reported no room." "a missing reading did not say there was no room"
   assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
-  assert_absent "$home/state/project-capacity-overshare/project" "a missing reading consumed the window"
+  [ "$(overshare_count "$home")" = 0 ] || fail "a missing reading consumed the window"
 
   printf '%s\n' "$case_dir/deny" 'exit 0' > "$home/config/project-capacity-headroom"
   before=$(call_count "$case_dir")
@@ -1069,7 +1069,7 @@ EOF
     fail "the hung reading was still running ($pid)"
   fi
   assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
-  assert_absent "$home/state/project-capacity-overshare/project" "a hung reading consumed the window"
+  [ "$(overshare_count "$home")" = 0 ] || fail "a hung reading consumed the window"
 
   # A reading that exits 0 without printing a line has shown no headroom.
   install_reading "$case_dir/silent" <<EOF
@@ -1083,7 +1083,7 @@ EOF
   expect_code "$DEFER_EXIT" "$rc" "a reading that exits 0 but prints nothing was admitted: $out"
   assert_contains "$out" "The headroom reading reported no room." "a silent reading did not say there was no room"
   assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
-  assert_absent "$home/state/project-capacity-overshare/project" "a silent reading consumed the window"
+  [ "$(overshare_count "$home")" = 0 ] || fail "a silent reading consumed the window"
 
   install_reading "$case_dir/allow" <<EOF
 printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
@@ -1120,7 +1120,7 @@ EOF
   assert_not_contains "$out" "headroom" "a capacity of 0 consulted the reading"
   assert_not_contains "$out" "no room" "a capacity of 0 was reported as no room"
   assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
-  assert_absent "$home/state/project-capacity-overshare/project" "a capacity of 0 consumed the extra-start window"
+  [ "$(overshare_count "$home")" = 0 ] || fail "a capacity of 0 consumed the extra-start window"
   runs=$(reading_runs "$case_dir/reading.log")
   [ "$runs" = 0 ] || fail "the reading ran for a capacity of 0 (runs=$runs)"
   pass "a capacity of 0 admits no extra start"
@@ -1150,8 +1150,8 @@ EOF
   out=$(run_spawn "$case_dir" "$mate" "$case_dir/wt-m" task-m "$mate_project" --mode no-mistakes --yolo off) || rc=$?
   expect_code 0 "$rc" "a secondmate was not admitted by the root home's reading: $out"
   assert_contains "$out" "spawned task-m" "the secondmate extra start did not launch"
-  assert_present "$root/state/project-capacity-overshare/project" "the extra start was not recorded in the root home"
-  assert_absent "$mate/state/project-capacity-overshare/project" "the extra start was recorded in the secondmate home"
+  [ "$(overshare_count "$root")" = 1 ] || fail "the extra start was not recorded in the root home"
+  [ "$(overshare_count "$mate")" = 0 ] || fail "the extra start was recorded in the secondmate home"
   runs=$(reading_runs "$case_dir/reading.log")
   [ "$runs" = 1 ] || fail "the root home's reading did not run once (runs=$runs)"
 

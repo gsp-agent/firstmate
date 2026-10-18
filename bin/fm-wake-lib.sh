@@ -1539,6 +1539,7 @@ fm_local_firstmate_state_dirs() {  # <first-state>
 # derives the identical path. Its identity is the project's resolved origin, so
 # separate clones of one origin share a single lock; an origin-less local-only
 # project falls back to its own worktree top instead of failing to resolve.
+# Project capacity names its extra-start record by this path's identity hash.
 fm_treehouse_project_lock_path() {  # <project-dir>
   local project=$1 root origin identity hash top
   [ -d "$project" ] || return 1

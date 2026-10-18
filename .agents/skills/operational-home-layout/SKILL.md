@@ -62,7 +62,7 @@ data/                personal fleet records; LOCAL, gitignored as a whole
   pipeline-spend.jsonl  optional per-task no-mistakes pipeline spend, written only when config/pipeline-spend is present; bin/fm-pipeline-spend.sh owns the schema
 projects/            cloned repos; gitignored; read-only except under hard rule 1's concrete captain-approved project operation exception
 state/               runtime records and signals; gitignored
-  project-capacity-overshare/<project>  epoch second of that project's most recent extra start; a later extra start inside 420 seconds is deferred; bin/fm-project-capacity-lib.sh owns the record; safe to delete
+  project-capacity-overshare/<identity>  epoch second of that project's most recent extra start, named by the origin identity hash its shared project lock uses; a later extra start inside 420 seconds is deferred; bin/fm-project-capacity-lib.sh owns the record; safe to delete
   <id>.status        append-only wake events, not current-state truth; bin/fm-classify-lib.sh owns their syntax
   <id>.turn-ended    touched by turn-end hooks
   <id>.progress      touched for observed native-harness activity inside one Pi turn; bin/fm-busy-event.sh owns its generation binding and bin/fm-watch.sh reads it beside turn-ended for the busy-age bound only, never as a completed turn

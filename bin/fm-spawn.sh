@@ -1362,6 +1362,7 @@ SPAWN_TREEHOUSE_PROJECT_LOCK=
 SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
 SPAWN_OVERSHARE_PENDING=0
 SPAWN_OVERSHARE_DIR=
+SPAWN_OVERSHARE_IDENTITY=
 SPAWN_OVERSHARE_AT=
 SPAWN_SLOT_CLAIMED=0
 RELAUNCH_REPLACEMENT_PENDING=0
@@ -1533,8 +1534,8 @@ spawn_abort_cleanup() {
       SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
     fi
     if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ] ||
-      ! fm_project_capacity_overshare_release "$SPAWN_OVERSHARE_DIR" "$(basename "$PROJ_ABS")" "$SPAWN_OVERSHARE_AT"; then
-      echo "warning: task $ID launched no worker, but its extra start past project $(basename "$PROJ_ABS")'s capacity stays recorded in $SPAWN_OVERSHARE_DIR until its window passes" >&2
+      ! fm_project_capacity_overshare_release "$SPAWN_OVERSHARE_DIR" "$SPAWN_OVERSHARE_IDENTITY" "$SPAWN_OVERSHARE_AT"; then
+      echo "warning: task $ID launched no worker, but its extra start past project $(basename "$PROJ_ABS")'s capacity stays recorded in $SPAWN_OVERSHARE_DIR/$SPAWN_OVERSHARE_IDENTITY until its window passes" >&2
     fi
   fi
   if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
@@ -3364,7 +3365,7 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     if [ "$SPAWN_PROJECT_CAPACITY" = 0 ]; then
       FM_PROJECT_CAPACITY_OVERSHARE=off
     else
-      fm_project_capacity_overshare "$SPAWN_CAPACITY_CONFIG" "$(basename "$PROJ_ABS")" ||
+      fm_project_capacity_overshare "$SPAWN_CAPACITY_CONFIG" "$SPAWN_TREEHOUSE_PROJECT_LOCK" ||
         FM_PROJECT_CAPACITY_OVERSHARE=no
     fi
     if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != admit ]; then
@@ -3382,6 +3383,7 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
       exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
     fi
     SPAWN_OVERSHARE_DIR=$FM_PROJECT_CAPACITY_OVERSHARE_DIR
+    SPAWN_OVERSHARE_IDENTITY=$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY
     SPAWN_OVERSHARE_AT=$FM_PROJECT_CAPACITY_OVERSHARE_AT
     SPAWN_OVERSHARE_PENDING=1
   fi

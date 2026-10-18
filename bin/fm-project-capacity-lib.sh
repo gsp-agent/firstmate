@@ -87,22 +87,26 @@
 # its extra-start window is open. Exit 0 with a non-empty first stdout line
 # admits one spawn past that count.
 # Before that spawn continues, the epoch second is written as the only line of
-# <config-dir>/../state/project-capacity-overshare/<project-name>. A second
-# extra spawn for that project is deferred while that epoch is less than
-# FM_PROJECT_CAPACITY_OVERSHARE_WINDOW seconds old. The window is 420 seconds,
-# about one starter pass. Each project has its own file, so two projects do
-# not rewrite one record. bin/fm-spawn.sh holds the project lock across the
-# reading and the write, so two spawns of one project cannot both take the
-# extra start. An extra start whose record cannot be written is not admitted.
+# <config-dir>/../state/project-capacity-overshare/<identity>. <identity> is the
+# hash that names the project's shared project lock, which is keyed by its
+# resolved origin, so the record names the same project the lock serializes.
+# A second extra spawn for that project is deferred while that epoch is less
+# than FM_PROJECT_CAPACITY_OVERSHARE_WINDOW seconds old. The window is 420
+# seconds, about one starter pass. Clones of one origin share one record, and
+# two origins cloned under one directory name keep separate records, even
+# though that name's declared count applies to both. bin/fm-spawn.sh holds the
+# project lock across the reading and the write, so two spawns of one project
+# cannot both take the extra start. An extra start whose record cannot be
+# written is not admitted.
 # A spawn that fails before its worker launches removes that record again under
 # the project lock, so that failed extra start leaves the window open. Once the
 # launch is sent, the record stands whatever fails after it. A spawn that
 # has already released the lock retakes it for up to
 # FM_PROJECT_CAPACITY_RELEASE_WAIT seconds and otherwise leaves the record until
 # the window passes. A record that holds a different epoch is left in place.
-# Workers already running are never stopped. A name that is empty, ".", "..",
-# or that contains a slash or a newline cannot be recorded, so it is not
-# admitted past its count.
+# Workers already running are never stopped. A project lock whose name does
+# not carry that identity cannot be recorded, so it is not admitted past its
+# count.
 #
 # Requires bin/fm-wake-lib.sh (root home, local homes, project lock path),
 # bin/fm-secondmate-registry-lib.sh (which the local-homes walk reads), and
@@ -352,8 +356,8 @@ fm_project_capacity_headroom_load() {  # <config-dir>
   return 0
 }
 
-# Returns 0 when <project> already took its extra start inside the window.
-fm_project_capacity_overshare_spent() {  # <dir> <project> <now>
+# Returns 0 when <identity> already took its extra start inside the window.
+fm_project_capacity_overshare_spent() {  # <dir> <identity> <now>
   local dir=$1 name=$2 now=$3 file epoch
   file="$dir/$name"
   [ -f "$file" ] && [ ! -L "$file" ] && [ -r "$file" ] || return 1
@@ -368,9 +372,9 @@ fm_project_capacity_overshare_spent() {  # <dir> <project> <now>
   [ "$now" -lt $((epoch + FM_PROJECT_CAPACITY_OVERSHARE_WINDOW)) ]
 }
 
-# Record that <project> took its extra start at <now>. Returns 1 when the
+# Record that <identity> took its extra start at <now>. Returns 1 when the
 # record could not be written, which the caller treats as no admission.
-fm_project_capacity_overshare_record() {  # <dir> <project> <now>
+fm_project_capacity_overshare_record() {  # <dir> <identity> <now>
   local dir=$1 name=$2 now=$3 tmp
   mkdir -p -- "$dir" || return 1
   [ -d "$dir" ] && [ ! -L "$dir" ] || return 1
@@ -387,7 +391,7 @@ fm_project_capacity_overshare_record() {  # <dir> <project> <now>
 
 # Remove the record of an extra start that launched no worker. Returns 1 when
 # the record cannot be read or removed. The caller holds the project lock.
-fm_project_capacity_overshare_release() {  # <dir> <project> <epoch>
+fm_project_capacity_overshare_release() {  # <dir> <identity> <epoch>
   local file="$1/$2" epoch
   [ -e "$file" ] || [ -L "$file" ] || return 0
   [ -f "$file" ] && [ ! -L "$file" ] && [ -r "$file" ] || return 1
@@ -396,19 +400,37 @@ fm_project_capacity_overshare_release() {  # <dir> <project> <epoch>
   rm -f -- "$file"
 }
 
+# The record identity for the project whose shared project lock is
+# <project-lock>: the hash fm_treehouse_project_lock_path names that lock by.
+fm_project_capacity_overshare_identity() {  # <project-lock>
+  local identity=${1##*/}
+  case "$identity" in
+    .treehouse-project-*.lock) ;;
+    *) return 1 ;;
+  esac
+  identity=${identity#.treehouse-project-}
+  identity=${identity%.lock}
+  case "$identity" in
+    '' | *[!0-9a-f]*) return 1 ;;
+  esac
+  printf '%s\n' "$identity"
+}
+
 # Decide whether a project already at its declared count may start one more
-# worker. The caller holds the project lock.
+# worker. <project-lock> is the fm_treehouse_project_lock_path the caller holds.
 # Sets FM_PROJECT_CAPACITY_OVERSHARE to off, admit, no, or spent.
 # off means the command is not configured. admit records the window before
-# returning, and sets FM_PROJECT_CAPACITY_OVERSHARE_DIR and
-# FM_PROJECT_CAPACITY_OVERSHARE_AT to the record's directory and epoch for
+# returning, and sets FM_PROJECT_CAPACITY_OVERSHARE_DIR,
+# FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY, and FM_PROJECT_CAPACITY_OVERSHARE_AT
+# to the record's directory, identity, and epoch for
 # fm_project_capacity_overshare_release. no means the reading failed, printed
 # no line, was missing, or could not be recorded.
 # spent means this project already used its extra start in the window.
-fm_project_capacity_overshare() {  # <config-dir> <project-name>
-  local config=$1 name=$2 now dir rc=0 line
+fm_project_capacity_overshare() {  # <config-dir> <project-lock>
+  local config=$1 lock=$2 identity now dir rc=0 line
   FM_PROJECT_CAPACITY_OVERSHARE=no
   FM_PROJECT_CAPACITY_OVERSHARE_DIR=
+  FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY=
   FM_PROJECT_CAPACITY_OVERSHARE_AT=
   fm_project_capacity_headroom_load "$config"
   case "$FM_PROJECT_CAPACITY_HEADROOM_STATE" in
@@ -419,16 +441,14 @@ fm_project_capacity_overshare() {  # <config-dir> <project-name>
     ready) ;;
     *) return 0 ;;
   esac
-  case "$name" in
-    '' | '.' | '..' | *'/'* | *$'\n'*) return 0 ;;
-  esac
+  identity=$(fm_project_capacity_overshare_identity "$lock") || return 0
   now=$(date +%s 2>/dev/null) || now=
   # A leading zero would make bash arithmetic read the value as octal.
   case "$now" in
     '' | *[!0-9]* | 0?*) return 0 ;;
   esac
   dir=$(fm_project_capacity_overshare_dir "$config") || return 0
-  if fm_project_capacity_overshare_spent "$dir" "$name" "$now"; then
+  if fm_project_capacity_overshare_spent "$dir" "$identity" "$now"; then
     FM_PROJECT_CAPACITY_OVERSHARE=spent
     return 0
   fi
@@ -442,9 +462,10 @@ fm_project_capacity_overshare() {  # <config-dir> <project-name>
   if [ "${#line}" -gt 240 ]; then
     line=${line:0:240}
   fi
-  fm_project_capacity_overshare_record "$dir" "$name" "$now" || return 0
+  fm_project_capacity_overshare_record "$dir" "$identity" "$now" || return 0
   printf '%s\n' "headroom: $line" >&2
   FM_PROJECT_CAPACITY_OVERSHARE_DIR=$dir
+  FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY=$identity
   FM_PROJECT_CAPACITY_OVERSHARE_AT=$now
   FM_PROJECT_CAPACITY_OVERSHARE=admit
   return 0

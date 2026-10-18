@@ -1128,6 +1128,7 @@ That deferral is unchanged when `config/project-capacity-headroom` is absent or 
 When the file's one line names a reading program and that program prints a line and exits 0, one spawn past the declared count can launch for that project.
 When that extra start is admitted, the spawn logs the program's first stdout line; [`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns that log line.
 A second extra spawn for the same project waits until 420 seconds after that start.
+That window belongs to the project's origin, as the count of holders does, so clones of one origin share it and two origins cloned under one directory name each have their own.
 An extra spawn that fails before its worker launches leaves that window open for the next spawn.
 A headroom file that cannot be read or holds a second non-empty line counts as no room, and so does a program that is missing or not executable, that exits non-zero, that exits 0 with an empty first stdout line, or that is still running after 30 seconds; the spawn is deferred.
 The line is the program and its arguments, split on whitespace.
