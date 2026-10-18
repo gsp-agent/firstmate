@@ -1,0 +1,59 @@
+=== S4 reading reports room: one extra start past alpha's share ===
+
+$ spawn a2 alpha
+  | headroom: cpu_idle_pct=61 load1=7.2 disk_free_gb=533
+  | spawned a2-r1 harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-a2-r1 worktree=/private/tmp/fmcap.crIZ27/treehouse/.treehouse/alpha-789d86/2/alpha
+  exit=0
+  meta=present row=in_flight window=present
+  reading runs=3  alpha identity=2d339bd6fdfd65772b9c4fb0bdd14f02661de4e0
+
+$ records
+2d339bd6fdfd65772b9c4fb0bdd14f02661de4e0 epoch=1792308109
+
+$ windows
+lab pane_dead=0 pid=70797 cmd=zsh
+fm-a1-smk pane_dead=0 pid=76455 cmd=sleep
+fm-a2-r1 pane_dead=0 pid=64891 cmd=sleep
+
+=== S5 at most one extra start per project per window ===
+
+$ spawn a3 alpha (reading still reports room)
+  | deferred: project alpha admits 1 worker(s) at once on this machine (/private/tmp/fmcap.crIZ27/home/config/project-capacity) and 2 already hold a place (a1-smk, a2-r1); task a3-r1 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+  exit=75
+  meta=absent row=queued window=absent
+  reading runs before=3 after=3
+
+$ records
+2d339bd6fdfd65772b9c4fb0bdd14f02661de4e0 epoch=1792308109
+
+$ windows
+lab pane_dead=0 pid=70797 cmd=zsh
+fm-a1-smk pane_dead=0 pid=76455 cmd=sleep
+fm-a2-r1 pane_dead=0 pid=64891 cmd=sleep
+
+=== S6 shares start without a reading; another project has its own window ===
+
+$ spawn b1 beta (beta 1, 0 holders; reading set to no room)
+  | spawned b1-r1 harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-b1-r1 worktree=/private/tmp/fmcap.crIZ27/treehouse/.treehouse/beta-7b3dfd/1/beta
+  exit=0
+  meta=present row=in_flight window=present
+  reading runs before=3 after=3
+
+$ spawn b2 beta (beta at share; reading reports room; alpha's window spent)
+  | headroom: cpu_idle_pct=61 load1=7.2 disk_free_gb=533
+  | spawned b2-r1 harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-b2-r1 worktree=/private/tmp/fmcap.crIZ27/treehouse/.treehouse/beta-7b3dfd/2/beta
+  exit=0
+  meta=present row=in_flight window=present
+  reading runs=4 beta identity=38daf12ad8d52fe9ab0b8f3aa470e7dc93b81e53
+
+$ records
+2d339bd6fdfd65772b9c4fb0bdd14f02661de4e0 epoch=1792308109
+38daf12ad8d52fe9ab0b8f3aa470e7dc93b81e53 epoch=1792308201
+
+$ windows
+lab pane_dead=0 pid=70797 cmd=zsh
+fm-a1-smk pane_dead=0 pid=76455 cmd=sleep
+fm-a2-r1 pane_dead=0 pid=64891 cmd=sleep
+fm-b1-r1 pane_dead=0 pid=20759 cmd=sleep
+fm-b2-r1 pane_dead=0 pid=76218 cmd=sleep
+

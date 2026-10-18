@@ -1,0 +1,47 @@
+=== S15 a secondmate home reads the root home's headroom file, not its own ===
+(aged alpha record to now-421: 1792308092)
+
+$ mate spawn m1 alpha (root home has no headroom file; mate has its own copy)
+  | deferred: project alpha admits 1 worker(s) at once on this machine (/private/tmp/fmcap.crIZ27/home/config/project-capacity) and 5 already hold a place (a1-smk in /private/tmp/fmcap.crIZ27/home, a2-r1 in /private/tmp/fmcap.crIZ27/home, a3-r1 in /private/tmp/fmcap.crIZ27/home, a4-r1 in /private/tmp/fmcap.crIZ27/home, a7-r1 in /private/tmp/fmcap.crIZ27/home); task m1-r1 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+  exit=75 meta=absent
+  reading runs before=11 after=11
+
+$ mate spawn m1 alpha (root home's headroom file reports room)
+  | headroom: cpu_idle_pct=61 load1=7.2 disk_free_gb=533
+  | spawned m1-r1 harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-m1-r1 worktree=/private/tmp/fmcap.crIZ27/treehouse/.treehouse/alpha-789d86/6/alpha
+  exit=0 meta=present
+  last reading args: --root-copy
+  record in root home state: /private/tmp/fmcap.crIZ27/home/state/project-capacity-overshare/2d339bd6fdfd65772b9c4fb0bdd14f02661de4e0 epoch=1792308517 (now=1792308533)
+  mate's own state has no overshare dir: absent
+
+$ root spawn a9 alpha right after (same origin, same window)
+  | deferred: project alpha admits 1 worker(s) at once on this machine (/private/tmp/fmcap.crIZ27/home/config/project-capacity) and 6 already hold a place (a1-smk, a2-r1, a3-r1, a4-r1, a7-r1, m1-r1 in /private/tmp/fmcap.crIZ27/mate); task a9-r1 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+  exit=75 meta=absent
+
+=== S16 a root-home spawn and a secondmate spawn of alpha race for one extra start ===
+(aged alpha record to now-421: 1792308116)
+
+$ root a9
+  | headroom: cpu_idle_pct=55 load1=9.1 disk_free_gb=533
+  | spawned a9-r1 harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-a9-r1 worktree=/private/tmp/fmcap.crIZ27/treehouse/.treehouse/alpha-789d86/7/alpha
+  exit=0 meta=present
+
+$ mate m2
+  | error: another Treehouse slot allocation or return is in progress for /private/tmp/fmcap.crIZ27/mate/projects/alpha; refusing to race it
+  exit=1 meta=absent
+  record epoch=1792308540 (now=1792308564)
+
+=== final: every worker still running, no record lost ===
+lab pane_dead=0 pid=70797 cmd=zsh
+fm-a1-smk pane_dead=0 pid=76455 cmd=sleep
+fm-a2-r1 pane_dead=0 pid=64891 cmd=sleep
+fm-b1-r1 pane_dead=0 pid=20759 cmd=sleep
+fm-b2-r1 pane_dead=0 pid=76218 cmd=sleep
+fm-a3-r1 pane_dead=0 pid=23907 cmd=sleep
+fm-a4-r1 pane_dead=0 pid=56340 cmd=sleep
+fm-a7-r1 pane_dead=0 pid=62611 cmd=sleep
+fm-m1-r1 pane_dead=0 pid=50597 cmd=sleep
+fm-a9-r1 pane_dead=0 pid=68550 cmd=sleep
+2d339bd6fdfd65772b9c4fb0bdd14f02661de4e0 epoch=1792308540
+38daf12ad8d52fe9ab0b8f3aa470e7dc93b81e53 epoch=1792308201
+

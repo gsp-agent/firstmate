@@ -1,0 +1,65 @@
+=== S7 window passes; when headroom goes only shares start; when it returns one more extra start ===
+(aged alpha record to now-421: 1792307815)
+
+$ spawn a3 alpha (window passed, reading no room)
+  | deferred: project alpha admits 1 worker(s) at once on this machine (/private/tmp/fmcap.crIZ27/home/config/project-capacity) and 2 already hold a place (a1-smk, a2-r1); task a3-r1 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+  exit=75
+  meta=absent row=queued window=absent
+  record before=1792307815 after=1792307815  (unchanged: the window was not consumed)
+
+$ spawn a3 alpha (window passed, reading room)
+  | headroom: cpu_idle_pct=61 load1=7.2 disk_free_gb=533
+  | spawned a3-r1 harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-a3-r1 worktree=/private/tmp/fmcap.crIZ27/treehouse/.treehouse/alpha-789d86/3/alpha
+  exit=0
+  meta=present row=in_flight window=present
+  record now=1792308243 (now=1792308272)
+
+$ records
+2d339bd6fdfd65772b9c4fb0bdd14f02661de4e0 epoch=1792308243
+38daf12ad8d52fe9ab0b8f3aa470e7dc93b81e53 epoch=1792308201
+
+$ windows
+lab pane_dead=0 pid=70797 cmd=zsh
+fm-a1-smk pane_dead=0 pid=76455 cmd=sleep
+fm-a2-r1 pane_dead=0 pid=64891 cmd=sleep
+fm-b1-r1 pane_dead=0 pid=20759 cmd=sleep
+fm-b2-r1 pane_dead=0 pid=76218 cmd=sleep
+fm-a3-r1 pane_dead=0 pid=23907 cmd=sleep
+
+=== S9 declared count 0 is not raised by a room reading ===
+
+$ spawn g1 gamma (gamma 0, reading room)
+  | deferred: project gamma admits 0 worker(s) at once on this machine (/private/tmp/fmcap.crIZ27/home/config/project-capacity) and 0 already hold a place (); task g1-r1 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+  exit=75
+  meta=absent row=queued window=absent
+  reading runs before=6 after=6
+
+=== S10 an extra start that fails before its worker launches leaves the window open ===
+(aged alpha record to now-421: 1792307857)
+
+$ spawn a4 alpha (brief still has {TASK}; window open; reading room)
+  | headroom: cpu_idle_pct=61 load1=7.2 disk_free_gb=533
+  | error: /private/tmp/fmcap.crIZ27/home/data/a4-r1/brief.md still contains {TASK} or {FIRSTMATE_SPEC}; fill ## Captain's intent and ## Firstmate spec before spawn
+  exit=1
+  meta=absent row=queued window=absent
+  alpha record after failure: (none)
+
+$ spawn a4 alpha again (brief fixed)
+  | headroom: cpu_idle_pct=61 load1=7.2 disk_free_gb=533
+  | spawned a4-r1 harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-a4-r1 worktree=/private/tmp/fmcap.crIZ27/treehouse/.treehouse/alpha-789d86/4/alpha
+  exit=0
+  meta=present row=in_flight window=present
+
+$ records
+2d339bd6fdfd65772b9c4fb0bdd14f02661de4e0 epoch=1792308285
+38daf12ad8d52fe9ab0b8f3aa470e7dc93b81e53 epoch=1792308201
+
+$ windows
+lab pane_dead=0 pid=70797 cmd=zsh
+fm-a1-smk pane_dead=0 pid=76455 cmd=sleep
+fm-a2-r1 pane_dead=0 pid=64891 cmd=sleep
+fm-b1-r1 pane_dead=0 pid=20759 cmd=sleep
+fm-b2-r1 pane_dead=0 pid=76218 cmd=sleep
+fm-a3-r1 pane_dead=0 pid=23907 cmd=sleep
+fm-a4-r1 pane_dead=0 pid=56340 cmd=sleep
+

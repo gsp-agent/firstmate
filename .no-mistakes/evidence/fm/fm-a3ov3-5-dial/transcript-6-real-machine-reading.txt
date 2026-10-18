@@ -1,0 +1,30 @@
+=== S14 a reading of this real machine decides the extra start ===
+(aged beta record to now-421: 1792308154)
+
+$ the machine right now
+cpu_idle_pct=30.52 load1=69.25 disk_free_gb=534
+  reading exit=0
+
+$ spawn b3 beta (beta at share, window open, real machine reading)
+  | headroom: cpu_idle_pct=38.12 load1=65.29 disk_free_gb=534
+  | spawned b3-r1 harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-b3-r1 worktree=/private/tmp/fmcap.crIZ27/treehouse/.treehouse/beta-7b3dfd/3/beta
+  exit=0
+  meta=present row=in_flight window=present
+
+$ records
+2d339bd6fdfd65772b9c4fb0bdd14f02661de4e0 epoch=1792308540
+38daf12ad8d52fe9ab0b8f3aa470e7dc93b81e53 epoch=1792308587
+
+$ windows
+lab pane_dead=0 pid=70797 cmd=zsh
+fm-a1-smk pane_dead=0 pid=76455 cmd=sleep
+fm-a2-r1 pane_dead=0 pid=64891 cmd=sleep
+fm-b1-r1 pane_dead=0 pid=20759 cmd=sleep
+fm-b2-r1 pane_dead=0 pid=76218 cmd=sleep
+fm-a3-r1 pane_dead=0 pid=23907 cmd=sleep
+fm-a4-r1 pane_dead=0 pid=56340 cmd=sleep
+fm-a7-r1 pane_dead=0 pid=62611 cmd=sleep
+fm-m1-r1 pane_dead=0 pid=50597 cmd=sleep
+fm-a9-r1 pane_dead=0 pid=68550 cmd=sleep
+fm-b3-r1 pane_dead=0 pid=1641 cmd=sleep
+

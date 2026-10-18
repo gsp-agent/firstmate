@@ -1,53 +1,45 @@
 #!/usr/bin/env bash
-# Build the disposable lab for the headroom-admission live check:
-# a marked lab FM_HOME, a project clone with a local bare origin, a markdown
-# backlog, briefs, and a private tmux server whose panes use a lab-local
-# Treehouse pool. Usage: lab-setup.sh <worktree-root> <lab>
+# Stand up a disposable project-capacity lab: a marked lab home, a private tmux
+# server, a lab-local treehouse pool, and two real projects (alpha, beta) each
+# cloned from its own local bare origin. Prints the lab root.
 set -eu
-ROOT=$1
-LAB=$2
-EV=$(cd "$(dirname "$0")" && pwd)
-SOCK=$("$ROOT/bin/fm-lab-home.sh" tmux-dir "$LAB")
-printf '%s\n' "$SOCK" > "$EV/.lab-sock"
-
-g() { git -c user.name=lab -c user.email=lab@example.invalid "$@"; }
-mkdir -p "$LAB/origin" "$LAB/treehouse"
-git init -q --bare -b main "$LAB/origin/project.git"
-git init -q -b main "$LAB/projects/project"
-printf 'lab project\n' > "$LAB/projects/project/README.md"
-g -C "$LAB/projects/project" add README.md
-g -C "$LAB/projects/project" commit -q -m init
-git -C "$LAB/projects/project" remote add origin "$LAB/origin/project.git"
-git -C "$LAB/projects/project" push -q -u origin main
-
-touch "$LAB/state/.last-watcher-beat"
-printf '%s\n' codex > "$LAB/config/crew-harness"
-printf '%s\n' '# Backlog' '' '## In flight' '' '## Queued' '' '## Done' > "$LAB/data/backlog.md"
-cat > "$LAB/.tasks.toml" <<'EOF'
-backend = "markdown"
-
-[markdown]
-path = "data/backlog.md"
-EOF
-for id in task-a task-b task-c task-d task-e task-f task-g task-z; do
-  mkdir -p "$LAB/data/$id"
-  cat > "$LAB/data/$id/brief.md" <<EOF
-# Task
-## Captain's intent
-Lab check for $id: hold a project place.
-
-## Firstmate spec
-Exercise project capacity headroom admission.
-
-# Definition of done
-Delivery contract: mode=local-only
-EOF
-  tasks-axi add "$id" "lab item $id" --kind ship --file "$LAB/data/backlog.md" >/dev/null
+WT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M56X9093NEEWZJH7PFGG0YPN
+ROOT=$(cd "$(mktemp -d /tmp/fmcap.XXXXXX)" && pwd -P)
+LAB=$ROOT/home
+"$WT/bin/fm-lab-home.sh" create "$LAB" >/dev/null
+TMUXD=$("$WT/bin/fm-lab-home.sh" tmux-dir "$LAB")
+mkdir -p "$ROOT/treehouse" "$ROOT/shim" "$ROOT/readings"
+printf 'tmux\n' > "$LAB/config/backend"
+for p in alpha beta; do
+  seed=$ROOT/seed-$p
+  git init -q -b main "$seed"
+  printf '# %s\n' "$p" > "$seed/README.md"
+  git -C "$seed" add -A
+  git -C "$seed" -c user.name=lab -c user.email=lab@example.invalid commit -q -m "seed $p"
+  git clone -q --bare "$seed" "$ROOT/$p.origin.git"
+  rm -rf "${seed:?}"
+  git clone -q "$ROOT/$p.origin.git" "$LAB/projects/$p"
 done
-
-env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE \
-  -u FM_DATA_OVERRIDE -u FM_CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE -u TMUX \
-  TMUX_TMPDIR="$SOCK" TREEHOUSE_ROOT="$LAB/treehouse" \
-  tmux -L fm-lab new-session -d -s firstmate -x 220 -y 50 -c "$ROOT" -e FM_HOME="$LAB" /bin/bash --noprofile --norc
-TMUX_TMPDIR="$SOCK" tmux -L fm-lab list-sessions
-echo "lab ready: $LAB (socket dir $SOCK)"
+printf '# Projects\n\n- alpha [local-only +yolo] - lab alpha\n- beta [local-only +yolo] - lab beta\n' > "$LAB/data/projects.md"
+# A tasks-axi shim on the lab PATH: it runs the real tasks-axi, except that
+# `start` fails while $ROOT/fail-start exists (a fault injected after launch).
+real_tasks_axi=$(command -v tasks-axi)
+cat > "$ROOT/shim/tasks-axi" <<SH
+#!/usr/bin/env bash
+for a in "\$@"; do
+  if [ "\$a" = start ] && [ -e "$ROOT/fail-start" ]; then
+    echo "lab shim: tasks-axi start refused (injected)" >&2
+    exit 1
+  fi
+done
+exec "$real_tasks_axi" "\$@"
+SH
+chmod +x "$ROOT/shim/tasks-axi"
+printf '%s\n' "$TMUXD" > "$ROOT/tmux-dir"
+# The pane shells run `treehouse get`, so the server's environment must carry
+# the lab pool root; otherwise slots land in ~/.treehouse.
+env -i HOME="$HOME" PATH="$ROOT/shim:$PATH" TMUX_TMPDIR="$TMUXD" TERM=xterm-256color \
+  TREEHOUSE_ROOT="$ROOT/treehouse" \
+  tmux -f /dev/null new-session -d -s firstmate -n lab -x 220 -y 60 -c "$ROOT"
+env -u TMUX TMUX_TMPDIR="$TMUXD" tmux set-environment -g TREEHOUSE_ROOT "$ROOT/treehouse"
+printf '%s\n' "$ROOT"

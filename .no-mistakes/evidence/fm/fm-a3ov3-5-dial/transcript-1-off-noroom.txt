@@ -1,0 +1,44 @@
+=== S1 off switch: no headroom file, alpha 1 held by a1 ===
+
+$ spawn a2 alpha
+  | deferred: project alpha admits 1 worker(s) at once on this machine (/private/tmp/fmcap.crIZ27/home/config/project-capacity) and 1 already hold a place (a1-smk); task a2-r1 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+  exit=75
+  meta=absent row=queued window=absent
+scenarios.sh: line 28: /private/tmp/fmcap.crIZ27/readings/runs.log: No such file or directory
+  reading runs=
+=== S2 off switch: headroom file with only whitespace ===
+
+$ spawn a2 alpha
+  | deferred: project alpha admits 1 worker(s) at once on this machine (/private/tmp/fmcap.crIZ27/home/config/project-capacity) and 1 already hold a place (a1-smk); task a2-r1 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+  exit=75
+  meta=absent row=queued window=absent
+scenarios.sh: line 28: /private/tmp/fmcap.crIZ27/readings/runs.log: No such file or directory
+  reading runs=
+
+$ records
+
+$ windows
+lab pane_dead=0 pid=70797 cmd=zsh
+fm-a1-smk pane_dead=0 pid=76455 cmd=sleep
+
+=== S3 reading reports no room (exit 1) ===
+
+$ spawn a2 alpha
+  | deferred: project alpha admits 1 worker(s) at once on this machine (/private/tmp/fmcap.crIZ27/home/config/project-capacity) and 1 already hold a place (a1-smk); task a2-r1 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+  exit=75
+  meta=absent row=queued window=absent
+  reading runs=1
+=== S3b reading exits 0 but prints nothing ===
+
+$ spawn a2 alpha
+  | deferred: project alpha admits 1 worker(s) at once on this machine (/private/tmp/fmcap.crIZ27/home/config/project-capacity) and 1 already hold a place (a1-smk); task a2-r1 was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+  exit=75
+  meta=absent row=queued window=absent
+  reading runs=2
+
+$ records
+
+$ windows
+lab pane_dead=0 pid=70797 cmd=zsh
+fm-a1-smk pane_dead=0 pid=76455 cmd=sleep
+
