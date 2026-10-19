@@ -293,6 +293,7 @@ family_for_basename() {
     fm-classify-decision-key.test.sh|\
     fm-composer-ghost.test.sh|fm-composer-lib.test.sh|\
     fm-crew-state.test.sh|fm-captain-hold-lifecycle.test.sh|\
+    fm-captain-hold-lifecycle-lane-a.test.sh|fm-captain-hold-lifecycle-lane-b.test.sh|\
     fm-documentation-audiences.test.sh|fm-ensure-agents-md.test.sh|fm-forge-detect.test.sh|fm-grok-harness.test.sh|\
     fm-fork-free-helpers.test.sh|\
     fm-harness-precedence.test.sh|\
@@ -498,7 +499,8 @@ list_proven_isolated() {
 tests/fm-arm-pretool-check.test.sh
 tests/fm-backend-herdr.test.sh
 tests/fm-brief.test.sh
-tests/fm-captain-hold-lifecycle.test.sh
+tests/fm-captain-hold-lifecycle-lane-a.test.sh
+tests/fm-captain-hold-lifecycle-lane-b.test.sh
 tests/fm-cd-pretool-check.test.sh
 tests/fm-composer-ghost.test.sh
 tests/fm-composer-lib.test.sh
@@ -530,7 +532,8 @@ portable_parallel_weight_hints() {
 tests/fm-arm-pretool-check.test.sh 33778
 tests/fm-backend-herdr.test.sh 36331
 tests/fm-brief.test.sh 10594
-tests/fm-captain-hold-lifecycle.test.sh 343658
+tests/fm-captain-hold-lifecycle-lane-a.test.sh 819000
+tests/fm-captain-hold-lifecycle-lane-b.test.sh 811000
 tests/fm-cd-pretool-check.test.sh 16801
 tests/fm-composer-ghost.test.sh 2292
 tests/fm-composer-lib.test.sh 9521
@@ -573,15 +576,15 @@ portable_parallel_lane_weight() {
 # workflow step moved with it.
 list_portable_parallel_1() {
   cat <<'EOF'
-tests/fm-pr-merge.test.sh
+tests/fm-captain-hold-lifecycle-lane-a.test.sh
 tests/fm-lint.test.sh
-tests/fm-backend-herdr.test.sh
-tests/fm-x-mode.test.sh
+tests/fm-test-run.test.sh
+tests/fm-arm-pretool-check.test.sh
 tests/fm-cd-pretool-check.test.sh
 tests/fm-composer-lib.test.sh
-tests/fm-send-popup-settle.test.sh
+tests/fm-grok-harness.test.sh
 tests/fm-pi-primary-types.test.sh
-tests/fm-review-diff.test.sh
+tests/fm-spawn-batch.test.sh
 tests/fm-send-settle.test.sh
 tests/fm-ensure-agents-md.test.sh
 tests/fm-supervision-instructions.test.sh
@@ -592,15 +595,16 @@ EOF
 # Portable parallel shard 2: the complementary LPT half of the proven set.
 list_portable_parallel_2() {
   cat <<'EOF'
-tests/fm-captain-hold-lifecycle.test.sh
-tests/fm-test-run.test.sh
+tests/fm-captain-hold-lifecycle-lane-b.test.sh
+tests/fm-pr-merge.test.sh
 tests/fm-crew-state.test.sh
-tests/fm-arm-pretool-check.test.sh
+tests/fm-backend-herdr.test.sh
+tests/fm-x-mode.test.sh
 tests/fm-herdr-lab.test.sh
 tests/fm-brief.test.sh
-tests/fm-grok-harness.test.sh
+tests/fm-send-popup-settle.test.sh
 tests/fm-send-strict.test.sh
-tests/fm-spawn-batch.test.sh
+tests/fm-review-diff.test.sh
 tests/fm-tmux-submit-busy.test.sh
 tests/fm-composer-ghost.test.sh
 EOF
@@ -1300,7 +1304,7 @@ all_repo_test_files() {
 # runs once. Named explicitly, the subject still runs, and runs every case.
 LANE_SPLIT_SUBJECT=tests/fm-supervision-host.test.sh
 all_repo_tests() {
-  all_repo_test_files | grep -vx "$LANE_SPLIT_SUBJECT"
+  all_repo_test_files | grep -vx "$LANE_SPLIT_SUBJECT" | grep -vx tests/fm-captain-hold-lifecycle.test.sh
 }
 
 normalize_script_path() {
@@ -1821,6 +1825,18 @@ select_changed() {
       for s in "${SCRIPTS[@]}"; do
         case "$s" in
           "${LANE_SPLIT_SUBJECT%.test.sh}"-lane-*.test.sh) ;;
+          *) kept+=("$s") ;;
+        esac
+      done
+      SCRIPTS=("${kept[@]}")
+      ;;
+  esac
+  case " ${SCRIPTS[*]-} " in
+    *" tests/fm-captain-hold-lifecycle.test.sh "*)
+      kept=()
+      for s in "${SCRIPTS[@]}"; do
+        case "$s" in
+          tests/fm-captain-hold-lifecycle-lane-*.test.sh) ;;
           *) kept+=("$s") ;;
         esac
       done
