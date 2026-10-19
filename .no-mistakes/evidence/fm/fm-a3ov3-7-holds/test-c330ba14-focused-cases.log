@@ -1,0 +1,6 @@
+ok - exact suite coverage: --all lists every scheduled tests/*.test.sh once
+ok - family selection returns a proper subset of the suite
+ok - single-script selection lists exactly that path
+ok - changed-file selection stays conservative (never silent full suite)
+ok - a task marker refuses execution in the primary checkout and leaves worktrees and inspection alone
+Terminated: 15             chmod +x "$repo/tests/$script"

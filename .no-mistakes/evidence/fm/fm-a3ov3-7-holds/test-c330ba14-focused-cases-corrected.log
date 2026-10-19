@@ -1,0 +1,8 @@
+selected-case: test_captain_hold_lanes_partition_its_cases
+ok - captain-hold: direct dispatch preserves all cases and selectors; CI runs each lane wrapper once
+selected-case: test_changed_captain_hold_subject_runs_each_case_once
+ok - changed selection runs each captain-hold case once, through the lanes or the subject
+selected-case: test_supervision_host_lanes_partition_its_cases
+ok - supervision-host: unset lane runs all cases; CI runs lanes a and b once each on different serial shards
+selected-case: test_install_and_uninstall_round_trip
+ok - install writes the nightly agent and its log path, and uninstall removes it, keeps the log, and repeats
