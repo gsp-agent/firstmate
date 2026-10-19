@@ -177,9 +177,12 @@
 #   Every single-task invocation holds one task-id-scoped lock across backend
 #   creation through metadata publication, so concurrent same-id spawns serialize
 #   even when they select different backends. A fresh spawn first takes the
-#   per-home task-set lock and refuses rather than waits when another operation
-#   owns it. The refusal names another spawn or forced teardown when the recorded
-#   holder role is known, otherwise another operation. --relaunch is exempt
+#   per-home task-set lock and keeps it through publication, including during a
+#   headroom reading, so forced teardown cannot remove its state mid-spawn.
+#   While the holder records role task-spawn-reading, a competing fresh spawn
+#   prints `deferred:`, exits 75, and leaves its backlog item queued; this also
+#   applies to scouts and batch entries. Other task-set contention refuses with
+#   exit 1, naming the recorded holder role when known. --relaunch is exempt
 #   because the existing task's control lock covers it.
 #   A fresh Treehouse-backed spawn also takes the project-identity lock in the local
 #   root Firstmate home's state directory before slot allocation and holds it through
@@ -212,12 +215,15 @@
 #   the current window (bin/fm-project-capacity-lib.sh owns that rule). That
 #   reading runs after this spawn releases the project lock, and its verdict
 #   applies only after a try-acquire retake, a recount, and a window recheck
-#   under the retaken lock; a failed retake also defers with 75. Absent that
+#   under the retaken lock; a failed retake also defers with 75. A place freed
+#   during the reading admits the spawn within the cap without consuming the
+#   extra-start window, even if the reading reported no room. Absent that
 #   reading's configuration, no lock is released for it. An
 #   unreadable declaration refuses with exit 1.
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
+#   Regression coverage: tests/fm-project-capacity.test.sh.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
@@ -3322,10 +3328,8 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
           exit 1
         fi
         if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
-          # The reading can take seconds, so it runs without the project lock:
-          # a same-project teardown or spawn started meanwhile takes that lock
-          # instead of refusing against a reading. The verdict is applied only
-          # under the retaken lock, after a recount and a window recheck.
+          # A slow reading must not hold up project allocation or return.
+          # Its verdict stays provisional until the retake and recount below.
           SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
           fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
           fm_project_capacity_headroom_read

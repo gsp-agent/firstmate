@@ -63,13 +63,13 @@
 # Race safety: bin/fm-spawn.sh evaluates admission while holding the shared
 # project lock and keeps holding it until the new task record is published, so
 # two concurrent spawns for one project can never both publish from the same
-# count. The one interval without that lock is a headroom reading at the
-# declared count, and the reading's verdict is only ever applied after the
-# lock is retaken and the count and window are rechecked under it. A spawn on an uncapped project can still publish a holder for a capped
+# count. A headroom reading reserves no place; bin/fm-spawn.sh's header owns
+# its unlocked reading, locked recount, and per-home task-set serialization.
+# A spawn on an uncapped project can still publish a holder for a capped
 # same-origin clone, so every backend takes that lock whenever the declaration
-# caps any project; Orca, which otherwise never takes it, is included. Freeing a
-# place needs no lock, because removing a record or adding pr= only ever lowers
-# the count.
+# caps any project; Orca, which otherwise never takes it, is included.
+# Removing a record or adding pr= only lowers the count, so admission tolerates
+# those concurrent decreases.
 #
 # Headroom command: config/project-capacity-headroom in that same config
 # directory. The file is off when it is absent or has no non-whitespace line,
@@ -96,12 +96,11 @@
 # than FM_PROJECT_CAPACITY_OVERSHARE_WINDOW seconds old. The window is 420
 # seconds, about one starter pass. Clones of one origin share one record, and
 # two origins cloned under one directory name keep separate records, even
-# though that name's declared count applies to both. bin/fm-spawn.sh releases
-# the project lock before the reading runs, retakes it with a try-acquire
-# after, and recounts the places and rechecks this window under the retaken
-# lock before it writes the record, so two spawns of one project cannot both
-# take the extra start. A spawn whose retake fails is deferred and writes no
-# record. An extra start whose record cannot be written is not admitted.
+# though that name's declared count applies to both. The window recheck and
+# record publication run under the project lock, so two spawns cannot both
+# take the extra start. An extra start whose record cannot be written is not
+# admitted. Keep a launched start's record until its window passes: deleting
+# it earlier would permit another extra start in that window.
 # A spawn that fails before its worker launches removes that record again under
 # the project lock, so that failed extra start leaves the window open. Once the
 # launch is sent, the record stands whatever fails after it. A spawn that
@@ -132,9 +131,7 @@ FM_PROJECT_CAPACITY_OVERSHARE_WINDOW=420
 # shellcheck disable=SC2034 # read by bin/fm-spawn.sh after sourcing.
 FM_PROJECT_CAPACITY_RELEASE_WAIT=10
 
-# A reading that has not exited by this many seconds is no room. The shared
-# reading samples the CPU over a few seconds and has taken up to 12.7 seconds
-# on a loaded machine. The reading runs without the project lock held.
+# A reading that has not exited by this many seconds is no room.
 FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT=30
 
 # The config directory holding this machine's declaration: the spawning home's
@@ -461,8 +458,9 @@ fm_project_capacity_overshare_prepare() {  # <config-dir> <project-lock>
   return 0
 }
 
-# Run the reading prepared above. This runs without the project lock held, so
-# it records nothing and prints nothing. Sets FM_PROJECT_CAPACITY_HEADROOM_LINE
+# Run the reading prepared above. This helper records nothing and prints
+# nothing, so fm-spawn.sh can run it without the project lock held.
+# Sets FM_PROJECT_CAPACITY_HEADROOM_LINE
 # to the reading's first line, cut as the admission log cuts it, or to empty
 # when the reading failed, printed no line, or timed out.
 fm_project_capacity_headroom_read() {

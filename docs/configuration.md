@@ -1125,16 +1125,16 @@ A clone of that origin under a different directory name finds no declaration and
 When every place is held, `bin/fm-spawn.sh` launches nothing, creates no record, leaves the backlog item queued, prints one `deferred:` line naming the holders, and exits 75, so Firstmate dispatches the item again once a place frees.
 That deferral is unchanged when `config/project-capacity-headroom` is absent or contains no non-whitespace line.
 When the file's one line names a reading program and that program prints a line and exits 0, one spawn past the declared count can launch for that project.
+A successful reading is provisional: concurrent activity can change admission, and reading-related lock contention defers a spawn with 75 while leaving its item queued; [`bin/fm-spawn.sh`'s header](../bin/fm-spawn.sh) owns the concurrent admission mechanics.
 When that extra start is admitted, the spawn logs the program's first stdout line; [`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns that log line.
 A second extra spawn for the same project waits until 420 seconds after that start.
 That window belongs to the project's origin, as the count of holders does, so clones of one origin share it and two origins cloned under one directory name each have their own.
-An extra spawn that fails before its worker launches leaves that window open for the next spawn.
+Cleanup attempts to release the window record for an extra spawn that fails before launch; if it cannot, it warns and leaves the record until the window expires.
 A headroom file that cannot be read or holds a second non-empty line counts as no room, and so does a program that is missing or not executable, that exits non-zero, that exits 0 with an empty first stdout line, or that is still running after 30 seconds; the spawn is deferred.
 The line is the program and its arguments, split on whitespace.
 The shell does not evaluate the line, so a program path that contains whitespace cannot be named.
-One reading that fits the line is `node` followed by the absolute path of `machine-headroom.mjs`.
-From the checkout that contains that file the same program is `node machine-headroom.mjs`, and this check does not change directory, so the config line uses the absolute path.
-That program prints one line, `cpu_idle_pct=<n|unread> load1=<n|unread> disk_free_gb=<n|unread>`, and exits 0 only when CPU idle is at least 25%, the 1-minute load is under 80, and free disk is at least 50 GB.
+Firstmate supplies no default reading program or resource thresholds.
+The reading runs in the spawn process's working directory, so use an absolute path for a locally supplied script.
 The file is read from the machine's root home, as `config/project-capacity` is, and a copy in a secondmate home is not consulted.
 Workers that are already running are left running.
 A malformed or unreadable capacity file refuses every fresh ship or scout spawn until it is fixed, rather than guessing the intended limit, and so does a local home's state directory or task record that cannot be read while counting a capped project's holders.
