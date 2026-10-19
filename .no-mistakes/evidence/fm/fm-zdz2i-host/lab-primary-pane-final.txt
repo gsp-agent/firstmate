@@ -1,0 +1,28 @@
+ ▐▛███▛█   Claude Code v2.1.303
+▝▜██████▀  Haiku 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.GMwdwS/fmroot
+you    Lab test. Reply with only the word ok and do nothing else.                                                                                                         
+claude ok
+you    Lab test. Run exactly this one bash command in the foreground and wait for it: ping -c 100 -i 1 127.0.0.1 >/dev/null ; then reply with only the word ok.           
+       ⇄ helper · Stop hook feedback
+claude The ping finished. A Stop hook reported a lab wake, so I'm draining it first as its instructions say.
+claude The wake is a lab probe with nothing to act on, so I'm acknowledging it with the printed command.
+claude ok
+       ○ 3 steps this turn ›
+you    Lab test. Run exactly this one bash command in the foreground and wait for it: ping -c 50 -i 1 127.0.0.1 >/dev/null ; then reply with only the word ok.            
+       ⇄ helper · Stop hook feedback
+claude ok
+       ○ 3 steps this turn ›
+you    Lab test. Run exactly this one bash command in the foreground and wait for it: ping -c 50 -i 1 127.0.0.1 >/dev/null ; then reply with only the word ok.            
+       ⇄ helper · Stop hook feedback
+claude ok
+       ○ 3 steps this turn ›
+you    Lab test. Run exactly this one bash command in the foreground and wait for it: ping -c 50 -i 1 127.0.0.1 >/dev/null ; then reply with only the word ok.            
+       ⇄ helper · Stop hook feedback
+claude ok
+       ○ 3 steps this turn ›
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ╭─fmroot 🌱 master │ Haiku 5.5 │ ⚡ george 100% │ ✉ fmroot-b9 │ 95%                                                                                                     fe
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 3 agents

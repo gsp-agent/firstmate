@@ -1,0 +1,28 @@
+claim demo as branch: rc=0
+lease before: branch 91041 1792380567 live
+teardown fixture pid 91518 holds the lease-command lock: 91518
+
+$ fm-lease.sh --wait 3 release-actor --actor branch   (teardown running)
+error: release-actor skipped - the lease-command lock is still held after 3s (holder pid 91518); nothing changed
+rc=75 after 3s; lease file after (unchanged): branch	91041	1792380567
+
+$ fm-lease.sh --wait 0 claim demo --actor branch   (teardown running)
+error: claim skipped - the lease-command lock is still held after 0s (holder pid 91518); nothing changed
+rc=75 after 0s
+
+$ fm-lease.sh --wait 1 check demo   (read-only command, teardown running)
+error: check skipped - the lease-command lock is still held after 1s (holder pid 91518); nothing changed
+rc=75
+
+$ fm-lease.sh --wait 3x check demo   (malformed bound)
+usage: fm-lease.sh [--wait <seconds>] claim|release <task> [--actor main|branch] | release-actor --actor main|branch | check <task> | sweep
+rc=2
+
+$ fm-lease.sh release-actor --actor branch   (no --wait, teardown running)
+still waiting after 4s (unbounded form keeps its old contract)
+lease file while it waits: branch	91041	1792380567
+teardown ended -> unbounded release-actor rc=0; lease check rc: 1 (1 = no lease)
+
+$ fm-lease.sh --wait 3 release-actor --actor branch   (lock free)
+rc=0 after 0s; lease check rc: 1 (1 = no lease)
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.ofuzx2

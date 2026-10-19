@@ -1,0 +1,3 @@
+=== 03:31:53Z mid-turn, no watcher, beacon 40s old, reader grace FM_WATCHER_STALE_GRACE=20
+fm-inbox.sh       {"lock":"held","wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":40},"can_receive":false}
+fm-inbox.base.sh  {"lock":"held","wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":40},"can_receive":false}

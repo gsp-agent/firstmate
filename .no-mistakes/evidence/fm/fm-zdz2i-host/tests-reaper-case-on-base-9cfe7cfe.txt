@@ -1,0 +1,4 @@
+not ok - an engine tool process in its own process group outlived the turn:  5394  5394 sleep 120
+base run 1 rc= in 81s; load averages: 149.20 102.07 75.29
+not ok - hang: the bounded turn did not end
+base run 2 rc= in 121s; load averages: 189.55 133.72 91.45

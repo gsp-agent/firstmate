@@ -1,0 +1,4 @@
+ok - host: a teardown holding the lease lock at activation delays neither the first watcher cycle nor, once it ends, the branch release
+ok - host: a teardown holding the lease lock when an engine turn ends leaves the host parked on its successor, and the release follows the teardown
+ok - host: a teardown holding the lease lock never holds a stopping host in its cleanup
+not ok - an engine tool process in its own process group outlived the turn: 20358 20358 sleep 120

@@ -1,0 +1,8 @@
+codex process tree:
+  PID  PPID COMM ARGS
+34647 34612 node node /opt/homebrew/bin/codex sandbox -- /bin/sleep 120
+34953 34647 /opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
+harness ancestry of lock pid 34647: args codex
+plain shell:                   {"lock":"held","live_harness":true,"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":0},"can_receive":false}
+Claude session (CLAUDECODE=1): {"lock":"held","live_harness":true,"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":0},"can_receive":false}
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.iVeOnC

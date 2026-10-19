@@ -1,0 +1,57 @@
+##### baseline: pre-change bin/fm-supervision-host.sh (9cfe7cfe, unbounded lease waits) swapped into the lab copy
+host script under test: c383c898a4d9
+=== 03:38:45Z  start: main idle, host parked on a live watcher
+lock pid=25057 (claude)  watcher pid=42830 alive=yes  beacon age=2s  lease-command lock=free
+change ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":0},"can_receive":true}
+base   ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"can_receive":true}
+--- main is mid-turn (ping -c 50)
+--- 03:39:14Z wake A passed through to main; successor watcher 40020 left running
+--- 03:39:19Z the last cycle closed on its wake; no watcher while main is mid-turn
+--- 03:39:20Z teardown fixture pid 52246 took the lease-command lock
+=== 03:39:20Z  mid-turn, teardown holding the lease lock, no watcher
+lock pid=25057 (claude)  watcher pid=none alive=no  beacon age=2s  lease-command lock=52246
+change ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":2},"can_receive":true}
+base   ready: {"lock":"held","wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":3},"can_receive":false}
+--- 03:39:49Z main's long command finished; its turn ends and the Stop auto-arm activates a host behind the teardown
+=== 03:40:00Z  teardown still holding the lease lock, 11s after main's turn ended (host pid )
+lock pid=25057 (claude)  watcher pid=none alive=no  beacon age=42s  lease-command lock=52246
+change ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":42},"can_receive":true}
+base   ready: {"lock":"held","wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":43},"can_receive":false}
+=== 03:40:12Z  teardown still holding the lease lock, 22s after main's turn ended (host pid 22713)
+lock pid=25057 (claude)  watcher pid=none alive=no  beacon age=53s  lease-command lock=52246
+change ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":54},"can_receive":true}
+base   ready: {"lock":"held","wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":55},"can_receive":false}
+=== 03:40:24Z  teardown still holding the lease lock, 34s after main's turn ended (host pid 22713)
+lock pid=25057 (claude)  watcher pid=none alive=no  beacon age=65s  lease-command lock=52246
+change ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":66},"can_receive":true}
+base   ready: {"lock":"held","wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":67},"can_receive":false}
+=== 03:40:35Z  teardown still holding the lease lock, 46s after main's turn ended (host pid 22713)
+lock pid=25057 (claude)  watcher pid=none alive=no  beacon age=77s  lease-command lock=52246
+change ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":78},"can_receive":true}
+base   ready: {"lock":"held","wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":78},"can_receive":false}
+=== 03:40:47Z  teardown still holding the lease lock, 57s after main's turn ended (host pid 22713)
+lock pid=25057 (claude)  watcher pid=none alive=no  beacon age=89s  lease-command lock=52246
+change ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":89},"can_receive":true}
+base   ready: {"lock":"held","wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":90},"can_receive":false}
+=== 03:40:58Z  teardown still holding the lease lock, 69s after main's turn ended (host pid 22713)
+lock pid=25057 (claude)  watcher pid=none alive=no  beacon age=100s  lease-command lock=52246
+change ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":100},"can_receive":true}
+base   ready: {"lock":"held","wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":101},"can_receive":false}
+--- 03:40:59Z teardown ended
+--- branch lease after the teardown: released
+=== 03:40:59Z  after the teardown ended
+lock pid=25057 (claude)  watcher pid=none alive=no  beacon age=101s  lease-command lock=24268
+change ready: {"lock":"held","wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":102},"can_receive":true}
+base   ready: {"lock":"held","wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":103},"can_receive":false}
+host log: 1792380657	pass-through	attended	main-only	check: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.GMwdwS/state/labprobe.check.sh: lab wake 1
+host log: 1792380769	start	gen=host-58431-1792380769	primary=claude
+host log: 1792380805	pass-through	attended	main-only	check: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.GMwdwS/state/labprobe.check.sh: lab wake A
+host log: 1792380874	lease-release	deferred: the lease-command lock is held
+host log: 1792380874	start	gen=host-49558-1792380868	primary=claude
+host log: 1792380930	lease-release	retried	rc=0
+host log: 1792380973	pass-through	attended	main-only	check: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.GMwdwS/state/labprobe.check.sh: lab wake A
+host log: 1792380982	lease-release	deferred: the lease-command lock is held
+host log: 1792381082	start	gen=host-67454-1792381040	primary=claude
+host log: 1792381082	take-over	arm=61973
+host log: 1792381151	pass-through	attended	main-only	check: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.GMwdwS/state/labprobe.check.sh: lab wake A
+host log: 1792381259	start	gen=host-22713-1792381206	primary=claude
