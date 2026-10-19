@@ -346,7 +346,8 @@ effective_for_provider_model() {
        ($model_token == ($scope | sub("^(model|product):"; ""))))
     )) as $applicable |
     ($applicable | map(select(.status == "known"))) as $known |
-    if ($applicable | length) == 0 then {status: "unknown"}
+    if quota_prepaid_usable($p) then {status: "known", prepaidCreditsUsable: true, runway: {status: "through_reset"}}
+    elif ($applicable | length) == 0 then {status: "unknown"}
     elif any($applicable[]; (.runway.status // "") == "exhausted_now") then
       ($applicable | map(select((.runway.status // "") == "exhausted_now")) | first)
     elif ($known | length) == 0 then {status: "unknown"}
@@ -384,7 +385,8 @@ for c in "${CANDIDATES[@]}"; do
     continue
   fi
   if printf '%s\n' "$effective" | jq -e '
-    if (.runway.status // "") == "exhausted_now" then false
+    if (.prepaidCreditsUsable // false) == true then true
+    elif (.runway.status // "") == "exhausted_now" then false
     elif .status == "unknown" then false
     else
       .effectivePercentRemaining as $remaining |

@@ -42,6 +42,10 @@ FM_QUOTA_ROW_JQ='
        ([$rows[] | select(.accountKey == "default")] | first) // null)
     else ($rows | first) // null
     end;
+  def quota_prepaid_usable($row):
+    $row != null and $row.provider == "grok" and
+    (((($row.credits.remaining // null) | type) == "number" and ($row.credits.remaining > 0))
+     or (($row.credits.unlimited // false) == true));
 '
 
 # fm_quota_axi_version_compatible <version-output>
