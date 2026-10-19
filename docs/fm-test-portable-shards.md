@@ -21,7 +21,7 @@ A failed script's duration is excluded even when its lane uploaded an artifact.
 In particular, run 36664663190's serial 5 finished in 22m15s with an assertion failure, not a timeout; treating that as a healthy whole-lane sample would hide the failure.
 Collect successful per-script measurements for every member before calculating a split.
 
-`tests/fm-supervision-host.test.sh` alone reached the 30-minute tripwire on slow runners (1015-1244 s green, past 1753 s on slow runners), so CI runs its cases in two lanes: `tests/fm-supervision-host-lane-a.test.sh` and `tests/fm-supervision-host-lane-b.test.sh` on different serial shards, scheduled in place of the file, which run directly still runs every case.
+`tests/fm-supervision-host.test.sh` alone reached the 30-minute tripwire on slow runners (1015-1244 s green, past 1753 s on slow runners), so CI runs its cases in two lanes: `tests/fm-supervision-host-lane-a.test.sh` and `tests/fm-supervision-host-lane-b.test.sh` on different serial shards, scheduled in place of the file; run directly, the file still runs every case.
 Their hints, 619000 ms and 625000 ms, apportion the slowest green whole-file sample (1244 s) by each lane's share of per-case time in a green run, so further green runs must replace them with measured lane samples.
 The native-Windows-only `tests/fm-pi-windows-shell-invocation.test.sh` retains its separate 5121 ms measurement from 2026-09-06T21:02Z instead of a portable capability skip.
 The session-start hint retains its pre-optimization maximum until CI measures the shorter fixture-only home-summary bound; do not discount a local speedup from CI packing weights.
