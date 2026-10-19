@@ -1,0 +1,20 @@
+not ok - the money ask joined by next-line was released (missing: 'held: yes')
+--- output ---
+task:
+  id: next-line
+  title: Technical and money ask next-line
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 62bc5e24ed5d97c43384e570b188f76b03e26d1a10b3fc944fd09499b840cb71\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: next-line\t2026-10-14T02:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.Also approve the 5000 dollar vendor invoice?\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.Also approve the 5000 dollar vendor invoice?"

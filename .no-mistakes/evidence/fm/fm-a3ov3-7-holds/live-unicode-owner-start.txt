@@ -1,0 +1,16 @@
+claude --safe-mode --permission-mode dontAsk --tools '' --strict-mcp-config --system-prompt '
+This is an isolated routing delivery test. For each incoming hold prompt reply only RECEIVED
+and its task id. Do not run tools, ask questions, delegate, change files or act on the descri
+bed PRs or capacity.'
+
+╭─01M592GWclaudeT4FZVF69FVG7 on 🌱 HEAD [?]                    ''
+m-prompt 'This is an isolated routing delivery test. For each incoming hold prompt reply only
+ RECEIVED and its task id. Do not run tools, ask questions, delegate, change files or act on
+the described PRs or capacity.'
+  no account remembered for 01M592GW4AWJHJT4FZVF69FVG7
+  [1] chip · 5h 0% · week 0% · just now  ← most room
+  [2] dale · 5h 2% · week 66% · just now
+  [3] erika · 5h 0% · week 29% · just now
+  [4] hilda · 5h 10% · week 9% · just now
+  [5] katherine · 5h 1% · week 24% · just now
+  [enter] chip    [q] cancel

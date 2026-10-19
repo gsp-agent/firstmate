@@ -1,0 +1,55 @@
+START real Herdr owner delivery with installed router
+END real Herdr owner delivery exit=1
+  [enter] chip    [q] cancel
+exit=0
+DRIVER ERROR: Real Claude owner did not become ready; see live-unicode-owner-start.txt. No trust or credential stores were changed.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/bin/fm-herdr-lab.sh teardown fm-lab-hold-unicode-93358-20623
+
+exit=0
+Disposable data to remove after inspection: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/.test-hold-validation/tmp/fm-lab.j_d_ycat
+RESULTS: [{"name": "driver", "result": "error", "live": false, "detail": "Real Claude owner did not become ready; see live-unicode-owner-start.txt. No trust or credential stores were changed."}, {"name": "lab teardown and default-session tripwire", "result": "pass", "live": true}]
+START selector=stranded-release
+END selector=stranded-release exit=0 duration_seconds=16
+ok - a re-hold waits for route-due to finish an unfinished routed release
+START selector=live-home
+END selector=live-home exit=0 duration_seconds=111
+ok - protected holds create no routing state and the sweep probes tasks-axi once and reads only captain-held and pending rows
+ok - lifecycle commands read only metas that are not listed task ids and keep alias authority
+ok - deferrals follow the local calendar date when routing and when guarding release recovery
+ok - release recovery, answers and reconciliations over a routed hold share its parent occurrence
+START selector=timing
+END selector=timing exit=0 duration_seconds=213
+ok - blocked lock permits the healthy later hold, scheduled checks and a single recovery delivery
+ok - blocked update permits the healthy later hold, scheduled checks and a single recovery delivery
+ok - blocked unhold permits the healthy later hold, scheduled checks and a single recovery delivery
+ok - blocked locks, resolution writes and releases preserve pending rows while healthy holds and scheduled checks finish
+ok - native and fallback watcher bounds stop blocked unhold without starving checks
+START selector=fairness
+END selector=fairness exit=0 duration_seconds=366
+ok - bounded sweep 1 preserves ordinary checks and cleans up interrupted routing
+ok - bounded sweep 2 preserves ordinary checks and cleans up interrupted routing
+ok - bounded sweep 3 preserves ordinary checks and cleans up interrupted routing
+ok - bounded sweep 4 preserves ordinary checks and cleans up interrupted routing
+ok - interrupted sweeps fairly route later and new holds once while blocked rows retain receipt recovery
+START same reason-breaks regression against pre-fix 2eb4c129 executable
+not ok - the money ask joined by next-line was released (missing: 'held: yes')
+--- output ---
+task:
+  id: next-line
+  title: Technical and money ask next-line
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 62bc5e24ed5d97c43384e570b188f76b03e26d1a10b3fc944fd09499b840cb71\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: next-line\t2026-10-14T02:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.Also approve the 5000 dollar vendor invoice?\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.Also approve the 5000 dollar vendor invoice?"
+END pre-fix regression exit=1 (expected nonzero)

@@ -1,0 +1,42 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/.test-hold-validation/tmp/fm-lab.j_d_ycat
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/.test-hold-validation/tmp/fm-lab.j_d_ycat
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/bin/fm-herdr-lab.sh name hold-unicode
+fm-lab-hold-unicode-93358-20623
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/bin/fm-herdr-lab.sh provision fm-lab-hold-unicode-93358-20623
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/bin/fm-herdr-lab.sh viewer start fm-lab-hold-unicode-93358-20623
+viewer attached to fm-lab-hold-unicode-93358-20623 (pid 93590)
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/bin/fm-herdr-lab.sh run fm-lab-hold-unicode-93358-20623 workspace create --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7 --label hold-unicode --no-focus --env FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/.test-hold-validation/tmp/fm-lab.j_d_ycat
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7","focused":false,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7","pane_id":"w2:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":39},"tab_id":"w2:t1","terminal_id":"term_65e29dc47c34e2","workspace_id":"w2"},"tab":{"agent_status":"unknown","focused":false,"label":"1","number":1,"pane_count":1,"tab_id":"w2:t1","workspace_id":"w2"},"type":"workspace_created","workspace":{"active_tab_id":"w2:t1","agent_status":"unknown","focused":false,"label":"hold-unicode","number":2,"pane_count":1,"tab_count":1,"workspace_id":"w2"}}}
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/bin/fm-herdr-lab.sh run fm-lab-hold-unicode-93358-20623 agent start ep-firstmate --kind claude --pane w2:p1 --timeout 30000 -- --safe-mode --permission-mode dontAsk --tools '' --strict-mcp-config --system-prompt 'This is an isolated routing delivery test. For each incoming hold prompt reply only RECEIVED and its task id. Do not run tools, ask questions, delegate, change files or act on the described PRs or capacity.'
+{"error":{"code":"timeout","message":"timed out waiting for agent startup"},"id":"cli:agent:start"}
+exit=1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/bin/fm-herdr-lab.sh run fm-lab-hold-unicode-93358-20623 pane read w2:p1 --source visible
+claude --safe-mode --permission-mode dontAsk --tools '' --strict-mcp-config --system-prompt '
+This is an isolated routing delivery test. For each incoming hold prompt reply only RECEIVED
+and its task id. Do not run tools, ask questions, delegate, change files or act on the descri
+bed PRs or capacity.'
+
+╭─01M592GWclaudeT4FZVF69FVG7 on 🌱 HEAD [?]                    ''
+m-prompt 'This is an isolated routing delivery test. For each incoming hold prompt reply only
+ RECEIVED and its task id. Do not run tools, ask questions, delegate, change files or act on
+the described PRs or capacity.'
+  no account remembered for 01M592GW4AWJHJT4FZVF69FVG7
+  [1] chip · 5h 0% · week 0% · just now  ← most room
+  [2] dale · 5h 2% · week 66% · just now
+  [3] erika · 5h 0% · week 29% · just now
+  [4] hilda · 5h 10% · week 9% · just now
+  [5] katherine · 5h 1% · week 24% · just now
+  [enter] chip    [q] cancel
+exit=0
+DRIVER ERROR: Real Claude owner did not become ready; see live-unicode-owner-start.txt. No trust or credential stores were changed.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/bin/fm-herdr-lab.sh teardown fm-lab-hold-unicode-93358-20623
+
+exit=0
+Disposable data to remove after inspection: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M592GW4AWJHJT4FZVF69FVG7/.test-hold-validation/tmp/fm-lab.j_d_ycat
+RESULTS: [{"name": "driver", "result": "error", "live": false, "detail": "Real Claude owner did not become ready; see live-unicode-owner-start.txt. No trust or credential stores were changed."}, {"name": "lab teardown and default-session tripwire", "result": "pass", "live": true}]

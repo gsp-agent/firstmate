@@ -1,0 +1,19 @@
+{
+  "id": "nbsp-capacity",
+  "title": "Technical hold with nonbreaking whitespace",
+  "state": "queued",
+  "blocked": "no",
+  "blocked_by": "none",
+  "held": "no",
+  "hold_reason": "-",
+  "hold_kind": "-",
+  "hold_until": "-",
+  "kind": "captain",
+  "repo": "firstmate",
+  "priority": "-",
+  "created": "2026-10-19",
+  "closed": "-",
+  "deps": "none",
+  "links": "none",
+  "body": "Resolution recorded by fm-captain-hold.\nDecision digest: c26c1ea06f636579853da0da42bcf221c1c2c234321c670e25905450e167657b\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: nbsp-capacity\t2026-10-14T02:00:00Z\tep-groove-sight-platform\nRouted hold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?\n\nDecision owner: ep-groove-sight-platform\nHold timeout seconds: 60\nHold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?"
+}

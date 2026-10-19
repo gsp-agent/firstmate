@@ -1,0 +1,96 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.xAwBGG
+code under test: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-old-2eb4c129 (23baef8c unless OLD_ROOT is set: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-old-2eb4c129)
+router: /Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py (agent-config a88e8a0b6)
+
+== hold at 02:00:00Z: technical reason + money question joined by each separator
+hold nel exit 0 nel 
+hold ls exit 0 ls 
+hold ps exit 0 ps 
+hold fs exit 0 fs 
+hold gs exit 0 gs 
+hold rs exit 0 rs 
+hold vt exit 0 vt 
+hold ff exit 0 ff 
+hold cr exit 0 cr 
+
+== hold at 02:00:00Z: technical reason with leading / trailing NBSP
+hold nbsp-lead exit 1 fm-captain-hold: route nbsp-lead failed: incomplete bad-field 
+hold nbsp-trail exit 0 nbsp-trail 
+pending routing bodies after hold: fs.body gs.body ls.body nbsp-lead.body nbsp-trail.body nel.body ps.body rs.body 
+
+== route-due sweep at 02:01:00Z (timeout reached)
+route-due exit 1 fm-captain-hold: route nbsp-lead failed: incomplete bad-field fm-captain-hold: routing row nbsp-lead failed (exit 1) 
+replay route-due exit 1 fm-captain-hold: route nbsp-lead failed: incomplete bad-field fm-captain-hold: routing row nbsp-lead failed (exit 1) 
+
+FAIL  nel: money ask still held for Dale: expected [yes] got [no]
+FAIL  nel: no routing record: expected [no] got [yes]
+PASS  nel: no pending body (= no)
+FAIL  nel: no owner prompt: expected [0] got [1]
+FAIL  ls: money ask still held for Dale: expected [yes] got [no]
+FAIL  ls: no routing record: expected [no] got [yes]
+PASS  ls: no pending body (= no)
+FAIL  ls: no owner prompt: expected [0] got [1]
+FAIL  ps: money ask still held for Dale: expected [yes] got [no]
+FAIL  ps: no routing record: expected [no] got [yes]
+PASS  ps: no pending body (= no)
+FAIL  ps: no owner prompt: expected [0] got [1]
+FAIL  fs: money ask still held for Dale: expected [yes] got [no]
+FAIL  fs: no routing record: expected [no] got [yes]
+PASS  fs: no pending body (= no)
+FAIL  fs: no owner prompt: expected [0] got [1]
+FAIL  gs: money ask still held for Dale: expected [yes] got [no]
+FAIL  gs: no routing record: expected [no] got [yes]
+PASS  gs: no pending body (= no)
+FAIL  gs: no owner prompt: expected [0] got [1]
+FAIL  rs: money ask still held for Dale: expected [yes] got [no]
+FAIL  rs: no routing record: expected [no] got [yes]
+PASS  rs: no pending body (= no)
+FAIL  rs: no owner prompt: expected [0] got [1]
+PASS  vt: money ask still held for Dale (= yes)
+PASS  vt: no routing record (= no)
+PASS  vt: no pending body (= no)
+FAIL  vt: no owner prompt: expected [0] got [0
+0]
+PASS  ff: money ask still held for Dale (= yes)
+PASS  ff: no routing record (= no)
+PASS  ff: no pending body (= no)
+FAIL  ff: no owner prompt: expected [0] got [0
+0]
+PASS  cr: money ask still held for Dale (= yes)
+PASS  cr: no routing record (= no)
+PASS  cr: no pending body (= no)
+FAIL  cr: no owner prompt: expected [0] got [0
+0]
+FAIL  nbsp-lead: technical hold released: expected [no] got [yes]
+FAIL  nbsp-lead: agent-routed record: expected [yes] got [no]
+FAIL  nbsp-lead: owner prompted exactly once: expected [1] got [0
+0]
+PASS  nbsp-trail: technical hold released (= no)
+PASS  nbsp-trail: agent-routed record (= yes)
+PASS  nbsp-trail: owner prompted exactly once (= 1)
+FAIL  no receipts for any joined money ask: expected [] got [fs	2026-10-14T02:00:00Z	ep-firstmate
+gs	2026-10-14T02:00:00Z	ep-firstmate
+ls	2026-10-14T02:00:00Z	ep-firstmate
+nel	2026-10-14T02:00:00Z	ep-firstmate
+ps	2026-10-14T02:00:00Z	ep-firstmate
+rs	2026-10-14T02:00:00Z	ep-firstmate]
+-- owner transport log:
+agent prompt ep-firstmate Hold fs timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold gs timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold ls timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold nbsp-trail timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold nel timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold ps timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold rs timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+-- routing receipts:
+fs	2026-10-14T02:00:00Z	ep-firstmate
+gs	2026-10-14T02:00:00Z	ep-firstmate
+ls	2026-10-14T02:00:00Z	ep-firstmate
+nbsp-trail	2026-10-14T02:00:00Z	ep-firstmate
+nel	2026-10-14T02:00:00Z	ep-firstmate
+ps	2026-10-14T02:00:00Z	ep-firstmate
+rs	2026-10-14T02:00:00Z	ep-firstmate
+-- stored Hold reason line for nel (shows the joined reason the router was given):
+"Resolution recorded by fm-captain-hold.\nDecision digest: d9b13f6cbafeb2932e970c55ce52cbad95c797e4e0c7bb09a75f852221861868\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: nel\t2026-10-14T02:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.Also approve the 5000 dollar vendor invoice?\n\nDecision owne
+FAILS=25
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.xAwBGG

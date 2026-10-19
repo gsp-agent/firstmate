@@ -1,0 +1,25 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.t0vkfB
+== fm-brief.sh --help usage lines
+Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--project <dir>] [--upstream-consent <host>/<owner>/<repo>] [--branch-prefix <prefix>] [--base-branch <branch>] [--forge <none|gerrit|forgejo> [--shape squash]] [--herdr-lab] [--decision-owner <endpoint>]
+       fm-brief.sh <task-id> <repo-name> --scout [--base-branch <branch>] [--herdr-lab] [--decision-owner <endpoint>]
+       fm-brief.sh <task-id> --secondmate {<project>...|--no-projects} [--decision-owner <endpoint>]
+
+== ship brief with --project and --decision-owner ep-firstmate
+exit 0
+Decision owner: ep-firstmate
+PASS  ship brief names the owner (= Decision owner: ep-firstmate)
+
+== scout brief with no owner
+exit 0
+PASS  scout brief defaults to captain (= Decision owner: captain)
+
+== secondmate charter with --decision-owner=ep-groove-sight-platform
+exit 0
+PASS  secondmate charter names the owner (= Decision owner: ep-groove-sight-platform)
+
+== malformed owner ../outside
+exit 1: error: --decision-owner must be an endpoint slug of at most 81 characters
+PASS  malformed owner refused (= yes)
+PASS  no brief written for malformed owner (= no)
+FAILS=0
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.t0vkfB

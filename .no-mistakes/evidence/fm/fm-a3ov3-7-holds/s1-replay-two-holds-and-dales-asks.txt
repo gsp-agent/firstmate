@@ -1,0 +1,78 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.UpszST
+router: /Users/dalecarman/.agent-config/configs/claude/hooks/hold-domain.py (agent-config a88e8a0b6)
+worktree head: 23baef8c
+host: load averages: 136.23 97.36 73.19   timing allowance: widened read/row/check bounds
+
+== hold CLI at 02:00:00Z, no --timeout-seconds (default), 2 technical + Dale asks
+-- branch body fields written by hold:
+"Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 300\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+PASS  branch default timeout is the 300s watcher interval (= yes)
+PASS  only the two technical holds are spooled for routing (= branch.body capacity.body )
+PASS  supervision stays required while technical holds are pending (= yes)
+PASS  no owner prompt at creation (= 0)
+
+== route-due sweep at 02:04:59Z (one second before the default timeout)
+route-due exit 0
+PASS  no owner prompt before timeout (= 0)
+PASS  branch still held before timeout (= yes)
+PASS  capacity still held before timeout (= yes)
+
+== real watcher cycle at 02:05:00Z (default timeout reached)
+due watcher cycle wall time: 65s
+watcher printed: signal: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.UpszST/state/lab-stop.status 
+PASS  branch released (= no)
+PASS  branch work stays queued, not done (= queued)
+PASS  branch carries agent-routed record (= yes)
+PASS  branch has no invented captain words (= no)
+PASS  capacity released (= no)
+PASS  capacity work stays queued, not done (= queued)
+PASS  capacity carries agent-routed record (= yes)
+PASS  capacity has no invented captain words (= no)
+PASS  money (Dale's ask) still held (= yes)
+PASS  money has no routing record (= no)
+PASS  credential (Dale's ask) still held (= yes)
+PASS  credential has no routing record (= no)
+PASS  person (Dale's ask) still held (= yes)
+PASS  person has no routing record (= no)
+PASS  client (Dale's ask) still held (= yes)
+PASS  client has no routing record (= no)
+PASS  production (Dale's ask) still held (= yes)
+PASS  production has no routing record (= no)
+PASS  account (Dale's ask) still held (= yes)
+PASS  account has no routing record (= no)
+PASS  taste (Dale's ask) still held (= yes)
+PASS  taste has no routing record (= no)
+PASS  mixed (Dale's ask) still held (= yes)
+PASS  mixed has no routing record (= no)
+PASS  human (Dale's ask) still held (= yes)
+PASS  human has no routing record (= no)
+PASS  desk (Dale's ask) still held (= yes)
+PASS  desk has no routing record (= no)
+PASS  captain (Dale's ask) still held (= yes)
+PASS  captain has no routing record (= no)
+PASS  exactly two owner prompts (= 2)
+-- owner transport log (recording stand-in for herdr agent prompt):
+agent prompt ep-firstmate Hold branch timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-groove-sight-platform Hold capacity timed out. You own this decision. Resolve it without Dale. ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?
+-- routing receipts (state/hold-domain/routed.tsv):
+branch	2026-10-14T02:00:00Z	ep-firstmate
+capacity	2026-10-14T02:00:00Z	ep-groove-sight-platform
+PASS  pending bodies retired (= )
+PASS  supervision no longer required for routing (= no)
+PASS  no hold-domain routing failure wake (= no)
+
+== replay: route-due sweep at 02:06:00Z
+route-due exit 0
+PASS  replay adds no prompts (= 2)
+
+== branch task after routing:
+  state: queued
+  held: no
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: a08e0ab00612b0824a6f390a2cd057234b0f5f73dc8af5b7259c9516a727e133\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: branch\t2026-10-14T02:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 300\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+
+== money task (Dale ask) after routing:
+  state: queued
+  held: yes
+  hold_kind: captain
+FAILS=0
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.UpszST

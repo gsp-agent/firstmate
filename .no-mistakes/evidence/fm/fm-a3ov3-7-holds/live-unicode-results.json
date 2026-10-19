@@ -1,0 +1,127 @@
+[
+  {
+    "name": "nel-money stays held at creation",
+    "result": "pass",
+    "live": true,
+    "detail": "yes"
+  },
+  {
+    "name": "line-money stays held at creation",
+    "result": "pass",
+    "live": true,
+    "detail": "yes"
+  },
+  {
+    "name": "file-money stays held at creation",
+    "result": "pass",
+    "live": true,
+    "detail": "yes"
+  },
+  {
+    "name": "nel-money stays with Dale after timeout",
+    "result": "pass",
+    "live": true,
+    "detail": "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. Also approve the 5000 dollar vendor invoice?"
+  },
+  {
+    "name": "line-money stays with Dale after timeout",
+    "result": "pass",
+    "live": true,
+    "detail": "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. Also approve the 5000 dollar vendor invoice?"
+  },
+  {
+    "name": "file-money stays with Dale after timeout",
+    "result": "pass",
+    "live": true,
+    "detail": "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch. Also approve the 5000 dollar vendor invoice?"
+  },
+  {
+    "name": "joined money asks produce no receipt",
+    "result": "pass",
+    "live": true,
+    "detail": "[]"
+  },
+  {
+    "name": "joined money asks send no prompt to the real owner",
+    "result": "pass",
+    "live": true,
+    "detail": "owner terminal captured before any technical routing"
+  },
+  {
+    "name": "technical holds do not prompt before their timeout",
+    "result": "pass",
+    "live": true,
+    "detail": "[]"
+  },
+  {
+    "name": "nbsp-update releases to the declared owner under LC_ALL=C",
+    "result": "pass",
+    "live": true,
+    "detail": "Resolution recorded by fm-captain-hold.\nDecision digest: 803afe647c4e1fb3e1f7a1aa4e925cb5e11a9290f76ff6eb3ee30cf9087c176b\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: nbsp-update\t2026-10-14T02:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  },
+  {
+    "name": "nbsp-update has one matching receipt",
+    "result": "pass",
+    "live": true,
+    "detail": "['nbsp-capacity\\t2026-10-14T02:00:00Z\\tep-groove-sight-platform', 'nbsp-update\\t2026-10-14T02:00:00Z\\tep-firstmate']"
+  },
+  {
+    "name": "nbsp-capacity releases to the declared owner under LC_ALL=C",
+    "result": "pass",
+    "live": true,
+    "detail": "Resolution recorded by fm-captain-hold.\nDecision digest: c26c1ea06f636579853da0da42bcf221c1c2c234321c670e25905450e167657b\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: nbsp-capacity\t2026-10-14T02:00:00Z\tep-groove-sight-platform\nRouted hold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?\n\nDecision owner: ep-groove-sight-platform\nHold timeout seconds: 60\nHold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?"
+  },
+  {
+    "name": "nbsp-capacity has one matching receipt",
+    "result": "pass",
+    "live": true,
+    "detail": "['nbsp-capacity\\t2026-10-14T02:00:00Z\\tep-groove-sight-platform', 'nbsp-update\\t2026-10-14T02:00:00Z\\tep-firstmate']"
+  },
+  {
+    "name": "replayed sweep leaves exactly two technical receipts",
+    "result": "pass",
+    "live": true,
+    "detail": "['nbsp-capacity\\t2026-10-14T02:00:00Z\\tep-groove-sight-platform', 'nbsp-update\\t2026-10-14T02:00:00Z\\tep-firstmate']"
+  },
+  {
+    "name": "both technical prompts reached the real owner terminal",
+    "result": "pass",
+    "live": true,
+    "detail": "see live-unicode-owner-after.txt"
+  },
+  {
+    "name": "no joined money prompt reached the real owner terminal",
+    "result": "pass",
+    "live": true,
+    "detail": "see live-unicode-owner-after.txt"
+  },
+  {
+    "name": "re-hold refuses an unfinished routed release",
+    "result": "pass",
+    "live": true,
+    "detail": "fm-captain-hold: task nbsp-update has an unfinished agent-routed release; the next route-due pass recovers it, then hold again\n"
+  },
+  {
+    "name": "refused re-hold preserves the routed task",
+    "result": "pass",
+    "live": true,
+    "detail": "task and routing receipts unchanged"
+  },
+  {
+    "name": "route-due retires the interrupted pending body",
+    "result": "pass",
+    "live": true,
+    "detail": "pending body retired after release recovery"
+  },
+  {
+    "name": "re-hold succeeds after release recovery",
+    "result": "pass",
+    "live": true,
+    "detail": "new lifecycle pending without a new owner prompt"
+  },
+  {
+    "name": "lab teardown and default-session tripwire",
+    "result": "pass",
+    "live": true
+  }
+]

@@ -1,0 +1,4 @@
+ok - protected holds create no routing state and the sweep probes tasks-axi once and reads only captain-held and pending rows
+ok - lifecycle commands read only metas that are not listed task ids and keep alias authority
+ok - deferrals follow the local calendar date when routing and when guarding release recovery
+ok - release recovery, answers and reconciliations over a routed hold share its parent occurrence

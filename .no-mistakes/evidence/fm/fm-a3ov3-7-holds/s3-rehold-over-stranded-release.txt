@@ -1,0 +1,40 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.SftiWb
+code under test: current head 23baef8c
+
+== 02:00:00Z hold work (technical, owner ep-firstmate, 60s)
+hold exit 0
+
+== 02:01:00Z route-due; the release dies right after unhold
+route-due exit 1 fm-captain-hold: could not release routed hold work fm-captain-hold: routing row work failed (exit 1) 
+PASS  the release was applied before dying (= yes)
+PASS  agent-routed record present (= yes)
+-- parent channel after the dead release:
+needs-decision [key=captain-hold-work-1] [at=1792382151]: captain hold work: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+
+== 02:01:30Z re-hold over the unfinished routed release
+re-hold exit 1: fm-captain-hold: task work has an unfinished agent-routed release; the next route-due pass recovers it, then hold again 
+PASS  re-hold refused (= yes)
+PASS  refusal names the route-due recovery pass (= yes)
+PASS  refused re-hold left the task unchanged (= yes)
+PASS  no second parent occurrence opened (= no)
+
+== 02:02:00Z route-due recovery pass
+route-due exit 0
+PASS  recovery resolved occurrence 1 in the parent channel (= yes)
+
+== 03:00:00Z re-hold after recovery, 03:01:00Z route-due work
+re-hold exit 0
+route-due work exit 0
+PASS  new lifecycle resolved its own occurrence 2 (= yes)
+PASS  each lifecycle reached its owner exactly once (= 2)
+PASS  no parent decision left open for Dale (= )
+-- parent channel (secondmate -> parent status) at the end:
+needs-decision [key=captain-hold-work-1] [at=1792382151]: captain hold work: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+resolved [key=captain-hold-work-1] [at=1792382204]: captain hold work: agent-routed to ep-firstmate
+needs-decision [key=captain-hold-work-2] [at=1792382223]: captain hold work: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+resolved [key=captain-hold-work-2] [at=1792382241]: captain hold work: agent-routed to ep-firstmate
+-- owner transport log:
+agent prompt ep-firstmate Hold work timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+agent prompt ep-firstmate Hold work timed out. You own this decision. Resolve it without Dale. GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+FAILS=0
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.SftiWb

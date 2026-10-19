@@ -1,0 +1,19 @@
+{
+  "id": "nbsp-update",
+  "title": "Technical hold with nonbreaking whitespace",
+  "state": "queued",
+  "blocked": "no",
+  "blocked_by": "none",
+  "held": "no",
+  "hold_reason": "-",
+  "hold_kind": "-",
+  "hold_until": "-",
+  "kind": "captain",
+  "repo": "firstmate",
+  "priority": "-",
+  "created": "2026-10-19",
+  "closed": "-",
+  "deps": "none",
+  "links": "none",
+  "body": "Resolution recorded by fm-captain-hold.\nDecision digest: 803afe647c4e1fb3e1f7a1aa4e925cb5e11a9290f76ff6eb3ee30cf9087c176b\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: nbsp-update\t2026-10-14T02:00:00Z\tep-firstmate\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: ep-firstmate\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+}

@@ -1,0 +1,20 @@
+lab home: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.fLtgpL
+
+== 02:00:00Z hold undeclared (technical reason, no owner, 60s), installed router
+hold exit 0 undeclared 
+PASS  owner defaults to captain (= yes)
+route-due exit 0 
+PASS  undeclared technical hold still held for Dale (= yes)
+PASS  no owner prompt (= 0)
+PASS  no pending routing body (= no)
+PASS  open reports an open captain call (exit 0) (= 0)
+
+== 02:00:00Z hold no-router (technical, owner ep-firstmate) with the router absent
+hold exit 0 no-router 
+route-due exit 0
+PASS  router-absent hold stays an ordinary captain hold (= yes)
+PASS  router-absent hold records no resolution (= no)
+PASS  router-absent hold created no routing state (= no)
+PASS  still no owner prompt (= 0)
+FAILS=0
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.fLtgpL
