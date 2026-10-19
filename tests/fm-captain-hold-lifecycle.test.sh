@@ -4665,8 +4665,17 @@ parser.add_argument("--task", required=True)
 parser.add_argument("--body-file", required=True)
 parser.add_argument("--now", required=True)
 args = parser.parse_args()
-fields = dict(line.split(": ", 1) for line in pathlib.Path(args.body_file).read_text().splitlines())
-assert set(fields) == {"Captain hold set", "Decision owner", "Hold timeout seconds", "Hold reason"}
+names = {"Captain hold set", "Decision owner", "Hold timeout seconds", "Hold reason"}
+fields = {}
+for line in pathlib.Path(args.body_file).read_text(encoding="utf-8").splitlines():
+    name, _, value = line.strip().partition(": ")
+    if name not in names:
+        continue
+    if name in fields or not value or value != value.strip():
+        print("incomplete bad-field")
+        raise SystemExit(2)
+    fields[name] = value
+assert set(fields) == names
 owner = fields["Decision owner"]
 reasons = {
     "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.",
@@ -6101,8 +6110,45 @@ SH
   pass 'a re-hold waits for route-due to finish an unfinished routed release'
 }
 
+test_domain_reasons_break_where_the_router_breaks() {
+  local domain_home id sep show technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+  domain_home=$(make_domain_home domain-reason-breaks)
+  for id in next-line line-separator file-separator; do
+    case "$id" in
+      next-line) sep=$'\xc2\x85' ;;
+      line-separator) sep=$'\xe2\x80\xa8' ;;
+      file-separator) sep=$'\x1c' ;;
+    esac
+    run_domain "$domain_home" 2026-10-14T02:00:00Z hold "$id" --title "Technical and money ask $id" \
+      --decision-owner ep-firstmate --timeout-seconds 60 \
+      --reason "$technical${sep}Also approve the 5000 dollar vendor invoice?" >/dev/null \
+      || fail "could not hold the money ask joined by $id"
+  done
+  run_domain "$domain_home" 2026-10-14T02:01:00Z route-due || fail 'the joined money ask sweep failed'
+  for id in next-line line-separator file-separator; do
+    show=$(tasks_in "$domain_home" show "$id" --full)
+    assert_contains "$show" 'held: yes' "the money ask joined by $id was released"
+    assert_not_contains "$show" 'Resolution mode:' "the money ask joined by $id gained a resolution"
+    assert_absent "$domain_home/state/hold-domain/pending/$id.body" "the money ask joined by $id entered pending routing"
+  done
+  assert_absent "$domain_home/owner.log" 'a money ask joined by a line break reached an agent'
+  assert_absent "$domain_home/state/hold-domain/routed.tsv" 'a money ask joined by a line break left a routing receipt'
+  run_domain "$domain_home" 2026-10-14T02:00:00Z hold nbsp --title 'Technical ask with a leading NBSP' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --reason $'\xc2\xa0'"$technical" >/dev/null \
+    || fail 'a technical reason with a leading NBSP failed to hold'
+  run_domain "$domain_home" 2026-10-14T02:01:00Z route-due nbsp || fail 'the NBSP technical hold did not route'
+  run_domain "$domain_home" 2026-10-14T02:02:00Z route-due nbsp || fail 'the NBSP routing replay failed'
+  show=$(tasks_in "$domain_home" show nbsp --full)
+  assert_contains "$show" 'held: no' 'the NBSP technical hold still waits on Dale'
+  assert_contains "$show" 'Resolution mode: agent-routed' 'the NBSP technical hold lost its routing record'
+  assert_grep 'agent prompt ep-firstmate Hold nbsp timed out.' "$domain_home/owner.log" 'the NBSP hold reached the wrong owner'
+  assert_equals 1 "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" 'the NBSP hold did not reach its owner exactly once'
+  pass 'reasons break where the router breaks them, so a joined money ask stays with Dale'
+}
+
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
   stranded-release) test_domain_rehold_waits_for_an_unfinished_routed_release; exit $? ;;
+  reason-breaks) test_domain_reasons_break_where_the_router_breaks; exit $? ;;
   receipt-deferral)
     test_domain_retries_failed_delivery_and_release expired || exit 1
     test_domain_retries_failed_delivery_and_release
@@ -6187,6 +6233,7 @@ test_domain_pending_holds_keep_supervision_after_task_retirement
 test_domain_holds_route_after_timeout_and_record_evidence
 test_domain_keeps_reserved_human_and_answered_holds
 test_domain_protected_deferrals_never_enter_pending
+test_domain_reasons_break_where_the_router_breaks
 test_domain_retries_failed_delivery_and_release
 test_domain_retries_failed_delivery_and_release expired
 test_watcher_routes_due_holds_before_surfacing_signals

@@ -1060,7 +1060,7 @@ command_hold() {
   [ -n "$reason" ] || fail "reason must not be empty"
   # bin/fm-hold-reason-lib.sh owns the storage constraint and reversible encoding.
   stored_reason=$(fm_hold_reason_encode "$reason") || fail "could not encode the hold reason"
-  routing_reason=$(printf '%s' "$reason" | perl -0777 -pe 's/\s+/ /g; s/^ | $//g')
+  routing_reason=$(printf '%s' "$reason" | normalize_routing_reason) || fail "could not normalize the hold reason"
   if [ -n "$origin" ]; then
     validate_slug origin-id "$origin"
   fi
@@ -1221,6 +1221,10 @@ hold_local_date() {
   date -r "$epoch" +%Y-%m-%d 2>/dev/null || date -d "@$epoch" +%Y-%m-%d
 }
 
+normalize_routing_reason() {
+  python3 -I -c 'import sys; sys.stdout.buffer.write(" ".join(sys.stdin.buffer.read().decode("utf-8", "surrogateescape").split()).encode("utf-8", "surrogateescape"))'
+}
+
 body_domain_field() {  # <decoded-body> <field>
   printf '%s\n' "$1" | awk -v history="$HOLD_HISTORY_HEADER" -v field="$2: " '
     $0 == history { exit }
@@ -1297,7 +1301,7 @@ route_hold() {  # <id>; caller owns the task control lock
     return 0
   fi
   live_reason=$(show_field_value "$(printf '%s\n' "$show" | fm_hold_reason_decode_stream)" hold_reason)
-  live_reason=$(printf '%s' "$live_reason" | perl -0777 -pe 's/\s+/ /g; s/^ | $//g')
+  live_reason=$(printf '%s' "$live_reason" | normalize_routing_reason) || fail "could not normalize the hold reason for $id"
   [ "$live_reason" = "$reason" ] || fail "task $id has divergent hold and routing reasons; leaving the hold intact"
   pending="$STATE/hold-domain/pending/$id.body"
   # One staging name per task: the control lock serializes it, and a retry
