@@ -1,0 +1,63 @@
+## 1. install (FM_DRIFT_AGENT_DIR=<scratch>, FM_DRIFT_LAUNCHCTL=<recording stub>)
+installed: <scr>/LaunchAgents/dev.firstmate.drift-nightly.plist
+plutil -lint: <scr>/LaunchAgents/dev.firstmate.drift-nightly.plist: OK
+log directory created by install: yes
+launchctl calls: bootout gui/501/dev.firstmate.drift-nightly;bootstrap gui/501 <scr>/LaunchAgents/dev.firstmate.drift-nightly.plist;
+Label: dev.firstmate.drift-nightly
+ProgramArguments: ['/bin/bash', '/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-drift-night.MMysnD/main home & <x>/bin/fm-drift-nightly.sh', 'nightly', '--repo', '<scr>/main home & <x>', '--log', '<scr>/home/Library/Logs/dev.firstmate.drift-nightly.log']
+StandardOutPath: <scr>/home/Library/Logs/dev.firstmate.drift-nightly.log
+StandardErrorPath: <scr>/home/Library/Logs/dev.firstmate.drift-nightly.log
+StartCalendarInterval: {'Hour': 3, 'Minute': 17}
+
+## 2. scheduled run, green (fork = accepted head)
+exit: 0   inbox notes: 0   wake lines: 0
+
+## 3. scheduled run, red (one unreviewed commit landed in the main home)
+exit: 1   inbox notes: 1   wake lines: 1
+
+## 4. same-day rerun of the red job
+exit: 1   inbox notes: 1   wake lines: 1
+
+## the note as Firstmate's inbox lists it (FM_HOME = the scratch main home)
+1792380724-0rZtJC
+    Nightly drift check red on 2026-10-18: exit 1 for <scr>/main home & <x>.
+    path-drift: bin/fm-spawn.sh
+    Log: <scr>/home/Library/Logs/dev.firstmate.drift-nightly.log
+-- note file body --
+id=1792380724-0rZtJC
+at=2026-10-19T03:32:04Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-18
+--
+Nightly drift check red on 2026-10-18: exit 1 for <scr>/main home & <x>.
+path-drift: bin/fm-spawn.sh
+Log: <scr>/home/Library/Logs/dev.firstmate.drift-nightly.log
+-- wake queue --
+check	inbox:1792380724-0rZtJC	check: captain inbox note 1792380724-0rZtJC - Nightly drift check red on 2026-10-18: exit 1 for /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//
+
+## the kept log (every run with its time, report summary and exit)
+run: 2026-10-18T22:31:39-0500
+exit: 0
+run: 2026-10-18T22:31:50-0500
+path-drift: bin/fm-spawn.sh
+unproven: 9e422089081a8b0d23752733209654d656f74873 unreviewed spawn change
+exit: 1
+run: 2026-10-18T22:32:04-0500
+path-drift: bin/fm-spawn.sh
+unproven: 9e422089081a8b0d23752733209654d656f74873 unreviewed spawn change
+exit: 1
+replay 1792380724-0rZtJC
+log lines total: 669
+pending lines per run in the log: 78
+
+## 5. uninstall when launchctl bootout fails with 71 (keeps the plist)
+error: launchctl bootout gui/501/dev.firstmate.drift-nightly failed with exit 71; kept <scr>/LaunchAgents/dev.firstmate.drift-nightly.plist
+exit: 2   plist present: yes
+## 6. uninstall (bootout ok)
+uninstalled: removed
+exit: 0   plist present: no   log kept: yes
+## 7. second uninstall
+uninstalled: absent
+exit: 0
+launchctl calls during uninstall: bootout gui/501/dev.firstmate.drift-nightly;bootout gui/501/dev.firstmate.drift-nightly;

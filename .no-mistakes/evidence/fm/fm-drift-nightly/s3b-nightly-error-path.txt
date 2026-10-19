@@ -1,0 +1,26 @@
+## main home with no kunchenguid remote; plist command under launchd's env, twice the same day
+run 1 exit: 2  notes: 1
+run 2 exit: 2  notes: 1
+-- log --
+run: 2026-10-18T22:50:42-0500
+error: kunchenguid remote is missing
+exit: 2
+queued 1792381843-qHD9G1
+  Nightly drift check red on 2026-10-18: exit 2 for /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/f
+  firstmate will pick this up at its next check.
+run: 2026-10-18T22:50:44-0500
+error: kunchenguid remote is missing
+exit: 2
+replay 1792381843-qHD9G1
+  Nightly drift check red on 2026-10-18: exit 2 for /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/f
+  firstmate will pick this up at its next check.
+-- note --
+id=1792381843-qHD9G1
+at=2026-10-19T03:50:43Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-18
+--
+Nightly drift check red on 2026-10-18: exit 2 for <scr>/home-repo.
+error: kunchenguid remote is missing
+Log: <scr>/home/drift.log

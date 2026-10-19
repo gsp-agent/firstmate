@@ -1,0 +1,4 @@
+shard 2of9: tests/fm-supervision-host-lane-b.test.sh
+shard 3of9: tests/fm-supervision-host-lane-a.test.sh
+shard 5of9: tests/fm-supervision-host-attended-live-e2e.test.sh
+shard 7of9: tests/fm-supervision-host-live-e2e.test.sh

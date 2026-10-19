@@ -1,0 +1,5 @@
+$ git revert 6373a197cc3e0ea04cc1026eeafd6afd27c8242d --no-edit
+exit: 0   2 files changed, 4 insertions(+), 2 deletions(-)
+$ git revert 9c86a2e092aa4ed54378289a5e3ede098c64e69b --no-edit
+exit: 1  error: could not revert 9c86a2e0... cut PR 34's Pi 1.2 narrowing and supervision-host quarantine
+tests/fm-pi-watch-extension.test.sh

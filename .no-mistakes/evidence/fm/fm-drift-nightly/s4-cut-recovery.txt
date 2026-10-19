@@ -1,0 +1,24 @@
+$ git bundle verify archives/fork-cuts.bundle
+The bundle uses this hash algorithm: sha1
+manifest line: git fetch archives/fork-cuts.bundle refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts && git cherry-pick <sha>
+is 8bd577837677140faf740ac6c51dd1954bba675a in HEAD's tree content? ancestor of HEAD: yes
+$ git fetch archives/fork-cuts.bundle refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts && git cherry-pick 8bd577837677140faf740ac6c51dd1954bba675a
+hint: To abort and get back to the state before "git cherry-pick",
+hint: run "git cherry-pick --abort".
+hint: Disable this message with "git config set advice.mergeConflict false"
+exit: 1
+new commit: 520736b8 record proof for the upstream-lean 9cfe7cfe merge and the R22 commit
+restored diff vs accepted head:
+ drift-measurements.txt | 19 +++++++++++++++++++
+ drift-proof.txt        | 10 ++++++++--
+ 2 files changed, 27 insertions(+), 2 deletions(-)
+$ bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf  # a restored cut is not silently accepted
+exit: 0
+
+error: you need to resolve your current index first
+docs/configuration.md: needs merge
+$ git revert 6373a197cc3e0ea04cc1026eeafd6afd27c8242d --no-edit
+hint: as appropriate to mark resolution and make a commit.
+fatal: revert failed
+exit: 128
+ 2 files changed, 27 insertions(+), 2 deletions(-)

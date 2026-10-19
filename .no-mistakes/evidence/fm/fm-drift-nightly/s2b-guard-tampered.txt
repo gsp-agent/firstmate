@@ -1,0 +1,218 @@
+behind: 0
+ahead: 125
+path-ok: .agents/skills/harness-adapters/references/harness/codex.md
+path-ok: .agents/skills/harness-adapters/references/harness/cursor.md
+path-ok: .agents/skills/harness-adapters/references/harness/grok.md
+path-ok: .agents/skills/operational-home-layout/SKILL.md
+path-ok: .github/workflows/ci.yml
+path-ok: .pi/extensions/fm-branch-supervision.ts
+path-ok: .pi/extensions/fm-primary-pi-watch.ts
+path-ok: CONTRIBUTING.md
+path-ok: archives/fork-cuts.bundle
+path-ok: bin/backends/herdr.sh
+path-ok: bin/fm-backend.sh
+path-ok: bin/fm-backlog-transition-lib.sh
+path-ok: bin/fm-bootstrap.sh
+path-ok: bin/fm-brief.sh
+path-ok: bin/fm-classify-lib.sh
+path-ok: bin/fm-claude-stop-autoarm.sh
+path-ok: bin/fm-composer-lib.sh
+path-ok: bin/fm-contributions.sh
+path-ok: bin/fm-cursor-crew-guard.mjs
+path-ok: bin/fm-cursor-guard.sh
+path-ok: bin/fm-dispatch-resolve.sh
+path-ok: bin/fm-dod-lib.sh
+path-ok: bin/fm-fleet-snapshot.sh
+path-ok: bin/fm-inbox.sh
+path-ok: bin/fm-pr-check.sh
+path-ok: bin/fm-pr-lib.sh
+path-ok: bin/fm-pr-made-with.sh
+path-ok: bin/fm-pr-poll-shipped.sha256
+path-ok: bin/fm-pr-poll.sh
+path-ok: bin/fm-pr-queue-sweep.sh
+path-ok: bin/fm-promote.sh
+path-ok: bin/fm-session-start.sh
+path-ok: bin/fm-spawn.sh
+path-ok: bin/fm-task-data-lib.sh
+path-ok: bin/fm-task-data.py
+path-ok: bin/fm-teardown.sh
+path-ok: bin/fm-test-run.sh
+path-ok: bin/fm-wake-lib.sh
+path-ok: bin/fm-watch.sh
+path-ok: docs/architecture.md
+path-ok: docs/configuration.md
+path-ok: docs/documentation-audiences.json
+path-ok: docs/fm-test-isolation-proof.md
+path-ok: docs/fm-test-portable-shards.md
+path-ok: docs/herdr-backend.md
+path-ok: docs/pi-supervision-branch.md
+path-ok: docs/scripts.md
+path-ok: docs/sessionstart-nudge.md
+path-ok: docs/supervision-host.md
+path-ok: docs/turnend-guard.md
+path-ok: docs/verification/runtime-backends.md
+path-ok: docs/verification/supervision.md
+path-ok: docs/watcher-continuity.md
+path-ok: drift-measurements.txt
+path-ok: drift-proof.txt
+path-ok: tests/captures/claude-code-2.1.300/scrolled-recent.ansi
+path-ok: tests/captures/claude-code-2.1.300/scrolled-visible.ansi
+path-ok: tests/captures/claude-code-2.1.302/exit-popup.ansi
+path-ok: tests/captures/claude-code-2.1.302/slash-popup.ansi
+path-ok: tests/fm-backend-herdr-presentation-e2e.test.sh
+path-ok: tests/fm-backend-herdr.test.sh
+path-ok: tests/fm-backlog-atomicity.test.sh
+path-ok: tests/fm-bootstrap.test.sh
+path-ok: tests/fm-brief.test.sh
+path-ok: tests/fm-captain-hold-lifecycle.test.sh
+path-ok: tests/fm-composer-lib.test.sh
+path-ok: tests/fm-contributions.test.sh
+path-ok: tests/fm-control-relaunch.test.sh
+path-ok: tests/fm-cursor-guard.test.sh
+path-ok: tests/fm-dispatch-resolve.test.sh
+path-ok: tests/fm-dod-lib.test.sh
+path-ok: tests/fm-drift-nightly.test.sh
+path-ok: tests/fm-gotmp.test.sh
+path-ok: tests/fm-home-summary-refresh.test.sh
+path-ok: tests/fm-inbox.test.sh
+path-ok: tests/fm-pi-branch-extension.test.sh
+path-ok: tests/fm-pi-watch-extension.test.sh
+path-ok: tests/fm-pr-check-security.test.sh
+path-ok: tests/fm-pr-made-with.test.sh
+path-ok: tests/fm-spawn-dispatch-profile.test.sh
+path-ok: tests/fm-spawn-pool-base-freshen.test.sh
+path-ok: tests/fm-supervision-host-lane-a.test.sh
+path-ok: tests/fm-supervision-host-lane-b.test.sh
+path-ok: tests/fm-supervision-host.test.sh
+path-ok: tests/fm-tangle-guard.test.sh
+path-ok: tests/fm-task-delivery.test.sh
+path-ok: tests/fm-teardown.test.sh
+path-ok: tests/fm-test-run.test.sh
+path-ok: tests/fm-watch-triage.test.sh
+path-drift: bin/fm-drift-nightly.sh
+unproven: 6d15f3180560d279c8f255a87c6711069c474cff make the guard always pass
+keep: 520736b82db70be43771a1904680b8048075ad9a record proof for the upstream-lean 9cfe7cfe merge and the R22 commit
+merge: c5d4fc87879c1752681d2147176e64c183083073 merge upstream-lean 9cfe7cfe (PR 42) into fm/fm-drift-nightly
+pending: 9cfe7cfef9a9be2e1ffb82a456ff73e421cce143 .agent-config-dtjsb fix: clear the required CI checks on upstream-lean and split supervision-host tests into two lanes (#42)
+keep: 550f3e6e2430eb236a3babe4bd5d3e5ace5a294a keep the nightly drift run's log and send Firstmate one note for a red run
+keep: d636014ace553d804ff550e6842a28809d9d2161 test the nightly drift run's kept log and its one red note a day
+keep: f9e520b1527c6f4c900411f90f0eada18fabe063 no-mistakes(ci): Only one of the 7 failing checks is caused by this PR: Behavior portable parallel 1. I fixed it. The other 6 fail the same way on PRs 38 and 42, which share this base (upstream-lean 9ed80766) without these changes, so I left them alone. **Caused by this PR (fixed).** tests/fm-pi-primary-types.test.sh failed with TS2339 "Property 'prompt' does not exist on type 'BeforeAgentStartEvent'" at fm-branch-supervision.ts:1684 and fm-primary-pi-watch.ts:1203. - Rule that broke: the Pi extensions must handle every before_agent_start event the installed Pi can raise. Pi 1.x also raises it for custom messages, which carry no prompt. - Cause: commit 9c86a2e0 cut PR 34's Pi 1.x narrowing after measuring only the locally installed Pi 0.85.0. CI installs the latest Pi without a version pin, which is now 1.3.0. - Every place that rule applies: the before_agent_start handlers in fm-branch-supervision.ts and fm-primary-pi-watch.ts, the sentence in docs/pi-supervision-branch.md that describes them, and the Pi event fixtures in tests/fm-pi-branch-extension.test.sh and tests/fm-pi-watch-extension.test.sh. - Fix: reverse-applied 9c86a2e0's patch for just those 5 paths, following the manifest's rule to recover a cut by its patch. The 2 extensions and 2 tests now equal 9ed80766's. The supervision-host quarantine stays cut. **Measured on this machine** (Pi 1.3.0 installed into a temp prefix and passed as FM_PI_PACKAGE_DIR; nothing installed globally): - Typecheck, upstream's files: exit 1 on Pi 1.3.0, exit 0 on Pi 0.85.0. - Typecheck, this head: passes on both Pi 1.3.0 and Pi 0.85.0. - fm-pi-branch-extension on Pi 1.3.0: run against upstream's extension it exits 1 with "TypeError: Cannot read properties of undefined (reading 'trim')" at fm-branch-supervision.ts:1686. On this head it exits 0 (51 checks). - fm-pi-watch-extension on Pi 0.85.0: exit 0 (60 checks) when run alone. One check failed once while it ran alongside the branch suite; it passed on the solo rerun. - fm-lint on the two changed tests: exit 0. fm-doc-audience-check: ok. git diff --check: clean. **Drift guard.** - drift-proof.txt now lists e3bca491 and moves `after:` to e3bca491, so it accepts only the commit that carries this change. - drift-measurements.txt gains "CI1 Pi 1.x narrowing" and "CI1 finalization" sections. - On an unreferenced scratch commit of this exact tree on top of e3bca491, the required check `bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1` exits 0. It prints zero path-drift and carried-unproven lines, 25 pending lines naming .agent-config-dtjsb, and keep for e3bca491 and the scratch commit. It also prints the same 35 unproven cut commits that e3bca491's own check prints. - The same scratch commit checked against the old manifest exits 1, with path-drift for all 7 changed files. - The commit must sit directly on e3bca491 for the `after:` line to select it. **Not caused by this PR (no change).** Each also fails on PR 42 (run 39108950894) and/or PR 38 (run 39109282470) at the same base, in code this PR does not touch. They only moved between shards because this PR changes which files and tests exist. - Lint 2: SC2034 in bin/fm-pr-queue-sweep.sh:247 and SC2100 in tests/fm-pr-check-security.test.sh:5167. - Serial 8: fm-backlog-atomicity, already declined as F5. - Serial 9: fm-teardown, already declined as F6. Also fm-watch-arm's state-gone case, which fails on PR 38 too. - Serial 3: fm-gotmp. - Serial 1: fm-watch-triage; its failing assertion changes from run to run. - Serial 6: fm-pr-check-security, and fm-pr-made-with. bin/fm-pr-made-with.sh:167 uses a jq object value `{body: A + B}` that CI's jq 1.7 rejects; the local jq 1.8.2 accepts it. The PM's earlier decision assigned the post-cut upstream-lean commits to .agent-config-dtjsb, so I left these reds for that bead
+keep: e3bca491fef65ab1f50a0d7ab23d5149b349a765 no-mistakes(document): Finalize drift proof for the crew guard docs commit
+keep: fa3c93df75841c987c9a474b392fed8c9a8d2782 no-mistakes(document): Align Cursor crew guard scope docs with its header
+keep: 5ababd20d995b196c4a2b0733fa50c8af2ac4d06 no-mistakes(review): List pending commits, restore switch -c promotion, fix recovery
+keep: 93cb683f7fa11d2170a376d9d05d7ce0a73c2739 record proof for the upstream-lean merge and PR 34's portions
+keep: 9c86a2e092aa4ed54378289a5e3ede098c64e69b cut PR 34's Pi 1.2 narrowing and supervision-host quarantine
+keep: 6373a197cc3e0ea04cc1026eeafd6afd27c8242d drop the PR 34 portions that describe or test cut Cursor features
+merge: 1f45a22edd5fc5394348ca1fe016802d449684d6 merge upstream-lean 9ed80766 (PR 34 and the post-cut PRs) into fm/fm-drift-nightly
+keep: 9ed8076692548e9cbeb9d90e28c4a5898d499cfd fix: run CI on upstream-lean and clear its Cursor, Pi and test reds (#34)
+pending: 116fdc5281d21a9992d7a4bb83ab75ed7bc38740 .agent-config-dtjsb fix(bin): cut home summary producer fan-out so it publishes within its 60s deadline (#39)
+pending: a70ba7abd29e26ad59a844b32c0706ce19951bf0 .agent-config-dtjsb feat(bin): name the engines that wrote a pull request on Made-with lines (#35)
+pending: 4470e616b494277b607b483a58fd8294b5bda773 .agent-config-dtjsb fix(bin): keep Cursor on prepaid/on-demand credit at the models_pct limit (#33)
+pending: 433c7b85519f64afda78038ac31c4b6a4fb0b23f .agent-config-dtjsb fix(bin): prepare retired task data from legacy backlog rows and keep unread PRs whole (#31)
+pending: ff8c5f8def6d93ad0257d66c90e1e8f98e958846 .agent-config-dtjsb fix(bin): read the current Herdr composer when the pane is scrolled (#32)
+pending: 67669705d25551948f6ca48d153c1526d2739440 .agent-config-dtjsb fix: detect merge queue removals across watched repositories (#21)
+pending: 8ab8f46d1086aaed5c009a257f8705552fa08b62 .agent-config-dtjsb Merge pull request #30 from gsp-agent/fm/fm-data-ref-fix
+pending: b8932e8b6269d5d48b0498d4b4aeca60bc72b564 .agent-config-dtjsb no-mistakes(document): Clarify named-bead retention and retry documentation
+pending: e59a6665512399edd2fab7de05f9ee94e8267d5b .agent-config-dtjsb fix: resolve named bead evidence without blocking retirement
+pending: 8ca0dc62b32426d9838012528796a8cd6d9afdcd .agent-config-dtjsb test: reproduce named bead cleanup retirement failures
+pending: 4439ef547fa08c9537b9b48cfcb17d6311386db5 .agent-config-dtjsb Merge pull request #27 from gsp-agent/fm/fm-data-cleanup
+pending: 8c448df39091dec2b7824b3636b599d9946dac62 .agent-config-dtjsb no-mistakes(lint): Quote empty-string declarations to satisfy ShellCheck
+pending: 4cd46f41f053c80e7ee16cc7580d6eab97bf787f .agent-config-dtjsb no-mistakes(document): Clarify linked evidence retention and recovery documentation
+pending: c3b3e1ce3e563fb89c9a760c97af194237f548ef .agent-config-dtjsb no-mistakes(review): Preserve Unicode spellings and escaped Markdown evidence
+pending: cf0da8c3225c828f3cd8fe05be71ae0c84c186bf .agent-config-dtjsb no-mistakes(review): Preserve linked directories and filesystem aliases during cleanup
+pending: 586f37f7d271db9e1ae57859b78cc2d877b44926 .agent-config-dtjsb fix: require a live watcher for inbox readiness (#28)
+pending: 0b8dddb9f0e78af2a34d3d8ef069cb0d55f551c8 .agent-config-dtjsb no-mistakes(review): Preserve transitive evidence links and portable Beads coverage
+pending: fb8006527599d03228f7099aa0d342a53146f115 .agent-config-dtjsb no-mistakes(review): Preserve Beads evidence from configured backlog sources
+pending: c4a5ec6775ea3c61312b69993e7e1d71599c4dae .agent-config-dtjsb no-mistakes(review): Preserve PR references and symlink traversal during cleanup
+pending: 1eef4fdd56eebc7e8ffc2ba772b129453ccc0247 .agent-config-dtjsb fix: limit task scratch recovery to data directories
+pending: 559548c816572200119a60c52e051fd54fb58408 .agent-config-dtjsb no-mistakes(lint): Quote task-next literal to satisfy ShellCheck
+pending: b0512fc88d185d30fcd966a5e7fa622481b94e47 .agent-config-dtjsb no-mistakes(document): Clarify task-data retention and recovery documentation
+pending: bd9ca126ad8328352c30c01217988972711549a9 .agent-config-dtjsb no-mistakes(review): Preserve linked targets through ancestor path aliases
+pending: 86fa1306443d3412ace2320aae85d6dcd051f6ce .agent-config-dtjsb no-mistakes(review): Preserve linked evidence and recover task scratch across teardown
+pending: d05e9561bc141ad74dedcb336e620fc340711c2b .agent-config-dtjsb Prune retired task data with guarded one-cycle recovery
+keep: a56cef1ac87af6392fe20d8a0fc870abf74b3b6f record proof for the restored and fixed R17 commits
+keep: 5491620c513c29626b7d2db2c67af59b641fc0c0 accept only integer cursor_fallback numbers
+keep: d102d0e9e22b88d13779e6e14fdc92d56e4c4f3a test that cursor_fallback numbers must be integers everywhere
+keep: 0030e13bc11fee7a438e91b94aabcc610a353d21 run the Cursor usage fallback after the harness is resolved
+keep: c5b5ad189a1cb527773a05a04792b06452d0f186 test the Cursor usage fallback when config/crew-harness chooses cursor
+keep: 6a0bee96135d6518af35982fe14dcfbc1e675e3c document a cut recovery command that works
+keep: 0f95e44f06c591c3d56f315931f9327954090f80 drift uninstall keeps the plist unless launchctl reports the job gone
+keep: 41bc017ced66aca8c949a80432af2fedf568593d test drift uninstall on launchctl errors and the documented cut recovery
+keep: 04514afb386858f35ea38da7ba3a18b5f718c959 fix(teardown): refuse an open recorded request when the copy is gone
+keep: 1981e1d52ae6a678e1823e4e4f08f08527ab78e3 test(teardown): show an open request still loses its record when the copy is gone
+keep: 33ec18c50455adb6eb350be46648ffc33eeac243 fix(teardown): keep a task record until its request is merged or closed
+keep: 50f3b5ad0f11046db96e8ebdcb4cbafae42c3986 test(teardown): show an open recorded request still loses its task record
+keep: 4cbb765cafde0dae0b51696beef7e3de6e0d2b85 crew guard: check wrapper payloads and commands after a leading keyword; state the scope
+keep: 57e99066c3bf9e823ebf56999fa221470477c41e restore crew isolation: spawn creates the ship branch, crew guard pins cwd and refuses ref plumbing
+keep: 516926a92e179b5cbc4bff564b9e6c5ff1a71190 escape drift install plist values and lint before replacing the job
+keep: 75f251ffc3ba760928d2cfb6f037840103867a16 test drift install with XML specials in paths and an invalid plist
+keep: d5cb32027c633844262dc5013e735de9f1cb18a7 no-mistakes(lint): Fix empty model assignment and finalize drift proof
+keep: 5f2b4f1ce74292fc0d2d15fa5a5c828925e1ca9d no-mistakes(document): Finalize documentation drift proof
+keep: 6f8648a1a009a1075078b21fd3a5dfbff3fb1d31 no-mistakes(document): Correct dispatch and Cursor fallback documentation
+keep: aaac2ae1f8467c00e5ee7389599b4502a00be9a4 no-mistakes(test): Finalize shipped drift proof and reject later edits
+keep: 3d91d6eb379009013d74f6bc6886684b67116009 no-mistakes(review): Archive unsupported Cursor changes and link measured proof
+keep: 814465e1383e1654aea41db0544c28cd1f30fa92 list the kept commits in drift-proof.txt with their live-file measurement
+merge: 8b34567a2def0fc2aa502e8ae123ae5c01b35d02 merge upstream-lean (PR 26) into fm/fm-drift-nightly
+keep: 98242c4f4a262044841090f4ff36581e136935cf cursor fallback: pool checks before the pstack pin; test the claude spawn
+keep: e478c151d6663c20e3f9d389f6178728d4cdba47 cursor fallback: Codex first, then Claude, not bare Grok
+keep: e85b95155824b19bb7c95969369c4e5d98356cb7 restore the six commits the live routing file depends on
+merge: 4877ac8efddab30fb01fb756dc52c81f30adedd5 Merge pull request #26 from gsp-agent/fm/codex-fallback
+unproven: 8e41a7db2a33ec9366a5429e8dbeba688c3f9ecc cursor fallback: pool checks before the pstack pin; test the claude spawn
+unproven: 974e42ac3022b10573ff20b963c23bf8ff8ef266 cursor fallback: Codex first, then Claude, not bare Grok
+keep: bad73aa7e1cbbfa7786429ec271487f87f8e1c8a no-mistakes(document): Clarify drift checks and publication consent documentation
+keep: 23b309bfda0e09a6348a6f252e3c5e8bb2cc6620 no-mistakes(review): Reject hidden drift and pin comparison commits
+keep: 9f1504c961e14d45dcbadbcbaede630dc30bb94e no-mistakes(review): Archive unsupported keeps and reject unproven patch drift
+keep: ce08ec298a7d52333a4c57ff01cdf0471c3bfdab record the kept dispatch commits in drift-proof.txt
+unproven: 8bd577837677140faf740ac6c51dd1954bba675a name an absent pstack_version as the guard's default
+unproven: 592992342dfbfd681ce66a08a6aeb38177c53a79 state the bounds of the live dispatch fields in the schema owner
+keep: 0efb72c1f28e335037a7470a7583bccb51fec71b add a nightly fork drift check with an uninstall path
+unproven: 85bc5153a829043a9c4850cdaf1b6a1cff8da8da cut unproven fork changes and keep the live dispatch commits
+merge: 8287d35f4152c050bdb77fb26a8262ea42406575 Merge pull request #22 from gsp-agent/fm/fm-test-machine-line
+unproven: c1b24cc9687cb259d405f17d8b8ab0504e57836f no-mistakes(document): Refresh suite admission and affected operational documentation
+unproven: eab38dcef5a72c9ecc3b4524eac20376836251a1 no-mistakes(review): Fix suite admission, runner paths, timing, and cap
+unproven: 516346afbbd8f36b23885c5c5a79ea8f7c8ff972 fix(fm-test-run): keep suite runs at caller priority on the machine line
+unproven: 7a8e6d580c83f104077e31a773a5c15b46172b7f fix(fm-test-run): hold the machine line for each suite run
+merge: f2214ad4567231cebabbf49d416bde354c995af1 Merge pull request #19 from gsp-agent/fm/fm-promote-switch-c
+unproven: 58573e6360fb52575a975fe5970588981e4aef08 no-mistakes(document): Align promotion, dispatch, and harness documentation
+unproven: 9a849dd4fb0b48f91ea1ed033f939aed558c45ed fix(promote): tell a promoted scout to run git switch -c
+merge: 37902fa5bb1cb0089a68c4e242f23ba1cfa648b2 Merge pull request #18 from gsp-agent/fm/sync-upstream-20261013
+merge: f525bbba83a62c03324eaba18920d0fd890a250e Merge pull request #15 from gsp-agent/fm/fm-teardown-open-pr
+unproven: 54a767b5d265e7d4d2b34c54184f2e99979a62eb no-mistakes(lint): Restore merge documentation and suppress SC2012
+unproven: 47a7870946c4158308d9b1ebffc82ff30889735c no-mistakes(document): Align dispatch, launch, and supervision documentation
+unproven: ff9a8d36cc2e9a71bb15103019f63f9c17e713ed fix(teardown): refuse an open recorded request when the copy is gone
+unproven: 3b60ba95d799a2a56eadec82f27f7a42e22d9b2c test(teardown): show an open request still loses its record when the copy is gone
+merge: b0d5875dfea533418e101610f966fc74e30a0c39 Merge kunchenguid/firstmate main (7df545bf) into upstream-lean
+merge: f47850ef54ef3a3c38912a7607436a6e1b1c2c90 Merge pull request #17 from gsp-agent/fm/ep-watch-resurface
+unproven: 17c4d13162f8fcdfb6cc9885a01648cf82b2a7a9 fix(bin): close GitLab-landed backlog items with the merge request URL as a note (#16)
+keep: 8193b2365719da824fe563f01645fe1eb1ccffa0 fix(cursor-guard): match usage-limit prose, not exceededLimit false (#13)
+unproven: 3ce31900713f4e569dfa2aba6e463115e28eeae4 fix(host): offer a rearm resurface by the rows it re-announces
+merge: 44a0ba0ad7b5c3539c706cfe04261f522fdf52e8 Merge pull request #12 from gsp-agent/fm/a3ov3-2-fm
+unproven: 14b1c4432cfb9443ea03a320adb09bf97c7b047c fix(teardown): keep a task record until its request is merged or closed
+unproven: 9733ff859b3f7ac0d8209d37e47df32a626ab2ea test(teardown): show an open recorded request still loses its task record
+unproven: 7aad5e45f778cd28bdd047010f6b994480308648 fix(spawn): disable Claude auto-memory on every launch
+unproven: 9c9ddae92ab31b074a90587542f8346f9c1b45ec test(spawn): require Claude launches to disable auto-memory
+merge: a129556026c1c2b56dc17c9dddc822978bd2165c Merge pull request #11 from gsp-agent/fm/a3ov3-4-fm
+unproven: 1d82cb6ea8661cedc95c4a825661c57c3b57ddff fix(watch): limit takeover continuity to confirmed TERM stops
+unproven: 2c1ca1dcd8a6e18fde320357db7ea70a0b6daf7e test(watch): reproduce announced recovery lost during self-exit takeover
+unproven: 9cbbbd76419b1dcbe23b7b376c700bf9521adc54 no-mistakes(lint): Restore watcher scope by reverting unrelated documentation changes
+unproven: 96e8d817220911f5292fcb61957d5687bc40b1a3 no-mistakes(document): Align dispatch, launch, startup, and watcher documentation
+unproven: 3ad15feca7b37ce8ef405e268481219ff3a4b5f1 fix(watch): take-over does not reopen an already-announced episode
+unproven: a727bbf5a3c51ce9bdc2ebdc14f58d77db3c5eb7 test(watch): a repeated Stop take-over must keep an announced episode quiet
+merge: dd8fc4533f44a8d0670c25e11f11e30252058f2e Merge PR 9: crew isolation (Codex APPROVE at bcba9dac; Chip-Grok PASS)
+unproven: bcba9dacdb658976bf77dd2415cdc1265c45b072 crew guard: check wrapper payloads and commands after a leading keyword; state the scope
+unproven: 4ad5d60fec0b33026e1ebe74be89fb54229585d9 Crew isolation: spawn creates the ship branch, crew guard pins cwd and refuses ref plumbing
+merge: dc6078041281132565f5b886cf99db9152f88bb7 Merge PR #8 (carry 4 commits onto upstream-lean; Opus reviewer PASS at 89b9cbcac; Dale 8:0x PM: don't wait on Grok)
+unproven: 89b9cbcacaccc45b642129aa6cce68ef50f2831c fix(session-start): the newest event keeps its full 60 characters
+unproven: 981bd823e260fc8586c13ec10a403c43828ba318 fix: keep hold fields and the newest event visible; accept configured efforts
+unproven: a158eb8675cc62ec2fe8fa8d33bfaa64d0df52d6 fix(session-start): cap each task line at 150 characters (#4)
+unproven: fccd2fe3482cc9df9951b2a95a334f83ac507048 feat(session-start): one line per task in the fleet digest (#3)
+merge: e98dda6bd04a94f741d9cf6635a2fdd876371b67 Merge PR #7 (passed by the Opus reviewer and Chip-Grok; Dale 6:4x PM: both passes = approval)
+merge: 92a657f4ec4b45f9b5b179539b196b1ffc748e58 Merge PR #6 (passed by the Opus reviewer and Chip-Grok; Dale 6:4x PM: both passes = approval)
+keep: ece80a3543c804bd10e8f13ad28775abef9a4e94 feat(cursor): run wide; deterministic grok fallback, per-bead 3rd-launch stop, stale lock, docs-only routing, pstack version pin
+keep: 745991e8e70fab9fb35bb63e5d2c1491c42124da feat(cursor): keep the agent's exit status past the tee; daily cap on Cursor beads
+keep: cce0ab3a8a709642fc85a3999f6424a8bcb6633d feat(cursor): step 1 of the Cursor cutover: pstack launch line, label routing, Sol max
+keep: ada14efcab836915609ea325e537fef0e9c45edc fix(dispatch): accept grok xhigh in the validators
+keep: aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 feat(spawn): pass xhigh reasoning effort to grok
+unproven: 2f360c82b60815e9f07a84c12256a0fe20db0b6f feat(spawn): refuse a fresh task whose # Task section is over 2048 bytes
+unproven: b606779ed08299d160ccbb154ec7c0dc8277b9d8 feat(spawn): keep a Grok crewmate off the captain's Claude and Cursor surface
+exit: 1

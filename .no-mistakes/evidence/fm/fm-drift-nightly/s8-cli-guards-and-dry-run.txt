@@ -1,0 +1,22 @@
+$ bin/fm-drift-nightly.sh install --dry-run --log rel.log
+error: --log must be an absolute path
+exit: 2
+$ bin/fm-drift-nightly.sh nightly --log rel.log
+error: --log must be an absolute path
+exit: 2
+$ bin/fm-drift-nightly.sh install --hour 24 --dry-run
+error: --hour must be 0 through 23
+exit: 2
+$ HOME=<scratch> bin/fm-drift-nightly.sh install --dry-run --repo /Users/dalecarman/dev/firstmate-upstream
+dry-run: install
+label: dev.firstmate.drift-nightly
+hour: 3
+minute: 17
+plist: /nonexistent-home/Library/LaunchAgents/dev.firstmate.drift-nightly.plist
+repo: /Users/dalecarman/dev/firstmate-upstream
+log: /nonexistent-home/Library/Logs/dev.firstmate.drift-nightly.log
+exit: 0
+$ HOME=<scratch> bin/fm-drift-nightly.sh uninstall --dry-run
+dry-run: uninstall
+absent: /nonexistent-home/Library/LaunchAgents/dev.firstmate.drift-nightly.plist
+exit: 0

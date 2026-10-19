@@ -1,0 +1,37 @@
+manifest line: git fetch archives/fork-cuts.bundle refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts && git cherry-pick <sha>
+conflict: 8e41a7db cursor fallback: pool checks before the pstack pin; test the claude spawn
+conflict: 974e42ac cursor fallback: Codex first, then Claude, not bare Grok
+conflict: 8bd57783 name an absent pstack_version as the guard's default
+conflict: 59299234 state the bounds of the live dispatch fields in the schema owner
+conflict: 85bc5153 cut unproven fork changes and keep the live dispatch commits
+conflict: c1b24cc9 no-mistakes(document): Refresh suite admission and affected operational documentation
+conflict: eab38dce no-mistakes(review): Fix suite admission, runner paths, timing, and cap
+conflict: 516346af fix(fm-test-run): keep suite runs at caller priority on the machine line
+restored: 7a8e6d58 fix(fm-test-run): hold the machine line for each suite run (2 files changed, 469 insertions(+))
+conflict: 58573e63 no-mistakes(document): Align promotion, dispatch, and harness documentation
+empty: 9a849dd4 fix(promote): tell a promoted scout to run git switch -c
+conflict: 54a767b5 no-mistakes(lint): Restore merge documentation and suppress SC2012
+conflict: 47a78709 no-mistakes(document): Align dispatch, launch, and supervision documentation
+conflict: ff9a8d36 fix(teardown): refuse an open recorded request when the copy is gone
+conflict: 3b60ba95 test(teardown): show an open request still loses its record when the copy is gone
+restored: 17c4d131 fix(bin): close GitLab-landed backlog items with the merge request URL as a note (#16) (6 files changed, 258 insertions(+), 18 deletions(-))
+conflict: 3ce31900 fix(host): offer a rearm resurface by the rows it re-announces
+conflict: 14b1c443 fix(teardown): keep a task record until its request is merged or closed
+conflict: 9733ff85 test(teardown): show an open recorded request still loses its task record
+restored: 7aad5e45 fix(spawn): disable Claude auto-memory on every launch (4 files changed, 26 insertions(+), 17 deletions(-))
+restored: 9c9ddae9 test(spawn): require Claude launches to disable auto-memory (2 files changed, 17 insertions(+), 1 deletion(-))
+conflict: 1d82cb6e fix(watch): limit takeover continuity to confirmed TERM stops
+restored: 2c1ca1dc test(watch): reproduce announced recovery lost during self-exit takeover (1 file changed, 28 insertions(+), 9 deletions(-))
+conflict: 9cbbbd76 no-mistakes(lint): Restore watcher scope by reverting unrelated documentation changes
+conflict: 96e8d817 no-mistakes(document): Align dispatch, launch, startup, and watcher documentation
+restored: 3ad15fec fix(watch): take-over does not reopen an already-announced episode (3 files changed, 8 insertions(+), 1 deletion(-))
+restored: a727bbf5 test(watch): a repeated Stop take-over must keep an announced episode quiet (1 file changed, 59 insertions(+))
+restored: bcba9dac crew guard: check wrapper payloads and commands after a leading keyword; state the scope (1 file changed, 4 insertions(+))
+conflict: 4ad5d60f Crew isolation: spawn creates the ship branch, crew guard pins cwd and refuses ref plumbing
+conflict: 89b9cbca fix(session-start): the newest event keeps its full 60 characters
+conflict: 981bd823 fix: keep hold fields and the newest event visible; accept configured efforts
+conflict: a158eb86 fix(session-start): cap each task line at 150 characters (#4)
+conflict: fccd2fe3 feat(session-start): one line per task in the fleet digest (#3)
+restored: 2f360c82 feat(spawn): refuse a fresh task whose # Task section is over 2048 bytes (3 files changed, 96 insertions(+))
+restored: b606779e feat(spawn): keep a Grok crewmate off the captain's Claude and Cursor surface (3 files changed, 13 insertions(+), 2 deletions(-))
+restored cleanly: 10   conflict needing resolution: 24   empty: 1

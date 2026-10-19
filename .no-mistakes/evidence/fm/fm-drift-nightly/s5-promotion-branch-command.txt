@@ -1,0 +1,13 @@
+## this head's bin/fm-promote.sh in the marked lab home
+head: fm-promote exit 0  (●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━)
+head: meta now: kind=ship mode=no-mistakes branch=fm/lab-promote-e1 
+head: delivered step: 11:3. Return to a clean default-branch base, then create your branch: `git switch -c fm/lab-promote-e1 --`.
+head: crew guard decision: {"permission":"allow","updated_input":{"command":"git switch -c fm/lab-promote-e1 --","cwd":"<scr>/head-slot","working_directory":"<scr>/head-slot"}}
+head: ran 'git switch -c fm/lab-promote-e1 --' in the slot: exit 0; slot branch 'fm/lab-promote-e1'; primary branch 'master'
+
+## kunchenguid/main (7df545bf) bin/fm-promote.sh, same fixture
+upstream: fm-promote exit 0  (WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.)
+upstream: meta now: kind=ship mode=no-mistakes branch=fm/lab-promote-e2 
+upstream: delivered step: 11:3. Return to a clean default-branch base, then create your branch: `git checkout -b fm/lab-promote-e2 --`.
+upstream: crew guard decision: {"permission":"allow","updated_input":{"command":"git checkout -b fm/lab-promote-e2 --","cwd":"<scr>/upstream-slot","working_directory":"<scr>/upstream-slot"}}
+upstream: 'git checkout -b fm/lab-promote-e2 --' matches the imported deny Bash(git checkout -b *) -> refused; slot branch stays ''

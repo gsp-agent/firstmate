@@ -1,0 +1,33 @@
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - a shipped proof accepts its own patch and rejects later edits
+ok - parent proof does not approve inherited unproven content
+ok - parent proof refuses missing or ambiguous acceptance commits
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+ok - a moving fork ref cannot change the captured check or its report
+ok - a moving upstream ref cannot change the captured check or its report
+ok - the captured upstream includes updates from the completed fetch
+ok - dependent proven patches are accepted regardless of proof-file order
+ok - proof approves a patch rather than the commit's entire file snapshot
+ok - cut unproven changes pass once their effective changes are gone
+ok - a proven change can cut unrelated unproven changes in the same commit
+ok - missing accepted patches are reported as drift
+ok - unproven file modes cannot borrow content proof
+ok - a pending commit is accepted, printed with its bead on every run, and must name its bead
+ok - an accepted merge carries its commits only when each is proven or pending
+ok - unknown proof commits cannot silently authorize changes
+ok - behind is reported and does not fail the check by itself
+ok - a merge commit is labeled merge and adds no path-drift when its tree matches upstream
+ok - a red nightly sends one note a day naming its red lines and log, and a green one sends none
+ok - a nightly whose check exits 2 sends one note naming the error
+ok - a nightly note names at most ten red lines and counts the rest in the log
+ok - install --dry-run prints the job and writes nothing
+ok - install writes the nightly agent and its log path, and uninstall removes it, keeps the log, and repeats
+ok - install escapes &, <, > and quotes in the script, repo and log paths
+ok - a reinstall whose plist fails lint leaves the installed job and plist unchanged
+ok - uninstall deletes the plist only when bootout succeeds or launchctl reports no such service
+ok - the documented cut recovery restores a cut commit from the bundle alone
+ok - install rejects hour 24 and a relative log path
+exit: 0
