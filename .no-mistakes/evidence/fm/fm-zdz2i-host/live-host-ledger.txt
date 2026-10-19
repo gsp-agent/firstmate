@@ -1,0 +1,6 @@
+1792390335	lease-release	deferred: the lease-command lock is held
+1792390335	start	gen=host-51231-1792390328	primary=claude
+1792390343	lease-release	retried	rc=0
+1792390350	lease-release	deferred: the lease-command lock is held
+1792390351	start	gen=host-86743-1792390350	primary=claude
+1792390358	to-main	the away session could not take this wake: a queued wake could not be read or resolved to a task record, so its scope is unknown; this wake is yours

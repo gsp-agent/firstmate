@@ -1,0 +1,43 @@
+Live product evidence. All homes were disposable and inside the gate worktree. Primaries ran on private fm-lab tmux sockets with 120x40 panes.
+
+SAME-STATE REGRESSION CONTROL (real Claude primary; no watcher and no open auto-arm claim):
+Changed bin/fm-inbox.sh ready: {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/t", "observed_at": "2026-10-19T06:24:54Z", "lock": {"state": "held", "pid": 27880, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 2}, "posture": {"state": "present"}, "can_receive": true}
+Pre-fix 1798fe1f inbox CLI: {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/t", "observed_at": "2026-10-19T06:24:54Z", "lock": {"state": "held", "pid": 27880, "live_harness": true}, "wake_consumer": {"state": "down", "reason": "no-watcher", "beacon_age_seconds": 2}, "posture": {"state": "present"}, "can_receive": false}
+
+held real Claude primary without a beacon refuses readiness:
+{"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/l", "observed_at": "2026-10-19T06:09:33Z", "lock": {"state": "held", "pid": 71831, "live_harness": true}, "wake_consumer": {"state": "down", "reason": "no-beacon", "beacon_age_seconds": null}, "posture": {"state": "present"}, "can_receive": false}
+
+3603-second stale beacon refuses readiness mid-turn:
+{"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/l", "observed_at": "2026-10-19T06:09:36Z", "lock": {"state": "held", "pid": 71831, "live_harness": true}, "wake_consumer": {"state": "down", "reason": "stale-beacon", "beacon_age_seconds": 3603}, "posture": {"state": "present"}, "can_receive": false}
+
+PERSISTENT MODEL (real Codex primary acquired its own lock):
+real Codex primary without a beacon is not receivable: {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/x", "observed_at": "2026-10-19T06:27:56Z", "lock": {"state": "held", "pid": 92593, "live_harness": true}, "wake_consumer": {"state": "down", "reason": "no-beacon", "beacon_age_seconds": null}, "posture": {"state": "present"}, "can_receive": false}
+real Codex primary and its own live watcher are receivable: {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/x", "observed_at": "2026-10-19T06:27:58Z", "lock": {"state": "held", "pid": 92593, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 1}, "posture": {"state": "present"}, "can_receive": true}
+fresh leftover beacon does not make a real Codex primary receivable: {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/x", "observed_at": "2026-10-19T06:27:59Z", "lock": {"state": "held", "pid": 92593, "live_harness": true}, "wake_consumer": {"state": "down", "reason": "no-watcher", "beacon_age_seconds": 2}, "posture": {"state": "present"}, "can_receive": false}
+
+bounded public lease wait refuses without mutation:
+{"at": 1792390328.066324, "scenario": "bounded public lease wait refuses without mutation", "exit": 75, "elapsed_seconds": 1.017, "lease_command_holder": "48467"}
+
+host activation proceeds while real teardown still owns lock:
+{"at": 1792390338.1547189, "scenario": "host activation proceeds while real teardown still owns lock", "elapsed_seconds": 10.088, "teardown_pid": 48467, "lease_command_holder": "48467"}
+
+deferred release removes branch lease and preserves main lease:
+{"at": 1792390343.880981, "scenario": "deferred release removes branch lease and preserves main lease", "ready": {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/h", "observed_at": "2026-10-19T06:12:23Z", "lock": {"state": "held", "pid": 33447, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 5}, "posture": {"state": "present"}, "can_receive": true}, "watcher_pid": "61550", "watcher_live": true, "lease_command_holder": ""}
+
+TERM cleanup exits while teardown remains locked:
+{"at": 1792390350.232924, "scenario": "TERM cleanup exits while teardown remains locked", "exit": 143, "elapsed_seconds": 5.817, "watcher_live": false, "lease_command_holder": "74606"}
+
+host parks on successor after real engine turn with teardown lock still held:
+{"at": 1792390855.801427, "scenario": "host parks on successor after real engine turn with teardown lock still held", "teardown_pid": 5255, "lease_command_holder": "5255", "host_ledger": "1792390789\tstart\tgen=host-18592-1792390786\tprimary=claude\n1792390852\tlease-release\tdeferred: the lease-command lock is held\n1792390855\thandled\tturn=host-18592-1792390786.1\tposture=away\trc=0\treports=1\terror=0 cost=0.000952 conversation_cost=0.000952 input=4 cache_read=24627 cache_write=2297 output=492 turns=2\tsignal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M599ZRHGAWW96Z104HBYNP53/g/state/demo.status\n"}
+
+receivable after real engine turn during teardown contention:
+{"at": 1792390856.6270368, "scenario": "receivable after real engine turn during teardown contention", "ready": {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/g", "observed_at": "2026-10-19T06:20:56Z", "lock": {"state": "held", "pid": 71438, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 6}, "posture": {"state": "away"}, "can_receive": true}, "watcher_pid": "58247", "watcher_live": true, "lease_command_holder": "5255"}
+
+receivable after real engine turn during teardown contention:
+{"at": 1792390858.870473, "scenario": "receivable after real engine turn during teardown contention", "ready": {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/g", "observed_at": "2026-10-19T06:20:57Z", "lock": {"state": "held", "pid": 71438, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 1}, "posture": {"state": "away"}, "can_receive": true}, "watcher_pid": "58247", "watcher_live": true, "lease_command_holder": "5255"}
+
+receivable after real engine turn during teardown contention:
+{"at": 1792390860.854311, "scenario": "receivable after real engine turn during teardown contention", "ready": {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/g", "observed_at": "2026-10-19T06:21:00Z", "lock": {"state": "held", "pid": 71438, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 3}, "posture": {"state": "away"}, "can_receive": true}, "watcher_pid": "58247", "watcher_live": true, "lease_command_holder": "5255"}
+
+post-turn deferred branch cleanup completed:
+{"at": 1792390865.788557, "scenario": "post-turn deferred branch cleanup completed", "ready": {"schema": "fm-primary-ready.v1", "home": "01M599ZRHGAWW96Z104HBYNP53/g", "observed_at": "2026-10-19T06:21:05Z", "lock": {"state": "held", "pid": 71438, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 3}, "posture": {"state": "away"}, "can_receive": true}, "watcher_pid": "58247", "watcher_live": true, "lease_command_holder": ""}

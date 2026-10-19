@@ -1,0 +1,2 @@
+Disposable readiness fixture lock bound to the real Codex session process, not an emulated harness.
+20454 Mon Oct 19 01:27:02 2026     node

@@ -1,0 +1,3 @@
+watcher: started pid=88744 (beacon fresh)
+check: rearm-resurface
+supervision-host: the away session could not take this wake: a queued wake could not be read or resolved to a task record, so its scope is unknown; this wake is yours

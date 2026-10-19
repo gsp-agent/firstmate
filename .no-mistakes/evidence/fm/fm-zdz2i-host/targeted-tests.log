@@ -1,0 +1,54 @@
+machine-gate run: NOT STARTED: pid-80383 (waiting since 06:05:28Z) is ahead of you in the line. Run the same command again within 180 s to keep your place.
+machine-gate run: NOT STARTED: the turn is held by pid-42825 since 1:06:52 AM CDT (0 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-42825 since 1:07:05 AM CDT (0 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-42825 since 1:07:22 AM CDT (0 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-42825 since 1:07:38 AM CDT (0 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-42825 since 1:07:54 AM CDT (0 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (0 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (0 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (0 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (0 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (1 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (1 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (1 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (2 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (2 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (2 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (2 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+machine-gate run: NOT STARTED: the turn is held by pid-80383 since 1:07:56 AM CDT (3 min of its 30 min cap): /bin/zsh /Users/dalecarman/dev/firstmate-upstream/data/bd-kiyu/remeasure-1019/measure-v2.zsh . Wait, then run the same command again yourself; never ask a PM for a turn.
+FM_TEST_BEGIN 2026-10-19T06:11:17Z tests/fm-inbox.test.sh family=unclassified expected_gate_skip=none
+ok - plain note, list, and wake stay on the historical human path
+ok - plain note keeps exit 1 for a saved-but-unannounced failure
+ok - the same request id returns the original note as a distinguishable replay
+ok - a crash between recording the request id and publishing the note reuses the original id
+ok - saved-but-unannounced notes are repairable without creating a second note
+ok - repair and replay do not wake firstmate for an already-acknowledged note
+ok - receipts JSON is bounded by fixed bounds and discloses what it omitted
+ok - notes that predate the announcement marker are unknown, not re-announced
+ok - the reply channel is durable and its cursor is a strict order
+ok - the reply cursor never goes backwards when the sequence counter is lost
+ok - a reply without a valid sequence is reported as malformed
+ok - a non-UTF-8 note does not break the receipts view
+ready 3603-second regression: {"schema":"fm-primary-ready.v1","home":"fm-inbox.O9twqD/ready-holder","observed_at":"2026-10-19T06:11:30Z","lock":{"state":"held","pid":90053,"live_harness":true},"wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":3604},"posture":{"state":"present"},"can_receive":false}
+ready live-watcher regression: {"schema":"fm-primary-ready.v1","home":"fm-inbox.O9twqD/ready-watcher","observed_at":"2026-10-19T06:11:35Z","lock":{"state":"held","pid":90057,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":true}
+ok - readiness follows the inspected home's supervision model, never the caller's or a stale beacon
+ok - readiness reads the supervision model from the inspected home's lock holder
+ok - empty bodies and unsafe request ids are refused
+ok - a note body that opens with a double dash is queued as text
+ok - drain --ack still moves the note to handled
+FM_TEST_END 2026-10-19T06:11:40Z tests/fm-inbox.test.sh exit=0 duration_ms=23105 gate_skip=false
+FM_TEST_BEGIN 2026-10-19T06:11:40Z tests/fm-supervision-host-lane-b.test.sh family=afk expected_gate_skip=none
+ok - host: a turn that reports but leaves its granted rows queued hands the wake to main
+ok - host: a captain return during a failed engine turn still hands that turn's outcomes to main
+ok - host: an engine turn whose result is incomplete hands its wake to main
+ok - host: two engine errors latch the session, main keeps every away wake in the cooldown, a failed probe doubles it up to its cap, and a report recovers it silently
+ok - host: an attended close in a latched session reaches main as the arm printed it and leaves the latch as it was, and a home that opted out with off never reads it
+ok - host: attended, two engine errors latch the session, main keeps every close unchanged in the cooldown, a failed probe doubles it up to its cap, and a routine probe's recovery stays in the ledger, off main
+not ok - an engine tool process in its own process group outlived the turn: 52554 52554 sleep 120
+FM_TEST_END 2026-10-19T06:23:04Z tests/fm-supervision-host-lane-b.test.sh exit=1 duration_ms=684291 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=1 skipped_gate=0 duration_ms=995817
+FM_TEST_SUMMARY_FAMILY family=afk count=1 duration_ms=684291 failed=1
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=23105 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-supervision-host-lane-b.test.sh duration_ms=684291
+FM_TEST_SLOWEST rank=2 script=tests/fm-inbox.test.sh duration_ms=23105
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M599ZRHGAWW96Z104HBYNP53/targeted-timings.json

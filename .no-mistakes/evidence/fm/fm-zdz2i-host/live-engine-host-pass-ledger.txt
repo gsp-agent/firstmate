@@ -1,0 +1,4 @@
+1792390789	start	gen=host-18592-1792390786	primary=claude
+1792390852	lease-release	deferred: the lease-command lock is held
+1792390855	handled	turn=host-18592-1792390786.1	posture=away	rc=0	reports=1	error=0 cost=0.000952 conversation_cost=0.000952 input=4 cache_read=24627 cache_write=2297 output=492 turns=2	signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M599ZRHGAWW96Z104HBYNP53/g/state/demo.status
+1792390865	lease-release	retried	rc=0

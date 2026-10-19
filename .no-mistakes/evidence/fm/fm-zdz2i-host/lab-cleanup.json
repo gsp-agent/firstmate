@@ -1,0 +1,65 @@
+[
+  {
+    "lab": "g",
+    "private_tmux_stop_exit": 1,
+    "output": "no server running on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M599ZRHGAWW96Z104HBYNP53/g/tmux/tmux-501/fm-lab"
+  },
+  {
+    "lab": "g",
+    "private_socket_has_no_running_session": true
+  },
+  {
+    "lab": "z",
+    "private_tmux_stop_exit": 1,
+    "output": "no server running on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M599ZRHGAWW96Z104HBYNP53/z/tmux/tmux-501/fm-lab"
+  },
+  {
+    "lab": "z",
+    "private_socket_has_no_running_session": true
+  },
+  {
+    "lab": "t",
+    "private_tmux_stop_exit": 1,
+    "output": "no server running on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M599ZRHGAWW96Z104HBYNP53/t/tmux/tmux-501/fm-lab"
+  },
+  {
+    "lab": "t",
+    "private_socket_has_no_running_session": true
+  },
+  {
+    "lab": "c",
+    "private_tmux_stop_exit": 1,
+    "output": "no server running on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M599ZRHGAWW96Z104HBYNP53/c/tmux/tmux-501/fm-lab"
+  },
+  {
+    "lab": "c",
+    "private_socket_has_no_running_session": true
+  },
+  {
+    "lab": "d",
+    "private_tmux_stop_exit": 0,
+    "output": ""
+  },
+  {
+    "lab": "d",
+    "private_socket_has_no_running_session": true
+  },
+  {
+    "lab": "u",
+    "private_tmux_stop_exit": 0,
+    "output": ""
+  },
+  {
+    "lab": "u",
+    "private_socket_has_no_running_session": true
+  },
+  {
+    "lab": "x",
+    "private_tmux_stop_exit": 0,
+    "output": ""
+  },
+  {
+    "lab": "x",
+    "private_socket_has_no_running_session": true
+  }
+]

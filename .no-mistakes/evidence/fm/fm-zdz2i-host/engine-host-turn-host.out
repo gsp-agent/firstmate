@@ -1,0 +1,3 @@
+watcher: started pid=59167 (beacon fresh)
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M599ZRHGAWW96Z104HBYNP53/e/state/demo.status
+supervision-host: the away session could not take this wake: the engine turn left its granted wake rows 1 2 unacknowledged; this wake is yours
