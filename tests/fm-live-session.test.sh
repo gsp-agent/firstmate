@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Behavior tests for live-session admission: a fresh worker is never launched
+# Behavior tests for live-session admission: a worker is never launched
 # into a project while the machine's live-session detector reads live or cannot
 # decide (bin/fm-live-session-lib.sh owns the contract; bin/fm-spawn.sh runs
 # the check).
@@ -8,7 +8,7 @@
 # fake tmux and treehouse binaries that log every call, a stub detector that
 # records the folder name it was asked about and answers with a chosen exit
 # status, and a real markdown backlog when tasks-axi is installed. A deferred
-# spawn is judged by what it left behind - no task record, no rendered launch
+# fresh spawn is judged by what it left behind - no task record, no rendered launch
 # brief, no endpoint, no worktree allocation, and a backlog item still queued.
 set -u
 
@@ -68,8 +68,14 @@ make_case() {  # <name> <task-id> [project-folder]
 printf '%s\n' "$*" >> "$FM_FAKE_CALL_LOG"
 case "$*" in
   *"#{pane_current_path}"*) printf '%s\n' "${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
+  *"#{pane_current_command}"*) printf '%s\n' zsh; exit 0 ;;
+  *"#{pane_tty}"*) exit 0 ;;
 esac
-case "${1:-}" in display-message) printf 'firstmate\n' ;; esac
+case "${1:-}" in
+  display-message) printf 'firstmate\n' ;;
+  list-windows) [ ! -f "$FM_FAKE_WINDOWS" ] || cat "$FM_FAKE_WINDOWS" ;;
+  new-window) printf 'fm-%s\n' "$FM_FAKE_TASK_ID" > "$FM_FAKE_WINDOWS" ;;
+esac
 exit 0
 SH
   cat > "$fakebin/treehouse" <<'SH'
@@ -111,6 +117,7 @@ run_spawn() {  # <case-dir> <pane-path> <exit> <line> <spawn-args...>
     FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_PROJECTS_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
     FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" FM_BACKEND=tmux \
     FM_FAKE_PANE_PATH="$pane" FM_FAKE_CALL_LOG="$case_dir/calls.log" \
+    FM_FAKE_TASK_ID="$1" FM_FAKE_WINDOWS="$case_dir/windows" \
     FM_LIVE_SESSION_CHECK="${DETECTOR-$case_dir/detector.py}" \
     FM_FAKE_DETECTOR_LOG="$case_dir/detector.log" \
     FM_FAKE_DETECTOR_EXIT="$code" FM_FAKE_DETECTOR_LINE="$line" \
@@ -154,6 +161,68 @@ test_clear_read_launches_the_worker() {
     [ "$(row_state "$case_dir/home" task-c)" = in_flight ] || fail "an admitted spawn did not move its item In flight"
   fi
   pass "a clear live-session read launches the worker"
+}
+
+test_relaunch_checks_admission_and_preserves_prior_work() {
+  local case_dir id kind wt out rc code line worktrees calls
+  local -a args
+  for kind in ship scout; do
+    id="task-r-$$-$kind"
+    case_dir=$(make_case "relaunch-$kind" "$id")
+    wt=$(new_worktree "$case_dir" "$case_dir/project" "$id")
+    args=("$id" "$case_dir/project")
+    if [ "$kind" = ship ]; then
+      args+=(--mode no-mistakes --yolo off)
+    else
+      args+=(--scout)
+    fi
+    rc=0
+    out=$(run_spawn "$case_dir" "$wt" 0 '' "${args[@]}") || rc=$?
+    expect_code 0 "$rc" "could not dispatch the $kind before relaunch: $out"
+    printf '%s\n' 'uncommitted work to preserve' > "$wt/in-progress.txt"
+    cp -R "$wt" "$case_dir/worktree-before"
+    cp -R "$case_dir/home/state" "$case_dir/state-before"
+    cp -R "$case_dir/home/data" "$case_dir/data-before"
+    worktrees=$(git -C "$case_dir/project" worktree list --porcelain)
+    for code in 75 2; do
+      if [ "$code" -eq 75 ]; then
+        line='live signal=machine-line-reservation source=machine-line/reserve:ep-project'
+      else
+        line='unknown signal=calendar source=calendar reason=source read failed'
+      fi
+      : > "$case_dir/calls.log"
+      : > "$case_dir/detector.log"
+      rc=0
+      out=$(run_spawn "$case_dir" "$wt" "$code" "$line" "$id" --relaunch) || rc=$?
+      expect_code "$DEFER_EXIT" "$rc" "a $kind relaunch bypassed a non-clear detector: $out"
+      assert_equals project "$(cat "$case_dir/detector.log")" "the $kind relaunch did not consult the detector once"
+      assert_contains "$out" "$line" "the $kind relaunch refusal omitted the detector's verdict"
+      assert_contains "$out" "task $id was not relaunched and its prior task record and worktree are unchanged" \
+        "the $kind relaunch refusal did not describe its preserved task"
+      assert_not_contains "$out" queued "the $kind relaunch refusal claimed its in-flight task was queued"
+      assert_equals 1 "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" "the $kind relaunch did not emit one refusal line"
+      diff -r "$case_dir/state-before" "$case_dir/home/state" || fail "a refused $kind relaunch changed prior task state"
+      diff -r "$case_dir/data-before" "$case_dir/home/data" || fail "a refused $kind relaunch changed its instructions or backlog"
+      diff -r "$case_dir/worktree-before" "$wt" || fail "a refused $kind relaunch changed prior work"
+      assert_equals "$worktrees" "$(git -C "$case_dir/project" worktree list --porcelain)" \
+        "a refused $kind relaunch allocated a worktree"
+      calls=$(cat "$case_dir/calls.log")
+      assert_not_contains "$calls" send-keys "a refused $kind relaunch sent input to the endpoint"
+      assert_not_contains "$calls" new-window "a refused $kind relaunch allocated an endpoint"
+      assert_not_contains "$calls" treehouse "a refused $kind relaunch touched the worktree pool"
+    done
+    : > "$case_dir/detector.log"
+    rc=0
+    out=$(run_spawn "$case_dir" "$wt" 0 '' "$id" --relaunch) || rc=$?
+    expect_code 0 "$rc" "a clear detector refused the $kind relaunch: $out"
+    assert_contains "$out" "spawned $id" "a clear detector did not launch the replacement $kind"
+    assert_equals project "$(cat "$case_dir/detector.log")" "the clear $kind relaunch did not consult the detector once"
+    assert_equals "$worktrees" "$(git -C "$case_dir/project" worktree list --porcelain)" \
+      "an admitted $kind relaunch allocated another worktree"
+    assert_equals 'uncommitted work to preserve' "$(cat "$wt/in-progress.txt")" \
+      "an admitted $kind relaunch lost prior work"
+  done
+  pass "ship and scout relaunches preserve prior state and work on non-clear reads and launch on clear"
 }
 
 test_live_read_defers_without_leaving_anything_behind() {
@@ -261,6 +330,7 @@ test_batch_reports_a_live_deferral() {
 }
 
 test_clear_read_launches_the_worker
+test_relaunch_checks_admission_and_preserves_prior_work
 test_live_read_defers_without_leaving_anything_behind
 test_unknown_read_defers
 test_out_of_contract_status_defers_as_unknown

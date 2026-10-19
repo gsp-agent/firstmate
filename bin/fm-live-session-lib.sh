@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# fm-live-session-lib.sh - whether a fresh worker spawn may dispatch into a
+# fm-live-session-lib.sh - whether a worker spawn may dispatch into a
 # project right now, given an outside live-session detector.
 #
 # A live session - a tester, a client, or the captain at a headset, present or
 # waiting at a set time - is run by the project's own agent, never by
 # Firstmate. When the machine has a live-session detector installed,
-# bin/fm-spawn.sh asks it about the project immediately before a fresh ship or
-# scout launch and defers the spawn unless the detector reads clear. A deferred
-# task keeps its queued backlog item and is dispatched again later. Without a
+# bin/fm-spawn.sh asks it about the project immediately before a ship or scout
+# launch and defers the spawn unless the detector reads clear. Without a
 # detector nothing changes.
 #
 # This file is the single owner of how the detector is found and called and of
@@ -45,7 +44,7 @@
 
 FM_LIVE_SESSION_TIMEOUT_SECS=45
 
-# Decide whether a fresh worker for <project-dir> may launch now.
+# Decide whether a worker for <project-dir> may launch now.
 # Returns 0 to admit, or prints why the spawn is deferred and returns 1.
 # Requires bin/fm-timeout-lib.sh.
 fm_live_session_admit() {  # <project-dir> <project-name>
