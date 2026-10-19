@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Sweep open pull requests in watched GitHub repositories.
 # A repository is watched when a private pr-poll sidecar names it (including
-# one retained during retirement), or when FM_PR_SWEEP_REPOS names it from a
-# snapshot taken before a terminal watch was retired.
+# one retained during retirement), a non-escalated round record names it, or
+# FM_PR_SWEEP_REPOS names it from a snapshot taken before a terminal watch retired.
 # One pass reads all open pull requests in pages of 100, newest creation first.
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
 # A failed or timed-out page fails the scan. Repositories whose pages completed
@@ -20,7 +20,8 @@
 # bin/fm-watch.sh owns publication and applies that line to retirement.
 # There is no deadline around the complete scan.
 # When FM_PR_SWEEP_BEAT names the watcher's liveness beacon, each completed
-# page and repository attempt refreshes it so a progressing scan stays alive.
+# reviewer lookup, page, and repository attempt refreshes it so a progressing
+# scan stays alive, including when a reviewer lookup fails.
 # It reports a pull request when its newest queue event is a removal, the pull
 # request is open and not merged, and it is not back in the queue.
 # A removal re-added before this pass is no longer the newest queue event, so a
@@ -477,6 +478,28 @@ sweep_note_sidecars() {
   done
 }
 
+sweep_note_pending_rounds() {
+  local state=$1 path line url rest owner repo
+  path=$(cr_seen_path "$state")
+  if [ -e "$path" ] || [ -L "$path" ]; then
+    cr_seen_load "$path" "$state" || return 1
+  else
+    cr_records=
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ -n "$line" ] || continue
+    [ "${line##* }" = 0 ] || continue
+    url=${line%% *}
+    rest=${url#https://github.com/}
+    owner=${rest%%/*}
+    rest=${rest#*/}
+    repo=${rest%%/*}
+    sweep_note_repo "$owner" "$repo"
+  done <<EOF
+$cr_records
+EOF
+}
+
 # Buffer until pagination completes so a failed later page cannot publish a
 # partial repository result; the header owns failed-read behavior.
 sweep_one_repo() {
@@ -573,6 +596,7 @@ sweep_one_repo() {
                   if [ "$cr_escalated" != 1 ] \
                     && { [ "$cr_found" -eq 0 ] || [ "$((cr_now_v - cr_last))" -ge "$cr_stale_v" ]; }; then
                     reviewers=$(cr_reviewers "$owner" "$repo" "$number") || reviewers=
+                    [ -z "${FM_PR_SWEEP_BEAT:-}" ] || touch "$FM_PR_SWEEP_BEAT"
                     reviewers=${reviewers:-unknown}
                     if [ "$cr_found" -eq 0 ]; then
                       collected="${collected}changes-requested ${url} head=${head} round=1 reviewers=${reviewers}"$'\n'
@@ -625,7 +649,7 @@ EOF
 }
 
 sweep_scan() {
-  local state=$1 path cr_path key owner repo repo_out failed=0
+  local state=$1 path key owner repo repo_out failed=0
   sweep_state_ok "$state" || return 1
   path=$(sweep_seen_path "$state")
   if [ -e "$path" ] || [ -L "$path" ]; then
@@ -633,16 +657,11 @@ sweep_scan() {
   else
     sweep_seen=$'\n'
   fi
-  cr_path=$(cr_seen_path "$state")
-  if [ -e "$cr_path" ] || [ -L "$cr_path" ]; then
-    cr_seen_load "$cr_path" "$state" || return 1
-  else
-    cr_records=
-  fi
   sweep_note_markers "$state"
   sweep_repos=$'\n'
   sweep_note_env_repos
   sweep_note_sidecars "$state"
+  sweep_note_pending_rounds "$state" || return 1
   while IFS= read -r key || [ -n "$key" ]; do
     [ -n "$key" ] || continue
     owner=${key%%/*}
@@ -667,6 +686,7 @@ case "${1:-}" in
     sweep_state_ok "$2" || exit 0
     sweep_repos=$'\n'
     sweep_note_sidecars "$2"
+    sweep_note_pending_rounds "$2" || exit 1
     printf '%s' "${sweep_repos#$'\n'}"
     exit 0
     ;;

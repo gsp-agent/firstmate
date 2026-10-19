@@ -44,6 +44,20 @@ while [ "$#" -gt 0 ]; do
 done
 [ -n "$jq_filter" ] || exit 91
 if [ -n "$number" ]; then
+  if [ -n "${FM_TEST_REVIEW_BEAT_LOG:-}" ]; then
+    if [ "$(uname)" = Darwin ]; then
+      modified=$(/usr/bin/stat -f %m "$FM_PR_SWEEP_BEAT") || exit 91
+    else
+      modified=$(stat -c %Y "$FM_PR_SWEEP_BEAT") || exit 91
+    fi
+    if [ "$(( $(date +%s) - modified ))" -lt 900 ]; then
+      printf 'fresh\n' >> "$FM_TEST_REVIEW_BEAT_LOG"
+    else
+      printf 'stale\n' >> "$FM_TEST_REVIEW_BEAT_LOG"
+    fi
+    touch -t 200001010000 "$FM_PR_SWEEP_BEAT" || exit 91
+  fi
+  [ "${FM_TEST_REVIEW_STATUS:-0}" -eq 0 ] || exit "$FM_TEST_REVIEW_STATUS"
   case "$query" in
     *'latestOpinionatedReviews('*) ;;
     *) exit 91 ;;
@@ -124,10 +138,10 @@ write_review_page() {
     }}}}' > "$dir/sweep/reviews-7-$page.json" || fail "could not write reviewer page $page"
 }
 
-scan() {  # <dir> <state> <now>
+scan() {  # <dir> <state> <now> [repos]
   local dir=$1 state=$2 now=$3
   FM_TEST_REAL_JQ="$REAL_JQ" FM_TEST_SWEEP_DIR="$dir/sweep" \
-    FM_PR_SWEEP_REPOS='o/r' FM_CR_FIXROUND_NOW="$now" \
+    FM_PR_SWEEP_REPOS="${4-o/r}" FM_CR_FIXROUND_NOW="$now" \
     PATH="$FAKEBIN:$BASE_PATH" "$SCRIPT" --scan "$state"
 }
 
@@ -137,6 +151,76 @@ file_mode() {
   else
     stat -c %a "$1"
   fi
+}
+
+test_pending_rounds_keep_repository_discovery_after_retirement() {
+  local dir state out repos template
+  dir="$TMP_ROOT/retired-last-poll"
+  state="$dir/state"
+  template="$ROOT/bin/fm-pr-poll.sh"
+  mkdir -p "$state" "$dir/wt"
+  # shellcheck source=bin/fm-pr-lib.sh
+  . "$ROOT/bin/fm-pr-lib.sh"
+  fm_write_meta "$state/last.meta" "window=fm-last" "worktree=$dir/wt" \
+    'pr=https://github.com/o/r/pull/9'
+  fm_pr_poll_prepare "$state" last github https://github.com/o/r/pull/9 github.com o/r 9 "$template" \
+    || fail "could not prepare the last armed poll"
+  fm_pr_poll_publish_prepared || fail "could not publish the last armed poll"
+  fm_pr_poll_snapshot_capture "$state" last "$template" || fail "could not snapshot the last poll"
+  fm_pr_poll_retirement_publish "$state" last "$template" merged || fail "could not begin poll retirement"
+  write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+  out=$(scan "$dir" "$state" "$NOW" '') || fail "last-poll sweep failed"
+  case "$out" in *" round=1 reviewers=chipdev"*) ;; *) fail "last-poll sweep missed the unarmed PR: $out" ;; esac
+  case "$out" in *"queue-empty o/r"*) ;; *) fail "last-poll sweep did not allow retirement: $out" ;; esac
+  FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn || fail "replacement fix task did not launch"
+  fm_pr_poll_retirement_recover_all "$state" "$template" o/r || fail "last poll retirement failed"
+  [ ! -e "$state/last.pr-poll" ] && [ ! -e "$state/last.check.sh" ] \
+    && [ ! -e "$state/last.pr-poll-retirement" ] || fail "the last armed poll was not retired"
+  repos=$("$SCRIPT" --repos "$state") || fail "pending-round repository discovery failed"
+  [ "$repos" = o/r ] || fail "pending round lost repository discovery after poll retirement"
+  out=$(scan "$dir" "$state" "$((NOW + 18000))" '') || fail "round 2 scan after retirement failed"
+  case "$out" in *" round=2 reviewers=chipdev"*) ;; *) fail "round 2 was lost after retirement: $out" ;; esac
+  FM_CR_FIXROUND_NOW="$((NOW + 18000))" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round2 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "round 2 after retirement did not launch"
+  [ "$("$SCRIPT" --repos "$state")" = o/r ] || fail "round 2 lost repository discovery"
+  out=$(scan "$dir" "$state" "$((NOW + 36000))" '') || fail "escalation scan after retirement failed"
+  case "$out" in *" rounds=2 reviewers=chipdev"*) ;; *) fail "escalation was lost after retirement: $out" ;; esac
+  "$SCRIPT" --cr-record "$state" "$URL" "$HEAD" escalated || fail "post-retirement escalation record failed"
+  [ -z "$("$SCRIPT" --repos "$state")" ] || fail "an escalated round retained repository discovery"
+  out=$(scan "$dir" "$state" "$((NOW + 72000))" '') || fail "post-escalation discovery failed"
+  [ -z "$out" ] || fail "an escalated round alone still scheduled a sweep: $out"
+  pass "pending rounds retain discovery across poll retirement and restarts until escalation"
+}
+
+test_reviewer_lookups_refresh_progress_on_success_and_failure() {
+  local dir state out status action
+  for status in 0 1 124; do
+    dir="$TMP_ROOT/reviewer-progress-$status"
+    state="$dir/state"
+    mkdir -p "$state"
+    touch "$dir/beacon"
+    write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+    "$REAL_JQ" '.data.repository.pullRequests.nodes[0] as $pr |
+      .data.repository.pullRequests.nodes = [range(7;10) as $n | $pr + {number:$n}]
+    ' "$dir/sweep/page1.json" > "$dir/sweep/multiple.json"
+    mv "$dir/sweep/multiple.json" "$dir/sweep/page1.json"
+    FM_CR_FIXROUND_NOW="$((NOW - 18000))" "$SCRIPT" --cr-dispatch "$state" https://github.com/o/r/pull/8 "$HEAD" round1 -- \
+      "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "round 2 progress seed failed"
+    for action in round1 round2; do
+      FM_CR_FIXROUND_NOW="$((NOW - 18000))" "$SCRIPT" --cr-dispatch "$state" https://github.com/o/r/pull/9 "$HEAD" "$action" -- \
+        "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "escalation progress seed failed"
+    done
+    out=$(FM_PR_SWEEP_BEAT="$dir/beacon" FM_TEST_REVIEW_BEAT_LOG="$dir/progress" \
+      FM_TEST_REVIEW_STATUS="$status" scan "$dir" "$state" "$NOW") || fail "review progress scan failed for status $status"
+    [ "$(cat "$dir/progress")" = "fresh
+fresh
+fresh" ] || fail "reviewer lookup status $status left a stale progress beacon"
+    case "$out" in *"$URL head=$HEAD round=1 "*) ;; *) fail "progress scan lost round 1: $out" ;; esac
+    case "$out" in *"https://github.com/o/r/pull/8 head=$HEAD round=2 "*) ;; *) fail "progress scan lost round 2: $out" ;; esac
+    case "$out" in *"https://github.com/o/r/pull/9 head=$HEAD rounds=2 "*) ;; *) fail "progress scan lost escalation: $out" ;; esac
+  done
+  pass "every reviewer lookup refreshes progress after success, failure, or timeout"
 }
 
 test_later_comments_do_not_hide_blocking_reviewers() {
@@ -471,6 +555,8 @@ test_record_refusals_and_malformed_record_fail_the_scan() {
   chmod 0600 "$state/changes-requested-sweep.seen"
   scan "$dir" "$state" "$NOW" >/dev/null 2>&1 \
     && fail "a malformed round record did not fail the scan"
+  "$SCRIPT" --repos "$state" >/dev/null 2>&1 \
+    && fail "a malformed round record did not fail repository discovery"
   "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
     "$FAKEBIN/launch" "$dir/launches" 0 spawn 2>/dev/null \
     && fail "a malformed round record did not fail dispatch"
@@ -483,6 +569,8 @@ if [ "$#" -gt 0 ]; then
   exit $?
 fi
 
+test_pending_rounds_keep_repository_discovery_after_retirement
+test_reviewer_lookups_refresh_progress_on_success_and_failure
 test_later_comments_do_not_hide_blocking_reviewers
 test_blocking_reviewers_are_collected_from_every_page
 test_missing_reviewer_names_do_not_suppress_any_round
