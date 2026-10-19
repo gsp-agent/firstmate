@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Sweep open pull requests in watched GitHub repositories.
 # A repository is watched when a private pr-poll sidecar names it (including
-# one retained during retirement), a non-escalated round record names it, or
+# one retained during retirement), an open PR has a non-escalated round on its
+# current head, or
 # FM_PR_SWEEP_REPOS names it from a snapshot taken before a terminal watch retired.
 # One pass reads all open pull requests in pages of 100, newest creation first.
 # Each GitHub page is bounded by FM_PR_SWEEP_PAGE_TIMEOUT seconds (default 30).
@@ -20,8 +21,8 @@
 # bin/fm-watch.sh owns publication and applies that line to retirement.
 # There is no deadline around the complete scan.
 # When FM_PR_SWEEP_BEAT names the watcher's liveness beacon, each completed
-# reviewer lookup, page, and repository attempt refreshes it so a progressing
-# scan stays alive, including when a reviewer lookup fails.
+# lookup, page, and repository attempt refreshes it so a progressing scan
+# stays alive, including when a lookup fails.
 # It reports a pull request when its newest queue event is a removal, the pull
 # request is open and not merged, and it is not back in the queue.
 # A removal re-added before this pass is no longer the newest queue event, so a
@@ -43,6 +44,7 @@
 # and, when that head is still current at least one stale interval after the
 # dispatched round, round 2. After two dispatched rounds with no new head it prints
 # `changes-requested-escalated <url> head=<sha> rounds=2 reviewers=<csv>` once.
+# Escalation does not require green checks or a blocking review decision.
 # Reviewers come from all pages of latest opinionated reviews; an unavailable
 # reviewer list is reported as reviewers=unknown without suppressing the event.
 # This file owns that round record too: a mode-600 file
@@ -78,6 +80,10 @@ SWEEP_JQ='(.data.repository.pullRequests) as $p | if $p == null or ($p.pageInfo 
 CR_REVIEWS_QUERY='query($owner:String!,$repo:String!,$number:Int!,$endCursor:String){repository(owner:$owner,name:$repo){pullRequest(number:$number){author{login} latestOpinionatedReviews(first:100,after:$endCursor){pageInfo{hasNextPage endCursor}nodes{author{login} state}}}}}'
 # shellcheck disable=SC2016
 CR_REVIEWS_JQ='.data.repository.pullRequest as $pr | $pr.latestOpinionatedReviews.nodes[] | select(.state == "CHANGES_REQUESTED" and (.author.login != ($pr.author.login // ""))) | .author.login // "" | select(test("^[A-Za-z0-9-]+$"))'
+# shellcheck disable=SC2016
+CR_PENDING_QUERY='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged headRefOid}}}'
+# shellcheck disable=SC2016
+CR_PENDING_JQ='.data.repository.pullRequest | select(.state == "OPEN" and .merged == false) | .headRefOid'
 
 cr_now() {
   local now=${FM_CR_FIXROUND_NOW:-}
@@ -479,7 +485,7 @@ sweep_note_sidecars() {
 }
 
 sweep_note_pending_rounds() {
-  local state=$1 path line url rest owner repo
+  local state=$1 path line url rest owner repo head current_head status
   path=$(cr_seen_path "$state")
   if [ -e "$path" ] || [ -L "$path" ]; then
     cr_seen_load "$path" "$state" || return 1
@@ -490,10 +496,19 @@ sweep_note_pending_rounds() {
     [ -n "$line" ] || continue
     [ "${line##* }" = 0 ] || continue
     url=${line%% *}
+    rest=${line#* }
+    head=${rest%% *}
     rest=${url#https://github.com/}
     owner=${rest%%/*}
     rest=${rest#*/}
     repo=${rest%%/*}
+    status=0
+    current_head=$(sweep_page_gh api graphql --hostname github.com \
+      -f query="$CR_PENDING_QUERY" -f owner="$owner" -f repo="$repo" \
+      -F number="${url##*/}" --jq "$CR_PENDING_JQ" 2>/dev/null) || status=$?
+    [ -z "${FM_PR_SWEEP_BEAT:-}" ] || touch "$FM_PR_SWEEP_BEAT"
+    [ "$status" -eq 0 ] || return 1
+    [ "$current_head" = "$head" ] || continue
     sweep_note_repo "$owner" "$repo"
   done <<EOF
 $cr_records
@@ -506,7 +521,7 @@ sweep_one_repo() {
   local owner=$1 repo=$2 cursor='' fields line kind rest number state merged
   local queued event_kind event reason more page_cursor saw_page saw_queued collected url
   local review_decision head head_epoch check_state reviewers
-  local cr_found cr_rounds cr_last cr_escalated cr_now_v cr_stale_v
+  local cr_rounds cr_last cr_escalated cr_now_v cr_stale_v cr_event
   collected=
   saw_queued=0
   cr_now_v=$(cr_now)
@@ -572,43 +587,39 @@ sweep_one_repo() {
           esac
           [ "$queued" = true ] && saw_queued=1
           url="https://github.com/$owner/$repo/pull/$number"
-          if [ "$state" = OPEN ] && [ "$merged" = false ] \
-            && [ "$review_decision" = CHANGES_REQUESTED ] \
-            && [ "$check_state" = SUCCESS ] \
-            && cr_head_ok "$head"; then
-            case "$head_epoch" in
-              ''|*[!0-9]*|0) ;;
-              *)
-                if [ "$((cr_now_v - head_epoch))" -ge "$cr_stale_v" ]; then
-                  # shellcheck disable=SC2046
-                  set -- $(cr_lookup "$url" "$head")
-                  if [ "$#" -eq 3 ]; then
-                    cr_rounds=$1
-                    cr_last=$2
-                    cr_escalated=$3
-                    cr_found=1
-                  else
-                    cr_rounds=0
-                    cr_last=0
-                    cr_escalated=0
-                    cr_found=0
-                  fi
-                  if [ "$cr_escalated" != 1 ] \
-                    && { [ "$cr_found" -eq 0 ] || [ "$((cr_now_v - cr_last))" -ge "$cr_stale_v" ]; }; then
-                    reviewers=$(cr_reviewers "$owner" "$repo" "$number") || reviewers=
-                    [ -z "${FM_PR_SWEEP_BEAT:-}" ] || touch "$FM_PR_SWEEP_BEAT"
-                    reviewers=${reviewers:-unknown}
-                    if [ "$cr_found" -eq 0 ]; then
-                      collected="${collected}changes-requested ${url} head=${head} round=1 reviewers=${reviewers}"$'\n'
-                    elif [ "$cr_rounds" -eq 1 ]; then
-                      collected="${collected}changes-requested ${url} head=${head} round=2 reviewers=${reviewers}"$'\n'
-                    elif [ "$cr_rounds" -ge 2 ]; then
-                      collected="${collected}changes-requested-escalated ${url} head=${head} rounds=2 reviewers=${reviewers}"$'\n'
+          if [ "$state" = OPEN ] && [ "$merged" = false ] && cr_head_ok "$head"; then
+            cr_rounds=0
+            cr_last=0
+            cr_escalated=0
+            # shellcheck disable=SC2046
+            set -- $(cr_lookup "$url" "$head")
+            if [ "$#" -eq 3 ]; then
+              cr_rounds=$1
+              cr_last=$2
+              cr_escalated=$3
+            fi
+            cr_event=
+            if [ "$cr_escalated" != 1 ] \
+              && { [ "$cr_rounds" -eq 0 ] || [ "$((cr_now_v - cr_last))" -ge "$cr_stale_v" ]; }; then
+              if [ "$cr_rounds" -eq 2 ]; then
+                cr_event="changes-requested-escalated ${url} head=${head} rounds=2"
+              elif [ "$review_decision" = CHANGES_REQUESTED ] && [ "$check_state" = SUCCESS ]; then
+                case "$head_epoch" in
+                  ''|*[!0-9]*|0) ;;
+                  *)
+                    if [ "$((cr_now_v - head_epoch))" -ge "$cr_stale_v" ]; then
+                      cr_event="changes-requested ${url} head=${head} round=$((cr_rounds + 1))"
                     fi
-                  fi
-                fi
-                ;;
-            esac
+                    ;;
+                esac
+              fi
+              if [ -n "$cr_event" ]; then
+                reviewers=$(cr_reviewers "$owner" "$repo" "$number") || reviewers=
+                [ -z "${FM_PR_SWEEP_BEAT:-}" ] || touch "$FM_PR_SWEEP_BEAT"
+                reviewers=${reviewers:-unknown}
+                collected="${collected}${cr_event} reviewers=${reviewers}"$'\n'
+              fi
+            fi
           fi
           [ "$state" = OPEN ] || continue
           [ "$merged" = false ] || continue

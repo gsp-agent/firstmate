@@ -2710,7 +2710,7 @@ printf '%s\n' "$FM_WATCH_DELIVERY_IDENTITY" > "$WATCH_LOCK/pid-identity" 2>/dev/
 # is still scanned. bin/fm-pr-queue-sweep.sh owns the line format.
 sweep_repo_snapshot=
 if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
-  sweep_repo_snapshot=$("$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
+  sweep_repo_snapshot=$(FM_PR_SWEEP_BEAT="$BEAT" "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
   [ -z "$sweep_repo_snapshot" ] || sweep_repo_snapshot="${sweep_repo_snapshot}"$'\n'
 fi
 
@@ -2958,7 +2958,7 @@ EOF
     # The startup snapshot still names a repository whose receipt was recovered
     # before this block. bin/fm-pr-queue-sweep.sh owns the line format.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
-      sweep_listed=$("$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
+      sweep_listed=$(FM_PR_SWEEP_BEAT="$BEAT" "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --repos "$STATE" 2>/dev/null || true)
       # Keep one line per repository, in first-seen order, or this list grows until the sweep cannot run.
       if [ -n "$sweep_listed" ]; then
         while IFS= read -r sweep_repo || [ -n "$sweep_repo" ]; do

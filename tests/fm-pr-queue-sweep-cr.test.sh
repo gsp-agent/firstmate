@@ -44,6 +44,18 @@ while [ "$#" -gt 0 ]; do
 done
 [ -n "$jq_filter" ] || exit 91
 if [ -n "$number" ]; then
+  case "$query" in
+    *'latestOpinionatedReviews('*) ;;
+    *)
+      "$FM_TEST_REAL_JQ" --argjson number "$number" '
+        {data:{repository:{pullRequest:([
+          .data.repository.pullRequests.nodes[] | select(.number == $number)
+          | {state, merged, headRefOid}
+        ] | first // null)}}}
+      ' "$FM_TEST_SWEEP_DIR/page1.json" | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+      exit $?
+      ;;
+  esac
   if [ -n "${FM_TEST_REVIEW_BEAT_LOG:-}" ]; then
     if [ "$(uname)" = Darwin ]; then
       modified=$(/usr/bin/stat -f %m "$FM_PR_SWEEP_BEAT") || exit 91
@@ -58,10 +70,6 @@ if [ -n "$number" ]; then
     touch -t 200001010000 "$FM_PR_SWEEP_BEAT" || exit 91
   fi
   [ "${FM_TEST_REVIEW_STATUS:-0}" -eq 0 ] || exit "$FM_TEST_REVIEW_STATUS"
-  case "$query" in
-    *'latestOpinionatedReviews('*) ;;
-    *) exit 91 ;;
-  esac
   page=page1
   while :; do
     response="$FM_TEST_SWEEP_DIR/reviews-$number-$page.json"
@@ -145,6 +153,11 @@ scan() {  # <dir> <state> <now> [repos]
     PATH="$FAKEBIN:$BASE_PATH" "$SCRIPT" --scan "$state"
 }
 
+discover_repos() {
+  FM_TEST_REAL_JQ="$REAL_JQ" FM_TEST_SWEEP_DIR="$1/sweep" \
+    PATH="$FAKEBIN:$BASE_PATH" "$SCRIPT" --repos "$2"
+}
+
 file_mode() {
   if [ "$(uname)" = Darwin ]; then
     /usr/bin/stat -f %Lp "$1"
@@ -177,20 +190,98 @@ test_pending_rounds_keep_repository_discovery_after_retirement() {
   fm_pr_poll_retirement_recover_all "$state" "$template" o/r || fail "last poll retirement failed"
   [ ! -e "$state/last.pr-poll" ] && [ ! -e "$state/last.check.sh" ] \
     && [ ! -e "$state/last.pr-poll-retirement" ] || fail "the last armed poll was not retired"
-  repos=$("$SCRIPT" --repos "$state") || fail "pending-round repository discovery failed"
+  repos=$(discover_repos "$dir" "$state") || fail "pending-round repository discovery failed"
   [ "$repos" = o/r ] || fail "pending round lost repository discovery after poll retirement"
   out=$(scan "$dir" "$state" "$((NOW + 18000))" '') || fail "round 2 scan after retirement failed"
   case "$out" in *" round=2 reviewers=chipdev"*) ;; *) fail "round 2 was lost after retirement: $out" ;; esac
   FM_CR_FIXROUND_NOW="$((NOW + 18000))" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round2 -- \
     "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "round 2 after retirement did not launch"
-  [ "$("$SCRIPT" --repos "$state")" = o/r ] || fail "round 2 lost repository discovery"
+  [ "$(discover_repos "$dir" "$state")" = o/r ] || fail "round 2 lost repository discovery"
   out=$(scan "$dir" "$state" "$((NOW + 36000))" '') || fail "escalation scan after retirement failed"
   case "$out" in *" rounds=2 reviewers=chipdev"*) ;; *) fail "escalation was lost after retirement: $out" ;; esac
   "$SCRIPT" --cr-record "$state" "$URL" "$HEAD" escalated || fail "post-retirement escalation record failed"
-  [ -z "$("$SCRIPT" --repos "$state")" ] || fail "an escalated round retained repository discovery"
+  [ -z "$(discover_repos "$dir" "$state")" ] || fail "an escalated round retained repository discovery"
   out=$(scan "$dir" "$state" "$((NOW + 72000))" '') || fail "post-escalation discovery failed"
   [ -z "$out" ] || fail "an escalated round alone still scheduled a sweep: $out"
   pass "pending rounds retain discovery across poll retirement and restarts until escalation"
+}
+
+test_exhausted_rounds_escalate_after_checks_stop_passing() {
+  local dir state out checks action
+  for checks in FAILURE PENDING ERROR ''; do
+    dir="$TMP_ROOT/exhausted-${checks:-missing}"
+    state="$dir/state"
+    mkdir -p "$state"
+    write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+    for action in round1 round2; do
+      FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" "$action" -- \
+        "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "exhausted-round seed failed"
+    done
+    write_pr_page "$dir" CHANGES_REQUESTED "$checks" false "$HEAD" 18000 '["chipdev"]'
+    out=$(scan "$dir" "$state" "$((NOW + 18000))") || fail "exhausted-round scan failed"
+    case "$out" in
+      *"changes-requested-escalated $URL head=$HEAD rounds=2 reviewers=chipdev"*) ;;
+      *) fail "exhausted same-head rounds did not escalate with checks=$checks: $out" ;;
+    esac
+    "$SCRIPT" --cr-record "$state" "$URL" "$HEAD" escalated || fail "ungreen escalation record failed"
+    out=$(scan "$dir" "$state" "$((NOW + 36000))") || fail "repeat ungreen escalation scan failed"
+    case "$out" in *changes-requested*) fail "ungreen escalation repeated: $out" ;; esac
+  done
+  pass "exhausted same-head rounds escalate after failed, pending, errored, or missing checks"
+}
+
+test_historical_rounds_do_not_retain_repository_discovery() {
+  local dir state out transition rounds action current_head pr_state merged
+  for rounds in 1 2; do
+    for transition in moved closed merged; do
+      dir="$TMP_ROOT/historical-$rounds-$transition"
+      state="$dir/state"
+      mkdir -p "$state"
+      write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+      FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+        "$FAKEBIN/launch" "$dir/launches" 0 spawn || fail "historical round 1 seed failed"
+      if [ "$rounds" -eq 2 ]; then
+        FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round2 -- \
+          "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "historical round 2 seed failed"
+      fi
+      [ "$(discover_repos "$dir" "$state")" = o/r ] || fail "a current open round did not retain discovery"
+      current_head=$HEAD
+      pr_state=OPEN
+      merged=false
+      case "$transition" in
+        moved) current_head=$HEAD2 ;;
+        closed) pr_state=CLOSED ;;
+        merged) pr_state=MERGED; merged=true ;;
+      esac
+      "$REAL_JQ" --arg head "$current_head" --arg state "$pr_state" --argjson merged "$merged" \
+        '.data.repository.pullRequests.nodes[0] as $pr |
+        .data.repository.pullRequests.nodes = [
+          ($pr + {headRefOid:$head, state:$state, merged:$merged} | .commits.nodes[0].commit.oid = $head),
+          ($pr + {number:8})
+        ]' "$dir/sweep/page1.json" > "$dir/sweep/transition.json"
+      mv "$dir/sweep/transition.json" "$dir/sweep/page1.json"
+      out=$(discover_repos "$dir" "$state") || fail "historical repository discovery failed"
+      [ -z "$out" ] || fail "a $transition round retained historical repository discovery"
+      out=$(scan "$dir" "$state" "$((NOW + 36000))" '') || fail "historical-only scan failed"
+      [ -z "$out" ] || fail "a historical round swept unrelated pull requests: $out"
+    done
+  done
+  dir="$TMP_ROOT/one-current-round"
+  state="$dir/state"
+  mkdir -p "$state"
+  write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+  "$REAL_JQ" '.data.repository.pullRequests.nodes[0] as $pr |
+    .data.repository.pullRequests.nodes = [($pr + {state:"CLOSED"}), ($pr + {number:8})]
+  ' "$dir/sweep/page1.json" > "$dir/sweep/mixed.json"
+  mv "$dir/sweep/mixed.json" "$dir/sweep/page1.json"
+  for action in 7 8; do
+    FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "https://github.com/o/r/pull/$action" "$HEAD" round1 -- \
+      "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "mixed round seed failed"
+  done
+  [ "$(discover_repos "$dir" "$state")" = o/r ] || fail "a closed sibling hid the outstanding current-head round"
+  out=$(scan "$dir" "$state" "$((NOW + 18000))" '') || fail "mixed pending scan failed"
+  case "$out" in *"https://github.com/o/r/pull/8 head=$HEAD round=2 "*) ;; *) fail "the current sibling lost round 2: $out" ;; esac
+  pass "closed, merged, and superseded rounds retain no repository while current siblings do"
 }
 
 test_reviewer_lookups_refresh_progress_on_success_and_failure() {
@@ -555,7 +646,7 @@ test_record_refusals_and_malformed_record_fail_the_scan() {
   chmod 0600 "$state/changes-requested-sweep.seen"
   scan "$dir" "$state" "$NOW" >/dev/null 2>&1 \
     && fail "a malformed round record did not fail the scan"
-  "$SCRIPT" --repos "$state" >/dev/null 2>&1 \
+  discover_repos "$dir" "$state" >/dev/null 2>&1 \
     && fail "a malformed round record did not fail repository discovery"
   "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
     "$FAKEBIN/launch" "$dir/launches" 0 spawn 2>/dev/null \
@@ -569,6 +660,8 @@ if [ "$#" -gt 0 ]; then
   exit $?
 fi
 
+test_exhausted_rounds_escalate_after_checks_stop_passing
+test_historical_rounds_do_not_retain_repository_discovery
 test_pending_rounds_keep_repository_discovery_after_retirement
 test_reviewer_lookups_refresh_progress_on_success_and_failure
 test_later_comments_do_not_hide_blocking_reviewers
