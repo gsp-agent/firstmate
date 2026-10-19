@@ -92,6 +92,12 @@ now_ms() {
   fi
 }
 
+RUN_STARTED_ISO=$(now_iso)
+RUN_STARTED_MS=$(now_ms)
+
+# shellcheck source=bin/fm-test-machine-line-lib.sh
+. "$ROOT/bin/fm-test-machine-line-lib.sh"
+
 # Serial exclusions relative to the scout-proposed parallel pool (pure units,
 # fake backends, private git fixtures, stubbed network). Reasons are audit
 # evidence; do not re-add a basename without clearing its reason.
@@ -279,6 +285,7 @@ with open(out, "w", encoding="utf-8") as fh:
 PY
 }
 
+ORIGINAL_ARGS=("$@")
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --jobs)
@@ -388,6 +395,8 @@ for s in "${CANDIDATES[@]}"; do
   [ -f "$s" ] || die "candidate not found: $s"
 done
 
+enter_machine_line "$ROOT/bin/fm-test-isolation-proof.sh" ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}
+
 PROOF_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/fm-isolation-proof.XXXXXX")
 chmod 0700 "$PROOF_ROOT" || die "could not chmod 0700 proof root $PROOF_ROOT"
 RECORDS="$PROOF_ROOT/records.tsv"
@@ -395,8 +404,6 @@ RECORDS="$PROOF_ROOT/records.tsv"
 trap 'rm -rf "$PROOF_ROOT"' EXIT
 
 GIT_BEFORE=$(global_git_snapshot)
-RUN_STARTED_ISO=$(now_iso)
-RUN_STARTED_MS=$(now_ms)
 RUN_ID="fm-isolation-${RUN_STARTED_MS}-$$"
 TOTAL=${#CANDIDATES[@]}
 FAILED=0
