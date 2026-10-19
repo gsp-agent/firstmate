@@ -1,0 +1,5 @@
+{
+  "result": "fail",
+  "type": "TimeoutExpired",
+  "details": "Command '['treehouse', 'status', '--json']' timed out after 60 seconds"
+}

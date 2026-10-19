@@ -1,0 +1,4 @@
+All 24 test leases were released.
+Git removed the 24 clean disposable worktrees without force.
+Explicit, dcg-checked file removal and empty-directory removal cleared the remaining fixture.
+No fixture directory remains in the run worktree.

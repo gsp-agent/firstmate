@@ -1,0 +1,50 @@
+{
+  "baseline_full_at_16": {
+    "result": "pass",
+    "occupied": 16,
+    "17th_request_exit": 1,
+    "refusal": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\nall 16 worktrees are in use or dirty (max_trees = 16). Run 'treehouse status' to see details, or increase max_trees in treehouse.toml"
+  },
+  "config_does_not_spawn_or_relocate_workers": {
+    "result": "pass",
+    "unchanged_busy_slots": 16,
+    "extra_workers_started_automatically": 0,
+    "existing_pool_unchanged": true
+  },
+  "ordinary_get_enters_17th_slot": {
+    "result": "pass",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP49DMP3YQHK647NXQF5WB/.nm-treehouse-live/pool/.treehouse/primary-921bfa/17/primary",
+    "pty_grid": "40x180",
+    "slots": 17,
+    "running_shell_seen_by_status": true
+  },
+  "tracked_config_allows_24_distinct_slots": {
+    "result": "pass",
+    "leased": 24,
+    "same_pool_directory": true
+  },
+  "25th_slot_refused_without_disturbing_workers": {
+    "result": "pass",
+    "occupied": 24,
+    "25th_request_exit": 1,
+    "refusal": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\nall 24 worktrees are in use or dirty (max_trees = 24). Run 'treehouse status' to see details, or increase max_trees in treehouse.toml"
+  },
+  "status_shows_two_available_with_22_occupied": {
+    "result": "pass",
+    "available": 2,
+    "leased": 22,
+    "pool_size": 24,
+    "production_peak_claim": false
+  },
+  "linked_worktree_reuses_same_pool": {
+    "result": "pass",
+    "reused_path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP49DMP3YQHK647NXQF5WB/.nm-treehouse-live/pool/.treehouse/primary-921bfa/23/primary",
+    "new_slot_created": false,
+    "pool_size": 24
+  },
+  "test_leases_released": {
+    "result": "pass",
+    "available": 24,
+    "leased": 0
+  }
+}
