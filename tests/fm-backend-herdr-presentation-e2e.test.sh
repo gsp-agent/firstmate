@@ -423,6 +423,7 @@ spawn_task() {  # <id> <home> <project> [extra fm-spawn args...]; SPAWN_DEADLINE
   [ "$project" != "$RECOVERY_PROJECT_DIR" ] || delivery_args=(--scout)
   [ -z "${SPAWN_DEADLINE_SECONDS:-}" ] || deadline_cmd=(fm_run_timed "$SPAWN_DEADLINE_SECONDS")
   FM_GATE_REFUSE_BYPASS=1 FM_SPAWN_NO_GUARD=1 FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+    FM_TREEHOUSE_GET_TIMEOUT="${FM_TREEHOUSE_GET_TIMEOUT:-60}" \
     ${deadline_cmd[@]+"${deadline_cmd[@]}"} "$ROOT/bin/fm-spawn.sh" "$id" "$project" "sh -c 'while :; do sleep 60; done'" \
     "${delivery_args[@]}" --backend herdr "$@"
 }

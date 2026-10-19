@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Regression test for the fm-spawn.sh treehouse-get worktree-detection settle
-# loop (bin/fm-spawn.sh, the `for _ in $(seq 1 60)` loop after `treehouse get`).
+# loop (bin/fm-spawn.sh, the FM_TREEHOUSE_GET_TIMEOUT wait after `treehouse get`).
 #
 # On some tmux/WSL setups a brand-new window's pane_current_path transiently
 # reports a stale, unrelated-but-real path on the very first poll, before the
@@ -19,6 +19,11 @@
 # comparing only against the project adopted it and the isolation guard then
 # refused the launch. The cases below cover both the transient and the pane
 # that never leaves the primary at all.
+#
+# The wait is wall-clock rather than a fixed count of polls, because a loaded
+# machine can take minutes to prepare a slot. The last cases pin that: a pane
+# that settles only after more polls than the old fixed bound still launches,
+# and a malformed FM_TREEHOUSE_GET_TIMEOUT refuses before any window opens.
 set -u
 
 # shellcheck source=tests/fixtures.sh
@@ -208,7 +213,8 @@ test_primary_checkout_that_never_settles_fails_at_the_deadline() {
   read_settle_record "$rec"
   fm_test_fake_sleep_noop "$FAKEBIN_DIR"
 
-  out=$(run_settle_spawn "$id")
+  # The deadline is wall-clock, so with sleep a no-op a short one keeps this fast.
+  out=$(FM_TREEHOUSE_GET_TIMEOUT=2 run_settle_spawn "$id")
   status=$?
   [ "$status" -ne 0 ] || fail "spawn accepted a pane that never left the primary checkout"$'\n'"$out"
   assert_contains "$out" "did not enter an isolated worktree" \
@@ -217,13 +223,60 @@ test_primary_checkout_that_never_settles_fails_at_the_deadline() {
     "the refusal did not name the path the pane kept reporting"
   assert_contains "$out" "repository's primary checkout" \
     "the refusal did not say why that path was rejected"
+  assert_contains "$out" "FM_TREEHOUSE_GET_TIMEOUT=2" \
+    "the refusal did not name the deadline knob and its value"
   [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "refused spawn published task metadata"
   pass "a pane stuck on the primary checkout fails loudly at the deadline"
+}
+
+# A slow `treehouse get` on a loaded machine: the pane keeps reporting the
+# repository primary for far more polls than the old fixed 60-poll bound, then
+# settles. Under the default wall-clock deadline the spawn must still launch.
+test_slow_setup_past_the_old_poll_bound_still_launches() {
+  local rec id out status reads
+  id=settle-slow-setup-z5
+  rec=$(make_primary_case settle-slow-setup "$id" 150)
+  read_settle_record "$rec"
+  fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+
+  out=$(run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "a slow but working treehouse get should still launch"$'\n'"$out"
+  assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the slot the slow setup settled into"
+  reads=$(cat "$COUNTFILE")
+  [ "$reads" -gt 60 ] || fail "the pane settled after only $reads reads, so this case does not exceed the old bound"
+  pass "a pane that settles after more than 60 polls still launches under the wall-clock deadline"
+}
+
+# A malformed deadline is refused before the spawn touches the backend.
+test_malformed_deadline_is_refused_before_launch() {
+  local rec id out status bad
+  for bad in abc 0 -5 '' 1.5 007; do
+    id=settle-bad-deadline-z6
+    rec=$(make_settle_case "settle-bad-deadline-${bad:-empty}" "$id" 0)
+    read_settle_record "$rec"
+    out=$(FM_TREEHOUSE_GET_TIMEOUT="$bad" run_settle_spawn "$id")
+    status=$?
+    if [ -z "$bad" ]; then
+      # An empty value is the unset default, not a malformed one.
+      expect_code 0 "$status" "an empty FM_TREEHOUSE_GET_TIMEOUT should fall back to the default"$'\n'"$out"
+      continue
+    fi
+    [ "$status" -ne 0 ] || fail "spawn accepted FM_TREEHOUSE_GET_TIMEOUT='$bad'"$'\n'"$out"
+    assert_contains "$out" "FM_TREEHOUSE_GET_TIMEOUT must be a positive whole number" \
+      "spawn did not explain the malformed deadline '$bad'"
+    [ ! -e "$COUNTFILE" ] || fail "spawn read the pane before refusing FM_TREEHOUSE_GET_TIMEOUT='$bad'"
+    [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "refused spawn published task metadata for '$bad'"
+  done
+  pass "a malformed FM_TREEHOUSE_GET_TIMEOUT refuses before the spawn reads any pane"
 }
 
 test_single_stale_first_read_is_not_accepted
 test_already_settled_pane_costs_one_confirm_read
 test_transient_primary_checkout_is_not_accepted
 test_primary_checkout_that_never_settles_fails_at_the_deadline
+test_slow_setup_past_the_old_poll_bound_still_launches
+test_malformed_deadline_is_refused_before_launch
 
 echo "# all fm-spawn-worktree-settle tests passed"

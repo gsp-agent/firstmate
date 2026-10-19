@@ -183,7 +183,7 @@ test_spawn_isolation_abort() {
   # a path like this is never adopted and the refusal comes from the poll's own
   # deadline, naming the path and why it was rejected. The assertions pin which
   # cause fired, not the operator wording that explains it.
-  out=$(GIT_CEILING_DIRECTORIES="$TMP_ROOT/spawn-notgit-root" \
+  out=$(FM_TREEHOUSE_GET_TIMEOUT=2 GIT_CEILING_DIRECTORIES="$TMP_ROOT/spawn-notgit-root" \
     run_spawn "$home" abort-notgit-dd4 "$proj" "$TMP_ROOT/spawn-notgit-root/plain" "$fakebin"); status=$?
   expect_code 1 "$status" "spawn into a non-worktree dir should abort"
   assert_contains "$out" "did not enter an isolated worktree" "non-worktree spawn lacked the isolation error"
@@ -191,7 +191,7 @@ test_spawn_isolation_abort() {
   assert_absent "$home/state/abort-notgit-dd4.meta" "aborted spawn must not record meta"
 
   # Abort: the pane resolves INTO the primary checkout (a subdir of PROJ_ABS).
-  out=$(run_spawn "$home" abort-primary-ee5 "$proj" "$proj/sub" "$fakebin"); status=$?
+  out=$(FM_TREEHOUSE_GET_TIMEOUT=2 run_spawn "$home" abort-primary-ee5 "$proj" "$proj/sub" "$fakebin"); status=$?
   expect_code 1 "$status" "spawn landing inside the primary checkout should abort"
   assert_contains "$out" "did not enter an isolated worktree" "primary-checkout spawn lacked the isolation error"
   assert_contains "$out" "not a worktree root" "primary-checkout spawn did not say why the path was rejected"

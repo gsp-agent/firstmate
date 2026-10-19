@@ -116,7 +116,8 @@ test_linked_spawning_home_rejects_primary_before_refresh() {
     # The assertion concerns identity, not how long an unchanged cwd is polled.
     fm_test_fake_sleep_noop "$FAKEBIN_DIR"
 
-    out=$(run_spawn "$id" --scout)
+    # The wait is wall-clock, so a no-op sleep needs a short deadline here.
+    out=$(FM_TREEHOUSE_GET_TIMEOUT=2 run_spawn "$id" --scout)
     status=$?
     if [ "${FM_TEST_EVIDENCE:-0}" = 1 ]; then
       printf '# evidence begin: linked-home spawn, returned=%s\n' "$returned"

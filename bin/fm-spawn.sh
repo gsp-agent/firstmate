@@ -293,7 +293,9 @@
 #   out as a transient rather than adopted and then refused, so a home that is
 #   itself a linked worktree of the project repository still launches. A pane
 #   that never reaches an isolated worktree refuses at the end of that wait,
-#   naming the last path seen and why it was rejected.
+#   naming the last path seen and why it was rejected. The wait is wall-clock,
+#   FM_TREEHOUSE_GET_TIMEOUT seconds (default 300, a positive whole number;
+#   anything else refuses the spawn before a window opens).
 #   That placement is proven only at launch. Every ship or scout pane therefore
 #   also receives `export FM_TASK_ID=<task-id>` before the launch command, on
 #   the same channel as GOTMPDIR, and bin/fm-test-run.sh refuses to execute the
@@ -729,6 +731,16 @@ fm_refuse_if_gate_agent
 # Skip the watcher guard when re-exec'd for one pair of a batch (FM_SPAWN_NO_GUARD is
 # set by the batch loop below), so the guard runs once for the batch, not once per pair.
 [ -n "${FM_SPAWN_NO_GUARD:-}" ] || "$FM_ROOT/bin/fm-guard.sh" || true
+# Seconds the spawn waits for `treehouse get` to move the new pane into its
+# worktree. A loaded machine can take minutes to prepare a slot, so the bound is
+# wall-clock and generous; a malformed override is refused before any window opens.
+TREEHOUSE_GET_TIMEOUT=${FM_TREEHOUSE_GET_TIMEOUT:-300}
+case "$TREEHOUSE_GET_TIMEOUT" in
+  ''|*[!0-9]*|0*)
+    echo "error: FM_TREEHOUSE_GET_TIMEOUT must be a positive whole number of seconds, got '$TREEHOUSE_GET_TIMEOUT'" >&2
+    exit 1
+    ;;
+esac
 KIND=ship
 KIND_SET=0
 HARNESS_ARG=
@@ -4692,10 +4704,15 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # misconfiguration would need machinery this path does not want - so the
   # refusal has to be self-explaining instead: carry the last path seen and the
   # reason it was rejected, and report both at the deadline.
+  #
+  # The window is a wall-clock deadline (FM_TREEHOUSE_GET_TIMEOUT), not a count
+  # of polls: on a loaded machine `treehouse get` can need minutes, and a fixed
+  # poll count refused spawns whose setup was slow but still working.
   candidate=""
   last_seen=""
   last_reason="the pane reported no path"
-  for _ in $(seq 1 60); do
+  treehouse_wait_start=$SECONDS
+  while [ $((SECONDS - treehouse_wait_start)) -lt "$TREEHOUSE_GET_TIMEOUT" ]; do
     p=$(spawn_current_path "$WT_TARGET" || true)
     [ -z "$p" ] || last_seen="$p"
     if [ -n "$p" ] && spawn_worktree_isolated "$p"; then
@@ -4713,7 +4730,7 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     sleep 1
   done
   if [ -z "$WT" ]; then
-    echo "error: treehouse get did not enter an isolated worktree within 60s (last seen '${last_seen:-none}': $last_reason; spawning project '$PROJ_ABS'); inspect window $T" >&2
+    echo "error: treehouse get did not enter an isolated worktree within $((SECONDS - treehouse_wait_start))s (last seen '${last_seen:-none}': $last_reason; spawning project '$PROJ_ABS'; FM_TREEHOUSE_GET_TIMEOUT=$TREEHOUSE_GET_TIMEOUT); inspect window $T" >&2
     exit 1
   fi
 
