@@ -22,9 +22,8 @@ test_list_all_exact_suite_coverage() {
     for f in "$ROOT"/tests/*.test.sh; do
       [ -f "$f" ] || continue
       # A lane-split subject runs through its lane wrappers instead.
-      case "$(basename "$f")" in
-        fm-supervision-host.test.sh|fm-captain-hold-lifecycle.test.sh) continue ;;
-      esac
+      [ "$(basename "$f")" = fm-supervision-host.test.sh ] && continue
+      [ "$(basename "$f")" = fm-captain-hold-lifecycle.test.sh ] && continue
       printf 'tests/%s\n' "$(basename "$f")"
     done | LC_ALL=C sort
   )
