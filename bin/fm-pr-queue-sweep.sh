@@ -34,10 +34,26 @@
 # The watcher records an event id only after that wake is durable.
 # This file owns the seen record: a mode-600 file state/merge-queue-sweep.seen
 # whose first line is fm-merge-queue-sweep-v1 and whose later lines are event ids.
+# The same scan also reports a stale changes-requested pull request: open, not
+# a draft, reviewDecision CHANGES_REQUESTED, checks green (statusCheckRollup
+# SUCCESS), and a head commit at least FM_CR_FIXROUND_STALE_SECS old (default
+# 14400, four hours). It prints
+# `changes-requested <url> head=<sha> round=<n> reviewers=<csv>` for round 1
+# and, when that head is still current at least one stale interval after the
+# recorded round, round 2. After two recorded rounds with no new head it prints
+# `changes-requested-escalated <url> head=<sha> rounds=2 reviewers=<csv>` once.
+# This file owns that round record too: a mode-600 file
+# state/changes-requested-sweep.seen whose first line is
+# fm-changes-requested-sweep-v1 and whose later lines are
+# `<url> <head> <rounds> <last-epoch> <escalated>`. The scan only reads the
+# record; bin/fm-watch.sh writes it through --cr-record after the wake for a
+# round is durable, so the count survives restarts and a failed wake publish
+# dispatches nothing. FM_CR_FIXROUND_NOW overrides the scan clock in tests.
 # Usage: fm-pr-queue-sweep.sh --scan <state>
 #        fm-pr-queue-sweep.sh --repos <state>
 #        fm-pr-queue-sweep.sh --contains <state> <event>
 #        fm-pr-queue-sweep.sh --record <state> <event>
+#        fm-pr-queue-sweep.sh --cr-record <state> <url> <head> <round1|round2|escalated>
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -45,10 +61,187 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 
 SWEEP_SEEN_VERSION=fm-merge-queue-sweep-v1
+CR_SEEN_VERSION=fm-changes-requested-sweep-v1
 # shellcheck disable=SC2016
-SWEEP_QUERY='query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}'
+SWEEP_QUERY='query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue isDraft reviewDecision headRefOid author{login} statusCheckRollup{state} commits(last:1){nodes{commit{oid committedDate}}} latestReviews(first:20){nodes{author{login} state commit{oid}}} timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}'
 # shellcheck disable=SC2016
-SWEEP_JQ='(.data.repository.pullRequests) as $p | if $p == null or ($p.pageInfo | type) != "object" then error("no page") else (($p.nodes // [])[] | . as $pr | (($pr.timelineItems.nodes // []) | last // {}) as $e | (["pr", ($pr.number | tostring), ($pr.state // ""), ($pr.merged | tostring), ($pr.isInMergeQueue | tostring), (if $e.__typename == "RemovedFromMergeQueueEvent" then "removed" elif $e.__typename == "AddedToMergeQueueEvent" then "added" else "" end), (if (($e.id // "") | test("^[A-Za-z0-9_+/=-]{0,256}$")) then ($e.id // "") else "" end)] | @tsv) + "\t" + (($e.reason // "") | tojson | .[1:-1])), (["page", (if $p.pageInfo.hasNextPage == true then "true" else "false" end), ($p.pageInfo.endCursor // "")] | @tsv) end'
+SWEEP_JQ='(.data.repository.pullRequests) as $p | if $p == null or ($p.pageInfo | type) != "object" then error("no page") else (($p.nodes // [])[] | . as $pr | (($pr.timelineItems.nodes // []) | last // {}) as $e | ((($pr.commits.nodes // []) | last // {}).commit // {}) as $hc | (["pr", ($pr.number | tostring), ($pr.state // ""), ($pr.merged | tostring), ($pr.isInMergeQueue | tostring), (if $e.__typename == "RemovedFromMergeQueueEvent" then "removed" elif $e.__typename == "AddedToMergeQueueEvent" then "added" else "" end), (if (($e.id // "") | test("^[A-Za-z0-9_+/=-]{0,256}$")) then ($e.id // "") else "" end), ($pr.reviewDecision // ""), ($pr.headRefOid // ""), (if ($hc.committedDate // "" | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")) then ($hc.committedDate | fromdateiso8601 | tostring) else "0" end), (($pr.statusCheckRollup.state // "")), (if $pr.isDraft == true then "true" elif $pr.isDraft == false then "false" else "" end), ([($pr.latestReviews.nodes // [])[] | select(.state == "CHANGES_REQUESTED" and ((.author.login // "") != "") and (.author.login != ($pr.author.login // ""))) | .author.login] | unique | join(","))] | @tsv) + "\t" + (($e.reason // "") | tojson | .[1:-1])), (["page", (if $p.pageInfo.hasNextPage == true then "true" else "false" end), ($p.pageInfo.endCursor // "")] | @tsv) end'
+
+cr_now() {
+  local now=${FM_CR_FIXROUND_NOW:-}
+  case "$now" in
+    ''|*[!0-9]*) now=$(date +%s) ;;
+  esac
+  printf '%s\n' "$now"
+}
+
+cr_stale_secs() {
+  local secs=${FM_CR_FIXROUND_STALE_SECS:-14400}
+  case "$secs" in
+    ''|*[!0-9]*|0) secs=14400 ;;
+  esac
+  printf '%s\n' "$secs"
+}
+
+cr_seen_path() {
+  printf '%s\n' "$1/changes-requested-sweep.seen"
+}
+
+cr_head_ok() {
+  local head=$1
+  [ "${#head}" -ge 40 ] && [ "${#head}" -le 64 ] || return 1
+  case "$head" in
+    *[!0-9a-f]*) return 1 ;;
+  esac
+}
+
+cr_url_ok() {
+  local url=$1 rest owner repo number
+  case "$url" in
+    https://github.com/*/pull/*) ;;
+    *) return 1 ;;
+  esac
+  rest=${url#https://github.com/}
+  owner=${rest%%/*}
+  rest=${rest#*/}
+  repo=${rest%%/*}
+  rest=${rest#*/}
+  [ "$rest" != "${rest#pull/}" ] || return 1
+  number=${rest#pull/}
+  case "$number" in
+    ''|*[!0-9]*|0*) return 1 ;;
+  esac
+  case "$repo" in
+    */*) return 1 ;;
+  esac
+  sweep_owner_repo_ok "$owner" "$repo"
+}
+
+cr_reviewers_ok() {
+  local reviewers=$1
+  [ -n "$reviewers" ] || return 1
+  case "$reviewers" in
+    *[!A-Za-z0-9,-]*) return 1 ;;
+  esac
+}
+
+# Load the round record into cr_records: one "<url> <head> <rounds>
+# <last-epoch> <escalated>" line per pull request. A missing file loads empty.
+# An unsafe or malformed file returns 2.
+cr_seen_load() {
+  local path=$1 state=$2 device version line url head rounds last escalated extra
+  cr_records=
+  device=$(fm_pr_file_device "$state") || return 2
+  fm_pr_private_file_valid "$path" 600 "$device" || return 2
+  exec 7< "$path" || return 2
+  if ! IFS= read -r version <&7; then
+    exec 7<&-
+    return 2
+  fi
+  [ "$version" = "$CR_SEEN_VERSION" ] || { exec 7<&-; return 2; }
+  while IFS= read -r line <&7 || [ -n "$line" ]; do
+    [ -n "$line" ] || { exec 7<&-; return 2; }
+    read -r url head rounds last escalated extra <<EOF_LINE
+$line
+EOF_LINE
+    [ -z "${extra:-}" ] || { exec 7<&-; return 2; }
+    cr_url_ok "$url" || { exec 7<&-; return 2; }
+    cr_head_ok "$head" || { exec 7<&-; return 2; }
+    case "$rounds" in 1|2) ;; *) exec 7<&-; return 2 ;; esac
+    case "$last" in ''|*[!0-9]*) exec 7<&-; return 2 ;; esac
+    case "$escalated" in 0|1) ;; *) exec 7<&-; return 2 ;; esac
+    cr_records="${cr_records}${url} ${head} ${rounds} ${last} ${escalated}"$'\n'
+  done
+  exec 7<&-
+}
+
+# Print "<rounds> <last-epoch> <escalated>" for one url and head, or nothing.
+cr_lookup() {
+  local want_url=$1 want_head=$2 line url head rounds last escalated
+  [ -n "${cr_records:-}" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ -n "$line" ] || continue
+    read -r url head rounds last escalated <<EOF_LINE
+$line
+EOF_LINE
+    if [ "$url" = "$want_url" ] && [ "$head" = "$want_head" ]; then
+      printf '%s %s %s\n' "$rounds" "$last" "$escalated"
+      return 0
+    fi
+  done <<EOF
+$cr_records
+EOF
+}
+
+cr_record() {
+  local state=$1 url=$2 head=$3 action=$4 path device tmp line
+  local rounds last escalated kept now
+  sweep_state_ok "$state" || return 1
+  cr_url_ok "$url" || return 1
+  cr_head_ok "$head" || return 1
+  case "$action" in round1|round2|escalated) ;; *) return 1 ;; esac
+  path=$(cr_seen_path "$state")
+  if [ -e "$path" ] || [ -L "$path" ]; then
+    cr_seen_load "$path" "$state" || return 1
+  else
+    cr_records=
+  fi
+  now=$(cr_now)
+  rounds=0
+  last=0
+  escalated=0
+  kept=
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      "$url "*) ;;
+      *) kept="${kept}${line}"$'\n' ;;
+    esac
+  done <<EOF
+$cr_records
+EOF
+  # shellcheck disable=SC2046
+  set -- $(cr_lookup "$url" "$head")
+  if [ "$#" -eq 3 ]; then
+    rounds=$1
+    last=$2
+    escalated=$3
+  fi
+  case "$action" in
+    round1)
+      [ "$rounds" -ge 1 ] && return 0
+      rounds=1
+      last=$now
+      ;;
+    round2)
+      [ "$rounds" -ge 2 ] && return 0
+      rounds=2
+      last=$now
+      ;;
+    escalated)
+      [ "$escalated" = 1 ] && return 0
+      rounds=2
+      escalated=1
+      ;;
+  esac
+  device=$(fm_pr_file_device "$state") || return 1
+  fm_pr_regular_destination_on_device_or_absent "$path" "$device" || return 1
+  umask 077
+  tmp=$(mktemp "$state/.fm-cr-sweep.XXXXXX") || return 1
+  if ! {
+    printf '%s\n' "$CR_SEEN_VERSION"
+    [ -z "$kept" ] || printf '%s' "$kept"
+    printf '%s %s %s %s %s\n' "$url" "$head" "$rounds" "$last" "$escalated"
+  } > "$tmp" \
+    || ! chmod 0600 "$tmp" \
+    || ! fm_pr_private_file_valid "$tmp" 600 "$device" \
+    || ! fm_pr_regular_destination_on_device_or_absent "$path" "$device" \
+    || ! mv -f -- "$tmp" "$path" \
+    || ! fm_pr_private_file_valid "$path" 600 "$device"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+}
 
 sweep_event_id_ok() {
   local event=$1
@@ -268,8 +461,12 @@ sweep_note_sidecars() {
 sweep_one_repo() {
   local owner=$1 repo=$2 cursor='' fields line kind rest number state merged
   local queued event_kind event reason more page_cursor saw_page saw_queued collected url
+  local review_decision head head_epoch check_state draft reviewers
+  local cr_found cr_rounds cr_last cr_escalated cr_now_v cr_stale_v
   collected=
   saw_queued=0
+  cr_now_v=$(cr_now)
+  cr_stale_v=$(cr_stale_secs)
   while :; do
     if [ -z "$cursor" ]; then
       fields=$(sweep_page_gh api graphql --hostname github.com \
@@ -314,14 +511,63 @@ sweep_one_repo() {
           event_kind=${rest%%$'\t'*}
           rest=${rest#*$'\t'}
           event=${rest%%$'\t'*}
+          rest=${rest#*$'\t'}
+          review_decision=${rest%%$'\t'*}
+          rest=${rest#*$'\t'}
+          head=${rest%%$'\t'*}
+          rest=${rest#*$'\t'}
+          head_epoch=${rest%%$'\t'*}
+          rest=${rest#*$'\t'}
+          check_state=${rest%%$'\t'*}
+          rest=${rest#*$'\t'}
+          draft=${rest%%$'\t'*}
+          rest=${rest#*$'\t'}
+          reviewers=${rest%%$'\t'*}
           case "$rest" in
             *$'\t'*) reason=${rest#*$'\t'} ;;
-            *) reason= ;;
+            *) reason=$rest ;;
           esac
           case "$number" in
             ''|*[!0-9]*|0*) continue ;;
           esac
           [ "$queued" = true ] && saw_queued=1
+          url="https://github.com/$owner/$repo/pull/$number"
+          if [ "$state" = OPEN ] && [ "$merged" = false ] && [ "$draft" = false ] \
+            && [ "$review_decision" = CHANGES_REQUESTED ] \
+            && [ "$check_state" = SUCCESS ] \
+            && cr_head_ok "$head" && cr_reviewers_ok "$reviewers"; then
+            case "$head_epoch" in
+              ''|*[!0-9]*|0) ;;
+              *)
+                if [ "$((cr_now_v - head_epoch))" -ge "$cr_stale_v" ]; then
+                  # shellcheck disable=SC2046
+                  set -- $(cr_lookup "$url" "$head")
+                  if [ "$#" -eq 3 ]; then
+                    cr_rounds=$1
+                    cr_last=$2
+                    cr_escalated=$3
+                    cr_found=1
+                  else
+                    cr_rounds=0
+                    cr_last=0
+                    cr_escalated=0
+                    cr_found=0
+                  fi
+                  if [ "$cr_escalated" != 1 ]; then
+                    if [ "$cr_found" -eq 0 ]; then
+                      collected="${collected}changes-requested ${url} head=${head} round=1 reviewers=${reviewers}"$'\n'
+                    elif [ "$((cr_now_v - cr_last))" -ge "$cr_stale_v" ]; then
+                      if [ "$cr_rounds" -eq 1 ]; then
+                        collected="${collected}changes-requested ${url} head=${head} round=2 reviewers=${reviewers}"$'\n'
+                      elif [ "$cr_rounds" -ge 2 ]; then
+                        collected="${collected}changes-requested-escalated ${url} head=${head} rounds=2 reviewers=${reviewers}"$'\n'
+                      fi
+                    fi
+                  fi
+                fi
+                ;;
+            esac
+          fi
           [ "$state" = OPEN ] || continue
           [ "$merged" = false ] || continue
           [ "$queued" = false ] || continue
@@ -331,7 +577,6 @@ sweep_one_repo() {
           case "$sweep_seen" in
             *$'\n'"$event"$'\n'*) continue ;;
           esac
-          url="https://github.com/$owner/$repo/pull/$number"
           collected="${collected}dequeued ${url} reason=${reason} event=${event}"$'\n'
           sweep_note_event "$event"
           ;;
@@ -362,13 +607,19 @@ EOF
 }
 
 sweep_scan() {
-  local state=$1 path key owner repo repo_out failed=0
+  local state=$1 path cr_path key owner repo repo_out failed=0
   sweep_state_ok "$state" || return 1
   path=$(sweep_seen_path "$state")
   if [ -e "$path" ] || [ -L "$path" ]; then
     sweep_seen_load "$path" "$state" || return 1
   else
     sweep_seen=$'\n'
+  fi
+  cr_path=$(cr_seen_path "$state")
+  if [ -e "$cr_path" ] || [ -L "$cr_path" ]; then
+    cr_seen_load "$cr_path" "$state" || return 1
+  else
+    cr_records=
   fi
   sweep_note_markers "$state"
   sweep_repos=$'\n'
@@ -409,6 +660,11 @@ case "${1:-}" in
   --record)
     [ "$#" -eq 3 ] || exit 1
     sweep_record "$2" "$3"
+    exit $?
+    ;;
+  --cr-record)
+    [ "$#" -eq 5 ] || exit 1
+    cr_record "$2" "$3" "$4" "$5"
     exit $?
     ;;
 esac
