@@ -1,0 +1,12 @@
+$ fm-lease.sh --wait abc check demo
+usage: fm-lease.sh [--wait <seconds>] claim|release <task> [--actor main|branch] | release-actor --actor main|branch | check <task> | sweep
+rc=2
+$ fm-lease.sh --wait 2 check demo   (lock free)
+rc=1
+$ fm-lease.sh --wait 2 claim demo --actor main   (lock free; holder pid is the lab lock pid)
+rc=0
+$ fm-lease.sh check demo
+main 4928 1792372924 live
+rc=0
+$ fm-lease.sh --wait 2 release demo --actor main
+rc=0

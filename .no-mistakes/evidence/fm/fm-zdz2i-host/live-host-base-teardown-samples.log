@@ -1,0 +1,408 @@
+01:03:57Z [base-host] watcher pid: 57736 alive=yes session lock pid: 29674 alive=yes host record: host	46380	Sun Oct 18 20:02:55 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park arm	57553	Sun Oct 18 20:03:01 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-watch-arm.sh  beacon age: 3s | lab fm procs=4
+    NEW  lock=held consumer=healthy reason=supervised beacon=4 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=4 can_receive=True
+01:04:01Z [base-host] watcher pid: 57736 alive=yes session lock pid: 29674 alive=yes host record: host	46380	Sun Oct 18 20:02:55 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park arm	57553	Sun Oct 18 20:03:01 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-watch-arm.sh  beacon age: 8s | lab fm procs=4
+    NEW  lock=held consumer=healthy reason=supervised beacon=8 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=9 can_receive=True
+01:04:06Z [base-host] watcher pid: 57736 alive=yes session lock pid: 29674 alive=yes host record: host	46380	Sun Oct 18 20:02:55 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park arm	57553	Sun Oct 18 20:03:01 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-watch-arm.sh  beacon age: 12s | lab fm procs=4
+    NEW  lock=held consumer=healthy reason=supervised beacon=13 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=13 can_receive=True
+01:04:10Z [base-host] watcher pid: 57736 alive=yes session lock pid: 29674 alive=yes host record: host	46380	Sun Oct 18 20:02:55 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park arm	57553	Sun Oct 18 20:03:01 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-watch-arm.sh  beacon age: 0s | lab fm procs=5
+    NEW  lock=held consumer=healthy reason=supervised beacon=1 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=2 can_receive=True
+01:04:15Z [base-host] watcher pid: 57736 alive=yes session lock pid: 29674 alive=yes host record: host	46380	Sun Oct 18 20:02:55 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park arm	57553	Sun Oct 18 20:03:01 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-watch-arm.sh  beacon age: 5s | lab fm procs=4
+    NEW  lock=held consumer=healthy reason=supervised beacon=6 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=6 can_receive=True
+01:04:20Z [base-host] watcher pid: 57736 alive=yes session lock pid: 29674 alive=yes host record: host	46380	Sun Oct 18 20:02:55 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park arm	57553	Sun Oct 18 20:03:01 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-watch-arm.sh  beacon age: 10s | lab fm procs=4
+    NEW  lock=held consumer=healthy reason=supervised beacon=10 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=11 can_receive=True
+01:04:24Z [base-host] watcher pid: 57736 alive=yes session lock pid: 29674 alive=yes host record: host	46380	Sun Oct 18 20:02:55 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park arm	57553	Sun Oct 18 20:03:01 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-watch-arm.sh  beacon age: 14s | lab fm procs=4
+    NEW  lock=held consumer=healthy reason=supervised beacon=15 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=15 can_receive=True
+01:04:29Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 19s | lab fm procs=0
+    NEW  lock=held consumer=healthy reason=supervised beacon=19 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=20 can_receive=False
+01:04:33Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 23s | lab fm procs=0
+    NEW  lock=held consumer=healthy reason=supervised beacon=24 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=25 can_receive=False
+01:04:38Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 28s | lab fm procs=1
+    NEW  lock=held consumer=healthy reason=supervised beacon=29 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=29 can_receive=False
+01:04:43Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 33s | lab fm procs=3
+    NEW  lock=held consumer=healthy reason=supervised beacon=33 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=34 can_receive=False
+01:04:47Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 37s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=38 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=39 can_receive=False
+01:04:52Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 42s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=43 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=44 can_receive=False
+01:04:57Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 47s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=47 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=48 can_receive=False
+01:05:02Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 52s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=53 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=53 can_receive=False
+01:05:07Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 57s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=57 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=58 can_receive=False
+01:05:11Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 61s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=61 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=62 can_receive=False
+01:05:15Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 65s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=66 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=67 can_receive=False
+01:05:20Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 70s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=71 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=72 can_receive=False
+01:05:25Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 75s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=75 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=76 can_receive=False
+01:05:29Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 79s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=80 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=81 can_receive=False
+01:05:34Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 84s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=85 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=86 can_receive=False
+01:05:39Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 89s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=90 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=91 can_receive=False
+01:05:44Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 94s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=95 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=96 can_receive=False
+01:05:49Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 99s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=100 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=100 can_receive=False
+01:05:54Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 104s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=105 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=105 can_receive=False
+01:05:58Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 109s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=109 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=110 can_receive=False
+01:06:03Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 113s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=114 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=115 can_receive=False
+01:06:08Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 119s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=119 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=120 can_receive=False
+01:06:13Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 123s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=124 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=125 can_receive=False
+01:06:18Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 129s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=129 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=130 can_receive=False
+01:06:23Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 133s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=134 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=135 can_receive=False
+01:06:28Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 138s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=139 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=140 can_receive=False
+01:06:33Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 143s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=144 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=145 can_receive=False
+01:06:38Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 148s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=149 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=149 can_receive=False
+01:06:42Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 152s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=153 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=153 can_receive=False
+01:06:47Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 157s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=157 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=158 can_receive=False
+01:06:51Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 161s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=162 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=163 can_receive=False
+01:06:56Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 166s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=167 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=168 can_receive=False
+01:07:01Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 172s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=172 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=173 can_receive=False
+01:07:07Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 177s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=177 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=178 can_receive=False
+01:07:11Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 181s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=182 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=183 can_receive=False
+01:07:16Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 186s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=187 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=188 can_receive=False
+01:07:21Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 191s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=192 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=193 can_receive=False
+01:07:26Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 196s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=197 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=198 can_receive=False
+01:07:31Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 201s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=202 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=203 can_receive=False
+01:07:36Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 207s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=207 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=208 can_receive=False
+01:07:42Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 212s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=213 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=213 can_receive=False
+01:07:47Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 217s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=217 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=218 can_receive=False
+01:07:51Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 222s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=222 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=223 can_receive=False
+01:07:56Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 226s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=227 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=228 can_receive=False
+01:08:02Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 232s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=232 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=233 can_receive=False
+01:08:07Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 237s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=238 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=239 can_receive=False
+01:08:12Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 243s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=244 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=245 can_receive=False
+01:08:18Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 248s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=249 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=250 can_receive=False
+01:08:24Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 254s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=255 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=256 can_receive=False
+01:08:29Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 260s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=261 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=262 can_receive=False
+01:08:35Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 266s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=266 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=267 can_receive=False
+01:08:40Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 270s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=271 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=272 can_receive=False
+01:08:46Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 276s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=277 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=278 can_receive=False
+01:08:51Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 282s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=283 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=284 can_receive=False
+01:08:57Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 287s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=288 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=290 can_receive=False
+01:09:04Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 294s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=295 can_receive=True
+    BASE lock=held consumer=down reason=no-watcher beacon=296 can_receive=False
+01:09:10Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 300s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=302 can_receive=True
+    BASE lock=held consumer=down reason=stale-beacon beacon=305 can_receive=False
+01:09:18Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 309s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=311 can_receive=True
+    BASE lock=held consumer=down reason=stale-beacon beacon=313 can_receive=False
+01:09:27Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 318s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=319 can_receive=True
+    BASE lock=held consumer=down reason=stale-beacon beacon=321 can_receive=False
+01:09:35Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 325s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=326 can_receive=True
+    BASE lock=held consumer=down reason=stale-beacon beacon=327 can_receive=False
+01:09:41Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 331s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=332 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=334 can_receive=False
+01:09:47Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 337s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=338 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=340 can_receive=False
+01:09:53Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 343s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=345 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=345 can_receive=False
+01:09:59Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 349s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=350 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=352 can_receive=False
+01:10:05Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 355s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=357 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=358 can_receive=False
+01:10:11Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 361s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=362 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=364 can_receive=False
+01:10:17Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 367s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=369 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=371 can_receive=False
+01:10:25Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 375s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=376 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=377 can_receive=False
+01:10:30Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 381s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=382 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=383 can_receive=False
+01:10:37Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 387s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=388 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=389 can_receive=False
+01:10:42Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 393s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=394 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=396 can_receive=False
+01:10:49Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 399s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=401 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=402 can_receive=False
+01:10:56Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 406s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=407 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=409 can_receive=False
+01:11:02Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 412s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=413 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=414 can_receive=False
+01:11:07Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: host	74335	Sun Oct 18 20:04:42 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park  beacon age: 418s | lab fm procs=2
+    NEW  lock=held consumer=down reason=stale-beacon beacon=420 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=421 can_receive=False
+01:11:15Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 425s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=426 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=427 can_receive=False
+01:11:21Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 431s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=432 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=432 can_receive=False
+01:11:26Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 436s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=437 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=438 can_receive=False
+01:11:31Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 441s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=442 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=443 can_receive=False
+01:11:37Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 447s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=448 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=450 can_receive=False
+01:11:43Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 453s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=454 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=456 can_receive=False
+01:11:49Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 459s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=460 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=462 can_receive=False
+01:11:55Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 465s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=467 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=468 can_receive=False
+01:12:02Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 472s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=472 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=473 can_receive=False
+01:12:07Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 477s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=478 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=479 can_receive=False
+01:12:12Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 482s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=484 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=485 can_receive=False
+01:12:19Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 489s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=490 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=491 can_receive=False
+01:12:25Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 495s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=496 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=497 can_receive=False
+01:12:31Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 501s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=502 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=503 can_receive=False
+01:12:36Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 507s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=507 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=508 can_receive=False
+01:12:42Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 512s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=513 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=514 can_receive=False
+01:12:48Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 518s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=519 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=519 can_receive=False
+01:12:53Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 523s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=524 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=525 can_receive=False
+01:12:59Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 529s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=530 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=531 can_receive=False
+01:13:04Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 534s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=535 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=536 can_receive=False
+01:13:09Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 539s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=540 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=541 can_receive=False
+01:13:14Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 544s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=545 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=546 can_receive=False
+01:13:20Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 550s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=552 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=553 can_receive=False
+01:13:26Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 556s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=557 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=558 can_receive=False
+01:13:32Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 562s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=563 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=564 can_receive=False
+01:13:38Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 568s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=569 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=569 can_receive=False
+01:13:43Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 573s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=573 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=574 can_receive=False
+01:13:48Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 578s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=579 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=580 can_receive=False
+01:13:53Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 583s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=584 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=586 can_receive=False
+01:13:59Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 589s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=590 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=591 can_receive=False
+01:14:05Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 595s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=595 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=597 can_receive=False
+01:14:10Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 600s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=602 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=603 can_receive=False
+01:14:17Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 607s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=608 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=610 can_receive=False
+01:14:23Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 614s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=615 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=616 can_receive=False
+01:14:29Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 619s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=620 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=621 can_receive=False
+01:14:34Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 625s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=626 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=627 can_receive=False
+01:14:40Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 630s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=631 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=632 can_receive=False
+01:14:45Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 636s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=636 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=637 can_receive=False
+01:14:51Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 641s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=642 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=643 can_receive=False
+01:14:56Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 647s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=648 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=649 can_receive=False
+01:15:02Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 653s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=654 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=655 can_receive=False
+01:15:08Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 658s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=659 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=660 can_receive=False
+01:15:14Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 664s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=665 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=666 can_receive=False
+01:15:20Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 670s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=671 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=672 can_receive=False
+01:15:26Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 676s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=678 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=679 can_receive=False
+01:15:33Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 683s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=684 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=685 can_receive=False
+01:15:39Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 689s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=690 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=691 can_receive=False
+01:15:45Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 695s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=696 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=697 can_receive=False
+01:15:51Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 701s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=702 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=703 can_receive=False
+01:15:57Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 707s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=708 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=709 can_receive=False
+01:16:02Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 713s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=713 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=715 can_receive=False
+01:16:08Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 718s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=720 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=723 can_receive=False
+01:16:16Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 727s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=728 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=730 can_receive=False
+01:16:23Z [base-host] watcher pid: none alive=no session lock pid: 29674 alive=yes host record: none beacon age: 734s | lab fm procs=0
+    NEW  lock=held consumer=down reason=stale-beacon beacon=735 can_receive=False
+    BASE lock=held consumer=down reason=stale-beacon beacon=737 can_receive=False

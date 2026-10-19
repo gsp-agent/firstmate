@@ -1,0 +1,20 @@
+ok - plain note, list, and wake stay on the historical human path
+ok - plain note keeps exit 1 for a saved-but-unannounced failure
+ok - the same request id returns the original note as a distinguishable replay
+ok - a crash between recording the request id and publishing the note reuses the original id
+ok - saved-but-unannounced notes are repairable without creating a second note
+ok - repair and replay do not wake firstmate for an already-acknowledged note
+ok - receipts JSON is bounded by fixed bounds and discloses what it omitted
+ok - notes that predate the announcement marker are unknown, not re-announced
+ok - the reply channel is durable and its cursor is a strict order
+ok - the reply cursor never goes backwards when the sequence counter is lost
+ok - a reply without a valid sequence is reported as malformed
+ok - a non-UTF-8 note does not break the receipts view
+ready 3603-second regression: {"schema":"fm-primary-ready.v1","home":"fm-inbox.JPkIGL/ready-holder","observed_at":"2026-10-19T00:36:59Z","lock":{"state":"held","pid":97723,"live_harness":true},"wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":3604},"posture":{"state":"present"},"can_receive":false}
+ready live-watcher regression: {"schema":"fm-primary-ready.v1","home":"fm-inbox.JPkIGL/ready-watcher","observed_at":"2026-10-19T00:37:23Z","lock":{"state":"held","pid":97723,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"can_receive":true}
+ok - readiness follows the inspected home's supervision model, and never a stale beacon
+ok - readiness reads the supervision model from the inspected home's lock holder
+ok - empty bodies and unsafe request ids are refused
+ok - a note body that opens with a double dash is queued as text
+ok - drain --ack still moves the note to handled
+rc=0

@@ -1,0 +1,17 @@
+== 01:02:37 planted while the teardown holds the lease-command lock
+error: check skipped - the lease-command lock is still held after 1s (holder pid 19156); nothing changed
+fm-lease.sh --wait 1 check demo rc=75
+/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.2oOxIe/state/.lease-demo:branch	29674	1792371757
+/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.2oOxIe/state/.lease-other:main	29674	1792371757
+== 01:03:37 after the teardown ended
+1792371754	boundary	after 91s
+1792371781	lease-release	deferred: the lease-command lock is held
+1792371781	start	gen=host-46380-1792371775	primary=claude
+1792371817	lease-release	retried	rc=0
+teardown rc=1 at 01:03:36
+branch lease (.lease-demo): released
+main lease (.lease-other): main	29674	1792371757
+watcher pid: 57736 alive=yes
+session lock pid: 29674 alive=yes
+host record: host	46380	Sun Oct 18 20:02:55 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-supervision-host.sh park arm	57553	Sun Oct 18 20:03:01 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-root.bW6jM3/bin/fm-watch-arm.sh 
+beacon age: 0s

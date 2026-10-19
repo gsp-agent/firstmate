@@ -1,0 +1,41 @@
+Lab state/.supervision-host.log, as printed by `tail` during this run (the lab home
+was removed afterwards, so these lines are transcribed from that command output).
+Epoch seconds; 1792371013 = 00:50:13Z, when a real bin/fm-teardown.sh (pid 6666)
+took the lease-command lock and held it until 00:56:55Z (1792371415).
+
+-- NEW host (3f3cf434), 400s teardown hold, 90s park boundary --------------------
+1792370966	start	gen=host-58415-1792370965	primary=claude
+1792371056	boundary	after 91s
+1792371062	lease-release	deferred: the lease-command lock is held     <- EXIT cleanup gave up after 5s
+1792371091	lease-release	deferred: the lease-command lock is held     <- next activation gave up after 5s
+1792371091	start	gen=host-99283-1792371086	primary=claude           <- watcher 7520 live at 1792371093, teardown 6666 still holds the lock
+1792371176	boundary	after 90s
+1792371203	lease-release	deferred: the lease-command lock is held
+1792371203	start	gen=host-33866-1792371198	primary=claude
+1792371289	boundary	after 91s
+1792371316	lease-release	deferred: the lease-command lock is held
+1792371316	start	gen=host-74737-1792371311	primary=claude
+1792371402	boundary	after 91s
+1792371430	start	gen=host-17038-1792371429	primary=claude           <- teardown ended at 1792371415; no wait
+
+-- NEW host, 60s teardown hold (01:00:39Z-01:01:38Z) ending mid-park ---------------
+1792371634	boundary	after 95s
+1792371669	lease-release	deferred: the lease-command lock is held
+1792371669	start	gen=host-14723-1792371663	primary=claude
+1792371699	lease-release	retried	rc=0                                   <- 1s after the teardown released
+
+-- NEW host, 60s hold (01:02:37Z-01:03:36Z) with a branch and a main lease planted --
+1792371754	boundary	after 91s
+1792371781	lease-release	deferred: the lease-command lock is held
+1792371781	start	gen=host-46380-1792371775	primary=claude
+1792371817	lease-release	retried	rc=0      (branch .lease-demo released; main .lease-other kept)
+
+-- BASE host (9ed80766) swapped in, 400s teardown hold from 01:04:30Z ---------------
+1792371866	boundary	after 91s
+            (host 74335 started 01:04:42Z and sat in `fm-lease.sh release-actor --actor branch`
+             behind teardown 61595, with no watcher, until the teardown ended at 01:11:11Z)
+1792372272	start	gen=host-74335-1792371882	primary=claude           <- 390s late
+1792372273	boundary	after 391s
+            (auto-arm ledger stayed at `epoch=13 owner_pid=73228 outcome=arming
+             updated_at=1792371882`; the boundary never reached main and no
+             watcher ran again: beacon age 727s at 01:16:16Z)

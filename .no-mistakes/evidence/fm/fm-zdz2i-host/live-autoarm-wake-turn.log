@@ -1,0 +1,36 @@
+00:43:51Z [after-status-append] watcher pid: 47388 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 11s | lab fm procs=3
+    NEW  lock=held consumer=healthy reason=supervised beacon=12 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=12 can_receive=True
+00:43:55Z [after-status-append] watcher pid: 47388 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 15s | lab fm procs=3
+    NEW  lock=held consumer=healthy reason=supervised beacon=16 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=16 can_receive=True
+00:43:59Z [after-status-append] watcher pid: 47388 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 2s | lab fm procs=4
+    NEW  lock=held consumer=healthy reason=supervised beacon=2 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=3 can_receive=True
+00:44:04Z [after-status-append] watcher pid: 47388 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 6s | lab fm procs=3
+    NEW  lock=held consumer=healthy reason=supervised beacon=7 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=8 can_receive=True
+00:44:09Z [after-status-append] watcher pid: 47388 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 11s | lab fm procs=3
+    NEW  lock=held consumer=healthy reason=supervised beacon=12 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=13 can_receive=True
+00:44:14Z [after-status-append] watcher pid: 47388 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 17s | lab fm procs=3
+    NEW  lock=held consumer=healthy reason=supervised beacon=17 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=18 can_receive=True
+00:44:20Z [after-status-append] watcher pid: 47388 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 22s | lab fm procs=3
+    NEW  lock=held consumer=healthy reason=supervised beacon=22 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=23 can_receive=True
+00:44:25Z [after-status-append] watcher pid: 47388 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 27s | lab fm procs=3
+    NEW  lock=held consumer=healthy reason=supervised beacon=28 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=28 can_receive=True
+00:44:30Z [after-status-append] watcher pid: 47388 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 32s | lab fm procs=5
+    NEW  lock=held consumer=healthy reason=supervised beacon=33 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=34 can_receive=True
+00:44:35Z [after-status-append] watcher pid: 88559 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 38s | lab fm procs=3
+    NEW  lock=held consumer=healthy reason=supervised beacon=38 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=1 can_receive=True
+00:44:41Z [after-status-append] watcher pid: 88559 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 4s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=5 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=5 can_receive=True
+00:44:46Z [after-status-append] watcher pid: 88559 alive=yes session lock pid: 28397 alive=yes host record: none beacon age: 9s | lab fm procs=2
+    NEW  lock=held consumer=healthy reason=supervised beacon=9 can_receive=True
+    BASE lock=held consumer=healthy reason=supervised beacon=10 can_receive=True

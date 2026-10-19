@@ -1,0 +1,9 @@
+== 01:21:43 lab lock holder: 4928 = codex (real Codex TUI process in the lab tmux); harness ancestry: comm codex
+== watcher lock: none; lab watcher processes: 0; beacon touched just now
+== caller's own harness (this shell runs under Claude Code): claude
+== fm-inbox.sh ready, called from this Claude session (CLAUDECODE=1):
+{"schema":"fm-primary-ready.v1","home":"T/fm-lab.2oOxIe","observed_at":"2026-10-19T01:21:45Z","lock":{"state":"held","pid":4928,"live_harness":true},"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":2},"posture":{"state":"present"},"can_receive":false}
+== same, from a clean environment:
+{"schema":"fm-primary-ready.v1","home":"T/fm-lab.2oOxIe","observed_at":"2026-10-19T01:21:47Z","lock":{"state":"held","pid":4928,"live_harness":true},"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":4},"posture":{"state":"present"},"can_receive":false}
+== base fm-inbox.sh (9ed80766), same state:
+{"schema":"fm-primary-ready.v1","home":"T/fm-lab.2oOxIe","observed_at":"2026-10-19T01:21:49Z","lock":{"state":"held","pid":4928,"live_harness":true},"wake_consumer":{"state":"down","reason":"no-watcher","beacon_age_seconds":6},"posture":{"state":"present"},"can_receive":false}
