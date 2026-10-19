@@ -162,6 +162,38 @@ test_manifest_accepts_its_own_commit_without_accepting_later_edits() {
   pass "a shipped proof accepts its own patch and rejects later edits"
 }
 
+test_default_proof_comes_from_the_committed_fork_tree() {
+  local repo sha proof
+  repo=$(fm_test_tmproot drift-worktree-proof)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'custom\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "add notes"
+  sha=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$sha" > "$repo/drift-proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 1 "$CHECK_RC" "an untracked drift-proof.txt naming an unproven commit exits 1: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: $sha add notes" "$CHECK_OUT" "an untracked drift-proof.txt proves nothing"
+  printf 'after: %s\n' "$sha" > "$repo/drift-proof.txt"
+  git -C "$repo" add drift-proof.txt
+  fixture_commit "$repo" "add proof"
+  proof=$(git -C "$repo" rev-parse HEAD)
+  printf '%s\n' "$sha" >> "$repo/drift-proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 1 "$CHECK_RC" "an uncommitted edit to drift-proof.txt naming an unproven commit exits 1: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-drift: notes.txt
+keep: $proof add proof
+unproven: $sha add notes" "$CHECK_OUT" "only the committed drift-proof.txt proves commits"
+  pass "the default proof is drift-proof.txt in the committed fork tree, never the working tree"
+}
+
 test_parent_proof_does_not_accept_inherited_unproven_changes() {
   local repo parent
   repo=$(fm_test_tmproot drift-parent-inherited)
@@ -868,6 +900,7 @@ test_bad_install_arguments_exit_2() {
 test_unproven_file_is_path_drift_and_exits_1
 test_proof_sha_makes_that_path_ok_and_exits_0
 test_manifest_accepts_its_own_commit_without_accepting_later_edits
+test_default_proof_comes_from_the_committed_fork_tree
 test_parent_proof_does_not_accept_inherited_unproven_changes
 test_parent_proof_requires_one_direct_child
 test_guard_files_have_no_exemptions
