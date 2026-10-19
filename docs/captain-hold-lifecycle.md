@@ -560,13 +560,13 @@ The suite does not test the accepted merge-to-cleanup re-hold window or asynchro
 
 The lifecycle suite replays update-branch and EP-approved capacity holds through the public hold and route commands.
 It checks pending deadlines, exact owner delivery, durable routing evidence, repeated sweeps, new lifecycles, failed sends, and interrupted releases for both active and expired dated holds.
-It also checks that money, credentials, people, client words, production, accounts, taste, mixed asks, and human endpoints remain held.
+It also checks that money, credentials, people, client words, production, accounts, taste, mixed asks joined by router-recognized line separators, and human endpoints remain held, while an eligible technical reason with a leading non-breaking space routes exactly once.
 An answered hold never routes from its stale pending body.
 A real watcher subprocess proves the existing periodic pass routes before surfacing ordinary status signals.
 Standalone holds and retirement of the last unrelated task preserve supervision until routing finishes.
 Fresh deferred holds and postponements preserve supervision, remain unrouted before their date, and route once through the watcher when due.
 Protected and human-owned deferrals, including a deferred hold whose question or owner changes, never enter pending routing or keep an idle home supervised.
-A sweep probes tasks-axi once, reads only captain-held and pending rows, and routes nothing without the captain-hold contract; lifecycle commands read only metadata files no listed task id names.
+A sweep probes tasks-axi once, reads only captain-held and pending rows, and routes nothing without the captain-hold contract; runtime-alias lookup avoids backend probes for metadata names that are already listed task ids.
 Deferrals follow the local calendar date for routing and release recovery, and a re-hold, answer or reconciliation over an unreleased routed hold resolves that lifecycle's own parent occurrence.
 A re-hold over a routed release that died after unhold is refused until the recovery pass resolves its occurrence, and only then starts the next one.
 Fault-injected answer, release and reconciliation closures stay protected from immediate and periodic routing, while a new lifecycle preserves historical decisions and still routes.

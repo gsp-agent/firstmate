@@ -59,8 +59,11 @@
 # --until`, so a "revisit later" answer is stored as a date instead of a live
 # card.
 # Each new hold records Decision owner, Hold timeout seconds and Hold reason.
-# Routing uses a plain, whitespace-normalized reason; the backlog annotation
-# keeps its reversible encoding.
+# Routing uses the router's " ".join(text.split()) whitespace normalization,
+# including Unicode line separators, so the single-line field keeps every
+# part of the reason. UTF-8 decoding and encoding use surrogateescape,
+# independently of the caller's locale. The backlog annotation keeps its
+# reversible encoding.
 # The owner defaults to the origin task's decision_owner metadata (or this
 # task's metadata without --origin), then captain for an undispatched call.
 # The timeout defaults to the watcher's existing 300-second check interval.
