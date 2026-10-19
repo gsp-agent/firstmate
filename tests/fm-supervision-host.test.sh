@@ -51,6 +51,9 @@ FAKE_CLAUDE="$FAKEBIN/claude"
 #               until the test writes to it, so the test chooses when the turn
 #               ends
 #   captain-held the same, but record a captain outcome before the turn ends
+#   end-held    hold-lease, but block reading the same FIFO after acknowledging,
+#               so the test chooses what holds the lease command lock when the
+#               turn ends
 #   emptyresult the same as handle, but print {} as its result
 #   noreport    drain and exit cleanly without a report
 #   go-away     the captain goes away (the record is written) mid-turn, then
@@ -92,7 +95,7 @@ verdict=routine
 [ "$mode" != go-away ] || verdict=captain
 case "$mode" in
   fail) exit 3 ;;
-  handle|captain|captain-close-before-return|held|captain-held|hold-lease|return|return-silent|return-fail|return-fail-silent|return-many|return-lookup-fail|return-first|noack|emptyresult|go-away)
+  handle|captain|captain-close-before-return|held|captain-held|hold-lease|end-held|return|return-silent|return-fail|return-fail-silent|return-many|return-lookup-fail|return-first|noack|emptyresult|go-away)
     case "$mode" in held|captain-held) read -r _ < "$FM_HOME/stub-release" ;; esac
     [ "$mode" != return-first ] || "$FM_REPO/bin/fm-afk-contract.sh" archive >> "$FM_HOME/engine-return.log" 2>&1
     [ "$mode" != go-away ] || "$FM_REPO/bin/fm-afk-contract.sh" enter --words 'gone mid-turn' >> "$FM_HOME/engine-return.log" 2>&1
@@ -134,7 +137,11 @@ case "$mode" in
       done
       ;;
     esac
-    [ "$mode" = hold-lease ] || "$FM_REPO/bin/fm-lease.sh" release "$task" >> "$FM_HOME/engine-lease.log" 2>&1
+    if [ "$mode" = end-held ]; then
+      printf 'ready\n' > "$FM_HOME/stub-ready"
+      read -r _ < "$FM_HOME/stub-release"
+    fi
+    case "$mode" in hold-lease|end-held) ;; *) "$FM_REPO/bin/fm-lease.sh" release "$task" >> "$FM_HOME/engine-lease.log" 2>&1 ;; esac
     case "$mode" in
       return|return-silent|return-fail|return-fail-silent|return-many|return-lookup-fail) "$FM_REPO/bin/fm-afk-contract.sh" archive >> "$FM_HOME/engine-return.log" 2>&1 ;;
     esac
@@ -295,6 +302,27 @@ handled_count() { local n; n=$(grep -c '	handled	' "$1/state/.supervision-host.l
 handled_at_least() { [ "$(handled_count "$1")" -ge "$2" ]; }
 append_status() {  # <home> <text>
   printf '%s [at=%s]: %s\n' "${3:-working}" "$(date +%s)" "$2" >> "$1/state/demo.status"
+}
+# Hold the lease command lock the way a teardown of another task does across
+# its whole mutation (fm_lease_guard in bin/fm-lease-lib.sh), until the case
+# creates $home/teardown.done. The suite cleanup stops a holder a failed case
+# left behind.
+hold_lease_lock_like_a_teardown() {  # <home>
+  local home=$1
+  rm -f "$home/teardown.held" "$home/teardown.done"
+  FM_HOME="$home" FM_SUPERVISION_ACTOR=main bash -c '
+    . "$1/bin/fm-wake-lib.sh"
+    . "$1/bin/fm-lease-lib.sh"
+    fm_lease_guard other-task "teardown (fixture)"
+    printf "%s\n" "$$" > "$FM_HOME/teardown.held"
+    while [ ! -e "$FM_HOME/teardown.done" ]; do sleep 0.1; done
+    fm_lease_guard_release
+  ' _ "$ROOT" &
+  printf '%s\n' "$!" >> "$home/orphan-pid"
+  wait_until 100 test -s "$home/teardown.held" || fail "fixture: the teardown holder never took the lease command lock"
+}
+teardown_still_holds_the_lease_lock() {  # <home>
+  [ "$(cat "$1/state/.fm-lease-command.lock/pid" 2>/dev/null)" = "$(cat "$1/teardown.held")" ]
 }
 
 # --- report surface -----------------------------------------------------------
@@ -2436,6 +2464,74 @@ test_restarted_host_stops_what_a_killed_predecessor_left() {
   pass "host: a restarted host stops, by recorded identity, the cycle a killed predecessor left running"
 }
 
+# A teardown holds the lease command lock for minutes under load. Each of the
+# host's lease steps waits for it only a bounded time and a skipped release is
+# retried once the lock is free, so the home is never left without a watcher for
+# the teardown's length, and the host neither takes the lock nor drops a lease
+# another actor holds.
+test_teardown_lease_lock_at_activation_still_starts_the_watcher() {
+  local home lock_pid host_pid
+  home=$(make_home lease-activate away)
+  hold_lease_lock_like_a_teardown "$home"
+  FM_SUPERVISION_HOST_LEASE_WAIT=1 start_host "$home"
+  wait_until 150 watcher_live "$home" \
+    || fail "activation: a teardown's lease lock parked the host with no watcher: $(cat "$home/state/.supervision-host.log" 2>/dev/null)"
+  teardown_still_holds_the_lease_lock "$home" || fail "activation: the host took the lease command lock from the live teardown"
+  lock_pid=$(cat "$home/state/.lock")
+  printf 'branch\t%s\t%s\n' "$lock_pid" "$(date +%s)" > "$home/state/.lease-demo"
+  printf 'main\t%s\t%s\n' "$lock_pid" "$(date +%s)" > "$home/state/.lease-other"
+  : > "$home/teardown.done"
+  wait_until 100 sh -c '[ ! -e "$1" ]' _ "$home/state/.lease-demo" \
+    || fail "activation: the branch release skipped behind the teardown was never retried"
+  assert_present "$home/state/.lease-other" "the retried release dropped the main actor's lease"
+  watcher_live "$home" || fail "activation: the host is not parked on a live watcher"
+  host_pid=$(awk -F '\t' '$1 == "host" { print $2 }' "$home/state/.supervision-host")
+  kill -TERM "$host_pid"
+  wait_until 200 host_exited "$home" || fail "activation: the host did not stop on TERM"
+  pass "host: a teardown holding the lease lock at activation delays neither the first watcher cycle nor, once it ends, the branch release"
+}
+
+test_teardown_lease_lock_after_an_engine_turn_still_parks_on_the_successor() {
+  local home host_pid
+  home=$(make_home lease-turn away)
+  mkfifo "$home/stub-release"
+  echo end-held > "$home/stub-mode"
+  FM_SUPERVISION_HOST_LEASE_WAIT=1 start_host "$home"
+  wait_until 150 watcher_live "$home" || fail "turn: the host never started a watcher cycle: $(cat "$home/host.out")"
+  append_status "$home" 'step one'
+  wait_until 250 test -s "$home/stub-ready" || fail "turn: the engine did not reach the end of its turn"
+  hold_lease_lock_like_a_teardown "$home"
+  printf 'continue\n' > "$home/stub-release"
+  wait_until 150 handled_at_least "$home" 1 \
+    || fail "turn: a teardown's lease lock held the host after its engine turn: $(cat "$home/state/.supervision-host.log" 2>/dev/null)"
+  watcher_live "$home" || fail "turn: the host is not parked on a live successor"
+  [ ! -s "$home/host.rc" ] || fail "turn: the handled wake reached main: $(cat "$home/host.out")"
+  teardown_still_holds_the_lease_lock "$home" || fail "turn: the host took the lease command lock from the live teardown"
+  assert_grep 'branch' "$home/state/.lease-demo" "turn: the engine's lease went before the lease lock was free"
+  : > "$home/teardown.done"
+  wait_until 100 sh -c '[ ! -e "$1" ]' _ "$home/state/.lease-demo" \
+    || fail "turn: the branch release skipped behind the teardown was never retried"
+  host_pid=$(awk -F '\t' '$1 == "host" { print $2 }' "$home/state/.supervision-host")
+  kill -TERM "$host_pid"
+  wait_until 200 host_exited "$home" || fail "turn: the host did not stop on TERM"
+  pass "host: a teardown holding the lease lock when an engine turn ends leaves the host parked on its successor, and the release follows the teardown"
+}
+
+test_teardown_lease_lock_never_holds_a_stopping_host() {
+  local home host_pid
+  home=$(make_home lease-stop away)
+  FM_SUPERVISION_HOST_LEASE_WAIT=1 start_host "$home"
+  wait_until 150 watcher_live "$home" || fail "stop: the host never started a watcher cycle: $(cat "$home/host.out")"
+  host_pid=$(awk -F '\t' '$1 == "host" { print $2 }' "$home/state/.supervision-host")
+  hold_lease_lock_like_a_teardown "$home"
+  kill -TERM "$host_pid"
+  wait_until 100 host_exited "$home" || fail "stop: a teardown's lease lock held the stopping host in its cleanup"
+  expect_code 143 "$(cat "$home/host.rc")" "a TERMed host must exit 143"
+  teardown_still_holds_the_lease_lock "$home" || fail "stop: the host took the lease command lock from the live teardown"
+  : > "$home/teardown.done"
+  pass "host: a teardown holding the lease lock never holds a stopping host in its cleanup"
+}
+
 test_park_exit_probe_uses_half_second_child_sleeps() {
   local home host_pid
   home=$(make_home park-cadence attended)
@@ -3097,6 +3193,9 @@ supervision_host_lane_b() {
   test_attended_latch_keeps_closes_on_main_and_records_recovery_off_main
   test_engine_turn_is_bounded_and_its_descendants_reaped
   test_restarted_host_stops_what_a_killed_predecessor_left
+  test_teardown_lease_lock_at_activation_still_starts_the_watcher
+  test_teardown_lease_lock_after_an_engine_turn_still_parks_on_the_successor
+  test_teardown_lease_lock_never_holds_a_stopping_host
   test_park_boundary_ends_the_park_before_the_hook_timeout
   test_park_boundary_holds_under_back_to_back_closes
   test_park_boundary_rechecked_just_before_the_engine_turn

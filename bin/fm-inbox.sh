@@ -65,9 +65,13 @@
 # `ready` is the read-only primary-readiness projection (lock, wake-consumer
 # health, away posture, observation time). It never acquires the session lock
 # and never infers liveness from a lock file, a session, or a pane.
-# A healthy consumer requires this home's live, identity-matched watcher and a
-# beacon within FM_WATCHER_STALE_GRACE, else FM_GUARD_GRACE, else the
-# poll-derived grace from fm-wake-lib.sh. Mid-turn allowances do not apply.
+# A healthy consumer is the model-aware supervision verdict
+# (fm_watcher_supervision_verdict in fm-wake-lib.sh) with a beacon within
+# FM_WATCHER_STALE_GRACE, else FM_GUARD_GRACE, else the poll-derived grace, or
+# an open Claude auto-arm claim (fm_autoarm_claim_open). The model is the
+# inspected home's: the lock holder's harness ancestry, else the PID-strict
+# persistent model, never the caller's FM_SUPERVISION_MODEL. The verdict's
+# stale-beacon mid-turn allowance does not apply.
 #
 # Configuration. A region, a model id and an AWS profile name somebody's account
 # and somebody's choices, so this file carries no default for any of them. Each is
@@ -884,13 +888,23 @@ cmd_ready() {
     esac
   fi
 
-  local grace
-  if ! command -v fm_watcher_healthy >/dev/null 2>&1; then
+  local grace holder_harness='' model
+  if ! command -v fm_watcher_supervision_verdict >/dev/null 2>&1; then
     consumer_state=unknown
     consumer_reason="no-wake-lib"
   else
     grace=${FM_WATCHER_STALE_GRACE:-${FM_GUARD_GRACE:-$(fm_poll_derived_grace)}}
-    if fm_watcher_healthy "$STATE" "$watch" "$grace" "$FM_HOME"; then
+    # The model is the inspected home's, never the caller's.
+    if [ "$lock_state" = held ]; then
+      holder_harness=$("$SELF_DIR/fm-harness.sh" ancestry "$lock_pid" 2>/dev/null || true)
+      holder_harness=${holder_harness#* }
+    fi
+    model=$(fm_supervision_model "${holder_harness:-unknown}")
+    FM_SUPERVISION_MODEL=$model fm_watcher_supervision_verdict "$STATE" "$watch" "$grace" "$FM_HOME" "$FM_ROOT"
+    # The verdict's stale-beacon mid-turn allowance does not apply: a turn that
+    # has outlived grace is no consumer that can receive now.
+    if { [ "$FM_WATCHER_VERDICT_OK" = true ] && [ -n "$beacon_age" ] && [ "$beacon_age" -lt "$grace" ]; } \
+      || { [ "$model" = autoarm ] && fm_autoarm_claim_open "$STATE" "$grace"; }; then
       consumer_state=healthy
       consumer_reason="supervised"
     else
