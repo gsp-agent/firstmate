@@ -1,0 +1,44 @@
+$ /bin/bash --version
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+Copyright (C) 2007 Free Software Foundation, Inc.
+[exit=0, elapsed=0.133s]
+
+$ bash --version
+GNU bash, version 5.3.20(1)-release (aarch64-apple-darwin27.0.0)
+Copyright (C) 2025 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+
+This is free software; you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+[exit=0, elapsed=0.216s]
+
+$ /bin/bash -n
+[Previous committed test file supplied on stdin; expected Bash 3.2 rejection.]
+/bin/bash: line 26: syntax error near unexpected token `;;'
+/bin/bash: line 26: `        fm-supervision-host.test.sh|fm-captain-hold-lifecycle.test.sh) continue ;;'
+[exit=2, elapsed=0.206s]
+
+$ bash -n
+[The same previous file still parses under the PATH Bash.]
+[exit=0, elapsed=0.974s]
+
+$ /bin/bash -n tests/fm-test-run.test.sh
+[exit=0, elapsed=0.131s]
+
+$ /bin/bash -n bin/fm-test-run.sh
+[exit=0, elapsed=0.07s]
+
+$ /bin/bash -n tests/fm-captain-hold-lifecycle.test.sh
+[exit=0, elapsed=0.122s]
+
+$ /bin/bash -n tests/fm-captain-hold-lifecycle-lane-a.test.sh
+[exit=0, elapsed=0.045s]
+
+$ /bin/bash -n tests/fm-captain-hold-lifecycle-lane-b.test.sh
+[exit=0, elapsed=0.075s]
+
+$ bash -n tests/fm-test-run.test.sh
+[exit=0, elapsed=0.078s]
+
+OBSERVED: The previous file is rejected by stock Bash; all five current split/runner shell files parse, and the changed file also parses under PATH Bash.
+

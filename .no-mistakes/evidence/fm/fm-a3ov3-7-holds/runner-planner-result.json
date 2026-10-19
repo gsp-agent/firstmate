@@ -1,0 +1,49 @@
+{
+  "result": "pass",
+  "metrics": {
+    "parallel_max_ms": "1308857",
+    "parallel_imbalance_ms": "284"
+  },
+  "wrapper_placement": {
+    "tests/fm-captain-hold-lifecycle-lane-a.test.sh": "portable-parallel-1",
+    "tests/fm-captain-hold-lifecycle-lane-b.test.sh": "portable-parallel-2"
+  },
+  "commands": [
+    {
+      "command": "/bin/bash bin/fm-test-run.sh --list --all",
+      "exit": 0,
+      "duration_seconds": 5.514,
+      "timed_out": false
+    },
+    {
+      "command": "bin/fm-test-run.sh --list --all",
+      "exit": 0,
+      "duration_seconds": 1.473,
+      "timed_out": false
+    },
+    {
+      "command": "bin/fm-test-run.sh --list-scheduled --lane portable-parallel-1",
+      "exit": 0,
+      "duration_seconds": 0.488,
+      "timed_out": false
+    },
+    {
+      "command": "bin/fm-test-run.sh --list-scheduled --lane portable-parallel-2",
+      "exit": 0,
+      "duration_seconds": 0.61,
+      "timed_out": false
+    },
+    {
+      "command": "bin/fm-test-run.sh --list-scheduled --lane portable-parallel-3",
+      "exit": 2,
+      "duration_seconds": 0.219,
+      "timed_out": false
+    },
+    {
+      "command": "bin/fm-test-run.sh --check-coverage",
+      "exit": 0,
+      "duration_seconds": 302.985,
+      "timed_out": false
+    }
+  ]
+}

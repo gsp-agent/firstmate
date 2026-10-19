@@ -1,0 +1,86 @@
+{
+  "result": "fail",
+  "error": "Command '['bin/fm-test-run.sh', '--check-coverage']' timed out after 120 seconds",
+  "commands": [
+    {
+      "command": "/bin/bash --version",
+      "note": "",
+      "exit": 0,
+      "duration_seconds": 0.133,
+      "stdout": "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)\nCopyright (C) 2007 Free Software Foundation, Inc.\n",
+      "stderr": ""
+    },
+    {
+      "command": "bash --version",
+      "note": "",
+      "exit": 0,
+      "duration_seconds": 0.216,
+      "stdout": "GNU bash, version 5.3.20(1)-release (aarch64-apple-darwin27.0.0)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+      "stderr": ""
+    },
+    {
+      "command": "/bin/bash -n",
+      "note": "Previous committed test file supplied on stdin; expected Bash 3.2 rejection.",
+      "exit": 2,
+      "duration_seconds": 0.206,
+      "stdout": "",
+      "stderr": "/bin/bash: line 26: syntax error near unexpected token `;;'\n/bin/bash: line 26: `        fm-supervision-host.test.sh|fm-captain-hold-lifecycle.test.sh) continue ;;'\n"
+    },
+    {
+      "command": "bash -n",
+      "note": "The same previous file still parses under the PATH Bash.",
+      "exit": 0,
+      "duration_seconds": 0.974,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "/bin/bash -n tests/fm-test-run.test.sh",
+      "note": "",
+      "exit": 0,
+      "duration_seconds": 0.131,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "/bin/bash -n bin/fm-test-run.sh",
+      "note": "",
+      "exit": 0,
+      "duration_seconds": 0.07,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "/bin/bash -n tests/fm-captain-hold-lifecycle.test.sh",
+      "note": "",
+      "exit": 0,
+      "duration_seconds": 0.122,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "/bin/bash -n tests/fm-captain-hold-lifecycle-lane-a.test.sh",
+      "note": "",
+      "exit": 0,
+      "duration_seconds": 0.045,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "/bin/bash -n tests/fm-captain-hold-lifecycle-lane-b.test.sh",
+      "note": "",
+      "exit": 0,
+      "duration_seconds": 0.075,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "bash -n tests/fm-test-run.test.sh",
+      "note": "",
+      "exit": 0,
+      "duration_seconds": 0.078,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}
