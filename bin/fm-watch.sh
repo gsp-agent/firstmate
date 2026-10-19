@@ -14,8 +14,9 @@
 # That cadence is hours long and condition-aware: a paused: line naming
 # `until <UTC ISO 8601>` is rechecked when that time passes, but a declared time
 # beyond FM_PAUSE_RESURFACE_SECS cannot extend the ordinary recheck cadence, and
-# while an away record (state/.afk-contract, never quiet mode's) exists an
-# item held for the captain is never rechecked at all, in either posture.
+# while an away record (state/.afk-contract, never quiet mode's) exists,
+# captain-facing stale-alarm rechecks are suppressed in either supervision
+# shape. The independent probe sweep is described among the check reasons below.
 # While state/.afk exists, the daemon owns triage and this watcher queues and exits
 # on every wake. Printed reason lines:
 #   signal: <file>...      status/turn-end signals, surfaced when a listed status
@@ -100,6 +101,15 @@
 #                          block, snapshot watched GitHub repositories for
 #                          bin/fm-pr-queue-sweep.sh. bin/fm-pr-lib.sh owns
 #                          discovery retention across recovery and cleanup.
+#   check: captain hold <id> released after a passing probe
+#   check: captain hold <id> released but finalization failed; ...
+#                          Each CHECK_INTERVAL sweep calls fm-captain-hold.sh
+#                          reprobe for active captain holds with a Hold probe
+#                          body line, including while away. That wrapper owns
+#                          probe deadlines and release guards. Kept holds stay
+#                          silent; a release queues one reason. If finalization
+#                          fails, that reason names the reprobe command needed
+#                          to finish the recorded release.
 #   check: process-event result captured: <keys>
 #                          a durably captured process-to-event result is queued
 #                          and has not been surfaced yet; reported once per

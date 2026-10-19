@@ -73,8 +73,11 @@
 # the hold and wakes nobody. A passing probe releases the hold under the task
 # control lock only when the hold-set
 # stamp and probe still match those checked, recording `probe-released`
-# evidence rather than the captain's words. It leaves the task open. Holds
-# without `--dale-step` are unchanged.
+# evidence rather than the captain's words. It leaves the task open. The
+# `released:` result is printed once unhold succeeds, before body normalization,
+# parent-resolution publication and pending-request retirement finish. A later
+# failure returns nonzero; retry `reprobe` to finish that recorded release
+# without running the probe again. Holds without `--dale-step` are unchanged.
 #
 # `answer` records the captain's exact words and resolves the call in the same
 # act. It requires a non-empty captain decision file of at most 8192 bytes and
@@ -202,8 +205,8 @@
 # bin/fm-teardown.sh asks it before its automatic
 # backlog close and, on 0, returns the row to Queued with its deliverable
 # recorded instead (bin/fm-backlog-transition-lib.sh owns that transition), so
-# holding the very work item a question gates is safe; only `answer` with the
-# captain's words or evidence-backed `reconcile close` closes the call.
+# holding the very work item a question gates is safe; the semantic policy and
+# the command contracts above own the permitted resolution paths.
 # bin/fm-watch.sh asks it when an ordinary
 # crew task reaches a due stale alarm - its open backlog hold need not appear in
 # the task's last status line - and on a 0 bounds repeated alarms from new pane

@@ -309,12 +309,13 @@ A successful normal answer also retires any pending request, because an answered
 
 Every retirement is checked.
 If request removal fails after an answer, close, or note is already durable, the durable outcome stands, but the command fails and leaves the pending request visible for retry.
-No path here closes a captain call without either the captain's words through `answer` or the evidence through `reconcile close`.
 
 ### Dale-step probe holds
 
 The [command reference](../bin/fm-captain-hold.sh) owns Dale-step hold creation, world-check filtering, input restrictions, and probe-backed release.
+The [watcher reference](../bin/fm-watch.sh) owns automatic reprobe scheduling and release notifications; the [supervision-need contract](turnend-guard.md#supervision-need) covers idle homes.
 The Dale-step cases in [`tests/fm-captain-hold-lifecycle.test.sh`](../tests/fm-captain-hold-lifecycle.test.sh) cover the serialized fields, asks-rule action output, ordinary re-holds, a hold changed during its probe, and interrupted-release retries.
+The executable sweep cases live in [`tests/fm-watch-triage.test.sh`](../tests/fm-watch-triage.test.sh), and the idle-home auto-arm and final-release notification cases live in [`tests/fm-claude-stop-autoarm.test.sh`](../tests/fm-claude-stop-autoarm.test.sh).
 
 ## Card hygiene: a landed subject is not a live call
 
