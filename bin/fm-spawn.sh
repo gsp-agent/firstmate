@@ -261,12 +261,11 @@
 #   Regression coverage: tests/fm-project-capacity.test.sh.
 #   Live sessions: when this machine has a live-session detector
 #   (bin/fm-live-session-lib.sh owns which detector, the folder name it is
-#   asked about, and the verdict), a fresh ship or scout spawn asks it about the
+#   asked about, and the verdict), every ship or scout launch asks it about the
 #   project before taking the project lock. A read that is live or cannot
 #   decide prints one `deferred:` line naming the detector's verdict and exits
-#   75 before any brief render, endpoint, worktree, record, or backlog move
-#   exists, exactly like a capacity deferral. A relaunch and a --secondmate
-#   spawn are never checked.
+#   75 before any brief render, endpoint or worktree allocation, task record
+#   publication, or backlog move. A --secondmate spawn is never checked.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
@@ -782,8 +781,8 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-task-reap-lib.sh"
 TASK_REAP_ACTOR=spawn
 # Exit status of a deferred spawn (project capacity or a live session): the
-# sysexits "temporary failure" code, so a caller can tell a deferral that leaves
-# the task queued from an ordinary failure.
+# sysexits "temporary failure" code, so a caller can tell a deferral from an
+# ordinary failure.
 SPAWN_DEFER_EXIT=75
 # Fail closed before any fleet mutation: a no-mistakes gate agent must never spawn
 # a direct report (see bin/fm-gate-refuse-lib.sh).
@@ -3534,13 +3533,16 @@ else
 fi
 # Live-session admission (bin/fm-live-session-lib.sh owns the detector, the
 # folder name it is asked about, and the verdict). A live session belongs to the
-# project's own agent, so a fresh worker is deferred while the detector reads
+# project's own agent, so a worker is deferred while the detector reads
 # live or cannot decide, before the project lock and before any brief render,
-# endpoint, worktree, record, or backlog move exists. A relaunch replaces a
-# worker already dispatched, and a secondmate is not a project worker.
-if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] &&
+# endpoint or worktree allocation, task record publication, or backlog move.
+if [ "$KIND" != secondmate ] &&
   ! LIVE_SESSION_DEFERRAL=$(fm_live_session_admit "$PROJ_ABS" "$(basename "$PROJ_ABS")"); then
-  echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not launched and its backlog item stays queued - dispatch it again once the check reads clear" >&2
+  if [ "$RELAUNCH" -eq 1 ]; then
+    echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear" >&2
+  else
+    echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not launched and its backlog item stays queued - dispatch it again once the check reads clear" >&2
+  fi
   exit "$SPAWN_DEFER_EXIT"
 fi
 # Project capacity admission (bin/fm-project-capacity-lib.sh owns the
