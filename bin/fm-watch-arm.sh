@@ -574,10 +574,11 @@ take_over_cycle() {  # <watcher-pid> <identity>
     return 3
   fi
   # Only the owner can wait on this watcher and distinguish our TERM from a
-  # self-exit that raced the stop. Give its post-wait ledger append a short bound.
+  # self-exit that raced the stop. Its post-wait ledger append can take longer
+  # than a second under load; allow the same bound as the watcher stop above.
   i=0
   owner_signal=
-  while [ "$i" -lt 10 ]; do
+  while [ "$i" -lt 50 ]; do
     owner_signal=$(awk -F '\t' -v arm="$take_over_arm_pid" -v watcher="$pid" '
       $1 == "arm_pid=" arm && $2 == "watcher_pid=" watcher { signal = $7 }
       END { sub(/^signal=/, "", signal); print signal }
