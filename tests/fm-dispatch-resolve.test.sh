@@ -1057,4 +1057,42 @@ assert_not_contains "$out" "profile:" "a refused bead gets no profile"
 cp "$BASE_RULES" "$RULES"
 pass "worker routing is labels then default, with no model call"
 
+# ---- default chain walks past concretely exhausted rungs -----------------------
+write_grok_quota() {  # <grok credits remaining>
+  cat > "$QUOTA" <<JSON
+{
+  "generatedAt": "2030-01-01T00:00:00Z",
+  "schemaVersion": 5,
+  "providers": [
+    { "provider": "claude", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" }, "selection": { "spendPriority": -1 } } ] } },
+    { "provider": "grok", "credits": { "remaining": $1, "unit": "credits" }, "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_products", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" }, "selection": { "spendPriority": -1.2184 } } ] } },
+    { "provider": "codex", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 32, "runway": { "status": "projected_exhaustion" }, "selection": { "spendPriority": -2.6567 } } ] } }
+  ]
+}
+JSON
+}
+printf '%s\n' '{"default":[{"harness":"claude","model":"opus"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"},{"harness":"codex","model":"gpt-6-astra"}]}' > "$RULES"
+write_grok_quota 48082
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'" "default chain skips exhausted claude and picks grok on prepaid credits"
+write_grok_quota 0
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'codex' --model 'gpt-6-astra'" "default chain skips grok when prepaid credits are gone"
+jq '(.providers[] | select(.provider == "claude") | .quotaSemantics.effectiveAvailability[0]) |= (.effectivePercentRemaining = 33 | .runway.status = "through_reset")' "$QUOTA" > "$QUOTA.tmp" && mv "$QUOTA.tmp" "$QUOTA"
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'claude' --model 'opus'" "default chain keeps the first rung when it has room"
+
+reset_log
+write_grok_quota 48082
+jq '.default = [{"harness":"grok","model":"grok-4.7","effort":"xhigh"},{"harness":"codex","model":"gpt-6-astra"}]' "$BASE_RULES" > "$RULES"
+write_response "$RESPONSE" default 0.9
+TYPESAFE_API_KEY=$KEY run code out err "$BRIEF" --project pager
+assert_contains "$out" "prepaid credits usable" "brief mode does not veto grok on its exhausted weekly pool when prepaid credits remain"
+cp "$BASE_RULES" "$RULES"
+write_quota "$QUOTA" 0.7597
+pass "default chain walks rungs on quota evidence and grok prepaid credits stay usable"
+
 printf '# all fm-dispatch-resolve tests passed\n'

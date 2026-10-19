@@ -766,4 +766,27 @@ out=$(bash -c 'set -e; . "$1/fm-quota-axi-lib.sh"; fm_quota_single_provider_for_
 [ "$out" = claude ] || fail "provider-table lookup under set -e printed: $out"
 ok "provider-table lookup prints the provider when called directly under set -e"
 
+cat > "$LAB/grok-credits.json" <<'JSON'
+{
+  "generatedAt": "2030-01-01T00:00:00Z",
+  "schemaVersion": 5,
+  "providers": [
+    { "provider": "claude", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" } } ] } },
+    { "provider": "grok", "credits": { "remaining": 48082, "unit": "credits" }, "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_products", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" } } ] } },
+    { "provider": "codex", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 32, "runway": { "status": "through_reset" } } ] } }
+  ]
+}
+JSON
+out=$(call_choose --snapshot "$LAB/grok-credits.json" --candidate claude:opus --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
+[ "$out" = "grok grok-4.7" ] || fail "grok prepaid credits: expected 'grok grok-4.7', got '$out'"
+ok "grok with usable prepaid credits is eligible despite exhausted weekly pool"
+
+jq '(.providers[] | select(.provider == "grok") | .credits.remaining) = 0' "$LAB/grok-credits.json" > "$LAB/grok-nocredits.json"
+out=$(call_choose --snapshot "$LAB/grok-nocredits.json" --candidate claude:opus --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
+[ "$out" = "codex gpt-6-astra" ] || fail "grok without prepaid credits: expected 'codex gpt-6-astra', got '$out'"
+ok "grok with no usable prepaid credits is skipped"
+
 printf '# all fm-quota-choose tests passed\n'
