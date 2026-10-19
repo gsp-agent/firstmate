@@ -1,0 +1,26 @@
+FM_TEST_BEGIN 2026-10-19T09:41:30Z tests/.gate-wake-sandbox.test.sh family=unclassified expected_gate_skip=none
+Workspace adaptation: executable code root=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/scratch/fm-wake-tests.vMQs1k/code-root (bin links to the real product)
+ok - watch liveness: a Claude relaunch writes trust only inside the case HOME
+
+Claude relaunch watcher output:
+check: secondmate sm1 auto-relaunched after confirmed agent absence on existing endpoint (backend=tmux)
+{
+  "store": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/scratch/fm-wake-tests.vMQs1k/liveness-claude/user-home/.claude.json",
+  "projects": {
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/scratch/fm-wake-tests.vMQs1k/liveness-claude-mate": {
+      "hasTrustDialogAccepted": true
+    }
+  }
+}
+FM_TEST_END 2026-10-19T09:41:46Z tests/.gate-wake-sandbox.test.sh exit=0 duration_ms=16104 gate_skip=false
+FM_TEST_BEGIN 2026-10-19T09:41:46Z tests/fm-harness-liveness-drift-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+skip: live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run
+fm-test-run: gate skip: tests/fm-harness-liveness-drift-live-e2e.test.sh: live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run
+FM_TEST_END 2026-10-19T09:41:47Z tests/fm-harness-liveness-drift-live-e2e.test.sh exit=0 duration_ms=362 gate_skip=true
+FM_TEST_SUMMARY total=2 failed=0 skipped_gate=1 duration_ms=17706
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=362 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=16104 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/.gate-wake-sandbox.test.sh duration_ms=16104
+FM_TEST_SLOWEST rank=2 script=tests/fm-harness-liveness-drift-live-e2e.test.sh duration_ms=362
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M59Q21RQJTZ7ZCDK9K96MRAW/watcher-sandbox-inherited.json
+WATCHER_FOCUSED_EXIT=0

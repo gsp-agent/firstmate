@@ -1,0 +1,2 @@
+FM_TEST_BEGIN 2026-10-19T09:41:04Z /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/runner-live/running.test.sh family=unclassified expected_gate_skip=none
+fixture: graceful TERM cleanup

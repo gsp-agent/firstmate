@@ -1,0 +1,18 @@
+{
+  "padded_bound": {
+    "runner_exit": 1,
+    "script_exit": 7,
+    "bound": "0600"
+  },
+  "runner_group_sigkill": {
+    "runner_exit": -9,
+    "owned_fixture_pids": [
+      16980,
+      16982
+    ],
+    "survivors": [],
+    "later_started": false,
+    "begin_markers": 1,
+    "cleanup_output": "fixture: graceful TERM cleanup"
+  }
+}

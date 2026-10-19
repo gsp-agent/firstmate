@@ -1,0 +1,15 @@
+{
+  "private_tmux": {
+    "session": "fm-lab-validation",
+    "context": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/l/t/tmux-501/fm-lab,9283,0",
+    "grid": "120x40"
+  },
+  "idle_polls": {
+    "watcher_pid": 10130,
+    "beacon_first_ns": 1792402637275592897,
+    "beacon_second_ns": 1792402642803180000,
+    "last_check": "absent",
+    "summary": "absent",
+    "summary_processes": []
+  }
+}

@@ -1,0 +1,37 @@
+Target commit: 6d347da9041ec90d0c16748079914cb74aa83d64
+Isolated temporary root: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/scratch
+FM_TEST_BEGIN 2026-10-19T09:32:41Z tests/.gate-runner-focused.test.sh family=unclassified expected_gate_skip=none
+ok - --per-script-timeout-secs turns a hung script into a bounded failure
+ok - a killed runner takes its running scripts down and starts no other, through the machine gate too
+ok - an interrupted script stops the run as interrupted, also when the runner inherited INT as ignored
+FM_TEST_END 2026-10-19T09:34:00Z tests/.gate-runner-focused.test.sh exit=0 duration_ms=78306 gate_skip=false
+FM_TEST_BEGIN 2026-10-19T09:34:00Z tests/fm-timeout-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm_exec_timed passes a command's status and output through unchanged
+ok - system Bash top-level and subshell calls preserve success, failure, and signal status
+Terminated: 15             "$@"
+ok - fm_run_timed reports 124 when the bound TERMs a read whose wrapper recorded 143
+ok - fm_run_timed passes a natural exit through when the bound fired after completion
+ok - fm_exec_timed sends TERM at the bound and a cooperative command ends there
+ok - fm_exec_timed kills a TERM-ignoring command once the grace has passed
+ok - fm_exec_timed replaces the calling shell instead of wrapping it
+ok - fm_exec_timed reaps a descendant that would otherwise hold the output past the bound
+ok - fm_exec_timed forwards a TERM it receives to the bounded command
+ok - fm_exec_timed forwards an INT and reports it as 130
+ok - fm_exec_timed ends the command at its TERM when its named owner is already gone
+ok - fm_exec_timed ends the command when its owner dies during watchdog startup
+ok - fm_exec_timed preserves a top-level shell's parent across exec startup
+ok - fm_exec_timed ends the command at its TERM when the caller's whole group is KILLed
+ok - fm_exec_timed prefers its perl watchdog over timeout
+ok - fm_exec_timed refuses instead of running unbounded when no mechanism exists
+ok - fm_exec_timed rejects a zero, padded, non-numeric, or missing bound and a missing command
+tests/fm-timeout-lib.test.sh: line 28: 38324 Killed: 9                  ( . "$ROOT/bin/fm-timeout-lib.sh"; PATH=$path fm_exec_timed "$@" )
+ok - fm_exec_timed's GNU timeout fallback kills a TERM-ignoring command once the grace has passed
+ok - fm_timed_out accepts 124 and 137 and nothing else
+FM_TEST_END 2026-10-19T09:34:32Z tests/fm-timeout-lib.test.sh exit=0 duration_ms=32149 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=0 skipped_gate=0 duration_ms=110809
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=32149 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=78306 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/.gate-runner-focused.test.sh duration_ms=78306
+FM_TEST_SLOWEST rank=2 script=tests/fm-timeout-lib.test.sh duration_ms=32149
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M59Q21RQJTZ7ZCDK9K96MRAW/runner-timeout.json
+TARGETED_RUNNER_TIMEOUT_EXIT=0

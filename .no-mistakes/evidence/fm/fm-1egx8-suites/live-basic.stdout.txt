@@ -1,0 +1,1 @@
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/l/basic/state/manual.status

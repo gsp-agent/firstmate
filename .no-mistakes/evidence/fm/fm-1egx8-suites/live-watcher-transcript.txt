@@ -1,0 +1,7 @@
+private_tmux: {"context": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/l/t/tmux-501/fm-lab,9283,0", "grid": "120x40", "session": "fm-lab-validation"}
+idle_polls: {"beacon_first_ns": 1792402637275592897, "beacon_second_ns": 1792402642803180000, "last_check": "absent", "summary": "absent", "summary_processes": [], "watcher_pid": 10130}
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/evidence/01M59Q21RQJTZ7ZCDK9K96MRAW/live-watcher.py", line 55, in <module>
+    assert 'signal: ' in out and 'manual.status' in out and 'done: isolated live watcher check complete' in queue,(out,queue)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/l/basic/state/manual.status\n', '1792402648\t1\tsignal\tmanual.status\tsignal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/l/basic/state/manual.status\n1792402650\t2\tsignal\tmanual.status\tsignal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/l/basic/state/manual.status\n')

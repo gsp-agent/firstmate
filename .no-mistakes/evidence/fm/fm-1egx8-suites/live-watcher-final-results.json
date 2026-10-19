@@ -1,0 +1,38 @@
+{
+  "private_tmux": {
+    "session": "fm-lab-validation",
+    "context": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/m/t/tmux-501/fm-lab,51406,0",
+    "grid": "120x40"
+  },
+  "idle_polls": {
+    "watcher_pid": 51437,
+    "beacon_first_ns": 1792402707825205365,
+    "beacon_second_ns": 1792402709853597000,
+    "last_check": "absent",
+    "summary": "absent",
+    "summary_processes": []
+  },
+  "actionable_status": {
+    "stdout": "signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/m/basic/state/manual.status",
+    "queue": "1792402714\t1\tsignal\tmanual.status\tsignal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/m/basic/state/manual.status\n1792402714\t2\tsignal\tmanual.status\tsignal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/m/basic/state/manual.status",
+    "exit": 0
+  },
+  "delayed_exit_record_takeover": {
+    "old_arm": 56101,
+    "old_watcher": 56143,
+    "new_arm": 56609,
+    "new_watcher": 58212,
+    "injected_clock_delay_seconds": 2.5,
+    "waited_after_delay_started_seconds": 4.37,
+    "original_marker": "acked:downtime:55959.1792402715.PalX0m",
+    "restored_marker": "acked:downtime:55959.1792402715.PalX0m",
+    "queue": "empty",
+    "ledger": "arm_pid=56101\twatcher_pid=56143\torigin=started\tstarted_at=1792402715\tended_at=1792402720\texit_code=143\tsignal=TERM\treason=signal-exit\tbeacon_age=4\tlock_before=pid:56143|identity:Mon Oct 19 04:38:35 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/bin/fm-watch.sh\tlock_after=pid:none|identity:none\tsuccessor=none\narm_pid=56609\twatcher_pid=56143\torigin=attached\tstarted_at=1792402717\tended_at=1792402721\texit_code=unknown\tsignal=unknown\treason=taken-over\tbeacon_age=5\tlock_before=pid:56143|identity:Mon Oct 19 04:38:35 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/bin/fm-watch.sh\tlock_after=pid:none|identity:none\tsuccessor=started:58212",
+    "owner_exit": 143
+  },
+  "takeover_next_close": {
+    "stdout": "watcher: started pid=58212 (beacon fresh)\nsignal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/m/takeover/state/manual.status",
+    "queue": "1792402722\t1\tsignal\tmanual.status\tsignal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/m/takeover/state/manual.status\n1792402723\t2\tsignal\tmanual.status\tsignal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/m/takeover/state/manual.status",
+    "exit": 0
+  }
+}

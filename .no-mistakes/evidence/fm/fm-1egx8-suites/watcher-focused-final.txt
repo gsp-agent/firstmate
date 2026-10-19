@@ -1,0 +1,14 @@
+FM_TEST_BEGIN 2026-10-19T09:38:05Z tests/.gate-wake-sandbox.test.sh family=unclassified expected_gate_skip=none
+not ok - the dead Claude secondmate was not relaunched: check: secondmate sm1 auto-relaunch failed after confirmed agent absence on existing endpoint: error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/scratch/fm-wake-tests.4c1lOo/liveness-claude-mate
+FM_TEST_END 2026-10-19T09:38:11Z tests/.gate-wake-sandbox.test.sh exit=1 duration_ms=6478 gate_skip=false
+FM_TEST_BEGIN 2026-10-19T09:38:11Z tests/fm-harness-liveness-drift-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+skip: live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run
+fm-test-run: gate skip: tests/fm-harness-liveness-drift-live-e2e.test.sh: live: opt-in; set FM_HARNESS_LIVENESS_DRIFT=1 to run
+FM_TEST_END 2026-10-19T09:38:12Z tests/fm-harness-liveness-drift-live-e2e.test.sh exit=0 duration_ms=340 gate_skip=true
+FM_TEST_SUMMARY total=2 failed=1 skipped_gate=1 duration_ms=7106
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=340 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=6478 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/.gate-wake-sandbox.test.sh duration_ms=6478
+FM_TEST_SLOWEST rank=2 script=tests/fm-harness-liveness-drift-live-e2e.test.sh duration_ms=340
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M59Q21RQJTZ7ZCDK9K96MRAW/watcher-focused-final.json
+WATCHER_FOCUSED_EXIT=1

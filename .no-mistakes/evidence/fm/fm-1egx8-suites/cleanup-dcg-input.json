@@ -1,0 +1,1 @@
+{"tool_name": "Bash", "tool_input": {"command": "rm -r -- .gate-test-phase l m n tests/.gate-runner-focused.test.sh tests/.gate-triage-before.test.sh tests/.gate-triage-focused.test.sh tests/.gate-wake-sandbox.test.sh"}}

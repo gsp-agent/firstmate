@@ -1,0 +1,9 @@
+Disposable inherited HOME and separate CLAUDE_CONFIG_DIR stores, before:
+aeb0ef2bf02174f9c4222adec6cd86f0ad0725eb  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/outer-home/.claude.json
+23e8e857512425175ba31366cd22493259e4ee82  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/outer-config/.claude.json
+
+After liveness relaunch:
+aeb0ef2bf02174f9c4222adec6cd86f0ad0725eb  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/outer-home/.claude.json
+23e8e857512425175ba31366cd22493259e4ee82  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/outer-config/.claude.json
+
+Byte-identical; the real trust writer populated only the liveness case HOME, shown in watcher-sandbox-inherited.txt. No operator credential or configuration stores were opened.

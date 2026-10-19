@@ -1,0 +1,15 @@
+{
+  "private_tmux": {
+    "session": "fm-lab-validation",
+    "context": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/n/t/tmux-501/fm-lab,91469,0",
+    "grid": "120x40"
+  },
+  "before_fix_spurious_recovery": {
+    "injected_clock_delay_seconds": 2.5,
+    "stdout": "watcher: started pid=94112 (beacon fresh)\ncheck: rearm-resurface",
+    "old_marker": "acked:downtime:91497.1792402814.NgeNcl",
+    "marker_after": "announced:downtime:91901.1792402816.bD1PHn",
+    "ledger": "arm_pid=92676\twatcher_pid=91901\torigin=attached\tstarted_at=1792402815\tended_at=1792402818\texit_code=unknown\tsignal=unknown\treason=taken-over-unconfirmed-stop\tbeacon_age=3\tlock_before=pid:91901|identity:Mon Oct 19 04:40:14 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/before/bin/fm-watch.sh\tlock_after=pid:none|identity:none\tsuccessor=started:94112\narm_pid=91849\twatcher_pid=91901\torigin=started\tstarted_at=1792402814\tended_at=1792402818\texit_code=143\tsignal=TERM\treason=signal-exit\tbeacon_age=3\tlock_before=pid:91901|identity:Mon Oct 19 04:40:14 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/before/bin/fm-watch.sh\tlock_after=pid:none|identity:none\tsuccessor=none\narm_pid=92676\twatcher_pid=94112\torigin=started\tstarted_at=1792402819\tended_at=1792402822\texit_code=0\tsignal=none\treason=actionable-check\tbeacon_age=1\tlock_before=pid:94112|identity:Mon Oct 19 04:40:19 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-test-phase/before/bin/fm-watch.sh\tlock_after=pid:none|identity:none\tsuccessor=none",
+    "exit": 0
+  }
+}

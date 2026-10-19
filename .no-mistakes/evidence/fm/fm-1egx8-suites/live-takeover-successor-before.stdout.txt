@@ -1,0 +1,2 @@
+watcher: started pid=94112 (beacon fresh)
+check: rearm-resurface

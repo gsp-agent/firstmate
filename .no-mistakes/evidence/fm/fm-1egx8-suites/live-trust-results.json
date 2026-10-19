@@ -1,0 +1,14 @@
+{
+  "exit": 0,
+  "written_store": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-trust-live/case-home/.claude.json",
+  "registered_project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-trust-live/mate",
+  "hasTrustDialogAccepted": true,
+  "outer_store_hashes_before": {
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-trust-live/inherited-home/.claude.json": "0456e5c8adf667a800a0010faa8f2b31511ed6e8a969efa3d988ac652251f544",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-trust-live/inherited-config/.claude.json": "0456e5c8adf667a800a0010faa8f2b31511ed6e8a969efa3d988ac652251f544"
+  },
+  "outer_store_hashes_after": {
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-trust-live/inherited-home/.claude.json": "0456e5c8adf667a800a0010faa8f2b31511ed6e8a969efa3d988ac652251f544",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59Q21RQJTZ7ZCDK9K96MRAW/.gate-trust-live/inherited-config/.claude.json": "0456e5c8adf667a800a0010faa8f2b31511ed6e8a969efa3d988ac652251f544"
+  }
+}

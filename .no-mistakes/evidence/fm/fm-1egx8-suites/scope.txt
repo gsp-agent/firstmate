@@ -1,0 +1,4 @@
+Baseline: git status --short was empty. Target 6d347da9041ec90d0c16748079914cb74aa83d64.
+No third four-suite alone run, per the recorded captain decision. CI, PR, push and post-merge measurement belong to outer executor.
+Focused runner driver executes only the existing timeout, killed-runner and interrupted-script tests; definitions are unchanged and no source-content assertions are selected.
+All fixtures, HOME and TMPDIR are inside the gate worktree.
