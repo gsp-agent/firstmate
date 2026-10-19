@@ -58,6 +58,12 @@ export FM_TEST_SEAM=1
 # under the marker. A case that verifies the refusal sets FM_TASK_ID itself.
 unset FM_TASK_ID
 
+# Turn off the operator machine's live-session detector for every fixture spawn
+# (bin/fm-live-session-lib.sh): it reads the real desktop, calendar, and
+# devices, so a suite would otherwise depend on what a person is doing. A case
+# that verifies live-session admission sets FM_LIVE_SESSION_CHECK itself.
+export FM_LIVE_SESSION_CHECK=
+
 # Clear the tasks-axi env overrides. An operator shell exports TASKS_AXI_FILE
 # (and may export TASKS_AXI_BACKEND) at its real home's backlog, and tasks-axi
 # resolves that env AHEAD of the .tasks.toml a fixture copies, so a suite that

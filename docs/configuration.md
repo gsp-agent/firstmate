@@ -1157,6 +1157,18 @@ A malformed or unreadable capacity file refuses every fresh ship or scout spawn 
 Firstmate cannot see which part of a worker's life uses the resource, so the number bounds whole workers from launch to handoff, and the tightest resource every worker needs should decide it.
 [`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns the capacity file format, what holds a place, the headroom program, the 420-second record, and why concurrent spawns cannot both take the last place or the extra start.
 
+## Live-session check
+
+A live session - a tester, a client, or the captain at a headset, present or waiting at a set time - is run by the project's own agent, never by Firstmate.
+When the machine has a live-session detector at `~/.agent-config/scripts/live-session.py`, or wherever `FM_LIVE_SESSION_CHECK` names one, every fresh ship or scout spawn asks it about the project first.
+Firstmate does not ship the detector; its own header documents what it observes and what it misses.
+The detector is asked about the project's checkout folder name, with symlinks resolved, rather than Firstmate's registered project name, because it matches the name against the folders a person's work happens in.
+When it reports a live session, or cannot decide, `bin/fm-spawn.sh` launches nothing, creates no record, leaves the backlog item queued, prints one `deferred:` line carrying the detector's verdict, and exits 75, so Firstmate dispatches the item again later.
+A relaunch of an existing task and a secondmate spawn are not checked.
+Typing in a focused terminal pane that works inside the project's checkout reads as live for two minutes, so typing to a project's own agent seat, or to Firstmate itself when the project is this Firstmate repository, defers that project's spawns until a later dispatch.
+Without a detector, or with `FM_LIVE_SESSION_CHECK` set to an empty value, dispatch is unchanged.
+[`bin/fm-live-session-lib.sh`](../bin/fm-live-session-lib.sh) owns how the detector is found and called and what each of its answers does.
+
 ## Crew dispatch profiles (config/crew-dispatch.json)
 
 `config/crew-dispatch.json` is an optional local, gitignored file containing dispatch profiles and optional natural-language rules or label routes for crewmates and scouts.
@@ -2439,6 +2451,7 @@ FM_PROC_ROOT_OVERRIDE=   # alternate /proc root for Linux process-identity reads
 FM_BACKEND=             # optional runtime backend override for new spawns; tmux/herdr/zellij/orca/cmux support ship/scout spawns, codex-app is not accepted
 FM_TRACE_CONTEXT=       # optional trace-context override; see "Trace context propagation"
 FM_TASK_ID=             # internal task-worker marker fm-spawn.sh exports into ship and scout panes, never set by hand; bin/fm-test-run.sh refuses to execute in the repository primary checkout while it is set
+FM_LIVE_SESSION_CHECK=  # unset uses ~/.agent-config/scripts/live-session.py when present; a path selects another detector, empty turns the check off (see "Live-session check")
 FM_TASK_INBOX=          # internal: absolute path of the task's steering inbox (state/<id>.inbox) that fm-spawn.sh exports into every ship, scout, and secondmate launch, never set by hand; the steering doorbell names "$FM_TASK_INBOX"
 HERDR_SESSION=default  # herdr-only: named session for normal backend ops; not enough for destructive cleanup (docs/herdr-backend.md)
 FM_BACKEND_HERDR_SUBMIT_POLLS=6  # herdr-only: agent-state samples spread across each Enter attempt's budget when confirming a submit (docs/herdr-backend.md "Current transport behavior")
