@@ -1066,6 +1066,8 @@ write_grok_quota() {  # <grok credits remaining>
   "providers": [
     { "provider": "claude", "quotaSemantics": { "status": "known", "effectiveAvailability": [
       { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" }, "selection": { "spendPriority": -1 } } ] } },
+    { "provider": "muse", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" }, "selection": { "spendPriority": -1 } } ] } },
     { "provider": "grok", "credits": { "remaining": $1, "unit": "credits" }, "quotaSemantics": { "status": "known", "effectiveAvailability": [
       { "scope": "all_products", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" }, "selection": { "spendPriority": -1.2184 } } ] } },
     { "provider": "codex", "quotaSemantics": { "status": "known", "effectiveAvailability": [
@@ -1074,10 +1076,13 @@ write_grok_quota() {  # <grok credits remaining>
 }
 JSON
 }
-printf '%s\n' '{"default":[{"harness":"claude","model":"opus"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"},{"harness":"codex","model":"gpt-6-astra"}]}' > "$RULES"
+printf '%s\n' '{"default":[{"harness":"claude","model":"opus"},{"harness":"muse","model":"spark"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"},{"harness":"codex","model":"gpt-6-astra"}]}' > "$RULES"
 write_grok_quota 48082
 run code out err --labels ""
-assert_contains "$out" "profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'" "default chain skips exhausted claude and picks grok on prepaid credits"
+assert_contains "$out" "profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'" "default chain skips exhausted claude and muse and picks grok on prepaid credits"
+jq '(.providers[] | select(.provider == "muse") | .quotaSemantics.effectiveAvailability[0]) |= (.effectivePercentRemaining = 25 | .runway.status = "through_reset")' "$QUOTA" > "$QUOTA.tmp" && mv "$QUOTA.tmp" "$QUOTA"
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'muse' --model 'spark'" "default chain keeps muse ahead of grok when muse has room"
 write_grok_quota 0
 run code out err --labels ""
 assert_contains "$out" "profile: --harness 'codex' --model 'gpt-6-astra'" "default chain skips grok when prepaid credits are gone"

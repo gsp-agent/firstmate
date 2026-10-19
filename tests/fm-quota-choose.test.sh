@@ -543,19 +543,19 @@ fi
 [ "$out" = "none" ] || fail "provider-level unknown quota returned: $out"
 ok "provider-level unknown quota is not positive"
 
-jq '.providers += [{"provider":"meta","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":25,"runway":{"status":"through_reset"}}]}}]' \
+jq '.providers += [{"provider":"muse","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":25,"runway":{"status":"through_reset"}}]}}]' \
   "$LAB/captured.json" > "$MUSE_POSITIVE"
 out=$(call_choose --snapshot "$MUSE_POSITIVE" --candidate muse:default)
 [ "$out" = "muse default" ] || fail "supported Muse candidate returned: $out"
 ok "Muse candidate is accepted"
 
-jq '.providers += [{"provider":"meta","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"}}]}}]' \
+jq '.providers += [{"provider":"muse","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"}}]}}]' \
   "$LAB/captured.json" > "$MUSE_EXHAUSTED"
 if out=$(call_choose --snapshot "$MUSE_EXHAUSTED" --candidate muse:default 2>/dev/null); then
-  fail "Muse candidate dispatched with exhausted Meta quota"
+  fail "Muse candidate dispatched with exhausted Muse quota"
 fi
-[ "$out" = "none" ] || fail "exhausted Meta quota returned: $out"
-ok "Muse uses Meta quota"
+[ "$out" = "none" ] || fail "exhausted Muse quota returned: $out"
+ok "Muse uses the published muse provider quota"
 
 jq '.providers += [{"provider":"agy","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":25,"runway":{"status":"through_reset"}}]}}]' \
   "$LAB/captured.json" > "$AGY_POSITIVE"
@@ -773,6 +773,8 @@ cat > "$LAB/grok-credits.json" <<'JSON'
   "providers": [
     { "provider": "claude", "quotaSemantics": { "status": "known", "effectiveAvailability": [
       { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" } } ] } },
+    { "provider": "muse", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" } } ] } },
     { "provider": "grok", "credits": { "remaining": 48082, "unit": "credits" }, "quotaSemantics": { "status": "known", "effectiveAvailability": [
       { "scope": "all_products", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" } } ] } },
     { "provider": "codex", "quotaSemantics": { "status": "known", "effectiveAvailability": [
@@ -780,12 +782,12 @@ cat > "$LAB/grok-credits.json" <<'JSON'
   ]
 }
 JSON
-out=$(call_choose --snapshot "$LAB/grok-credits.json" --candidate claude:opus --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
+out=$(call_choose --snapshot "$LAB/grok-credits.json" --candidate claude:opus --candidate muse:spark --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
 [ "$out" = "grok grok-4.7" ] || fail "grok prepaid credits: expected 'grok grok-4.7', got '$out'"
 ok "grok with usable prepaid credits is eligible despite exhausted weekly pool"
 
 jq '(.providers[] | select(.provider == "grok") | .credits.remaining) = 0' "$LAB/grok-credits.json" > "$LAB/grok-nocredits.json"
-out=$(call_choose --snapshot "$LAB/grok-nocredits.json" --candidate claude:opus --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
+out=$(call_choose --snapshot "$LAB/grok-nocredits.json" --candidate claude:opus --candidate muse:spark --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
 [ "$out" = "codex gpt-6-astra" ] || fail "grok without prepaid credits: expected 'codex gpt-6-astra', got '$out'"
 ok "grok with no usable prepaid credits is skipped"
 
