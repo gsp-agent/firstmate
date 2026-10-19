@@ -70,6 +70,8 @@
 # until unhold succeeds, even when an expired --until makes tasks-axi report
 # held=no. A future --until is refused during that release recovery.
 # A recorded answer or reconciliation awaiting closure must finish before re-holding.
+# So must an agent-routed release that is unheld but still has its pending body:
+# `hold` refuses until the next route-due pass publishes its parent resolution.
 # `route-due` re-reads live backlog holds from the watcher's periodic pass.
 # A no-argument sweep visits only rows the listing reports held for the captain
 # (including expired dated holds) and ids with pending bodies.
@@ -1114,6 +1116,11 @@ command_hold() {
   body=$(show_field_value "$show" body)
   if [ "$existing_hold_kind" = captain ] && body_has_current_hold_resolution "$body"; then
     fail "task $id has a recorded resolution awaiting closure; retry answer or reconcile before re-holding"
+  fi
+  # route_hold's recovery branch still owes this release its parent resolution.
+  if [ "$existing_hold_kind" != captain ] && [ "$(recorded_resolution_mode "$body" || true)" = agent-routed ] \
+    && [ -e "$STATE/hold-domain/pending/$id.body" ]; then
+    fail "task $id has an unfinished agent-routed release; the next route-due pass recovers it, then hold again"
   fi
   if [ "$existing_hold_kind" = captain ]; then
     [ "$existing_held" != yes ] || preserve_hold_set=1

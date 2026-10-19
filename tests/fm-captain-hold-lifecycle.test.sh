@@ -6056,7 +6056,53 @@ SH
   pass 'release recovery, answers and reconciliations over a routed hold share its parent occurrence'
 }
 
+test_domain_rehold_waits_for_an_unfinished_routed_release() {
+  local home status before technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+  home=$(make_domain_home stranded-release)
+  status="$home/parent/state/router-mate.status"
+  mkdir -p "$home/parent/state"
+  printf 'router-mate\n' > "$home/.fm-secondmate-home"
+  printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$home/parent" > "$home/.fm-secondmate-parent"
+  run_domain "$home" 2026-10-14T02:00:00Z hold work --title 'Update branch' \
+    --decision-owner ep-firstmate --timeout-seconds 60 --reason "$technical" >/dev/null || fail 'could not hold work'
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = unhold ] && [ -f "$FM_HOME/unhold-dies" ]; then
+  "$REAL_TASKS_AXI" "$@" >/dev/null
+  exit 1
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  touch "$home/unhold-dies"
+  if run_domain "$home" 2026-10-14T02:01:00Z route-due > "$home/routed.out" 2>&1; then
+    fail 'the release that died after unhold reported success'
+  fi
+  rm "$home/unhold-dies"
+  before=$(tasks_in "$home" show work --full)
+  assert_contains "$before" 'held: no' 'the fixture did not apply the release before dying'
+  assert_contains "$before" 'Resolution mode: agent-routed' 'the fixture lost its routing record'
+  if run_domain "$home" 2026-10-14T02:01:30Z hold work --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason "$technical" > "$home/rehold.out" 2>&1; then
+    fail 'a re-hold stamped a new lifecycle over an unfinished routed release'
+  fi
+  assert_grep 'route-due' "$home/rehold.out" 'the refused re-hold did not name the recovery pass'
+  assert_equals "$before" "$(tasks_in "$home" show work --full)" 'the refused re-hold changed the task'
+  assert_no_grep 'captain-hold-work-2' "$status" 'the refused re-hold opened a second parent occurrence'
+  run_domain "$home" 2026-10-14T02:02:00Z route-due || fail 'the recovery pass failed'
+  assert_grep 'resolved [key=captain-hold-work-1]' "$status" 'the recovery pass did not resolve the routed occurrence'
+  run_domain "$home" 2026-10-14T03:00:00Z hold work --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason "$technical" >/dev/null || fail 'the re-hold after the recovery pass was refused'
+  run_domain "$home" 2026-10-14T03:01:00Z route-due work || fail 'the new lifecycle did not route'
+  assert_grep 'resolved [key=captain-hold-work-2]' "$status" 'the new lifecycle did not resolve its own occurrence'
+  assert_equals 2 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'each lifecycle did not reach its owner exactly once'
+  assert_equals '' "$(bash -c '. "$1"; status_open_decisions "$2"' _ "$ROOT/bin/fm-classify-lib.sh" "$status")" \
+    'an unfinished routed release left a parent decision open'
+  pass 'a re-hold waits for route-due to finish an unfinished routed release'
+}
+
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
+  stranded-release) test_domain_rehold_waits_for_an_unfinished_routed_release; exit $? ;;
   receipt-deferral)
     test_domain_retries_failed_delivery_and_release expired || exit 1
     test_domain_retries_failed_delivery_and_release
@@ -6129,6 +6175,7 @@ test_domain_sweep_visits_only_routable_rows
 test_domain_lifecycle_commands_read_only_alias_metas
 test_domain_deferrals_use_the_local_calendar_date
 test_domain_release_recovery_keeps_one_parent_occurrence
+test_domain_rehold_waits_for_an_unfinished_routed_release
 test_domain_aliases_inherit_canonical_authority
 test_domain_aliases_share_interrupted_routing_receipts
 test_watcher_bounds_blocked_routing || exit 1

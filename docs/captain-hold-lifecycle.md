@@ -62,6 +62,7 @@ Repeat and edge cases:
 
 - Retries of an active hold preserve its hold-set timestamp.
 - Re-holding released work starts a new timestamped lifecycle.
+  An agent-routed release that died after unhold but before its parent resolution refuses the re-hold until the next `route-due` pass finishes it.
 - A closed task is refused rather than reopened.
 - `--until` stores the captain's own deferral date through tasks-axi's date gate.
 - Before the backend hold runs, `--origin` records the origin the call is held for on its own `Captain hold origin:` body line, which `complete` and `verify` check using backend identities rather than alias spellings.
@@ -567,6 +568,7 @@ Fresh deferred holds and postponements preserve supervision, remain unrouted bef
 Protected and human-owned deferrals, including a deferred hold whose question or owner changes, never enter pending routing or keep an idle home supervised.
 A sweep probes tasks-axi once, reads only captain-held and pending rows, and routes nothing without the captain-hold contract; lifecycle commands read only metadata files no listed task id names.
 Deferrals follow the local calendar date for routing and release recovery, and a re-hold, answer or reconciliation over an unreleased routed hold resolves that lifecycle's own parent occurrence.
+A re-hold over a routed release that died after unhold is refused until the recovery pass resolves its occurrence, and only then starts the next one.
 Fault-injected answer, release and reconciliation closures stay protected from immediate and periodic routing, while a new lifecycle preserves historical decisions and still routes.
 Zero-retention archival clears pending routing without treating an unreadable backlog as an absent task.
 Persistent reason drift, transport failures and release failures still allow ordinary scheduled checks to execute before the routing error surfaces.
