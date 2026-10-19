@@ -1319,6 +1319,76 @@ EOF
   pass "a failed retake after a headroom reading defers with 75 and consumes no window"
 }
 
+test_same_home_spawns_during_headroom_reading_defer() {
+  local case_dir home wt_a pid_a rc_a=0 checks_rc=0 before worktrees kind out rc
+  case_dir=$(make_case reading-same-home task-a task-b)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  install_reading "$case_dir/reading" <<EOF
+printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
+: > $(printf '%q' "$case_dir/reading.started")
+i=0
+while [ ! -f $(printf '%q' "$case_dir/reading.release") ]; do
+  i=\$((i + 1))
+  [ "\$i" -lt 400 ] || exit 1
+  sleep 0.05
+done
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  FM_FAKE_HOLD="$case_dir/publication" spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$case_dir/reading.started" "the same-home reading never started: $(cat "$case_dir/a.out")"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  (
+    for kind in ship scout batch-ship batch-scout; do
+      rc=0
+      case "$kind" in
+        ship)
+          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" task-b "$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
+          ;;
+        scout)
+          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" task-b "$case_dir/project" --scout) || rc=$?
+          ;;
+        batch-ship)
+          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" "task-b=$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
+          ;;
+        batch-scout)
+          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" "task-b=$case_dir/project" --scout) || rc=$?
+          ;;
+      esac
+      expect_code "$DEFER_EXIT" "$rc" "a same-home $kind started during a reading did not defer: $out"
+      assert_nothing_created "$case_dir" "$home" task-b "$before" "$worktrees"
+      case "$kind" in batch-*) assert_contains "$out" "batch: DEFERRED task-b" "the $kind did not report its queued entry" ;; esac
+    done
+    [ "$(reading_runs "$case_dir/reading.log")" = 1 ] || fail "same-home contenders ran another reading"
+    [ "$(overshare_count "$home")" = 0 ] || fail "same-home contenders consumed the extra-start window"
+  ) || checks_rc=$?
+  : > "$case_dir/reading.release"
+  if [ "$checks_rc" = 0 ]; then
+    (
+      wait_for_file "$case_dir/publication.reached" "the first spawn never reached publication: $(cat "$case_dir/a.out")"
+      before=$(call_count "$case_dir")
+      worktrees=$(worktree_list "$case_dir")
+      rc=0
+      out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" task-b "$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
+      expect_code 1 "$rc" "ordinary publication contention changed after the reading: $out"
+      assert_nothing_created "$case_dir" "$home" task-b "$before" "$worktrees"
+    ) || checks_rc=$?
+  fi
+  : > "$case_dir/publication.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$checks_rc" "same-home contention checks failed"
+  expect_code 0 "$rc_a" "the reading spawn did not launch: $(cat "$case_dir/a.out")"
+  assert_present "$home/state/task-a.meta" "the reading spawn published no record"
+  assert_absent "$home/state/task-b.meta" "the contending task published a record"
+  [ "$(overshare_count "$home")" = 1 ] || fail "the reading spawn did not take exactly one extra start"
+  pass "same-home ships, scouts, and batch entries defer during a reading and retain publication protection"
+}
+
 test_undeclared_capacity_keeps_dispatch_uncapped
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind
@@ -1349,3 +1419,4 @@ test_local_homes_share_one_extra_start
 test_teardown_during_headroom_reading_is_not_refused
 test_spawn_during_headroom_reading_takes_the_extra_start
 test_failed_retake_after_headroom_reading_defers
+test_same_home_spawns_during_headroom_reading_defer
