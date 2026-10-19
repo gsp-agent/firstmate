@@ -229,16 +229,21 @@ fm_watcher_healthy() {
 #   persistent  every other harness (codex foreground checkpoint, opencode/grok
 #               background arm, tmux, unknown): the watcher runs as a tracked live
 #               process, so a live identity-matched pid is the real liveness signal.
-# FM_SUPERVISION_MODEL overrides detection (tests, and callers that already know
-# the harness). A caller inspecting another session passes that session's
-# harness. Otherwise bin/fm-harness.sh is the single detection owner, so this
-# stays consistent with the harness-specific repair line the guards already emit.
+# A caller inspecting another session passes that session's harness, and only
+# that harness decides: FM_SUPERVISION_MODEL describes the caller's own primary
+# (a secondmate inherits it from bin/fm-spawn.sh), so it never applies there.
+# With no harness, FM_SUPERVISION_MODEL overrides detection (tests, and callers
+# that already know their own harness). Otherwise bin/fm-harness.sh is the single
+# detection owner, so this stays consistent with the harness-specific repair line
+# the guards already emit.
 fm_supervision_model() {  # [harness]
   local harness=${1:-}
-  case "${FM_SUPERVISION_MODEL:-}" in
-    autoarm|extension|persistent) printf '%s\n' "$FM_SUPERVISION_MODEL"; return 0 ;;
-  esac
-  [ -n "$harness" ] || harness=$("$FM_WAKE_LIB_DIR/fm-harness.sh" 2>/dev/null || printf unknown)
+  if [ -z "$harness" ]; then
+    case "${FM_SUPERVISION_MODEL:-}" in
+      autoarm|extension|persistent) printf '%s\n' "$FM_SUPERVISION_MODEL"; return 0 ;;
+    esac
+    harness=$("$FM_WAKE_LIB_DIR/fm-harness.sh" 2>/dev/null || printf unknown)
+  fi
   case "$harness" in
     claude|cursor) printf 'autoarm\n' ;;
     pi|pi-signed|omp) printf 'extension\n' ;;
