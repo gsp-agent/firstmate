@@ -68,12 +68,10 @@
 # A healthy consumer is the model-aware supervision verdict
 # (fm_watcher_supervision_verdict in fm-wake-lib.sh) with a beacon within
 # FM_WATCHER_STALE_GRACE, else FM_GUARD_GRACE, else the poll-derived grace, or
-# an open Claude auto-arm claim (fm_autoarm_claim_open). So an auto-arm home
-# whose watcher is between cycles reads live, and every other model still needs
-# its live, identity-matched watcher. The model is the inspected home's: the
-# lock holder's harness ancestry, else the PID-strict persistent model, never
-# the caller's FM_SUPERVISION_MODEL. The verdict's stale-beacon mid-turn
-# allowance does not apply.
+# an open Claude auto-arm claim (fm_autoarm_claim_open). The model is the
+# inspected home's: the lock holder's harness ancestry, else the PID-strict
+# persistent model, never the caller's FM_SUPERVISION_MODEL. The verdict's
+# stale-beacon mid-turn allowance does not apply.
 #
 # Configuration. A region, a model id and an AWS profile name somebody's account
 # and somebody's choices, so this file carries no default for any of them. Each is
