@@ -4843,6 +4843,7 @@ test_ordinary_reholds_deactivate_dale_probes() {
   for dale_step in sign-in screen; do
     for previous_state in released held; do
       home=$(make_home "ordinary-$dale_step-$previous_state")
+      # shellcheck disable=SC2016 # FM_HOME expands when the stored probe runs under bash -c.
       FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
         run_captain "$home" hold dale-task --title "Complete the Dale step" \
         --reason "complete the $dale_step" --repo sample --dale-step "$dale_step" \
@@ -4899,6 +4900,7 @@ test_reprobe_release_retries_finalize_one_occurrence() {
     channel="$parent/state/probe-mate.status"
     request="$home/state/reconcile-requests/dale-task.request"
     : > "$home/probe-ready"
+    # shellcheck disable=SC2016 # FM_HOME expands when the stored probe runs under bash -c.
     FM_CAPTAIN_HOLD_NOW=2026-06-01T12:00:00Z FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
       run_captain "$home" hold dale-task --title "Complete the sign-in" \
       --reason "sign in to the service" --repo sample --dale-step sign-in \
@@ -4963,6 +4965,7 @@ SH
     if [ "$stage" != unhold ]; then
       mv "$home/probe-unavailable" "$home/probe-ready"
     fi
+    # shellcheck disable=SC2016 # FM_HOME expands when the stored probe runs under bash -c.
     FM_CAPTAIN_HOLD_NOW=2026-06-01T12:00:00Z FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
       run_captain "$home" hold dale-task --reason "sign in to the service" \
       --dale-step screen --probe 'test -f "$FM_HOME/probe-ready"' >/dev/null \

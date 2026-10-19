@@ -957,7 +957,7 @@ command_reprobe() {
     || fail "could not decode the existing body for $id"
   stamp=$(body_hold_set_timestamp "$body")
   probe=$(body_hold_probe "$body")
-  if [ "$state" != done ] && [ "$hold_kind" = captain ] && [ "$held" = yes ]; then
+  if [ "$state" != "done" ] && [ "$hold_kind" = captain ] && [ "$held" = yes ]; then
     if [ -z "$probe" ]; then
       printf 'kept: %s no-probe\n' "$id"
       return 0
@@ -979,7 +979,7 @@ command_reprobe() {
   body=$(decode_shown_value "$(show_field "$show" body)") \
     || fail "could not decode the existing body for $id"
   occurrence=$(resolution_record_count "$(show_field "$show" body)")
-  if [ "$state" != done ] && [ "$hold_kind" = captain ] && [ "$held" = yes ]; then
+  if [ "$state" != "done" ] && [ "$hold_kind" = captain ] && [ "$held" = yes ]; then
     if [ -z "$probe" ] || [ "$(body_hold_set_timestamp "$body")" != "$stamp" ] \
       || [ "$(body_hold_probe "$body")" != "$probe" ]; then
       printf 'kept: %s stamp-changed\n' "$id"
