@@ -114,6 +114,7 @@ fi
 [ -n "$QUOTA_SNAPSHOT" ] || die "empty quota snapshot"
 
 if printf '%s\n' "$QUOTA_SNAPSHOT" | jq -e 'type == "object"' >/dev/null 2>&1; then
+  SNAPSHOT_FORMAT=json
   QUOTA_JSON=$QUOTA_SNAPSHOT
   schema=$(printf '%s\n' "$QUOTA_JSON" | jq -r '.schemaVersion // empty' 2>/dev/null) || schema=
   case "$schema" in
@@ -122,6 +123,7 @@ if printf '%s\n' "$QUOTA_SNAPSHOT" | jq -e 'type == "object"' >/dev/null 2>&1; t
     *) die "unsupported quota-axi schema version: $schema" ;;
   esac
 else
+  SNAPSHOT_FORMAT=toon
   QUOTA_JSON=$(printf '%s\n' "$QUOTA_SNAPSHOT" | jq -Rse '
     def valid_preamble:
       ((length == 2) and
@@ -383,6 +385,13 @@ for c in "${CANDIDATES[@]}"; do
   effective=$(effective_for_provider_model "$provider" "$scope_model" "$lane")
   if [ -z "$effective" ] || [ "$effective" = "null" ]; then
     continue
+  fi
+  if [ "$SNAPSHOT_FORMAT" = toon ] && [ "$provider" = grok ] &&
+    printf '%s\n' "$effective" | jq -e '
+      .status == "unknown" or (.runway.status // "") == "exhausted_now" or
+      .effectivePercentRemaining <= 0
+    ' >/dev/null 2>&1; then
+    die "Grok eligibility needs prepaid credit evidence; retry with a quota-axi --json snapshot"
   fi
   if printf '%s\n' "$effective" | jq -e '
     if (.prepaidCreditsUsable // false) == true then true

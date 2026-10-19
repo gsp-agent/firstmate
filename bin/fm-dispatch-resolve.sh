@@ -259,9 +259,9 @@ if [ -n "$LABELS_SET" ]; then
     def flat: gsub("[\\r\\n]"; " ");
     def bare($m): (($m // "") | split("/") | last);
     def blocked($prof):
-      ($pmap[$prof.harness] // null) as $p
+      ($prof.provider // $pmap[$prof.harness] // null) as $p
       | if $p == null or $quota == null then false
-        else ([$quota.providers[]? | select(.provider == $p)] | first // null) as $row
+        else quota_row($quota; $p; quota_lane($prof.harness; $prof.model)) as $row
         | if $row == null or quota_prepaid_usable($row) then false
           else ([$row.quotaSemantics.effectiveAvailability[]? | select(
                   .scope == "all_models" or .scope == "all_products" or
@@ -480,13 +480,11 @@ RESULT=$(jq -n --arg floor "$CONFIDENCE_FLOOR" --argjson lat "$LAT_MS" --arg non
       (applicable($p; $lane; ($c.model // ""))) as $rows |
       (evidence($rows)) as $bounds |
       (floor_state($c.floor; $p; $lane)) as $profile_floor_state |
-      if quota_prepaid_usable(prov($p; $lane)) then
-        ($rows | first) as $row |
-        {profile: $c, provider: $p, bounds: $bounds, scope: ($row.scope // null), pct: ($row.effectivePercentRemaining // null), runway: ($row.runway.status // null), eligible: true, unranked: true, reason: "grok prepaid credits usable (remaining \(prov($p; $lane).credits.remaining // "unknown")) despite exhausted weekly pool"}
-      elif any($rows[]; (.runway.status // "") == "exhausted_now") then
+      (quota_prepaid_usable(prov($p; $lane))) as $prepaid |
+      if ($prepaid | not) and any($rows[]; (.runway.status // "") == "exhausted_now") then
         ($rows | map(select((.runway.status // "") == "exhausted_now")) | first) as $bad |
         {profile: $c, provider: $p, bounds: $bounds, scope: $bad.scope, pct: ($bad.effectivePercentRemaining // null), runway: $bad.runway.status, eligible: false, reason: "runway exhausted_now at \($bad.scope)"}
-      elif any($rows[]; .status == "known" and (.effectivePercentRemaining | type) == "number" and .effectivePercentRemaining <= 0) then
+      elif ($prepaid | not) and any($rows[]; .status == "known" and (.effectivePercentRemaining | type) == "number" and .effectivePercentRemaining <= 0) then
         ($rows | map(select(.status == "known" and (.effectivePercentRemaining | type) == "number" and .effectivePercentRemaining <= 0)) | first) as $bad |
         {profile: $c, provider: $p, bounds: $bounds, scope: $bad.scope, pct: $bad.effectivePercentRemaining, runway: $bad.runway.status, eligible: false, reason: "0% remaining at \($bad.scope)"}
       elif $profile_floor_state == "below" then
@@ -512,7 +510,8 @@ RESULT=$(jq -n --arg floor "$CONFIDENCE_FLOOR" --argjson lat "$LAT_MS" --arg non
       else
         ($rows | min_by(.selection.spendPriority)) as $limiting |
         {profile: $c, provider: $p, bounds: $bounds, scope: $limiting.scope, pct: $limiting.effectivePercentRemaining,
-         spendPriority: $limiting.selection.spendPriority, runway: $limiting.runway.status, eligible: true, reason: "ok"}
+         spendPriority: $limiting.selection.spendPriority, runway: $limiting.runway.status, eligible: true,
+         reason: (if $prepaid then "grok prepaid credits usable (remaining \(prov($p; $lane).credits.remaining // "unknown"))" else "ok" end)}
       end
     end;
   def rule_at($c):
@@ -604,7 +603,7 @@ TEXT=$(jq -r '
       + (if .provider then "  provider=\(.provider | flat)" else "" end)
       + (if .scope then "  scope=\(.scope | flat)  remaining=\(show(.pct))%  spendPriority=\(show(.spendPriority))  runway=\(show(.runway))" else "" end)
       + (if (.bounds // [] | length) > 1 then "  bounds=" + ([.bounds[] | "\(.scope | flat):\(show(.pct))%/\((.runway // .status) | flat)"] | join(",")) else "" end)
-      + "  -> " + (if .unranked then "eligible, unranked: \(.reason | flat): disclosed uncertainty" elif .eligible then "eligible" else "not eligible: \(.reason | flat)" end)),
+      + "  -> " + (if .unranked then "eligible, unranked: \(.reason | flat): disclosed uncertainty" elif .eligible then "eligible" + (if .reason == "ok" then "" else ": \(.reason | flat)" end) else "not eligible: \(.reason | flat)" end)),
   (if .chosen then "  profile: --harness \(.chosen.profile.harness | shell_arg)"
       + (if .chosen.profile.model then " --model \(.chosen.profile.model | shell_arg)" else "" end)
       + (if .chosen.profile.effort then " --effort \(.chosen.profile.effort | shell_arg)" else "" end) else empty end)' <<<"$RESULT") || emit_error "output rendering failed"
