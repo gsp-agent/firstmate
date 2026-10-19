@@ -580,7 +580,7 @@ Repeated watcher sweeps exhaust their total budget across multiple blocked rows 
 Retiring attempted rows and adding new ones preserves progress, pending receipt recovery, subprocess cleanup, and eventual supervision retirement.
 An interrupted new lifecycle header preserves the historical answer and retries safely; repeated isolated remote dispatch preserves the declared owner and rejects invalid declarations before transport.
 The portable fixture implements the router protocol; `FM_TEST_HOLD_DOMAIN_ROUTER` selects an installed agent-config router for the same cases with an isolated transport.
-`FM_TEST_HOLD_DOMAIN_ONLY=1` runs only these routing cases.
+[The lifecycle suite's header](../tests/fm-captain-hold-lifecycle.test.sh) owns focused routing selection and CI lane precedence.
 
 ### Legacy paths
 

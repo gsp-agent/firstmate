@@ -3,8 +3,11 @@
 # is simply a task waiting on the captain", its completion gate, its recorded
 # answers, the record-divergence guard over its two records, and the legacy
 # compatibility for pre-collapse decision identities.
-# FM_TEST_HOLD_DOMAIN_ONLY=1 selects the routing cases. Set
-# FM_TEST_HOLD_DOMAIN_ROUTER to exercise an installed router with fake transport.
+# FM_CAPTAIN_HOLD_LANE=a|b|all selects the lane lists and overrides both
+# routing filters. With it unset, FM_TEST_HOLD_ROUTING_REGRESSION selects a
+# named regression group; FM_TEST_HOLD_DOMAIN_ONLY=1 selects routing cases
+# when no named group was selected. Set FM_TEST_HOLD_DOMAIN_ROUTER to exercise
+# an installed router with fake transport.
 set -u
 
 # shellcheck source=tests/lib.sh

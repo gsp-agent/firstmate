@@ -12,7 +12,7 @@ Local timings are not interchangeable with CI timings: platform and machine load
 Both hint tables were refreshed on 2026-09-30 from five Ubuntu CI runs: [36583881812](https://github.com/kunchenguid/firstmate/actions/runs/36583881812), [36658498535](https://github.com/kunchenguid/firstmate/actions/runs/36658498535), [36663947738](https://github.com/kunchenguid/firstmate/actions/runs/36663947738), [36664663190](https://github.com/kunchenguid/firstmate/actions/runs/36664663190), and [36669175457](https://github.com/kunchenguid/firstmate/actions/runs/36669175457).
 Use the slowest successful `duration_ms` per script across their uploaded portable timing artifacts and completed `FM_TEST_END` log markers, with the exceptions below.
 All artifact records were cross-checked against the corresponding job's markers.
-This covers all 24 parallel and 201 serial members; an existing live-capability skip is a portable-runner measurement, not a timing claim for the unavailable live integration.
+That refresh covered the 24 parallel and 201 serial members present then; an existing live-capability skip is a portable-runner measurement, not a timing claim for the unavailable live integration.
 Observed maxima provide conservative packing weights, not an upper bound on future durations.
 
 Two serial-5 jobs were cancelled at their 30-minute cap and uploaded no artifact.
