@@ -1,0 +1,10 @@
+head run 4: exit=0 31s load=45.75 60.41 58.69 :: ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+base run 4: exit=0 26s load=37.89 57.13 57.56 :: ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+head run 5: exit=0 24s load=33.34 54.81 56.72 :: ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+base run 5: exit=1 42s load=33.55 51.87 55.53 :: not ok - an engine tool process in its own process group outlived the turn: 50587 50587 sleep 120
+head run 6: exit=0 28s load=32.40 50.09 54.78 :: ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+base run 6: exit=0 23s load=29.13 47.97 53.89 :: ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+head run 7: exit=0 29s load=29.26 46.19 53.04 :: ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+base run 7: exit=0 29s load=31.39 45.13 52.41 :: ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+head run 8: exit=1 34s load=30.62 43.68 51.64 :: not ok - an engine tool process in its own process group outlived the turn: 23817 23817 sleep 120
+base run 8: exit=0 29s load=30.44 42.40 50.90 :: ok - host: an engine turn is bounded, and tool processes outside its process group are reaped

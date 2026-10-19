@@ -1,0 +1,21 @@
+real function table: 76 test_* cases (compgen -A function inside the running file)
+run                      exit  cases  dups equals
+unset-direct                0     76     0 all-defined
+empty-direct                0     76     0 all-defined
+all-direct                  0     76     0 all-defined
+a-direct                    0     57     0 -
+b-direct                    0     19     0 -
+lane-a-wrapper              0     57     0 -
+lane-b-wrapper              0     19     0 -
+lane-a-wrapper-env-all      0     57     0 -
+bogus-direct                1      0     0 -
+uppercase-direct            1      0     0 -
+
+lane-a wrapper and lane-b wrapper share 0 cases
+lane-a wrapper + lane-b wrapper = every defined case, each exactly once
+unset-direct runs lane a's cases then lane b's, in file order
+
+bogus-direct output:
+not ok - FM_SUPERVISION_HOST_LANE must be a, b or all, got bogus
+uppercase-direct output:
+not ok - FM_SUPERVISION_HOST_LANE must be a, b or all, got A

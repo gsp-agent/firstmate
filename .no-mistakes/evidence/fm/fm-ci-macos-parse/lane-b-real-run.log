@@ -1,0 +1,9 @@
+start 2026-10-19T00:30:22Z
+ok - host: a turn that reports but leaves its granted rows queued hands the wake to main
+ok - host: a captain return during a failed engine turn still hands that turn's outcomes to main
+ok - host: an engine turn whose result is incomplete hands its wake to main
+ok - host: two engine errors latch the session, main keeps every away wake in the cooldown, a failed probe doubles it up to its cap, and a report recovers it silently
+ok - host: an attended close in a latched session reaches main as the arm printed it and leaves the latch as it was, and a home that opted out with off never reads it
+ok - host: attended, two engine errors latch the session, main keeps every close unchanged in the cooldown, a failed probe doubles it up to its cap, and a routine probe's recovery stays in the ledger, off main
+not ok - an engine tool process in its own process group outlived the turn: 54826 54826 sleep 120
+exit=1 elapsed=704s end 2026-10-19T00:42:11Z

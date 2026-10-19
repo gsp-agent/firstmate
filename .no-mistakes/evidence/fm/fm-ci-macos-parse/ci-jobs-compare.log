@@ -1,0 +1,22 @@
+base checks: 18  head checks: 18
+names identical: True
+timeouts identical: True
+portable serial checks at head: 9 -> ['Behavior portable serial 1', 'Behavior portable serial 2', 'Behavior portable serial 3', 'Behavior portable serial 4', 'Behavior portable serial 5', 'Behavior portable serial 6', 'Behavior portable serial 7', 'Behavior portable serial 8', 'Behavior portable serial 9']
+    30 min  Behavior portable parallel 1
+    30 min  Behavior portable parallel 2
+    30 min  Behavior portable serial 1
+    30 min  Behavior portable serial 2
+    30 min  Behavior portable serial 3
+    30 min  Behavior portable serial 4
+    30 min  Behavior portable serial 5
+    30 min  Behavior portable serial 6
+    30 min  Behavior portable serial 7
+    30 min  Behavior portable serial 8
+    30 min  Behavior portable serial 9
+    75 min  Behavior tests (Herdr)
+     5 min  Behavior timing aggregate
+    30 min  Lint 1
+    30 min  Lint 2
+     5 min  Repo invariants
+    30 min  Stock macOS Bash snapshot compatibility
+     5 min  Test coverage guard

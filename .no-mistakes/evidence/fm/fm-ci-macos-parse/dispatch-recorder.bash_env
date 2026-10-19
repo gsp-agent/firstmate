@@ -1,0 +1,30 @@
+# BASH_ENV hook for a live run of tests/fm-supervision-host.test.sh (directly or
+# through a lane wrapper). In the subject process only, it arms a DEBUG trap
+# that sees each case call the file's own lane dispatch makes. It records the
+# real function table at the first dispatched call and every dispatched case
+# name. A case named in FM_DISPATCH_RUN_REAL runs its real body; every other
+# case body is skipped (extdebug: a nonzero DEBUG trap skips the command).
+case "$0" in
+  */fm-supervision-host.test.sh)
+    export -n BASH_ENV; unset BASH_ENV   # the subject's children run untouched
+    set -T
+    __fm_dbg() {
+      # extdebug set at startup would try to load bashdb; set it on the first trap.
+      shopt -q extdebug || shopt -s extdebug
+      case "${FUNCNAME[1]:-}" in
+        supervision_host_lane_a|supervision_host_lane_b) ;;
+        *) return 0 ;;
+      esac
+      case "$BASH_COMMAND" in test_*) ;; *) return 0 ;; esac
+      if [ ! -s "$FM_DISPATCH_RECORD.defined" ]; then
+        compgen -A function | grep '^test_' | LC_ALL=C sort > "$FM_DISPATCH_RECORD.defined"
+      fi
+      case " ${FM_DISPATCH_RUN_REAL:-} " in
+        *" $BASH_COMMAND "*) printf '%s\t%s\tran\n' "${FUNCNAME[1]}" "$BASH_COMMAND" >> "$FM_DISPATCH_RECORD"; return 0 ;;
+      esac
+      printf '%s\t%s\tskipped\n' "${FUNCNAME[1]}" "$BASH_COMMAND" >> "$FM_DISPATCH_RECORD"
+      return 1
+    }
+    trap '__fm_dbg' DEBUG
+    ;;
+esac

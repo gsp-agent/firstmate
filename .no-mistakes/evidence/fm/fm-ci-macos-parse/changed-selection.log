@@ -1,0 +1,33 @@
+== real branch: --changed --base 9ed80766 (this PR's own diff)
+  total selected: 163
+  supervision-host files selected: tests/fm-supervision-host.test.sh 
+  afk family members selected: 4
+  lane-a cases run 1 time(s), lane-b cases run 1 time(s)
+== disposable copy: changed host source only (bin/fm-supervision-host.sh)
+  supervision-host files selected: tests/fm-supervision-host-lane-a.test.sh tests/fm-supervision-host-lane-b.test.sh 
+  afk family members selected: 4
+  lane-a cases run 1 time(s), lane-b cases run 1 time(s)
+== disposable copy: changed afk lib only (bin/fm-afk-contract.sh)
+  supervision-host files selected: tests/fm-supervision-host-lane-a.test.sh tests/fm-supervision-host-lane-b.test.sh 
+  afk family members selected: 4
+  lane-a cases run 1 time(s), lane-b cases run 1 time(s)
+== disposable copy: changed host source + subject test (bin/fm-supervision-host.sh tests/fm-supervision-host.test.sh)
+  supervision-host files selected: tests/fm-supervision-host.test.sh 
+  afk family members selected: 4
+  lane-a cases run 1 time(s), lane-b cases run 1 time(s)
+== disposable copy: changed subject test only (tests/fm-supervision-host.test.sh)
+  supervision-host files selected: tests/fm-supervision-host.test.sh 
+  afk family members selected: 0
+  lane-a cases run 1 time(s), lane-b cases run 1 time(s)
+== disposable copy: changed lane-b wrapper only (tests/fm-supervision-host-lane-b.test.sh)
+  supervision-host files selected: tests/fm-supervision-host-lane-b.test.sh 
+  afk family members selected: 0
+  lane-a cases run 0 time(s), lane-b cases run 1 time(s)
+== disposable copy: changed lane-a wrapper + subject (tests/fm-supervision-host-lane-a.test.sh tests/fm-supervision-host.test.sh)
+  supervision-host files selected: tests/fm-supervision-host.test.sh 
+  afk family members selected: 0
+  lane-a cases run 1 time(s), lane-b cases run 1 time(s)
+== disposable copy: changed branch dispatch + subject (bin/fm-branch-dispatch.mjs tests/fm-supervision-host.test.sh)
+  supervision-host files selected: tests/fm-supervision-host.test.sh 
+  afk family members selected: 4
+  lane-a cases run 1 time(s), lane-b cases run 1 time(s)

@@ -1,0 +1,9 @@
+stock bash: GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+head: 94c679e2
+files in inventory: 478
+PASS: every inventoried shell file parses under stock Bash 3.2 at HEAD
+--- failing-first: the base copy of tests/fm-pi-watch-extension.test.sh
+/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-pi-watch-base.Z2anoT: line 3512: unexpected EOF while looking for matching `)'
+/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-pi-watch-base.Z2anoT: line 5258: syntax error: unexpected end of file
+base copy FAILS to parse under stock Bash 3.2 (expected, the reported red)
+HEAD copy of tests/fm-pi-watch-extension.test.sh parses under stock Bash 3.2
