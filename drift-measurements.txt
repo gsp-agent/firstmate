@@ -797,3 +797,20 @@ Required result: exit 0, zero path-drift and carried-unproven lines, and 26 pend
 Before, an unreferenced scratch commit with this tree on c5d4fc87, checked with 550f3e6e's manifest (--fork <scratch sha> --proof <550f3e6e's drift-proof.txt>): exit 1, path-drift for the 18 files 9cfe7cfe changes plus drift-measurements.txt and drift-proof.txt, and 9cfe7cfe and the scratch commit printed as unproven.
 Checked before the commit on that scratch commit with this manifest (--fork <scratch sha>): exit 0, 26 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, keep for 550f3e6e and the scratch commit, and the same 35 unproven cut commits that 550f3e6e's own check prints.
 The same check with 9cfe7cfe's pending line removed: exit 1 with "carried-unproven: 9cfe7cfef9a9be2e1ffb82a456ff73e421cce143 fix: clear the required CI checks on upstream-lean and split supervision-host tests into two lanes (#42)".
+
+R27 committed proof
+Measured: 2026-10-19 (Central), git 2.56.0
+chip's review of 520736b8 on https://github.com/gsp-agent/firstmate/pull/25 found that check selected <repo>/drift-proof.txt from the working tree after capturing the fork SHA, so an untracked or uncommitted proof could prove arbitrary fork drift and keep the nightly green.
+Upstream has no drift guard, so the comparison is the fork's own previous script.
+Reproduction in a scratch repository, chip's shape: commit an otherwise-unproven notes.txt, leave an untracked drift-proof.txt naming that commit, run check --no-fetch --fork HEAD --upstream upstream.
+Before, 520736b8's script: exit 0, "path-ok: notes.txt" and "keep: <sha> add notes", while git ls-tree HEAD lists only README and notes.txt.
+After, ace8921a's script: exit 1, "path-drift: notes.txt" and "unproven: <sha> add notes".
+$ bash tests/fm-drift-nightly.test.sh at a1b86280: exit 1 at "not ok - an untracked drift-proof.txt naming an unproven commit exits 1: : expected exit 1, got 0".
+$ bash tests/fm-drift-nightly.test.sh at ace8921a: 33 checks passed, including "the default proof is drift-proof.txt in the committed fork tree, never the working tree", which also covers an uncommitted edit to a committed drift-proof.txt.
+
+R27 finalization
+The manifest lists 520736b8 with its R23 proof and a1b86280 and ace8921a with the section above, and its fixed-parent entry names ace8921a so it selects only the commit delivering this manifest.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Required result: exit 0, zero path-drift and carried-unproven lines, and 26 pending lines naming .agent-config-dtjsb on the resulting head.
+Before, ace8921a with the manifest it carries from 520736b8: exit 1, path-drift for bin/fm-drift-nightly.sh and tests/fm-drift-nightly.test.sh, and a1b86280 and ace8921a printed as unproven.
+Checked before the commit on an unreferenced scratch commit with this tree on ace8921a (--fork <scratch sha>, which now reads the scratch commit's own drift-proof.txt): exit 0, 26 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, keep for 520736b8, a1b86280, ace8921a and the scratch commit, and the same 35 unproven cut commits that 520736b8's own check prints.
