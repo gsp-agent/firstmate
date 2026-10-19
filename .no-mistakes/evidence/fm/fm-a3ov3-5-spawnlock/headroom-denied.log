@@ -1,0 +1,5 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-denied-b /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake
+deferred: project project admits 1 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/config/project-capacity) and 1 already hold a place (nms-retake-seed); task nms-denied-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+
+exit=75 elapsed=0.70s

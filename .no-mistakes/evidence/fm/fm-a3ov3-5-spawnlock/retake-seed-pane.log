@@ -1,0 +1,43 @@
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-retake-seed -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-5d0aee/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-5d0aee/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-retake-seed/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-retake-seed
+bash-3.2$ . '/tmp/fm-nms-retake-seed+92fe375300677de48919bc6c74c579e11c74a67adb8c9c38dc44cef1e85003f7/launch.s1792403724
+.35412.28930.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.10s

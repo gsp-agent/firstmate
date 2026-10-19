@@ -1,0 +1,5 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-publication-b /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/publication/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/publication
+error: this home's task set is locked by another spawn; refusing to create task nms-publication-b rather than racing it
+
+exit=1 elapsed=0.23s

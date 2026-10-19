@@ -1,0 +1,29 @@
+{
+  "retired": [
+    {
+      "home": ".nm-test-tmp/live/cross-home",
+      "task": "nms-cross-seed"
+    },
+    {
+      "home": ".nm-test-tmp/live/retake",
+      "task": "nms-retake-seed"
+    },
+    {
+      "home": ".nm-test-tmp/live/same-home",
+      "task": "nms-same-a"
+    },
+    {
+      "home": ".nm-test-tmp/live/same-home",
+      "task": "nms-same-seed"
+    },
+    {
+      "home": ".nm-test-tmp/live/teardown",
+      "task": "nms-teardown-a"
+    },
+    {
+      "home": ".nm-test-tmp/live/cross-home/mate",
+      "task": "nms-cross-b"
+    }
+  ],
+  "private_tmux_stopped": true
+}

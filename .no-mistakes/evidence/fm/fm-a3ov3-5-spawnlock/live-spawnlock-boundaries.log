@@ -1,0 +1,84 @@
+
+SCENARIO Headroom opt-out preserves the existing capacity deferral
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-off-b /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake
+deferred: project project admits 1 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/config/project-capacity) and 1 already hold a place (nms-retake-seed); task nms-off-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+
+exit=75 elapsed=0.69s
+
+nms-off-b: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-off-b
+  title: Disposable nms-off-b
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+Blank opt-in preserves capacity deferral; no additional reading was invoked.
+OBSERVED PASS: Headroom opt-out preserves the existing capacity deferral
+
+SCENARIO A failed reading defers without publishing or consuming a window
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-denied-b /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake
+deferred: project project admits 1 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/config/project-capacity) and 1 already hold a place (nms-retake-seed); task nms-denied-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The headroom reading reported no room.
+
+exit=75 elapsed=0.70s
+
+nms-denied-b: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-denied-b
+  title: Disposable nms-denied-b
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+A reading that prints a room line but exits 1 defers without consuming the window.
+OBSERVED PASS: A failed reading defers without publishing or consuming a window
+
+SCENARIO Zero capacity admits no extra start and never invokes the reading
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-zero-b /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake
+deferred: project project admits 0 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/config/project-capacity) and 1 already hold a place (nms-retake-seed); task nms-zero-b was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up
+
+exit=75 elapsed=0.58s
+
+nms-zero-b: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-zero-b
+  title: Disposable nms-zero-b
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+Zero capacity is not raised, and its configured positive reading is not invoked.
+OBSERVED PASS: Zero capacity admits no extra start and never invokes the reading

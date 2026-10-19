@@ -1,0 +1,7 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-teardown-seed /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown/data/nms-teardown-seed/launch-brief.md records no ship branch; defaulting to legacy branch fm/nms-teardown-seed
+notice: nms-teardown-seed ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nms-teardown-seed harness=codex kind=ship mode=local-only yolo=off window=fm-lab-spawnlock:fm-nms-teardown-seed worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-19f602/1/project
+
+exit=0 elapsed=10.46s

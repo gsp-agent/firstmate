@@ -1,0 +1,43 @@
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-same-seed -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-b17864/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-b17864/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-same-seed/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-same-seed
+bash-3.2$ . '/tmp/fm-nms-same-seed+ce394c6bfce8c87bdf2327ea0c3db95648f077157657b703585c128d085b4790/launch.s1792403691.2
+1792.1596.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.02s

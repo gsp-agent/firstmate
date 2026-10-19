@@ -1,0 +1,43 @@
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-teardown-a -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+bash: child setpgid (62438 to 62438): Operation not permitted
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-19f602/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-19f602/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-teardown-a/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-teardown-a
+bash-3.2$ . '/tmp/fm-nms-teardown-a+36f658981e68d3fbae0ed7af2d3277e3a5f9160959f5d61b55b5864f5b7c54ea/launch.s1792403780.
+50688.22486.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.01s

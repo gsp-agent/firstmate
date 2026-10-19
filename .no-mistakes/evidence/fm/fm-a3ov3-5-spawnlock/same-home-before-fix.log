@@ -1,0 +1,2 @@
+not ok - a same-home ship started during a reading did not defer: error: this home's task set is locked by another spawn; refusing to create task task-b rather than racing it: expected exit 75, got 1
+not ok - same-home contention checks failed: expected exit 0, got 1

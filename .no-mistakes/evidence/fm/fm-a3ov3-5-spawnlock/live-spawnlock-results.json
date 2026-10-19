@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Same-home fresh ships, scouts and batch entries defer 75 during a reading without side effects",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Failed project-lock retake defers 75 without launching or consuming a window",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Same-project cleanup during reading succeeds and recount admits the freed place without spending a window",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Other local home takes exactly one extra start; original recount sees spent window and defers 75",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Ordinary task publication contention still refuses 1 and creates nothing",
+    "result": "pass",
+    "live": true
+  }
+]

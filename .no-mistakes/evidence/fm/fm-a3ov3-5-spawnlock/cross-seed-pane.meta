@@ -1,0 +1,13 @@
+window=fm-lab-spawnlock:fm-nms-cross-seed
+endpoint_task_id=nms-cross-seed
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-efb490/1/project
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home/projects/project
+harness=codex
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/nms-cross-seed
+tasktmp=/tmp/fm-nms-cross-seed
+model=default
+effort=default
+spawn_gen=s1792403790.66522.6694

@@ -1,0 +1,579 @@
+Real tools: tmux 3.8; v2.3.0; codex-cli 0.162.1
+No harness prompt or credential/configuration mutation is used. Version commands run through the real documented raw-launch interface.
+
+SCENARIO Same-home fresh ships, scouts and batch entries defer 75 during a reading without side effects
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-same-seed /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/data/nms-same-seed/launch-brief.md records no ship branch; defaulting to legacy branch fm/nms-same-seed
+notice: nms-same-seed ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nms-same-seed harness=codex kind=ship mode=local-only yolo=off window=fm-lab-spawnlock:fm-nms-same-seed worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-b17864/1/project
+
+exit=0 elapsed=13.72s
+
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-same-seed -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-b17864/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-b17864/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-same-seed/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-same-seed
+bash-3.2$ . '/tmp/fm-nms-same-seed+ce394c6bfce8c87bdf2327ea0c3db95648f077157657b703585c128d085b4790/launch.s1792403691.2
+1792.1596.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.02s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-scout-b /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/projects/project --scout --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home
+deferred: this home's task set is held by a spawn running a headroom reading; task nms-scout-b was not launched and its backlog item stays queued
+
+exit=75 elapsed=0.58s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-ship-b /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home
+deferred: this home's task set is held by a spawn running a headroom reading; task nms-ship-b was not launched and its backlog item stays queued
+
+exit=75 elapsed=0.60s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-bscout-b=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/projects/project --scout --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home
+deferred: this home's task set is held by a spawn running a headroom reading; task nms-bscout-b was not launched and its backlog item stays queued
+batch: DEFERRED nms-bscout-b (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/projects/project) - its project is at capacity, so it stays queued
+
+exit=75 elapsed=0.88s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-bship-b=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home
+deferred: this home's task set is held by a spawn running a headroom reading; task nms-bship-b was not launched and its backlog item stays queued
+batch: DEFERRED nms-bship-b (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/projects/project) - its project is at capacity, so it stays queued
+
+exit=75 elapsed=0.89s
+
+nms-ship-b: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-ship-b
+  title: Disposable nms-ship-b
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+nms-scout-b: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-scout-b
+  title: Disposable nms-scout-b
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+nms-bship-b: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-bship-b
+  title: Disposable nms-bship-b
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+nms-bscout-b: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-bscout-b
+  title: Disposable nms-bscout-b
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-same-a /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home
+headroom: cpu_idle_pct=90 load1=0.10 disk_free_gb=80
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/same-home/data/nms-same-a/launch-brief.md records no ship branch; defaulting to legacy branch fm/nms-same-a
+notice: nms-same-a ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nms-same-a harness=codex kind=ship mode=local-only yolo=off window=fm-lab-spawnlock:fm-nms-same-a worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-b17864/2/project
+
+exit=0 elapsed=16.05s
+
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-same-a -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-b17864/2/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-b17864/2/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-same-a/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-same-a
+bash-3.2$ . '/tmp/fm-nms-same-a+ce394c6bfce8c87bdf2327ea0c3db95648f077157657b703585c128d085b4790/launch.s1792403709.2899
+9.14542.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.01s
+
+All four same-home variants exited 75; the original admitted exactly one extra worker.
+OBSERVED PASS: Same-home fresh ships, scouts and batch entries defer 75 during a reading without side effects
+
+SCENARIO Failed project-lock retake defers 75 without launching or consuming a window
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-retake-seed /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/data/nms-retake-seed/launch-brief.md records no ship branch; defaulting to legacy branch fm/nms-retake-seed
+notice: nms-retake-seed ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nms-retake-seed harness=codex kind=ship mode=local-only yolo=off window=fm-lab-spawnlock:fm-nms-retake-seed worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-5d0aee/1/project
+
+exit=0 elapsed=21.38s
+
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-retake-seed -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-5d0aee/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-5d0aee/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-retake-seed/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-retake-seed
+bash-3.2$ . '/tmp/fm-nms-retake-seed+92fe375300677de48919bc6c74c579e11c74a67adb8c9c38dc44cef1e85003f7/launch.s1792403724
+.35412.28930.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.10s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-retake-a /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake
+deferred: project project admits 1 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/retake/config/project-capacity) and 1 already hold a place (nms-retake-seed); task nms-retake-a was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. The project lock was taken while the headroom reading ran, so this spawn deferred rather than racing it.
+
+exit=75 elapsed=1.38s
+
+nms-retake-a: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-retake-a
+  title: Disposable nms-retake-a
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+OBSERVED PASS: Failed project-lock retake defers 75 without launching or consuming a window
+
+SCENARIO Same-project cleanup during reading succeeds and recount admits the freed place without spending a window
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-teardown-seed /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown/data/nms-teardown-seed/launch-brief.md records no ship branch; defaulting to legacy branch fm/nms-teardown-seed
+notice: nms-teardown-seed ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nms-teardown-seed harness=codex kind=ship mode=local-only yolo=off window=fm-lab-spawnlock:fm-nms-teardown-seed worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-19f602/1/project
+
+exit=0 elapsed=10.46s
+
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-teardown-seed -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-19f602/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-19f602/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-teardown-seed/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-teardown-seed
+bash-3.2$ . '/tmp/fm-nms-teardown-seed+36f658981e68d3fbae0ed7af2d3277e3a5f9160959f5d61b55b5864f5b7c54ea/launch.s17924037
+45.45160.12690.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.01s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-teardown.sh nms-teardown-seed
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 15s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+teardown: reaping leaked worktree process(es) for nms-teardown-seed: 47568 53279
+teardown: force-killing leaked worktree process(es) for nms-teardown-seed: 47568
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown nms-teardown-seed complete (window fm-lab-spawnlock:fm-nms-teardown-seed, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-19f602/1/project)
+Backlog: nms-teardown-seed is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+
+exit=0 elapsed=25.41s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-teardown-a /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/teardown/data/nms-teardown-a/launch-brief.md records no ship branch; defaulting to legacy branch fm/nms-teardown-a
+notice: nms-teardown-a ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nms-teardown-a harness=codex kind=ship mode=local-only yolo=off window=fm-lab-spawnlock:fm-nms-teardown-a worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-19f602/1/project
+
+exit=0 elapsed=34.54s
+
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-teardown-a -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+bash: child setpgid (62438 to 62438): Operation not permitted
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-19f602/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-19f602/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-teardown-a/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-teardown-a
+bash-3.2$ . '/tmp/fm-nms-teardown-a+36f658981e68d3fbae0ed7af2d3277e3a5f9160959f5d61b55b5864f5b7c54ea/launch.s1792403780.
+50688.22486.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.01s
+
+Cleanup completed during the reading; recount launched inside the cap even though the reading denied room; no window consumed.
+OBSERVED PASS: Same-project cleanup during reading succeeds and recount admits the freed place without spending a window
+
+SCENARIO Other local home takes exactly one extra start; original recount sees spent window and defers 75
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-cross-seed /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home/data/nms-cross-seed/launch-brief.md records no ship branch; defaulting to legacy branch fm/nms-cross-seed
+notice: nms-cross-seed ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nms-cross-seed harness=codex kind=ship mode=local-only yolo=off window=fm-lab-spawnlock:fm-nms-cross-seed worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-efb490/1/project
+
+exit=0 elapsed=9.00s
+
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-cross-seed -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-efb490/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-efb490/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-cross-seed/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-cross-seed
+bash-3.2$ . '/tmp/fm-nms-cross-seed+2b325744444b09eda9856a63e09568c45f09bc942f4068bb4bc9df7395afb386/launch.s1792403790.
+66522.6694.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.01s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-cross-b /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home/mate/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home/mate
+headroom: cpu_idle_pct=90 load1=0.10 disk_free_gb=80
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home/mate/data/nms-cross-b/launch-brief.md records no ship branch; defaulting to legacy branch fm/nms-cross-b
+notice: nms-cross-b ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nms-cross-b harness=codex kind=ship mode=local-only yolo=off window=fm-lab-spawnlock:fm-nms-cross-b worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehouse/project-efb490/2/project
+
+exit=0 elapsed=9.90s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-cross-a /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home
+deferred: project project admits 1 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home/config/project-capacity) and 2 already hold a place (nms-cross-seed, nms-cross-b in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/cross-home/mate); task nms-cross-a was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up. This project already started one worker past that count in the current window.
+
+exit=75 elapsed=10.82s
+
+nms-cross-a: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-cross-a
+  title: Disposable nms-cross-a
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+$ tmux -S .nm-test-tmp/s capture-pane -p -t fm-lab-spawnlock:fm-nms-cross-b -S -100
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool/.treehous
+e/project-efb490/2/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/pool
+/.treehouse/project-efb490/2/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nms-cross-b/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nms-cross-b
+bash-3.2$ . '/tmp/fm-nms-cross-b+03d633909dbd3ff786ba4980477a3e040494f7c3ecf8fab6750181cda5813e6e/launch.s1792403801.712
+91.927.sh'
+codex-cli 0.162.1
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0 elapsed=0.01s
+
+The other local home launched the one extra worker; the original rechecked the spent window and deferred 75.
+OBSERVED PASS: Other local home takes exactly one extra start; original recount sees spent window and defers 75
+
+SCENARIO Ordinary task publication contention still refuses 1 and creates nothing
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/bin/fm-spawn.sh nms-publication-b /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/publication/projects/project --mode local-only --yolo off --backend tmux --harness 'codex --version'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59NQ5AD412S4SCJMT64TFN4/.nm-test-tmp/live/publication
+error: this home's task set is locked by another spawn; refusing to create task nms-publication-b rather than racing it
+
+exit=1 elapsed=0.23s
+
+nms-publication-b: metadata absent, launch brief absent, terminal absent, worktrees unchanged; task:
+  id: nms-publication-b
+  title: Disposable nms-publication-b
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+OBSERVED PASS: Ordinary task publication contention still refuses 1 and creates nothing
+Private tmux server stopped; results saved.

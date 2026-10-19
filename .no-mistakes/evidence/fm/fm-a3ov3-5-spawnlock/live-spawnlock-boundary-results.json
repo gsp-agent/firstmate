@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Headroom opt-out preserves the existing capacity deferral",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A failed reading defers without publishing or consuming a window",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Zero capacity admits no extra start and never invokes the reading",
+    "result": "pass",
+    "live": true
+  }
+]
