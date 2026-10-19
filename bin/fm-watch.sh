@@ -2900,7 +2900,11 @@ while :; do
           run_check_capture "$SCRIPT_DIR/fm-captain-hold.sh" reprobe "$captain_probe_id" || exit 1
         case "$FM_CHECK_RESULT" in
           "released: $captain_probe_id")
-            reason="check: captain hold $captain_probe_id released after a passing probe"
+            if [ "$FM_CHECK_STATUS" -eq 0 ]; then
+              reason="check: captain hold $captain_probe_id released after a passing probe"
+            else
+              reason="check: captain hold $captain_probe_id released but finalization failed; run bin/fm-captain-hold.sh reprobe $captain_probe_id to finish it"
+            fi
             fm_wake_append check "captain-hold-probe-$captain_probe_id" "$reason" || exit 1
             check_sweep_output="${check_sweep_output}${reason}"$'\n'
             ;;

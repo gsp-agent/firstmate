@@ -1000,12 +1000,13 @@ command_reprobe() {
     printf 'kept: %s not-held\n' "$id"
     return 0
   fi
+  printf 'released: %s\n' "$id"
   remove_interrupted_answer_stamp "$id"
   task_show_or_fail "$id" "task $id disappeared after its probe release"
   body_has_resolution_record "$(show_field "$show" body)" \
     || fail "captain-held task $id did not retain its probe release record"
   publish_parent_resolution_then_retire "$id" "$occurrence" probe-released
-  printf 'released: %s\n' "$id"
+  [ "$PARENT_HOLD_PUBLISHED" = 1 ] || fail "could not publish the probe-released task $id to its parent"
 }
 
 refuse_self_inventory() {

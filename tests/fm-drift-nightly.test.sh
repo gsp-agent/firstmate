@@ -68,8 +68,8 @@ plist_args() { # <plist> -> ProgramArguments, one per line, read by a strict XML
   python3 -I -c 'import plistlib, sys; print("\n".join(plistlib.load(open(sys.argv[1], "rb"))["ProgramArguments"]))' "$1"
 }
 
-plist_value() { # <plist> <key> -> that string value, read by a strict XML plist parser
-  python3 -I -c 'import plistlib, sys; print(plistlib.load(open(sys.argv[1], "rb"))[sys.argv[2]])' "$1" "$2"
+plist_value() { # <plist> <key> -> that value, with dictionaries normalized as JSON
+  python3 -I -c 'import json, plistlib, sys; value = plistlib.load(open(sys.argv[1], "rb"))[sys.argv[2]]; print(json.dumps(value, sort_keys=True) if isinstance(value, dict) else value)' "$1" "$2"
 }
 
 nightly_fixture() { # <root>: <root>/repo clones <root>/upstream as its kunchenguid remote; <root>/home is a scratch Firstmate home
@@ -749,9 +749,15 @@ test_install_and_uninstall_round_trip() {
   assert_equals "installed: $plist" "$out" "install names the plist it wrote"
   assert_present "$plist" "install did not write the plist"
   assert_grep "bootstrap gui/$(id -u) $plist" "$log" "install did not bootstrap the agent"
-  assert_grep '<integer>3</integer>' "$plist" "the plist hour is not 3"
-  assert_grep '<integer>17</integer>' "$plist" "the plist minute is not 17"
-  assert_grep "$repo" "$plist" "the plist does not name the repo"
+  assert_equals '{"Hour": 3, "Minute": 17}' "$(plist_value "$plist" StartCalendarInterval)" \
+    "the plist calendar does not schedule 03:17"
+  assert_equals "/bin/bash
+$SCRIPT
+nightly
+--repo
+$repo
+--log
+$joblog" "$(plist_args "$plist")" "the plist does not pass the repository and log to the nightly command"
   assert_present "$dir/logs" "install did not create the log directory launchd writes into"
   assert_equals "$joblog" "$(plist_value "$plist" StandardOutPath)" "the job's stdout does not go to the log"
   assert_equals "$joblog" "$(plist_value "$plist" StandardErrorPath)" "the job's stderr does not go to the log"
@@ -896,6 +902,11 @@ test_bad_install_arguments_exit_2() {
   assert_equals "error: --log must be an absolute path" "$out" "a relative log path is named as the error"
   pass "install rejects hour 24 and a relative log path"
 }
+
+if [ -n "${FM_TEST_ONLY:-}" ]; then
+  "$FM_TEST_ONLY"
+  exit
+fi
 
 test_unproven_file_is_path_drift_and_exits_1
 test_proof_sha_makes_that_path_ok_and_exits_0
