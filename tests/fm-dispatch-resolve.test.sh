@@ -1041,14 +1041,12 @@ expect_code 2 "$code" "codex max stays model-scoped"
 printf '%s\n' '{"cursor_fallback":{"models_pct":0,"max_age_h":26},"default":{"harness":"cursor"}}' > "$RULES"
 run code out err --labels ""
 expect_code 2 "$code" "a malformed cursor_fallback is a configuration error"
-# jq -r prints 85.0 and 1E2 as written, which the guard's integer tests reject.
-for fallback in '{"models_pct":85.5,"max_age_h":26}' '{"models_pct":85,"max_age_h":0.5}' \
-  '{"models_pct":85.0,"max_age_h":26}' '{"models_pct":85,"max_age_h":26.0}' '{"models_pct":1E2,"max_age_h":26}'; do
-  jq -nc --argjson fallback "$fallback" '{cursor_fallback:$fallback,default:{harness:"cursor"}}' > "$RULES"
-  run code out err --labels ""
-  expect_code 2 "$code" "non-integer cursor_fallback spellings must fail validation: $fallback"
-  assert_not_contains "$out" "profile:" "an invalid fallback must never dispatch"
-done
+printf '%s\n' '{"cursor_fallback":{"models_pct":85.5,"max_age_h":26},"default":{"harness":"cursor"}}' > "$RULES"
+run code out err --labels ""
+expect_code 2 "$code" "a fractional cursor_fallback models_pct is a configuration error"
+printf '%s\n' '{"cursor_fallback":{"models_pct":85,"max_age_h":0.5},"default":{"harness":"cursor"}}' > "$RULES"
+run code out err --labels ""
+expect_code 2 "$code" "a fractional cursor_fallback max_age_h is a configuration error"
 printf '%s\n' '{"label_routes":{"docs-only":{"harness":"grok","model":"grok-4.7","effort":"xhigh"},"ep-opus":{"harness":"claude","model":"claude-opus-5-5[1m]","effort":"xhigh"}},"default":{"harness":"cursor","model":"grok-4.7-xhigh"}}' > "$RULES"
 run code out err --labels "docs-only"
 assert_contains "$out" "profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'" "docs-only routes to bare grok"

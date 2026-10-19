@@ -49,7 +49,7 @@
 #   5. read-once contract - the do-not-re-read contract covering every source
 #                       represented by the two digests below.
 #   6. fleet digest   - a compact data/backlog.md identity/metadata listing,
-#                       one line per state/*.meta with its newest status event,
+#                       every state/*.meta, a bounded state/*.status tail,
 #                       the away posture (state/.afk-contract and the legacy
 #                       state/.afk daemon flag), and a cheap per-task
 #                       endpoint-liveness read, each bounded and crash-
@@ -143,16 +143,12 @@
 #   - `done` rows are never listed. Retained completion history belongs to the
 #     reporting surfaces (bin/fm-bearings-snapshot.sh, /ahoy), and at startup it
 #     is pure weight - 10 done rows cost 3.3KB in an observed main-home digest.
-#   - Every in-flight, held, and blocked row is listed, never bounded away:
-#     those are the rows AGENTS.md sections 7 and 10 make actionable at startup.
-#     Each is ONE line capped by bin/fm-line-cap-lib.sh, so a long hold_reason
-#     costs one line, not a paragraph, and the full row stays one
-#     `bin/fm-tasks-axi.sh show <id> --full` away. An unheld, unblocked in-flight
-#     row with a task record (state/<id>.meta) is listed once, as that task's
-#     line under "Work under way"; held or blocked rows remain in the backlog
-#     listing as well.
+#   - Every in-flight, held, and blocked row is listed IN FULL, with its
+#     hold_kind/hold_reason and blocked_by. Those are the rows AGENTS.md
+#     sections 7 and 10 make actionable at startup, so they are never bounded
+#     away.
 #   - Only the plain queued (dispatchable-now) listing is bounded, by
-#     FM_SESSION_START_QUEUED_LIMIT, default 10. Anything it omits is disclosed
+#     FM_SESSION_START_QUEUED_LIMIT, default 20. Anything it omits is disclosed
 #     with an exact remainder count and the command that shows the rest, so a
 #     deep queue costs a counter rather than kilobytes.
 #     (This replaces FM_SESSION_START_BACKLOG_LIMIT, which bounded the whole
@@ -174,17 +170,11 @@
 # compatible tasks-axi is available, or `data/backlog.md` when the file body is
 # truly needed.
 #
-# WORK UNDER WAY: one line per state/<id>.meta - id, kind, harness/model, the
-# PR number, a cheap endpoint liveness read (named only when the endpoint is not
-# alive), the backlog title cut to 40 characters, and the task's newest status
-# event - capped at TASK_LINE_CAP by bin/fm-line-cap-lib.sh. The full
-# record (state/<id>.meta) and event history (state/<id>.status) are a path
-# away, and bin/fm-crew-state.sh owns current state, so a fleet of 30 tasks
-# costs about 6KB instead of 30KB.
-# STATUS TAILS: FM_SESSION_START_STATUS_TAIL (default 1) is how many status
-# lines each task shows: the newest on the task line, any older ones indented
-# beneath it, each capped the same way. Both bounds are safe because AGENTS.md
-# section 8 treats a status line as a wake EVENT rather than current state.
+# STATUS TAILS: FM_SESSION_START_STATUS_TAIL bounds how many lines each task's
+# tail prints, and bin/fm-line-cap-lib.sh bounds how long each of those lines
+# may be. Both bounds are safe because the section prints every task's full
+# status log path, and AGENTS.md section 8 treats a status line as a wake EVENT
+# rather than current state - bin/fm-crew-state.sh owns current state.
 #
 # RUNTIME BOUND: the digest is now executed through a native session-open
 # adapter (see bin/fm-sessionstart-run.sh), which blocks either hook-driven
@@ -395,18 +385,10 @@ PRIMARY_HARNESS=$("$SCRIPT_DIR/fm-harness.sh" 2>/dev/null || printf unknown)
 # agent's environment.
 if fm_tasks_axi_compatible; then TASKS_AXI_COMPATIBLE=1; else TASKS_AXI_COMPATIBLE=0; fi
 
-STATUS_TAIL=${FM_SESSION_START_STATUS_TAIL:-1}
-case "$STATUS_TAIL" in ''|*[!0-9]*|0) STATUS_TAIL=1 ;; esac
-QUEUED_LIMIT=${FM_SESSION_START_QUEUED_LIMIT:-10}
-# One task line, newest status event included; bin/fm-line-cap-lib.sh cuts it.
-TASK_LINE_CAP=150
-# Characters of the newest status event a task line always keeps: the title
-# shortens or drops first, and a bracket too long to leave this much room
-# lengthens the line instead of cutting the event (its status word and key).
-TASK_STATUS_ROOM=60
-# A listing row's title is descriptive; its blocker and hold fields follow it.
-LISTING_TITLE_CAP=60
-case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=10 ;; esac
+STATUS_TAIL=${FM_SESSION_START_STATUS_TAIL:-5}
+case "$STATUS_TAIL" in ''|*[!0-9]*) STATUS_TAIL=5 ;; esac
+QUEUED_LIMIT=${FM_SESSION_START_QUEUED_LIMIT:-20}
+case "$QUEUED_LIMIT" in ''|*[!0-9]*|0) QUEUED_LIMIT=20 ;; esac
 # Keep a hung endpoint read from consuming the digest's whole runtime budget.
 ENDPOINT_TIMEOUT=${FM_SESSION_START_ENDPOINT_TIMEOUT:-10}
 case "$ENDPOINT_TIMEOUT" in ''|*[!0-9]*) ENDPOINT_TIMEOUT=10 ;; esac
@@ -497,8 +479,10 @@ print_backlog_manual_compact() {
 # four listings, so keeping them would repeat the same pointers four times, once
 # per group, each carrying this home's full backlog path. The section prints one
 # equivalent pointer of its own (print_backlog_pointer), so the per-group help
-# blocks stop at their `help[` header instead (cap_listing_rows and
-# print_in_flight_rows below; print_ready_queued_bounded for the ready group).
+# blocks stop at their `help[` header instead.
+strip_axi_help() {
+  awk '/^help\[/ { exit } { print }'
+}
 
 # Bound the dispatchable-now listing without rewriting the tool's own rendering:
 # `tasks-axi ready` rows are the indented lines under its ready[N]{...} header,
@@ -526,107 +510,6 @@ print_ready_queued_bounded() {
   '
 }
 
-# compact_listing_titles: shorten each row's quoted or bare title field (the
-# fifth) to LISTING_TITLE_CAP characters and drop the multi-line truncation
-# notice tasks-axi appends to a long title, so the blocker and hold fields that
-# follow the title always fit inside the row cap below. Other lines pass as-is.
-compact_listing_titles() {
-  perl -ne '
-    BEGIN { $max = $ENV{LISTING_TITLE_CAP} || 60 }
-    if (/^(\s+)(\S.*?)\r?\n?$/) {
-      my ($indent, $rest) = ($1, $2);
-      my @f;
-      while (length $rest) {
-        if ($rest =~ s/^("(?:[^"\\]|\\.)*")(?:,|$)//) { push @f, $1 }
-        elsif ($rest =~ s/^([^,]*)(?:,|$)//) { push @f, $1 }
-        else { last }
-      }
-      if (@f >= 5 && !length $rest) {
-        my $t = $f[4];
-        my $quoted = $t =~ s/^"(.*)"$/$1/s;
-        $t =~ s/^((?:[^\\]|\\.)*?)\\n.*\z/$1/s if $quoted;
-        if (length($t) > $max) {
-          $t = substr($t, 0, $max - 3);
-          chop $t if $quoted && $t =~ /(\\+)$/ && length($1) % 2;
-          $t .= "...";
-        }
-        $f[4] = $quoted ? "\"$t\"" : $t;
-        print $indent, join(",", @f), "\n";
-        next;
-      }
-    }
-    print;
-  '
-}
-
-# cap_listing_rows: a tasks-axi listing with each indented row cut to one
-# bounded line (bin/fm-line-cap-lib.sh); headers and counts pass unchanged, and
-# the listing's own help block is dropped.
-cap_listing_rows() {
-  local line
-  while IFS= read -r line || [ -n "$line" ]; do
-    case $line in
-      help\[*) break ;;
-      ' '*) fm_cap_line "$line" ;;
-      *) printf '%s\n' "$line" ;;
-    esac
-  done
-}
-
-# print_in_flight_rows: the in-flight listing, minus the rows that are neither
-# held nor blocked and whose task has a live record in state/<id>.meta. Those
-# are listed once, with their backlog title, under "Work under way". A row with
-# no record, a hold, or a blocker is printed here, because nothing else would
-# show it whole.
-print_in_flight_rows() {
-  local line id covered=0
-  while IFS= read -r line || [ -n "$line" ]; do
-    case $line in
-      help\[*) break ;;
-      ' '*)
-        id=${line#"${line%%[! ]*}"}
-        id=${id%%,*}
-        if [ -n "$id" ] && [ -f "$STATE/$id.meta" ] && [ "${line%,none,\"-\",\"-\"}" != "$line" ]; then
-          covered=$((covered + 1))
-          continue
-        fi
-        fm_cap_line "$line"
-        ;;
-      *) printf '%s\n' "$line" ;;
-    esac
-  done
-  [ "$covered" -eq 0 ] \
-    || printf '(%d of them have a live task record and are listed once, with title, under Work under way below)\n' "$covered"
-}
-
-# in_flight_titles: "<id><TAB><title>" for every in-flight row, read from the
-# listing's quoted CSV-style fields (id,state,kind,repo,title,...). Escapes in a
-# quoted field are decoded first, so an escaped backslash stays text; a title
-# tasks-axi already shortened then keeps only its text before the newline.
-in_flight_titles() {
-  printf '%s\n' "$1" | perl -ne '
-    next unless /^\s+\S/;
-    s/^\s+//;
-    chomp;
-    my @f;
-    while (length) {
-      if (s/^"((?:[^"\\]|\\.)*)"(?:,|$)//) {
-        my $v = $1;
-        $v =~ s/\\(.)/$1 eq "n" ? "\n" : $1 eq "t" ? "\t" : $1 eq "r" ? "\r" : $1/ge;
-        push @f, $v;
-      }
-      elsif (s/^([^,]*)(?:,|$)//) { push @f, $1 }
-      else { last }
-    }
-    next unless @f >= 5;
-    my $t = $f[4];
-    $t =~ s/\n.*//s;
-    $t =~ s/[\t\r]/ /g;
-    print "$f[0]\t$t\n";
-  '
-}
-
-IN_FLIGHT_TITLES=
 print_backlog_tasks_axi_compact() {
   local path=$1 in_flight held blocked ready err
   if ! in_flight=$(tasks-axi list --file "$path" --state in_flight --fields "$BACKLOG_FIELDS" 2>&1); then
@@ -638,15 +521,14 @@ print_backlog_tasks_axi_compact() {
   elif ! ready=$(tasks-axi ready --file "$path" 2>&1); then
     err=$ready
   else
-    IN_FLIGHT_TITLES=$(in_flight_titles "$in_flight")
-    printf 'compact backlog listing (tasks-axi; done rows omitted; every in-flight, held, and blocked row shown, one capped line each; ready queued bounded to %s; task bodies omitted)\n' \
+    printf 'compact backlog listing (tasks-axi; done rows omitted; every in-flight, held, and blocked row shown in full; ready queued bounded to %s; task bodies omitted)\n' \
       "$QUEUED_LIMIT"
     printf '\nin flight:\n'
-    printf '%s\n' "$in_flight" | fm_hold_reason_decode_stream | LISTING_TITLE_CAP=$LISTING_TITLE_CAP compact_listing_titles | print_in_flight_rows
+    printf '%s\n' "$in_flight" | fm_hold_reason_decode_stream | strip_axi_help
     printf '\nheld (captain- or time-gated; an in-flight item that is also held appears in both groups):\n'
-    printf '%s\n' "$held" | fm_hold_reason_decode_stream | LISTING_TITLE_CAP=$LISTING_TITLE_CAP compact_listing_titles | cap_listing_rows
+    printf '%s\n' "$held" | fm_hold_reason_decode_stream | strip_axi_help
     printf '\nblocked queued:\n'
-    printf '%s\n' "$blocked" | fm_hold_reason_decode_stream | LISTING_TITLE_CAP=$LISTING_TITLE_CAP compact_listing_titles | cap_listing_rows
+    printf '%s\n' "$blocked" | fm_hold_reason_decode_stream | strip_axi_help
     printf '\nready queued (dispatchable now):\n'
     print_ready_queued_bounded "$ready"
     return 0
@@ -677,58 +559,17 @@ print_backlog_compact() {
   fi
 }
 
-# print_task_line <id> <bracket> <title> [<status-file>]: one capped line,
-# "<bracket> <title> -- last: <newest status event>", then any older events STATUS_TAIL asks for,
-# indented and capped the same way. A crewmate writes its own status lines, so
-# their length is unbounded: one observed line ran 865 characters. Cap each one
-# the way the wake digest's OPEN DECISIONS section does; the lede carries the
-# state word and the key, and state/<id>.status reaches the rest.
-print_task_line() {  # <id> <bracket> <title> <status-file>
-  local bracket=$2 title=$3 status=${4:-} last=$'(no status yet)' line older=()
-  local sep=' -- last: ' head room cap need
-  if [ -n "$status" ] && [ -s "$status" ]; then
-    while IFS= read -r line || [ -n "$line" ]; do
-      older+=("$line")
-    done < <(tail -n "$STATUS_TAIL" "$status")
-    if [ "${#older[@]}" -gt 0 ]; then
-      last=${older[${#older[@]}-1]}
-      unset 'older[${#older[@]}-1]'
-    fi
-  fi
-  # The title gives way first: it shortens, or drops when under 12 characters
-  # would remain, so the newest event shows whole when it fits in
-  # TASK_STATUS_ROOM characters and keeps that many beside the cap's own
-  # truncation suffix when it does not.
-  if [ "${#last}" -le "$TASK_STATUS_ROOM" ]; then
-    need=$(( ${#sep} + ${#last} ))
-  else
-    need=$(( ${#sep} + TASK_STATUS_ROOM + ${#FM_LINE_CAP_SUFFIX} ))
-  fi
-  head=$bracket
-  if [ -n "$title" ]; then
-    title=$(short_title "$title")
-    room=$(( TASK_LINE_CAP - ${#bracket} - 1 - need ))
-    if [ "$room" -ge 12 ]; then
-      [ "${#title}" -le "$room" ] || title="${title:0:$((room - 3))}..."
-      head="$bracket $title"
-    fi
-  fi
-  # A bracket too long to leave that room lengthens the line instead.
-  cap=$TASK_LINE_CAP
-  [ $(( ${#head} + need )) -le "$cap" ] || cap=$(( ${#head} + need ))
-  fm_cap_line "$head$sep$last" "$cap"
-  for line in ${older[@]+"${older[@]}"}; do
-    fm_cap_line "    earlier: $line" "$TASK_LINE_CAP"
-  done
-}
-
-# short_title <text>: a backlog title cut to 40 characters for a task line.
-short_title() {
-  local t=$1
-  if [ "${#t}" -gt 40 ]; then
-    t="${t:0:37}..."
-  fi
-  printf '%s' "$t"
+print_status_tail() {
+  local status=$1 line
+  printf 'status tail (last %s line(s), each capped at %s characters, wake-EVENT history, not current state; full log: %s):\n' \
+    "$STATUS_TAIL" "$FM_LINE_CAP_DEFAULT" "$status"
+  # A crewmate writes its own status lines, so their length is unbounded: one
+  # observed line ran 865 characters. Cap each one the way the wake digest's
+  # OPEN DECISIONS section does; the lede carries the state word and the key,
+  # and the full log path above reaches the rest.
+  while IFS= read -r line || [ -n "$line" ]; do
+    fm_cap_line "$line"
+  done < <(tail -n "$STATUS_TAIL" "$status")
 }
 
 # fm_session_start_endpoint_read <backend> <target> [expected-label]: ONE
@@ -1024,17 +865,26 @@ fi
 stage read-once
 section "READ-ONCE CONTRACT"
 cat <<'EOF'
-Everything below is this session start's input: the backlog listing, one line
-per state/*.meta task with its newest state/*.status event, data/projects.md,
-data/secondmates.md, data/captain.md, data/captain-shared.md, data/learnings.md.
+Everything below is printed in full for this session start: every state/*.meta,
+a compact data/backlog.md listing, a bounded tail of every state/*.status,
+data/projects.md, data/secondmates.md, data/captain.md, data/captain-shared.md,
+and data/learnings.md.
 Do NOT re-read any of them after reading this digest, and do NOT bulk-read
-data/backlog.md, state/*.meta, or state/*.status.
-Go to a source only when it was flagged ABSENT or looked corrupt; when acting on
-one task (state/<id>.meta, state/<id>.status, bin/fm-crew-state.sh <id>,
-bin/fm-tasks-axi.sh show <id> --full); when omitted queued items matter; when
-NETWORK CHECKS is still IN PROGRESS (bin/fm-startup-network.sh report); or when
-a STARTUP TRUNCATED banner named the stage that would have printed it, whose
-sources were then never emitted.
+data/backlog.md or state/*.status: re-reading everything defeats the entire
+point of this command.
+
+Go to a source directly only when:
+  - this digest flagged it ABSENT (then rebuild or create it per AGENTS.md),
+  - its contents looked unparseable or corrupt,
+  - an individual full status log is needed for older wake-event history, or a
+    status line was capped and its tail matters (each task's full log path is
+    printed with its tail),
+  - a full task body is needed (bin/fm-tasks-axi.sh show <id> --full, or data/backlog.md),
+  - the backlog listing disclosed omitted queued items and this turn needs them,
+  - the NETWORK CHECKS section reported its checks still IN PROGRESS and this
+    turn needs their verdict (bin/fm-startup-network.sh report),
+  - or a STARTUP TRUNCATED banner named the stage that would have printed it, in
+    which case that stage's sources were never emitted and must be reconciled.
 EOF
 
 # --- 6. fleet-state digest ---------------------------------------------
@@ -1045,14 +895,13 @@ section "FLEET STATE"
 print_backlog_compact "$DATA/backlog.md" "data/backlog.md"
 
 subsection "Work under way (state/*.meta)"
-printf 'One line per task: id [endpoint, named only when not alive; kind harness/model, PR] backlog title -- last: newest status event (wake history, not current state; capped at %s characters, the title shortening first so the event keeps %s).\n' \
-  "$TASK_LINE_CAP" "$TASK_STATUS_ROOM"
-printf 'Full record state/<id>.meta, event history state/<id>.status, current state bin/fm-crew-state.sh <id>.\n'
 META_FOUND=0
 for meta in "$STATE"/*.meta; do
   [ -f "$meta" ] || continue
   META_FOUND=1
   id=$(basename "$meta" .meta)
+  printf '\n--- %s ---\n' "$id"
+  cat "$meta"
 
   window=$(fm_meta_get "$meta" window)
   target=$(fm_backend_target_of_meta "$meta")
@@ -1064,27 +913,23 @@ for meta in "$STATE"/*.meta; do
     # the bound firing and >=128 is a signal death. Every other nonzero status
     # is the probe's own verdict that the endpoint is gone.
     if [ "$endpoint_rc" -eq 0 ]; then
-      endpoint=
+      printf 'endpoint: alive (backend=%s window=%s)\n' "$backend" "$window"
     elif [ "$endpoint_rc" -eq 124 ] || [ "$endpoint_rc" -ge 128 ]; then
-      endpoint="endpoint error ($backend: read died or hit its ${ENDPOINT_TIMEOUT}s bound); "
+      printf 'endpoint: error (backend=%s window=%s - the endpoint read died or hit its %ss bound; the digest continued past it)\n' \
+        "$backend" "$window" "$ENDPOINT_TIMEOUT"
     else
-      # The window is in the record; repeating it here (a tmux window names the
-      # task again) would spend the line's room on text the reader already has.
-      endpoint="endpoint dead ($backend); "
+      printf 'endpoint: dead (backend=%s window=%s)\n' "$backend" "$window"
     fi
   else
-    endpoint='endpoint unknown (no window recorded); '
+    printf 'endpoint: unknown (no window recorded)\n'
   fi
 
-  kind=$(fm_meta_get "$meta" kind)
-  harness=$(fm_meta_get "$meta" harness)
-  model=$(fm_meta_get "$meta" model)
-  pr=$(fm_meta_get "$meta" pr)
-  title=$(printf '%s\n' "$IN_FLIGHT_TITLES" | awk -F'\t' -v id="$id" '$1 == id { print $2; exit }')
-  # Liveness leads the bracket so the line cap can never cut it; the full model
-  # is a path away in the record.
-  [ "${#model}" -le 32 ] || model="${model:0:29}..."
-  print_task_line "$id" "$id [$endpoint${kind:-?} ${harness:-?}${model:+/$model}${pr:+, PR #${pr##*/}}]" "$title" "$STATE/$id.status"
+  status="$STATE/$id.status"
+  if [ -f "$status" ]; then
+    print_status_tail "$status"
+  else
+    printf 'status tail: (no status file yet: %s)\n' "$status"
+  fi
 done
 [ "$META_FOUND" -eq 1 ] || printf '(none)\n'
 
@@ -1095,7 +940,8 @@ for status in "$STATE"/*.status; do
   id=$(basename "$status" .status)
   [ -f "$STATE/$id.meta" ] && continue
   ORPHAN_STATUS_FOUND=1
-  print_task_line "$id" "$id [no task record]" "" "$status"
+  printf '\n--- %s ---\n' "$id"
+  print_status_tail "$status"
 done
 [ "$ORPHAN_STATUS_FOUND" -eq 1 ] || printf '(none)\n'
 

@@ -1,19 +1,22 @@
 #!/usr/bin/env bash
 # fm-dispatch-resolve.sh - resolve one concrete crewmate or scout dispatch
-# profile from a task brief with opt-in typesafe.ai System One (Jev), or labels.
+# profile from task labels, or opt-in from a brief with typesafe.ai's Jev model.
 #
 # Usage:
 #   fm-dispatch-resolve.sh <brief-file> [--project <name>]
 #   fm-dispatch-resolve.sh --labels <a,b|""> [--project <name>]     (worker routing)
 #
 # Worker routing (--labels, an empty value is allowed): no model judgment, no
-#   key, no network. docs/configuration.md "Label-based worker routing" owns
-#   label precedence, default selection, and conflicting-label handling.
-#   Prints status clear with source label|default and the profile line, or
-#   status escalate with no profile. Conflicting labels print status refused
-#   and exit 1; clear and escalate exit 0. Usage/configuration errors exit 2.
+#   key, no network or quota call. After shared configuration validation, the
+#   first matching label in the comma-separated input picks its `label_routes`
+#   profile. With no match, use the `default` object or first default-array
+#   entry; this path does not rank arrays or apply rule approvals or floors.
+#   Prints "status: clear ... source: label|default" and the profile line, exit 0.
+#   Missing configuration or no matching route and no default prints escalate,
+#   exit 0. Combining docs-only and ep-opus prints refused with no profile,
+#   exit 1. Usage and configuration errors exit 2, as in brief mode.
 #
-# Brief-based opt-in gate: TYPESAFE_API_KEY non-empty in this process environment, else a
+# Brief-mode opt-in gate: TYPESAFE_API_KEY non-empty in this environment, else a
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
 #   accessor as FMX_PAIRING_TOKEN (bin/fm-env-lib.sh). The environment wins.
 #   Absent in both: one "dispatch-resolve: off" line on stderr, nothing on
@@ -43,7 +46,7 @@
 #   docs/configuration.md "Crew dispatch profiles" owns the declared fields and
 #   "Typed dispatch resolution" owns this tool's operator contract.
 #
-# Brief-based never-send check: when the optional $FM_HOME/config/dispatch-never-send list
+# Never-send check: when the optional $FM_HOME/config/dispatch-never-send list
 #   exists, every string value of the built request is checked against it
 #   before the POST. Each non-blank, non-# line is a literal matched
 #   case-insensitively, with surrounding whitespace trimmed and every run of
@@ -53,7 +56,7 @@
 #   the list line number, never its value, prints nothing on stdout, and exits
 #   0 with no network or quota call, exactly like the absent-key off path.
 #
-# Brief-based output (stdout, TOON-style block):
+# Brief-mode output (stdout, TOON-style block):
 #   dispatch-resolve:
 #     status: clear | ambiguous | escalate | error
 #     model/latency_ms/tokens, rule (when excerpt) and confidence, probabilities
@@ -73,7 +76,7 @@
 # Environment:
 #   TYPESAFE_API_KEY is the only resolver-specific environment setting.
 #
-# Brief-based authority: this path never replaces firstmate's judgment, quota-array-dispatch,
+# Authority: this tool never replaces firstmate's judgment, quota-array-dispatch,
 #   the captain-approval gate, or fm-spawn.sh validation; it publishes one
 #   inspectable answer plus every candidate's evidence, in code.
 set -u
@@ -204,7 +207,7 @@ rules_err=$(jq -r --argjson verified_harnesses "$VERIFIED_HARNESSES" --arg provi
   elif any((.rules // [])[]; duplicate_profiles(profiles(.use))) then "each rule use must not contain duplicate harness, model, and effort profiles"
   elif any((.rules // [])[] | profiles(.use)[]; (verified(.harness) | not)) then "each use profile must name a verified harness"
   elif any((.rules // [])[] | profiles(.use)[]; (effort_ok(.harness; .model; .effort) | not)) then "each use profile effort must be supported by its harness and model"
-  elif has("cursor_fallback") and ((.cursor_fallback | type) != "object" or ((.cursor_fallback.models_pct | type) != "number") or .cursor_fallback.models_pct < 1 or .cursor_fallback.models_pct > 100 or (.cursor_fallback.models_pct | tostring | test("^[0-9]+$") | not) or ((.cursor_fallback.max_age_h | type) != "number") or .cursor_fallback.max_age_h <= 0 or (.cursor_fallback.max_age_h | tostring | test("^[0-9]+$") | not)) then "cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0"
+  elif has("cursor_fallback") and ((.cursor_fallback | type) != "object" or ((.cursor_fallback.models_pct | type) != "number") or (.cursor_fallback.models_pct | . != floor) or .cursor_fallback.models_pct < 1 or .cursor_fallback.models_pct > 100 or ((.cursor_fallback.max_age_h | type) != "number") or (.cursor_fallback.max_age_h | . != floor) or .cursor_fallback.max_age_h <= 0) then "cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0"
   elif has("label_routes") and ((.label_routes | type) != "object" or any(.label_routes[]; (profiles(.) | length) != 1 or (. | type) != "object")) then "label_routes must map each label to one profile object"
   elif any((.label_routes // {})[]; profile_bad(.)) then "each label_routes profile needs harness; model and effort must be well formed"
   elif any((.label_routes // {})[]; (verified(.harness) | not)) then "each label_routes profile must name a verified harness"

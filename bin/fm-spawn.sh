@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Spawn a direct report: a crewmate in a treehouse or Orca worktree, or a
 # secondmate in its isolated firstmate home.
-# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--upstream-consent <host>/<owner>/<repo>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
+# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--upstream-consent <host>/<owner>/<repo>] [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
@@ -22,10 +22,6 @@
 #   ship or scout spawn also refuses leftover `{TASK}` / `{FIRSTMATE_SPEC}`
 #   placeholders, an empty Task, an incomplete pair of Task subsections, or a
 #   `## Captain's intent` line opening with a Captain label or address.
-#   A fresh ship/scout # Task body is limited to 2048 bytes, including both
-#   subsections; link to a bead, PR, or file for longer detail. The scaffold
-#   outside # Task is not counted, and relaunches retain their existing brief
-#   without applying this fresh-launch cap.
 #   Every ship or scout spawn renders `launch-brief.md`; for a no-mistakes ship
 #   it also carries the current `--intent` contract and the extracted captain
 #   intent. A legacy mixed Task is accepted there only under bin/fm-dod-lib.sh's
@@ -35,6 +31,13 @@
 #   loud one-line deviation notice is printed and the spawn continues.
 #   no-mistakes-prod-only is a registry policy rather than a task mode and is
 #   refused as a flag value.
+#   --upstream-consent records the captain-approved publication scope for this
+#   one ship task under docs/configuration.md's "Firstmate role" policy.
+#   Its normalized value must agree with the brief's `upstream-consent=` token
+#   and is stored as upstream_consent= in state/<id>.meta. A relaunch reuses
+#   that record and refuses an override. The flag is refused on scouts,
+#   secondmates, and local-only ships. Every publishing ship launch applies
+#   bin/fm-role-lib.sh's gate, including relaunches with recorded consent.
 #   --branch-prefix is the optional prefix selected at intake for this ship's
 #   immutable branch, defaulting to "fm/". It must agree with the branch recorded
 #   in the brief, and is refused on scouts, secondmates, and relaunches. When the
@@ -58,12 +61,6 @@
 #   base_branch= in state/<id>.meta, which a relaunch reuses and later review and
 #   cleanup read; it is refused on secondmates and relaunches, and without it
 #   nothing changes.
-#   --upstream-consent records one task's captain-approved publication scope
-#   for firstmate's own repository under bin/fm-role-lib.sh's gate. It must
-#   match the brief's upstream-consent= token, is recorded in task metadata,
-#   and is reused on relaunch rather than overridden. It is refused on scouts,
-#   secondmates, and local-only; docs/configuration.md "Firstmate role" owns
-#   the authority policy.
 #   Ship/scout launches always put fm-dod-lib.sh's current worker role scope
 #   first in the private launch-brief overlay, including the exact task-owned
 #   steering inbox. This never rewrites a project's instruction files or a
@@ -342,9 +339,7 @@
 # Launch environment (config/launch-env-allowlist):
 #   Absent means unchanged ambient inheritance. A present readable regular file
 #   opts every launch (ship, scout, secondmate, raw command, and relaunch) into
-#   /usr/bin/env -i followed by /bin/sh -c of the existing launch command, except
-#   Cursor launches, which use /bin/bash -c because Cursor's worker stream capture
-#   uses Bash process substitution.
+#   /usr/bin/env -i followed by /bin/sh -c of the existing launch command.
 #   Each line is one POSIX environment name, never a value or shell expression;
 #   blank lines and lines beginning with # are ignored. Invalid input refuses
 #   before launch, as do path inspection errors such as inaccessible config
@@ -439,10 +434,7 @@
 #                  script published into the receiving home's operational inbox
 #     __WORKTREE__  absolute path to the task worktree
 #     __CURSORBIN__ resolved, cursor-verified executable for a cursor launch
-#     __PSTACKDIR__ pstack plugin dir for --plugin-dir (FM_PSTACK_DIR, default ~/dev/pstack/pstack)
 #     __CURSORCREWGUARD__ state/<task-id>.cursor-crew-guard, the per-task plugin dir carrying bin/fm-cursor-crew-guard.mjs
-#     __CURSORSTREAM__ state/<task-id>.cursor-stream.jsonl, the tee target for cursor's stream-json
-#     __CURSORGUARD__ / __CURSORID__ the post-run hook that records a usage-limit failure and exits with the agent's status
 #     __GEMINISETTINGS__ firstmate-owned per-task gemini settings file (busy-state hooks)
 #     __ROVOBIN__   resolved, rovo-verified executable for a rovo launch
 #     __DEVINBIN__ resolved Devin executable
@@ -514,9 +506,6 @@
 # never writes a Co-Authored-By trailer, Claude-Session link, or generated-with
 # line into a commit or PR body; launch_template() below owns the reason it
 # cannot come from the captain's own settings.
-# claude_session_settings_keys() also sets autoMemoryEnabled false in that
-# JSON, so a launched Claude session does not load an auto-memory directory
-# or MEMORY.md.
 # Cursor and the other non-Claude runtimes have no equivalent per-launch
 # settings overlay: Cursor injects a Co-Authored-By trailer at the tooling
 # layer after the worker types a clean message, and a per-machine
@@ -763,10 +752,6 @@ UPSTREAM_CONSENT=
 UPSTREAM_CONSENT_SET=0
 TRACEPARENT_SET=0
 RELAUNCH=0
-# The most a fresh worker's `# Task` section (the ask: Captain's intent plus
-# Firstmate spec) may carry. Not the scaffold: Setup, Rules and Definition of done
-# are upstream's fixed contract and stay as scaffolded.
-BRIEF_TASK_MAX_BYTES=2048
 # Opt-in only: exact-resume presentation-order lock waits instead of refusing.
 # Absent/unset keeps upstream refuse-on-contention. See header.
 HERDR_RESUME_LOCK_WAIT=0
@@ -1403,13 +1388,8 @@ parse_orca_worktree_result() {
   fi
 }
 
-CURSOR_CAP_TAKEN=0
 spawn_abort_cleanup() {
   local status=$?
-  if [ "$status" -ne 0 ] && [ "$CURSOR_CAP_TAKEN" = 1 ] && [ "$SPAWN_LAUNCH_SENT" = 0 ]; then
-    CURSOR_CAP_TAKEN=0
-    FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" give "$ID" || true
-  fi
   if [ "$RELAUNCH_REPLACEMENT_PENDING" = 1 ] &&
     [ "$SPAWN_META_PUBLISH_STARTED" = 1 ] &&
     [ -n "$SPAWN_META_TMP" ] &&
@@ -2081,20 +2061,6 @@ shell_quote() {
   printf "'"
 }
 
-# Interior of the per-launch Claude session-settings object, without braces.
-# autoMemoryEnabled is false on every launch. Claude Code treats a missing
-# key as on, so a worker would otherwise load an auto-memory directory and
-# MEMORY.md. Attribution stays in the object unless config/keep-ai-trailers
-# is present. The inline --settings value and the secondmate settings file
-# both use this string.
-claude_session_settings_keys() {
-  if [ "$KEEP_AI_TRAILERS" = 1 ]; then
-    printf '%s' '"feedbackDrafts":"off","autoMemoryEnabled":false'
-  else
-    printf '%s' '"feedbackDrafts":"off","autoMemoryEnabled":false,"attribution":{"commit":"","pr":"","sessionUrl":false}'
-  fi
-}
-
 resolve_pi_executable() {
   local candidate dir
   candidate=$(type -P -- "$1" 2>/dev/null) || return 1
@@ -2221,12 +2187,11 @@ launch_template() {
   # sources are not guaranteed to load that scope, so a worker would
   # otherwise run with attribution back on; carrying it per launch keeps the
   # policy in force regardless of which settings scopes end up loaded.
-  # claude_session_settings_keys() owns those session-key bytes, including
-  # autoMemoryEnabled false, for the inline value and the secondmate file.
   # Claude Code's --settings flag takes one value, a file path or an inline
   # JSON string (https://code.claude.com/docs/en/cli-reference). A secondmate's
   # busy hooks share that value, in state/<id>.claude-settings.json, and the
-  # file also carries the session keys so they stay in force.
+  # file also carries feedbackDrafts and attribution so those session keys
+  # stay in force.
   # __CLAUDEPERMFLAG__ is the permission flag config/claude-permission-mode
   # selects (header above): --dangerously-skip-permissions by default, or
   # --permission-mode auto for a captain who refuses bypass mode.
@@ -2343,12 +2308,7 @@ launch_template() {
   # --dangerously-skip-permissions. grok's turn-end signal does NOT ride the
   # launch command - it is a Stop-event hook installed below (global hook +
   # per-task pointer), so the template is identical for ship/scout/secondmate.
-  # Keep unattended sessions off imported Claude/Cursor MCP servers and skills;
-  # project .mcp.json servers and Grok-native plugins still load. Disable API-key
-  # auth to prevent fallback to a metered key, and disable cross-session memory.
-  # Grok's config reference (compat.*, auth.*) and memory guide (GROK_MEMORY)
-  # document these variables.
-  grok) printf '%s' 'env GROK_DISABLE_API_KEY_AUTH=1 GROK_MEMORY=0 GROK_CLAUDE_SKILLS_ENABLED=0 GROK_CURSOR_SKILLS_ENABLED=0 GROK_CLAUDE_MCPS_ENABLED=0 GROK_CURSOR_MCPS_ENABLED=0 grok --always-approve __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+  grok) printf '%s' 'grok --always-approve __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
   # Cursor Agent CLI. --trust suppresses the workspace-trust prompt, which
   # --yolo does NOT cover and which would otherwise block every spawn, since
   # each task gets a fresh worktree path cursor has never seen. --yolo is the
@@ -2361,27 +2321,12 @@ launch_template() {
   # inherited CLAUDECODE cannot outrank cursor's own marker in a process that
   # only reads the environment. Cursor exposes no effort flag, so the shared
   # effort axis is deliberately omitted and stays in task metadata only.
-  # Workers use -p --output-format stream-json, tee'd to state/<id>.cursor-stream.jsonl
-  # through process substitution to keep the agent's own exit status and visible output.
-  # Secondmates stay interactive so their project stop hook can park and resume
-  # supervision. Control-plane relaunch
-  # re-delivers the brief in a new conversation; it does not pass --resume.
-  # --plugin-dir loads pstack and --approve-mcps
-  # lets its MCP servers start unattended. The second --plugin-dir is this
-  # task's crew guard (install_cursor_crew_guard, bin/fm-cursor-crew-guard.mjs):
-  # a preToolUse hook that pins shell calls naming no directory to the worktree,
-  # because Cursor otherwise runs them wherever the conversation's persistent
-  # shell last was, and refuses git symbolic-ref and update-ref.
-  cursor)
-    printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ '
-    if [ "$kind" != secondmate ]; then
-      printf '%s' '-p --output-format stream-json '
-    fi
-    printf '%s' '--trust --yolo --approve-mcps --plugin-dir __PSTACKDIR__ --plugin-dir __CURSORCREWGUARD__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
-    if [ "$kind" != secondmate ]; then
-      printf '%s' ' > >(tee __CURSORSTREAM__); __CURSORGUARD__ after __CURSORID__ $?'
-    fi
-    ;;
+  # --plugin-dir is this task's crew guard (install_cursor_crew_guard,
+  # bin/fm-cursor-crew-guard.mjs): a preToolUse hook that pins shell calls
+  # naming no directory to the worktree, because Cursor otherwise runs them
+  # wherever the conversation's persistent shell last was, and refuses git
+  # symbolic-ref and update-ref.
+  cursor) printf '%s' 'env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT -u FM_PI_HARNESS -u GEMINI_CLI -u CURSOR_INVOKED_AS __CURSORBIN__ --trust --yolo --plugin-dir __CURSORCREWGUARD__ __MODELFLAG__--workspace __WORKTREE__ "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
   # gemini (Google Gemini CLI): a positional query starts the supervised
   # interactive session and auto-submits it, so the brief rides the launch
   # command exactly as it does for claude and grok (verified: a multi-line
@@ -2484,22 +2429,6 @@ launch_template() {
   esac
 }
 
-# Deterministic Cursor fallback (no model judgment): usage at the threshold, no or
-# stale usage file, or this bead's last Cursor run hit a usage limit => Codex, or
-# Claude when its last Codex run hit one (bare Grok draws the same pool); a pstack
-# version off the pin => bare Grok. Codex and Claude run their CLI's default model.
-if [ "$ARG3" = cursor ] && [ "$KIND" != secondmate ]; then
-  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
-  case "$CURSOR_FALLBACK" in
-  grok* | codex* | claude*)
-    ARG3=${CURSOR_FALLBACK%% *} EFFORT=xhigh
-    if [ "$ARG3" = grok ]; then MODEL=grok-4.7; else MODEL=; fi
-    echo "cursor fallback: launching $ID on the $ARG3 harness (${MODEL:-default model} xhigh): ${CURSOR_FALLBACK#* }" >&2
-    printf '%s\n' "${CURSOR_FALLBACK#* }" > "$STATE/$ID.cursor-fallback"
-    ;;
-  esac
-fi
-
 case "$ARG3" in
 *' '*) # raw launch command (unverified-adapter escape hatch)
   RAW_LAUNCH=1
@@ -2546,6 +2475,25 @@ case "$ARG3" in
   }
   ;;
 esac
+
+# Deterministic Cursor fallback (no model judgment), whether --harness or
+# config/crew-harness chose cursor: usage at the threshold, no or stale usage
+# file => Codex, or Claude when its last Codex run hit one.
+# Codex and Claude run their CLI's default model.
+if [ "$HARNESS" = cursor ] && [ "$RAW_LAUNCH" = 0 ] && [ "$KIND" != secondmate ]; then
+  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
+  case "$CURSOR_FALLBACK" in
+  codex* | claude*)
+    HARNESS=${CURSOR_FALLBACK%% *} MODEL='' EFFORT=xhigh
+    LAUNCH=$(launch_template "$HARNESS" "$KIND") || {
+      echo "error: no launch template for the cursor fallback harness '$HARNESS'" >&2
+      exit 1
+    }
+    echo "cursor fallback: launching $ID on the $HARNESS harness (${MODEL:-default model} xhigh): ${CURSOR_FALLBACK#* }" >&2
+    printf '%s\n' "${CURSOR_FALLBACK#* }" > "$STATE/$ID.cursor-fallback"
+    ;;
+  esac
+fi
 
 # muse, gemini, agy, and devin are verified as CREWMATE/SCOUT adapters only. A secondmate is
 # a firstmate instance, so it needs a primary supervision protocol.
@@ -2631,13 +2579,6 @@ cursor)
       echo "error: Cursor model '$MODEL' is not available from '$CURSOR_BIN --list-models'; choose an id listed by that command or omit --model" >&2
       exit 1
     fi
-  fi
-  # Re-assert Cursor's settings before every run (spawn and relaunch).
-  "$SCRIPT_DIR/fm-cursor-assert.sh" || exit 1
-  # A bead's 3rd Cursor launch in one day is refused; given back below if the spawn fails.
-  if [ "$KIND" != secondmate ]; then
-    FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" take "$ID" || exit 1
-    CURSOR_CAP_TAKEN=1
   fi
   ;;
 omp)
@@ -3404,17 +3345,6 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   if ADDRESS_LINE=$(fm_brief_intent_address_line "$BRIEF"); then
     echo "error: $BRIEF ## Captain's intent has an operator-address line: $ADDRESS_LINE; write the captain's actual words without a Captain label or address before spawn, since the heading already records provenance" >&2
     exit 1
-  fi
-  # A fresh worker's task is capped at BRIEF_TASK_MAX_BYTES: the brief carries
-  # the ask and a pointer to where the detail lives (bead, PR, file), never the
-  # detail itself. A relaunch re-delivers the brief its task already runs on, so
-  # a long brief written before the cap cannot strand a live worker.
-  if [ "$RELAUNCH" -eq 0 ]; then
-    TASK_BYTES=$(fm_brief_heading_body "$BRIEF" "# Task" | wc -c | tr -d '[:space:]')
-    if [ "$TASK_BYTES" -gt "$BRIEF_TASK_MAX_BYTES" ]; then
-      echo "error: $BRIEF has a # Task section of $TASK_BYTES bytes, over the $BRIEF_TASK_MAX_BYTES-byte cap; keep the ask short and link to the bead, PR or file for the detail instead of pasting it" >&2
-      exit 1
-    fi
   fi
   if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
     if fm_brief_task_heading_present "$BRIEF" "## Captain's intent"; then
@@ -5052,7 +4982,11 @@ BUSY_GEN=
     fi
     hooks_json="\"hooks\":{\"UserPromptSubmit\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"$j_submit\"}]}],${stop_entry}\"StopFailure\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"$j_stopfail\"}]}],\"SessionEnd\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"$j_sessionend\"}]}]}"
     if [ "$KIND" = secondmate ]; then
-      printf '{%s,%s}\n' "$(claude_session_settings_keys)" "$hooks_json" >"$STATE_REAL/$ID.claude-settings.json"
+      session_keys='"feedbackDrafts":"off",'
+      if [ "$KEEP_AI_TRAILERS" != 1 ]; then
+        session_keys='"feedbackDrafts":"off","attribution":{"commit":"","pr":"","sessionUrl":false},'
+      fi
+      printf '{%s%s}\n' "$session_keys" "$hooks_json" >"$STATE_REAL/$ID.claude-settings.json"
     else
       mkdir -p "$WT/.claude"
       printf '{%s}\n' "$hooks_json" >"$WT/.claude/settings.local.json"
@@ -5651,11 +5585,16 @@ case "$LAUNCH" in
   if [ "$KIND" = secondmate ]; then
     LAUNCH=${LAUNCH//__CLAUDESETTINGS__/$(shell_quote "$STATE_REAL/$ID.claude-settings.json")}
   else
-    claude_settings=$(shell_quote "{$(claude_session_settings_keys)}")
+    claude_settings="'{\"feedbackDrafts\":\"off\"__CLAUDEATTRIBUTION__}'"
     LAUNCH=${LAUNCH//__CLAUDESETTINGS__/$claude_settings}
   fi
   ;;
 esac
+if [ "$KEEP_AI_TRAILERS" = 1 ]; then
+  LAUNCH=${LAUNCH//__CLAUDEATTRIBUTION__/}
+else
+  LAUNCH=${LAUNCH//__CLAUDEATTRIBUTION__/,'"attribution":{"commit":"","pr":"","sessionUrl":false}'}
+fi
 if [ "$HARNESS" = rovo ]; then
   ROVOCONFIGOVERRIDE=$(rovo_config_override_flag "$EFFORT" "$DATA" "$STATE" "$ID") || {
     echo "error: could not resolve this task's home paths for rovo's allowedExternalPaths grant" >&2
@@ -5675,16 +5614,12 @@ case "$HARNESS" in
 pi | pi-signed) LAUNCH=${LAUNCH//__PIBIN__/"$(shell_quote "$PI_BIN")"} ;;
 cursor)
   LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"}
-  LAUNCH=${LAUNCH//__PSTACKDIR__/"$(shell_quote "${FM_PSTACK_DIR:-$HOME/dev/pstack/pstack}")"}
   CURSOR_CREW_GUARD_DIR="$STATE_REAL/$ID.cursor-crew-guard"
   install_cursor_crew_guard "$CURSOR_CREW_GUARD_DIR" "$WT" || {
     echo "error: could not write the Cursor crew guard plugin for $ID at $CURSOR_CREW_GUARD_DIR; refusing to launch a crew without it" >&2
     exit 1
   }
   LAUNCH=${LAUNCH//__CURSORCREWGUARD__/"$(shell_quote "$CURSOR_CREW_GUARD_DIR")"}
-  LAUNCH=${LAUNCH//__CURSORSTREAM__/"$(shell_quote "$STATE_REAL/$ID.cursor-stream.jsonl")"}
-  LAUNCH=${LAUNCH//__CURSORGUARD__/"FM_STATE_OVERRIDE=$(shell_quote "$STATE_REAL") $(shell_quote "$SCRIPT_DIR/fm-cursor-guard.sh")"}
-  LAUNCH=${LAUNCH//__CURSORID__/"$(shell_quote "$ID")"}
   ;;
 gemini) LAUNCH=${LAUNCH//__GEMINISETTINGS__/"$(shell_quote "$STATE_REAL/$ID.gemini-settings.json")"} ;;
 omp) LAUNCH=${LAUNCH//__OMPBIN__/"$(shell_quote "$OMP_BIN")"} ;;
@@ -5904,17 +5839,14 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
   # it still delivers the switch on a pane whose export never landed. Unlike the
   # trace carrier below it carries no gate, so it is appended unconditionally.
   # Setting it here rather than relying on the assignment already carried by
-  # $LAUNCH is what gives the wrapping shell (`/bin/sh`, or `/bin/bash` for
-  # Cursor) itself the switch, not only the agent command it runs.
+  # $LAUNCH is what gives the wrapping `/bin/sh` itself the switch, not only the
+  # agent command it runs.
   LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX COMPACT_ADVISER_DISABLE=1"
   if [ -n "$SPAWN_TRACEPARENT" ]; then
     # shellcheck disable=SC2016
     LAUNCH_ENV_PREFIX="$LAUNCH_ENV_PREFIX "'${TRACEPARENT+"TRACEPARENT=$TRACEPARENT"}'
   fi
-  LAUNCH_ENV_SHELL=/bin/sh
-  # Cursor's worker stream capture uses Bash process substitution.
-  [ "$HARNESS" != cursor ] || LAUNCH_ENV_SHELL=/bin/bash
-  LAUNCH="$LAUNCH_ENV_PREFIX $LAUNCH_ENV_SHELL -c $(shell_quote "$LAUNCH")"
+  LAUNCH="$LAUNCH_ENV_PREFIX /bin/sh -c $(shell_quote "$LAUNCH")"
 fi
 # Implement the launch-delivery contract in this script's header. The full
 # home-identity hash isolates equal task ids across homes, and the spawn token in

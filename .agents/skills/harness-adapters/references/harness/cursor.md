@@ -8,21 +8,21 @@ Cross-harness provider and credential identity is owned by `references/common/mo
 | Fact | Value |
 |---|---|
 | Binary | `fm_cursor_resolve_binary` in `../../../bin/fm-cursor-lib.sh` resolves stable launcher `cursor-agent` or legacy `agent`, never `cursor`; both symlink into `~/.local/share/cursor-agent/versions/<version>/cursor-agent`, whose target auto-update replaces. |
-| Launch | Follow [Cursor launch controls](../../../../../docs/configuration.md#cursor-launch-controls) for worker and secondmate behavior; [`fm-spawn.sh`](../../../../../bin/fm-spawn.sh) owns the exact command. |
+| Launch | Positional instructions with `--trust`, `--yolo`, optional `--model <model>`, and `--workspace <absolute-task-worktree>`, after clearing foreign primary markers; worker launches first pass the [configured quota-file fallback](../../../../../docs/configuration.md#crew-dispatch-profiles-configcrew-dispatchjson). |
 | Attribution | Cursor can append a Co-authored-by trailer after the typed message. Unless the home sets `config/keep-ai-trailers` (`../../../../../docs/configuration.md` "Commit attribution"), every fleet launch installs the pane-scoped commit-msg strip in `../../../bin/fm-git-strip-ai-trailers.sh`, which removes known AI trailers and leaves human co-authors and the author identity untouched. |
-| Models | Use the current-account catalog through `fm_cursor_list_models` in [`fm-cursor-lib.sh`](../../../../../bin/fm-cursor-lib.sh); for a concrete model selection other than `default`, spawn refuses an unreadable catalog or an unavailable model. |
+| Models | Use current-account `cursor-agent --list-models` or legacy `agent --list-models`; an explicit non-default model requires a readable catalog containing that ID or spawn refuses; the drifting observed list had only `cursor-grok-4.5-high` and `cursor-grok-4.5-high-fast` for Grok plus several `xhigh` ids, so choose a returned reasoning id and never assume low or medium Grok. |
 | Busy state | `../../../bin/fm-busy-lib.sh` folds the per-conversation transcript as `cursor-transcript`: `role:user` opens and typed `turn_ended` closes success or abort, covering manual interrupt; nothing is armed or seeded, and this backend-agnostic source was identical on tmux and Herdr. |
-| Interactive exit command | `/exit`. |
-| Interactive interrupt | Single Escape returns the placeholder with no clear key; control makes no cancellation claim because an aborted transcript close appeared within seconds in some runs and not within twenty in others. |
-| Interactive skill invocation | `/<skill>`, for example `/no-mistakes`; Cursor discovers Firstmate's user skills. |
+| Exit command | `/exit`. |
+| Interrupt | Single Escape returns the placeholder with no clear key; control makes no cancellation claim because an aborted transcript close appeared within seconds in some runs and not within twenty in others. |
+| Skill invocation | `/<skill>`, for example `/no-mistakes`; Cursor discovers Firstmate's user skills. |
 | Resume | No verified native pane resume; use deterministic relaunch. |
 | Autonomy | `--yolo`, documented alias for `--force`; footer `Run Everything`. |
 | Trust | `--trust` suppresses the dialog; `--yolo` does not, and every task has a fresh path. |
 | Marker | `CURSOR_INVOKED_AS=cursor-agent` on agent and children, plus `CURSOR_AGENT=1` on child or tool processes; other `CURSOR_*` variables are not identity markers. |
 | Effort | No verified flag; `references/common/model-and-effort.md` owns unsupported-value handling. |
-| Interactive composer | Bare borderless row with `→` (U+2192); de-emphasized placeholders `Plan, search, build anything` when fresh and `Add a follow-up` later. |
+| Composer | Bare borderless row with `→` (U+2192); de-emphasized placeholders `Plan, search, build anything` when fresh and `Add a follow-up` later. |
 
-In the TUI, the slash popup consumes the first Enter; that Enter closes it and a genuine second Enter submits through the shared retry.
+The slash popup consumes the first Enter; that Enter closes it and a genuine second Enter submits through the shared retry.
 
 ## Detection
 
@@ -36,7 +36,7 @@ Bare `node` matches nothing; `../../../bin/fm-cursor-lib.sh` proves identity fro
 Unrelated `node` or `agent` remains `other`, folded to ambiguous rather than dead.
 Auto-update changes the target, not this rule.
 
-## Interactive composer and delivery
+## Composer and delivery
 
 Cursor parks its terminal cursor outside the composer: `#{cursor_y}` was below the footer idle and typed, with `#{cursor_flag}` zero, so cursor-anchored reads are always unknown.
 `../../../bin/fm-tmux-lib.sh` lets the bottom-most shape win only after structural Cursor proof.
@@ -64,12 +64,13 @@ Refresh with `FM_HARNESS_LIVENESS_DRIFT=1 ../../../bin/fm-test-run.sh ../../../t
 Firstmate enters its acquired worktree and passes the same absolute path through `--workspace`.
 Never pass Cursor `-w` or `--worktree`, which allocates a second copy under `~/.cursor/worktrees` and breaks isolation.
 The CLI supports repeatable `--add-dir`, but the adapter adds none; positional instructions need no grant to their private directory.
-Cursor's persistent conversation shell can retain an earlier explicit working directory.
-Every Firstmate-launched Cursor session loads the per-task [crew guard](../../../../../bin/fm-cursor-crew-guard.mjs); its header owns the working-directory, ref-plumbing, scope, and error-handling policy, with portable coverage in [`fm-cursor-guard.test.sh`](../../../../../tests/fm-cursor-guard.test.sh).
+Cursor keeps one persistent shell per conversation, and a Shell call that names no working directory runs wherever the previous call left that shell, not in the workspace.
+A call that names the primary checkout therefore sends the next unnamed call there; measured 2026-10-13 on Cursor Agent CLI 2026.10.01-e373342 in print mode, where a following `git symbolic-ref HEAD` moved the primary's HEAD.
+Every Firstmate-launched Cursor session (ship, scout, or secondmate) loads a per-task plugin, `state/<id>.cursor-crew-guard`, whose `preToolUse` hook (`../../../bin/fm-cursor-crew-guard.mjs`) rewrites an empty working directory to the task worktree and refuses `git symbolic-ref` and `git update-ref`.
 The captain's own Cursor sessions never load it.
 Cursor also imports `permissions.deny` from `~/.claude/settings.json` and the repository's `.claude/settings.json`, and a deny beats every allow, so `git checkout -b` and `git checkout -B` are refused wherever those files deny them while `git switch -c` runs.
-[`fm-spawn.sh`'s header](../../../../../bin/fm-spawn.sh) owns ship-branch preparation; later crew branch commands use `git switch -c`.
-The [Cursor launch controls](../../../../../docs/configuration.md#cursor-launch-controls) own fallback and per-user settings behavior.
+Spawn therefore creates the ship branch itself, and a crew starts any later branch with `git switch -c`.
+Example: `../../../bin/fm-spawn.sh <task-id> <project> --scout --harness cursor --model cursor-grok-4.5-high`.
 
 ## Primary integration
 

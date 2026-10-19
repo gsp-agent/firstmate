@@ -549,6 +549,14 @@
       "audience": "operator-current"
     },
     {
+      "path": "drift-measurements.txt",
+      "audience": "maintainer-verification"
+    },
+    {
+      "path": "drift-proof.txt",
+      "audience": "maintainer-verification"
+    },
+    {
       "path": "skills/stow/SKILL.md",
       "audience": "public-product"
     },

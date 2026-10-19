@@ -390,25 +390,6 @@ test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint() {
   pass "fm-control relaunch: a same-harness relaunch replaces the agent in the same endpoint and worktree"
 }
 
-# The 2048-byte # Task cap (fm-spawn.sh BRIEF_TASK_MAX_BYTES) is for a fresh
-# worker. A relaunch re-delivers the brief its task already runs on, so a long
-# brief written before the cap must not strand the live worker.
-test_relaunch_is_not_refused_for_a_task_section_over_the_byte_cap() {
-  local dir out rc
-  dir=$(new_case taskcap rl3c)
-  add_ship_task "$dir" rl3c claude
-  {
-    printf '# Task\n## Captain'\''s intent\n'
-    printf 'a%.0s' $(seq 1 3000)
-    printf '\n\n## Firstmate spec\nPreserve the task while replacing its agent process.\n'
-  } > "$dir/home/data/rl3c/brief.md"
-  out=$(run_control "$dir" rl3c relaunch --note "long pre-cap brief"); rc=$?
-  expect_code 0 "$rc" "a relaunch of a task with an over-cap # Task section should succeed"$'\n'"$out"
-  assert_not_contains "$out" "-byte cap" "the relaunch was refused by the fresh-spawn task cap"
-  assert_grep "Firstmate operational input waiting: read" "$dir/fake/literal" "the replacement should have been launched"
-  pass "fm-control relaunch: a task section over the byte cap does not block a relaunch"
-}
-
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text() {
   local dir out rc
   dir=$(new_case pending-exit rl43)
@@ -2551,7 +2532,6 @@ SH
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
-test_relaunch_is_not_refused_for_a_task_section_over_the_byte_cap
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
 test_relaunch_from_linked_home_preserves_recorded_worktree

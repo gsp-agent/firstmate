@@ -56,8 +56,6 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-arm-pretool-check.sh` | Stable PreToolUse transport for the watcher-arm command policy (docs/arm-pretool-check.md) |
 | `fm-arm-command-policy.mjs` | Semantic owner of the watcher-arm PreToolUse policy (docs/arm-pretool-check.md)   |
 | [`fm-cursor-crew-guard.mjs`](../bin/fm-cursor-crew-guard.mjs) | Per-session Cursor shell guard for Firstmate launches |
-| `fm-cursor-guard.sh` | Cursor fallback and launch accounting; its header owns the checks and state records |
-| `fm-cursor-assert.sh` | Reassert shared Cursor CLI and pstack settings before launch; its header owns the affected files and values |
 | `fm-subagent-pretool-check.sh` | Primary-home delegation-shape PreToolUse guard (docs/subagent-guard.md) |
 | `fm-supervision-instructions.sh` | Render the session-start primary-harness supervision block or the one-line repair instruction |
 | `fm-home-seed.sh`        | Transactionally provision a local secondmate home and maintain `data/secondmates.md` |
@@ -65,6 +63,9 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-remote-readiness-lib.sh` | Shared remote second-mate readiness gate: check and, when needed, repair then re-check through `fm-remote-doctor.sh` |
 | [`fm-project-origin-lib.sh`](../bin/fm-project-origin-lib.sh) | Accepted origin-form owner shared by both remote provisioning boundaries |
 | `fm-spawn.sh`            | Spawn crewmates, scouts, `id=repo` batches, and secondmates on the resolved harness and runtime backend |
+| [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh) | Select a worker fallback from the Cursor quota file; its header owns usage inputs and fallback selection |
+| [`fm-role.sh`](../bin/fm-role.sh) | Report the resolved home role or check firstmate-repository publication authority; [configuration.md](configuration.md#firstmate-role-configfirstmate-role) owns the role policy |
+| [`fm-role-lib.sh`](../bin/fm-role-lib.sh) | Own role parsing, repository-lineage detection, publication-target normalization, and the shared self-repository publication gate |
 | `fm-git-strip-ai-trailers.sh` | Strip known AI commit trailers at commit-msg time and install that hook for a fleet launch |
 | `fm-backend.sh`          | Runtime-backend selection, meta helpers, selector resolution, and operation dispatch |
 | `fm-backend-hometag-lib.sh` | Shared per-installation home-tag derivation for zellij tab and cmux workspace titles |
@@ -138,6 +139,7 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-check-unregister.sh` | Retire a custom watcher check and its trust binding by validated task id            |
 | `fm-check-lib.sh`        | Validate custom-check registrations and prepare private execution snapshots          |
 | `fm-tool-update-check.sh` | Report watched tooling with an update available, and updates installed but left inert by PATH order |
+| [`fm-drift-nightly.sh`](../bin/fm-drift-nightly.sh) | Validate committed fork changes against accepted proof patches and manage the nightly LaunchAgent, which logs every run and sends Firstmate one inbox note for a red one; its header owns check, proof, nightly, install, and uninstall semantics |
 | `fm-startup-growth-check.sh` | Daily metadata-only growth check for startup memory and tracked startup/instruction surfaces |
 | `fm-pr-lib.sh`           | Own canonical task and PR validation plus private atomic PR-poll publication, merge-notification identity, and retirement |
 | `fm-pr-poll.sh`          | Provide the byte-static watcher program for validated pull-request, merge-request, and Gerrit-change poll sidecars |
