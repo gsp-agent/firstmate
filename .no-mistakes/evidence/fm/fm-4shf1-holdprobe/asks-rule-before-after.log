@@ -1,0 +1,40 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.ntj_i07y/regression
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.ntj_i07y/regression
+exit: 0
+Before 9473977d: an answered matching ask incorrectly creates a hold.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.ntj_i07y/prior-bin/fm-captain-hold.sh hold answered-regression --title 'Helios access' --reason 'Use your Helios account for the [local service](http://127.0.0.1:65015/)?' --dale-step sign-in --probe true
+answered-regression
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show answered-regression --full
+task:
+  id: answered-regression
+  title: Helios access
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Use your Helios account for the [local service](http://127.0.0.1:65015/)?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T08:03:18Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: Use your Helios account for the [local service](http://127.0.0.1:65015/)?\nHold probe: true"
+exit: 0
+At 9473977d: the same answered ask refuses before creating a task.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold current-regression --title 'Helios access' --reason 'Use your Helios account for the [local service](http://127.0.0.1:65015/)?' --dale-step sign-in --probe true
+
+stderr: fm-captain-hold: Dale-step hold refused by the asks rule's world check (owner: dale): He decided it on review:lab-signin#signin. Act on that answer; if this is a different decision, name review:lab-signin#signin in "looked" and say why.
+exit: 1
+$ /opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dalecarman/.agent-config/configs/claude/hooks/dale-asks-rule.py ask --title 'Local work' --question 'Choose a local branch' --recommend 'Choose a local branch' --text 'Choose a local branch' --if-no 'Choose a local branch'
+Not one of his kinds: it names none of his kinds. Decide it yourself, act, and leave one line under the item he can reverse. If it is his, name the stake in the ask: the money, the person, his account, device or words, production, or his taste on client work.
+Not answerable in one read: ask one question, ending in '?'; give exactly one link, the one thing he opens to decide (it has 0).
+exit: 3
+$ /opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dalecarman/.agent-config/configs/claude/hooks/dale-asks-rule.py ask --title 'Account sign-in' --question 'Complete your sign-in' --recommend 'Complete your sign-in' --text 'Complete your sign-in' --if-no 'Complete your sign-in'
+Not answerable in one read: ask one question, ending in '?'; give exactly one link, the one thing he opens to decide (it has 0).
+exit: 3
+Verified actual exit-3 category/form outcomes match the live fail-open hold cases.

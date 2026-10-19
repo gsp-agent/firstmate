@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Dale sign-in fields are consumer-compatible; failed probe stays quiet; completed sign-in releases once",
+    "result": "pass",
+    "live": true,
+    "evidence": "holdprobe-live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "A pending screen remains held until the screen is completed",
+    "result": "pass",
+    "live": true,
+    "evidence": "holdprobe-live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "An unknown probe remains held and emits no parent wake",
+    "result": "pass",
+    "live": true,
+    "evidence": "holdprobe-live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "An ordinary hold keeps its existing text behavior and has no automatic probe",
+    "result": "pass",
+    "live": true,
+    "evidence": "holdprobe-live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "A successful old probe cannot release a replacement hold with a different stamp",
+    "result": "pass",
+    "live": true,
+    "evidence": "holdprobe-live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "A successful old probe cannot release a hold whose probe changed",
+    "result": "pass",
+    "live": true,
+    "evidence": "holdprobe-live-cli.log",
+    "reason": ""
+  },
+  {
+    "name": "The actual asks-rule blocks duplicate and answered asks while kind, form and unavailable rules fail open",
+    "result": "pass",
+    "live": true,
+    "evidence": "holdprobe-live-cli.log",
+    "reason": ""
+  }
+]

@@ -1,0 +1,228 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/parent
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/parent
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/holds
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/holds
+exit: 0
+
+SCENARIO: Dale sign-in fields are consumer-compatible; failed probe stays quiet; completed sign-in releases once
+FAIL: AttributeError("'function' object has no attribute 'cookiejar'")
+
+SCENARIO: A pending screen remains held until the screen is completed
+FAIL: AttributeError("'function' object has no attribute 'cookiejar'")
+
+SCENARIO: An unknown probe remains held and emits no parent wake
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold unknown --reason 'Complete your local service sign-in' --title 'Local service sign-in' --dale-step sign-in --probe fm-holdprobe-command-does-not-exist
+unknown
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe unknown
+kept: unknown probe-failed
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show unknown --full
+task:
+  id: unknown
+  title: Local service sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Complete your local service sign-in"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T07:59:01Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: Complete your local service sign-in\nHold probe: fm-holdprobe-command-does-not-exist"
+exit: 0
+Unknown probe: parent channel byte-identical; no wake generated.
+PASS: An unknown probe remains held and emits no parent wake
+
+SCENARIO: An ordinary hold keeps its existing text behavior and has no automatic probe
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold ordinary --reason 'Choose the next action (two choices)
+Keep the details as entered' --title 'Ordinary captain choice'
+ordinary
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show ordinary --full
+task:
+  id: ordinary
+  title: Ordinary captain choice
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Choose the next action (two choices)\nKeep the details as entered"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T07:59:12Z"
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe ordinary
+kept: ordinary no-probe
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show ordinary --full
+task:
+  id: ordinary
+  title: Ordinary captain choice
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Choose the next action (two choices)\nKeep the details as entered"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T07:59:12Z"
+exit: 0
+PASS: An ordinary hold keeps its existing text behavior and has no automatic probe
+
+SCENARIO: A successful old probe cannot release a replacement hold with a different stamp
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold race --reason 'Complete your local service sign-in' --title 'Local service sign-in' --dale-step sign-in --probe /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/race-probe.py
+race
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe race
+kept: race stamp-changed
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show race --full
+task:
+  id: race
+  title: Local service sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "New screen request"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T23:00:00Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: New screen request\nHold probe: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/screen-probe.py"
+exit: 0
+PASS: A successful old probe cannot release a replacement hold with a different stamp
+
+SCENARIO: A successful old probe cannot release a hold whose probe changed
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold probe-change --reason 'Complete your local service sign-in' --title 'Local service sign-in' --dale-step sign-in --probe /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/probe-change.py
+probe-change
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe probe-change
+kept: probe-change stamp-changed
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show probe-change --full
+task:
+  id: probe-change
+  title: Local service sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Updated screen request"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T07:59:32Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: Updated screen request\nHold probe: fm-holdprobe-command-does-not-exist"
+exit: 0
+PASS: A successful old probe cannot release a hold whose probe changed
+
+SCENARIO: The actual asks-rule blocks duplicate and answered asks while kind, form and unavailable rules fail open
+$ /opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dalecarman/.agent-config/tools-bin/review-page update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/world/review.json --no-open
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/world/pages/lab-signin/index.html
+1 chapters, 1 items, updated Mon 19 Oct, 2:59 AM CT; not opened (--no-open)
+stderr: review-page: WARN chapter 'Local sign-in': no picture; eli5 leads with a big picture
+exit: 0
+$ /opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dalecarman/.agent-config/configs/claude/hooks/dale-asks-rule.py ask --title 'Helios access' --question 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --recommend 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --text 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --if-no 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?'
+review:lab-signin#signin asks the same decision and came first. Link it, or if this is a different decision, name it in "looked" and say why.
+exit: 3
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold duplicate-sign-in --reason 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --title 'Helios access' --dale-step sign-in --probe /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/session-probe.py
+stderr: fm-captain-hold: Dale-step hold refused by the asks rule's world check (owner: dale): review:lab-signin#signin asks the same decision and came first. Link it, or if this is a different decision, name it in "looked" and say why.
+exit: 1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh add duplicate-sign-in-existing 'Helios access'
+ok: added duplicate-sign-in-existing -> Queued
+task:
+  id: duplicate-sign-in-existing
+  title: Helios access
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start duplicate-sign-in-existing` to move it to in flight
+  - Run `tasks-axi block duplicate-sign-in-existing --by <other>` to record a dependency
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold duplicate-sign-in-existing --reason 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --title 'Helios access' --dale-step sign-in --probe /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/session-probe.py
+stderr: fm-captain-hold: Dale-step hold refused by the asks rule's world check (owner: dale): review:lab-signin#signin asks the same decision and came first. Link it, or if this is a different decision, name it in "looked" and say why.
+exit: 1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold duplicate-screen --reason 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --title 'Helios access' --dale-step screen --probe /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/session-probe.py
+stderr: fm-captain-hold: Dale-step hold refused by the asks rule's world check (owner: dale): review:lab-signin#signin asks the same decision and came first. Link it, or if this is a different decision, name it in "looked" and say why.
+exit: 1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh add duplicate-screen-existing 'Helios access'
+ok: added duplicate-screen-existing -> Queued
+task:
+  id: duplicate-screen-existing
+  title: Helios access
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start duplicate-screen-existing` to move it to in flight
+  - Run `tasks-axi block duplicate-screen-existing --by <other>` to record a dependency
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold duplicate-screen-existing --reason 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --title 'Helios access' --dale-step screen --probe /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0/session-probe.py
+stderr: fm-captain-hold: Dale-step hold refused by the asks rule's world check (owner: dale): review:lab-signin#signin asks the same decision and came first. Link it, or if this is a different decision, name it in "looked" and say why.
+exit: 1
+$ /opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dalecarman/.agent-config/tools-bin/review-page answer lab-signin signin reply
+{"ok": true, "at": "2026-10-19T08:00:00Z", "waiting": false}
+exit: 0
+$ /opt/homebrew/opt/python@3.15/bin/python3.15 /Users/dalecarman/.agent-config/configs/claude/hooks/dale-asks-rule.py ask --title 'Helios access' --question 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --recommend 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --text 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?' --if-no 'Use your Helios account for the [local service](http://127.0.0.1:63997/)?'
+review:lab-signin#signin asks the same decision and came first. Link it, or if this is a different decision, name it in "looked" and say why.
+exit: 3
+FAIL: AssertionError()
+Local sign-in service stopped. Disposable lab path: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.18cyjjn0

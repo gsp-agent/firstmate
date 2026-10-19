@@ -1,0 +1,5 @@
+Captain hold set: 2026-10-19T08:00:40Z
+Decision owner: dale
+Hold timeout seconds: 3600
+Hold reason: Complete your local service sign-in
+Hold probe: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.agent-state/holdprobe-validation-tmp/fm-lab.ntj_i07y/session-probe.py
