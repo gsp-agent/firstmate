@@ -860,6 +860,7 @@ fm_backlog_retain_transition() {
   fm_backlog_record_remove "$marker" "pending-close record" "$state"
 }
 
+# FM_BACKLOG_RETIRE_LABEL names the record in a removal error; it defaults to "task record".
 fm_backlog_retire_task_record() {
   local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0
   shift 4
@@ -879,7 +880,7 @@ fm_backlog_retire_task_record() {
       return 1
     fi
   fi
-  fm_backlog_record_remove "$meta" "task record" "$state"
+  fm_backlog_record_remove "$meta" "${FM_BACKLOG_RETIRE_LABEL:-task record}" "$state"
 }
 
 fm_backlog_atomic_transition() {
@@ -1195,7 +1196,8 @@ fm_backlog_close_marker_replay() {  # <state-dir> <marker-path> <authorized-data
       || return 1
     cleanup_incomplete=1
   fi
-  fm_backlog_atomic_transition retire "$meta" "$data" "$id" "$state" "${args[@]+"${args[@]}"}" \
+  FM_BACKLOG_RETIRE_LABEL="the interrupted task record" \
+    fm_backlog_atomic_transition retire "$meta" "$data" "$id" "$state" "${args[@]+"${args[@]}"}" \
     || return 1
   if fm_backlog_row_probe "$data" "$id"; then
     row_state=$FM_BACKLOG_ROW_STATE

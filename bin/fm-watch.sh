@@ -178,8 +178,9 @@
 # start), its state directory, and its own bin directory still exist; when one
 # is gone it logs "watcher: exiting - <what> no longer exists: <path>" to stderr
 # and exits 1, so a watcher whose temporary home or disposable checkout was
-# deleted stops itself instead of running on as an orphan. That check is scoped
-# to this process alone and never signals another watcher.
+# deleted stops itself instead of running on as an orphan. A step that fails
+# because one went away mid-poll exits with the same logged reason. That check
+# is scoped to this process alone and never signals another watcher.
 set -u
 
 SCRIPT_DIR="$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd)"
@@ -2601,8 +2602,30 @@ pr_poll_publish_release() {
   PR_POLL_PUBLISH_LOCK=
 }
 
+# Sets WATCHER_GONE to what of this watcher's world is gone, or empty while it
+# all stands; true when something is gone.
+WATCHER_GONE=
+watcher_world_gone() {
+  WATCHER_GONE=
+  if [ "$WATCH_HOME_EXISTED" -eq 1 ] && [ ! -d "$FM_HOME" ]; then
+    WATCHER_GONE="home no longer exists: $FM_HOME"
+  elif [ ! -d "$STATE" ]; then
+    WATCHER_GONE="state directory no longer exists: $STATE"
+  elif [ ! -e "$WATCH_LOCK/pid" ]; then
+    WATCHER_GONE="state directory was torn down (singleton lock removed): $STATE"
+  elif [ ! -d "$SCRIPT_DIR" ]; then
+    WATCHER_GONE="code root no longer exists: $SCRIPT_DIR"
+  fi
+  [ -n "$WATCHER_GONE" ]
+}
+
 watcher_cleanup() {
-  local cleanup_status=0 owns_lock=0 transition=release-lock
+  local exit_status=$? cleanup_status=0 owns_lock=0 transition=release-lock
+  # One place logs the world-gone reason, so a step that failed because its
+  # world went away mid-poll names it exactly as the next poll's check would.
+  if [ "$exit_status" -ne 0 ] && watcher_world_gone; then
+    echo "watcher: exiting - $WATCHER_GONE" >&2
+  fi
   pr_poll_publish_release || cleanup_status=1
   pr_poll_control_release || cleanup_status=1
   if [ "$(cat "$WATCH_LOCK/pid" 2>/dev/null || true)" = "${WATCHER_PID:-}" ]; then
@@ -2767,18 +2790,9 @@ while :; do
   # can recreate a deleted state directory before the next poll, so a lock
   # with no holder at all is read as the same teardown: only a fresh watcher
   # ever recreates the lock, and that case is the self-eviction below.
-  # Scoped to this process alone: no other watcher is signalled.
-  if [ "$WATCH_HOME_EXISTED" -eq 1 ] && [ ! -d "$FM_HOME" ]; then
-    echo "watcher: exiting - home no longer exists: $FM_HOME" >&2
-    exit 1
-  elif [ ! -d "$STATE" ]; then
-    echo "watcher: exiting - state directory no longer exists: $STATE" >&2
-    exit 1
-  elif [ ! -e "$WATCH_LOCK/pid" ]; then
-    echo "watcher: exiting - state directory was torn down (singleton lock removed): $STATE" >&2
-    exit 1
-  elif [ ! -d "$SCRIPT_DIR" ]; then
-    echo "watcher: exiting - code root no longer exists: $SCRIPT_DIR" >&2
+  # Scoped to this process alone: no other watcher is signalled. watcher_cleanup
+  # logs the reason.
+  if watcher_world_gone; then
     exit 1
   fi
 

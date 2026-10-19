@@ -299,8 +299,10 @@ case "\${1:-} \${2:-}" in
     case " \$* " in
       *"state,headRefOid,url"*) printf '%s\t%s\t%s\n' 'MERGED' '$head' 'https://github.com/example/repo/pull/7' ; exit 0 ;;
       *"headRefOid"*) printf '%s\n' '$head' ; exit 0 ;;
+      *"body,commits,headRefName"*) printf '%s\n' '{"body":"Body.","commits":[],"headRefName":"fm/task-x1"}' ; exit 0 ;;
     esac
     ;;
+  "pr edit") exit 0 ;;
 esac
 echo "error: pull request not found" >&2
 exit 1
@@ -2605,6 +2607,8 @@ test_secondmate_pr_registration_publishes_ready_line() {
   mkdir -p "$case_dir/parent/state"
   channel="$case_dir/parent/state/mate-x.status"
   write_meta "$case_dir" no-mistakes ship
+  # A spawned task records its harness, which registration names in the PR body.
+  printf 'harness=claude\n' >> "$case_dir/state/task-x1.meta"
   wt_commit_file "$case_dir" feature.txt hello "add feature"
   pr_head=$(git -C "$case_dir/wt" rev-parse HEAD)
   add_gh_pr_merged_for_head "$case_dir" "$pr_head"
@@ -2625,6 +2629,7 @@ test_secondmate_pr_registration_publishes_ready_line() {
 
   case_dir=$(make_case main-pr-ready)
   write_meta "$case_dir" no-mistakes ship
+  printf 'harness=claude\n' >> "$case_dir/state/task-x1.meta"
   wt_commit_file "$case_dir" feature.txt hello "add feature"
   add_gh_pr_merged_for_head "$case_dir" "$(git -C "$case_dir/wt" rev-parse HEAD)"
   FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \

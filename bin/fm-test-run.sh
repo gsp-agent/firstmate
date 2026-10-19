@@ -71,9 +71,9 @@
 #   --per-script-timeout-secs N
 #                   terminate a script that runs longer than N seconds and
 #                   record it as exit 124 (0 disables, the default). The
-#                   --changed applies 1500s automatically, above the current
-#                   slowest CI hint with margin; exceeding it becomes a bounded
-#                   failure, not proof of a hang. --max-wall-ms is checked
+#                   --changed applies 1500s automatically, above the slowest
+#                   healthy CI measurement with margin; exceeding it becomes a
+#                   bounded failure, not proof of a hang. --max-wall-ms is checked
 #                   after the run and so cannot catch a hang on its own.
 #                   External interruption cleanup is outside this runner's
 #                   guarantee; configured per-script bounds remain authoritative.
@@ -187,10 +187,13 @@ MAX_WALL_MS=
 PER_SCRIPT_TIMEOUT_SECS=0
 # Bound applied automatically on the automatic --changed path, derived from
 # measured healthy runtimes with margin rather than picked: the slowest measured
-# script is tests/fm-watch-triage.test.sh at about 1075s under CI load (the hint
-# table below records that loaded figure). 1500s keeps every measured script
-# under the bound with roughly 1.4x headroom over the slowest loaded measurement,
-# and it stays under the 30-minute normal CI tier so a wedged script fails here,
+# script is tests/fm-supervision-host.test.sh run whole, at about 1244s green
+# under CI load (CI runs it as two lanes, so the hint table below splits that
+# figure between them; docs/fm-test-portable-shards.md), then
+# tests/fm-watch-triage.test.sh at about 1075s. 1500s keeps every measured
+# healthy script under the bound with roughly 1.2x headroom over the slowest
+# loaded measurement, and it stays under the 30-minute normal CI tier so a
+# wedged script fails here,
 # with its output, before the job cap
 # cancels the lane. It is a guard, not a speed control: a HUNG script becomes a
 # bounded failure instead of an unbounded suite, which is the shape that
@@ -404,7 +407,8 @@ family_for_basename() {
       printf '%s\n' pr-forge
       ;;
     fm-afk-contract.test.sh|fm-afk-inject-e2e.test.sh|fm-afk-return.test.sh|\
-    fm-supervision-host.test.sh|fm-host-mirror.test.sh)
+    fm-supervision-host.test.sh|fm-supervision-host-lane-a.test.sh|fm-supervision-host-lane-b.test.sh|\
+    fm-host-mirror.test.sh)
       printf '%s\n' afk
       ;;
     fm-bearings-board-render.test.sh|fm-bearings-snapshot.test.sh|fm-contributions.test.sh|\
@@ -659,7 +663,7 @@ is_proven_isolated_script() {
   return 1
 }
 
-# The portable serial remainder: every tests/*.test.sh that is neither
+# The portable serial remainder: every scheduled tests/*.test.sh that is neither
 # proven-isolated nor real-herdr-gated. Watcher, lock, AFK, real tmux, daemon,
 # secondmate lifecycle, bootstrap, the live-harness-optin family, GUI-backend,
 # and other unproven work stays here. Derived rather than enumerated so a newly added test
@@ -859,7 +863,8 @@ tests/fm-subagent-pretool-check.test.sh 998
 tests/fm-supervision-events.test.sh 673
 tests/fm-supervision-host-attended-live-e2e.test.sh 49
 tests/fm-supervision-host-live-e2e.test.sh 75
-tests/fm-supervision-host.test.sh 789123
+tests/fm-supervision-host-lane-a.test.sh 619000
+tests/fm-supervision-host-lane-b.test.sh 625000
 tests/fm-tangle-guard.test.sh 8501
 tests/fm-task-delivery.test.sh 32789
 tests/fm-task-inbox.test.sh 31965
@@ -1152,7 +1157,7 @@ run_coverage_guard() {
   missing=$(comm -23 "$tmp/all" "$tmp/union" || true)
   extra=$(comm -13 "$tmp/all" "$tmp/union" || true)
   if [ -n "$missing" ] || [ -n "$extra" ]; then
-    log "coverage guard: union of portable shards + portable serial + Herdr must equal tests/*.test.sh"
+    log "coverage guard: union of portable shards + portable serial + Herdr must equal the scheduled tests/*.test.sh"
     [ -z "$missing" ] || { log "missing from union:"; printf '%s\n' "$missing" >&2; }
     [ -z "$extra" ] || { log "extra beyond inventory:"; printf '%s\n' "$extra" >&2; }
     rm -rf "$tmp"
@@ -1277,7 +1282,10 @@ print(f"FM_TEST_AGGREGATE lanes={len(lanes)} total={total} failed={failed} skipp
 PY
 }
 
-all_repo_tests() {
+# Every tests/*.test.sh file, including a lane-split subject. Reference scans
+# use this, because a subject's cases, not its lane wrappers, name what they
+# exercise.
+all_repo_test_files() {
   # Deterministic lexical order (same as bash glob expansion under LC_ALL=C).
   local f
   # shellcheck disable=SC2035
@@ -1285,6 +1293,14 @@ all_repo_tests() {
     [ -f "$f" ] || continue
     printf '%s\n' "$f"
   done | LC_ALL=C sort
+}
+
+# The scheduled suite: every test file except a lane-split subject, whose
+# cases run through its lane wrappers (tests/<subject>-lane-*.test.sh) so each
+# runs once. Named explicitly, the subject still runs, and runs every case.
+LANE_SPLIT_SUBJECT=tests/fm-supervision-host.test.sh
+all_repo_tests() {
+  all_repo_test_files | grep -vx "$LANE_SPLIT_SUBJECT"
 }
 
 normalize_script_path() {
@@ -1352,7 +1368,7 @@ families_for_test_reference() {  # <needle>...
       family_for_basename "$(basename "$s")"
       found=1
     fi
-  done < <(all_repo_tests)
+  done < <(all_repo_test_files)
   [ "$found" -eq 1 ]
 }
 
@@ -1369,7 +1385,7 @@ scripts_for_test_reference() {
       printf '__script__:%s\n' "$(basename "$s")"
       found=1
     fi
-  done < <(all_repo_tests)
+  done < <(all_repo_test_files)
   [ "$found" -eq 1 ]
 }
 
@@ -1798,6 +1814,19 @@ select_changed() {
       add_script "tests/$script_name"
     fi
   done
+
+  local -a kept=()
+  case " ${SCRIPTS[*]-} " in
+    *" $LANE_SPLIT_SUBJECT "*)
+      for s in "${SCRIPTS[@]}"; do
+        case "$s" in
+          "${LANE_SPLIT_SUBJECT%.test.sh}"-lane-*.test.sh) ;;
+          *) kept+=("$s") ;;
+        esac
+      done
+      SCRIPTS=("${kept[@]}")
+      ;;
+  esac
 
   if [ "${#SCRIPTS[@]}" -eq 0 ]; then
     log "no tests selected for changes vs $base (map is conservative; use --all for the complete suite)"

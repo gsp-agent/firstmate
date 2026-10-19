@@ -10,7 +10,7 @@ The concurrent isolation proof in [fm-test-isolation-proof.md](fm-test-isolation
 Local timings are not interchangeable with CI timings: platform and machine load can affect each script differently and change their relative weights.
 
 Both hint tables were refreshed on 2026-09-30 from five Ubuntu CI runs: [36583881812](https://github.com/kunchenguid/firstmate/actions/runs/36583881812), [36658498535](https://github.com/kunchenguid/firstmate/actions/runs/36658498535), [36663947738](https://github.com/kunchenguid/firstmate/actions/runs/36663947738), [36664663190](https://github.com/kunchenguid/firstmate/actions/runs/36664663190), and [36669175457](https://github.com/kunchenguid/firstmate/actions/runs/36669175457).
-Use the slowest successful `duration_ms` per script across their uploaded portable timing artifacts and completed `FM_TEST_END` log markers, with the two version/platform exceptions below.
+Use the slowest successful `duration_ms` per script across their uploaded portable timing artifacts and completed `FM_TEST_END` log markers, with the two exceptions below.
 All artifact records were cross-checked against the corresponding job's markers.
 This covers all 24 parallel and 201 serial members; an existing live-capability skip is a portable-runner measurement, not a timing claim for the unavailable live integration.
 Observed maxima provide conservative packing weights, not an upper bound on future durations.
@@ -21,8 +21,8 @@ A failed script's duration is excluded even when its lane uploaded an artifact.
 In particular, run 36664663190's serial 5 finished in 22m15s with an assertion failure, not a timeout; treating that as a healthy whole-lane sample would hide the failure.
 Collect successful per-script measurements for every member before calculating a split.
 
-`tests/fm-supervision-host.test.sh` uses 789123 ms from run 36669175457, after the merged [host runtime fix](https://github.com/kunchenguid/firstmate/pull/6179), rather than its pre-fix maximum of 1065298 ms.
-That post-fix value has only one sample in this baseline, so further green runs must establish its variance.
+`tests/fm-supervision-host.test.sh` alone reached the 30-minute tripwire on slow runners (1015-1244 s green, past 1753 s on slow runners), so CI runs its cases in two lanes: `tests/fm-supervision-host-lane-a.test.sh` and `tests/fm-supervision-host-lane-b.test.sh` on different serial shards, scheduled in place of the file; run directly, the file still runs every case.
+Their hints, 619000 ms and 625000 ms, apportion the slowest green whole-file sample (1244 s) by each lane's share of per-case time in a green run, so further green runs must replace them with measured lane samples.
 The native-Windows-only `tests/fm-pi-windows-shell-invocation.test.sh` retains its separate 5121 ms measurement from 2026-09-06T21:02Z instead of a portable capability skip.
 The session-start hint retains its pre-optimization maximum until CI measures the shorter fixture-only home-summary bound; do not discount a local speedup from CI packing weights.
 
@@ -41,7 +41,7 @@ Refresh `portable_parallel_weight_hints` with the slowest completed `duration_ms
 
 ## Portable serial remainder
 
-`portable-serial` includes every `tests/*.test.sh` that is neither proven-isolated nor `real-herdr-gated`.
+`portable-serial` includes every scheduled `tests/*.test.sh` that is neither proven-isolated nor `real-herdr-gated`.
 It keeps watcher, lock, AFK, real tmux, daemon, secondmate lifecycle, bootstrap, the `live-harness-optin` family, GUI-backend, and other unproven work serial.
 Membership is derived rather than enumerated, so a newly added test lands here by default.
 
@@ -93,7 +93,7 @@ Measure native-Windows-only scripts through the focused Git Bash runner and reta
 ## Coverage guard
 
 `bin/fm-test-run.sh --check-coverage` verifies that both parallel lanes partition the proven-isolated set.
-It also verifies that the parallel lanes, portable serial lane, and real-Herdr family are disjoint and cover every `tests/*.test.sh` script.
+It also verifies that the parallel lanes, portable serial lane, and real-Herdr family are disjoint and cover every scheduled `tests/*.test.sh` script.
 It separately verifies that the portable serial CI shards are non-empty, disjoint, and together equal the portable serial lane.
 Its hint-coverage and modeled-budget checks are described in [Portable serial CI shards](#portable-serial-ci-shards); neither replaces inspection of actual CI timing artifacts.
 

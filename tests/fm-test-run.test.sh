@@ -21,6 +21,8 @@ test_list_all_exact_suite_coverage() {
   expected=$(
     for f in "$ROOT"/tests/*.test.sh; do
       [ -f "$f" ] || continue
+      # A lane-split subject runs through its lane wrappers instead.
+      [ "$(basename "$f")" = fm-supervision-host.test.sh ] && continue
       printf 'tests/%s\n' "$(basename "$f")"
     done | LC_ALL=C sort
   )
@@ -33,7 +35,7 @@ test_list_all_exact_suite_coverage() {
   [ "$(printf '%s\n' "$listed" | uniq | wc -l | tr -d ' ')" = \
     "$(printf '%s\n' "$listed" | wc -l | tr -d ' ')" ] \
     || fail "--list --all must not duplicate scripts"
-  pass "exact suite coverage: --all lists every tests/*.test.sh once"
+  pass "exact suite coverage: --all lists every scheduled tests/*.test.sh once"
 }
 
 test_family_selection() {
@@ -457,6 +459,45 @@ test_changed_bin_reference_selects_per_script_not_per_family() {
 
   rm -rf "$tmp"
   pass "a bin reference selects the referencing scripts, and consumers still select their curated families"
+}
+
+# The supervision-host subject runs every case itself; its lane wrappers each
+# run half of the same cases. A changed selection runs each case once: the
+# wrappers when only the afk family is selected, the subject alone when it is
+# selected too.
+test_changed_lane_split_subject_runs_each_case_once() {
+  local tmp repo listed script
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-lane-subject.XXXXXX")
+  repo="$tmp/repo"
+  init_changed_fixture_repo "$repo"
+  for script in fm-supervision-host.test.sh fm-supervision-host-lane-a.test.sh fm-supervision-host-lane-b.test.sh; do
+    printf '#!/usr/bin/env bash\n' >"$repo/tests/$script"
+    chmod +x "$repo/tests/$script"
+  done
+  : >"$repo/bin/fm-supervision-host.sh"
+  git -C "$repo" add .
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm supervision-host
+
+  printf '\n' >>"$repo/bin/fm-supervision-host.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-supervision-host-lane-a.test.sh' \
+    || fail "afk source change did not select supervision-host lane a: $listed"
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-supervision-host-lane-b.test.sh' \
+    || fail "afk source change did not select supervision-host lane b: $listed"
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-supervision-host.test.sh' \
+    && fail "afk source change selected the supervision-host subject beside its lanes: $listed"
+
+  printf '\n' >>"$repo/tests/fm-supervision-host.test.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-supervision-host.test.sh' \
+    || fail "changed supervision-host subject was not selected: $listed"
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-afk-return.test.sh' \
+    || fail "afk source change lost the rest of its family: $listed"
+  printf '%s\n' "$listed" | grep -q -- '-lane-[ab]\.test\.sh$' \
+    && fail "supervision-host cases selected twice, through the subject and its lanes: $listed"
+
+  rm -rf "$tmp"
+  pass "changed selection runs each supervision-host case once, through the lanes or the subject"
 }
 
 # Exercise begin/end markers from real fixture processes to prove the automatic
@@ -1108,6 +1149,72 @@ test_portable_parallel_lanes_stay_duration_balanced() {
   [ "$((imbalance * 20))" -le "$max" ] \
     || fail "parallel lanes differ by ${imbalance}ms against a ${max}ms worst lane, more than 5%"
   pass "portable parallel lanes are fully hinted and packed within 5% of each other"
+}
+
+# Runs the dispatch at the end of tests/fm-supervision-host.test.sh with every
+# case stubbed to print its own name, so the lane selection is exercised without
+# the slow case bodies. <lane> - leaves FM_SUPERVISION_HOST_LANE unset.
+supervision_host_dispatched_cases() { # <main> <defined> <lane>
+  local main=$1 defined=$2 lane=$3 script
+  script=$(
+    printf 'set -eu\nfail() { printf "FAIL: %%s\\n" "$*"; exit 1; }\n'
+    printf '%s\n' "$defined" | sed 's/.*/&() { echo &; }/'
+    sed -n '/^supervision_host_lane_a() {$/,$p' "$main"
+  )
+  if [ "$lane" = - ]; then
+    env -u FM_SUPERVISION_HOST_LANE bash -c "$script"
+  else
+    FM_SUPERVISION_HOST_LANE=$lane bash -c "$script"
+  fi
+}
+
+test_supervision_host_lanes_partition_its_cases() {
+  local main lane_a lane_b wrapper defined listed dups lanes count shard a_shard b_shard main_shard listed_shard ran_all ran_a ran_b ran_explicit
+  main="$ROOT/tests/fm-supervision-host.test.sh"
+  lane_a="$ROOT/tests/fm-supervision-host-lane-a.test.sh"
+  lane_b="$ROOT/tests/fm-supervision-host-lane-b.test.sh"
+  for wrapper in "$lane_a" "$lane_b"; do
+    [ -x "$wrapper" ] || fail "${wrapper#"$ROOT"/} must exist and be executable"
+  done
+  # Every case the file defines runs in exactly one of its two lanes.
+  defined=$(sed -n 's/^\(test_[a-z0-9_]*\)() {$/\1/p' "$main" | LC_ALL=C sort)
+  listed=$(awk '/^supervision_host_lane_[ab]\(\) \{$/ { f = 1; next } f && /^\}$/ { f = 0 } f { gsub(/^[ \t]+/, ""); print }' "$main" | LC_ALL=C sort)
+  [ -n "$listed" ] || fail "fm-supervision-host.test.sh has no supervision_host_lane_a/_b case lists"
+  dups=$(printf '%s\n' "$listed" | uniq -d)
+  [ -z "$dups" ] || fail "supervision-host cases listed in both lanes: $dups"
+  [ "$defined" = "$listed" ] \
+    || fail "supervision-host lanes must list every defined case exactly once: $(diff <(printf '%s\n' "$defined") <(printf '%s\n' "$listed") | tr '\n' ' ')"
+  # Run directly with no lane, the file is the whole subject: every case runs.
+  ran_all=$(supervision_host_dispatched_cases "$main" "$defined" - | LC_ALL=C sort) \
+    || fail "supervision-host dispatch with no lane set failed: $ran_all"
+  [ "$ran_all" = "$defined" ] \
+    || fail "an unset FM_SUPERVISION_HOST_LANE must run all $(printf '%s\n' "$defined" | grep -c .) cases, ran $(printf '%s\n' "$ran_all" | grep -c .)"
+  ran_explicit=$(supervision_host_dispatched_cases "$main" "$defined" all | LC_ALL=C sort) || fail "lane all failed: $ran_explicit"
+  [ "$ran_explicit" = "$defined" ] || fail "FM_SUPERVISION_HOST_LANE=all must run every case"
+  ran_a=$(supervision_host_dispatched_cases "$main" "$defined" a) || fail "lane a failed: $ran_a"
+  ran_b=$(supervision_host_dispatched_cases "$main" "$defined" b) || fail "lane b failed: $ran_b"
+  [ -n "$ran_a" ] && [ -n "$ran_b" ] || fail "lanes a and b must each run cases"
+  [ "$(printf '%s\n%s\n' "$ran_a" "$ran_b" | LC_ALL=C sort)" = "$defined" ] \
+    || fail "lanes a and b together must run every case exactly once"
+  # CI schedules the two lane wrappers, never the whole file, on different
+  # portable serial shards, so each case runs there exactly once.
+  lanes=$("$RUNNER" --list-lanes)
+  count=$(printf '%s\n' "$lanes" | grep -c '^portable-serial-[0-9]*of[0-9]*$')
+  a_shard="" b_shard="" main_shard=""
+  shard=1
+  while [ "$shard" -le "$count" ]; do
+    listed_shard=$("$RUNNER" --list --lane "portable-serial-${shard}of${count}")
+    printf '%s\n' "$listed_shard" | grep -qx 'tests/fm-supervision-host-lane-a.test.sh' && a_shard=$shard
+    printf '%s\n' "$listed_shard" | grep -qx 'tests/fm-supervision-host-lane-b.test.sh' && b_shard=$shard
+    printf '%s\n' "$listed_shard" | grep -qx 'tests/fm-supervision-host.test.sh' && main_shard=$shard
+    shard=$((shard + 1))
+  done
+  [ -z "$main_shard" ] || fail "tests/fm-supervision-host.test.sh is scheduled on serial shard $main_shard beside its lane wrappers"
+  "$RUNNER" --list --all | grep -qx 'tests/fm-supervision-host.test.sh' \
+    && fail "tests/fm-supervision-host.test.sh must not be scheduled; its lane wrappers run its cases"
+  [ -n "$a_shard" ] && [ -n "$b_shard" ] || fail "both supervision-host lanes must land on a portable serial shard (a=$a_shard b=$b_shard)"
+  [ "$a_shard" != "$b_shard" ] || fail "both supervision-host lanes packed onto serial shard $a_shard"
+  pass "supervision-host: unset lane runs all cases; CI runs lanes a and b once each on different serial shards"
 }
 
 test_portable_serial_shards_partition_the_serial_lane() {
@@ -1835,6 +1942,7 @@ test_changed_runner_surfaces_select_their_family
 test_shell_line_ending_policy_selects_runner_contract
 test_changed_dependency_selection_and_unmapped_failure
 test_changed_bin_reference_selects_per_script_not_per_family
+test_changed_lane_split_subject_runs_each_case_once
 test_changed_uses_bounded_automatic_concurrency
 test_windows_posix_mode_emulation_does_not_fail_parallel_runs
 test_script_list_uses_bounded_automatic_concurrency
@@ -1853,6 +1961,7 @@ test_list_scheduled_non_lane_selections_use_serial_weights
 test_portable_shard_union_and_coverage_guard
 test_portable_parallel_lanes_stay_duration_balanced
 test_portable_serial_shards_partition_the_serial_lane
+test_supervision_host_lanes_partition_its_cases
 test_portable_serial_hint_coverage_is_reported_and_bounded
 test_portable_serial_packing_budget_boundary
 test_portable_serial_shard_lane_refusals
