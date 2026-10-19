@@ -6619,6 +6619,115 @@ test_paused_until_that_passed_is_rechecked_before_the_cadence() {
   pass "a declared wait whose until time has passed is rechecked at once, then held to the cadence"
 }
 
+test_check_sweep_reprobes_captain_holds() {
+  local dir state fakebin out step mode probe show pid started elapsed before probe_pid
+  local -a captain tasks
+  command -v tasks-axi >/dev/null 2>&1 || { printf 'skip: tasks-axi not found\n'; return; }
+  dir=$(make_case captain-hold-probes)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  out="$dir/watch.out"
+  mkdir -p "$dir/data" "$dir/config" "$dir/projects"
+  fm_test_tasks_toml "$dir/.tasks.toml"
+  printf '## In flight\n\n## Queued\n\n## Done\n' > "$dir/data/backlog.md"
+  captain=(env "PATH=$fakebin:$PATH" "FM_HOME=$dir" "FM_STATE_OVERRIDE=$state"
+    "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config"
+    "FM_DALE_ASKS_RULE=$dir/missing-asks-rule.py" "$ROOT/bin/fm-captain-hold.sh")
+  tasks=(env "FM_HOME=$dir" "FM_DATA_OVERRIDE=$dir/data" "$ROOT/bin/fm-tasks-axi.sh")
+  for step in sign-in screen; do
+    if "${captain[@]}" hold "deferred-$step" --title "Complete the $step" \
+      --reason "complete the Dale step" --dale-step "$step" --probe true \
+      --until 2099-01-01 > "$dir/deferred.out" 2> "$dir/deferred.err"; then
+      fail "a $step Dale-step hold accepted a deferral date"
+    fi
+    assert_grep 'until' "$dir/deferred.err" "the Dale-step deferral refusal did not identify --until: $(cat "$dir/deferred.err")"
+    if "${tasks[@]}" show "deferred-$step" --full >/dev/null 2>&1; then
+      fail "a refused Dale-step deferral still created its task"
+    fi
+  done
+  "${captain[@]}" hold ordinary --title 'Ordinary, "quoted" decision' \
+    --reason "choose the next action" --until 2099-01-01 >/dev/null \
+    || fail "an ordinary hold lost its supported deferral date"
+  cat > "$dir/probe.sh" <<'SH'
+#!/usr/bin/env bash
+mode=$1
+printf '%s\n' "$mode" >> "$FM_HOME/$mode.attempts"
+case "$mode" in
+  failed) exit 1 ;;
+  unknown) exec fm-test-missing-hold-probe ;;
+  hung)
+    printf '%s\n' "$$" > "$FM_HOME/probe.pid"
+    trap '' TERM
+    sleep 120 &
+    printf '%s\n' "$!" > "$FM_HOME/probe-child.pid"
+    wait
+    ;;
+  ready) test -f "$FM_HOME/probe-ready" ;;
+esac
+SH
+  chmod +x "$dir/probe.sh"
+  for mode in failed unknown hung ready; do
+    printf -v probe '%q %q' "$dir/probe.sh" "$mode"
+    "${captain[@]}" hold "probe-$mode" --title "Probe $mode, \"quoted\"" \
+      --reason "complete the Dale step" --dale-step screen --probe "$probe" >/dev/null \
+      || fail "could not create the $mode sweep fixture"
+  done
+  started=$(date +%s)
+  watch_bg "$state" "$fakebin" "$out" env "FM_HOME=$dir" "FM_ROOT_OVERRIDE=$dir" \
+    "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config" FM_CHECK_TIMEOUT=60 \
+    2> "$dir/watch.err"
+  pid=$!
+  if ! wait_poll_cycle "$state" "$pid" 600; then
+    reap "$pid"
+    fail "the executable watcher did not finish its probe sweep: $(cat "$out" "$dir/watch.err")"
+  fi
+  elapsed=$(( $(date +%s) - started ))
+  [ "$elapsed" -lt 50 ] || { reap "$pid"; fail "a hanging probe stalled the watcher for $elapsed seconds"; }
+  for mode in failed unknown hung ready; do
+    [ -s "$dir/$mode.attempts" ] \
+      || { reap "$pid"; fail "the executable sweep never ran the $mode probe"; }
+    show=$("${tasks[@]}" show "probe-$mode" --full)
+    assert_contains "$show" "held: yes" "a kept $mode probe released its hold"
+  done
+  for probe_pid in "$(cat "$dir/probe.pid")" "$(cat "$dir/probe-child.pid")"; do
+    if kill -0 "$probe_pid" 2>/dev/null; then
+      reap "$pid"
+      fail "a timed-out probe left process $probe_pid running"
+    fi
+  done
+  [ ! -s "$out" ] || { reap "$pid"; fail "kept probes printed a wake reason: $(cat "$out")"; }
+  [ ! -s "$state/.wake-queue" ] || { reap "$pid"; fail "kept probes queued a wake"; }
+  before=$(cat "$dir/ready.attempts")
+  : > "$dir/probe-ready"
+  if ! wait_poll_cycle "$state" "$pid"; then
+    reap "$pid"
+    fail "the watcher woke before the next check interval"
+  fi
+  [ "$(cat "$dir/ready.attempts")" = "$before" ] \
+    || { reap "$pid"; fail "probes ran outside the existing check cadence"; }
+  set_mtime 1 "$state/.last-check"
+  if ! wait_for_exit "$pid" 600; then
+    reap "$pid"
+    fail "the due sweep did not wake after a passing probe: $(cat "$out" "$dir/watch.err")"
+  fi
+  assert_grep 'check: captain hold probe-ready released after a passing probe' "$out" \
+    "the passing probe did not print its release reason"
+  [ "$(wc -l < "$out" | tr -d '[:space:]')" = 1 ] \
+    || fail "the passing probe printed more than one reason line: $(cat "$out")"
+  assert_grep 'captain-hold-probe-probe-ready' "$state/.wake-queue" \
+    "the sweep did not queue the released task for firstmate"
+  show=$("${tasks[@]}" show probe-ready --full)
+  assert_contains "$show" "held: no" "the passing sweep probe did not release its task"
+  assert_contains "$show" "Resolution mode: probe-released" "the sweep bypassed the captain-hold release owner"
+  for mode in failed unknown hung; do
+    show=$("${tasks[@]}" show "probe-$mode" --full)
+    assert_contains "$show" "held: yes" "the passing sibling released the $mode probe's hold"
+  done
+  show=$("${tasks[@]}" show ordinary --full)
+  assert_contains "$show" "held: yes" "the sweep released an ordinary deferred hold"
+  pass "the executable check sweep bounds probes, keeps failures quiet, and wakes once after release"
+}
+
 # CI's stock macOS Bash lane sets FM_TEST_ONLY to run just the bash-3.2
 # churn-deferral regression. The rest of this file is not a 3.2 snapshot suite.
 if [ -n "${FM_TEST_ONLY:-}" ]; then
@@ -6767,3 +6876,4 @@ test_captain_held_rechecked_under_a_quiet_record
 test_paused_until_near_future_is_quiet_before_the_cadence
 test_paused_until_wrong_year_is_bounded_by_the_cadence
 test_paused_until_that_passed_is_rechecked_before_the_cadence
+test_check_sweep_reprobes_captain_holds

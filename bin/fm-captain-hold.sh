@@ -58,7 +58,7 @@
 # readers decode them (bin/fm-hold-reason-lib.sh owns the encoding).
 # `--until` records the captain's own deferral date through `tasks-axi hold
 # --until`, so a "revisit later" answer is stored as a date instead of a live
-# card.
+# card. It cannot be combined with `--dale-step`.
 #
 # A hold waiting on a Dale step (a sign-in or a screen) is created with
 # `--dale-step sign-in|screen --probe <command>`, with a non-empty single-line
@@ -68,9 +68,10 @@
 # rule lets creation proceed. The hold body carries the owner, timeout, reason
 # and probe fields defined by agent-config's docs/OPERATIONS.md hold-domain
 # section, the canonical format owner. `reprobe <task-id>` runs the recorded
-# command through Bash with no input and its output suppressed: exit 0 passes,
-# while a failing or unknown probe keeps the hold and wakes nobody. A passing
-# probe releases the hold under the task control lock only when the hold-set
+# command through Bash with a 10-second deadline, no input and its output
+# suppressed: exit 0 passes, while a failed, unknown or timed-out probe keeps
+# the hold and wakes nobody. A passing probe releases the hold under the task
+# control lock only when the hold-set
 # stamp and probe still match those checked, recording `probe-released`
 # evidence rather than the captain's words. It leaves the task open. Holds
 # without `--dale-step` are unchanged.
@@ -962,7 +963,7 @@ command_reprobe() {
       printf 'kept: %s no-probe\n' "$id"
       return 0
     fi
-    if ! bash -c "$probe" </dev/null >/dev/null 2>&1; then
+    if ! fm_run_timed 10 bash -c "$probe" </dev/null >/dev/null 2>&1; then
       printf 'kept: %s probe-failed\n' "$id"
       return 0
     fi
@@ -1079,6 +1080,7 @@ command_hold() {
     shift
   done
   if [ -n "$dale_step" ]; then
+    [ -z "$until" ] || fail "--until cannot be combined with --dale-step"
     case "$dale_step" in
       sign-in|screen) : ;;
       *) fail "--dale-step must be sign-in or screen: $dale_step" ;;
