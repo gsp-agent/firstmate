@@ -10,6 +10,8 @@ set -u
 # shellcheck source=tests/lib.sh
 # shellcheck disable=SC1091
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/wake-helpers.sh
+. "$ROOT/tests/wake-helpers.sh"
 # shellcheck source=bin/fm-timeout-lib.sh
 . "$ROOT/bin/fm-timeout-lib.sh"
 
@@ -4352,13 +4354,11 @@ SH
       assert_present "$home/before-backend-hold" "the successful retry did not reach the backend hold"
       shown=$(cat "$home/before-backend-hold")
       assert_contains "$shown" 'Captain hold origin: origin-b' "the backend hold ran before the new origin was recorded"
-      assert_equals origin-b "$(shown_task_body "$shown" | sed -n 's/^Captain hold origin: //p' | head -1)" \
-        'the backend hold ran with the old association'
+      assert_not_contains "$shown" 'Captain hold origin: origin-a' "the backend hold ran with the old association"
       shown=$(tasks_in "$home" show "$id" --full)
       assert_contains "$shown" 'held: yes' "the successful retry did not hold the task"
       assert_contains "$shown" 'Captain hold origin: origin-b' "a successful hold lost its association"
-      assert_equals origin-b "$(shown_task_body "$shown" | sed -n 's/^Captain hold origin: //p' | head -1)" \
-        'a successful hold retained the old association as current'
+      assert_not_contains "$shown" 'Captain hold origin: origin-a' "a successful hold retained the old association"
       run_captain "$home" complete origin-b "$id" >/dev/null \
         || fail "a successful hold could not complete B"
       run_captain "$home" verify origin-b >/dev/null || fail "a successful hold could not verify B"
@@ -4753,7 +4753,6 @@ run_domain_watcher() {
 
 test_domain_deferred_holds_keep_their_routing_wake() (
   local domain_home mode show supervised
-  . "$ROOT/tests/wake-helpers.sh"
   for mode in fresh postponed; do
     domain_home=$(make_domain_home "domain-deferred-$mode")
     assert_absent "$domain_home/state/hold-domain" 'new home already has routing state'
@@ -5343,7 +5342,6 @@ test_watcher_routes_due_holds_before_surfacing_signals() {
 
 test_watcher_routing_failures_do_not_starve_scheduled_checks() (
   local domain_home mode n
-  . "$ROOT/tests/wake-helpers.sh"
   for mode in drift delivery release; do
     domain_home=$(make_domain_home "domain-failed-check-$mode")
     run_domain "$domain_home" 2026-10-14T02:00:00Z hold failed --title 'Failing route' \
@@ -5672,7 +5670,6 @@ SH
 test_domain_interrupted_sweeps_make_fair_progress() (
   local home id n shown pid
   . "$ROOT/bin/fm-wake-lib.sh"
-  . "$ROOT/tests/wake-helpers.sh"
   home=$(make_domain_home interrupted-sweep-progress)
   cat > "$home/.tasks.toml" <<'TOML'
 backend = "markdown"
@@ -6147,6 +6144,7 @@ test_domain_reasons_break_where_the_router_breaks() {
 }
 
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
+  origins) test_hold_origins_precede_backend_holds; exit $? ;;
   stranded-release) test_domain_rehold_waits_for_an_unfinished_routed_release; exit $? ;;
   reason-breaks) test_domain_reasons_break_where_the_router_breaks; exit $? ;;
   receipt-deferral)

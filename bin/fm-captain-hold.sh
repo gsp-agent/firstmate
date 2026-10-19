@@ -435,10 +435,14 @@ require_tasks_axi() {
 # inside a command substitution can still tell a wedged backend from a
 # genuinely unknown id.
 TASK_SHOW_OUTPUT=
-task_show() {  # <id>; sets TASK_SHOW_OUTPUT
+task_show() {  # <id> [--diagnostics]; sets TASK_SHOW_OUTPUT
   local data status=0 reason
   data=$(fm_backlog_data_absolute "$DATA") || fail "data directory cannot be resolved: $DATA"
-  TASK_SHOW_OUTPUT=$(fm_backlog_row_show "$data" "$1" --full 2>/dev/null) || status=$?
+  if [ "${2:-}" = --diagnostics ]; then
+    TASK_SHOW_OUTPUT=$(fm_backlog_row_show "$data" "$1" --full 2>&1) || status=$?
+  else
+    TASK_SHOW_OUTPUT=$(fm_backlog_row_show "$data" "$1" --full 2>/dev/null) || status=$?
+  fi
   if [ "$status" -eq 124 ]; then
     reason=${TASK_SHOW_OUTPUT%%$'\n'*}
     printf 'fm-captain-hold: %s\n' \
@@ -1044,6 +1048,7 @@ command_hold() {
   local id=${1:-} title='' reason='' repo='' origin='' until='' show state existing_title body='' hold_kind hold_set occurrence
   local existing_hold_kind='' existing_held='' preserve_hold_set=0 stored_reason previous_origin='' hold_status=0
   local decision_owner='' timeout_seconds='' old_owner old_timeout old_reason routing_reason origin_runtime='' today=''
+  local origin_id origin_status=0
   [ "$#" -ge 1 ] || { usage >&2; exit 2; }
   shift
   while [ "$#" -gt 0 ]; do
@@ -1081,10 +1086,14 @@ command_hold() {
   [ -z "$until" ] || today=$(hold_local_date) || exit $?
   require_tasks_axi
   if [ -n "$origin" ]; then
-    origin=$(task_identity "$origin") || exit $?
-    origin_runtime=$(task_runtime_identity "$origin") || exit $?
+    if origin_id=$(task_identity "$origin") && origin_runtime=$(task_runtime_identity "$origin_id"); then
+      origin=$origin_id
+    else
+      origin_status=$?
+      origin_runtime=$origin
+    fi
   fi
-  if ! task_show "$id"; then
+  if ! task_show "$id" --diagnostics; then
     printf '%s\n' "$TASK_SHOW_OUTPUT" | grep -q '^code: NOT_FOUND$' \
       || fail "could not read task $id before holding: $TASK_SHOW_OUTPUT"
     [ -n "$title" ] || fail "--title is required to create task $id"
@@ -1108,6 +1117,8 @@ command_hold() {
         || fail "could not create task $id"
     fi
   fi
+  # Preserve creation on a failed origin lookup, without publishing a hold.
+  [ "$origin_status" -eq 0 ] || exit "$origin_status"
   acquire_task_control_lock "$id"
   id=$CAPTAIN_TASK_ID
   task_show_or_fail "$id" "task $id disappeared before holding it"
