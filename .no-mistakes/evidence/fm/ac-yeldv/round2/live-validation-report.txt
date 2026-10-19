@@ -1,0 +1,582 @@
+Live validation round 2: 0bcfe6bb84688bf4792db33c28550f62de27085e
+Real Firstmate, no-mistakes, Git, and gh ran against disposable partial clones, seeded pipeline records, a marked Firstmate lab home, and a local forge API.
+Only read-only no-mistakes commands were used. No pipeline, delivery, shared fleet, real account, or production configuration was changed.
+The initial three bounded status reads met the one-second threshold. Subsequent timing controls did not meet it reliably, so this is not a clean performance pass.
+
+MISSING PIPELINE HEAD: BEFORE AND AFTER
+{
+  "head_remains_absent": true,
+  "runs": [
+    {
+      "version": "after-1",
+      "head": "ef9b91c46ef27388c8e5f69606add2bc7e431882",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 0.299363,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "after-2",
+      "head": "ef9b91c46ef27388c8e5f69606add2bc7e431882",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 0.292457,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "after-3",
+      "head": "ef9b91c46ef27388c8e5f69606add2bc7e431882",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 0.340841,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "before",
+      "head": "ef9b91c46ef27388c8e5f69606add2bc7e431882",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 124,
+      "elapsed_seconds": 10.170596,
+      "returns_gate_and_finding": false,
+      "implicit_lazy_fetches": [
+        [
+          "/opt/homebrew/opt/git/libexec/git-core/git",
+          "-c",
+          "fetch.negotiationAlgorithm=noop",
+          "fetch",
+          "origin",
+          "--no-tags",
+          "--no-write-fetch-head",
+          "--recurse-submodules=no",
+          "--filter=blob:none",
+          "--stdin"
+        ]
+      ]
+    }
+  ]
+}
+PAIRED TIMING CONTROLS
+[
+  {
+    "pair": 1,
+    "interface": "direct-cli-no-fetch",
+    "elapsed_seconds": 0.788144,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 1,
+    "interface": "bounded-product",
+    "elapsed_seconds": 2.255783,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 2,
+    "interface": "direct-cli-no-fetch",
+    "elapsed_seconds": 1.241239,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 2,
+    "interface": "bounded-product",
+    "elapsed_seconds": 0.775065,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 3,
+    "interface": "direct-cli-no-fetch",
+    "elapsed_seconds": 0.511055,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 3,
+    "interface": "bounded-product",
+    "elapsed_seconds": 1.040231,
+    "exit": 0,
+    "has_gate_and_finding": true
+  }
+]
+The direct CLI with lazy fetching disabled also exceeded one second. Host load was 125.53 / 116.67 / 131.49 during the comparison. These observations do not establish a code regression and do not satisfy the required latency acceptance.
+
+ACTUAL STATUS SURFACE
+run:
+  id: "01M5APP0000000000000000002"
+  branch: fm/lab-yeldv
+  status: running
+  awaiting_agent: parked 0s
+  head: ef9b91c4
+  head_sha: ef9b91c46ef27388c8e5f69606add2bc7e431882
+  verification_plan: none
+  findings: 1 awaiting
+  steps[1]{step,status,findings,duration_ms}:
+    review,awaiting_approval,1,0
+branch_sync:
+  state: pipeline_owned
+  changed: false
+  local:
+    branch: fm/lab-yeldv
+    head: 22cd4480bd55685489013df743fd4832a0d9a7dc
+    clean: true
+  pipeline:
+    run: "01M5APP0000000000000000002"
+    status: running
+    phase: pre_push
+    submitted_head: 22cd4480bd55685489013df743fd4832a0d9a7dc
+    current_head: ef9b91c46ef27388c8e5f69606add2bc7e431882
+    pushed_head: ""
+    pushed_at: 0
+    push_generation: 0
+  target:
+    kind: ""
+    remote: origin
+    url: "file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r2/origin.git"
+    ref: ""
+  remote:
+    observed_head: ""
+    freshness: pipeline_push
+    observed_at: 0
+  relation: unknown
+  safety: blocked_pipeline_owned
+  pr_state: unknown
+  note: the pipeline head has moved but has not been successfully pushed; do not make local follow-up commits yet
+  next_action:
+    code: continue_active_run
+    command: no-mistakes axi status
+gate:
+  step: review
+  status: awaiting_approval
+  note: "Review auto-fix is disabled by default (`auto_fix.review: 0`; a repo or global `auto_fix.review > 0` override re-enables it), so blocking and ask-user review findings park for your decision rather than being silently self-fixed."
+  findings[1]{id,severity,file,action,description}:
+    LAB2,warning,"",ask-user,Real status API retains this disposable decision
+help[6]: Run `no-mistakes axi respond --action approve` to accept this step and continue,Run `no-mistakes axi respond --action fix --findings <ids>` to have the pipeline fix the selected findings (do not edit files yourself),Run `no-mistakes axi respond --action skip` to skip this step,Run `no-mistakes axi logs --step review --full` to read the full step log,"A long-running call is working, not stalled - background it if your harness needs to, but the run never advances past a gate on its own. Read every return; on a `gate:`, respond; loop until an `outcome:`.","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits."
+
+
+REAL GIT FETCH SUBTREE: BEFORE AND AFTER
+[
+  {
+    "version": "before",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.177,
+    "remote_descendants_started": [
+      21127,
+      21278
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 21127,
+        "state_after_return": "21127     1 21081 S    bash"
+      },
+      {
+        "pid": 21278,
+        "state_after_return": "21278 21127 21081 S    sleep"
+      }
+    ],
+    "all_descendants_gone": false
+  },
+  {
+    "version": "after",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.2518,
+    "remote_descendants_started": [
+      24146,
+      24218
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 24146,
+        "state_after_return": ""
+      },
+      {
+        "pid": 24218,
+        "state_after_return": ""
+      }
+    ],
+    "all_descendants_gone": true
+  }
+]
+The old runner left a recorded remote descendant under launchd (ppid 1). The changed runner left neither recorded descendant alive. Baseline descendants were explicitly stopped.
+
+STDIN, OUTPUT, EXIT STATUS AND BASH FALLBACK
+[
+  {
+    "scenario": "stdin, stdout, stderr, exit and caller settings: native",
+    "exit": 7,
+    "stdout": "received: payload through caller stdin\nchild exit: 7; parent lazy-fetch: unset\n",
+    "stderr": "diagnostic stderr\n",
+    "expected_surface": true
+  },
+  {
+    "scenario": "stdin, stdout, stderr, exit and caller settings: bash",
+    "exit": 7,
+    "stdout": "received: payload through caller stdin\nchild exit: 7; parent lazy-fetch: unset\n",
+    "stderr": "diagnostic stderr\n",
+    "expected_surface": true
+  },
+  {
+    "scenario": "Bash fallback reaps a real Git fetch subtree",
+    "exit": 124,
+    "elapsed_seconds": 2.6055,
+    "remote_descendants_started": [
+      21247,
+      21266
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 21247,
+        "state_after_return": ""
+      },
+      {
+        "pid": 21266,
+        "state_after_return": ""
+      }
+    ],
+    "expected_surface": true
+  }
+]
+
+TEN-MINUTE CREW-STATE AND ORPHAN SAMPLE
+{
+  "elapsed_seconds": 606.877,
+  "samples": 366,
+  "crew_reads": 20,
+  "all_reads_show_review_gate": true,
+  "observed_cat_file_instances": 0,
+  "orphan_cat_file_instances": 0,
+  "scope": "Only the disposable lab head; operator fleet untouched",
+  "orphans": [],
+  "first_sample_seconds": 0.003,
+  "last_sample_seconds": 596.804,
+  "review_gate_reads": 20,
+  "missed_gate_reads": [],
+  "implicit_lazy_fetches": [],
+  "slow_origin_started": false,
+  "pipeline_head_remains_absent": true
+}
+Crew-state reads:
+[
+  {
+    "at_seconds": 0.0,
+    "elapsed_seconds": 1.373,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 30.142,
+    "elapsed_seconds": 5.499,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 60.291,
+    "elapsed_seconds": 5.697,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 90.444,
+    "elapsed_seconds": 21.268,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 120.627,
+    "elapsed_seconds": 9.367,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 150.774,
+    "elapsed_seconds": 3.015,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 180.924,
+    "elapsed_seconds": 1.375,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 210.998,
+    "elapsed_seconds": 2.794,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 241.071,
+    "elapsed_seconds": 3.34,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 271.149,
+    "elapsed_seconds": 12.585,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 301.231,
+    "elapsed_seconds": 9.102,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 331.294,
+    "elapsed_seconds": 5.438,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 361.38,
+    "elapsed_seconds": 6.444,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 391.455,
+    "elapsed_seconds": 1.044,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 421.529,
+    "elapsed_seconds": 2.557,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 451.614,
+    "elapsed_seconds": 15.279,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 481.687,
+    "elapsed_seconds": 10.656,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 511.766,
+    "elapsed_seconds": 34.963,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 546.731,
+    "elapsed_seconds": 6.237,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  },
+  {
+    "at_seconds": 576.803,
+    "elapsed_seconds": 1.713,
+    "exit": 0,
+    "stdout": "state: parked \u00b7 source: run-step \u00b7 parked at review: 1 finding(s) \u00b7 ask-user: authority decision \u00b7 run: 01M5APP0000000000000000021",
+    "stderr": ""
+  }
+]
+
+REVIEW DIFF: MISSING HEAD, AVAILABLE LOCAL HEAD, FRESH PULL REF
+missing-recorded-head
+diff base: origin/main
+ review-local.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/review-local.txt b/review-local.txt
+new file mode 100644
+index 0000000..e23a5c0
+--- /dev/null
++++ b/review-local.txt
+@@ -0,0 +1 @@
++local review change
+
+Missing-head fallback warning: True
+available-recorded-head
+diff base: origin/main
+ review-local.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/review-local.txt b/review-local.txt
+new file mode 100644
+index 0000000..e23a5c0
+--- /dev/null
++++ b/review-local.txt
+@@ -0,0 +1 @@
++local review change
+
+Missing-head fallback warning: False
+fresh-pull-ref
+diff base: origin/main
+ pipeline-only.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/pipeline-only.txt b/pipeline-only.txt
+new file mode 100644
+index 0000000..e6792ee
+--- /dev/null
++++ b/pipeline-only.txt
+@@ -0,0 +1 @@
++private pipeline commit absent from origin
+
+Missing-head fallback warning: False
+A fresh PR diff may fetch an omitted blob when rendering content. That does not fetch a missing commit during the changed existence probe.
+
+CLEANUP REFUSES TO DISCARD UNLANDED WORK
+$ FM_HOME=<disposable-marked-home> bin/fm-teardown.sh lab-teardown
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r2/teardown-home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r2/teardown-slot has work not on any remote and not landed.
+unpushed commits:
+f4a7cc4 unlanded fixture
+Push the branch, land its PR, or get the captain's explicit OK to discard, then --force.
+
+{
+  "exit": 1,
+  "cat_file_probes": [
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r2/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ]
+  ],
+  "implicit_lazy_fetches": [],
+  "metadata_preserved": true,
+  "local_work_preserved": true,
+  "expected_surface": true
+}
+
+SUCCESSFUL PR FETCH WITH DISAGREEING RECORDED HEAD
+{
+  "scenario": "Forge metadata and fetched pull ref disagree; both missing-head probes avoid lazy fetch and cleanup preserves unlanded work",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r2/teardown-home\nWARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\nREFUSED: worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r2/teardown-slot has work not on any remote and not landed.\nunpushed commits:\nf4a7cc4 unlanded fixture\nPush the branch, land its PR, or get the captain's explicit OK to discard, then --force.\n",
+  "cat_file_probes": [
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r2/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ],
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r2/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ]
+  ],
+  "implicit_lazy_fetches": [],
+  "explicit_pr_fetch_retrieved_head": true,
+  "local_work_preserved": true,
+  "metadata_preserved": true,
+  "expected_surface": true
+}
+
+TARGETED CHECKS
+[
+  {
+    "test": "nm-run-default",
+    "command": [
+      "bash",
+      "tests/fm-nm-run-lib.test.sh"
+    ],
+    "extra_env": {},
+    "exit": 0,
+    "elapsed_seconds": 3.5867
+  },
+  {
+    "test": "nm-run-bash",
+    "command": [
+      "bash",
+      "tests/fm-nm-run-lib.test.sh"
+    ],
+    "extra_env": {
+      "FM_TIMEOUT_MECHANISM_OVERRIDE": "bash"
+    },
+    "exit": 0,
+    "elapsed_seconds": 3.1439
+  },
+  {
+    "test": "timeout-lib",
+    "command": [
+      "bash",
+      "tests/fm-timeout-lib.test.sh"
+    ],
+    "extra_env": {},
+    "exit": 0,
+    "elapsed_seconds": 18.3972
+  },
+  {
+    "test": "review-diff",
+    "command": [
+      "bash",
+      "tests/fm-review-diff.test.sh"
+    ],
+    "extra_env": {},
+    "exit": 0,
+    "elapsed_seconds": 76.6446
+  }
+]
+No full repository suite, lint, formatter, static analysis, push, PR, CI, or pipeline-control command was run.
+
+REQUIRED DELIVERY FOLLOW-UP NOT EXERCISED HERE
+Production cutover and the following-morning ten-minute sample require the outer delivery owner to deploy the approved change and repeat the process sampling after that cutover. This phase cannot deploy or advance the date, and it did not access the live fleet.
+
+RESULT
+{
+  "status_under_one_second": false,
+  "head_still_absent": true,
+  "timeout_reaps_subtree": true,
+  "contracts": true,
+  "review": true,
+  "cleanup_missing": true,
+  "cleanup_postfetch": true,
+  "sustained_gate": true,
+  "ten_minute_orphan_sample": true,
+  "targeted_checks": true
+}
+
+CLEANUP
+All disposable repositories, local databases, homes, Git subprocesses, local forge servers, and sockets were removed. No source or test files were changed.

@@ -1,0 +1,145 @@
+[
+  {
+    "mechanism": "native",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <absent>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.1387,
+    "process_tree_before_timeout": [
+      {
+        "pid": 4284,
+        "ppid": 4094,
+        "pgid": 4094,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 4313,
+        "ppid": 4284,
+        "pgid": 4094,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 4326,
+        "ppid": 4313,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "timeout"
+      },
+      {
+        "pid": 4333,
+        "ppid": 4326,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 4347,
+        "ppid": 4333,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "git"
+      },
+      {
+        "pid": 4361,
+        "ppid": 4347,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "/opt/homebrew/opt/git/libexec/git-core/git"
+      },
+      {
+        "pid": 4374,
+        "ppid": 4361,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 4400,
+        "ppid": 4374,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "sleep"
+      }
+    ],
+    "git_processes_observed": 2,
+    "process_tree_after_return": "",
+    "stderr": "",
+    "expected_surface": true
+  },
+  {
+    "mechanism": "bash",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <absent>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.3948,
+    "process_tree_before_timeout": [
+      {
+        "pid": 8212,
+        "ppid": 4094,
+        "pgid": 4094,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8247,
+        "ppid": 8212,
+        "pgid": 4094,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8267,
+        "ppid": 8247,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8269,
+        "ppid": 8247,
+        "pgid": 8269,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8270,
+        "ppid": 8267,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "git"
+      },
+      {
+        "pid": 8272,
+        "ppid": 8269,
+        "pgid": 8269,
+        "stat": "S",
+        "command": "sleep"
+      },
+      {
+        "pid": 8285,
+        "ppid": 8270,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "/opt/homebrew/opt/git/libexec/git-core/git"
+      },
+      {
+        "pid": 8291,
+        "ppid": 8285,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8321,
+        "ppid": 8291,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "sleep"
+      }
+    ],
+    "git_processes_observed": 2,
+    "process_tree_after_return": "",
+    "stderr": "",
+    "expected_surface": true
+  }
+]

@@ -1,0 +1,36 @@
+[
+  {
+    "scenario": "stdin, stdout, stderr, exit and caller settings: native",
+    "exit": 7,
+    "stdout": "received: payload through caller stdin\nchild exit: 7; parent lazy-fetch: unset\n",
+    "stderr": "diagnostic stderr\n",
+    "expected_surface": true
+  },
+  {
+    "scenario": "stdin, stdout, stderr, exit and caller settings: bash",
+    "exit": 7,
+    "stdout": "received: payload through caller stdin\nchild exit: 7; parent lazy-fetch: unset\n",
+    "stderr": "diagnostic stderr\n",
+    "expected_surface": true
+  },
+  {
+    "scenario": "Bash fallback reaps a real Git fetch subtree",
+    "exit": 124,
+    "elapsed_seconds": 2.6972,
+    "remote_descendants_started": [
+      46283,
+      46423
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 46283,
+        "state_after_return": ""
+      },
+      {
+        "pid": 46423,
+        "state_after_return": ""
+      }
+    ],
+    "expected_surface": true
+  }
+]

@@ -1,0 +1,54 @@
+timeout mechanism: timeout
+run:
+  id: "01M5APP0000000000000000021"
+  branch: fm/lab-yeldv
+  status: running
+  awaiting_agent: parked 0s
+  head: 39f24121
+  head_sha: 39f24121d111e06ffab2627f3779afa3c97c245a
+  verification_plan: none
+  findings: 1 awaiting
+  steps[1]{step,status,findings,duration_ms}:
+    review,awaiting_approval,1,0
+branch_sync:
+  state: pipeline_owned
+  changed: false
+  local:
+    branch: fm/lab-yeldv
+    head: f79178fd263d7e444bd3050463e9b5b152692b5e
+    clean: true
+  pipeline:
+    run: "01M5APP0000000000000000021"
+    status: running
+    phase: pre_push
+    submitted_head: f79178fd263d7e444bd3050463e9b5b152692b5e
+    current_head: 39f24121d111e06ffab2627f3779afa3c97c245a
+    pushed_head: ""
+    pushed_at: 0
+    push_generation: 0
+  target:
+    kind: ""
+    remote: origin
+    url: "file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r3/origin.git"
+    ref: ""
+  remote:
+    observed_head: ""
+    freshness: pipeline_push
+    observed_at: 0
+  relation: unknown
+  safety: blocked_pipeline_owned
+  pr_state: unknown
+  note: the pipeline head has moved but has not been successfully pushed; do not make local follow-up commits yet
+  next_action:
+    code: continue_active_run
+    command: no-mistakes axi status
+gate:
+  step: review
+  status: awaiting_approval
+  note: "Review auto-fix is disabled by default (`auto_fix.review: 0`; a repo or global `auto_fix.review > 0` override re-enables it), so blocking and ask-user review findings park for your decision rather than being silently self-fixed."
+  findings[1]{id,severity,file,action,description}:
+    LAB21,warning,"",ask-user,Disposable review decision retained for missing-head proof
+help[6]: Run `no-mistakes axi respond --action approve` to accept this step and continue,Run `no-mistakes axi respond --action fix --findings <ids>` to have the pipeline fix the selected findings (do not edit files yourself),Run `no-mistakes axi respond --action skip` to skip this step,Run `no-mistakes axi logs --step review --full` to read the full step log,"A long-running call is working, not stalled - background it if your harness needs to, but the run never advances past a gate on its own. Read every return; on a `gate:`, respond; loop until an `outcome:`.","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits."
+parent lazy-fetch: unset
+initial payload
+parent options preserved: yes

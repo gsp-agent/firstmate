@@ -1,0 +1,32 @@
+{
+  "checks": {
+    "status_under_one_second": false,
+    "head_still_absent": true,
+    "timeout_reaps_subtree": true,
+    "contracts": true,
+    "review": true,
+    "cleanup_missing": true,
+    "cleanup_postfetch": true,
+    "sustained_gate": true,
+    "ten_minute_orphan_sample": true,
+    "targeted_checks": true
+  },
+  "all_exercised_pass": false,
+  "sample": {
+    "elapsed_seconds": 606.877,
+    "samples": 366,
+    "crew_reads": 20,
+    "all_reads_show_review_gate": true,
+    "observed_cat_file_instances": 0,
+    "orphan_cat_file_instances": 0,
+    "scope": "Only the disposable lab head; operator fleet untouched",
+    "orphans": [],
+    "first_sample_seconds": 0.003,
+    "last_sample_seconds": 596.804,
+    "review_gate_reads": 20,
+    "missed_gate_reads": [],
+    "implicit_lazy_fetches": [],
+    "slow_origin_started": false,
+    "pipeline_head_remains_absent": true
+  }
+}

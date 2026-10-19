@@ -1,0 +1,20 @@
+$ bin/fm-review-diff.sh lab-review
+diff base: origin/main
+ review-local.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/review-local.txt b/review-local.txt
+new file mode 100644
+index 0000000..e23a5c0
+--- /dev/null
++++ b/review-local.txt
+@@ -0,0 +1 @@
++local review change
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: PR head unavailable; diff may lag the open PR (using local branch fm/lab-review)

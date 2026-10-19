@@ -1,0 +1,89 @@
+{
+  "head_still_absent": true,
+  "probe_exit": 128,
+  "crew_reads": 20,
+  "gate_reads": 11,
+  "unknown_reads": 9,
+  "trace_fetches": [
+    {
+      "sample": 0,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 1,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 2,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 3,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 4,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 5,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 6,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 7,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 8,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 9,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 10,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 11,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 12,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 13,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 14,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 15,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 16,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 17,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 18,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "sample": 19,
+      "implicit_lazy_fetches": []
+    }
+  ]
+}

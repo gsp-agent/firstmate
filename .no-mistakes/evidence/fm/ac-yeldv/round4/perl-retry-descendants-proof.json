@@ -1,0 +1,63 @@
+[
+  {
+    "mechanism": "perl",
+    "command": "fm_nm_bounded <partial-clone> 15 git cat-file -e <absent>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 15.846,
+    "process_tree_before_timeout": [
+      {
+        "pid": 66686,
+        "ppid": 65930,
+        "pgid": 65930,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 66960,
+        "ppid": 66686,
+        "pgid": 65930,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 66976,
+        "ppid": 66960,
+        "pgid": 65930,
+        "stat": "S",
+        "command": "perl"
+      },
+      {
+        "pid": 66995,
+        "ppid": 66976,
+        "pgid": 66995,
+        "stat": "S",
+        "command": "git"
+      },
+      {
+        "pid": 67026,
+        "ppid": 66995,
+        "pgid": 66995,
+        "stat": "S",
+        "command": "/opt/homebrew/opt/git/libexec/git-core/git"
+      },
+      {
+        "pid": 67040,
+        "ppid": 67026,
+        "pgid": 66995,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 67072,
+        "ppid": 67040,
+        "pgid": 66995,
+        "stat": "S",
+        "command": "sleep"
+      }
+    ],
+    "git_processes_observed": 2,
+    "process_tree_after_return": "",
+    "stderr": "",
+    "expected_surface": true
+  }
+]

@@ -1,0 +1,58 @@
+[
+  {
+    "pair": 1,
+    "interface": "bare-cli-no-fetch",
+    "elapsed_seconds": 9.450915,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 1,
+    "interface": "bounded-product",
+    "elapsed_seconds": 9.607011,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 2,
+    "interface": "bare-cli-no-fetch",
+    "elapsed_seconds": 5.128449,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 2,
+    "interface": "bounded-product",
+    "elapsed_seconds": 5.093148,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 3,
+    "interface": "bare-cli-no-fetch",
+    "elapsed_seconds": 4.018333,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 3,
+    "interface": "bounded-product",
+    "elapsed_seconds": 6.851709,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 4,
+    "interface": "bare-cli-no-fetch",
+    "elapsed_seconds": 1.679943,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 4,
+    "interface": "bounded-product",
+    "elapsed_seconds": 3.489636,
+    "exit": 0,
+    "has_gate_and_finding": true
+  }
+]

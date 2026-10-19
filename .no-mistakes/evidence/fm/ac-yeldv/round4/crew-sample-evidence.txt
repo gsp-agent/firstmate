@@ -1,0 +1,103 @@
+Ten-minute disposable crew-state and orphan sample
+==================================================
+{
+  "elapsed_seconds": 612.624,
+  "samples": 123,
+  "crew_reads": 20,
+  "all_reads_show_review_gate": false,
+  "observed_cat_file_instances": 0,
+  "orphan_cat_file_instances": 0,
+  "scope": "Only the disposable lab head; operator fleet untouched",
+  "orphans": []
+}
+
+at 0.0 seconds; elapsed 1.282 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 30.078 seconds; elapsed 4.291 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 60.202 seconds; elapsed 31.496 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 91.703 seconds; elapsed 23.085 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 121.778 seconds; elapsed 15.17 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 151.877 seconds; elapsed 24.193 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 181.983 seconds; elapsed 8.593 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 212.057 seconds; elapsed 10.447 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 242.128 seconds; elapsed 26.407 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: unknown · source: run-step · run inventory unavailable; run id: 01M5APP0000000000000000021
+
+at 272.214 seconds; elapsed 29.705 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: unknown · source: none · no backend target recorded
+
+at 302.286 seconds; elapsed 26.796 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: unknown · source: none · no backend target recorded
+
+at 332.363 seconds; elapsed 30.671 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: unknown · source: none · no backend target recorded
+
+at 363.034 seconds; elapsed 25.882 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: unknown · source: run-step · run inventory unavailable; run id: 01M5APP0000000000000000021
+
+at 393.11 seconds; elapsed 16.881 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: unknown · source: none · no backend target recorded
+
+at 423.214 seconds; elapsed 33.651 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 456.87 seconds; elapsed 13.39 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 487.062 seconds; elapsed 5.003 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 517.138 seconds; elapsed 26.88 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: unknown · source: none · no backend target recorded
+
+at 547.237 seconds; elapsed 20.96 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: unknown · source: run-step · run inventory unavailable; run id: 01M5APP0000000000000000021
+
+at 577.307 seconds; elapsed 19.182 seconds; exit 0
+$ FM_HOME=<marked-lab-home> bin/fm-crew-state.sh lab-yeldv
+state: unknown · source: none · no backend target recorded
+
+
+Final fixture checks
+{
+  "head_still_absent": true,
+  "probe_exit": 128,
+  "crew_reads": 20,
+  "gate_reads": 11,
+  "unknown_reads": 9
+}
+Implicit lazy fetches across all crew traces: 0

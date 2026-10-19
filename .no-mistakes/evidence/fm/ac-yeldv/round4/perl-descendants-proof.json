@@ -1,0 +1,42 @@
+[
+  {
+    "mechanism": "perl",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <absent>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 24.1726,
+    "process_tree_before_timeout": [
+      {
+        "pid": 91211,
+        "ppid": 80126,
+        "pgid": 80126,
+        "stat": "S",
+        "command": "(bash)"
+      },
+      {
+        "pid": 93042,
+        "ppid": 91211,
+        "pgid": 80126,
+        "stat": "R",
+        "command": "(bash)"
+      },
+      {
+        "pid": 93285,
+        "ppid": 93042,
+        "pgid": 80126,
+        "stat": "?",
+        "command": "(perl)"
+      },
+      {
+        "pid": 93812,
+        "ppid": 93285,
+        "pgid": 93812,
+        "stat": "Z",
+        "command": "<defunct>"
+      }
+    ],
+    "git_processes_observed": 0,
+    "process_tree_after_return": "",
+    "stderr": "",
+    "expected_surface": false
+  }
+]

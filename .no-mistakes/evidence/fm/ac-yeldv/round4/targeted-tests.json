@@ -1,0 +1,44 @@
+[
+  {
+    "test": "nm-run-default",
+    "command": [
+      "bash",
+      "tests/fm-nm-run-lib.test.sh"
+    ],
+    "extra_env": {},
+    "exit": 0,
+    "elapsed_seconds": 2.1168
+  },
+  {
+    "test": "nm-run-bash",
+    "command": [
+      "bash",
+      "tests/fm-nm-run-lib.test.sh"
+    ],
+    "extra_env": {
+      "FM_TIMEOUT_MECHANISM_OVERRIDE": "bash"
+    },
+    "exit": 0,
+    "elapsed_seconds": 2.2577
+  },
+  {
+    "test": "timeout-lib",
+    "command": [
+      "bash",
+      "tests/fm-timeout-lib.test.sh"
+    ],
+    "extra_env": {},
+    "exit": 0,
+    "elapsed_seconds": 16.3083
+  },
+  {
+    "test": "review-diff",
+    "command": [
+      "bash",
+      "tests/fm-review-diff.test.sh"
+    ],
+    "extra_env": {},
+    "exit": 0,
+    "elapsed_seconds": 150.2844
+  }
+]

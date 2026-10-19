@@ -1,0 +1,44 @@
+[
+  {
+    "pair": 1,
+    "interface": "direct-cli-no-fetch",
+    "elapsed_seconds": 0.788144,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 1,
+    "interface": "bounded-product",
+    "elapsed_seconds": 2.255783,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 2,
+    "interface": "direct-cli-no-fetch",
+    "elapsed_seconds": 1.241239,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 2,
+    "interface": "bounded-product",
+    "elapsed_seconds": 0.775065,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 3,
+    "interface": "direct-cli-no-fetch",
+    "elapsed_seconds": 0.511055,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 3,
+    "interface": "bounded-product",
+    "elapsed_seconds": 1.040231,
+    "exit": 0,
+    "has_gate_and_finding": true
+  }
+]

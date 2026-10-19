@@ -1,0 +1,13 @@
+$ FM_HOME=<disposable-marked-home> bin/fm-teardown.sh lab-teardown
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r3/teardown-home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r3/teardown-slot has work not on any remote and not landed.
+unpushed commits:
+63d73ec unlanded fixture
+Push the branch, land its PR, or get the captain's explicit OK to discard, then --force.

@@ -1,0 +1,139 @@
+{
+  "bounded_latency_seconds": [
+    0.233,
+    0.226,
+    0.352,
+    0.428,
+    0.454,
+    2.323,
+    5.867,
+    2.545,
+    1.232,
+    3.394,
+    11.554,
+    10.684,
+    13.819,
+    6.402,
+    11.73,
+    10.652,
+    11.397
+  ],
+  "direct_control_latency_seconds": [
+    0.282,
+    0.189,
+    0.245,
+    0.663,
+    0.316,
+    4.869,
+    14.354,
+    18.559,
+    11.478,
+    22.542
+  ],
+  "bounded_all_under_one_second": false,
+  "bounded_all_keep_gate": false,
+  "sample": {
+    "elapsed_seconds": 612.624,
+    "samples": 123,
+    "crew_reads": 20,
+    "all_reads_show_review_gate": false,
+    "observed_cat_file_instances": 0,
+    "orphan_cat_file_instances": 0,
+    "scope": "Only the disposable lab head; operator fleet untouched",
+    "orphans": []
+  },
+  "timeout_baseline_and_changed": [
+    {
+      "version": "before",
+      "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+      "exit": 124,
+      "elapsed_seconds": 2.1024,
+      "remote_descendants_started": [
+        29647,
+        29842
+      ],
+      "descendants_after_return": [
+        {
+          "pid": 29647,
+          "state_after_return": "29647     1 29628 S    bash"
+        },
+        {
+          "pid": 29842,
+          "state_after_return": "29842 29647 29628 S    sleep"
+        }
+      ],
+      "all_descendants_gone": false
+    },
+    {
+      "version": "after",
+      "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+      "exit": 124,
+      "elapsed_seconds": 2.1339,
+      "remote_descendants_started": [
+        30980,
+        31014
+      ],
+      "descendants_after_return": [
+        {
+          "pid": 30980,
+          "state_after_return": ""
+        },
+        {
+          "pid": 31014,
+          "state_after_return": ""
+        }
+      ],
+      "all_descendants_gone": true
+    }
+  ],
+  "all_real_git_descendants_gone": true,
+  "stdin_and_output_preserved": true,
+  "caller_environment_preserved": true,
+  "review_cases": true,
+  "teardown_missing_head_safe": true,
+  "teardown_postfetch_safe": true,
+  "focused_tests": [
+    {
+      "test": "nm-run-default",
+      "command": [
+        "bash",
+        "tests/fm-nm-run-lib.test.sh"
+      ],
+      "extra_env": {},
+      "exit": 0,
+      "elapsed_seconds": 2.1168
+    },
+    {
+      "test": "nm-run-bash",
+      "command": [
+        "bash",
+        "tests/fm-nm-run-lib.test.sh"
+      ],
+      "extra_env": {
+        "FM_TIMEOUT_MECHANISM_OVERRIDE": "bash"
+      },
+      "exit": 0,
+      "elapsed_seconds": 2.2577
+    },
+    {
+      "test": "timeout-lib",
+      "command": [
+        "bash",
+        "tests/fm-timeout-lib.test.sh"
+      ],
+      "extra_env": {},
+      "exit": 0,
+      "elapsed_seconds": 16.3083
+    },
+    {
+      "test": "review-diff",
+      "command": [
+        "bash",
+        "tests/fm-review-diff.test.sh"
+      ],
+      "extra_env": {},
+      "exit": 0,
+      "elapsed_seconds": 150.2844
+    }
+  ]
+}

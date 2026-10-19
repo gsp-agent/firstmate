@@ -1,0 +1,13 @@
+$ bin/fm-review-diff.sh lab-review
+diff base: origin/main
+ pipeline-only.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/pipeline-only.txt b/pipeline-only.txt
+new file mode 100644
+index 0000000..e6792ee
+--- /dev/null
++++ b/pipeline-only.txt
+@@ -0,0 +1 @@
++private pipeline commit absent from origin
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.

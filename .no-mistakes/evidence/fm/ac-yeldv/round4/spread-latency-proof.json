@@ -1,0 +1,73 @@
+{
+  "timing_scope": "Bash built-in time around fm_nm_run_bounded after sourcing the library, without Git tracing, eight samples separated by 25 seconds",
+  "load_before": [
+    159.9462890625,
+    127.4365234375,
+    118.9873046875
+  ],
+  "load_after": [
+    257.0244140625,
+    180.94482421875,
+    142.9384765625
+  ],
+  "driver_exit": 0,
+  "stderr": "",
+  "reads": [
+    {
+      "sample": 1,
+      "at_seconds": 0,
+      "exit": 0,
+      "elapsed_seconds": 2.323,
+      "has_gate_and_finding": true
+    },
+    {
+      "sample": 2,
+      "at_seconds": 28,
+      "exit": 0,
+      "elapsed_seconds": 5.867,
+      "has_gate_and_finding": true
+    },
+    {
+      "sample": 3,
+      "at_seconds": 59,
+      "exit": 0,
+      "elapsed_seconds": 2.545,
+      "has_gate_and_finding": true
+    },
+    {
+      "sample": 4,
+      "at_seconds": 86,
+      "exit": 0,
+      "elapsed_seconds": 1.232,
+      "has_gate_and_finding": true
+    },
+    {
+      "sample": 5,
+      "at_seconds": 113,
+      "exit": 0,
+      "elapsed_seconds": 3.394,
+      "has_gate_and_finding": true
+    },
+    {
+      "sample": 6,
+      "at_seconds": 141,
+      "exit": 124,
+      "elapsed_seconds": 11.554,
+      "has_gate_and_finding": false
+    },
+    {
+      "sample": 7,
+      "at_seconds": 178,
+      "exit": 124,
+      "elapsed_seconds": 10.684,
+      "has_gate_and_finding": false
+    },
+    {
+      "sample": 8,
+      "at_seconds": 214,
+      "exit": 124,
+      "elapsed_seconds": 13.819,
+      "has_gate_and_finding": false
+    }
+  ]
+}

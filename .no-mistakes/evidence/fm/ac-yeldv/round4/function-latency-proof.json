@@ -1,0 +1,87 @@
+{
+  "timing_scope": "Bash built-in time around the callable function, after sourcing the library; no Git trace enabled",
+  "load_before": [
+    81.44287109375,
+    114.142578125,
+    114.18017578125
+  ],
+  "load_after": [
+    81.44287109375,
+    114.142578125,
+    114.18017578125
+  ],
+  "driver_exit": 0,
+  "stderr": "",
+  "reads": [
+    {
+      "pair": 1,
+      "interface": "direct-cli-no-fetch",
+      "exit": 0,
+      "elapsed_seconds": 0.282,
+      "has_gate_and_finding": true
+    },
+    {
+      "pair": 1,
+      "interface": "bounded-function",
+      "exit": 0,
+      "elapsed_seconds": 0.233,
+      "has_gate_and_finding": true
+    },
+    {
+      "pair": 2,
+      "interface": "direct-cli-no-fetch",
+      "exit": 0,
+      "elapsed_seconds": 0.189,
+      "has_gate_and_finding": true
+    },
+    {
+      "pair": 2,
+      "interface": "bounded-function",
+      "exit": 0,
+      "elapsed_seconds": 0.226,
+      "has_gate_and_finding": true
+    },
+    {
+      "pair": 3,
+      "interface": "direct-cli-no-fetch",
+      "exit": 0,
+      "elapsed_seconds": 0.245,
+      "has_gate_and_finding": true
+    },
+    {
+      "pair": 3,
+      "interface": "bounded-function",
+      "exit": 0,
+      "elapsed_seconds": 0.352,
+      "has_gate_and_finding": true
+    },
+    {
+      "pair": 4,
+      "interface": "direct-cli-no-fetch",
+      "exit": 0,
+      "elapsed_seconds": 0.663,
+      "has_gate_and_finding": true
+    },
+    {
+      "pair": 4,
+      "interface": "bounded-function",
+      "exit": 0,
+      "elapsed_seconds": 0.428,
+      "has_gate_and_finding": true
+    },
+    {
+      "pair": 5,
+      "interface": "direct-cli-no-fetch",
+      "exit": 0,
+      "elapsed_seconds": 0.316,
+      "has_gate_and_finding": true
+    },
+    {
+      "pair": 5,
+      "interface": "bounded-function",
+      "exit": 0,
+      "elapsed_seconds": 0.454,
+      "has_gate_and_finding": true
+    }
+  ]
+}

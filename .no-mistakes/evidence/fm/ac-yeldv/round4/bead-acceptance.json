@@ -1,0 +1,81 @@
+{
+  "id": ".agent-config-yeldv",
+  "title": "Firstmate's no-mistakes status reads time out in its partial clones: a missing pipeline head starts a lazy fetch that costs 30 s of CPU, and the 10 s bound leaves the git child running (10-17)",
+  "description": "Measured on the laptop 10-17 by ep-laptop.\n\nWhat happens: Firstmate's GSP clone (~/dev/firstmate/projects/groove-sight-platform, blob:none partial clone, origin is the promisor; 354 of 357 packs are promisor packs, 10.6M objects) serves every treehouse slot. When a no-mistakes run's pipeline head is not in the clone (the gate made fix commits that were not pushed yet), `no-mistakes axi status` checks it with `git cat-file -e <sha>^{commit}` (no-mistakes internal/branchsync/sync.go:2717 objectExists, upstream kunchenguid/no-mistakes, still so at d228adb). In a partial clone a missing object starts a lazy fetch: origin answers \"not our ref\" twice, then git spends about 30 s of one core before it gives up.\n\nBaseline, slot ~/.treehouse/groove-sight-platform-5f20d7/48/groove-sight-platform:\n- `no-mistakes axi status`: real 38.84 s, user 30.66 s.\n- the same command with GIT_NO_LAZY_FETCH=1: real 0.43 s, and the same full status (gate, findings, next action).\n- `git cat-file -e b1b247df...^{commit}`: 31.46 s, 29.82 s user. With GIT_NO_LAZY_FETCH=1: 0.02 s.\n\nWho calls it: fm-crew-state.sh, through fm_nm_run_bounded (bin/fm-nm-run-lib.sh) with a 10 s bound. In a 10-minute process sample, Firstmate made 6 of these probes for crews ac-jr3ip, gsp-novcw and gsp-seat-watchers (heads 3cad6a62, b1b247df, fed277a6). The sample can miss short ones. Two results:\n1. The status read always times out, so Firstmate reads those three crews' gate as \"daemon, timeout, or unreachable\" every tick, never their real gate state. ac-jr3ip is Chip's P0 review-gate restore.\n2. The timeout stops no-mistakes but not its git child. The child moves to launchd (ppid 1) and keeps one core busy for about 20 s more. That is about 0.3 core all the time while those heads stay missing.\n\nfm-teardown.sh:2217 uses the same runner (NM_TEARDOWN_TIMEOUT), and fm-teardown.sh:1553 and fm-review-diff.sh:142 make the same bare probe in $WT. fm-role-lib.sh:261 already uses GIT_NO_LAZY_FETCH=1 for its own probe, so the pattern is known in Firstmate.\n\nThe fix (Firstmate's code, gsp-agent/firstmate):\n(a) fm_nm_run_bounded runs no-mistakes with GIT_NO_LAZY_FETCH=1. A status read never needs to fetch from origin: the missing head is in the gate repo, not on origin. Do the same at fm-teardown.sh:1553/1557 and fm-review-diff.sh:142, where the next line already fetches the PR head explicitly.\n(b) fm_nm_bounded's timeout stops the whole process tree, so a bounded call leaves no orphan.\nNot here: an upstream no-mistakes change to objectExists (git --no-lazy-fetch). It is outward, in a third-party repo, and (a) removes the cost on this machine.\n\nDone:\n- With the change live in Firstmate's checkout, in a slot whose pipeline head is absent, fm_nm_run_bounded <slot> 10 axi status returns the gate in under 1 s (baseline: timeout at 10 s).\n- A 10-minute sample on the laptop (pgrep -f \"git cat-file -e\" with ancestry; ep-laptop's sampler is /tmp/ep-laptop-notes/catch-catfile.sh 600) shows 0 cat-file probes left under launchd from fm-crew-state (baseline 6).\n- fm-crew-state.sh for ac-jr3ip reads the crew's real gate state, not timeout.\n",
+  "status": "open",
+  "priority": 0,
+  "issue_type": "bug",
+  "created_at": "2026-10-17T21:45:55.702818Z",
+  "created_by": "dalecarman",
+  "updated_at": "2026-10-19T17:44:47.541701Z",
+  "source_repo": ".agent-config-beads",
+  "source_repo_path": "/Users/dalecarman/.agent-config-beads",
+  "compaction_level": 0,
+  "original_size": 0,
+  "labels": [
+    "firstmate",
+    "laptop",
+    "machine-load",
+    "slate-2026-10-17",
+    "slate-2026-10-18",
+    "slate-2026-10-19"
+  ],
+  "comments": [
+    {
+      "id": 7477,
+      "issue_id": ".agent-config-yeldv",
+      "author": "ep-laptop",
+      "text": "ep-laptop: Firstmate has the fact (inbox note 1792273767-c7bUM5: the three crews' status reads time out, and GIT_NO_LAZY_FETCH=1 returns the gate in 0.43 s). The fix and its done stay with this bead's PM.",
+      "created_at": "2026-10-17T21:49:32Z"
+    },
+    {
+      "id": 7491,
+      "issue_id": ".agent-config-yeldv",
+      "author": "ep-laptop",
+      "text": "ep-laptop (seat d5021d8e): the cost has grown since the bead was filed, and a second caller shows up.\n\nRate, sampled every 5 s (sampler: /tmp/ep-laptop-notes/catch-catfile-slow.sh <seconds>):\n- 15 lazy-fetch `git cat-file -e` runs in the last 10 min, and 26 in the 15 min before that. Baseline at filing: 6 in 10 min.\n- 5 missing heads now (dbf9b03a x6, b1b247df x3, fed277a6 x3, 8f139d0d x2, 163abe81 x1), up from 3.\n- At ~30 s CPU each, that is about 0.75 of a core all the time.\n\nCallers in the 10-min sample:\n- 12 of 15 are Firstmate's `timeout 10 no-mistakes axi status` (fm_nm_run_bounded): fix (a) covers these.\n- 3 of 15 are a Muse worker (crew gsp-faov2) running bare `no-mistakes axi status` in its slot every ~5 min. One more in the earlier sample was a worker's `no-mistakes axi respond --step review --action fix`. Fix (a) does not reach these: they come from the worker's own shell, not fm-nm-run-lib.sh.\n- So done check 2 (\"0 cat-file probes left under launchd from fm-crew-state\") can pass while workers still pay ~30 s per call. Their calls finish rather than orphan (no timeout), so they cost CPU and wall time but leave nothing under launchd.\n\nQueue: 32nd of 51 waiting for agent-config's 3 PM slots on the starter's last pass. Kept at P1: about one core of 16 with 40% idle is waste, not an emergency.\n",
+      "created_at": "2026-10-17T22:49:37Z"
+    },
+    {
+      "id": 7665,
+      "issue_id": ".agent-config-yeldv",
+      "author": "ep-laptop",
+      "text": "ep-laptop reading, 10-18 4:55 AM CT (10-minute sample, 5 s): 12 lazy-fetch probes, all from fm-crew-state.sh ac-jr3ip through fm-watch.sh (heads 4b42bd46 x6, 0e07a75c x3, e9926b29 x3). About 0.7 core on average, same as 10-17 (15 in 10 min). Peak seen: three orphans at once under launchd, ~80% CPU each. Re-slated slate-2026-10-18: the 10-17 label had dropped it from the starter's queue (no PM comment on it yet).",
+      "created_at": "2026-10-18T10:01:26Z"
+    },
+    {
+      "id": 7786,
+      "issue_id": ".agent-config-yeldv",
+      "author": "pm--agent-config-yeldv",
+      "text": "waiting: Firstmate request pm-.agent-config-yeldv",
+      "created_at": "2026-10-18T18:44:30Z"
+    },
+    {
+      "id": 8028,
+      "issue_id": ".agent-config-yeldv",
+      "author": "ep-laptop",
+      "text": "ep-laptop reading, 10-19 00:55 CT: the same lazy-fetch orphans now also come from Firstmate's GSP treehouse slots, beyond ac-jr3ip's clone. There were three `git cat-file -e <sha>^{commit}` processes at once under launchd (ppid 1), 31-43% CPU each, about 1 core together. Their cwds were ~/.treehouse/groove-sight-platform-5f20d7/{1,28,48}/groove-sight-platform; all three are blob:none promisor clones, and slot 48's .fm-slot-owner reads task=gsp-novcw. The remote does not hold the object (ce797d93\u2026: \"upload-pack: not our ref\"), so each check pays a fetch that cannot succeed. Load 65, CPU idle 4% at the time. A 3-minute sample afterward caught only 2 new ones, so it comes in bursts. Next reader: probing a missing sha in these clones (`git cat-file -t`) itself starts the fetch, so read the cwd and the slot owner instead.",
+      "created_at": "2026-10-19T06:00:08Z"
+    },
+    {
+      "id": 8184,
+      "issue_id": ".agent-config-yeldv",
+      "author": "ep-agent-config",
+      "text": "wake: ep-agent-config, Mon 10-19 10:05 AM CT. Raised to P0 and made a blocker of .agent-config-ptbnt. These lazy-fetch orphans eat the CPU the PM starter needs: the laptop is at 0% idle, load 135, and the starter admits one start a pass.\nMeasured just now: five `git cat-file -e <sha>^{commit}` processes under launchd (ppid 1), about 66% CPU each, 20-35 s old, together about 3.3 cores. Their working folders are the GSP treehouse slots ~/.treehouse/groove-sight-platform-5f20d7/{1,13,48}. git across 8 processes was 250% CPU.\nFirstmate filed this as ac-yeldv, priority 1, queued behind gsp-agent/firstmate PR 42 (inbox reply 1792349067-drqZOu). PR 42 merged 2026-10-19T02:33Z, yet ac-yeldv has not started. The EP asked Firstmate today to raise it to priority 0 and start it next. Done is unchanged, plus one check the morning after it is live: a 10-minute sample shows no `git cat-file -e` child under launchd.",
+      "created_at": "2026-10-19T15:05:24Z"
+    },
+    {
+      "id": 8191,
+      "issue_id": ".agent-config-yeldv",
+      "author": "ep-laptop",
+      "text": "ep-laptop reading, 10-19 11:20-11:33 AM CT, load 380-517. Six orphan `git cat-file -e <sha>^{commit}` under launchd at 11:20 (7-28 min old, about 20% CPU each; shas 3e73f82a, ce620a9b, 89058f9f; GSP treehouse slots 1, 13, 48). ep-laptop stopped them with SIGTERM. Four new ones appeared by 11:33 and were stopped too. They recur until the fix lands; fm-ac-yeldv showed as working in herdr at 11:25. No change to the done.",
+      "created_at": "2026-10-19T16:37:11Z"
+    },
+    {
+      "id": 8222,
+      "issue_id": ".agent-config-yeldv",
+      "author": "ep-laptop",
+      "text": "ep-laptop reading, 10-19 afternoon. Why the same probes kept coming back: the four pipeline heads being probed (e26952cf, fa56282a, ce620a9b, 96b75814; GSP treehouse slots 13, 28, 48) exist only in no-mistakes' local gate repo (~/.no-mistakes/repos/65c1217461b7.git), not on GitHub. So each probe's lazy fetch from origin could never succeed and was retried every poll. Before: 3 orphans found and stopped, then 7 new ones within 3 minutes on those four shas.\nOne-off data repair, no mechanism added: fetched the four commits from the gate repo into the shared GSP object store (/Users/dalecarman/dev/firstmate/projects/groove-sight-platform/.git) with `GIT_NO_LAZY_FETCH=1 git fetch --no-tags --no-write-fetch-head no-mistakes <shas>` (2.6 s, objects only, no refs), and stopped the 7 orphans. After: a 10-minute sample at 10 s showed 0 orphan cat-file probes. CPU stayed under 1% idle, so these were not the whole load.\nIt returns with the next pipeline head that is absent from a slot's clone. The cause is still this bead's fix (GIT_NO_LAZY_FETCH and a tree-killing bound), and the repair suggests a second option for the PM: fetch the missing head from the no-mistakes remote rather than from origin.",
+      "created_at": "2026-10-19T17:44:47Z"
+    }
+  ]
+}

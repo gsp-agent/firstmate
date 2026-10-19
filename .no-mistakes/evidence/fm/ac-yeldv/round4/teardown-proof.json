@@ -1,0 +1,38 @@
+{
+  "command": "FM_HOME=<disposable-marked-home> bin/fm-teardown.sh lab-teardown",
+  "exit": 1,
+  "elapsed_seconds": 8.6707,
+  "stdout": "",
+  "stderr": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/teardown-home\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nREFUSED: worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/teardown-slot has work not on any remote and not landed.\nunpushed commits:\nd451cd7 unlanded fixture\nPush the branch, land its PR, or get the captain's explicit OK to discard, then --force.\n",
+  "cat_file_probes": [
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ]
+  ],
+  "implicit_lazy_fetches": [],
+  "local_forge_requests": [
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {state,headRefOid,url,id,number}\n\t\t}\n\t}"
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "query": "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged}}}"
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "query": "\n\tquery PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) {\n\t\trepository(owner: $owner, name: $repo) {\n\t\t\tpullRequest(number: $pr_number) {state,headRefOid,url,id,number}\n\t\t}\n\t}"
+    }
+  ],
+  "metadata_preserved": true,
+  "local_work_preserved": true,
+  "expected_surface": true
+}

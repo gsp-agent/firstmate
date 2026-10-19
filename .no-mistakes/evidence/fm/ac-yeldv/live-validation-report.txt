@@ -1,0 +1,373 @@
+Live validation of 0bcfe6bb84688bf4792db33c28550f62de27085e
+No production checkout, fleet session, credential store, or upstream pipeline was changed.
+Real Firstmate scripts, Git 2.56.0, no-mistakes v1.84.0, and gh were exercised against disposable local Git repositories, no-mistakes records, and a local forge API.
+
+RESULT: functional no-fetch and descendant-cleanup proofs passed; strict latency and reliable crew-state acceptance failed on this loaded host.
+Host load observation during the run: 135.66 / 181.40 / 195.68.
+
+MISSING-HEAD STATUS: BEFORE AND AFTER
+{
+  "head_remains_absent": true,
+  "runs": [
+    {
+      "version": "after-1",
+      "head": "d95edc29c735f5998525233794002af97bfe002a",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 0.824324,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "after-2",
+      "head": "d95edc29c735f5998525233794002af97bfe002a",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 1.0784,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "after-3",
+      "head": "d95edc29c735f5998525233794002af97bfe002a",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 1.168786,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "before",
+      "head": "d95edc29c735f5998525233794002af97bfe002a",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 124,
+      "elapsed_seconds": 10.105324,
+      "returns_gate_and_finding": false,
+      "implicit_lazy_fetches": [
+        [
+          "/opt/homebrew/opt/git/libexec/git-core/git",
+          "-c",
+          "fetch.negotiationAlgorithm=noop",
+          "fetch",
+          "origin",
+          "--no-tags",
+          "--no-write-fetch-head",
+          "--recurse-submodules=no",
+          "--filter=blob:none",
+          "--stdin"
+        ]
+      ]
+    }
+  ]
+}
+
+The pipeline commit remained absent in the partial clone after the checks.
+The old runner lazy-fetched and timed out at 10.105324 seconds. The changed runner returned the real review gate and finding without a lazy fetch, including a 0.824324-second call.
+Other changed-runner calls exceeded the required one second. Paired control timings show the installed CLI with GIT_NO_LAZY_FETCH=1 also slowed independently of the wrapper:
+[
+  {
+    "pair": 1,
+    "interface": "bare-cli-no-fetch",
+    "elapsed_seconds": 9.450915,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 1,
+    "interface": "bounded-product",
+    "elapsed_seconds": 9.607011,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 2,
+    "interface": "bare-cli-no-fetch",
+    "elapsed_seconds": 5.128449,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 2,
+    "interface": "bounded-product",
+    "elapsed_seconds": 5.093148,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 3,
+    "interface": "bare-cli-no-fetch",
+    "elapsed_seconds": 4.018333,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 3,
+    "interface": "bounded-product",
+    "elapsed_seconds": 6.851709,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 4,
+    "interface": "bare-cli-no-fetch",
+    "elapsed_seconds": 1.679943,
+    "exit": 0,
+    "has_gate_and_finding": true
+  },
+  {
+    "pair": 4,
+    "interface": "bounded-product",
+    "elapsed_seconds": 3.489636,
+    "exit": 0,
+    "has_gate_and_finding": true
+  }
+]
+
+ACTUAL PRODUCT STATUS OUTPUT
+run:
+  id: "01M5APP0000000000000000002"
+  branch: fm/lab-yeldv
+  status: running
+  awaiting_agent: parked 0s
+  head: d95edc29
+  head_sha: d95edc29c735f5998525233794002af97bfe002a
+  verification_plan: none
+  findings: 1 awaiting
+  steps[1]{step,status,findings,duration_ms}:
+    review,awaiting_approval,1,0
+branch_sync:
+  state: pipeline_owned
+  changed: false
+  local:
+    branch: fm/lab-yeldv
+    head: 63dbab5fc3cf5bc8c8ba0c688ddbea7e060476d1
+    clean: true
+  pipeline:
+    run: "01M5APP0000000000000000002"
+    status: running
+    phase: pre_push
+    submitted_head: 63dbab5fc3cf5bc8c8ba0c688ddbea7e060476d1
+    current_head: d95edc29c735f5998525233794002af97bfe002a
+    pushed_head: ""
+    pushed_at: 0
+    push_generation: 0
+  target:
+    kind: ""
+    remote: origin
+    url: "file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv/origin.git"
+    ref: ""
+  remote:
+    observed_head: ""
+    freshness: pipeline_push
+    observed_at: 0
+  relation: unknown
+  safety: blocked_pipeline_owned
+  pr_state: unknown
+  note: the pipeline head has moved but has not been successfully pushed; do not make local follow-up commits yet
+  next_action:
+    code: continue_active_run
+    command: no-mistakes axi status
+gate:
+  step: review
+  status: awaiting_approval
+  note: "Review auto-fix is disabled by default (`auto_fix.review: 0`; a repo or global `auto_fix.review > 0` override re-enables it), so blocking and ask-user review findings park for your decision rather than being silently self-fixed."
+  findings[1]{id,severity,file,action,description}:
+    LAB2,warning,"",ask-user,Real status API retains this disposable decision
+help[6]: Run `no-mistakes axi respond --action approve` to accept this step and continue,Run `no-mistakes axi respond --action fix --findings <ids>` to have the pipeline fix the selected findings (do not edit files yourself),Run `no-mistakes axi respond --action skip` to skip this step,Run `no-mistakes axi logs --step review --full` to read the full step log,"A long-running call is working, not stalled - background it if your harness needs to, but the run never advances past a gate on its own. Read every return; on a `gate:`, respond; loop until an `outcome:`.","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits."
+
+
+PROCESS TREE: REAL GIT FETCH WITH TERM-IGNORING REMOTE DESCENDANTS
+[
+  {
+    "version": "before",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.2303,
+    "remote_descendants_started": [
+      50431,
+      50563
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 50431,
+        "state_after_return": "50431     1 50216 S    bash"
+      },
+      {
+        "pid": 50563,
+        "state_after_return": "50563 50431 50216 S    sleep"
+      }
+    ],
+    "all_descendants_gone": false
+  },
+  {
+    "version": "after",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.1603,
+    "remote_descendants_started": [
+      52367,
+      52435
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 52367,
+        "state_after_return": ""
+      },
+      {
+        "pid": 52435,
+        "state_after_return": ""
+      }
+    ],
+    "all_descendants_gone": true
+  }
+]
+The before case left a remote descendant with ppid 1; the after case returned 124 and left both recorded descendants absent. Baseline survivors were explicitly stopped.
+
+TEN-MINUTE LAB OBSERVATION
+{
+  "elapsed_seconds": 613.184,
+  "samples": 240,
+  "crew_reads": 20,
+  "all_reads_show_review_gate": false,
+  "observed_cat_file_instances": 0,
+  "orphan_cat_file_instances": 0,
+  "scope": "Only the disposable lab head; operator fleet untouched",
+  "orphans": [],
+  "review_gate_reads": 17,
+  "missed_gate_reads": [
+    {
+      "at_seconds": 60.153,
+      "elapsed_seconds": 17.865,
+      "exit": 0,
+      "stdout": "state: unknown \u00b7 source: none \u00b7 no backend target recorded",
+      "stderr": ""
+    },
+    {
+      "at_seconds": 520.297,
+      "elapsed_seconds": 20.564,
+      "exit": 0,
+      "stdout": "state: unknown \u00b7 source: none \u00b7 no backend target recorded",
+      "stderr": ""
+    },
+    {
+      "at_seconds": 580.468,
+      "elapsed_seconds": 25.736,
+      "exit": 0,
+      "stdout": "state: unknown \u00b7 source: none \u00b7 no backend target recorded",
+      "stderr": ""
+    }
+  ],
+  "first_sample_seconds": 0.017,
+  "last_sample_seconds": 599.91
+}
+Samples span 0.017 through 599.910 seconds. Of 20 actual crew-state reads, 17 showed the review approval with one finding and 3 fell back to unknown. No lab-head cat-file process was observed under launchd.
+
+REVIEW DIFF OUTPUTS
+missing-recorded-head
+expected_surface=True
+diff base: origin/main
+ review-local.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/review-local.txt b/review-local.txt
+new file mode 100644
+index 0000000..e23a5c0
+--- /dev/null
++++ b/review-local.txt
+@@ -0,0 +1 @@
++local review change
+
+Missing-head fallback warning=True
+available-recorded-head
+expected_surface=True
+diff base: origin/main
+ review-local.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/review-local.txt b/review-local.txt
+new file mode 100644
+index 0000000..e23a5c0
+--- /dev/null
++++ b/review-local.txt
+@@ -0,0 +1 @@
++local review change
+
+Missing-head fallback warning=False
+fresh-pull-ref
+expected_surface=True
+diff base: origin/main
+ pipeline-only.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/pipeline-only.txt b/pipeline-only.txt
+new file mode 100644
+index 0000000..8e4a9eb
+--- /dev/null
++++ b/pipeline-only.txt
+@@ -0,0 +1 @@
++pipeline fix not pushed to origin
+
+Missing-head fallback warning=False
+The fresh-PR diff fetched an omitted blob while rendering content. Trace2 attributes that fetch to git diff, outside the changed commit-probe boundary.
+
+CLEANUP SAFETY WITH MISSING PR HEAD
+{
+  "exit": 1,
+  "cat_file_probes": [
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ]
+  ],
+  "implicit_lazy_fetches": [],
+  "metadata_preserved": true,
+  "local_work_preserved": true,
+  "expected_surface": true
+}
+ worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv/teardown-slot has work not on any remote and not landed.
+unpushed commits:
+74181d9 unlanded fixture
+Push the branch, land its PR, or get the captain's explicit OK to discard, then --force.
+
+
+CLEANUP SAFETY AFTER A SUCCESSFUL BUT DISAGREEING PR-REF FETCH
+{
+  "exit": 1,
+  "cat_file_probes": [
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ],
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ]
+  ],
+  "implicit_lazy_fetches": [],
+  "explicit_pr_fetch_retrieved_head": true,
+  "metadata_preserved": true,
+  "local_work_preserved": true,
+  "expected_surface": true
+}
+
+FOCUSED AUTOMATED CHECKS
+Passed: tests/fm-nm-run-lib.test.sh (default timeout and forced Bash fallback), tests/fm-timeout-lib.test.sh, tests/fm-review-diff.test.sh.
+No complete suite, lint, formatting, static analysis, push, PR, CI, or pipeline-control phase was run.
+
+UNTESTED REQUIRED FOLLOW-UP
+Production rollout and the following-morning ten-minute sample require the outer delivery owner to deploy the change and remeasure the real fleet after cutover. This phase is confined to the isolated worktree and disposable lab.
+
+CLEANUP
+All disposable repositories, homes, databases, subprocesses, API servers, and sockets were removed. git status --short returned no output. Evidence files remain in this evidence directory.

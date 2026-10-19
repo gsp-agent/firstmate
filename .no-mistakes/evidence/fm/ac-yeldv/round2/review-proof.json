@@ -1,0 +1,43 @@
+[
+  {
+    "scenario": "missing-recorded-head",
+    "exit": 0,
+    "elapsed_seconds": 4.0842,
+    "implicit_lazy_fetches": [],
+    "stdout": "diff base: origin/main\n review-local.txt | 1 +\n 1 file changed, 1 insertion(+)\n\ndiff --git a/review-local.txt b/review-local.txt\nnew file mode 100644\nindex 0000000..e23a5c0\n--- /dev/null\n+++ b/review-local.txt\n@@ -0,0 +1 @@\n+local review change\n",
+    "stderr": "\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nwarning: PR head unavailable; diff may lag the open PR (using local branch fm/lab-review)\n",
+    "expected_surface": true
+  },
+  {
+    "scenario": "available-recorded-head",
+    "exit": 0,
+    "elapsed_seconds": 2.174,
+    "implicit_lazy_fetches": [],
+    "stdout": "diff base: origin/main\n review-local.txt | 1 +\n 1 file changed, 1 insertion(+)\n\ndiff --git a/review-local.txt b/review-local.txt\nnew file mode 100644\nindex 0000000..e23a5c0\n--- /dev/null\n+++ b/review-local.txt\n@@ -0,0 +1 @@\n+local review change\n",
+    "stderr": "WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\n",
+    "expected_surface": true
+  },
+  {
+    "scenario": "fresh-pull-ref",
+    "exit": 0,
+    "elapsed_seconds": 3.0067,
+    "implicit_lazy_fetches": [
+      [
+        "/opt/homebrew/opt/git/libexec/git-core/git",
+        "-c",
+        "fetch.negotiationAlgorithm=noop",
+        "fetch",
+        "origin",
+        "--no-tags",
+        "--no-write-fetch-head",
+        "--recurse-submodules=no",
+        "--filter=blob:none",
+        "--stdin"
+      ]
+    ],
+    "stdout": "diff base: origin/main\n pipeline-only.txt | 1 +\n 1 file changed, 1 insertion(+)\n\ndiff --git a/pipeline-only.txt b/pipeline-only.txt\nnew file mode 100644\nindex 0000000..e6792ee\n--- /dev/null\n+++ b/pipeline-only.txt\n@@ -0,0 +1 @@\n+private pipeline commit absent from origin\n",
+    "stderr": "WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\n",
+    "expected_surface": true,
+    "note": "The diff may fetch omitted blobs in a partial clone; the missing-commit probes are the no-fetch boundary."
+  }
+]

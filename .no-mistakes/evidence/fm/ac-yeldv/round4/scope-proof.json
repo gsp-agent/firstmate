@@ -1,0 +1,52 @@
+[
+  {
+    "case": "unset",
+    "nounset": "off",
+    "blob_initially_absent": true,
+    "exit": 0,
+    "status_gate_preserved": true,
+    "caller_environment_preserved": true,
+    "generic_git_fetch_and_output_preserved": true,
+    "shell_options_preserved": true,
+    "generic_lazy_fetches": [
+      [
+        "/opt/homebrew/opt/git/libexec/git-core/git",
+        "-c",
+        "fetch.negotiationAlgorithm=noop",
+        "fetch",
+        "origin",
+        "--no-tags",
+        "--no-write-fetch-head",
+        "--recurse-submodules=no",
+        "--filter=blob:none",
+        "--stdin"
+      ]
+    ],
+    "expected_surface": true
+  },
+  {
+    "case": "preexisting-zero",
+    "nounset": "on",
+    "blob_initially_absent": true,
+    "exit": 0,
+    "status_gate_preserved": true,
+    "caller_environment_preserved": true,
+    "generic_git_fetch_and_output_preserved": true,
+    "shell_options_preserved": true,
+    "generic_lazy_fetches": [
+      [
+        "/opt/homebrew/opt/git/libexec/git-core/git",
+        "-c",
+        "fetch.negotiationAlgorithm=noop",
+        "fetch",
+        "origin",
+        "--no-tags",
+        "--no-write-fetch-head",
+        "--recurse-submodules=no",
+        "--filter=blob:none",
+        "--stdin"
+      ]
+    ],
+    "expected_surface": true
+  }
+]

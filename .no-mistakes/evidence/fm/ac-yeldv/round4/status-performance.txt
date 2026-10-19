@@ -1,0 +1,367 @@
+Live missing-head review gate
+=============================
+$ fm_nm_run_bounded <disposable-partial-clone> 10 axi status
+run:
+  id: "01M5APP0000000000000000021"
+  branch: fm/lab-yeldv
+  status: running
+  awaiting_agent: parked 0s
+  head: 3d5d2df0
+  head_sha: 3d5d2df0de13bda8d5a704e33278d1870cd92ac3
+  verification_plan: none
+  findings: 1 awaiting
+  steps[1]{step,status,findings,duration_ms}:
+    review,awaiting_approval,1,0
+branch_sync:
+  state: pipeline_owned
+  changed: false
+  local:
+    branch: fm/lab-yeldv
+    head: 0db94c220daefa5bbfe0920768e3bb1b996a0352
+    clean: true
+  pipeline:
+    run: "01M5APP0000000000000000021"
+    status: running
+    phase: pre_push
+    submitted_head: 0db94c220daefa5bbfe0920768e3bb1b996a0352
+    current_head: 3d5d2df0de13bda8d5a704e33278d1870cd92ac3
+    pushed_head: ""
+    pushed_at: 0
+    push_generation: 0
+  target:
+    kind: ""
+    remote: origin
+    url: "file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/origin.git"
+    ref: ""
+  remote:
+    observed_head: ""
+    freshness: pipeline_push
+    observed_at: 0
+  relation: unknown
+  safety: blocked_pipeline_owned
+  pr_state: unknown
+  note: the pipeline head has moved but has not been successfully pushed; do not make local follow-up commits yet
+  next_action:
+    code: continue_active_run
+    command: no-mistakes axi status
+gate:
+  step: review
+  status: awaiting_approval
+  note: "Review auto-fix is disabled by default (`auto_fix.review: 0`; a repo or global `auto_fix.review > 0` override re-enables it), so blocking and ask-user review findings park for your decision rather than being silently self-fixed."
+  findings[1]{id,severity,file,action,description}:
+    LAB21,warning,"",ask-user,Disposable review decision retained for missing-head proof
+help[6]: Run `no-mistakes axi respond --action approve` to accept this step and continue,Run `no-mistakes axi respond --action fix --findings <ids>` to have the pipeline fix the selected findings (do not edit files yourself),Run `no-mistakes axi respond --action skip` to skip this step,Run `no-mistakes axi logs --step review --full` to read the full step log,"A long-running call is working, not stalled - background it if your harness needs to, but the run never advances past a gate on its own. Read every return; on a `gate:`, respond; loop until an `outcome:`.","Commit post-pipeline follow-up work on top of the existing branch so every pipeline fix commit remains present. Never abort-and-restart, reset, or replace the branch in a way that drops prior gate-fix commits."
+
+Untraced latency checks, after loading the runner
+=================================================
+{
+  "initial": {
+    "timing_scope": "Bash built-in time around the callable function, after sourcing the library; no Git trace enabled",
+    "load_before": [
+      81.44287109375,
+      114.142578125,
+      114.18017578125
+    ],
+    "load_after": [
+      81.44287109375,
+      114.142578125,
+      114.18017578125
+    ],
+    "driver_exit": 0,
+    "stderr": "",
+    "reads": [
+      {
+        "pair": 1,
+        "interface": "direct-cli-no-fetch",
+        "exit": 0,
+        "elapsed_seconds": 0.282,
+        "has_gate_and_finding": true
+      },
+      {
+        "pair": 1,
+        "interface": "bounded-function",
+        "exit": 0,
+        "elapsed_seconds": 0.233,
+        "has_gate_and_finding": true
+      },
+      {
+        "pair": 2,
+        "interface": "direct-cli-no-fetch",
+        "exit": 0,
+        "elapsed_seconds": 0.189,
+        "has_gate_and_finding": true
+      },
+      {
+        "pair": 2,
+        "interface": "bounded-function",
+        "exit": 0,
+        "elapsed_seconds": 0.226,
+        "has_gate_and_finding": true
+      },
+      {
+        "pair": 3,
+        "interface": "direct-cli-no-fetch",
+        "exit": 0,
+        "elapsed_seconds": 0.245,
+        "has_gate_and_finding": true
+      },
+      {
+        "pair": 3,
+        "interface": "bounded-function",
+        "exit": 0,
+        "elapsed_seconds": 0.352,
+        "has_gate_and_finding": true
+      },
+      {
+        "pair": 4,
+        "interface": "direct-cli-no-fetch",
+        "exit": 0,
+        "elapsed_seconds": 0.663,
+        "has_gate_and_finding": true
+      },
+      {
+        "pair": 4,
+        "interface": "bounded-function",
+        "exit": 0,
+        "elapsed_seconds": 0.428,
+        "has_gate_and_finding": true
+      },
+      {
+        "pair": 5,
+        "interface": "direct-cli-no-fetch",
+        "exit": 0,
+        "elapsed_seconds": 0.316,
+        "has_gate_and_finding": true
+      },
+      {
+        "pair": 5,
+        "interface": "bounded-function",
+        "exit": 0,
+        "elapsed_seconds": 0.454,
+        "has_gate_and_finding": true
+      }
+    ]
+  },
+  "spaced": {
+    "timing_scope": "Bash built-in time around fm_nm_run_bounded after sourcing the library, without Git tracing, eight samples separated by 25 seconds",
+    "load_before": [
+      159.9462890625,
+      127.4365234375,
+      118.9873046875
+    ],
+    "load_after": [
+      257.0244140625,
+      180.94482421875,
+      142.9384765625
+    ],
+    "driver_exit": 0,
+    "stderr": "",
+    "reads": [
+      {
+        "sample": 1,
+        "at_seconds": 0,
+        "exit": 0,
+        "elapsed_seconds": 2.323,
+        "has_gate_and_finding": true
+      },
+      {
+        "sample": 2,
+        "at_seconds": 28,
+        "exit": 0,
+        "elapsed_seconds": 5.867,
+        "has_gate_and_finding": true
+      },
+      {
+        "sample": 3,
+        "at_seconds": 59,
+        "exit": 0,
+        "elapsed_seconds": 2.545,
+        "has_gate_and_finding": true
+      },
+      {
+        "sample": 4,
+        "at_seconds": 86,
+        "exit": 0,
+        "elapsed_seconds": 1.232,
+        "has_gate_and_finding": true
+      },
+      {
+        "sample": 5,
+        "at_seconds": 113,
+        "exit": 0,
+        "elapsed_seconds": 3.394,
+        "has_gate_and_finding": true
+      },
+      {
+        "sample": 6,
+        "at_seconds": 141,
+        "exit": 124,
+        "elapsed_seconds": 11.554,
+        "has_gate_and_finding": false
+      },
+      {
+        "sample": 7,
+        "at_seconds": 178,
+        "exit": 124,
+        "elapsed_seconds": 10.684,
+        "has_gate_and_finding": false
+      },
+      {
+        "sample": 8,
+        "at_seconds": 214,
+        "exit": 124,
+        "elapsed_seconds": 13.819,
+        "has_gate_and_finding": false
+      }
+    ]
+  },
+  "contemporaneous_controls": {
+    "timing_scope": "Untraced Bash built-in timing after library source; partial evidence retained from a 120-second driver timeout during heavy host contention",
+    "driver_error": "subprocess.TimeoutExpired after 120 seconds",
+    "load_at_evidence_recovery": [
+      248.57275390625,
+      191.39501953125,
+      154.0029296875
+    ],
+    "reads": [
+      {
+        "pair": 1,
+        "interface": "direct-cli-no-fetch",
+        "elapsed_seconds": 4.869,
+        "exit": null,
+        "has_gate_and_finding": true,
+        "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+      },
+      {
+        "pair": 1,
+        "interface": "bounded-function",
+        "elapsed_seconds": 6.402,
+        "exit": null,
+        "has_gate_and_finding": true,
+        "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+      },
+      {
+        "pair": 2,
+        "interface": "direct-cli-no-fetch",
+        "elapsed_seconds": 14.354,
+        "exit": null,
+        "has_gate_and_finding": true,
+        "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+      },
+      {
+        "pair": 2,
+        "interface": "bounded-function",
+        "elapsed_seconds": 11.73,
+        "exit": null,
+        "has_gate_and_finding": false,
+        "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+      },
+      {
+        "pair": 3,
+        "interface": "direct-cli-no-fetch",
+        "elapsed_seconds": 18.559,
+        "exit": null,
+        "has_gate_and_finding": true,
+        "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+      },
+      {
+        "pair": 3,
+        "interface": "bounded-function",
+        "elapsed_seconds": 10.652,
+        "exit": null,
+        "has_gate_and_finding": false,
+        "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+      },
+      {
+        "pair": 4,
+        "interface": "direct-cli-no-fetch",
+        "elapsed_seconds": 11.478,
+        "exit": null,
+        "has_gate_and_finding": true,
+        "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+      },
+      {
+        "pair": 4,
+        "interface": "bounded-function",
+        "elapsed_seconds": 11.397,
+        "exit": null,
+        "has_gate_and_finding": false,
+        "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+      },
+      {
+        "pair": 5,
+        "interface": "direct-cli-no-fetch",
+        "elapsed_seconds": 22.542,
+        "exit": null,
+        "has_gate_and_finding": true,
+        "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+      }
+    ],
+    "incomplete_reads": [
+      {
+        "pair": 5,
+        "interface": "bounded-function",
+        "output_file": "peak-function-5-bounded-function.toon",
+        "reason": "Driver hit its outer 120-second deadline before recording completion"
+      }
+    ]
+  }
+}
+
+Same missing-head scenario before and after the change
+======================================================
+{
+  "head_remains_absent": true,
+  "runs": [
+    {
+      "version": "after-1",
+      "head": "ae7188aaff78f9b83df4447136e3fcec2aeaec6e",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 1.198247,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "after-2",
+      "head": "ae7188aaff78f9b83df4447136e3fcec2aeaec6e",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 0.762689,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "after-3",
+      "head": "ae7188aaff78f9b83df4447136e3fcec2aeaec6e",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 0.769465,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "before",
+      "head": "ae7188aaff78f9b83df4447136e3fcec2aeaec6e",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 124,
+      "elapsed_seconds": 10.193597,
+      "returns_gate_and_finding": false,
+      "implicit_lazy_fetches": [
+        [
+          "/opt/homebrew/opt/git/libexec/git-core/git",
+          "-c",
+          "fetch.negotiationAlgorithm=noop",
+          "fetch",
+          "origin",
+          "--no-tags",
+          "--no-write-fetch-head",
+          "--recurse-submodules=no",
+          "--filter=blob:none",
+          "--stdin"
+        ]
+      ]
+    }
+  ]
+}
+

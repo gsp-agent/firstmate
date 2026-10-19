@@ -1,0 +1,6 @@
+{
+  "command": "nm_test_fixture=./.nm-live-yeldv-r3\nrm -r -- \"${nm_test_fixture:?}\"",
+  "exit": 0,
+  "stdout": "",
+  "stderr": ""
+}

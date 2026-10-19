@@ -1,0 +1,54 @@
+{
+  "head_remains_absent": true,
+  "runs": [
+    {
+      "version": "after-1",
+      "head": "ae7188aaff78f9b83df4447136e3fcec2aeaec6e",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 1.198247,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "after-2",
+      "head": "ae7188aaff78f9b83df4447136e3fcec2aeaec6e",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 0.762689,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "after-3",
+      "head": "ae7188aaff78f9b83df4447136e3fcec2aeaec6e",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 0,
+      "elapsed_seconds": 0.769465,
+      "returns_gate_and_finding": true,
+      "implicit_lazy_fetches": []
+    },
+    {
+      "version": "before",
+      "head": "ae7188aaff78f9b83df4447136e3fcec2aeaec6e",
+      "command": "fm_nm_run_bounded <partial-clone-with-slow-promisor> 10 axi status",
+      "exit": 124,
+      "elapsed_seconds": 10.193597,
+      "returns_gate_and_finding": false,
+      "implicit_lazy_fetches": [
+        [
+          "/opt/homebrew/opt/git/libexec/git-core/git",
+          "-c",
+          "fetch.negotiationAlgorithm=noop",
+          "fetch",
+          "origin",
+          "--no-tags",
+          "--no-write-fetch-head",
+          "--recurse-submodules=no",
+          "--filter=blob:none",
+          "--stdin"
+        ]
+      ]
+    }
+  ]
+}

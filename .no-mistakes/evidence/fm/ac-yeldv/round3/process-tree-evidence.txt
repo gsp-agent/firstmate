@@ -1,0 +1,193 @@
+Actual process tables from real Git cat-file -> Git fetch -> slow upload-pack -> TERM-resistant sleep.
+Before the fix:
+[
+  {
+    "version": "before",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.093,
+    "remote_descendants_started": [
+      6739,
+      6809
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 6739,
+        "state_after_return": "6739     1  6700 S    bash"
+      },
+      {
+        "pid": 6809,
+        "state_after_return": "6809  6739  6700 S    sleep"
+      }
+    ],
+    "all_descendants_gone": false
+  },
+  {
+    "version": "after",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.1091,
+    "remote_descendants_started": [
+      9647,
+      9673
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 9647,
+        "state_after_return": ""
+      },
+      {
+        "pid": 9673,
+        "state_after_return": ""
+      }
+    ],
+    "all_descendants_gone": true
+  }
+]
+
+Full Git process tree before and after the changed runner returns, under native timeout and Bash fallback:
+[
+  {
+    "mechanism": "native",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <absent>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.1387,
+    "process_tree_before_timeout": [
+      {
+        "pid": 4284,
+        "ppid": 4094,
+        "pgid": 4094,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 4313,
+        "ppid": 4284,
+        "pgid": 4094,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 4326,
+        "ppid": 4313,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "timeout"
+      },
+      {
+        "pid": 4333,
+        "ppid": 4326,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 4347,
+        "ppid": 4333,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "git"
+      },
+      {
+        "pid": 4361,
+        "ppid": 4347,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "/opt/homebrew/opt/git/libexec/git-core/git"
+      },
+      {
+        "pid": 4374,
+        "ppid": 4361,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 4400,
+        "ppid": 4374,
+        "pgid": 4326,
+        "stat": "S",
+        "command": "sleep"
+      }
+    ],
+    "git_processes_observed": 2,
+    "process_tree_after_return": "",
+    "stderr": "",
+    "expected_surface": true
+  },
+  {
+    "mechanism": "bash",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <absent>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.3948,
+    "process_tree_before_timeout": [
+      {
+        "pid": 8212,
+        "ppid": 4094,
+        "pgid": 4094,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8247,
+        "ppid": 8212,
+        "pgid": 4094,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8267,
+        "ppid": 8247,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8269,
+        "ppid": 8247,
+        "pgid": 8269,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8270,
+        "ppid": 8267,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "git"
+      },
+      {
+        "pid": 8272,
+        "ppid": 8269,
+        "pgid": 8269,
+        "stat": "S",
+        "command": "sleep"
+      },
+      {
+        "pid": 8285,
+        "ppid": 8270,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "/opt/homebrew/opt/git/libexec/git-core/git"
+      },
+      {
+        "pid": 8291,
+        "ppid": 8285,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "bash"
+      },
+      {
+        "pid": 8321,
+        "ppid": 8291,
+        "pgid": 8267,
+        "stat": "S",
+        "command": "sleep"
+      }
+    ],
+    "git_processes_observed": 2,
+    "process_tree_after_return": "",
+    "stderr": "",
+    "expected_surface": true
+  }
+]

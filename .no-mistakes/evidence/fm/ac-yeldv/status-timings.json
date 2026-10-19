@@ -1,0 +1,37 @@
+[
+  {
+    "attempt": 1,
+    "elapsed_seconds": 1.534584,
+    "exit": 0,
+    "has_gate": true,
+    "has_finding": true
+  },
+  {
+    "attempt": 2,
+    "elapsed_seconds": 1.255761,
+    "exit": 0,
+    "has_gate": true,
+    "has_finding": true
+  },
+  {
+    "attempt": 3,
+    "elapsed_seconds": 0.549888,
+    "exit": 0,
+    "has_gate": true,
+    "has_finding": true
+  },
+  {
+    "attempt": 4,
+    "elapsed_seconds": 0.495713,
+    "exit": 0,
+    "has_gate": true,
+    "has_finding": true
+  },
+  {
+    "attempt": 5,
+    "elapsed_seconds": 0.881566,
+    "exit": 0,
+    "has_gate": true,
+    "has_finding": true
+  }
+]

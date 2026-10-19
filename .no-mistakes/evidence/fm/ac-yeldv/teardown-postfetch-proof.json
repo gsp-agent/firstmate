@@ -1,0 +1,29 @@
+{
+  "scenario": "Forge metadata and fetched pull ref disagree; both missing-head probes avoid lazy fetch and cleanup preserves unlanded work",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv/teardown-home\nWARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\nREFUSED: worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv/teardown-slot has work not on any remote and not landed.\nunpushed commits:\n74181d9 unlanded fixture\nPush the branch, land its PR, or get the captain's explicit OK to discard, then --force.\n",
+  "cat_file_probes": [
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ],
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ]
+  ],
+  "implicit_lazy_fetches": [],
+  "explicit_pr_fetch_retrieved_head": true,
+  "local_work_preserved": true,
+  "metadata_preserved": true,
+  "expected_surface": true
+}

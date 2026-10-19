@@ -1,0 +1,48 @@
+Absent PR commit preserves unlanded work
+========================================
+$ FM_HOME=<disposable-marked-home> bin/fm-teardown.sh lab-teardown
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/teardown-home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/teardown-slot has work not on any remote and not landed.
+unpushed commits:
+d451cd7 unlanded fixture
+Push the branch, land its PR, or get the captain's explicit OK to discard, then --force.
+
+Explicit PR-head fetch does not enable lazy probes
+==================================================
+{
+  "scenario": "Forge metadata and fetched pull ref disagree; both missing-head probes avoid lazy fetch and cleanup preserves unlanded work",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/teardown-home\nWARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\nREFUSED: worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/teardown-slot has work not on any remote and not landed.\nunpushed commits:\nd451cd7 unlanded fixture\nPush the branch, land its PR, or get the captain's explicit OK to discard, then --force.\n",
+  "cat_file_probes": [
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ],
+    [
+      "git",
+      "-C",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5AP7AKEK9SQ3DD71N7F0RCH/.nm-live-yeldv-r4/teardown-slot",
+      "cat-file",
+      "-e",
+      "dddddddddddddddddddddddddddddddddddddddd^{commit}"
+    ]
+  ],
+  "implicit_lazy_fetches": [],
+  "explicit_pr_fetch_retrieved_head": true,
+  "local_work_preserved": true,
+  "metadata_preserved": true,
+  "expected_surface": true
+}
+

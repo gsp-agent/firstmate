@@ -1,0 +1,22 @@
+{
+  "head_remains_absent": true,
+  "missing_head_probe_exit": 128,
+  "sample": {
+    "elapsed_seconds": 604.475,
+    "samples": 451,
+    "crew_reads": 20,
+    "all_reads_show_review_gate": true,
+    "observed_cat_file_instances": 0,
+    "orphan_cat_file_instances": 0,
+    "scope": "Only the disposable lab head; operator fleet untouched",
+    "orphans": []
+  },
+  "attributable_git_cat_file_starts": 60,
+  "implicit_lazy_fetches": [],
+  "slow_promisor_started": false,
+  "host_load_at_completion": [
+    122.90478515625,
+    119.2119140625,
+    114.2431640625
+  ]
+}

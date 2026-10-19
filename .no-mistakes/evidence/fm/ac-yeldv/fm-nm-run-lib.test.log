@@ -1,0 +1,7 @@
+$ bash tests/fm-nm-run-lib.test.sh
+ok - fm_nm_bounded kills the whole process tree at the bound
+ok - fm_nm_bounded passes a command's status and output through unchanged
+ok - fm_nm_run_bounded sets GIT_NO_LAZY_FETCH=1 only for its no-mistakes call
+ok - fm_nm_bounded keeps a heredoc on the bounded command's stdin
+
+exit=0

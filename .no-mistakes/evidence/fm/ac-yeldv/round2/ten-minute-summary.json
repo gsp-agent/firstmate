@@ -1,0 +1,17 @@
+{
+  "elapsed_seconds": 606.877,
+  "samples": 366,
+  "crew_reads": 20,
+  "all_reads_show_review_gate": true,
+  "observed_cat_file_instances": 0,
+  "orphan_cat_file_instances": 0,
+  "scope": "Only the disposable lab head; operator fleet untouched",
+  "orphans": [],
+  "first_sample_seconds": 0.003,
+  "last_sample_seconds": 596.804,
+  "review_gate_reads": 20,
+  "missed_gate_reads": [],
+  "implicit_lazy_fetches": [],
+  "slow_origin_started": false,
+  "pipeline_head_remains_absent": true
+}

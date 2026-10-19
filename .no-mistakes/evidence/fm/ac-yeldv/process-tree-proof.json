@@ -1,0 +1,44 @@
+[
+  {
+    "version": "before",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.2303,
+    "remote_descendants_started": [
+      50431,
+      50563
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 50431,
+        "state_after_return": "50431     1 50216 S    bash"
+      },
+      {
+        "pid": 50563,
+        "state_after_return": "50563 50431 50216 S    sleep"
+      }
+    ],
+    "all_descendants_gone": false
+  },
+  {
+    "version": "after",
+    "command": "fm_nm_bounded <partial-clone> 2 git cat-file -e <missing>^{commit}",
+    "exit": 124,
+    "elapsed_seconds": 2.1603,
+    "remote_descendants_started": [
+      52367,
+      52435
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 52367,
+        "state_after_return": ""
+      },
+      {
+        "pid": 52435,
+        "state_after_return": ""
+      }
+    ],
+    "all_descendants_gone": true
+  }
+]

@@ -1,0 +1,104 @@
+Ten-minute live sample scoped to the unique disposable pipeline head.
+{
+  "head_remains_absent": true,
+  "missing_head_probe_exit": 128,
+  "sample": {
+    "elapsed_seconds": 604.475,
+    "samples": 451,
+    "crew_reads": 20,
+    "all_reads_show_review_gate": true,
+    "observed_cat_file_instances": 0,
+    "orphan_cat_file_instances": 0,
+    "scope": "Only the disposable lab head; operator fleet untouched",
+    "orphans": []
+  },
+  "attributable_git_cat_file_starts": 60,
+  "implicit_lazy_fetches": [],
+  "slow_promisor_started": false,
+  "host_load_at_completion": [
+    122.90478515625,
+    119.2119140625,
+    114.2431640625
+  ]
+}
+
+Actual crew-state responses:
+at 0.001s; duration 3.108s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 30.071s; duration 2.678s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 60.146s; duration 2.706s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 90.221s; duration 3.383s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 120.297s; duration 2.407s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 150.422s; duration 4.256s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 180.495s; duration 1.81s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 210.569s; duration 2.327s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 240.667s; duration 10.546s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 270.743s; duration 2.212s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 300.815s; duration 6.648s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 330.895s; duration 8.056s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 360.965s; duration 6.779s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 391.034s; duration 7.61s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 421.179s; duration 3.07s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 451.313s; duration 32.865s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 484.179s; duration 7.361s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 514.256s; duration 5.602s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 544.325s; duration 5.692s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021
+
+at 574.401s; duration 6.351s; exit 0
+$ bash bin/fm-crew-state.sh lab-yeldv
+state: parked · source: run-step · parked at review: 1 finding(s) · ask-user: authority decision · run: 01M5APP0000000000000000021

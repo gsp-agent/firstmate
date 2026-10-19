@@ -1,0 +1,91 @@
+{
+  "timing_scope": "Untraced Bash built-in timing after library source; partial evidence retained from a 120-second driver timeout during heavy host contention",
+  "driver_error": "subprocess.TimeoutExpired after 120 seconds",
+  "load_at_evidence_recovery": [
+    248.57275390625,
+    191.39501953125,
+    154.0029296875
+  ],
+  "reads": [
+    {
+      "pair": 1,
+      "interface": "direct-cli-no-fetch",
+      "elapsed_seconds": 4.869,
+      "exit": null,
+      "has_gate_and_finding": true,
+      "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+    },
+    {
+      "pair": 1,
+      "interface": "bounded-function",
+      "elapsed_seconds": 6.402,
+      "exit": null,
+      "has_gate_and_finding": true,
+      "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+    },
+    {
+      "pair": 2,
+      "interface": "direct-cli-no-fetch",
+      "elapsed_seconds": 14.354,
+      "exit": null,
+      "has_gate_and_finding": true,
+      "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+    },
+    {
+      "pair": 2,
+      "interface": "bounded-function",
+      "elapsed_seconds": 11.73,
+      "exit": null,
+      "has_gate_and_finding": false,
+      "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+    },
+    {
+      "pair": 3,
+      "interface": "direct-cli-no-fetch",
+      "elapsed_seconds": 18.559,
+      "exit": null,
+      "has_gate_and_finding": true,
+      "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+    },
+    {
+      "pair": 3,
+      "interface": "bounded-function",
+      "elapsed_seconds": 10.652,
+      "exit": null,
+      "has_gate_and_finding": false,
+      "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+    },
+    {
+      "pair": 4,
+      "interface": "direct-cli-no-fetch",
+      "elapsed_seconds": 11.478,
+      "exit": null,
+      "has_gate_and_finding": true,
+      "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+    },
+    {
+      "pair": 4,
+      "interface": "bounded-function",
+      "elapsed_seconds": 11.397,
+      "exit": null,
+      "has_gate_and_finding": false,
+      "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+    },
+    {
+      "pair": 5,
+      "interface": "direct-cli-no-fetch",
+      "elapsed_seconds": 22.542,
+      "exit": null,
+      "has_gate_and_finding": true,
+      "note": "Exit status was printed only to the lost driver capture; no status inferred from output"
+    }
+  ],
+  "incomplete_reads": [
+    {
+      "pair": 5,
+      "interface": "bounded-function",
+      "output_file": "peak-function-5-bounded-function.toon",
+      "reason": "Driver hit its outer 120-second deadline before recording completion"
+    }
+  ]
+}

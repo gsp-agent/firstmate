@@ -1,0 +1,10 @@
+{
+  "elapsed_seconds": 612.624,
+  "samples": 123,
+  "crew_reads": 20,
+  "all_reads_show_review_gate": false,
+  "observed_cat_file_instances": 0,
+  "orphan_cat_file_instances": 0,
+  "scope": "Only the disposable lab head; operator fleet untouched",
+  "orphans": []
+}

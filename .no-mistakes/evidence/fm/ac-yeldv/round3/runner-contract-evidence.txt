@@ -1,0 +1,91 @@
+Bounded runner stdin, stdout, stderr and exit behavior:
+[
+  {
+    "scenario": "stdin, stdout, stderr, exit and caller settings: native",
+    "exit": 7,
+    "stdout": "received: payload through caller stdin\nchild exit: 7; parent lazy-fetch: unset\n",
+    "stderr": "diagnostic stderr\n",
+    "expected_surface": true
+  },
+  {
+    "scenario": "stdin, stdout, stderr, exit and caller settings: bash",
+    "exit": 7,
+    "stdout": "received: payload through caller stdin\nchild exit: 7; parent lazy-fetch: unset\n",
+    "stderr": "diagnostic stderr\n",
+    "expected_surface": true
+  },
+  {
+    "scenario": "Bash fallback reaps a real Git fetch subtree",
+    "exit": 124,
+    "elapsed_seconds": 2.6972,
+    "remote_descendants_started": [
+      46283,
+      46423
+    ],
+    "descendants_after_return": [
+      {
+        "pid": 46283,
+        "state_after_return": ""
+      },
+      {
+        "pid": 46423,
+        "state_after_return": ""
+      }
+    ],
+    "expected_surface": true
+  }
+]
+
+No-fetch policy stays inside the no-mistakes child; caller environment and shell settings remain intact:
+[
+  {
+    "case": "unset",
+    "nounset": "off",
+    "blob_initially_absent": true,
+    "exit": 0,
+    "status_gate_preserved": true,
+    "caller_environment_preserved": true,
+    "generic_git_fetch_and_output_preserved": true,
+    "shell_options_preserved": true,
+    "generic_lazy_fetches": [
+      [
+        "/opt/homebrew/opt/git/libexec/git-core/git",
+        "-c",
+        "fetch.negotiationAlgorithm=noop",
+        "fetch",
+        "origin",
+        "--no-tags",
+        "--no-write-fetch-head",
+        "--recurse-submodules=no",
+        "--filter=blob:none",
+        "--stdin"
+      ]
+    ],
+    "expected_surface": true
+  },
+  {
+    "case": "preexisting-zero",
+    "nounset": "on",
+    "blob_initially_absent": true,
+    "exit": 0,
+    "status_gate_preserved": true,
+    "caller_environment_preserved": true,
+    "generic_git_fetch_and_output_preserved": true,
+    "shell_options_preserved": true,
+    "generic_lazy_fetches": [
+      [
+        "/opt/homebrew/opt/git/libexec/git-core/git",
+        "-c",
+        "fetch.negotiationAlgorithm=noop",
+        "fetch",
+        "origin",
+        "--no-tags",
+        "--no-write-fetch-head",
+        "--recurse-submodules=no",
+        "--filter=blob:none",
+        "--stdin"
+      ]
+    ],
+    "expected_surface": true
+  }
+]

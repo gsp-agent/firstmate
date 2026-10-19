@@ -1,0 +1,6 @@
+{
+  "command": "nm_test_evidence=/Users/dalecarman/.no-mistakes/evidence/01M5AP7AKEK9SQ3DD71N7F0RCH/round4\nrm -- \"${nm_test_evidence:?}/forge-api.sock\" \"${nm_test_evidence:?}/forge-api-postfetch.sock\"",
+  "exit": 0,
+  "stdout": "",
+  "stderr": ""
+}

@@ -1,0 +1,36 @@
+{
+  "elapsed_seconds": 613.184,
+  "samples": 240,
+  "crew_reads": 20,
+  "all_reads_show_review_gate": false,
+  "observed_cat_file_instances": 0,
+  "orphan_cat_file_instances": 0,
+  "scope": "Only the disposable lab head; operator fleet untouched",
+  "orphans": [],
+  "review_gate_reads": 17,
+  "missed_gate_reads": [
+    {
+      "at_seconds": 60.153,
+      "elapsed_seconds": 17.865,
+      "exit": 0,
+      "stdout": "state: unknown \u00b7 source: none \u00b7 no backend target recorded",
+      "stderr": ""
+    },
+    {
+      "at_seconds": 520.297,
+      "elapsed_seconds": 20.564,
+      "exit": 0,
+      "stdout": "state: unknown \u00b7 source: none \u00b7 no backend target recorded",
+      "stderr": ""
+    },
+    {
+      "at_seconds": 580.468,
+      "elapsed_seconds": 25.736,
+      "exit": 0,
+      "stdout": "state: unknown \u00b7 source: none \u00b7 no backend target recorded",
+      "stderr": ""
+    }
+  ],
+  "first_sample_seconds": 0.017,
+  "last_sample_seconds": 599.91
+}
