@@ -4,7 +4,12 @@
 Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py stage DATA STATE ID PROJECT PR
        fm-task-data.py expire DATA STATE ID
-The caller must hold STATE/.meta-ID.lock, the lock also used by spawn.
+       fm-task-data.py pending DATA
+       fm-task-data.py mark DATA ID cut-off|too-large
+Prepare, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
+lock also used by spawn.
+Pending takes no lock and prints, in one pass, each unexpired cleanup record's
+task id and expiry mark, tab-separated, least recently tried first.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
 Without metadata, prepare reads the latest completed markdown backlog row,
 including the configured archive (legacy mode needs tomllib), when there is no
@@ -26,7 +31,10 @@ Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
 Only real directories immediately below DATA are accepted; symlinked ancestors,
 mounts, and special files refuse before any move or removal.
 
-Keep brief.md, report.md, status, findings, review, and record/ regardless of size.
+Keep brief.md, report.md, status, findings, review, and record/ regardless of size,
+and read those files and record/'s .txt/.md/.log/.json files for references up to
+16 MiB each. A larger one is an unread reference: the folder stays whole and the
+file is named in the warning and record.
 Also keep .txt/.md/.log/.json files up to 1 MiB outside nested repositories.
 Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
@@ -41,6 +49,11 @@ Unread task or bead ids appear in teardown warnings and each source's unread
 list in record/data-cleanup.json; prepare still permits the backlog close.
 Stage and expiry retain all data without moving or deleting it while any
 reference is unreadable; the next successful teardown of a different task retries.
+Stage runs under the task's locks, so its evidence and reference reads and its
+reference matching stop FM_TEARDOWN_DATA_STAGE_TIMEOUT seconds (default 10)
+after stage starts, before anything moves; a reference read still running is
+killed: the folder stays whole, the warning and the record's retained field name
+the limit, and the next teardown of a different task retries it.
 Paths mentioned in these sources or retained evidence override the size/type limit.
 File references conservatively match basenames; directory references use path/link
 syntax and protect all descendants, including symlinks below a linked directory.
@@ -55,7 +68,27 @@ Scratch moves to DATA/ID/.cleanup-hold with its relative paths intact; no bytes
 are copied. record/data-cleanup.json records the recovery, not a second task
 record. The next successful teardown of a DIFFERENT task expires the hold, after
 refreshing references and restoring newly linked files or directory descendants
-to their original paths under the same retention rules.
+to their original paths under the same retention rules. After releasing its own
+locks, that teardown lists pending records, then expires holds least recently
+tried first, while FM_TEARDOWN_DATA_EXPIRE_TIMEOUT seconds (default 10) counted
+from the end of the listing remain.
+Each attempt marks its record tried before it starts, so a hold cut off before
+it writes anything still moves behind the others.
+An attempt cut off by the budget leaves the deletions it already made done and
+the rest of the hold in place, and mark sets expiry "cut-off" in its record.
+The next teardown that reaches it gives it one full attempt of exactly
+FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT seconds (default 60), whatever remains of
+the budget.
+If that attempt is cut off too, mark sets expiry "too-large": later teardowns
+skip the hold, keep what remains of it, and name it in a warning each time so
+it can be expired by hand with `bash fm-task-data-lib.sh expire DATA STATE ID`,
+which takes the task's meta lock and refuses a live task.
+That command stages a never-staged hold and expires it in the same run, so
+its scratch gets no recovery cycle, and it exits non-zero naming a hold it
+leaves unexpired.
+Prepare, stage and expire clear a cut-off mark at their first record write; a
+too-large mark stays until expiry finishes.
+The holds the budget never reached are named in one warning.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.
 An interrupted move resumes at the next cycle and receives a full new cycle.
@@ -70,6 +103,7 @@ An unread PR is named in the warning and record, retains the whole folder, and
 does not fail the cleanup pass; later cleanup retries it before moving any data.
 """
 
+from array import array
 from datetime import date
 import html
 import json
@@ -78,19 +112,25 @@ from pathlib import Path
 import re
 import shlex
 import shutil
+import signal
 import stat
 import string
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 from urllib.parse import unquote
 
 
 LIMIT = 1024 * 1024
+KEPT_LIMIT = 16 * LIMIT
+CHUNK = 1024 * 1024
 TEXT = {".txt", ".md", ".log", ".json"}
 HOLD = ".cleanup-hold"
 RECEIPT = "record/data-cleanup.json"
+TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+MARKS = ("cut-off", "too-large")
 
 
 class UnreadReferences(ValueError):
@@ -99,6 +139,15 @@ class UnreadReferences(ValueError):
 
 class RetainWhole(UnreadReferences):
     pass
+
+
+class StageLimit(RetainWhole):
+    pass
+
+
+def check_limit(limit):
+    if limit and time.monotonic() > limit[0]:
+        raise StageLimit(f"reference matching passed its {limit[1]}s stage limit")
 
 
 def real_directory(path):
@@ -140,29 +189,56 @@ def ordinary_evidence(path, rel, repos):
     return path.suffix.lower() in TEXT and path.lstat().st_size <= LIMIT
 
 
-def read_command(args, project):
-    result = subprocess.run(args, cwd=project if Path(project).is_dir() else None,
-                            capture_output=True, text=True, timeout=60, check=True)
-    if not result.stdout.strip():
+def read_command(args, project, limit=None):
+    timeout = 60
+    if limit:
+        check_limit(limit)
+        timeout = min(timeout, max(limit[0] - time.monotonic(), 0.01))
+    # Files, not pipes: a reader's own timed grandchild may outlive the kill
+    # and must not hold this read open past the stage limit.
+    with tempfile.TemporaryFile("w+") as out, tempfile.TemporaryFile("w+") as err:
+        process = subprocess.Popen(args, cwd=project if Path(project).is_dir() else None,
+                                   stdout=out, stderr=err, start_new_session=bool(limit))
+        try:
+            process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            if limit:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            else:
+                process.kill()
+            process.wait()
+            check_limit(limit)
+            raise
+        out.seek(0)
+        stdout = out.read()
+        if process.returncode:
+            err.seek(0)
+            raise subprocess.CalledProcessError(process.returncode, args, stdout, err.read())
+    if not stdout.strip():
         raise ValueError(f"empty reference response from {args[0]}")
-    return result.stdout
+    return stdout
 
 
-def local_references(root, files, repos):
-    texts = []
+def local_references(root, files, repos, limit=None):
+    texts, oversized = [], []
     for rel in files:
+        check_limit(limit)
         path = root / rel
         if (rel.parts[0] != HOLD and str(rel) != RECEIPT
                 and not path.is_symlink()
                 and (path.suffix.lower() in TEXT or path.name in ("status", "findings", "review"))
                 and ordinary_evidence(path, rel, repos)):
-            if path.stat().st_size > LIMIT:
-                raise ValueError(f"reference text exceeds 1 MiB: {path}")
-            texts.append(path.read_text(errors="replace"))
-    return "\n".join(texts)
+            if path.lstat().st_size > KEPT_LIMIT:
+                oversized.append(str(rel))
+            else:
+                texts.append(path.read_text(errors="replace"))
+    return "\n".join(texts), oversized
 
 
-def completed_source(data, task_id):
+def completed_source(data, task_id, limit=None):
     try:
         import tomllib
     except ImportError as error:
@@ -170,7 +246,7 @@ def completed_source(data, task_id):
     location = json.loads(read_command([
         "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
         "backlog-location", str(data),
-    ], str(data.parent)))
+    ], str(data.parent), limit))
     if (not isinstance(location, dict) or not isinstance(location.get("root"), str)
             or not isinstance(location.get("file"), str) or not location["file"]
             or Path(location["root"]) != data.parent):
@@ -248,12 +324,14 @@ def completed_row_source(data, title, text):
     return {"project": str(project), "pr": next(iter(prs), ""), "beads": beads, "text": text}
 
 
-def backlog_references(source, task_id):
+def backlog_references(source, task_id, limit=None):
     backlog = source["backlog"]
     legacy = backlog.get("legacy", False)
     if legacy and not backlog.get("closed", False):
         try:
-            completed = completed_source(Path(backlog["data"]), task_id)
+            completed = completed_source(Path(backlog["data"]), task_id, limit)
+        except StageLimit:
+            raise
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             source["unread"] = [task_id]
             raise RetainWhole(f"unread completed row {task_id}: {error}") from error
@@ -268,13 +346,15 @@ def backlog_references(source, task_id):
             "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
             "backlog-references", backlog["data"], task_id,
             "1" if backlog["task"] is not None and not legacy else "0", source["project"], *source["beads"],
-        ], str(Path(backlog["data"]).parent)))
+        ], str(Path(backlog["data"]).parent), limit))
         if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
                 or response.get("task") not in (None, task_id)
                 or (backlog["task"] is not None and not legacy and response.get("task") != task_id)
                 or not isinstance(response.get("unread"), list)
                 or any(not isinstance(item, str) for item in response["unread"])):
             raise ValueError("invalid backlog reference response")
+    except StageLimit:
+        raise
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         source["unread"] = sorted(set([task_id, *source["beads"]]))
         raise UnreadReferences(f"unread references {', '.join(source['unread'])}: {error}") from error
@@ -286,18 +366,27 @@ def backlog_references(source, task_id):
     return legacy_text + "\n" + response["text"]
 
 
-def references(views, sources, task_id):
-    texts = [local_references(*view) for view in views]
+def references(views, sources, task_id, limit=None):
+    texts, oversized = [], []
+    for view in views:
+        text, skipped = local_references(*view, limit)
+        texts.append(text)
+        oversized += skipped
+    if oversized:
+        sources[-1]["unread"] = sorted(set(sources[-1].get("unread", [])) | set(oversized))
+        raise RetainWhole(f"kept evidence over 16 MiB: {', '.join(oversized)}")
     local = "\n".join(texts)
     beads = set(re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", local))
     sources[-1]["beads"] = sorted(set(sources[-1]["beads"]) | beads)
     for source in sources:
         project, pr = source["project"], source["pr"]
-        texts.append(backlog_references(source, task_id))
+        texts.append(backlog_references(source, task_id, limit))
         if pr:
             try:
                 texts.append(read_command(["bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
-                                           "references", pr], project))
+                                           "references", pr], project, limit))
+            except StageLimit:
+                raise
             except (OSError, ValueError, subprocess.SubprocessError) as error:
                 source["unread"] = sorted(set(source.get("unread", [])) | {pr})
                 raise RetainWhole(f"unread PR {pr}: {error}") from error
@@ -316,7 +405,9 @@ def linked(rel, text, directory, normalized, offsets):
         pattern = prefix + pattern + r'''(?=/?(?:$|[\s)\]}>'",;?#]))'''
     for match in re.finditer(pattern, normalized, re.IGNORECASE):
         start, end = match.span(1)
-        alias = rel.with_name(text[offsets[start]:offsets[end - 1] + 1])
+        if offsets is not None:
+            start, end = offsets[start], offsets[end - 1] + 1
+        alias = rel.with_name(text[start:end])
         try:
             if os.path.samestat(alias.lstat(), rel.lstat()):
                 return True
@@ -329,7 +420,8 @@ def protected(path, targets):
     return path in targets or any(parent in targets for parent in path.parents)
 
 
-def retention_paths(root, files, all_directories, repos, text):
+def retention_paths(root, files, all_directories, repos, text, limit=None):
+    check_limit(limit)
     targets, directories = set(), set()
     decoded = []
     for match in re.finditer(r'"(?:[^"\\]|\\.)*"', text):
@@ -339,9 +431,17 @@ def retention_paths(root, files, all_directories, repos, text):
             pass
     text = "\n".join([text, *decoded])
     text += "\n" + re.sub(r"\\([" + re.escape(string.punctuation) + r"])", r"\1", text)
+    check_limit(limit)
     normalized = unicodedata.normalize("NFD", text)
-    offsets = [index for index, character in enumerate(text)
-               for _ in unicodedata.normalize("NFD", character)]
+    offsets = None
+    if normalized != text:
+        offsets = array("l")
+        for start in range(0, len(text), CHUNK):
+            check_limit(limit)
+            piece = text[start:start + CHUNK]
+            offsets.extend(range(start, start + len(piece)) if unicodedata.is_normalized("NFD", piece) else (
+                index for index, character in enumerate(piece, start) for _ in unicodedata.normalize("NFD", character)))
+    check_limit(limit)
     entries = {root / rel: (root / rel).lstat() for rel in files + all_directories}
     children = {}
     for path, info in entries.items():
@@ -385,6 +485,7 @@ def retention_paths(root, files, all_directories, repos, text):
         return None, path, path
 
     for rel in files + all_directories:
+        check_limit(limit)
         if rel == Path(HOLD):
             continue
         actual = root / rel
@@ -399,6 +500,7 @@ def retention_paths(root, files, all_directories, repos, text):
     while pending_links:
         remaining = []
         for actual in pending_links:
+            check_limit(limit)
             virtual = virtual_path(actual)
             if not protected(virtual, targets):
                 remaining.append(actual)
@@ -496,9 +598,54 @@ def remove_entries(root, files, directories):
         guard_command(["rmdir", "--", *paths])
 
 
+def pending(data):
+    tried = []
+    for receipt in real_directory(data).glob(f"*/{RECEIPT}"):
+        task_id = receipt.parent.parent.name
+        if not TASK_ID.fullmatch(task_id):
+            continue
+        try:
+            info = receipt.lstat()
+        except OSError:
+            continue
+        record = None
+        if stat.S_ISREG(info.st_mode) and info.st_size <= LIMIT:
+            try:
+                record = json.loads(receipt.read_text())
+            except (OSError, ValueError):
+                pass
+        if not (isinstance(record, dict) and record.get("version") == 1 and record.get("expired") is True):
+            expiry = record.get("expiry") if isinstance(record, dict) else None
+            tried.append((info.st_mtime, task_id, expiry if expiry in MARKS else ""))
+    for _, task_id, expiry in sorted(tried):
+        print(f"{task_id}\t{expiry}")
+
+
+def mark(data, task_id, expiry):
+    if not TASK_ID.fullmatch(task_id) or expiry not in MARKS:
+        raise ValueError("invalid expiry mark")
+    root = real_directory(real_directory(data) / task_id)
+    receipt = root / RECEIPT
+    if (receipt.is_symlink() or not receipt.is_file() or receipt.stat().st_nlink != 1
+            or receipt.stat().st_size > LIMIT):
+        raise ValueError("unsafe cleanup record")
+    record = json.loads(receipt.read_text())
+    if not isinstance(record, dict) or record.get("version") != 1 or record.get("task") != task_id:
+        raise ValueError("invalid cleanup record")
+    record["expiry"] = expiry
+    write_record(root, record)
+
+
+def stage_limit():
+    value = os.environ.get("FM_TEARDOWN_DATA_STAGE_TIMEOUT", "")
+    seconds = int(value) if value.isdigit() and not value.startswith("0") else 10
+    return time.monotonic() + seconds, seconds
+
+
 def cleanup(action, data, state, task_id, project="", pr=""):
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", task_id):
+    if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
+    limit = stage_limit() if action == "stage" else None
     data, state = real_directory(data), real_directory(state)
     meta = state / f"{task_id}.meta"
     values = None
@@ -559,7 +706,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                       and any(source.get("backlog", {}).get("legacy")
                               and not source["backlog"].get("closed", False) for source in record["sources"])):
         try:
-            legacy = completed_source(data, task_id)
+            legacy = completed_source(data, task_id, limit)
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
             return
@@ -575,7 +722,15 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if hold.exists() and record is None:
         raise ValueError("unowned recovery directory")
     files, all_directories, repos = inventory(root)
-    local = unquote(html.unescape(local_references(root, files, repos)))
+    try:
+        check_limit(limit)
+        local = unquote(html.unescape(local_references(root, files, repos, limit)[0]))
+    except StageLimit as error:
+        if record is not None:
+            record["retained"] = str(error)
+            write_record(root, record)
+        print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
+        return
     if record is None:
         record = {"version": 1, "task": task_id, "sources": [], "complete": False}
     if record.get("expired"):
@@ -600,6 +755,9 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     for source in record["sources"]:
         source.setdefault("backlog", {"data": str(data), "task": None})
     views = [(root, files, repos)]
+    if record.get("expiry") != "too-large":
+        record.pop("expiry", None)
+    record.pop("retained", None)
     write_record(root, record)
     if action == "prepare":
         try:
@@ -612,13 +770,23 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if shutil.which("dcg") is None:
         raise ValueError("dcg is unavailable")
     try:
-        text = references(views, record["sources"], task_id)
+        text = references(views, record["sources"], task_id, limit)
+    except StageLimit as error:
+        record["retained"] = str(error)
+        print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
+        return
     except RetainWhole as error:
         print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         return
     finally:
         write_record(root, record)
-    targets, directories = retention_paths(root, files, all_directories, repos, text)
+    try:
+        targets, directories = retention_paths(root, files, all_directories, repos, text, limit)
+    except StageLimit as error:
+        record["retained"] = str(error)
+        write_record(root, record)
+        print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
+        return
 
     scratch = [(path, [rel for rel in leaves if rel.parts[0] not in (HOLD, "record")
                       and not protected(path / rel, targets)]) for path, leaves, _ in views]
@@ -645,6 +813,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
             guard_command(["rmdir", "--", str(recovery)])
         if not any(leaves for _, leaves in scratch):
             record["expired"] = True
+            record.pop("expiry", None)
             write_record(root, record)
             return
     for path, leaves in scratch:
@@ -654,6 +823,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                 raise ValueError(f"recovery collision: {destination}")
     if not any(leaves for _, leaves in scratch) and not any((path / HOLD).exists() for path, _, _ in views):
         record.update(complete=True, expired=True)
+        record.pop("expiry", None)
         write_record(root, record)
         return
     record.update(complete=False, expired=False)
@@ -684,11 +854,14 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(0)
     try:
-        if (len(sys.argv) < 2 or sys.argv[1] not in ("prepare", "stage", "expire")
-                or len(sys.argv) not in ({5, 6} if sys.argv[1] == "prepare"
-                                        else {7} if sys.argv[1] == "stage" else {5})):
+        arities = {"prepare": {5, 6}, "stage": {7}, "expire": {5}, "pending": {3}, "mark": {5}}
+        if len(sys.argv) < 2 or len(sys.argv) not in arities.get(sys.argv[1], ()):
             raise ValueError(__doc__)
-        if sys.argv[1] == "prepare" and len(sys.argv) == 6:
+        if sys.argv[1] == "pending":
+            pending(sys.argv[2])
+        elif sys.argv[1] == "mark":
+            mark(*sys.argv[2:])
+        elif sys.argv[1] == "prepare" and len(sys.argv) == 6:
             cleanup(*sys.argv[1:5], pr=sys.argv[5])
         else:
             cleanup(*sys.argv[1:])

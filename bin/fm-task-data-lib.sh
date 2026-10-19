@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Task-data cleanup runs only after teardown removes the task record, while its
-# meta lock is still held. fm-task-data.py owns retention and recovery rules.
+# Task-data staging runs only after teardown removes the task record, while its
+# meta lock is still held. Expiring other tasks' holds runs after teardown
+# releases every lock. fm-task-data.py owns retention and recovery rules.
 # Callers source fm-wake-lib.sh for the same locks spawn uses to publish records.
 
 fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
-  local data=$1 state=$2 id=$3 project=$4 pr=$5 helper candidate other lock rc=0
+  local data=$1 state=$2 id=$3 project=$4 pr=$5 helper
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   fm_task_id_path_safe "$id" || return 1
   [ ! -e "$state/$id.meta" ] && [ ! -L "$state/$id.meta" ] || return 1
@@ -12,26 +13,102 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
     echo "warning: task data retained: python3 is unavailable" >&2
     return 1
   }
+  python3 "$helper" stage "$data" "$state" "$id" "$project" "$pr"
+}
+
+fm_task_data_expire_others() { # <data> <state> <id>
+  local data=$1 state=$2 id=$3 helper lib listed other expiry lock budget full start remaining limit status rc=0 i
+  local pending=() marks=() too_large=()
+  helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
+  lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data-lib.sh"
+  command -v python3 >/dev/null 2>&1 || return 1
+  budget=${FM_TEARDOWN_DATA_EXPIRE_TIMEOUT:-10}
+  case "$budget" in ''|0*|*[!0-9]*) budget=10 ;; esac
+  full=${FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT:-60}
+  case "$full" in ''|0*|*[!0-9]*) full=60 ;; esac
+  listed=$(python3 "$helper" pending "$data") || return 1
+  while IFS=$'\t' read -r other expiry; do
+    if [ -z "$other" ] || [ "$other" = "$id" ] || ! fm_task_id_path_safe "$other"; then
+      continue
+    elif [ "$expiry" = too-large ]; then
+      too_large+=("$other")
+    else
+      pending+=("$other")
+      marks+=("$expiry")
+    fi
+  done <<< "$listed"
+  if [ "${#too_large[@]}" -gt 0 ]; then
+    echo "warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: ${too_large[*]}" >&2
+  fi
+  start=$SECONDS
   # A concurrent teardown holds its own lock. Skip it instead of waiting on a
   # cycle of locks; only a later, different completed task expires a recovery.
-  for candidate in "$data"/*/record/data-cleanup.json; do
-    [ -f "$candidate" ] || continue
-    if jq -e 'type == "object" and .version == 1 and .expired == true' "$candidate" >/dev/null 2>&1; then
-      continue
+  # Each attempt touches its record first, so ordering by record age keeps one
+  # slow hold from taking every teardown's budget. A hold the budget cut off
+  # gets one full attempt; if that is cut off too, it is marked too large.
+  for ((i = 0; i < ${#pending[@]}; i++)); do
+    remaining=$((budget - (SECONDS - start)))
+    if [ "$remaining" -le 0 ]; then
+      echo "warning: the ${budget}s task-data expiry budget ran out; holds left for a later teardown: ${pending[*]:i}" >&2
+      break
     fi
-    other=${candidate%/record/data-cleanup.json}
-    other=${other##*/}
-    [ "$other" != "$id" ] || continue
-    fm_task_id_path_safe "$other" || continue
+    other=${pending[i]}
     lock=$(fm_meta_lock_path "$state/$other.meta") || continue
     fm_lock_try_acquire "$lock" || continue
     if [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ]; then
-      python3 "$helper" expire "$data" "$state" "$other" || rc=1
+      limit=$remaining
+      [ "${marks[i]}" != cut-off ] || limit=$full
+      touch -h -c "$data/$other/record/data-cleanup.json" 2>/dev/null || true
+      status=0
+      fm_run_timed "$limit" python3 "$helper" expire "$data" "$state" "$other" || status=$?
+      if fm_timed_out "$status" && [ "${marks[i]}" = cut-off ]; then
+        python3 "$helper" mark "$data" "$other" too-large || true
+        echo "warning: task data $other expiry stopped after its one full ${limit}s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash $lib expire $data $state $other" >&2
+      elif fm_timed_out "$status"; then
+        python3 "$helper" mark "$data" "$other" cut-off || true
+        echo "warning: task data $other expiry stopped after ${limit}s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full ${full}s attempt" >&2
+      fi
+      [ "$status" = 0 ] || rc=1
     fi
     fm_lock_release "$lock"
   done
-  python3 "$helper" stage "$data" "$state" "$id" "$project" "$pr" || rc=1
   return "$rc"
+}
+
+# Expire one hold with no time limit under the task meta lock teardown takes;
+# a held lock or a live task refuses. A run that only staged a never-staged
+# hold is followed by one more under the same lock, and a hold still not
+# expired at the end is an error.
+fm_task_data_expire_by_hand() { # <data> <state> <id>
+  local data=$1 state=$2 id=$3 lock record helper status=0 unstaged=0 again=0
+  helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
+  record="$data/$id/record/data-cleanup.json"
+  fm_task_id_path_safe "$id" || { echo "error: unsafe task id: $id" >&2; return 1; }
+  lock=$(fm_meta_lock_path "$state/$id.meta") || return 1
+  if ! fm_lock_try_acquire "$lock"; then
+    echo "error: task $id is locked by another process; nothing was expired, retry later" >&2
+    return 1
+  fi
+  if [ -e "$state/$id.meta" ] || [ -L "$state/$id.meta" ]; then
+    echo "error: task $id is live; nothing was expired" >&2
+    status=1
+  else
+    if jq -e '.complete == false' "$record" >/dev/null 2>&1; then unstaged=1; fi
+    python3 "$helper" expire "$data" "$state" "$id" || status=$?
+    if [ "$status" = 0 ] && [ "$unstaged" = 1 ] \
+        && jq -e '.complete == true and .expired != true' "$record" >/dev/null 2>&1; then
+      again=1
+      python3 "$helper" expire "$data" "$state" "$id" || status=$?
+    fi
+    if [ -e "$record" ] && ! jq -e '.expired == true' "$record" >/dev/null 2>&1; then
+      echo "error: task data $id is not expired; what remains of it stays held" >&2
+      [ "$status" != 0 ] || status=1
+    elif [ "$again" = 1 ] && [ "$status" = 0 ]; then
+      echo "task data $id expired; nothing of it stays held"
+    fi
+  fi
+  fm_lock_release "$lock"
+  return "$status"
 }
 
 fm_task_data_bead_reference() { # <data> <project> <bead>
@@ -169,6 +246,14 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       [ "$#" -ge 5 ] || exit 1
       shift
       fm_task_data_backlog_references "$@"
+      ;;
+    expire)
+      [ "$#" -eq 4 ] || exit 1
+      # shellcheck source=bin/fm-wake-lib.sh
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
+      # shellcheck source=bin/fm-pr-lib.sh
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
+      fm_task_data_expire_by_hand "$2" "$3" "$4"
       ;;
     *) exit 1 ;;
   esac
