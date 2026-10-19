@@ -102,7 +102,7 @@ sweep_note_event() {
 # Armed-poll markers already published their event. Reading them keeps a sweep
 # from waking that same event again. An unsafe marker is ignored.
 sweep_note_markers() {
-  local state=$1 marker version url event extra device
+  local state=$1 marker version url event device
   device=$(fm_pr_file_device "$state") || return 0
   for marker in "$state"/*.pr-poll-queue-dropped; do
     [ -e "$marker" ] || [ -L "$marker" ] || continue
@@ -112,7 +112,7 @@ sweep_note_markers() {
       exec 7<&-
       continue
     fi
-    if IFS= read -r extra <&7; then
+    if IFS= read -r _ <&7; then
       exec 7<&-
       continue
     fi
@@ -234,7 +234,7 @@ sweep_page_gh() {
 }
 
 sweep_note_sidecars() {
-  local state=$1 sidecar provider url host path number extra owner repo
+  local state=$1 sidecar provider url host path number owner repo
   for sidecar in "$state"/*.pr-poll; do
     [ -e "$sidecar" ] || [ -L "$sidecar" ] || continue
     [ -f "$sidecar" ] && [ ! -L "$sidecar" ] || continue
@@ -244,7 +244,7 @@ sweep_note_sidecars() {
       exec 7<&-
       continue
     fi
-    if IFS= read -r extra <&7; then
+    if IFS= read -r _ <&7; then
       exec 7<&-
       continue
     fi

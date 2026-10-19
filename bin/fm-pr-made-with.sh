@@ -164,7 +164,7 @@ jq --arg add "$LINES" '
   | [$add | split("\n")[] as $line
       | select(any($have[]; . == $line) | not) | $line] as $missing
   | {missing: $missing,
-     body: (if $body == "" then "" else $body + "\n\n" end) + ($missing | join("\n"))}
+     body: ((if $body == "" then "" else $body + "\n\n" end) + ($missing | join("\n")))}
 ' "$TMP/pr.json" > "$TMP/plan.json" || fail "could not parse the body of $URL"
 MISSING=$(jq -r '.missing[]' "$TMP/plan.json")
 if [ -z "$MISSING" ]; then
