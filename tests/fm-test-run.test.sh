@@ -1188,13 +1188,73 @@ test_portable_parallel_lanes_stay_duration_balanced() {
   pass "portable parallel lanes are fully hinted and packed within 5% of each other"
 }
 
+supervision_host_dispatched_cases() { # <hook> <script> <lane|->
+  local hook=$1 script=$2 lane=$3
+  local -a selector=(-u FM_SUPERVISION_HOST_LANE)
+  [ "$lane" = - ] || selector=("FM_SUPERVISION_HOST_LANE=$lane")
+  env -u FM_TEST_LIB_SOURCED "${selector[@]}" BASH_ENV="$hook" bash "$script"
+}
+
 test_supervision_host_lanes_are_scheduled_separately() {
-  local lane_a lane_b wrapper lanes count shard a_shard b_shard main_shard listed_shard
+  local tmp fakebin hook main lane_a lane_b wrapper defined calls dups lanes count shard a_shard b_shard main_shard listed_shard ran_all ran_a ran_b actual
+  tmp=$(fm_test_tmproot fm-test-run-supervision-lanes)
+  fakebin=$(fm_fakebin "$tmp")
+  fm_fake_exit0 "$fakebin" node perl
+  hook="$tmp/stub-cases.bash"
+  cat >"$hook" <<'SH'
+case "$0" in
+  */fm-supervision-host.test.sh)
+    unset BASH_ENV
+    stub_supervision_cases() {
+      [ "${supervision_cases_stubbed:-0}" = 0 ] || return 0
+      case "$BASH_COMMAND" in test_*|supervision_host_lane_*) ;; *) return ;; esac
+      supervision_cases_stubbed=1
+      trap - DEBUG
+      local name
+      while read -r _ _ name; do
+        case "$name" in
+          test_*)
+            printf 'defined %s\n' "$name"
+            eval "$name() { printf 'ran %s\\n' '$name'; }"
+            ;;
+        esac
+      done < <(declare -F)
+    }
+    trap stub_supervision_cases DEBUG
+    ;;
+esac
+SH
+  main="$ROOT/tests/fm-supervision-host.test.sh"
   lane_a="$ROOT/tests/fm-supervision-host-lane-a.test.sh"
   lane_b="$ROOT/tests/fm-supervision-host-lane-b.test.sh"
   for wrapper in "$lane_a" "$lane_b"; do
     [ -x "$wrapper" ] || fail "${wrapper#"$ROOT"/} must exist and be executable"
   done
+  ran_all=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" -) \
+    || fail "supervision-host dispatch with no lane set failed: $ran_all"
+  defined=$(printf '%s\n' "$ran_all" | sed -n 's/^defined //p' | LC_ALL=C sort)
+  calls=$(printf '%s\n' "$ran_all" | sed -n 's/^ran //p' | LC_ALL=C sort)
+  [ -n "$defined" ] || fail 'supervision-host runtime case inventory is empty'
+  [ "$calls" = "$defined" ] || fail 'direct supervision-host dispatch must run every defined case exactly once'
+  actual=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" all) || fail "lane all failed: $actual"
+  [ "$actual" = "$ran_all" ] || fail 'FM_SUPERVISION_HOST_LANE=all must run the whole subject'
+  ran_a=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" a) || fail "lane a failed: $ran_a"
+  ran_b=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" b) || fail "lane b failed: $ran_b"
+  ran_a=$(printf '%s\n' "$ran_a" | sed -n 's/^ran //p')
+  ran_b=$(printf '%s\n' "$ran_b" | sed -n 's/^ran //p')
+  [ -n "$ran_a" ] && [ -n "$ran_b" ] || fail "lanes a and b must each run cases"
+  [ "$(printf '%s\n%s\n' "$ran_a" "$ran_b" | LC_ALL=C sort)" = "$defined" ] \
+    || fail "lanes a and b together must run every case exactly once"
+  dups=$(comm -12 <(printf '%s\n' "$ran_a" | LC_ALL=C sort) <(printf '%s\n' "$ran_b" | LC_ALL=C sort))
+  [ -z "$dups" ] || fail "supervision-host cases appear in both lanes: $dups"
+  actual=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$lane_a" -) || fail 'supervision-host wrapper a failed'
+  [ "$(printf '%s\n' "$actual" | sed -n 's/^ran //p')" = "$ran_a" ] || fail 'supervision-host wrapper a must select lane a'
+  actual=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$lane_b" -) || fail 'supervision-host wrapper b failed'
+  [ "$(printf '%s\n' "$actual" | sed -n 's/^ran //p')" = "$ran_b" ] || fail 'supervision-host wrapper b must select lane b'
+  if PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" invalid >"$tmp/invalid.out" 2>&1; then
+    fail 'supervision-host accepted an invalid lane'
+  fi
+  assert_grep 'FM_SUPERVISION_HOST_LANE must be a, b or all' "$tmp/invalid.out" 'invalid supervision-host lane has no diagnostic'
   # CI schedules the two lane wrappers, never the whole file, on different
   # portable serial shards, so each case runs there exactly once.
   lanes=$("$RUNNER" --list-lanes)
