@@ -113,12 +113,6 @@
 # bin/fm-backend.sh (fm_meta_get) to be sourced first. The headroom reading
 # loads bin/fm-timeout-lib.sh when that reading runs. No side effects on source.
 
-# Exit status of a spawn deferred because the project is at capacity: the
-# sysexits "temporary failure" code, so a caller can tell a deferral that leaves
-# the task queued from an ordinary failure.
-# shellcheck disable=SC2034 # read by bin/fm-spawn.sh after sourcing.
-FM_PROJECT_CAPACITY_DEFER_EXIT=75
-
 # How long one extra start remains that project's extra start. 7 * 60 seconds
 # matches one starter pass of about 7 minutes.
 FM_PROJECT_CAPACITY_OVERSHARE_WINDOW=420

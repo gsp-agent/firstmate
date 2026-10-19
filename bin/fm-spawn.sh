@@ -214,6 +214,14 @@
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
+#   Live sessions: when this machine has a live-session detector
+#   (bin/fm-live-session-lib.sh owns which detector, the folder name it is
+#   asked about, and the verdict), a fresh ship or scout spawn asks it about the
+#   project before taking the project lock. A read that is live or cannot
+#   decide prints one `deferred:` line naming the detector's verdict and exits
+#   75 before any brief render, endpoint, worktree, record, or backlog move
+#   exists, exactly like a capacity deferral. A relaunch and a --secondmate
+#   spawn are never checked.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
@@ -721,8 +729,14 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
 # shellcheck source=bin/fm-project-capacity-lib.sh
 . "$SCRIPT_DIR/fm-project-capacity-lib.sh"
+# shellcheck source=bin/fm-live-session-lib.sh
+. "$SCRIPT_DIR/fm-live-session-lib.sh"
 # shellcheck source=bin/fm-worker-account-lib.sh
 . "$SCRIPT_DIR/fm-worker-account-lib.sh"
+# Exit status of a deferred spawn (project capacity or a live session): the
+# sysexits "temporary failure" code, so a caller can tell a deferral that leaves
+# the task queued from an ordinary failure.
+SPAWN_DEFER_EXIT=75
 # Fail closed before any fleet mutation: a no-mistakes gate agent must never spawn
 # a direct report (see bin/fm-gate-refuse-lib.sh).
 fm_refuse_if_gate_agent
@@ -1669,9 +1683,9 @@ if [ "${#POS[@]}" -gt 0 ] && [ "${POS[0]}" != "$idpart" ] && case "$idpart" in *
     [ "$KIND" != scout ] || pair_args+=(--scout)
     pair_rc=0
     FM_SPAWN_NO_GUARD=1 "$FM_ROOT/bin/fm-spawn.sh" "${pair_args[@]}" || pair_rc=$?
-    if [ "$pair_rc" -eq "$FM_PROJECT_CAPACITY_DEFER_EXIT" ]; then
-      echo "batch: DEFERRED ${pair%%=*} (${pair#*=}) - its project is at capacity, so it stays queued" >&2
-      [ "$rc" -ne 0 ] || rc=$FM_PROJECT_CAPACITY_DEFER_EXIT
+    if [ "$pair_rc" -eq "$SPAWN_DEFER_EXIT" ]; then
+      echo "batch: DEFERRED ${pair%%=*} (${pair#*=}) - its deferred: line above says why, and it stays queued" >&2
+      [ "$rc" -ne 0 ] || rc=$SPAWN_DEFER_EXIT
     elif [ "$pair_rc" -ne 0 ]; then
       echo "batch: FAILED to spawn ${pair%%=*} (${pair#*=})" >&2
       rc=1
@@ -3259,6 +3273,17 @@ else
   WT=""
   BRIEF="$DATA/$ID/brief.md"
 fi
+# Live-session admission (bin/fm-live-session-lib.sh owns the detector, the
+# folder name it is asked about, and the verdict). A live session belongs to the
+# project's own agent, so a fresh worker is deferred while the detector reads
+# live or cannot decide, before the project lock and before any brief render,
+# endpoint, worktree, record, or backlog move exists. A relaunch replaces a
+# worker already dispatched, and a secondmate is not a project worker.
+if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] &&
+  ! LIVE_SESSION_DEFERRAL=$(fm_live_session_admit "$PROJ_ABS" "$(basename "$PROJ_ABS")"); then
+  echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not launched and its backlog item stays queued - dispatch it again once the check reads clear" >&2
+  exit "$SPAWN_DEFER_EXIT"
+fi
 # Project capacity admission (bin/fm-project-capacity-lib.sh owns the
 # declaration, what holds a place, the optional headroom command, and why this
 # is race-safe). A fresh worker for a project whose declared capacity is
@@ -3321,7 +3346,7 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
           ;;
       esac
       echo "$SPAWN_CAPACITY_DEFER" >&2
-      exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+      exit "$SPAWN_DEFER_EXIT"
     fi
     SPAWN_OVERSHARE_DIR=$FM_PROJECT_CAPACITY_OVERSHARE_DIR
     SPAWN_OVERSHARE_IDENTITY=$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY
