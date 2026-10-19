@@ -928,11 +928,12 @@ dale_world_check() {  # <reason> <title> <owner>
   local out rc=0 line
   [ -f "$rule" ] || return 0
   command -v python3 >/dev/null 2>&1 || return 0
-  out=$(python3 "$rule" ask --question "$1" --title "$2" 2>/dev/null) || rc=$?
+  out=$(python3 "$rule" ask --question "$1" --title "$2" \
+    --recommend "$1" --text "$1" --if-no "$1" 2>/dev/null) || rc=$?
   [ "$rc" = 3 ] || return 0
   while IFS= read -r line; do
     case "$line" in
-      "You answered this:"*|"You decided this"*|"Asked already on the original page"*)
+      "He answered it."*|"He decided it on "*|"review:"*" asks the same decision and came first"*)
         fail "Dale-step hold refused by the asks rule's world check (owner: $3): $line" ;;
     esac
   done <<EOF

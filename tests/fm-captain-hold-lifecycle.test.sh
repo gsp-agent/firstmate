@@ -4640,7 +4640,7 @@ SH
   pass "marked hold reasons round-trip through public reads, fleet, startup, and return without changing other fields"
 }
 
-if [ "${1:-}" != --dale-step-only ]; then
+if [ "${1:-}" != --dale-step-only ] && [ "${1:-}" != --dale-world-only ]; then
   test_hold_reason_round_trips_awkward_characters
   test_hold_origins_precede_backend_holds
   test_historical_self_inventory_has_workable_repair
@@ -4702,29 +4702,41 @@ if [ "${1:-}" != --dale-step-only ]; then
   test_verify_resolves_a_pre_collapse_key_through_its_derived_marker
   test_captain_hold_mutations_address_the_beads_backend
   test_hold_creates_a_captain_row_when_beads_requires_due_without_custom_type
-else
+elif [ "${1:-}" = --dale-step-only ]; then
   test_hold_stamp_precedes_hold_visibility
   test_release_frees_held_work
 fi
 
 test_dale_step_hold_probe_and_world_checks() {
-  local home show
+  local home show mode dale_step id refusal
   home=$(make_home dale-step)
   cat > "$home/fake-asks-rule.py" <<'PY'
-import os, sys
+import argparse, json, os, sys
+parser = argparse.ArgumentParser()
+parser.add_argument("command", choices=["ask"])
+for name in ("title", "question", "recommend", "text", "if_no"):
+    parser.add_argument("--" + name.replace("_", "-"), default="")
+args = parser.parse_args()
+with open(os.path.join(os.environ["FM_HOME"], "asks-rule-calls.jsonl"), "a") as calls:
+    calls.write(json.dumps(vars(args)) + "\n")
 mode = os.environ.get("FAKE_ASKS_MODE", "ok")
-if mode == "answered":
-    print("You answered this: Reply, \"already signed in\".")
-    sys.exit(3)
-if mode == "duplicate":
-    print("Asked already on the original page; your answer there covers this.")
-    sys.exit(3)
-if mode == "kind":
-    print("Not one of his kinds: names none of his kinds. Decide it yourself.")
+actions = {
+    "answered": 'He answered it. Reply, "already signed in".',
+    "decided": "He decided it on review:sign-in. Reply with that decision.",
+    "duplicate": "review:sign-in asks the same decision and came first. His answer there covers this.",
+    "kind": "Not one of his kinds: names none of his kinds. Decide it yourself.",
+    "form": "Not answerable in one read: state the recommendation and consequence.",
+}
+if mode == "broken":
+    print(actions["answered"])
+    sys.exit(1)
+if mode in actions:
+    print(actions[mode])
     sys.exit(3)
 sys.exit(0)
 PY
-  run_captain "$home" hold plain-task --title "Plain hold" \
+  FAKE_ASKS_MODE=answered FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+    run_captain "$home" hold plain-task --title "Plain hold" \
     --reason "captain must decide" --repo sample >/dev/null \
     || fail "plain hold failed"
   show=$(tasks_in "$home" show plain-task --full)
@@ -4742,28 +4754,67 @@ PY
   assert_contains "$show" "Hold timeout seconds: 600" "the Dale-step hold did not write the timeout line"
   assert_contains "$show" "Hold reason: sign in to the service" "the Dale-step hold did not write the reason line"
   assert_contains "$show" "Hold probe: true" "the Dale-step hold did not write the probe line"
-  if FAKE_ASKS_MODE=answered FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
-    run_captain "$home" hold answered-task --title "Sign in again" \
-    --reason "sign in to the service" --repo sample \
-    --dale-step sign-in --probe 'true' >"$home/answered.out" 2>"$home/answered.err"; then
-    fail "a Dale-step hold already answered was created"
-  fi
-  assert_grep "You answered this" "$home/answered.err" "the answered refusal did not name the world-check reason"
-  if tasks_in "$home" show answered-task --full >/dev/null 2>&1; then
-    fail "the refused answered hold still created its task"
-  fi
-  if FAKE_ASKS_MODE=duplicate FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
-    run_captain "$home" hold duplicate-task --title "Sign in once more" \
-    --reason "sign in to the service" --repo sample \
-    --dale-step sign-in --probe 'true' >"$home/duplicate.out" 2>"$home/duplicate.err"; then
-    fail "a Dale-step hold duplicating an earlier ask was created"
-  fi
-  assert_grep "Asked already" "$home/duplicate.err" "the duplicate refusal did not name the world-check reason"
-  FAKE_ASKS_MODE=kind FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
-    run_captain "$home" hold kind-task --title "Sign in kindly" \
-    --reason "sign in to the service" --repo sample \
-    --dale-step sign-in --probe 'true' >/dev/null \
-    || fail "a kind-only refusal blocked a Dale-step hold before the one-way-door rule lands"
+  for dale_step in sign-in screen; do
+    for mode in answered decided duplicate; do
+      id="$dale_step-$mode-task"
+      if FAKE_ASKS_MODE="$mode" FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+        run_captain "$home" hold "$id" --title "Complete the $dale_step" \
+        --reason "sign in to the service" --repo sample \
+        --dale-step "$dale_step" --probe 'true' > "$home/$id.out" 2> "$home/$id.err"; then
+        fail "the asks-rule $mode action failed to block a $dale_step hold"
+      fi
+      case "$mode" in
+        answered) refusal='He answered it.' ;;
+        decided) refusal='He decided it on review:sign-in.' ;;
+        duplicate) refusal='review:sign-in asks the same decision and came first.' ;;
+      esac
+      assert_grep "$refusal" "$home/$id.err" "the $mode refusal lost the CLI action text"
+      assert_grep 'owner: dale' "$home/$id.err" "the $mode refusal lost the decision owner"
+      if tasks_in "$home" show "$id" --full >/dev/null 2>&1; then
+        fail "the refused $mode hold still created its task"
+      fi
+      tasks_in "$home" add "$id" "Complete the $dale_step" --repo sample >/dev/null \
+        || fail "could not create the existing-task $mode fixture"
+      if FAKE_ASKS_MODE="$mode" FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+        run_captain "$home" hold "$id" --reason "sign in to the service" \
+        --dale-step "$dale_step" --probe 'true' > "$home/$id.out" 2> "$home/$id.err"; then
+        fail "the asks-rule $mode action failed to block an existing $dale_step task"
+      fi
+      show=$(tasks_in "$home" show "$id" --full)
+      assert_contains "$show" "held: no" "the refused $mode action still held its existing task"
+      assert_not_contains "$show" "Captain hold set:" "the refused $mode action still changed its task body"
+    done
+    for mode in kind form broken missing; do
+      id="$dale_step-$mode-task"
+      if [ "$mode" = missing ]; then
+        FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
+          run_captain "$home" hold "$id" --title "Complete the $dale_step" \
+          --reason "sign in to the service" --repo sample \
+          --dale-step "$dale_step" --probe 'true' >/dev/null \
+          || fail "a missing asks rule blocked a $dale_step hold"
+      else
+        FAKE_ASKS_MODE="$mode" FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+          run_captain "$home" hold "$id" --title "Complete the $dale_step" \
+          --reason "sign in to the service" --repo sample \
+          --dale-step "$dale_step" --probe 'true' >/dev/null \
+          || fail "the nonblocking $mode outcome blocked a $dale_step hold"
+      fi
+      show=$(tasks_in "$home" show "$id" --full)
+      assert_contains "$show" "held: yes" "the nonblocking $mode outcome did not create a hold"
+    done
+  done
+  python3 - "$home/asks-rule-calls.jsonl" <<'PY' \
+    || fail "the requests sent to the asks rule omitted or changed its published-ask matching inputs"
+import json, sys
+with open(sys.argv[1]) as calls:
+    requests = [json.loads(line) for line in calls]
+assert requests
+assert all(request["question"] == "sign in to the service" for request in requests)
+assert all(request[field] == request["question"] for request in requests
+           for field in ("recommend", "text", "if_no"))
+assert requests[0]["title"] == "Sign in needed"
+assert all(request["title"] != "Plain hold" for request in requests)
+PY
   FAKE_ASKS_MODE=ok FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
     run_captain "$home" hold probe-fail-task --title "Sign in pending" \
     --reason "sign in to the service" --repo sample \
@@ -4783,6 +4834,9 @@ PY
   pass "Dale-step holds write owner, timeout and probe lines, refuse answered or duplicate asks at creation, and release only on a passing probe"
 }
 test_dale_step_hold_probe_and_world_checks
+if [ "${1:-}" = --dale-world-only ]; then
+  exit 0
+fi
 
 test_ordinary_reholds_deactivate_dale_probes() {
   local home show dale_step previous_state before
