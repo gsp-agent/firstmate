@@ -11,7 +11,8 @@
 #       to force the dependency-free fallback.
 #
 #   fm_run_timed <seconds> <command> [args...]
-#       Runs the command with a hard bound. Exit status is the command's own,
+#       Runs the command with a hard bound and the caller's stdin.
+#       Exit status is the command's own,
 #       except 124, which means the bound was hit (GNU timeout's convention,
 #       reproduced by the perl and bash fallbacks), and a command killed by
 #       signal n, which reports 128+n on every mechanism - so a SIGKILLed child
@@ -64,9 +65,9 @@
 # A non-positive bound is not a bound: `timeout 0` and the perl fallback's
 # `alarm 0` both disable the deadline, so callers must reject 0 before calling.
 #
-# All four fm_run_timed mechanisms terminate the whole process GROUP, not just
-# the direct child, so a hung grandchild (a vendor CLI spawned by a wrapper
-# script, a git fetch spawned by a sweep) cannot outlive the bound. GNU/BSD
+# All four fm_run_timed mechanisms terminate the bounded command's process
+# group, including descendants that remain in it; a descendant that creates
+# another process group is outside this cleanup. GNU/BSD
 # `timeout` does this by default because it does not run the command in the
 # foreground process group; the perl fallback does it explicitly with setpgrp
 # plus a negative pid, and the bash fallback uses monitor mode to give the

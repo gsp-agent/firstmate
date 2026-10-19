@@ -20,10 +20,8 @@
 # `no-mistakes "$@"` specialization. The bounded
 # form preserves stdout, stderr, and exit status; the checked form discards
 # stderr, while fm_nm_run keeps the fail-open query contract for read-only callers.
-# The bound itself is bin/fm-timeout-lib.sh's fm_run_timed, the single owner of
-# bounded execution in this repo: it terminates the whole process group, so a
-# child the bounded command spawned (a git probe under no-mistakes) cannot
-# outlive the bound as an orphan.
+# bin/fm-timeout-lib.sh's fm_run_timed owns timeout mechanisms, exit-status
+# normalization, and process-group cleanup; its header defines their limits.
 _FM_NM_RUN_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # That library declares `set -u` for its own hygiene, which a sourced sibling
 # must not impose on this library's consumers, so the caller's setting is
@@ -44,11 +42,10 @@ fm_nm_bounded() {  # <dir> <timeout_secs> <command> <args...>
 fm_nm_run_bounded() {  # <dir> <timeout_secs> <args...>
   local dir=$1 timeout_secs=$2
   shift 2
-  # A status read never needs to fetch from origin: a missing pipeline head is
-  # in the gate repo, not on origin, and in a partial clone the probe's lazy
-  # fetch costs about 30 s of one core before it gives up. The export lives in
-  # a subshell so it reaches no-mistakes without leaking into the caller, and
-  # needs no env binary on a restricted PATH.
+  # Keep this no-mistakes invocation's object probes local: a partial clone
+  # would otherwise lazy-fetch a missing pipeline head during a status read.
+  # The subshell confines this policy to no-mistakes and its children, without
+  # changing the caller or requiring an env binary on a restricted PATH.
   ( export GIT_NO_LAZY_FETCH=1; fm_nm_bounded "$dir" "$timeout_secs" no-mistakes "$@" )
 }
 
