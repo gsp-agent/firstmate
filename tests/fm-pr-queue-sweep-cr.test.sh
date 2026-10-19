@@ -24,19 +24,50 @@ cat > "$FAKEBIN/gh" <<'SH'
 set -o pipefail
 jq_filter=
 cursor=null
+number=
+query=
+paginate=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --jq) shift; jq_filter=${1-} ;;
+    --paginate) paginate=1 ;;
     -f|-F)
       shift
       case "${1-}" in
         cursor=*) cursor=${1#cursor=} ;;
+        number=*) number=${1#number=} ;;
+        query=*) query=${1#query=} ;;
       esac
       ;;
   esac
   shift
 done
 [ -n "$jq_filter" ] || exit 91
+if [ -n "$number" ]; then
+  case "$query" in
+    *'latestOpinionatedReviews('*) ;;
+    *) exit 91 ;;
+  esac
+  page=page1
+  while :; do
+    response="$FM_TEST_SWEEP_DIR/reviews-$number-$page.json"
+    if [ ! -f "$response" ] && [ "$page" = page1 ]; then
+      response="$FM_TEST_SWEEP_DIR/page1.json"
+    fi
+    [ -f "$response" ] || exit 91
+    [ -z "${FM_TEST_REVIEW_LOG:-}" ] || printf '%s %s\n' "$number" "$page" >> "$FM_TEST_REVIEW_LOG"
+    "$FM_TEST_REAL_JQ" \
+      '.data.repository.pullRequest |= {author, latestOpinionatedReviews}' "$response" \
+      | "$FM_TEST_REAL_JQ" -r "$jq_filter" || exit 91
+    [ "$paginate" -eq 1 ] || break
+    more=$("$FM_TEST_REAL_JQ" -r \
+      '.data.repository.pullRequest.latestOpinionatedReviews.pageInfo.hasNextPage' "$response")
+    [ "$more" = true ] || break
+    page=$("$FM_TEST_REAL_JQ" -r \
+      '.data.repository.pullRequest.latestOpinionatedReviews.pageInfo.endCursor' "$response")
+  done
+  exit 0
+fi
 page=$cursor
 [ "$page" != null ] && [ -n "$page" ] || page=page1
 [ -f "$FM_TEST_SWEEP_DIR/$page.json" ] || exit 91
@@ -51,6 +82,14 @@ printf '%s\n' "$3" >> "$1"
 SH
 chmod +x "$FAKEBIN/launch"
 
+cat > "$FAKEBIN/launch-waiting" <<'SH'
+#!/usr/bin/env bash
+touch "$4/launch-started"
+perl -MTime::HiRes=sleep -e 'for (1..500) { last if -e $ARGV[0]; sleep 0.02 }' "$4/contender-finished"
+exec "$5" "$1" "$2" "$3"
+SH
+chmod +x "$FAKEBIN/launch-waiting"
+
 # Write one sweep page holding a single pull request with the given review
 # state. Ages are seconds before FM_CR_FIXROUND_NOW.
 write_pr_page() {  # <dir> <decision> <check-state> <draft> <head> <age-secs> <reviewers-json>
@@ -61,6 +100,7 @@ write_pr_page() {  # <dir> <decision> <check-state> <draft> <head> <age-secs> <r
     --arg decision "$decision" --arg checks "$checks" --arg head "$head" \
     --argjson draft "$draft" --argjson committed "$((NOW - age))" \
     --argjson reviewers "$reviewers" '
+    ($reviewers | map({author:{login:.}, state:"CHANGES_REQUESTED", commit:{oid:$head}})) as $reviews |
     {data:{repository:{pullRequests:{
       pageInfo:{hasNextPage:false, endCursor:null},
       nodes:[{number:7, state:"OPEN", merged:false, isInMergeQueue:false,
@@ -68,8 +108,20 @@ write_pr_page() {  # <dir> <decision> <check-state> <draft> <head> <age-secs> <r
         author:{login:"prauthor"},
         statusCheckRollup:{state:$checks},
         commits:{nodes:[{commit:{oid:$head, committedDate:($committed | todate)}}]},
-        latestReviews:{nodes:($reviewers | map({author:{login:.}, state:"CHANGES_REQUESTED", commit:{oid:$head}}))},
-        timelineItems:{nodes:[]}}]}}}}' > "$dir/sweep/page1.json"
+        latestReviews:{nodes:$reviews},
+        timelineItems:{nodes:[]}}]},
+      pullRequest:{author:{login:"prauthor"},
+        latestReviews:{nodes:$reviews},
+        latestOpinionatedReviews:{nodes:$reviews, pageInfo:{hasNextPage:false, endCursor:null}}}
+    }}}' > "$dir/sweep/page1.json"
+}
+
+write_review_page() {
+  local dir=$1 page=$2 more=$3 cursor=$4 reviews=$5
+  "$REAL_JQ" -n --argjson reviews "$reviews" --argjson more "$more" --arg cursor "$cursor" '
+    {data:{repository:{pullRequest:{author:{login:"prauthor"},
+      latestOpinionatedReviews:{nodes:$reviews, pageInfo:{hasNextPage:$more, endCursor:$cursor}}
+    }}}}' > "$dir/sweep/reviews-7-$page.json" || fail "could not write reviewer page $page"
 }
 
 scan() {  # <dir> <state> <now>
@@ -85,6 +137,135 @@ file_mode() {
   else
     stat -c %a "$1"
   fi
+}
+
+test_later_comments_do_not_hide_blocking_reviewers() {
+  local dir state out
+  dir="$TMP_ROOT/comment-after-changes"
+  state="$dir/state"
+  mkdir -p "$state"
+  write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+  "$REAL_JQ" '
+    .data.repository.pullRequests.nodes[0].latestReviews.nodes[0].state = "COMMENTED" |
+    .data.repository.pullRequest.latestReviews.nodes[0].state = "COMMENTED"
+  ' "$dir/sweep/page1.json" > "$dir/sweep/comment.json"
+  mv "$dir/sweep/comment.json" "$dir/sweep/page1.json"
+  out=$(scan "$dir" "$state" "$NOW") || fail "comment-after-changes scan failed"
+  case "$out" in
+    *" round=1 reviewers=chipdev"*) ;;
+    *) fail "a later comment hid the blocking reviewer: $out" ;;
+  esac
+  pass "a later comment preserves the reviewer's blocking verdict"
+}
+
+test_blocking_reviewers_are_collected_from_every_page() {
+  local dir state out approvals
+  dir="$TMP_ROOT/reviewer-pagination"
+  state="$dir/state"
+  mkdir -p "$state"
+  write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '[]'
+  approvals=$("$REAL_JQ" -n '[range(1;101) | {author:{login:("dev" + tostring)}, state:"APPROVED"}]')
+  write_review_page "$dir" page1 true page2 "$approvals"
+  write_review_page "$dir" page2 false '' '[{"author":{"login":"chipdev"},"state":"CHANGES_REQUESTED"}]'
+  out=$(FM_TEST_REVIEW_LOG="$dir/review-pages" scan "$dir" "$state" "$NOW") \
+    || fail "paginated reviewer scan failed"
+  case "$out" in
+    *" round=1 reviewers=chipdev"*) ;;
+    *) fail "the blocker on the second reviewer page was lost: $out" ;;
+  esac
+  [ "$(cat "$dir/review-pages")" = "7 page1
+7 page2" ] || fail "review collection did not consume both pages"
+  pass "blocking reviewers beyond the first 100 are named"
+}
+
+test_missing_reviewer_names_do_not_suppress_any_round() {
+  local dir state out
+  dir="$TMP_ROOT/unnamed-reviewers"
+  state="$dir/state"
+  mkdir -p "$state"
+  write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '[]'
+  write_review_page "$dir" page1 false '' '[
+    {"author":null,"state":"CHANGES_REQUESTED"},
+    {"author":{"login":"prauthor"},"state":"CHANGES_REQUESTED"},
+    {"author":{"login":"otherdev"},"state":"APPROVED"}
+  ]'
+  out=$(scan "$dir" "$state" "$NOW") || fail "unnamed-reviewer scan failed"
+  case "$out" in *" round=1 reviewers=unknown"*) ;; *) fail "unnamed round 1 was skipped: $out" ;; esac
+  FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "unnamed round 1 dispatch failed"
+  out=$(scan "$dir" "$state" "$((NOW + 18000))") || fail "unnamed round 2 scan failed"
+  case "$out" in *" round=2 reviewers=unknown"*) ;; *) fail "unnamed round 2 was skipped: $out" ;; esac
+  FM_CR_FIXROUND_NOW="$((NOW + 18000))" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round2 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn || fail "unnamed round 2 dispatch failed"
+  out=$(scan "$dir" "$state" "$((NOW + 36000))") || fail "unnamed escalation scan failed"
+  case "$out" in *" rounds=2 reviewers=unknown"*) ;; *) fail "unnamed escalation was skipped: $out" ;; esac
+  write_review_page "$dir" page1 true missing '[]'
+  out=$(scan "$dir" "$state" "$((NOW + 36000))") || fail "failed-review-lookup scan failed"
+  case "$out" in *" rounds=2 reviewers=unknown"*) ;; *) fail "a failed review lookup suppressed escalation: $out" ;; esac
+  pass "unavailable reviewer names never suppress rounds or escalation"
+}
+
+wait_for_launch_start() {
+  local dir=$1 pid=$2 ticks=0
+  while [ ! -e "$dir/launch-started" ] && [ "$ticks" -lt 500 ]; do
+    kill -0 "$pid" 2>/dev/null || return 1
+    sleep 0.02
+    ticks=$((ticks + 1))
+  done
+  [ -e "$dir/launch-started" ]
+}
+
+test_concurrent_round_record_writers_preserve_all_prs() {
+  local dir state other_url pid first_status=0 other_status=0
+  dir="$TMP_ROOT/concurrent-records"
+  state="$dir/state"
+  other_url=https://github.com/o/r/pull/8
+  mkdir -p "$state"
+  FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "concurrent round 1 seed failed"
+  FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$other_url" "$HEAD" round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn || fail "other PR round 1 seed failed"
+  FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$other_url" "$HEAD" round2 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "other PR round 2 seed failed"
+  FM_CR_FIXROUND_NOW="$((NOW + 18000))" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round2 -- \
+    "$FAKEBIN/launch-waiting" "$dir/launches" 0 relaunch "$dir" "$FAKEBIN/launch" \
+    > "$dir/first.out" 2> "$dir/first.err" &
+  pid=$!
+  wait_for_launch_start "$dir" "$pid" || fail "the first concurrent launch never started"
+  "$SCRIPT" --cr-record "$state" "$other_url" "$HEAD" escalated \
+    > "$dir/other.out" 2> "$dir/other.err" || other_status=$?
+  touch "$dir/contender-finished"
+  wait "$pid" || first_status=$?
+  [ "$first_status" -eq 0 ] && [ "$other_status" -eq 0 ] \
+    || fail "concurrent writers failed: $(cat "$dir/first.err" "$dir/other.err")"
+  grep -Fx "$URL $HEAD 2 $((NOW + 18000)) 0" "$state/changes-requested-sweep.seen" >/dev/null \
+    || fail "a concurrent escalation lost the second dispatched round"
+  grep -Fx "$other_url $HEAD 2 $NOW 1" "$state/changes-requested-sweep.seen" >/dev/null \
+    || fail "a concurrent dispatch erased another pull request's escalation"
+  pass "concurrent dispatch and escalation preserve both pull-request records"
+}
+
+test_concurrent_duplicate_round_dispatches_launch_once() {
+  local dir state pid first_status=0 other_status=0
+  dir="$TMP_ROOT/concurrent-duplicate"
+  state="$dir/state"
+  mkdir -p "$state"
+  FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+    "$FAKEBIN/launch-waiting" "$dir/launches" 0 relaunch "$dir" "$FAKEBIN/launch" \
+    > "$dir/first.out" 2> "$dir/first.err" &
+  pid=$!
+  wait_for_launch_start "$dir" "$pid" || fail "the first duplicate launch never started"
+  FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn \
+    > "$dir/other.out" 2> "$dir/other.err" || other_status=$?
+  touch "$dir/contender-finished"
+  wait "$pid" || first_status=$?
+  [ "$first_status" -eq 0 ] && [ "$other_status" -eq 0 ] \
+    || fail "duplicate dispatches failed: $(cat "$dir/first.err" "$dir/other.err")"
+  [ "$(cat "$dir/launches")" = relaunch ] || fail "concurrent duplicates launched the same round twice"
+  grep -Fx "$URL $HEAD 1 $NOW 0" "$state/changes-requested-sweep.seen" >/dev/null \
+    || fail "duplicate dispatches corrupted the first-round record"
+  pass "concurrent duplicate wakes dispatch their round only once"
 }
 
 test_stale_changes_requested_reports_round_one() {
@@ -297,6 +478,16 @@ test_record_refusals_and_malformed_record_fail_the_scan() {
   pass "record refusals are loud and a malformed record fails the scan"
 }
 
+if [ "$#" -gt 0 ]; then
+  "$@"
+  exit $?
+fi
+
+test_later_comments_do_not_hide_blocking_reviewers
+test_blocking_reviewers_are_collected_from_every_page
+test_missing_reviewer_names_do_not_suppress_any_round
+test_concurrent_round_record_writers_preserve_all_prs
+test_concurrent_duplicate_round_dispatches_launch_once
 test_wakes_and_unsuccessful_dispatches_do_not_consume_rounds
 test_stale_changes_requested_reports_round_one
 test_fresh_or_ungreen_pull_requests_stay_silent
