@@ -814,3 +814,20 @@ Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --up
 Required result: exit 0, zero path-drift and carried-unproven lines, and 26 pending lines naming .agent-config-dtjsb on the resulting head.
 Before, ace8921a with the manifest it carries from 520736b8: exit 1, path-drift for bin/fm-drift-nightly.sh and tests/fm-drift-nightly.test.sh, and a1b86280 and ace8921a printed as unproven.
 Checked before the commit on an unreferenced scratch commit with this tree on ace8921a (--fork <scratch sha>, which now reads the scratch commit's own drift-proof.txt): exit 0, 26 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, keep for 520736b8, a1b86280, ace8921a and the scratch commit, and the same 35 unproven cut commits that 520736b8's own check prints.
+
+D3 architecture documentation
+Measured: 2026-10-19 (Central), git 2.56.0
+e49413a2 changes two prose lines in docs/architecture.md and no executable file or test.
+The branch-preparation line now says a fresh ship spawn prepares and checks out its branch before the crew exists and points to bin/fm-spawn.sh's header as the owner of preparation and preservation of existing work. Header lines 46-53 name prepare_ship_branch, refuse a branch checked out in another worktree, and resume an available leftover branch unless its commits are already in the slot's HEAD.
+The reassigned-slot line retains that a claim naming a different task releases nothing and removes the unconditional cleanup claim. bin/fm-teardown.sh's header lines 142-147 own that behavior: teardown names the claimant and finishes only this task's own cleanup once its recorded request allows it, skipping every step that would read or touch the reassigned slot.
+$ bash bin/fm-doc-audience-check.sh
+fm-doc-audience-check: ok surfaces=121 local_links=778
+exit: 0
+
+D3 finalization
+Measured: 2026-10-19 (Central), git 2.56.0
+Before, at e49413a2 with its committed R27 manifest (bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1): exit 1, path-drift for docs/architecture.md, and e49413a2 printed as unproven; 26 pending lines name .agent-config-dtjsb, zero carried-unproven lines, and 36 unproven lines include the 35 cut commits.
+The manifest now lists 881214e1 with its R27 proof and e49413a2 with the section above, and its fixed-parent entry names e49413a2 so it selects only the commit delivering this manifest.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Required result: exit 0, zero path-drift and carried-unproven lines, and 26 pending lines naming .agent-config-dtjsb on the resulting head.
+Checked before the commit on an unreferenced scratch commit made with git commit-tree from this final tree on e49413a2 (bash bin/fm-drift-nightly.sh check --no-fetch --fork <scratch sha> --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1, which reads the scratch commit's own drift-proof.txt): exit 0, 26 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, keep for 881214e1, e49413a2 and the scratch commit, and the same 35 unproven cut commits that 881214e1's own check prints.
