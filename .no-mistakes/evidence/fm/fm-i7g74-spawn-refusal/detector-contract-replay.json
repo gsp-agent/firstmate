@@ -1,0 +1,65 @@
+[
+  {
+    "name": "All sources clear",
+    "expected_exit": 0,
+    "actual_exit": 0,
+    "stdout": "",
+    "live": false
+  },
+  {
+    "name": "Calendar read failure",
+    "expected_exit": 2,
+    "actual_exit": 2,
+    "stdout": "unknown signal=calendar source=calendar reason=source read failed",
+    "live": false
+  },
+  {
+    "name": "Calendar timeout",
+    "expected_exit": 2,
+    "actual_exit": 2,
+    "stdout": "unknown signal=calendar source=calendar reason=source read failed",
+    "live": false
+  },
+  {
+    "name": "Missing gj registry",
+    "expected_exit": 2,
+    "actual_exit": 2,
+    "stdout": "unknown signal=gj-device source=gj_apps reason=source read failed",
+    "live": false
+  },
+  {
+    "name": "Connected Apple device without a gj console",
+    "expected_exit": 2,
+    "actual_exit": 2,
+    "stdout": "unknown signal=gj-device source=devicectl:LAB-DEVICE reason=connected device has no observable app session",
+    "live": false
+  },
+  {
+    "name": "Collection older than 30 seconds",
+    "expected_exit": 2,
+    "actual_exit": 2,
+    "stdout": "unknown signal=snapshot source=input reason=unsupported or stale snapshot",
+    "live": false
+  },
+  {
+    "name": "PM reservation outlives its missing seat",
+    "expected_exit": 2,
+    "actual_exit": 2,
+    "stdout": "unknown signal=machine-line-reservation source=machine-line/reserve:pm-no-longer-present-1234 reason=reservation owner project unavailable",
+    "live": false
+  },
+  {
+    "name": "Typing in a project coordinator seat at 119 seconds",
+    "expected_exit": 75,
+    "actual_exit": 75,
+    "stdout": "live signal=herdr-keyboard source=herdr:LAB-PANE+macOS-HID-keydown",
+    "live": false
+  },
+  {
+    "name": "Project coordinator seat quiet for 121 seconds",
+    "expected_exit": 0,
+    "actual_exit": 0,
+    "stdout": "",
+    "live": false
+  }
+]

@@ -1,0 +1,11 @@
+Supplemental detector replay. Every case uses --snapshot and --at; none is a live sensor observation.
+All sources clear: exit=0 (no stdout)
+Calendar read failure: exit=2 unknown signal=calendar source=calendar reason=source read failed
+Calendar timeout: exit=2 unknown signal=calendar source=calendar reason=source read failed
+Missing gj registry: exit=2 unknown signal=gj-device source=gj_apps reason=source read failed
+Connected Apple device without a gj console: exit=2 unknown signal=gj-device source=devicectl:LAB-DEVICE reason=connected device has no observable app session
+Collection older than 30 seconds: exit=2 unknown signal=snapshot source=input reason=unsupported or stale snapshot
+PM reservation outlives its missing seat: exit=2 unknown signal=machine-line-reservation source=machine-line/reserve:pm-no-longer-present-1234 reason=reservation owner project unavailable
+Typing in a project coordinator seat at 119 seconds: exit=75 live signal=herdr-keyboard source=herdr:LAB-PANE+macOS-HID-keydown
+Project coordinator seat quiet for 121 seconds: exit=0 (no stdout)
+Six deliberately harmless failure inputs return unknown; the seat-correlation input returns live for the documented 120-second window. This is classification coverage, not a measured operational frequency.

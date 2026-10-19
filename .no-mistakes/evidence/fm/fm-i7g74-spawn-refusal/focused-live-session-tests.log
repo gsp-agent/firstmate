@@ -1,0 +1,14 @@
+FM_TEST_BEGIN 2026-10-19T10:18:15Z tests/fm-live-session.test.sh family=unclassified expected_gate_skip=none
+ok - a clear live-session read launches the worker
+ok - ship and scout relaunches preserve prior state and work on non-clear reads and launch on clear
+ok - a live read defers the spawn before any record, brief, endpoint, worktree, or backlog move exists
+ok - an unknown read defers the spawn and names the detector's reason
+ok - a detector status outside its contract defers as unknown
+ok - a symlinked project is asked about its checkout folder, not its registered name
+ok - a machine without the detector keeps today's dispatch
+ok - with no override, the detector under ~/.agent-config/scripts is consulted
+ok - a batch reports a live-session deferral as deferred, not failed
+FM_TEST_END 2026-10-19T10:19:03Z tests/fm-live-session.test.sh exit=0 duration_ms=48067 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=48193
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=48067 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-live-session.test.sh duration_ms=48067

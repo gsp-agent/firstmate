@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "observed_at": "2026-10-19T10:23:29.046823+00:00",
+  "herdr": {
+    "focused_pane_id": null,
+    "panes": [],
+    "agents": []
+  },
+  "keyboard": {
+    "idle_seconds": 121,
+    "front_bundle_id": "com.apple.Terminal"
+  },
+  "gj_apps": [],
+  "devices": [],
+  "processes": [],
+  "calendar": {
+    "error": "TimeoutError"
+  },
+  "machine_line_reservation": null
+}

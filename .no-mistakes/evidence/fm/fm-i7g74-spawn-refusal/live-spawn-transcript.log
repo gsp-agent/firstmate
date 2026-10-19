@@ -1,0 +1,373 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+exit=0
+Detector sha256=7a1e5c76dafe92f7fd0b3394279fd0472bd39b638422bd914b4fa2eca6f4b903
+Detector uses real collection, not --snapshot. HOME, gj registry and reservation paths are disposable. Herdr is intentionally unavailable on the isolated PATH; no operator sources or login are read.
+$ tmux -L fm-lab -f /dev/null new-session -d -x 120 -y 40 -s firstmate -n lab -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab display-message -p '#{socket_path}'
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/tmux/tmux-501/fm-lab
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project init -q -b main
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project add README.md
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project -c 'user.name=Firstmate Lab' -c user.email=lab@example.invalid commit -qm 'Lab baseline'
+
+exit=0
+$ git clone --quiet --bare /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project.origin.git
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project remote add origin /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project.origin.git
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/.agent-config init -q -b main
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/.agent-config add README.md
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/.agent-config -c 'user.name=Firstmate Lab' -c user.email=lab@example.invalid commit -qm 'Lab baseline'
+
+exit=0
+$ git clone --quiet --bare /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/.agent-config /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/.agent-config.origin.git
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/.agent-config remote add origin /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/.agent-config.origin.git
+
+exit=0
+Lab reservation owner=ep-project
+$ tasks-axi add lablive-ship 'Disposable live admission probe' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added lablive-ship (ship) -> Queued
+task:
+  id: lablive-ship
+  title: Disposable live admission probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start lablive-ship --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block lablive-ship --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project worktree list --porcelain
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project
+HEAD 33c505d2b084d43ed747d7361e72941a73db7fb7
+branch refs/heads/main
+exit=0
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh lablive-ship /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py' --mode no-mistakes --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: a person is live on project project (live-session check of folder project: live signal=machine-line-reservation source=machine-line/reserve:ep-project), and a live session is run by the project's own agent, never by Firstmate; task lablive-ship was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+exit=75
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project worktree list --porcelain
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project
+HEAD 33c505d2b084d43ed747d7361e72941a73db7fb7
+branch refs/heads/main
+exit=0
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+exit=0
+OBSERVED {"name": "Fresh ship refuses a live reservation", "result": "pass", "live": true, "assertions": "exit 75; one deferred line names live signal; queue, brief, record, tmux windows and worktrees unchanged"}
+$ tasks-axi add lablive-scout 'Disposable live admission probe' --kind scout --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added lablive-scout (scout) -> Queued
+task:
+  id: lablive-scout
+  title: Disposable live admission probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: scout
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start lablive-scout --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block lablive-scout --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project worktree list --porcelain
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project
+HEAD 33c505d2b084d43ed747d7361e72941a73db7fb7
+branch refs/heads/main
+exit=0
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh lablive-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py' --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: a person is live on project project (live-session check of folder project: live signal=machine-line-reservation source=machine-line/reserve:ep-project), and a live session is run by the project's own agent, never by Firstmate; task lablive-scout was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+exit=75
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project worktree list --porcelain
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project
+HEAD 33c505d2b084d43ed747d7361e72941a73db7fb7
+branch refs/heads/main
+exit=0
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+exit=0
+OBSERVED {"name": "Fresh scout refuses a live reservation", "result": "pass", "live": true, "assertions": "exit 75; one deferred line names live signal; queue, brief, record, tmux windows and worktrees unchanged"}
+$ tasks-axi add labalias 'Disposable live admission probe' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added labalias (ship) -> Queued
+task:
+  id: labalias
+  title: Disposable live admission probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start labalias --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block labalias --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+Lab reservation owner=pm--agent-config-i7g74
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labalias /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/agent-config '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py' --mode no-mistakes --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:pm--agent-config-i7g74), and a live session is run by the project's own agent, never by Firstmate; task labalias was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+exit=75
+OBSERVED {"name": "Symlinked registry name checks the physical checkout folder", "result": "pass", "live": true, "assertions": "deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:pm--agent-config-i7g74), and a live session is run by the project's own agent, never by Firstmate; task labalias was not launched and its backlog item stays queued - dispatch it again once the check reads clear"}
+Lab reservation owner=ep-project
+$ tasks-axi add labbatch 'Disposable live admission probe' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added labbatch (ship) -> Queued
+task:
+  id: labbatch
+  title: Disposable live admission probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start labbatch --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block labbatch --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labbatch=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project --mode no-mistakes --yolo off --harness codex
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: a person is live on project project (live-session check of folder project: live signal=machine-line-reservation source=machine-line/reserve:ep-project), and a live session is run by the project's own agent, never by Firstmate; task labbatch was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+batch: DEFERRED labbatch (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project) - its deferred: line above says why, and it stays queued
+exit=75
+OBSERVED {"name": "Batch dispatch exposes live-session deferral", "result": "pass", "live": true, "assertions": "exit 75 and DEFERRED, with no task record"}
+Lab reservation owner=ep-unrelated
+$ tasks-axi add labunknown 'Disposable live admission probe' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added labunknown (ship) -> Queued
+task:
+  id: labunknown
+  title: Disposable live admission probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start labunknown --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block labunknown --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+$ python3 /Users/dalecarman/.agent-config/scripts/live-session.py project
+unknown signal=herdr-keyboard source=herdr reason=source read failed
+exit=2
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labunknown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py' --mode no-mistakes --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: the live-session check cannot tell whether a person is live on project project (folder project: unknown signal=herdr-keyboard source=herdr reason=source read failed), and an undecided check never counts as clear; task labunknown was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+exit=75
+OBSERVED {"name": "Unknown detector result refuses dispatch and names the source", "result": "pass", "live": true, "assertions": "deferred: the live-session check cannot tell whether a person is live on project project (folder project: unknown signal=herdr-keyboard source=herdr reason=source read failed), and an undecided check never counts as clear; task labunknown was not launched and its backlog item stays queued - dispatch it again once the check reads clear"}
+$ tasks-axi add labreplace-ship 'Disposable live admission probe' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added labreplace-ship (ship) -> Queued
+task:
+  id: labreplace-ship
+  title: Disposable live admission probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start labreplace-ship --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block labreplace-ship --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labreplace-ship /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py' --mode no-mistakes --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/labreplace-ship/launch-brief.md records no ship branch; defaulting to legacy branch fm/labreplace-ship
+spawned labreplace-ship harness=python3 kind=ship mode=no-mistakes yolo=off window=firstmate:fm-labreplace-ship worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/1/project
+exit=0
+$ tmux -L fm-lab capture-pane -p -t firstmate:fm-labreplace-ship -S -60
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehous
+e/project-fccb6b/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/proj
+ect-fccb6b/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-labreplace-ship/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=labreplace-ship
+bash-3.2$ . '/tmp/fm-labreplace-ship+e14dce94b507470047643fff5cb5c0c5f279ea0004a7b9ffa3d41de099b87a1e/launch.s1792405228
+.49252.6234.sh'
+LIVE-WORKER-RAN cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/p
+roject-fccb6b/1/project
+bash-3.2$
+exit=0
+OBSERVED {"name": "Detector disabled launches the real ship in its own worktree", "result": "pass", "live": true, "assertions": "spawned CLI output, durable task metadata, and worker proof written from actual Treehouse worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/1/project"}
+Lab reservation owner=ep-project
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+@1:fm-labreplace-ship
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labreplace-ship --relaunch --harness '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: a person is live on project project (live-session check of folder project: live signal=machine-line-reservation source=machine-line/reserve:ep-project), and a live session is run by the project's own agent, never by Firstmate; task labreplace-ship was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear
+exit=75
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+@1:fm-labreplace-ship
+exit=0
+OBSERVED {"name": "Stopped ship relaunch refuses a live session without changing prior work", "result": "pass", "live": true, "assertions": "exit 75; one deferred line; exact state/data/worktree hashes and tmux window identities preserved"}
+$ tasks-axi add labreplace-scout 'Disposable live admission probe' --kind scout --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added labreplace-scout (scout) -> Queued
+task:
+  id: labreplace-scout
+  title: Disposable live admission probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: scout
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start labreplace-scout --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block labreplace-scout --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labreplace-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py' --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+spawned labreplace-scout harness=python3 kind=scout window=firstmate:fm-labreplace-scout worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/2/project
+exit=0
+$ tmux -L fm-lab capture-pane -p -t firstmate:fm-labreplace-scout -S -60
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehous
+e/project-fccb6b/2/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/proj
+ect-fccb6b/2/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-labreplace-scout/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=labreplace-scout
+bash-3.2$ . '/tmp/fm-labreplace-scout+e14dce94b507470047643fff5cb5c0c5f279ea0004a7b9ffa3d41de099b87a1e/launch.s179240523
+6.54997.32025.sh'
+LIVE-WORKER-RAN cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/p
+roject-fccb6b/2/project
+bash-3.2$
+exit=0
+OBSERVED {"name": "Detector disabled launches the real scout in its own worktree", "result": "pass", "live": true, "assertions": "spawned CLI output, durable task metadata, and worker proof written from actual Treehouse worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/2/project"}
+Lab reservation owner=ep-project
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+@1:fm-labreplace-ship
+@2:fm-labreplace-scout
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labreplace-scout --relaunch --harness '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: a person is live on project project (live-session check of folder project: live signal=machine-line-reservation source=machine-line/reserve:ep-project), and a live session is run by the project's own agent, never by Firstmate; task labreplace-scout was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear
+exit=75
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+@1:fm-labreplace-ship
+@2:fm-labreplace-scout
+exit=0
+OBSERVED {"name": "Stopped scout relaunch refuses a live session without changing prior work", "result": "pass", "live": true, "assertions": "exit 75; one deferred line; exact state/data/worktree hashes and tmux window identities preserved"}
+All driven live scenarios passed.
+$ tmux -L fm-lab list-windows -a -F '#{window_id} #{window_name} #{pane_current_path}'
+@0 lab /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT
+@1 fm-labreplace-ship /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/1/project
+@2 fm-labreplace-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/2/project
+exit=0

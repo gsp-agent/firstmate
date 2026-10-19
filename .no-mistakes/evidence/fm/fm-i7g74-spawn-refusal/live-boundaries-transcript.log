@@ -1,0 +1,229 @@
+$ tmux -L fm-lab display-message -p '#{socket_path}'
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/tmux/tmux-501/fm-lab
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labreplace-ship --relaunch --harness '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: the live-session check cannot tell whether a person is live on project project (folder project: unknown signal=herdr-keyboard source=herdr reason=source read failed), and an undecided check never counts as clear; task labreplace-ship was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear
+exit=75
+OBSERVED {"name": "Stopped ship relaunch preserves prior work on unknown", "result": "pass", "live": true, "assertions": "exit 75; unknown source named; all existing state, task data and worktree file hashes unchanged"}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labreplace-ship --relaunch --harness '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/labreplace-ship/launch-brief.md records no ship branch; defaulting to legacy branch fm/labreplace-ship
+spawned labreplace-ship harness=python3 kind=ship mode=no-mistakes yolo=off window=firstmate:fm-labreplace-ship worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/1/project
+exit=0
+$ tmux -L fm-lab capture-pane -p -t firstmate:fm-labreplace-ship -S -25
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehous
+e/project-fccb6b/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/proj
+ect-fccb6b/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-labreplace-ship/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=labreplace-ship
+bash-3.2$ . '/tmp/fm-labreplace-ship+e14dce94b507470047643fff5cb5c0c5f279ea0004a7b9ffa3d41de099b87a1e/launch.s1792405228
+.49252.6234.sh'
+LIVE-WORKER-RAN cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/p
+roject-fccb6b/1/project
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/proj
+ect-fccb6b/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-labreplace-ship/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=labreplace-ship
+bash-3.2$ . '/tmp/fm-labreplace-ship+e14dce94b507470047643fff5cb5c0c5f279ea0004a7b9ffa3d41de099b87a1e/launch.s1792405324
+.21808.21779.sh'
+LIVE-WORKER-RAN cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/p
+roject-fccb6b/1/project
+bash-3.2$
+exit=0
+OBSERVED {"name": "Disabled detector permits replacement ship without losing work", "result": "pass", "live": true, "assertions": "same Treehouse worktree and uncommitted file preserved; replacement worker command executed"}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labreplace-scout --relaunch --harness '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: the live-session check cannot tell whether a person is live on project project (folder project: unknown signal=herdr-keyboard source=herdr reason=source read failed), and an undecided check never counts as clear; task labreplace-scout was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear
+exit=75
+OBSERVED {"name": "Stopped scout relaunch preserves prior work on unknown", "result": "pass", "live": true, "assertions": "exit 75; unknown source named; all existing state, task data and worktree file hashes unchanged"}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labreplace-scout --relaunch --harness '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+spawned labreplace-scout harness=python3 kind=scout window=firstmate:fm-labreplace-scout worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/2/project
+exit=0
+$ tmux -L fm-lab capture-pane -p -t firstmate:fm-labreplace-scout -S -25
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehous
+e/project-fccb6b/2/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/proj
+ect-fccb6b/2/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-labreplace-scout/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=labreplace-scout
+bash-3.2$ . '/tmp/fm-labreplace-scout+e14dce94b507470047643fff5cb5c0c5f279ea0004a7b9ffa3d41de099b87a1e/launch.s179240523
+6.54997.32025.sh'
+LIVE-WORKER-RAN cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/p
+roject-fccb6b/2/project
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/proj
+ect-fccb6b/2/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-labreplace-scout/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=labreplace-scout
+bash-3.2$ . '/tmp/fm-labreplace-scout+e14dce94b507470047643fff5cb5c0c5f279ea0004a7b9ffa3d41de099b87a1e/launch.s179240533
+0.26650.8077.sh'
+LIVE-WORKER-RAN cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/p
+roject-fccb6b/2/project
+bash-3.2$
+exit=0
+OBSERVED {"name": "Disabled detector permits replacement scout without losing work", "result": "pass", "live": true, "assertions": "same Treehouse worktree and uncommitted file preserved; replacement worker command executed"}
+$ tasks-axi add labdefault 'Live boundary probe' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added labdefault (ship) -> Queued
+task:
+  id: labdefault
+  title: Live boundary probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start labdefault --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block labdefault --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labdefault /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py' --mode no-mistakes --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: a person is live on project project (live-session check of folder project: live signal=machine-line-reservation source=machine-line/reserve:ep-project), and a live session is run by the project's own agent, never by Firstmate; task labdefault was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+exit=75
+OBSERVED {"name": "Default detector location is consulted", "result": "pass", "live": true, "assertions": "byte-identical installed detector under isolated HOME refuses the real reservation without an override"}
+$ tasks-axi add lababsent 'Live boundary probe' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added lababsent (ship) -> Queued
+task:
+  id: lababsent
+  title: Live boundary probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start lababsent --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block lababsent --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh lababsent /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py' --mode no-mistakes --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/lababsent/launch-brief.md records no ship branch; defaulting to legacy branch fm/lababsent
+spawned lababsent harness=python3 kind=ship mode=no-mistakes yolo=off window=firstmate:fm-lababsent worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/3/project
+exit=0
+$ tmux -L fm-lab capture-pane -p -t firstmate:fm-lababsent -S -25
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehous
+e/project-fccb6b/3/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/proj
+ect-fccb6b/3/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lababsent/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lababsent
+bash-3.2$ . '/tmp/fm-lababsent+e14dce94b507470047643fff5cb5c0c5f279ea0004a7b9ffa3d41de099b87a1e/launch.s1792405338.31030
+.10278.sh'
+LIVE-WORKER-RAN cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/p
+roject-fccb6b/3/project
+bash-3.2$
+exit=0
+OBSERVED {"name": "Missing detector keeps dispatch unchanged", "result": "pass", "live": true, "assertions": "real worker executed in newly allocated Treehouse worktree despite the local live reservation"}
+$ tasks-axi add labtimeout 'Live boundary probe' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md
+ok: added labtimeout (ship) -> Queued
+task:
+  id: labtimeout
+  title: Live boundary probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start labtimeout --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block labtimeout --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data/backlog.md` to record a dependency
+exit=0
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+@1:fm-labreplace-ship
+@2:fm-labreplace-scout
+@3:fm-lababsent
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/bin/fm-spawn.sh labtimeout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/bin/python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/worker.py' --mode no-mistakes --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l
+deferred: the live-session check cannot tell whether a person is live on project project (folder project: no verdict within 45s), and an undecided check never counts as clear; task labtimeout was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+exit=75
+Blocked real detector collection elapsed_seconds=46.425
+$ tmux -L fm-lab list-windows -a -F '#{window_id}:#{window_name}'
+@0:lab
+@1:fm-labreplace-ship
+@2:fm-labreplace-scout
+@3:fm-lababsent
+exit=0
+OBSERVED {"name": "Hung real detector collection is bounded and leaves task queued", "result": "pass", "live": true, "assertions": "unmodified detector blocked reading local FIFO; refused in 46.425s; no record, task data change or endpoint"}
+Private tmux shutdown guard=allowed
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ tmux -L fm-lab list-sessions
+no server running on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/tmux/tmux-501/fm-lab
+exit=1
+Only this private tmux server is stopped; operator server was never addressed.

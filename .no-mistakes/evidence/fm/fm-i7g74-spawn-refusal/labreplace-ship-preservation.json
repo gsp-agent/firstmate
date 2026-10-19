@@ -1,0 +1,77 @@
+{
+  "before": {
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/state": {
+      "home-summary.json": "74db27d7d35261b7cf21b4f11ee67e90eb2ce9019ff308ca9e42eea6ae78cd0c",
+      "labreplace-ship.git-hooks/applypatch-msg": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/commit-msg": "6d766e0df17998d27983f51aeac1c9816886727f24aaf7617e69e86e72b0510d",
+      "labreplace-ship.git-hooks/post-applypatch": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/post-checkout": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/post-commit": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/post-merge": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/post-rewrite": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-applypatch": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-auto-gc": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-commit": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-merge-commit": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-push": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-rebase": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/prepare-commit-msg": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/sendemail-validate": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.meta": "9eabcb1c0dd428e3614a0e1d1bef7b8dbd456aa8972776c5093c58d500436a5c"
+    },
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data": {
+      "backlog.md": "48c34c9493d7e0065d241f65b494f8f3ba6fca0d13a884300cb5b46e84e2427f",
+      "labalias/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "labbatch/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "lablive-scout/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "lablive-ship/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "labreplace-ship/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "labreplace-ship/launch-brief.md": "68c64c894652c0c34d73e74f02ee54d5e9e1d8f13a05d2e62aa9921fe879b87d",
+      "labunknown/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba"
+    },
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/1/project": {
+      ".git": "f61d312e64671efa565de1f3820104edfb5b4509e9cc56de9da089a9c644d788",
+      ".live-worker-proof": "89f39b4137c040135880be7889ff92ab588c9a5647cae4eb6364aa71787b2c2e",
+      "README.md": "9d43e873dabdc237d5a7995359fc6226078631f423d06babacd5edb1cc25ce07",
+      "in-progress.txt": "b4cd3f2c76cccf8a734040c6d4ee81ba5f5d37c4f98419880a50293e9259753a"
+    }
+  },
+  "after": {
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/state": {
+      "home-summary.json": "74db27d7d35261b7cf21b4f11ee67e90eb2ce9019ff308ca9e42eea6ae78cd0c",
+      "labreplace-ship.git-hooks/applypatch-msg": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/commit-msg": "6d766e0df17998d27983f51aeac1c9816886727f24aaf7617e69e86e72b0510d",
+      "labreplace-ship.git-hooks/post-applypatch": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/post-checkout": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/post-commit": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/post-merge": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/post-rewrite": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-applypatch": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-auto-gc": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-commit": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-merge-commit": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-push": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/pre-rebase": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/prepare-commit-msg": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.git-hooks/sendemail-validate": "f0383248d76dcfe9cd4c4ffb8f2767540b2d5aec17f25a51d9465b08b68da4fb",
+      "labreplace-ship.meta": "9eabcb1c0dd428e3614a0e1d1bef7b8dbd456aa8972776c5093c58d500436a5c"
+    },
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/data": {
+      "backlog.md": "48c34c9493d7e0065d241f65b494f8f3ba6fca0d13a884300cb5b46e84e2427f",
+      "labalias/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "labbatch/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "lablive-scout/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "lablive-ship/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "labreplace-ship/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba",
+      "labreplace-ship/launch-brief.md": "68c64c894652c0c34d73e74f02ee54d5e9e1d8f13a05d2e62aa9921fe879b87d",
+      "labunknown/brief.md": "4c8a667113553093d28149e87e562aa7b1bb73f9774bb4a339f44890c0857eba"
+    },
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/pool/.treehouse/project-fccb6b/1/project": {
+      ".git": "f61d312e64671efa565de1f3820104edfb5b4509e9cc56de9da089a9c644d788",
+      ".live-worker-proof": "89f39b4137c040135880be7889ff92ab588c9a5647cae4eb6364aa71787b2c2e",
+      "README.md": "9d43e873dabdc237d5a7995359fc6226078631f423d06babacd5edb1cc25ce07",
+      "in-progress.txt": "b4cd3f2c76cccf8a734040c6d4ee81ba5f5d37c4f98419880a50293e9259753a"
+    }
+  },
+  "equal": true
+}

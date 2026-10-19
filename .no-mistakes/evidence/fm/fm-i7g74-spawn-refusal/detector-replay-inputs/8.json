@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "observed_at": "2026-10-19T10:23:29.046823+00:00",
+  "herdr": {
+    "focused_pane_id": "LAB-PANE",
+    "panes": [
+      {
+        "pane_id": "LAB-PANE",
+        "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/l/project"
+      }
+    ],
+    "agents": []
+  },
+  "keyboard": {
+    "idle_seconds": 119,
+    "front_bundle_id": "com.apple.Terminal"
+  },
+  "gj_apps": [],
+  "devices": [],
+  "processes": [],
+  "calendar": [],
+  "machine_line_reservation": null
+}

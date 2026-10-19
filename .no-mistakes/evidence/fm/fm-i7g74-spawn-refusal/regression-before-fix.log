@@ -1,0 +1,7 @@
+Counterfactual: current behavior test against fm-spawn.sh at 86fa1a74 (before the relaunch fix).
+bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/.test-phase/pre-fix/tests/fm-live-session.test.sh
+ok - a clear live-session read launches the worker
+not ok - a ship relaunch bypassed a non-clear detector: warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/.test-phase/tmp/fm-live-session.UuTu16/relaunch-ship/home/data/task-r-56049-ship/launch-brief.md records no ship branch; defaulting to legacy branch fm/task-r-56049-ship
+spawned task-r-56049-ship harness=codex kind=ship mode=no-mistakes yolo=off window=firstmate:fm-task-r-56049-ship worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59P3989C6QTKX637FYT19ZT/.test-phase/tmp/fm-live-session.UuTu16/relaunch-ship/wt-task-r-56049-ship: expected exit 75, got 0
+
+exit=1
