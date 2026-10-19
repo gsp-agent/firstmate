@@ -435,13 +435,18 @@ ready=$(run_inbox "$home" ready) || fail "ready should succeed for a directory l
 assert_equals "unreadable" "$(printf '%s' "$ready" | python3 -c 'import json,sys; print(json.load(sys.stdin)["lock"]["state"])')" \
   "a non-file lock is unreadable rather than held"
 # Readiness must not inherit the pull guard's autoarm mid-turn allowance.
+# Each supervision model comes from a live lock holder of that harness.
 home=$(make_home ready-holder)
 perl -e '$0="claude"; sleep 300' &
 holder_pid=$!
+perl -e '$0="pi"; sleep 300' &
+pi_pid=$!
+perl -e '$0="codex"; sleep 300' &
+codex_pid=$!
 sleep 0.2
 kill_holder() {
-  kill "$holder_pid" 2>/dev/null || true
-  wait "$holder_pid" 2>/dev/null || true
+  kill "$holder_pid" "$pi_pid" "$codex_pid" 2>/dev/null || true
+  wait "$holder_pid" "$pi_pid" "$codex_pid" 2>/dev/null || true
 }
 trap 'kill_holder; fm_test_cleanup' EXIT
 printf '%s\n' "$holder_pid" > "$home/state/.lock"
@@ -501,9 +506,13 @@ assert_equals "healthy" "$(printf '%s' "$ready" | json_get wake_consumer state)"
   "an auto-arm home reads a fresh cycle as live with no watcher running"
 assert_equals "True" "$(printf '%s' "$ready" | json_get can_receive)" \
   "an auto-arm home can receive mid-turn with a fresh beacon"
-for model in extension persistent; do
-  ready=$(FM_SUPERVISION_MODEL="$model" run_inbox "$home" ready) \
+for holder in "$pi_pid:extension" "$codex_pid:persistent"; do
+  model=${holder#*:}
+  printf '%s\n' "${holder%%:*}" > "$home/state/.lock"
+  ready=$(run_inbox "$home" ready) \
     || fail "ready should succeed for $model without a watcher"
+  assert_equals "held" "$(printf '%s' "$ready" | json_get lock state)" \
+    "the $model holder is a live primary"
   assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
     "$model requires a live watcher even with a fresh beacon"
   assert_equals "no-watcher" "$(printf '%s' "$ready" | json_get wake_consumer reason)" \
@@ -527,8 +536,10 @@ for _ in $(seq 1 200); do
   sleep 0.1
 done
 [ -e "$watch_home/state/.last-watcher-beat" ] || fail "the test watcher did not publish a beacon"
-for model in autoarm extension persistent; do
-  held=$(FM_SUPERVISION_MODEL="$model" run_inbox "$watch_home" ready) \
+for holder in "$holder_pid:autoarm" "$pi_pid:extension" "$codex_pid:persistent"; do
+  model=${holder#*:}
+  printf '%s\n' "${holder%%:*}" > "$watch_home/state/.lock"
+  held=$(run_inbox "$watch_home" ready) \
     || fail "ready should succeed for $model with a live watcher"
   assert_equals "healthy" "$(printf '%s' "$held" | json_get wake_consumer state)" \
     "$model accepts a fresh beacon from its live watcher"
@@ -557,10 +568,10 @@ assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
   "the watcher's explicit stale grace takes precedence"
 
 foreign_home=$(make_home ready-foreign-watcher)
-printf '%s\n' "$holder_pid" > "$foreign_home/state/.lock"
+printf '%s\n' "$codex_pid" > "$foreign_home/state/.lock"
 cp -R "$watch_home/state/.watch.lock" "$foreign_home/state/.watch.lock"
 touch "$foreign_home/state/.last-watcher-beat"
-ready=$(FM_SUPERVISION_MODEL=persistent run_inbox "$foreign_home" ready)
+ready=$(run_inbox "$foreign_home" ready)
 assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
   "another home's live watcher cannot make this home healthy"
 assert_equals "False" "$(printf '%s' "$ready" | json_get can_receive)" \
@@ -570,23 +581,30 @@ kill -CONT "$watch_pid"
 kill -TERM "$watch_pid"
 wait "$watch_pid" 2>/dev/null || true
 touch "$watch_home/state/.last-watcher-beat"
-ready=$(FM_SUPERVISION_MODEL=persistent run_inbox "$watch_home" ready)
-assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
-  "a fresh leftover beacon cannot hide watcher exit"
-assert_equals "False" "$(printf '%s' "$ready" | json_get can_receive)" \
-  "watcher exit makes the held primary unable to receive"
-kill_holder
-trap fm_test_cleanup EXIT
-pass "readiness follows the inspected home's supervision model, and never a stale beacon"
+# A secondmate caller inherits its own primary's model from fm-spawn.sh; the
+# inspected home's holder decides, whatever the caller carries.
+for inherited in '' autoarm extension persistent; do
+  printf '%s\n' "$codex_pid" > "$watch_home/state/.lock"
+  ready=$(FM_SUPERVISION_MODEL="$inherited" run_inbox "$watch_home" ready)
+  assert_equals "down" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
+    "a fresh leftover beacon cannot hide a codex watcher's exit (caller model '$inherited')"
+  assert_equals "no-watcher" "$(printf '%s' "$ready" | json_get wake_consumer reason)" \
+    "the codex home reports its exited watcher (caller model '$inherited')"
+  assert_equals "False" "$(printf '%s' "$ready" | json_get can_receive)" \
+    "watcher exit makes the codex primary unable to receive (caller model '$inherited')"
+  printf '%s\n' "$holder_pid" > "$watch_home/state/.lock"
+  ready=$(FM_SUPERVISION_MODEL="$inherited" run_inbox "$watch_home" ready)
+  assert_equals "healthy" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
+    "a claude home between cycles reads live (caller model '$inherited')"
+  assert_equals "True" "$(printf '%s' "$ready" | json_get can_receive)" \
+    "a claude home between cycles can receive (caller model '$inherited')"
+done
+pass "readiness follows the inspected home's supervision model, never the caller's or a stale beacon"
 
 # The model is the lock holder's, not the caller's: a codex primary still needs
 # its watcher process when a Claude session asks.
 home=$(make_home ready-codex-holder)
-perl -e '$0="codex"; sleep 300' &
-holder_pid=$!
-sleep 0.2
-trap 'kill_holder; fm_test_cleanup' EXIT
-printf '%s\n' "$holder_pid" > "$home/state/.lock"
+printf '%s\n' "$codex_pid" > "$home/state/.lock"
 touch "$home/state/.last-watcher-beat"
 ready=$(CLAUDECODE=1 run_inbox "$home" ready) || fail "ready should succeed for a codex primary"
 assert_equals "held" "$(printf '%s' "$ready" | json_get lock state)" \
