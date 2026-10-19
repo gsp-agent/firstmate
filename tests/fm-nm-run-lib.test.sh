@@ -25,6 +25,7 @@ test_bound_kills_a_child_that_outlives_its_parent() {
   dir="$TMP_ROOT/tree"
   mkdir -p "$dir"
   (
+    # shellcheck source=/dev/null
     . "$ROOT/bin/fm-nm-run-lib.sh"
     fm_nm_bounded "$dir" 1 bash -c '
       ( trap "" TERM; exec sleep 300 ) &
@@ -43,6 +44,7 @@ test_bound_kills_a_child_that_outlives_its_parent() {
 test_bound_passes_status_and_output_through() {
   local out rc=0
   out=$(
+    # shellcheck source=/dev/null
     . "$ROOT/bin/fm-nm-run-lib.sh"
     fm_nm_bounded "$TMP_ROOT" 5 bash -c 'echo to-stdout; exit 7'
   ) || rc=$?
@@ -61,12 +63,14 @@ printf 'lazy=%s args=%s\n' "${GIT_NO_LAZY_FETCH-unset}" "$*"
 SH
   chmod +x "$dir/bin/no-mistakes"
   out=$(
+    # shellcheck source=/dev/null
     . "$ROOT/bin/fm-nm-run-lib.sh"
     PATH="$dir/bin:$PATH" fm_nm_run_bounded "$dir" 5 axi status
   ) || fail "the bounded no-mistakes call failed: $out"
   [ "$out" = "lazy=1 args=axi status" ] \
     || fail "no-mistakes did not run with GIT_NO_LAZY_FETCH=1: $out"
   out=$(
+    # shellcheck source=/dev/null
     . "$ROOT/bin/fm-nm-run-lib.sh"
     PATH="$dir/bin:$PATH" fm_nm_bounded "$dir" 5 no-mistakes axi status
   ) || fail "the generic bounded call failed: $out"
@@ -78,6 +82,7 @@ SH
 test_bound_reads_a_heredoc_on_stdin() {
   local out
   out=$(
+    # shellcheck source=/dev/null
     . "$ROOT/bin/fm-nm-run-lib.sh"
     fm_nm_bounded "$TMP_ROOT" 5 python3 - hello <<'PY'
 import sys
