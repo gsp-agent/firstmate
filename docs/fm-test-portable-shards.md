@@ -41,7 +41,7 @@ Refresh `portable_parallel_weight_hints` with the slowest completed `duration_ms
 
 ## Portable serial remainder
 
-`portable-serial` includes every `tests/*.test.sh` that is neither proven-isolated nor `real-herdr-gated`.
+`portable-serial` includes every scheduled `tests/*.test.sh` that is neither proven-isolated nor `real-herdr-gated`.
 It keeps watcher, lock, AFK, real tmux, daemon, secondmate lifecycle, bootstrap, the `live-harness-optin` family, GUI-backend, and other unproven work serial.
 Membership is derived rather than enumerated, so a newly added test lands here by default.
 
@@ -93,7 +93,7 @@ Measure native-Windows-only scripts through the focused Git Bash runner and reta
 ## Coverage guard
 
 `bin/fm-test-run.sh --check-coverage` verifies that both parallel lanes partition the proven-isolated set.
-It also verifies that the parallel lanes, portable serial lane, and real-Herdr family are disjoint and cover every `tests/*.test.sh` script.
+It also verifies that the parallel lanes, portable serial lane, and real-Herdr family are disjoint and cover every scheduled `tests/*.test.sh` script.
 It separately verifies that the portable serial CI shards are non-empty, disjoint, and together equal the portable serial lane.
 Its hint-coverage and modeled-budget checks are described in [Portable serial CI shards](#portable-serial-ci-shards); neither replaces inspection of actual CI timing artifacts.
 

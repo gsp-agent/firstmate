@@ -667,7 +667,7 @@ is_proven_isolated_script() {
   return 1
 }
 
-# The portable serial remainder: every tests/*.test.sh that is neither
+# The portable serial remainder: every scheduled tests/*.test.sh that is neither
 # proven-isolated nor real-herdr-gated. Watcher, lock, AFK, real tmux, daemon,
 # secondmate lifecycle, bootstrap, the live-harness-optin family, GUI-backend,
 # and other unproven work stays here. Derived rather than enumerated so a newly added test
@@ -1302,8 +1302,9 @@ all_repo_test_files() {
 # The scheduled suite: every test file except a lane-split subject, whose
 # cases run through its lane wrappers (tests/<subject>-lane-*.test.sh) so each
 # runs once. Named explicitly, the subject still runs, and runs every case.
+LANE_SPLIT_SUBJECT=tests/fm-supervision-host.test.sh
 all_repo_tests() {
-  all_repo_test_files | grep -vx 'tests/fm-supervision-host.test.sh'
+  all_repo_test_files | grep -vx "$LANE_SPLIT_SUBJECT"
 }
 
 normalize_script_path() {
@@ -1817,6 +1818,19 @@ select_changed() {
       add_script "tests/$script_name"
     fi
   done
+
+  local -a kept=()
+  case " ${SCRIPTS[*]-} " in
+    *" $LANE_SPLIT_SUBJECT "*)
+      for s in "${SCRIPTS[@]}"; do
+        case "$s" in
+          "${LANE_SPLIT_SUBJECT%.test.sh}"-lane-*.test.sh) ;;
+          *) kept+=("$s") ;;
+        esac
+      done
+      SCRIPTS=("${kept[@]}")
+      ;;
+  esac
 
   if [ "${#SCRIPTS[@]}" -eq 0 ]; then
     log "no tests selected for changes vs $base (map is conservative; use --all for the complete suite)"

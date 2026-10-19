@@ -467,6 +467,45 @@ test_changed_bin_reference_selects_per_script_not_per_family() {
   pass "a bin reference selects the referencing scripts, and consumers still select their curated families"
 }
 
+# The supervision-host subject runs every case itself; its lane wrappers each
+# run half of the same cases. A changed selection runs each case once: the
+# wrappers when only the afk family is selected, the subject alone when it is
+# selected too.
+test_changed_lane_split_subject_runs_each_case_once() {
+  local tmp repo listed script
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-lane-subject.XXXXXX")
+  repo="$tmp/repo"
+  init_changed_fixture_repo "$repo"
+  for script in fm-supervision-host.test.sh fm-supervision-host-lane-a.test.sh fm-supervision-host-lane-b.test.sh; do
+    printf '#!/usr/bin/env bash\n' >"$repo/tests/$script"
+    chmod +x "$repo/tests/$script"
+  done
+  : >"$repo/bin/fm-supervision-host.sh"
+  git -C "$repo" add .
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm supervision-host
+
+  printf '\n' >>"$repo/bin/fm-supervision-host.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-supervision-host-lane-a.test.sh' \
+    || fail "afk source change did not select supervision-host lane a: $listed"
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-supervision-host-lane-b.test.sh' \
+    || fail "afk source change did not select supervision-host lane b: $listed"
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-supervision-host.test.sh' \
+    && fail "afk source change selected the supervision-host subject beside its lanes: $listed"
+
+  printf '\n' >>"$repo/tests/fm-supervision-host.test.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-supervision-host.test.sh' \
+    || fail "changed supervision-host subject was not selected: $listed"
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-afk-return.test.sh' \
+    || fail "afk source change lost the rest of its family: $listed"
+  printf '%s\n' "$listed" | grep -q -- '-lane-[ab]\.test\.sh$' \
+    && fail "supervision-host cases selected twice, through the subject and its lanes: $listed"
+
+  rm -rf "$tmp"
+  pass "changed selection runs each supervision-host case once, through the lanes or the subject"
+}
+
 # Exercise begin/end markers from real fixture processes to prove the automatic
 # changed-suite default and its explicit serial override.
 test_changed_uses_bounded_automatic_concurrency() {
@@ -2378,6 +2417,7 @@ test_changed_runner_surfaces_select_their_family
 test_shell_line_ending_policy_selects_runner_contract
 test_changed_dependency_selection_and_unmapped_failure
 test_changed_bin_reference_selects_per_script_not_per_family
+test_changed_lane_split_subject_runs_each_case_once
 test_changed_uses_bounded_automatic_concurrency
 test_windows_posix_mode_emulation_does_not_fail_parallel_runs
 test_script_list_uses_bounded_automatic_concurrency
