@@ -210,7 +210,10 @@
 #   publication. A spawn that finds
 #   every place held prints one `deferred:` line and exits 75 before any brief
 #   render, endpoint, worktree, record, or backlog move exists, so the task stays
-#   exactly as queued as it was; an unreadable declaration refuses with exit 1.
+#   exactly as queued as it was, unless the reading named in
+#   config/project-capacity-headroom admits this project's one extra start for
+#   the current window (bin/fm-project-capacity-lib.sh owns that rule). An
+#   unreadable declaration refuses with exit 1.
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
@@ -1357,6 +1360,10 @@ SPAWN_TASK_SET_LOCK=
 SPAWN_TASK_SET_LOCK_HELD=0
 SPAWN_TREEHOUSE_PROJECT_LOCK=
 SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
+SPAWN_OVERSHARE_PENDING=0
+SPAWN_OVERSHARE_DIR=
+SPAWN_OVERSHARE_IDENTITY=
+SPAWN_OVERSHARE_AT=
 SPAWN_SLOT_CLAIMED=0
 RELAUNCH_REPLACEMENT_PENDING=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
@@ -1514,6 +1521,21 @@ spawn_abort_cleanup() {
       fm_treehouse_slot_owner_release "$WT" "$ID" || true
     else
       echo "warning: leaving task $ID's slot claim on $WT in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it" >&2
+    fi
+  fi
+  # An admitted extra start past project capacity that launched no worker
+  # gives its window back (bin/fm-project-capacity-lib.sh owns the record).
+  # An abort after metadata publication has released the project lock, so it
+  # retakes it for a bounded wait rather than racing another spawn's record.
+  if [ "$SPAWN_OVERSHARE_PENDING" = 1 ] && [ "$SPAWN_LAUNCH_SENT" = 0 ]; then
+    SPAWN_OVERSHARE_PENDING=0
+    if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ] &&
+      fm_lock_acquire_wait_max "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$FM_PROJECT_CAPACITY_RELEASE_WAIT"; then
+      SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
+    fi
+    if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ] ||
+      ! fm_project_capacity_overshare_release "$SPAWN_OVERSHARE_DIR" "$SPAWN_OVERSHARE_IDENTITY" "$SPAWN_OVERSHARE_AT"; then
+      echo "warning: task $ID launched no worker, but its extra start past project $(basename "$PROJ_ABS")'s capacity stays recorded in $SPAWN_OVERSHARE_DIR/$SPAWN_OVERSHARE_IDENTITY until its window passes" >&2
     fi
   fi
   if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
@@ -3297,8 +3319,9 @@ else
   BRIEF="$DATA/$ID/brief.md"
 fi
 # Project capacity admission (bin/fm-project-capacity-lib.sh owns the
-# declaration, what holds a place, and why this is race-safe). A fresh worker
-# for a project whose declared capacity is already held is deferred here, before
+# declaration, what holds a place, the optional headroom command, and why this
+# is race-safe). A fresh worker for a project whose declared capacity is
+# already held is deferred here, before
 # any brief render, endpoint, worktree, record, or backlog move exists, so the
 # deferral leaves the task exactly as queued as it was. A relaunch replaces a
 # worker that already holds a place, and a secondmate is not a worker.
@@ -3338,8 +3361,31 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     exit 1
   fi
   if [ "$FM_PROJECT_CAPACITY_OCCUPANTS" -ge "$SPAWN_PROJECT_CAPACITY" ]; then
-    echo "deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up" >&2
-    exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+    # A declared count of 0 is the operator brake. The reading cannot raise it.
+    if [ "$SPAWN_PROJECT_CAPACITY" = 0 ]; then
+      FM_PROJECT_CAPACITY_OVERSHARE=off
+    else
+      fm_project_capacity_overshare "$SPAWN_CAPACITY_CONFIG" "$SPAWN_TREEHOUSE_PROJECT_LOCK" ||
+        FM_PROJECT_CAPACITY_OVERSHARE=no
+    fi
+    if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != admit ]; then
+      SPAWN_CAPACITY_DEFER="deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up"
+      case "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" in
+        off) ;;
+        spent)
+          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. This project already started one worker past that count in the current window."
+          ;;
+        *)
+          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. The headroom reading reported no room."
+          ;;
+      esac
+      echo "$SPAWN_CAPACITY_DEFER" >&2
+      exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+    fi
+    SPAWN_OVERSHARE_DIR=$FM_PROJECT_CAPACITY_OVERSHARE_DIR
+    SPAWN_OVERSHARE_IDENTITY=$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY
+    SPAWN_OVERSHARE_AT=$FM_PROJECT_CAPACITY_OVERSHARE_AT
+    SPAWN_OVERSHARE_PENDING=1
   fi
 fi
 [ -f "$BRIEF" ] || {
