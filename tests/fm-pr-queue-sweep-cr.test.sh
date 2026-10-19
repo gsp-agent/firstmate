@@ -26,6 +26,8 @@ jq_filter=
 cursor=null
 number=
 query=
+owner=
+repo=
 paginate=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -37,16 +39,24 @@ while [ "$#" -gt 0 ]; do
         cursor=*) cursor=${1#cursor=} ;;
         number=*) number=${1#number=} ;;
         query=*) query=${1#query=} ;;
+        owner=*) owner=${1#owner=} ;;
+        repo=*) repo=${1#repo=} ;;
       esac
       ;;
   esac
   shift
 done
 [ -n "$jq_filter" ] || exit 91
+if [ -n "${FM_TEST_SWEEP_REPOS_DIR:-}" ]; then
+  FM_TEST_SWEEP_DIR="$FM_TEST_SWEEP_REPOS_DIR/$owner/$repo/sweep"
+fi
 if [ -n "$number" ]; then
   case "$query" in
     *'latestOpinionatedReviews('*) ;;
     *)
+      if [ "$owner/$repo" = "${FM_TEST_PENDING_FAILURE_REPO:-}" ]; then
+        exit "${FM_TEST_PENDING_STATUS:-1}"
+      fi
       "$FM_TEST_REAL_JQ" --argjson number "$number" '
         {data:{repository:{pullRequest:([
           .data.repository.pullRequests.nodes[] | select(.number == $number)
@@ -164,6 +174,50 @@ file_mode() {
   else
     stat -c %a "$1"
   fi
+}
+
+test_pending_pr_failures_do_not_block_other_repositories() {
+  local dir state out repos status scan_status repo_failure a_url b_url
+  a_url=https://github.com/o/a/pull/7
+  b_url=https://github.com/o/b/pull/7
+  for status in 1 124; do
+    for repo_failure in 0 1; do
+      dir="$TMP_ROOT/pending-failure-$status-$repo_failure"
+      state="$dir/state"
+      mkdir -p "$state"
+      write_pr_page "$dir/repos/o/b" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+      if [ "$repo_failure" -eq 0 ]; then
+        write_pr_page "$dir/repos/o/a" APPROVED SUCCESS false "$HEAD" 18000 '[]'
+      fi
+      FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$a_url" "$HEAD" round1 -- \
+        "$FAKEBIN/launch" "$dir/launches" 0 a-round1 || fail "repository A round seed failed"
+      FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$b_url" "$HEAD" round1 -- \
+        "$FAKEBIN/launch" "$dir/launches" 0 b-round1 || fail "repository B round seed failed"
+      scan_status=0
+      out=$(FM_TEST_SWEEP_REPOS_DIR="$dir/repos" FM_TEST_PENDING_FAILURE_REPO=o/a \
+        FM_TEST_PENDING_STATUS="$status" scan "$dir" "$state" "$((NOW + 18000))" '') || scan_status=$?
+      case "$out" in
+        *"changes-requested $b_url head=$HEAD round=2 reviewers=chipdev"*) ;;
+        *) fail "a pending PR read failure hid repository B's due round: $out" ;;
+      esac
+      [ "$scan_status" -eq "$repo_failure" ] || fail "pending lookup status $status overrode repository scan results"
+      repos=$(FM_TEST_SWEEP_REPOS_DIR="$dir/repos" FM_TEST_PENDING_FAILURE_REPO=o/a \
+        FM_TEST_PENDING_STATUS="$status" discover_repos "$dir" "$state") \
+        || fail "a pending PR read failure aborted repository discovery"
+      [ "$(printf '%s\n' "$repos" | LC_ALL=C sort)" = "o/a
+o/b" ] || fail "pending lookup status $status lost the uncertain or healthy repository: $repos"
+      FM_CR_FIXROUND_NOW="$((NOW + 18000))" "$SCRIPT" --cr-dispatch "$state" "$b_url" "$HEAD" round2 -- \
+        "$FAKEBIN/launch" "$dir/launches" 0 b-round2 || fail "repository B's due round did not dispatch"
+      [ "$(cat "$dir/launches")" = "a-round1
+b-round1
+b-round2" ] || fail "repository B's due round did not launch exactly once"
+      grep -Fxq "$a_url $HEAD 1 $NOW 0" "$state/changes-requested-sweep.seen" \
+        || fail "the uncertain repository lost its outstanding round"
+      grep -Fxq "$b_url $HEAD 2 $((NOW + 18000)) 0" "$state/changes-requested-sweep.seen" \
+        || fail "repository B's dispatched round was not recorded"
+    done
+  done
+  pass "pending PR failures preserve discovery and isolate healthy repository dispatches"
 }
 
 test_pending_rounds_keep_repository_discovery_after_retirement() {
@@ -660,6 +714,7 @@ if [ "$#" -gt 0 ]; then
   exit $?
 fi
 
+test_pending_pr_failures_do_not_block_other_repositories
 test_exhausted_rounds_escalate_after_checks_stop_passing
 test_historical_rounds_do_not_retain_repository_discovery
 test_pending_rounds_keep_repository_discovery_after_retirement

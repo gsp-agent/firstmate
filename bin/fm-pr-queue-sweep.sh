@@ -507,8 +507,9 @@ sweep_note_pending_rounds() {
       -f query="$CR_PENDING_QUERY" -f owner="$owner" -f repo="$repo" \
       -F number="${url##*/}" --jq "$CR_PENDING_JQ" 2>/dev/null) || status=$?
     [ -z "${FM_PR_SWEEP_BEAT:-}" ] || touch "$FM_PR_SWEEP_BEAT"
-    [ "$status" -eq 0 ] || return 1
-    [ "$current_head" = "$head" ] || continue
+    if [ "$status" -eq 0 ] && [ "$current_head" != "$head" ]; then
+      continue
+    fi
     sweep_note_repo "$owner" "$repo"
   done <<EOF
 $cr_records
