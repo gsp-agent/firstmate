@@ -68,8 +68,12 @@ plist_args() { # <plist> -> ProgramArguments, one per line, read by a strict XML
   python3 -I -c 'import plistlib, sys; print("\n".join(plistlib.load(open(sys.argv[1], "rb"))["ProgramArguments"]))' "$1"
 }
 
-plist_value() { # <plist> <key> -> that string value, read by a strict XML plist parser
-  python3 -I -c 'import plistlib, sys; print(plistlib.load(open(sys.argv[1], "rb"))[sys.argv[2]])' "$1" "$2"
+plist_value() { # <plist> <key> [nested key...] -> that value, read by a strict XML plist parser
+  python3 -I -c 'import plistlib, sys
+value = plistlib.load(open(sys.argv[1], "rb"))
+for key in sys.argv[2:]:
+    value = value[key]
+print(value)' "$@"
 }
 
 nightly_fixture() { # <root>: <root>/repo clones <root>/upstream as its kunchenguid remote; <root>/home is a scratch Firstmate home
@@ -749,9 +753,15 @@ test_install_and_uninstall_round_trip() {
   assert_equals "installed: $plist" "$out" "install names the plist it wrote"
   assert_present "$plist" "install did not write the plist"
   assert_grep "bootstrap gui/$(id -u) $plist" "$log" "install did not bootstrap the agent"
-  assert_grep '<integer>3</integer>' "$plist" "the plist hour is not 3"
-  assert_grep '<integer>17</integer>' "$plist" "the plist minute is not 17"
-  assert_grep "$repo" "$plist" "the plist does not name the repo"
+  assert_equals 3 "$(plist_value "$plist" StartCalendarInterval Hour)" "the plist hour is not 3"
+  assert_equals 17 "$(plist_value "$plist" StartCalendarInterval Minute)" "the plist minute is not 17"
+  assert_equals "/bin/bash
+$SCRIPT
+nightly
+--repo
+$repo
+--log
+$joblog" "$(plist_args "$plist")" "the plist has the expected script, repo and log arguments"
   assert_present "$dir/logs" "install did not create the log directory launchd writes into"
   assert_equals "$joblog" "$(plist_value "$plist" StandardOutPath)" "the job's stdout does not go to the log"
   assert_equals "$joblog" "$(plist_value "$plist" StandardErrorPath)" "the job's stderr does not go to the log"

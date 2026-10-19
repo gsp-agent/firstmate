@@ -9,10 +9,15 @@
 # bin/fm-quota-axi-lib.sh owns schema compatibility and the shared row join.
 # For each --candidate in order, it maps <harness> to its primary provider
 # family, then applies the matched row's provider-wide scopes and exact model
-# or product scopes for <model>. A candidate is eligible only when no
-# applicable runway is `exhausted_now` and its known
-# effective percent remaining is greater than zero. The first eligible
-# candidate is printed as "<harness> <model>" and the script exits 0.
+# or product scopes for <model>. Ordinarily, a candidate needs no applicable
+# `exhausted_now` runway and known effective percent remaining greater than
+# zero. Grok's matched account is also eligible when the shared
+# quota_prepaid_usable predicate reports usable prepaid credit.
+# A TOON snapshot that leaves Grok unknown, exhausted_now, or nonpositive
+# cannot supply that credit evidence: the helper exits 2 and requests the
+# permitted quota-axi --json fallback. Pass that captured JSON back before
+# selecting. The first eligible candidate is printed as "<harness> <model>"
+# and the script exits 0.
 # If no candidate is quota-eligible, it prints "none" and exits 1.
 #
 # Candidates are accepted as `--candidate <harness:model>` or as positional
@@ -114,6 +119,7 @@ fi
 [ -n "$QUOTA_SNAPSHOT" ] || die "empty quota snapshot"
 
 if printf '%s\n' "$QUOTA_SNAPSHOT" | jq -e 'type == "object"' >/dev/null 2>&1; then
+  SNAPSHOT_FORMAT=json
   QUOTA_JSON=$QUOTA_SNAPSHOT
   schema=$(printf '%s\n' "$QUOTA_JSON" | jq -r '.schemaVersion // empty' 2>/dev/null) || schema=
   case "$schema" in
@@ -122,6 +128,7 @@ if printf '%s\n' "$QUOTA_SNAPSHOT" | jq -e 'type == "object"' >/dev/null 2>&1; t
     *) die "unsupported quota-axi schema version: $schema" ;;
   esac
 else
+  SNAPSHOT_FORMAT=toon
   QUOTA_JSON=$(printf '%s\n' "$QUOTA_SNAPSHOT" | jq -Rse '
     def valid_preamble:
       ((length == 2) and
@@ -346,7 +353,8 @@ effective_for_provider_model() {
        ($model_token == ($scope | sub("^(model|product):"; ""))))
     )) as $applicable |
     ($applicable | map(select(.status == "known"))) as $known |
-    if ($applicable | length) == 0 then {status: "unknown"}
+    if quota_prepaid_usable($p) then {status: "known", prepaidCreditsUsable: true, runway: {status: "through_reset"}}
+    elif ($applicable | length) == 0 then {status: "unknown"}
     elif any($applicable[]; (.runway.status // "") == "exhausted_now") then
       ($applicable | map(select((.runway.status // "") == "exhausted_now")) | first)
     elif ($known | length) == 0 then {status: "unknown"}
@@ -383,8 +391,16 @@ for c in "${CANDIDATES[@]}"; do
   if [ -z "$effective" ] || [ "$effective" = "null" ]; then
     continue
   fi
+  if [ "$SNAPSHOT_FORMAT" = toon ] && [ "$provider" = grok ] &&
+    printf '%s\n' "$effective" | jq -e '
+      .status == "unknown" or (.runway.status // "") == "exhausted_now" or
+      .effectivePercentRemaining <= 0
+    ' >/dev/null 2>&1; then
+    die "Grok eligibility needs prepaid credit evidence; retry with a quota-axi --json snapshot"
+  fi
   if printf '%s\n' "$effective" | jq -e '
-    if (.runway.status // "") == "exhausted_now" then false
+    if (.prepaidCreditsUsable // false) == true then true
+    elif (.runway.status // "") == "exhausted_now" then false
     elif .status == "unknown" then false
     else
       .effectivePercentRemaining as $remaining |
