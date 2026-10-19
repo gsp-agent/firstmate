@@ -21,6 +21,24 @@ fm_sup_stat_mtime() {
   fi
 }
 
+fm_supervision_probe_hold_ids() {
+  python3 -c '
+import json, re, sys
+fields = []
+for line in sys.stdin:
+    header = re.fullmatch(r"tasks\[\d+\]\{([^}]+)\}:\s*", line)
+    if header:
+        fields = header[1].split(",")
+    elif fields and line.startswith("  "):
+        values = re.findall(r"\"(?:\\.|[^\"\\])*\"|[^,]+", line.strip())
+        if len(values) != len(fields):
+            continue
+        row = dict(zip(fields, [json.loads(value) if value.startswith("\"") else value for value in values]))
+        if row.get("hold_kind") == "captain" and any(part.startswith("Hold probe: ") for part in row.get("body", "").splitlines()):
+            print(row["id"])
+' 2>/dev/null
+}
+
 # fm_supervision_status <state-dir> [grace-seconds]
 # Populates, for the state dir at $1:
 #   FM_SUP_IN_FLIGHT      count of state/*.meta (in-flight tasks)
@@ -38,14 +56,14 @@ fm_sup_stat_mtime() {
 #   FM_SUP_NEEDED         true/false - in-flight work, an X-mode relay poll, a
 #                         registered event source (a source is a wait on an
 #                         external process, not a task, so it has no metadata),
-#                         or a registered custom check
+#                         a registered custom check, or a captain probe hold
 #   FM_SUP_WATCHER_FRESH  true/false - a watcher beacon within the grace window
 #   FM_SUP_BEACON_DESC    human-readable beacon age, for banners ("never" if absent)
 #   FM_SUP_QUEUE_PENDING  true/false - state/.wake-queue has unread records
 # grace-seconds defaults to $FM_GUARD_GRACE, then 300, matching fm-guard.sh.
 # Always returns 0; callers read the vars, or use fm_supervision_unhealthy below.
 fm_supervision_status() {
-  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} meta source check id beat m age
+  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} meta source check id beat m age probe_holds
   FM_SUP_IN_FLIGHT=0
   FM_SUP_NEEDED=false
   FM_SUP_WATCHER_FRESH=false
@@ -77,6 +95,17 @@ fm_supervision_status() {
     || [ "$FM_SUP_SOURCES" -gt 0 ] \
     || [ "$FM_SUP_CHECKS" -gt 0 ]; then
     FM_SUP_NEEDED=true
+  fi
+  if [ "$FM_SUP_NEEDED" = false ]; then
+    probe_holds=$(
+      # shellcheck source=bin/fm-timeout-lib.sh
+      . "${BASH_SOURCE[0]%/*}/fm-timeout-lib.sh"
+      FM_HOME="${FM_HOME:-${state%/*}}" \
+        fm_run_timed 10 "${BASH_SOURCE[0]%/*}/fm-tasks-axi.sh" list --state held --fields hold_kind,body
+    ) 2>/dev/null || probe_holds=
+    if [ -n "$(printf '%s\n' "$probe_holds" | fm_supervision_probe_hold_ids)" ]; then
+      FM_SUP_NEEDED=true
+    fi
   fi
 
   beat="$state/.last-watcher-beat"

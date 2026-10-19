@@ -416,6 +416,60 @@ test_inert_when_fleet_idle() {
   pass "auto-arm: inert with nothing in flight and no X-mode need"
 }
 
+test_arms_for_captain_probe_hold_without_inflight() {
+  local dir out status
+  local -a captain
+  command -v tasks-axi >/dev/null 2>&1 || fail "tasks-axi is required for the probe-hold auto-arm test"
+  dir=$(make_primary_dir "$TMP_ROOT/probe-hold")
+  mkdir -p "$dir/data" "$dir/projects"
+  fm_test_tasks_toml "$dir/.tasks.toml"
+  printf '## In flight\n\n## Queued\n\n## Done\n' > "$dir/data/backlog.md"
+  printf '#!/usr/bin/env bash\nexec %q "$@"\n' "$ROOT/bin/fm-tasks-axi.sh" > "$dir/bin/fm-tasks-axi.sh"
+  chmod +x "$dir/bin/fm-tasks-axi.sh"
+  captain=(env "FM_HOME=$dir" "FM_STATE_OVERRIDE=$dir/state"
+    "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config"
+    "FM_DALE_ASKS_RULE=$dir/missing-asks-rule.py" "$ROOT/bin/fm-captain-hold.sh")
+  "${captain[@]}" hold ordinary --title 'Choose the next action' --reason 'choose the next action' >/dev/null \
+    || fail "could not create an ordinary hold"
+  write_arm_fixture "$dir" actionable
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 0 "$status" "an ordinary hold alone must not arm the watcher"
+  assert_absent "$dir/state/arm-ran" "an ordinary hold armed the watcher"
+
+  "${captain[@]}" hold probe --title 'Figma access, "shared"' --reason 'sign in to Figma' \
+    --dale-step sign-in --probe 'test -f "$FM_HOME/probe-ready"' >/dev/null \
+    || fail "could not create the standalone probe hold"
+  (
+    # shellcheck source=bin/fm-supervision-lib.sh
+    . "$dir/bin/fm-supervision-lib.sh"
+    FM_HOME="$dir" FM_DATA_OVERRIDE="$dir/data" fm_supervision_status "$dir/state"
+    [ "$FM_SUP_IN_FLIGHT" -eq 0 ] && [ "$FM_SUP_SOURCES" -eq 0 ] && [ "$FM_SUP_CHECKS" -eq 0 ] \
+      || fail "the probe-hold fixture has another supervision need"
+    [ "$FM_SUP_NEEDED" = true ] || fail "a standalone probe hold did not count as supervision-needed"
+  ) || fail "the shared predicate missed the standalone probe hold"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "a probe hold alone must enter the normal auto-arm cycle"
+  assert_present "$dir/state/arm-ran" "a standalone probe hold did not arm the watcher"
+  [ "$(wc -l < "$dir/state/arm-ran" | tr -d ' ')" -eq 1 ] \
+    || fail "the probe hold did not produce exactly one foreground arm"
+
+  : > "$dir/probe-ready"
+  out=$("${captain[@]}" reprobe probe) || fail "could not release the standalone probe hold"
+  assert_contains "$out" 'released: probe' "the ready probe did not release its hold"
+  (
+    # shellcheck source=bin/fm-supervision-lib.sh
+    . "$dir/bin/fm-supervision-lib.sh"
+    if FM_HOME="$dir" FM_DATA_OVERRIDE="$dir/data" fm_supervision_needed "$dir/state"; then
+      fail "a released probe hold still requires supervision"
+    fi
+  ) || fail "the shared predicate retained the released probe hold"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 0 "$status" "the released probe hold must stop requiring auto-arm"
+  [ "$(wc -l < "$dir/state/arm-ran" | tr -d ' ')" -eq 1 ] \
+    || fail "the released probe hold armed the watcher again"
+  pass "auto-arm: a standalone captain probe hold needs supervision and arms until released"
+}
+
 # --- the armed cycle ----------------------------------------------------------
 
 test_actionable_close_rewakes_with_reason() {
@@ -1708,6 +1762,11 @@ test_fm_lock_status_still_works_with_shared_lib() {
   pass "fm-lock: shared session-lock lib preserves the status path"
 }
 
+if [ -n "${FM_TEST_ONLY:-}" ]; then
+  "$FM_TEST_ONLY"
+  exit
+fi
+
 test_inert_in_child_worktree
 test_inert_without_session_lock
 test_reclaims_stale_session_lock_before_arming
@@ -1716,6 +1775,7 @@ test_inert_when_afk
 test_stale_lock_recovery_preserves_afk_and_need_gates
 test_resolves_outermost_claude_pid_in_nested_bgspare_chain
 test_inert_when_fleet_idle
+test_arms_for_captain_probe_hold_without_inflight
 test_actionable_close_rewakes_with_reason
 test_actionable_close_with_live_successor_rewakes_once
 test_attached_cycle_end_starts_handling_successor

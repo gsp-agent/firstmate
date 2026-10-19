@@ -204,6 +204,8 @@ WATCH_HOME_EXISTED=0
 . "$SCRIPT_DIR/fm-push-transition-lib.sh"
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
+# shellcheck source=bin/fm-supervision-lib.sh
+. "$SCRIPT_DIR/fm-supervision-lib.sh"
 # Only for the arm-time check on FM_PROCEVENT_LAUNCH_CONFIRM_SECONDS below;
 # the per-cycle reconcile itself runs as a separate process.
 # shellcheck source=bin/fm-procevent-lib.sh
@@ -2891,21 +2893,7 @@ while :; do
     FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
       run_check_capture "$SCRIPT_DIR/fm-tasks-axi.sh" list --state held --fields hold_kind,body || exit 1
     if [ "$FM_CHECK_STATUS" -eq 0 ]; then
-      captain_probe_ids=$(printf '%s\n' "$FM_CHECK_RESULT" | python3 -c '
-import json, re, sys
-fields = []
-for line in sys.stdin:
-    header = re.fullmatch(r"tasks\[\d+\]\{([^}]+)\}:\s*", line)
-    if header:
-        fields = header[1].split(",")
-    elif fields and line.startswith("  "):
-        values = re.findall(r"\"(?:\\.|[^\"\\])*\"|[^,]+", line.strip())
-        if len(values) != len(fields):
-            continue
-        row = dict(zip(fields, [json.loads(value) if value.startswith("\"") else value for value in values]))
-        if row.get("hold_kind") == "captain" and any(part.startswith("Hold probe: ") for part in row.get("body", "").splitlines()):
-            print(row["id"])
-' 2>/dev/null) || captain_probe_ids=
+      captain_probe_ids=$(printf '%s\n' "$FM_CHECK_RESULT" | fm_supervision_probe_hold_ids) || captain_probe_ids=
       while IFS= read -r captain_probe_id; do
         [ -n "$captain_probe_id" ] || continue
         FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
