@@ -34,6 +34,7 @@ It never reads report bodies, review artifacts, terminal output, or chat.
 | Subcommand | What it does | Details |
 | --- | --- | --- |
 | `hold` | Creates or reuses a task and holds it for the captain. | [Creating a hold](#creating-a-hold-hold) |
+| `reprobe` | Checks the recorded probe for a Dale-step hold. | [Dale-step probe holds](#dale-step-probe-holds) |
 | `answer` | Records the captain's exact words and resolves the call. | [Answering a call](#answering-a-call-answer) |
 | `complete` | Records the reviewed captain-held task ids in the originating task's metadata. | [Recording a reviewed inventory](#recording-a-reviewed-inventory-complete) |
 | `verify` | Read-only check that scout teardown runs before removing source state. | [Checking before scout teardown](#checking-before-scout-teardown-verify) |
@@ -65,7 +66,7 @@ Repeat and edge cases:
 - `--until` stores the captain's own deferral date through tasks-axi's date gate.
 - Before the backend hold runs, `--origin` records the origin the call is held for on its own `Captain hold origin:` body line, which `complete` and `verify` check using backend identities rather than alias spellings.
   If that write fails, the backend hold is not attempted.
-- The reason may contain parentheses, semicolons, quotes, and line breaks.
+- An ordinary hold's reason may contain parentheses, semicolons, quotes, and line breaks; the [command reference](../bin/fm-captain-hold.sh) owns Dale-step input restrictions.
   [`bin/fm-hold-reason-lib.sh`](../bin/fm-hold-reason-lib.sh) owns the storage encoding and compatibility rules; [`bin/fm-tasks-axi.sh --help`](../bin/fm-tasks-axi.sh) owns the public read commands and output contract.
 
 ### Answering a call (`answer`)
@@ -184,8 +185,7 @@ The refusal names the record and the validation reason, so the captain can repai
 ### What `--force` does not lift
 
 `--force` does not lift the deferral, because it authorizes discarding unlanded work, never the captain's question.
-Only `answer` with the captain's words or evidence-backed `reconcile close` resolves the call, by either closing the question or releasing the gated work.
-A Dale-step probe release is the one other release path, and it is evidence-backed in the same way.
+The [captain-hold policy](../.agents/skills/captain-hold-lifecycle/SKILL.md#policy) owns which resolution paths may settle a held task.
 `bin/fm-backlog-transition-lib.sh` owns the transition and its record, and `bin/fm-captain-hold.sh --help` owns the predicate's contract.
 
 ## Answer-time resolution
@@ -313,12 +313,8 @@ No path here closes a captain call without either the captain's words through `a
 
 ### Dale-step probe holds
 
-A hold created with `--dale-step sign-in|screen --probe <command>` waits on a step the captain performs elsewhere, not on a decision.
-Creation runs only the asks rule's answered and duplicate world checks, and the body carries the owner, timeout, reason and probe lines in the hold-domain format.
-`reprobe <task-id>` re-runs the recorded probe.
-A passing probe releases the gated work under the task control lock, only when the hold-set stamp still matches the one probed, and records the probe under a `Reconciliation evidence:` label with mode `probe-released`.
-A failing or unknown probe keeps the hold and wakes nobody.
-This releases work; it never closes a question and never records the captain's words.
+The [command reference](../bin/fm-captain-hold.sh) owns Dale-step hold creation, world-check filtering, input restrictions, and probe-backed release.
+The Dale-step cases in [`tests/fm-captain-hold-lifecycle.test.sh`](../tests/fm-captain-hold-lifecycle.test.sh) cover the serialized fields, asks-rule action output, ordinary re-holds, a hold changed during its probe, and interrupted-release retries.
 
 ## Card hygiene: a landed subject is not a live call
 

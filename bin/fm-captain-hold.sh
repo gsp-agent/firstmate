@@ -52,7 +52,8 @@
 # hold preserves the existing timestamp, while re-holding released work starts
 # a new lifecycle. A task already closed is refused rather than reopened.
 # `--origin` also records the origin on a `Captain hold origin:` body line, which
-# `complete` and `verify` check. The reason may hold parentheses and line breaks:
+# `complete` and `verify` check. An ordinary hold's reason may hold parentheses
+# and line breaks:
 # tasks-axi refuses them, so `hold` escapes them where it writes the reason and
 # readers decode them (bin/fm-hold-reason-lib.sh owns the encoding).
 # `--until` records the captain's own deferral date through `tasks-axi hold
@@ -60,15 +61,19 @@
 # card.
 #
 # A hold waiting on a Dale step (a sign-in or a screen) is created with
-# `--dale-step sign-in|screen --probe <command>`. Creation runs only the asks
-# rule's answered and duplicate world checks and refuses on those alone; the
-# category-word check stays unwired until the one-way-door rule lands. The
-# hold body then carries the owner, timeout, reason and probe lines in the
-# hold-domain format, and `reprobe <task-id>` re-runs that probe: a passing
+# `--dale-step sign-in|screen --probe <command>`, with a non-empty single-line
+# reason and probe. The owner defaults to dale and the timeout to 3600 seconds.
+# Creation blocks only on the asks rule's answered and duplicate refusals;
+# category-word and form refusals stay nonblocking, and a missing or broken
+# rule lets creation proceed. The hold body carries the owner, timeout, reason
+# and probe fields defined by agent-config's docs/OPERATIONS.md hold-domain
+# section, the canonical format owner. `reprobe <task-id>` runs the recorded
+# command through Bash with no input and its output suppressed: exit 0 passes,
+# while a failing or unknown probe keeps the hold and wakes nobody. A passing
 # probe releases the hold under the task control lock only when the hold-set
-# stamp still matches the one probed, recording the probe as evidence rather
-# than as the captain's words, while a failing or unknown probe keeps the
-# hold and wakes nobody. Holds without `--dale-step` are unchanged.
+# stamp and probe still match those checked, recording `probe-released`
+# evidence rather than the captain's words. It leaves the task open. Holds
+# without `--dale-step` are unchanged.
 #
 # `answer` records the captain's exact words and resolves the call in the same
 # act. It requires a non-empty captain decision file of at most 8192 bytes and
@@ -207,21 +212,22 @@
 # one captain call. See "record divergence" beside command_diverged below.
 #
 # Resolution records: the block written into the body names this script, the
-# decision digest, and a `Resolution mode:` of answered, released, repaired, or
-# reconciled. Records written by the retired fm-decision-hold.sh (routed,
-# declined, answered, repaired) are recognized everywhere a record is read, so
-# nothing already closed needs rewriting.
+# decision digest, and a `Resolution mode:` of answered, released, repaired,
+# reconciled, or probe-released. Records written by the retired
+# fm-decision-hold.sh (routed, declined, answered, repaired) are recognized
+# everywhere a record is read, so nothing already closed needs rewriting.
 #
 # Parent channel: inside a secondmate home a task held for the captain, and its
 # answer, are captain-facing facts the moment they are recorded, so `hold`
-# publishes `needs-decision [key=captain-hold-<task>-<n>]` and `answer` (and
-# `answers`) the matching `resolved` line on the parent channel through
+# publishes `needs-decision [key=captain-hold-<task>-<n>]` and successful
+# `answer` (including `answers`), `reconcile close`, and `reprobe` paths publish
+# the matching `resolved` line on the parent channel through
 # bin/fm-parent-channel-lib.sh, whether or not the mate model appends anything.
 # <n> is the count of resolution records the body already carries plus one, so
 # a released and re-held task opens and closes a distinct parent decision with
 # no new persisted state, and an exact retry republishes the same line, which
 # the channel deduplicates. A main home has no channel and publishes nothing.
-# The hold or answer is already durable in the backlog, so a channel that
+# The hold or resolution is already durable in the backlog, so a channel that
 # cannot be written is reported as `actionable:` on stderr rather than undoing
 # the record; bin/fm-inactive-reconcile.sh's diagnostics name a broken binding.
 set -eu
@@ -524,9 +530,8 @@ closed_answer_replay_mode_compatible() {  # <mode> <task-body>
   return 1
 }
 
-# The record's label is what keeps an evidence-backed reconciliation from
-# reading as the captain's own words. `reconciled` closes a call that went moot
-# and carries verified evidence; every other mode carries what the captain said.
+# Evidence-only resolutions need their own label so neither reconciliation nor
+# a probe release can read as the captain's own words.
 resolution_block() {  # <mode>
   local label='Captain decision:'
   case "$1" in
@@ -537,7 +542,7 @@ resolution_block() {  # <mode>
 }
 
 # Durable state of one captain call: an active captain hold (annotations
-# surviving even when a date gate has expired) or a recorded captain answer.
+# surviving even when a date gate has expired) or a recorded resolution.
 verify_hold_durable() {  # <task-id>
   local id=$1 show state hold_kind body
   task_show "$id" || fail "captain-held task $id is absent from this home's configured backlog (data directory $DATA)"
@@ -888,10 +893,8 @@ body_probe_release_recorded() {
   esac
 }
 
-# Write the hold-domain fields a Dale-step hold carries, in the one format
-# agent-config's hold-domain section of docs/OPERATIONS.md defines, extended
-# with the probe line in the same shape. The stamp stays on line one.
-# The rest of the body is preserved.
+# Keep the stamp first and preserve the existing body after the hold-domain
+# fields; the header names their format owner.
 write_dale_hold_fields() {  # <task-id> <shown-body> <owner> <timeout> <reason> <probe>
   local id=$1 body=$2 owner=$3 timeout_s=$4 reason=$5 probe=$6 stamp rest new_body tmp
   body=$(decode_shown_value "$body") \
@@ -919,10 +922,9 @@ write_dale_hold_fields() {  # <task-id> <shown-body> <owner> <timeout> <reason> 
   rm -f -- "$tmp"
 }
 
-# At creation a Dale-step hold runs only the asks rule's answered and
-# duplicate world checks. The category-word check is not wired in until the
-# one-way-door rule lands, so kind and form refusals never block a hold here.
-# A missing or broken rule fails open, as the rule itself does.
+# The asks CLI emits action text rather than verdict headings. Only its
+# exit-3 answered/duplicate actions are creation refusals; other outcomes
+# leave creation unblocked.
 dale_world_check() {  # <reason> <title> <owner>
   local rule=${FM_DALE_ASKS_RULE:-$HOME/.agent-config/configs/claude/hooks/dale-asks-rule.py}
   local out rc=0 line
