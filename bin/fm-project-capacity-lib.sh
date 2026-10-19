@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034 # Output globals are read by bin/fm-spawn.sh after sourcing.
 # fm-project-capacity-lib.sh - how many workers a project admits at once on this
 # machine, and whether a fresh worker spawn still fits.
 #
@@ -126,7 +127,6 @@ FM_PROJECT_CAPACITY_OVERSHARE_WINDOW=420
 
 # How long a spawn that already released the project lock waits to retake it
 # and remove the record of an extra start that launched no worker.
-# shellcheck disable=SC2034 # read by bin/fm-spawn.sh after sourcing.
 FM_PROJECT_CAPACITY_RELEASE_WAIT=10
 
 # A reading that has not exited by this many seconds is no room.
