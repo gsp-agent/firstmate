@@ -792,7 +792,7 @@ write_hold_set_stamp() {  # <task-id> <shown-body> <timestamp> <preserve-existin
     || fail "could not decode the existing body for $id"
   existing=$(body_hold_set_timestamp "$body")
   if [ "$preserve" = 1 ] && [ -n "$existing" ]; then
-    return 0
+    hold_set=$existing
   fi
   if [ -n "$existing" ]; then
     body=${body#"Captain hold set: $existing"}
@@ -801,6 +801,7 @@ write_hold_set_stamp() {  # <task-id> <shown-body> <timestamp> <preserve-existin
       $'\n'*) body=${body#$'\n'} ;;
     esac
   fi
+  body=$(printf '%s\n' "$body" | awk '!/^(Decision owner|Hold timeout seconds|Hold reason|Hold probe): /')
   new_body=$(printf 'Captain hold set: %s' "$hold_set")
   if [ -n "$body" ]; then
     new_body=$(printf '%s\n\n%s' "$new_body" "$body")
@@ -866,13 +867,31 @@ write_hold_origin() {  # <task-id> <shown-body> <origin-or-empty>
 }
 
 body_hold_probe() {  # <decoded-task-body>
+  [ -n "$(body_hold_set_timestamp "$1")" ] || return 0
   printf '%s\n' "$1" | sed -n 's/^Hold probe: //p' | head -1
+}
+
+body_probe_release_recorded() {
+  local body=$1 stamp
+  stamp=$(body_hold_set_timestamp "$body")
+  if [ -n "$stamp" ]; then
+    [ -n "$(body_hold_probe "$body")" ] || return 1
+    body=${body#"Captain hold set: $stamp"}
+    body=$(printf '%s\n' "$body" | awk 'NF || started { started = 1; print }')
+  fi
+  case "$body" in
+    "Resolution recorded by fm-captain-hold."$'\n'*)
+      body_has_resolution_record "$body" \
+        && [ "$(recorded_resolution_mode "$body" || true)" = probe-released ]
+      ;;
+    *) return 1 ;;
+  esac
 }
 
 # Write the hold-domain fields a Dale-step hold carries, in the one format
 # agent-config's hold-domain section of docs/OPERATIONS.md defines, extended
-# with the probe line in the same shape. The stamp stays on line one; any
-# earlier field lines are replaced, and the rest of the body is preserved.
+# with the probe line in the same shape. The stamp stays on line one.
+# The rest of the body is preserved.
 write_dale_hold_fields() {  # <task-id> <shown-body> <owner> <timeout> <reason> <probe>
   local id=$1 body=$2 owner=$3 timeout_s=$4 reason=$5 probe=$6 stamp rest new_body tmp
   body=$(decode_shown_value "$body") \
@@ -881,7 +900,6 @@ write_dale_hold_fields() {  # <task-id> <shown-body> <owner> <timeout> <reason> 
   [ -n "$(body_hold_set_timestamp "$body")" ] \
     || fail "task $id lost its hold-set stamp before its Dale-step fields were recorded"
   rest=$(printf '%s\n' "$body" | sed 1d \
-    | awk '!/^(Decision owner|Hold timeout seconds|Hold reason|Hold probe): /' \
     | awk 'NF || started { started = 1; print }')
   new_body=$(printf '%s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\nHold probe: %s' \
     "$stamp" "$owner" "$timeout_s" "$reason" "$probe")
@@ -924,21 +942,29 @@ EOF
 }
 
 command_reprobe() {
-  local id=${1:-} show state hold_kind held body stamp probe
+  local id=${1:-} show state hold_kind held body stamp probe occurrence
   [ "$#" -eq 1 ] || { usage >&2; exit 2; }
   validate_slug task-id "$id"
   task_show "$id" || fail "captain-held task $id is absent from this home's configured backlog (data directory $DATA)"
   show=$TASK_SHOW_OUTPUT
+  state=$(show_field "$show" state)
+  hold_kind=$(show_field_value "$show" hold_kind)
+  held=$(show_field_value "$show" held)
   body=$(decode_shown_value "$(show_field "$show" body)") \
     || fail "could not decode the existing body for $id"
   stamp=$(body_hold_set_timestamp "$body")
   probe=$(body_hold_probe "$body")
-  if [ -z "$probe" ]; then
-    printf 'kept: %s no-probe\n' "$id"
-    return 0
-  fi
-  if ! bash -c "$probe" </dev/null >/dev/null 2>&1; then
-    printf 'kept: %s probe-failed\n' "$id"
+  if [ "$state" != done ] && [ "$hold_kind" = captain ] && [ "$held" = yes ]; then
+    if [ -z "$probe" ]; then
+      printf 'kept: %s no-probe\n' "$id"
+      return 0
+    fi
+    if ! bash -c "$probe" </dev/null >/dev/null 2>&1; then
+      printf 'kept: %s probe-failed\n' "$id"
+      return 0
+    fi
+  elif [ "$held" = yes ] || ! body_probe_release_recorded "$body"; then
+    printf 'kept: %s not-held\n' "$id"
     return 0
   fi
   acquire_task_control_lock "$id"
@@ -949,23 +975,32 @@ command_reprobe() {
   held=$(show_field_value "$show" held)
   body=$(decode_shown_value "$(show_field "$show" body)") \
     || fail "could not decode the existing body for $id"
-  if [ "$state" = "done" ] || [ "$hold_kind" != captain ] || [ "$held" != yes ]; then
+  occurrence=$(resolution_record_count "$(show_field "$show" body)")
+  if [ "$state" != done ] && [ "$hold_kind" = captain ] && [ "$held" = yes ]; then
+    if [ -z "$probe" ] || [ "$(body_hold_set_timestamp "$body")" != "$stamp" ] \
+      || [ "$(body_hold_probe "$body")" != "$probe" ]; then
+      printf 'kept: %s stamp-changed\n' "$id"
+      return 0
+    fi
+    DECISION_TEXT=$(printf 'Probe passed for the Dale step this hold waits on: %s' "$probe")
+    DECISION_DIGEST=$(sha256_text "$DECISION_TEXT")
+    if body_probe_release_recorded "$body"; then
+      [ "$(recorded_decision_digest "$body" || true)" = "$DECISION_DIGEST" ] \
+        || fail "task $id records different evidence for its interrupted probe release"
+    else
+      occurrence=$((occurrence + 1))
+      write_resolution_record "$id" probe-released "$(show_field "$show" body)"
+    fi
+    tasks_axi unhold "$id" >/dev/null || fail "could not release probe-passed task $id"
+  elif [ "$held" = yes ] || ! body_probe_release_recorded "$body"; then
     printf 'kept: %s not-held\n' "$id"
     return 0
   fi
-  if [ "$(body_hold_set_timestamp "$body")" != "$stamp" ] \
-    || [ "$(body_hold_probe "$body")" != "$probe" ]; then
-    printf 'kept: %s stamp-changed\n' "$id"
-    return 0
-  fi
-  DECISION_TEXT=$(printf 'Probe passed for the Dale step this hold waits on: %s' "$probe")
-  DECISION_DIGEST=$(sha256_text "$DECISION_TEXT")
-  write_resolution_record "$id" probe-released "$(show_field "$show" body)"
-  tasks_axi unhold "$id" >/dev/null || fail "could not release probe-passed task $id"
   remove_interrupted_answer_stamp "$id"
   task_show_or_fail "$id" "task $id disappeared after its probe release"
   body_has_resolution_record "$(show_field "$show" body)" \
     || fail "captain-held task $id did not retain its probe release record"
+  publish_parent_resolution_then_retire "$id" "$occurrence" probe-released
   printf 'released: %s\n' "$id"
 }
 
