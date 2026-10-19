@@ -1,0 +1,10 @@
+window=driver:fm-qjzaw-live-01m59
+endpoint_task_id=qjzaw-live-01m59
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/pool/.treehouse/project-76dcc1/1/project
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/project
+harness=grok
+kind=scout
+tasktmp=/tmp/fm-qjzaw-live-01m59
+model=grok-4.7
+effort=low
+spawn_gen=s1792411998.54109.11795

@@ -1,0 +1,121 @@
+[
+  {
+    "name": "full-chain-exhausted-claude-and-muse",
+    "expected": "grok",
+    "pass": false,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'muse' --model 'spark'\n",
+    "stderr": ""
+  },
+  {
+    "name": "explicit-muse-provider-counterfactual",
+    "expected": "grok",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'grok' --model 'grok-4.7' --effort 'low'\n",
+    "stderr": ""
+  },
+  {
+    "name": "grok-weekly-zero-prepaid-positive",
+    "expected": "grok",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'grok' --model 'grok-4.7' --effort 'low'\n",
+    "stderr": ""
+  },
+  {
+    "name": "grok-prepaid-zero",
+    "expected": "codex",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'codex' --model 'gpt-6-astra'\n",
+    "stderr": ""
+  },
+  {
+    "name": "grok-prepaid-unlimited",
+    "expected": "grok",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'grok' --model 'grok-4.7' --effort 'low'\n",
+    "stderr": ""
+  },
+  {
+    "name": "first-healthy-rung-retained",
+    "expected": "claude",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'claude' --model 'sonnet'\n",
+    "stderr": ""
+  },
+  {
+    "name": "all-exhausted-escalates",
+    "expected": "escalate",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: escalate\n  reason: no label route matched and no eligible default\n",
+    "stderr": ""
+  },
+  {
+    "name": "explicit-label-wins",
+    "expected": "codex",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: label (docs-only)\n  profile: --harness 'codex' --model 'gpt-6-astra'\n",
+    "stderr": ""
+  },
+  {
+    "name": "conflicting-labels-refused",
+    "expected": "refused",
+    "pass": true,
+    "exit": 1,
+    "output": "dispatch-resolve:\n  status: refused\n  reason: labels docs-only and ep-opus conflict\n",
+    "stderr": "dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)\n"
+  },
+  {
+    "name": "unreadable-quota-retains-first-rung",
+    "expected": "claude",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'claude' --model 'sonnet'\n",
+    "stderr": ""
+  },
+  {
+    "name": "codex-account-blocked",
+    "expected": "grok",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'grok' --model 'grok-4.7'\n",
+    "stderr": ""
+  },
+  {
+    "name": "codex-account-blocked-reversed",
+    "expected": "grok",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'grok' --model 'grok-4.7'\n",
+    "stderr": ""
+  },
+  {
+    "name": "codex-account-usable",
+    "expected": "codex",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'codex' --model 'gpt-6-astra'\n",
+    "stderr": ""
+  },
+  {
+    "name": "codex-account-usable-reversed",
+    "expected": "codex",
+    "pass": true,
+    "exit": 0,
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'codex' --model 'gpt-6-astra'\n",
+    "stderr": ""
+  },
+  {
+    "name": "helper-default-TOON-fallback",
+    "pass": true,
+    "toon_exit": 2,
+    "json_output": "grok grok-4.7\n",
+    "baseline_output": "codex gpt-6-astra\n"
+  }
+]

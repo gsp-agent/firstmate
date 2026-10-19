@@ -1,0 +1,53 @@
+[
+  {
+    "name": "healthy-muse-precedes-grok",
+    "pass": true,
+    "expected": "muse",
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'muse' --model 'spark'\n"
+  },
+  {
+    "name": "missing-claude-quota-remains-eligible",
+    "pass": true,
+    "expected": "claude",
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'claude' --model 'sonnet'\n"
+  },
+  {
+    "name": "missing-prepaid-evidence-does-not-bypass-exhaustion",
+    "pass": true,
+    "expected": "codex",
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'codex' --model 'gpt-6-astra'\n"
+  },
+  {
+    "name": "non-grok-credits-do-not-bypass-exhaustion",
+    "pass": true,
+    "expected": "codex",
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'codex' --model 'gpt-6-astra'\n"
+  },
+  {
+    "name": "single-profile-default-honors-prepaid",
+    "pass": true,
+    "expected": "grok",
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'grok' --model 'grok-4.7'\n"
+  },
+  {
+    "name": "executable-before-after-routing",
+    "pass": true,
+    "before": {
+      "original": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'claude' --model 'sonnet'\n",
+      "previous-test-target": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'muse' --model 'spark'\n"
+    },
+    "after": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'grok' --model 'grok-4.7' --effort 'low'\n"
+  },
+  {
+    "name": "schema-5-native-TOON-to-JSON-prepaid-fallback",
+    "pass": true,
+    "toon_exit": 2,
+    "json_output": "grok grok-4.7\n"
+  },
+  {
+    "name": "schema-6-native-TOON-to-JSON-prepaid-fallback",
+    "pass": true,
+    "toon_exit": 2,
+    "json_output": "grok grok-4.7\n"
+  }
+]

@@ -1,0 +1,38 @@
+Runtime tools: quota-axi 0.1.61; Grok 1.0.62 (1474f9cbdd91).
+Every quota observation below came from the installed quota-axi CLI using its supported QUOTA_AXI_SNAPSHOT cache-input mode.
+The inputs are synthetic provider data; the producer, resolver, and worker helper are their real executables.
+
+$ QUOTA_AXI_SNAPSHOT=<isolated cache-input.json> quota-axi --json --no-credential-refresh
+provider  scope         percent_remaining  runway          prepaid_credits
+claude    all_models    0                  exhausted_now     n/a
+codex     all_models    32                 projected_exhaustion  n/a
+grok      all_products  0                  exhausted_now     48082
+muse      all_models    0                  exhausted_now     n/a
+
+Configured default: Claude -> Muse -> Grok -> Codex. No explicit provider field on those profiles.
+
+$ FM_HOME=<isolated home> bash bin/fm-dispatch-resolve.sh --labels ""
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'muse' --model 'spark'
+
+Expected: grok. Observed: muse (FAIL).
+
+Counterfactual: add only provider="muse" to the Muse profile; leave the same snapshot and default order.
+$ FM_HOME=<same isolated home> bash bin/fm-dispatch-resolve.sh --labels ""
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'grok' --model 'grok-4.7' --effort 'low'
+
+The correct provider declaration reaches Grok without changing credit balances or order.
+
+The real worker helper also distinguishes the credits balance from the exhausted shared credits window:
+$ bash bin/fm-quota-choose.sh --snapshot <TOON> --candidate claude:sonnet --candidate grok:grok-4.7 --candidate codex:gpt-6-astra
+error: Grok eligibility needs prepaid credit evidence; retry with a quota-axi --json snapshot
+$ bash bin/fm-quota-choose.sh --snapshot <JSON> --candidate claude:sonnet --candidate grok:grok-4.7 --candidate codex:gpt-6-astra
+grok grok-4.7
+
+The pre-fix worker helper on the same JSON selected: codex gpt-6-astra.
+Full command transcripts, native producer JSON, and scenario results are adjacent evidence files.

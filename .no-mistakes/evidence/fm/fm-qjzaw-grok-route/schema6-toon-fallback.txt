@@ -1,0 +1,643 @@
+$ quota-axi --no-credential-refresh
+bin: /opt/homebrew/bin/quota-axi
+description: Report local agent-provider quota windows for routing-aware agents
+generatedAt: "2026-10-19T12:22:20.242Z"
+quota[5]{provider,accountKey,scope,effectivePercentRemaining,spendPriority,runway,confidence,limitedBy,resetsAt}:
+  claude,default,all_models,0,-2.3262,exhausted_now,unknown,seven_day,"2026-10-23T12:09:08.818867Z"
+  codex,default,all_models,32,-1.0205,projected_exhaustion,established,weekly,"2026-10-23T12:09:08.818867Z"
+  grok,default,all_products,0,-2.3262,exhausted_now,unknown,credits,"2026-10-23T12:09:08.818867Z"
+  grok,other,all_products,0,-2.3262,exhausted_now,unknown,credits,"2026-10-23T12:09:08.818867Z"
+  muse,default,all_models,0,-2.2655,exhausted_now,unknown,weekly,"2026-10-23T12:09:08.818867Z"
+exhaustion[5]{provider,accountKey,scope,usableRunwaySeconds,projectedExhaustedAt,limitingWindowId}:
+  claude,default,all_models,0,"2026-10-19T12:22:20.242Z",seven_day
+  codex,default,all_models,122349,"2026-10-20T22:21:29.147Z",weekly
+  grok,default,all_products,0,"2026-10-19T12:22:20.242Z",credits
+  grok,other,all_products,0,"2026-10-19T12:22:20.242Z",credits
+  muse,default,all_models,0,"2026-10-19T12:22:20.242Z",weekly
+attention[20]{provider,accountKey,scope,kind,detail,remedy}:
+  claude,default,all,reused,"last refreshed 2026-10-19T12:09:08.818867Z",none
+  codex,default,all,reused,"last refreshed 2026-10-19T12:09:08.818867Z",none
+  cursor,default,all,unavailable,not_in_snapshot,none
+  copilot,default,all,unavailable,not_in_snapshot,none
+  grok,default,all,reused,"last refreshed 2026-10-19T12:09:08.818867Z",none
+  grok,other,all,reused,"last refreshed 2026-10-19T12:09:08.818867Z",none
+  kimi,default,all,unavailable,not_in_snapshot,none
+  zai,default,all,unavailable,not_in_snapshot,none
+  agy,default,all,unavailable,not_in_snapshot,none
+  alibaba,default,all,unavailable,not_in_snapshot,none
+  opencode-go,default,all,unavailable,not_in_snapshot,none
+  commandcode,default,all,unavailable,not_in_snapshot,none
+  minimax,default,all,unavailable,not_in_snapshot,none
+  mimo,default,all,unavailable,not_in_snapshot,none
+  deepseek,default,all,unavailable,not_in_snapshot,none
+  openrouter,default,all,unavailable,not_in_snapshot,none
+  elevenlabs,default,all,unavailable,not_in_snapshot,none
+  devin,default,all,unavailable,not_in_snapshot,none
+  muse,default,all,reused,"last refreshed 2026-10-19T12:09:08.818867Z",none
+  higgsfield,default,all,unavailable,not_in_snapshot,none
+help[1]:
+  Run `quota-axi --full` for windows, pace, reserve, and account evidence
+
+$ bash bin/fm-quota-choose.sh --snapshot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/grok-account-home/helper-schema6.toon --candidate claude:sonnet --candidate grok:grok-4.7 --candidate codex:gpt-6-astra
+error: Grok eligibility needs prepaid credit evidence; retry with a quota-axi --json snapshot
+[exit 2]
+
+$ quota-axi --no-credential-refresh --json
+{
+  "generatedAt": "2026-10-19T12:22:23.654Z",
+  "schemaVersion": 6,
+  "providers": [
+    {
+      "provider": "claude",
+      "windows": [
+        {
+          "id": "seven_day",
+          "label": "week",
+          "kind": "weekly",
+          "percentRemaining": 0,
+          "resetsAt": "2026-10-23T12:09:08.818867Z",
+          "pace": {
+            "status": "ahead",
+            "reservePercentPoints": -57.0114,
+            "burnMultiple": 2.3262
+          }
+        }
+      ],
+      "state": {
+        "status": "fresh",
+        "stale": false,
+        "refreshedAt": "2026-10-19T12:09:08.818867Z",
+        "reused": true
+      },
+      "quotaSemantics": {
+        "status": "known",
+        "effectiveAvailability": [
+          {
+            "scope": "all_models",
+            "status": "known",
+            "effectivePercentRemaining": 0,
+            "boundedBy": [
+              "seven_day"
+            ],
+            "limitingWindowIds": [
+              "seven_day"
+            ],
+            "pace": {
+              "status": "ahead",
+              "aheadWindowIds": [
+                "seven_day"
+              ],
+              "worstReservePercentPoints": -57.0114,
+              "worstReserveWindowId": "seven_day"
+            },
+            "runway": {
+              "status": "exhausted_now",
+              "usableRunwaySeconds": 0,
+              "limitingWindowId": "seven_day",
+              "projectedExhaustedAt": "2026-10-19T12:22:23.654Z"
+            },
+            "selection": {
+              "status": "known",
+              "spendPriority": -2.3262
+            }
+          }
+        ]
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "codex",
+      "windows": [
+        {
+          "id": "weekly",
+          "label": "week",
+          "kind": "weekly",
+          "percentRemaining": 32,
+          "resetsAt": "2026-10-23T12:09:08.818867Z",
+          "pace": {
+            "status": "ahead",
+            "reservePercentPoints": -25.0114,
+            "burnMultiple": 1.5818
+          }
+        }
+      ],
+      "state": {
+        "status": "fresh",
+        "stale": false,
+        "refreshedAt": "2026-10-19T12:09:08.818867Z",
+        "reused": true
+      },
+      "quotaSemantics": {
+        "status": "known",
+        "effectiveAvailability": [
+          {
+            "scope": "all_models",
+            "status": "known",
+            "effectivePercentRemaining": 32,
+            "boundedBy": [
+              "weekly"
+            ],
+            "limitingWindowIds": [
+              "weekly"
+            ],
+            "pace": {
+              "status": "ahead",
+              "aheadWindowIds": [
+                "weekly"
+              ],
+              "worstReservePercentPoints": -25.0114,
+              "worstReserveWindowId": "weekly"
+            },
+            "runway": {
+              "status": "projected_exhaustion",
+              "usableRunwaySeconds": 122351,
+              "projectedExhaustedAt": "2026-10-20T22:21:34.165Z",
+              "limitingWindowId": "weekly",
+              "projectionConfidence": "established"
+            },
+            "selection": {
+              "status": "known",
+              "spendPriority": -1.0205
+            }
+          }
+        ]
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "cursor",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "copilot",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": [],
+        "unresolvedWindowIds": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "grok",
+      "accountKey": "default",
+      "windows": [
+        {
+          "id": "credits",
+          "label": "week",
+          "kind": "weekly",
+          "percentRemaining": 0,
+          "resetsAt": "2026-10-23T12:09:08.818867Z",
+          "pace": {
+            "status": "ahead",
+            "reservePercentPoints": -57.0114,
+            "burnMultiple": 2.3262
+          }
+        }
+      ],
+      "state": {
+        "status": "fresh",
+        "stale": false,
+        "refreshedAt": "2026-10-19T12:09:08.818867Z",
+        "reused": true
+      },
+      "credits": {
+        "remaining": 48082,
+        "unit": "credits"
+      },
+      "quotaSemantics": {
+        "status": "known",
+        "effectiveAvailability": [
+          {
+            "scope": "all_products",
+            "status": "known",
+            "effectivePercentRemaining": 0,
+            "boundedBy": [
+              "credits"
+            ],
+            "limitingWindowIds": [
+              "credits"
+            ],
+            "pace": {
+              "status": "ahead",
+              "aheadWindowIds": [
+                "credits"
+              ],
+              "worstReservePercentPoints": -57.0114,
+              "worstReserveWindowId": "credits"
+            },
+            "runway": {
+              "status": "exhausted_now",
+              "usableRunwaySeconds": 0,
+              "limitingWindowId": "credits",
+              "projectedExhaustedAt": "2026-10-19T12:22:23.654Z"
+            },
+            "selection": {
+              "status": "known",
+              "spendPriority": -2.3262
+            }
+          }
+        ]
+      },
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "grok",
+      "accountKey": "other",
+      "windows": [
+        {
+          "id": "credits",
+          "label": "week",
+          "kind": "weekly",
+          "percentRemaining": 0,
+          "resetsAt": "2026-10-23T12:09:08.818867Z",
+          "pace": {
+            "status": "ahead",
+            "reservePercentPoints": -57.0114,
+            "burnMultiple": 2.3262
+          }
+        }
+      ],
+      "state": {
+        "status": "fresh",
+        "stale": false,
+        "refreshedAt": "2026-10-19T12:09:08.818867Z",
+        "reused": true
+      },
+      "credits": {
+        "remaining": 0,
+        "unit": "credits"
+      },
+      "quotaSemantics": {
+        "status": "known",
+        "effectiveAvailability": [
+          {
+            "scope": "all_products",
+            "status": "known",
+            "effectivePercentRemaining": 0,
+            "boundedBy": [
+              "credits"
+            ],
+            "limitingWindowIds": [
+              "credits"
+            ],
+            "pace": {
+              "status": "ahead",
+              "aheadWindowIds": [
+                "credits"
+              ],
+              "worstReservePercentPoints": -57.0114,
+              "worstReserveWindowId": "credits"
+            },
+            "runway": {
+              "status": "exhausted_now",
+              "usableRunwaySeconds": 0,
+              "limitingWindowId": "credits",
+              "projectedExhaustedAt": "2026-10-19T12:22:23.654Z"
+            },
+            "selection": {
+              "status": "known",
+              "spendPriority": -2.3262
+            }
+          }
+        ]
+      },
+      "accountKeys": [
+        "other"
+      ]
+    },
+    {
+      "provider": "kimi",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "zai",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "agy",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "alibaba",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "opencode-go",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": [],
+        "unresolvedWindowIds": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "commandcode",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "minimax",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "mimo",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": [],
+        "unresolvedWindowIds": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "deepseek",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": [],
+        "unresolvedWindowIds": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "openrouter",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": [],
+        "unresolvedWindowIds": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "elevenlabs",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "devin",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "muse",
+      "windows": [
+        {
+          "id": "weekly",
+          "label": "week",
+          "kind": "weekly",
+          "percentRemaining": 0,
+          "resetsAt": "2026-10-23T12:09:08.818867Z",
+          "pace": {
+            "status": "ahead",
+            "reservePercentPoints": -57.0114,
+            "burnMultiple": 2.3262
+          }
+        },
+        {
+          "id": "five_hour",
+          "label": "session",
+          "kind": "session",
+          "percentRemaining": 50,
+          "resetsAt": "2026-10-19T15:09:08.818867Z",
+          "pace": {
+            "status": "ahead",
+            "reservePercentPoints": -5.5842,
+            "burnMultiple": 1.1257
+          }
+        }
+      ],
+      "state": {
+        "status": "fresh",
+        "stale": false,
+        "refreshedAt": "2026-10-19T12:09:08.818867Z",
+        "reused": true
+      },
+      "quotaSemantics": {
+        "status": "known",
+        "effectiveAvailability": [
+          {
+            "scope": "all_models",
+            "status": "known",
+            "effectivePercentRemaining": 0,
+            "boundedBy": [
+              "weekly",
+              "five_hour"
+            ],
+            "limitingWindowIds": [
+              "weekly"
+            ],
+            "pace": {
+              "status": "ahead",
+              "aheadWindowIds": [
+                "weekly",
+                "five_hour"
+              ],
+              "worstReservePercentPoints": -57.0114,
+              "worstReserveWindowId": "weekly"
+            },
+            "runway": {
+              "status": "exhausted_now",
+              "usableRunwaySeconds": 0,
+              "limitingWindowId": "weekly",
+              "projectedExhaustedAt": "2026-10-19T12:22:23.654Z"
+            },
+            "selection": {
+              "status": "known",
+              "spendPriority": -2.2655
+            }
+          }
+        ]
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    },
+    {
+      "provider": "higgsfield",
+      "windows": [],
+      "state": {
+        "status": "unavailable",
+        "stale": false,
+        "error": "not_in_snapshot"
+      },
+      "quotaSemantics": {
+        "status": "unknown",
+        "effectiveAvailability": []
+      },
+      "accountKey": "default",
+      "accountKeys": [
+        "default"
+      ]
+    }
+  ]
+}
+
+$ bash bin/fm-quota-choose.sh --snapshot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/grok-account-home/helper-schema6.json --candidate claude:sonnet --candidate grok:grok-4.7 --candidate codex:gpt-6-astra
+grok grok-4.7
+[exit 0]

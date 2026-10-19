@@ -1,0 +1,10 @@
+window=driver:fm-qjzaw-r2-keyexec-02m59
+endpoint_task_id=qjzaw-r2-keyexec-02m59
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation-r2-keyexec/lab/pool/.treehouse/project-a09d84/1/project
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation-r2-keyexec/lab/project
+harness=grok
+kind=scout
+tasktmp=/tmp/fm-qjzaw-r2-keyexec-02m59
+model=grok-4.6
+effort=low
+spawn_gen=s1792414536.66853.29892

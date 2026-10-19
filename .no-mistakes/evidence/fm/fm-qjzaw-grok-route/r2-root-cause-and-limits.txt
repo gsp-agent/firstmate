@@ -1,0 +1,22 @@
+Validation target: cdb108240119a96d5badaba4776299f3a36e24c9
+
+Root cause, reproduced through executable interfaces:
+- cfb4a4d1:bin/fm-dispatch-resolve.sh:244 always selected the first default profile after no label matched. With Claude=0%, Muse=0%, Grok weekly=0% and prepaid=48,082, Codex=32%, it selected Claude. Current bin/fm-dispatch-resolve.sh:277 walks the configured chain using the account join at :264 and prepaid exception at :265.
+- The previous Test target dbd12060 still selected Muse on that identical native quota-axi input because bin/fm-quota-axi-lib.sh:158 and :189 mapped it to meta. Current cdb10824 maps to the actual producer name muse and selects Grok without a provider override. r2-extra-routing-transcript.txt contains all three executable outputs.
+- quota-axi's weekly window named credits is independent of its top-level credits.remaining wallet. The real producer emitted exhausted_now / 0% for that window and credits.remaining=48082. Current library :45 checks that top-level prepaid balance. Removing or zeroing the balance selects Codex; unlimited retains Grok; credit balances on another provider do not waive exhaustion.
+- Explicit label routes still win and docs-only+ep-opus still refuses. The declined R5 simplification was not implemented.
+- The normal spawn admitted the resolved Grok profile at project capacity 1 and deferred it at capacity 0 (exit 75). The current code's admission owner is bin/fm-spawn.sh:3276. The lab proves the quota choice and capacity admission are separate; operator fleet configuration was not read or changed.
+
+Authentication and live-generation limit:
+- All real-worker attempts used marked disposable FM_HOME/GROK_HOME, a real Treehouse worktree, and a private fm-lab tmux server with a 120x40 grid.
+- The installed Grok CLI started through fm-brief -> fm-dispatch-resolve --labels -> fm-spawn, but showed browser approval in the isolated credential home. No approval or credential-store change was performed.
+- Normal grok models reports a grok.com login and Grok 4.7. The isolated API-key discovery via with-secret XAI_API_KEY recognizes API-key mode and lists Grok 4.6 and 4.5.
+- Tried the API-key route both as an inherited environment and as a disposable launch-time wrapper that execs the real installed CLI through with-secret. The wrapper's non-secret invocation marker verified it ran in the worker. Even then the interactive worker still showed browser approval. No report or actual model response was produced.
+- A direct isolated, single-turn API-key request to Grok 4.6 also exited 1 with Not signed in (r2-grok-api-headless.txt). Recognized model discovery is not proof of usable inference credentials.
+- A supported credential usable by the real Grok CLI in a disposable GROK_HOME, or operator authority to use the normal Grok home with its persistent session/hook writes, is needed to prove a working worker. Existing restrictions forbid signing in, copying/editing production credentials, or those normal-home writes.
+- The live Jev brief/rule-selection path additionally requires TYPESAFE_API_KEY. with-secret TYPESAFE_API_KEY -- /usr/bin/true was refused because that key is not configured. Fixture-backed behavioral tests cover its prepaid ranking changes, but no live Jev response is claimed.
+
+Drift check:
+- Ran the real fm-drift-nightly.sh check against the delivered commit in a disposable clone, with upstream pinned to the supplied base and --no-fetch. It reached full comparison and retained all pending proof records instead of aborting on stale ancestry. Exit 1 reports the branch's unproven changes and inherited carried-unproven commits; no proof was silently upgraded.
+
+Cleanup: all private fm-lab servers were stopped and tmux-dir teardown completed. Identity-checked orphan Grok/shell processes were terminated; lsof over each of the three owned labs then found no open processes. The three disposable lab trees and clone were removed after dcg permitted the scoped removal. No tracked project files changed.

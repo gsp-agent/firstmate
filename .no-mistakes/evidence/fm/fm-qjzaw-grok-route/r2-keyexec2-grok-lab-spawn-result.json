@@ -1,0 +1,5 @@
+{
+  "spawn_exit": 0,
+  "model_response_verified": false,
+  "isolation": "marked FM_HOME and GROK_HOME inside gate worktree; private fm-lab tmux socket"
+}

@@ -1,0 +1,46 @@
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/project init -q -b main
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/project add README.md .gitignore
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/project -c commit.gpgsign=false -c 'user.name=Gsp Agent' -c user.email=tests@example.invalid commit -qm 'Initialize disposable lab'
+[exit 0]
+
+$ bash bin/fm-brief.sh qjzaw-live-01m59 project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/data/qjzaw-live-01m59/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+
+$ bash bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab
+/tmp/fml.fIJfxY
+[exit 0]
+
+$ tmux -f /dev/null -L fm-lab new-session -d -s driver -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/lab-shell
+[exit 0]
+
+$ tmux -f /dev/null -L fm-lab set-option -g default-shell /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/lab-shell
+[exit 0]
+
+$ tmux -f /dev/null -L fm-lab set-option -g default-command /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab/lab-shell
+[exit 0]
+
+$ tmux -f /dev/null -L fm-lab display-message -p '#{socket_path},#{pid},0'
+/private/tmp/fml.fIJfxY/tmux-501/fm-lab,9634,0
+[exit 0]
+
+$ tmux -f /dev/null -L fm-lab display-message -p '#{pane_id}'
+%0
+[exit 0]
+
+$ bash bin/fm-dispatch-resolve.sh --labels ''
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'claude' --model 'sonnet'
+[exit 0]
+
+$ tmux -f /dev/null -L fm-lab kill-server
+[exit 0]
+
+$ bash bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59T4BFDPQD71P8CHEHTBVJJ/.agent-state/live-validation/lab
+[exit 0]

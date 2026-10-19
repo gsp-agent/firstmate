@@ -1,0 +1,26 @@
+[
+  {
+    "name": "grok-default-account-exhausted",
+    "pass": true,
+    "expected": "codex",
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'codex' --model 'gpt-6-astra'\n"
+  },
+  {
+    "name": "grok-default-account-exhausted-reversed",
+    "pass": true,
+    "expected": "codex",
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'codex' --model 'gpt-6-astra'\n"
+  },
+  {
+    "name": "grok-default-account-prepaid",
+    "pass": true,
+    "expected": "grok",
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'grok' --model 'grok-4.7'\n"
+  },
+  {
+    "name": "grok-default-account-prepaid-reversed",
+    "pass": true,
+    "expected": "grok",
+    "output": "dispatch-resolve:\n  status: clear\n  source: default (no label matched)\n  profile: --harness 'grok' --model 'grok-4.7'\n"
+  }
+]
