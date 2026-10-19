@@ -74,9 +74,14 @@ wait_live() {
 # beacon left by an earlier round, waits for THIS watcher to write a fresh one
 # (some poll's top), then waits for that one to advance (the next poll's top) -
 # and the whole cycle in between is what the caller's assertions describe.
+# A due check sweep also touches the beacon mid-poll, before the signal scan and
+# window triage, and then touches .last-check. Every watcher here runs with
+# FM_CHECK_INTERVAL=999999, so that sweep runs at most once, in a fresh home's
+# first poll; the next poll's top lands at least one FM_POLL second later. So
+# only an advance newer than .last-check is a poll's top, never the sweep.
 # 0 if the watcher is still alive after a completed cycle, 1 if it exited.
 wait_poll_cycle() {  # <state> <pid> [limit-ticks]
-  local state=$1 pid=$2 limit=${3:-300} beat first now i=0
+  local state=$1 pid=$2 limit=${3:-300} beat first now checked i=0
   beat="$state/.last-watcher-beat"
   rm -f "$beat"
   first=""
@@ -90,7 +95,9 @@ wait_poll_cycle() {  # <state> <pid> [limit-ticks]
   while [ "$i" -lt "$limit" ]; do
     kill -0 "$pid" 2>/dev/null || return 1
     now=$(file_mtime "$beat")
-    if [ -n "$now" ] && [ "$now" != "$first" ]; then
+    checked=$(file_mtime "$state/.last-check")
+    if [ -n "$now" ] && [ "$now" != "$first" ] \
+      && [ -n "$checked" ] && [ "$now" -gt "$checked" ]; then
       return 0
     fi
     sleep 0.1
@@ -2448,7 +2455,7 @@ test_nonterminal_stale_not_working_surfaced() {
 # the pause's own status-file age, so a churny idle pane cannot reset the cadence)
 # for a recheck, so a forgotten pause cannot rot invisibly.
 test_nonterminal_stale_paused_absorbed_then_resurfaced() {
-  local dir state fakebin out drain_out capture_file window key pane_hash sig pid back statusf
+  local dir state fakebin out drain_out capture_file window key pane_hash sig pid back statusf i
   dir=$(make_case nonterminal-stale-paused); state="$dir/state"; fakebin="$dir/fakebin"
   out="$dir/watch.out"; drain_out="$dir/drain.out"; capture_file="$dir/pane.txt"
   window="test:fm-held"
@@ -2473,6 +2480,15 @@ test_nonterminal_stale_paused_absorbed_then_resurfaced() {
     FM_STATE_OVERRIDE="$state" FM_CREW_STATE_BIN="$fakebin/fm-crew-state.sh" FM_PAUSE_RESURFACE_SECS=999 FM_POLL=1 FM_SIGNAL_GRACE=1 \
     FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$out" &
   pid=$!
+  if ! wait_poll_cycle "$state" "$pid"; then
+    reap "$pid"; fail "watcher exited for a fresh declared pause (should absorb): $(cat "$out")"
+  fi
+  # The beacon also moves mid-cycle, before window triage, so wait until this
+  # window's triage has counted the repeat and then for one more whole cycle.
+  i=0
+  while [ "$(cat "$state/.count-$key" 2>/dev/null || true)" != 2 ] && [ "$i" -lt 100 ]; do
+    sleep 0.1; i=$((i + 1))
+  done
   if ! wait_poll_cycle "$state" "$pid"; then
     reap "$pid"; fail "watcher exited for a fresh declared pause (should absorb): $(cat "$out")"
   fi

@@ -3526,7 +3526,7 @@ const pi = {
   // The real Pi prompt path: a follow-up sent while the agent is streaming is
   // queued for the running run and raises no before_agent_start; only a send
   // to an idle agent starts a run and raises it with the exact text. This is
-  // Pi 0.85's event, which has no messageType; Pi 1.x adds messageType "user".
+  // the Pi 0.85 event, which has no messageType; Pi 1.x adds messageType "user".
   sendUserMessage: async (message) => {
     prompts.push(message);
     if (streaming) return;
