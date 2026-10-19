@@ -63,7 +63,9 @@
 # Race safety: bin/fm-spawn.sh evaluates admission while holding the shared
 # project lock and keeps holding it until the new task record is published, so
 # two concurrent spawns for one project can never both publish from the same
-# count. A spawn on an uncapped project can still publish a holder for a capped
+# count. The one interval without that lock is a headroom reading at the
+# declared count, and the reading's verdict is only ever applied after the
+# lock is retaken and the count and window are rechecked under it. A spawn on an uncapped project can still publish a holder for a capped
 # same-origin clone, so every backend takes that lock whenever the declaration
 # caps any project; Orca, which otherwise never takes it, is included. Freeing a
 # place needs no lock, because removing a record or adding pr= only ever lowers
@@ -94,10 +96,12 @@
 # than FM_PROJECT_CAPACITY_OVERSHARE_WINDOW seconds old. The window is 420
 # seconds, about one starter pass. Clones of one origin share one record, and
 # two origins cloned under one directory name keep separate records, even
-# though that name's declared count applies to both. bin/fm-spawn.sh holds the
-# project lock across the reading and the write, so two spawns of one project
-# cannot both take the extra start. An extra start whose record cannot be
-# written is not admitted.
+# though that name's declared count applies to both. bin/fm-spawn.sh releases
+# the project lock before the reading runs, retakes it with a try-acquire
+# after, and recounts the places and rechecks this window under the retaken
+# lock before it writes the record, so two spawns of one project cannot both
+# take the extra start. A spawn whose retake fails is deferred and writes no
+# record. An extra start whose record cannot be written is not admitted.
 # A spawn that fails before its worker launches removes that record again under
 # the project lock, so that failed extra start leaves the window open. Once the
 # launch is sent, the record stands whatever fails after it. A spawn that
@@ -130,8 +134,7 @@ FM_PROJECT_CAPACITY_RELEASE_WAIT=10
 
 # A reading that has not exited by this many seconds is no room. The shared
 # reading samples the CPU over a few seconds and has taken up to 12.7 seconds
-# on a loaded machine. The spawn holds the project lock for as long as the
-# reading runs.
+# on a loaded machine. The reading runs without the project lock held.
 FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT=30
 
 # The config directory holding this machine's declaration: the spawning home's
@@ -416,22 +419,22 @@ fm_project_capacity_overshare_identity() {  # <project-lock>
   printf '%s\n' "$identity"
 }
 
-# Decide whether a project already at its declared count may start one more
-# worker. <project-lock> is the fm_treehouse_project_lock_path the caller holds.
-# Sets FM_PROJECT_CAPACITY_OVERSHARE to off, admit, no, or spent.
-# off means the command is not configured. admit records the window before
-# returning, and sets FM_PROJECT_CAPACITY_OVERSHARE_DIR,
-# FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY, and FM_PROJECT_CAPACITY_OVERSHARE_AT
-# to the record's directory, identity, and epoch for
-# fm_project_capacity_overshare_release. no means the reading failed, printed
-# no line, was missing, or could not be recorded.
-# spent means this project already used its extra start in the window.
-fm_project_capacity_overshare() {  # <config-dir> <project-lock>
-  local config=$1 lock=$2 identity now dir rc=0 line
+# First step of deciding whether a project already at its declared count may
+# start one more worker, taken while the caller holds <project-lock>, the
+# fm_treehouse_project_lock_path for the project. Sets
+# FM_PROJECT_CAPACITY_OVERSHARE to off, no, spent, or open. off means the
+# command is not configured, and no means it cannot run, so neither runs a
+# reading. spent means this project already used its extra start in the
+# window. open means a reading may run, and sets
+# FM_PROJECT_CAPACITY_OVERSHARE_DIR and FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY
+# for the steps below.
+fm_project_capacity_overshare_prepare() {  # <config-dir> <project-lock>
+  local config=$1 lock=$2 identity now dir
   FM_PROJECT_CAPACITY_OVERSHARE=no
   FM_PROJECT_CAPACITY_OVERSHARE_DIR=
   FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY=
   FM_PROJECT_CAPACITY_OVERSHARE_AT=
+  FM_PROJECT_CAPACITY_HEADROOM_LINE=
   fm_project_capacity_headroom_load "$config"
   case "$FM_PROJECT_CAPACITY_HEADROOM_STATE" in
     off)
@@ -448,10 +451,23 @@ fm_project_capacity_overshare() {  # <config-dir> <project-lock>
     '' | *[!0-9]* | 0?*) return 0 ;;
   esac
   dir=$(fm_project_capacity_overshare_dir "$config") || return 0
+  FM_PROJECT_CAPACITY_OVERSHARE_DIR=$dir
+  FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY=$identity
   if fm_project_capacity_overshare_spent "$dir" "$identity" "$now"; then
     FM_PROJECT_CAPACITY_OVERSHARE=spent
     return 0
   fi
+  FM_PROJECT_CAPACITY_OVERSHARE=open
+  return 0
+}
+
+# Run the reading prepared above. This runs without the project lock held, so
+# it records nothing and prints nothing. Sets FM_PROJECT_CAPACITY_HEADROOM_LINE
+# to the reading's first line, cut as the admission log cuts it, or to empty
+# when the reading failed, printed no line, or timed out.
+fm_project_capacity_headroom_read() {
+  local rc=0 line
+  FM_PROJECT_CAPACITY_HEADROOM_LINE=
   _fm_project_capacity_require_timeout || return 0
   line=$(fm_run_timed "$FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT" "${FM_PROJECT_CAPACITY_HEADROOM_CMD[@]}" 2>/dev/null) || rc=$?
   [ "$rc" -eq 0 ] || return 0
@@ -462,11 +478,47 @@ fm_project_capacity_overshare() {  # <config-dir> <project-lock>
   if [ "${#line}" -gt 240 ]; then
     line=${line:0:240}
   fi
-  fm_project_capacity_overshare_record "$dir" "$identity" "$now" || return 0
-  printf '%s\n' "headroom: $line" >&2
-  FM_PROJECT_CAPACITY_OVERSHARE_DIR=$dir
-  FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY=$identity
+  FM_PROJECT_CAPACITY_HEADROOM_LINE=$line
+  return 0
+}
+
+# Last step, taken while the caller again holds the project lock after a
+# recount still at the declared count. Rechecks the window, then records it
+# and logs the reading's line when the reading reported room. Sets
+# FM_PROJECT_CAPACITY_OVERSHARE to admit, no, or spent, and on admit sets
+# FM_PROJECT_CAPACITY_OVERSHARE_AT to the recorded epoch for
+# fm_project_capacity_overshare_release. no means the reading showed no room
+# or the record could not be written.
+fm_project_capacity_overshare_admit() {
+  local now
+  FM_PROJECT_CAPACITY_OVERSHARE=no
+  now=$(date +%s 2>/dev/null) || now=
+  # A leading zero would make bash arithmetic read the value as octal.
+  case "$now" in
+    '' | *[!0-9]* | 0?*) return 0 ;;
+  esac
+  if fm_project_capacity_overshare_spent \
+    "$FM_PROJECT_CAPACITY_OVERSHARE_DIR" "$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY" "$now"; then
+    FM_PROJECT_CAPACITY_OVERSHARE=spent
+    return 0
+  fi
+  [ -n "${FM_PROJECT_CAPACITY_HEADROOM_LINE:-}" ] || return 0
+  fm_project_capacity_overshare_record \
+    "$FM_PROJECT_CAPACITY_OVERSHARE_DIR" "$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY" "$now" || return 0
+  printf '%s\n' "headroom: $FM_PROJECT_CAPACITY_HEADROOM_LINE" >&2
   FM_PROJECT_CAPACITY_OVERSHARE_AT=$now
   FM_PROJECT_CAPACITY_OVERSHARE=admit
   return 0
+}
+
+# Decide whether a project already at its declared count may start one more
+# worker, in one call while the caller holds the project lock throughout.
+# bin/fm-spawn.sh instead drives the three steps above apart so the reading
+# runs unlocked. Sets FM_PROJECT_CAPACITY_OVERSHARE to off, admit, no, or
+# spent, with the meanings the steps above give them.
+fm_project_capacity_overshare() {  # <config-dir> <project-lock>
+  fm_project_capacity_overshare_prepare "$1" "$2"
+  [ "$FM_PROJECT_CAPACITY_OVERSHARE" = open ] || return 0
+  fm_project_capacity_headroom_read
+  fm_project_capacity_overshare_admit
 }

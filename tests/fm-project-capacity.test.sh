@@ -1221,14 +1221,21 @@ EOF
   pass "a teardown started during a headroom reading completes, and the spawn recounts into the freed place"
 }
 
-# A same-project spawn started while a headroom reading runs also takes the
-# freed project lock instead of refusing with exit 1. It takes that window's
-# one extra start, and the first spawn, recounting after its own reading,
-# finds the window spent and defers with 75.
+# A same-project spawn from another local home started while a headroom
+# reading runs also takes the freed project lock instead of refusing with
+# exit 1. It takes that window's one extra start, and the first spawn,
+# recounting after its own reading, finds the window spent and defers with 75.
 test_spawn_during_headroom_reading_takes_the_extra_start() {
-  local case_dir home out_b rc_b=0 pid_a rc_a=0 wt_a wt_b
-  case_dir=$(make_case reading-spawn-race task-a task-b)
+  local case_dir home mate mate_project out_b rc_b=0 pid_a rc_a=0 wt_a
+  case_dir=$(make_case reading-spawn-race task-a)
   home="$case_dir/home"
+  mate="$case_dir/mate"
+  make_home "$mate" task-m
+  mate_project="$mate/projects/project"
+  git clone -q "$(git -C "$case_dir/project" remote get-url origin)" "$mate_project"
+  printf '%s\n' schema=fm-secondmate-parent.v1 route=local "parent_home=$home" > "$mate/.fm-secondmate-parent"
+  printf -- '- mate - a local mate (home: %s; scope: project work; projects: project; added 2026-09-01)\n' "$mate" \
+    > "$home/data/secondmates.md"
   declare_capacity "$home" "project 1"
   write_live "$home" live-a "$case_dir/project"
   install_reading "$case_dir/reading" <<EOF
@@ -1247,15 +1254,15 @@ printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
 EOF
   write_headroom "$home" "$case_dir/reading"
   wt_a=$(new_worktree "$case_dir" task-a)
-  wt_b=$(new_worktree "$case_dir" task-b)
+  git -C "$mate_project" worktree add --quiet -b wt-m "$case_dir/wt-m"
   spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
   pid_a=$!
   wait_for_file "$case_dir/reading.started" "the first headroom reading never started: $(cat "$case_dir/a.out")"
-  out_b=$(spawn_ship "$case_dir" task-b "$wt_b") || rc_b=$?
+  out_b=$(run_spawn "$case_dir" "$mate" "$case_dir/wt-m" task-m "$mate_project" --mode no-mistakes --yolo off) || rc_b=$?
   : > "$case_dir/reading.release"
   wait "$pid_a" || rc_a=$?
   expect_code 0 "$rc_b" "a spawn started during a headroom reading was refused: $out_b"
-  assert_contains "$out_b" "spawned task-b" "the spawn started during a reading did not launch"
+  assert_contains "$out_b" "spawned task-m" "the spawn started during a reading did not launch"
   expect_code "$DEFER_EXIT" "$rc_a" "the first spawn was not deferred after the recount: $(cat "$case_dir/a.out")"
   assert_contains "$(cat "$case_dir/a.out")" "already started one worker past that count in the current window" \
     "the first spawn did not find the window spent after its recount"
