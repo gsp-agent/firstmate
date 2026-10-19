@@ -20,25 +20,36 @@
 # `no-mistakes "$@"` specialization. The bounded
 # form preserves stdout, stderr, and exit status; the checked form discards
 # stderr, while fm_nm_run keeps the fail-open query contract for read-only callers.
+# The bound itself is bin/fm-timeout-lib.sh's fm_run_timed, the single owner of
+# bounded execution in this repo: it terminates the whole process group, so a
+# child the bounded command spawned (a git probe under no-mistakes) cannot
+# outlive the bound as an orphan.
+_FM_NM_RUN_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# That library declares `set -u` for its own hygiene, which a sourced sibling
+# must not impose on this library's consumers, so the caller's setting is
+# restored around the source.
+case $- in *u*) _fm_nm_run_nounset=on ;; *) _fm_nm_run_nounset=off ;; esac
+# shellcheck source=bin/fm-timeout-lib.sh
+# shellcheck disable=SC1091
+. "$_FM_NM_RUN_LIB_DIR/fm-timeout-lib.sh"
+[ "$_fm_nm_run_nounset" = on ] || set +u
+unset _fm_nm_run_nounset
+
 fm_nm_bounded() {  # <dir> <timeout_secs> <command> <args...>
-  local dir=$1 timeout_secs=$2 have_timeout=none
+  local dir=$1 timeout_secs=$2
   shift 2
-  if command -v timeout >/dev/null 2>&1; then have_timeout=timeout
-  elif command -v gtimeout >/dev/null 2>&1; then have_timeout=gtimeout
-  elif command -v perl >/dev/null 2>&1; then have_timeout=perl
-  fi
-  case "$have_timeout" in
-    timeout)  ( cd "$dir" && timeout "$timeout_secs" "$@" ) ;;
-    gtimeout) ( cd "$dir" && gtimeout "$timeout_secs" "$@" ) ;;
-    perl)     ( cd "$dir" && perl -e 'my $t = shift; my $pid = fork; die "fork failed" unless defined $pid; if (!$pid) { setpgrp(0, 0); exec @ARGV } local $SIG{ALRM} = sub { kill "TERM", -$pid; select undef, undef, undef, 0.2; kill "KILL", -$pid; exit 124 }; alarm $t; waitpid $pid, 0; exit($? >> 8)' "$timeout_secs" "$@" ) ;;
-    *)        return 1 ;;
-  esac
+  ( cd "$dir" && fm_run_timed "$timeout_secs" "$@" )
 }
 
 fm_nm_run_bounded() {  # <dir> <timeout_secs> <args...>
   local dir=$1 timeout_secs=$2
   shift 2
-  fm_nm_bounded "$dir" "$timeout_secs" no-mistakes "$@"
+  # A status read never needs to fetch from origin: a missing pipeline head is
+  # in the gate repo, not on origin, and in a partial clone the probe's lazy
+  # fetch costs about 30 s of one core before it gives up. The export lives in
+  # a subshell so it reaches no-mistakes without leaking into the caller, and
+  # needs no env binary on a restricted PATH.
+  ( export GIT_NO_LAZY_FETCH=1; fm_nm_bounded "$dir" "$timeout_secs" no-mistakes "$@" )
 }
 
 fm_nm_run_checked() {  # <dir> <timeout_secs> <args...>

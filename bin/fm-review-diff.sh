@@ -139,7 +139,7 @@ resolve_pr_head() {
   # Offline / unreachable remote: recorded pr_head is better than the local
   # branch, but never preferred over a successful pull-head fetch above.
   if [ -n "$recorded_head" ] \
-    && git -C "$WT" cat-file -e "$recorded_head^{commit}" 2>/dev/null; then
+    && GIT_NO_LAZY_FETCH=1 git -C "$WT" cat-file -e "$recorded_head^{commit}" 2>/dev/null; then
     printf '%s' "$recorded_head"
     return 0
   fi

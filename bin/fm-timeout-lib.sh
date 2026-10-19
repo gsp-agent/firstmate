@@ -100,7 +100,7 @@ fm_run_bash_timeout() {
     command_rc=$?
     printf '%s\n' "$command_rc" > "$command_status"
     exit "$command_rc"
-  ) &
+  ) <&0 &
   child_pid=$!
   (
     set +m
@@ -138,6 +138,9 @@ fm_run_external_timeout() {
   status_file=$(mktemp "${TMPDIR:-/tmp}/fm-timeout-status.XXXXXX" 2>/dev/null) || return 124
   # Run timeout asynchronously so its pid - also the process-group id created
   # by GNU/BSD timeout without --foreground - remains available for cleanup.
+  # The explicit <&0 keeps the caller's stdin: an asynchronous command without
+  # a redirection gets /dev/null instead, which would starve a command fed by
+  # a heredoc or pipe (the perl arm already inherits stdin).
   # A shell wrapper can exit promptly on TERM while one of its descendants
   # ignores TERM; timeout then considers the command finished and does not send
   # its configured KILL. Explicitly reap that leftover group on a real timeout.
@@ -149,7 +152,7 @@ fm_run_external_timeout() {
     command_rc=$?
     printf "%s\n" "$command_rc" > "$status_file"
     exit "$command_rc"
-  ' _ "$status_file" "$@" &
+  ' _ "$status_file" "$@" <&0 &
   runner_pid=$!
   if wait "$runner_pid"; then
     runner_rc=0
