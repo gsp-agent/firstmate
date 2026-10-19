@@ -41,8 +41,9 @@
 # on <bead>; it is accepted like a proven commit but never reported as keep.
 # Blank lines and lines whose first character is # are ignored.
 # Listed commits must exist and be reachable from the fork ref.
-# When --proof is omitted and <repo>/drift-proof.txt exists, that file is the
-# proof file. When it does not exist, no commit is proven.
+# When --proof is omitted, the proof file is drift-proof.txt in the captured
+# fork commit's tree; a working-tree, staged, or untracked copy is never read.
+# When that tree has no drift-proof.txt, no commit is proven.
 #
 # With fetch left on, check runs git fetch --no-tags kunchenguid main when
 # that remote exists in the repo. --no-fetch skips that. A missing remote
@@ -287,16 +288,17 @@ cmd_check() {
   upstream_sha=$(git -C "$REPO" rev-parse --verify "${upstream}^{commit}" 2>/dev/null) || die "upstream ref not found: $upstream"
   fork=$fork_sha
   upstream=$upstream_sha
-  if [ -z "$PROOF" ] && [ -f "$REPO/drift-proof.txt" ]; then
-    PROOF=$REPO/drift-proof.txt
+  CHECK_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-drift.XXXXXX") || die "cannot create a temporary directory"
+  trap 'rm -f -- "$CHECK_TMP/proof" "$CHECK_TMP/paths" "$CHECK_TMP/commits"; rmdir -- "$CHECK_TMP"' EXIT
+  if [ -z "$PROOF" ] && git -C "$REPO" cat-file -e "$fork:drift-proof.txt" 2>/dev/null; then
+    git -C "$REPO" cat-file blob "$fork:drift-proof.txt" > "$CHECK_TMP/proof" || die "cannot read drift-proof.txt from $fork"
+    PROOF=$CHECK_TMP/proof
   fi
   local base behind ahead path sha subject parents bead drift=0
   base=$(git -C "$REPO" merge-base "$fork" "$upstream") || die "no merge-base for $fork and $upstream"
   behind=$(git -C "$REPO" rev-list --count "$fork..$upstream") || die "behind count failed"
   ahead=$(git -C "$REPO" rev-list --count "$upstream..$fork") || die "ahead count failed"
   load_proof
-  CHECK_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-drift.XXXXXX") || die "cannot create a temporary directory"
-  trap 'rm -f -- "$CHECK_TMP/paths" "$CHECK_TMP/commits"; rmdir -- "$CHECK_TMP"' EXIT
   replay_proof
   git -C "$REPO" diff --no-renames --name-only -z "$base" "$fork" > "$CHECK_TMP/paths" || die "cannot read fork paths"
   printf 'behind: %s\n' "$behind"
