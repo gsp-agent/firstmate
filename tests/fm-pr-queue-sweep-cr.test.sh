@@ -3,8 +3,8 @@
 # bin/fm-pr-queue-sweep.sh and its durable round record.
 set -u
 
-# shellcheck source=tests/lib.sh
-. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/wake-helpers.sh
+. "$(dirname "${BASH_SOURCE[0]}")/wake-helpers.sh"
 
 SCRIPT="$ROOT/bin/fm-pr-queue-sweep.sh"
 TMP_ROOT=$(fm_test_tmproot fm-pr-queue-sweep-cr-tests)
@@ -44,6 +44,13 @@ page=$cursor
 SH
 chmod +x "$FAKEBIN/gh"
 
+cat > "$FAKEBIN/launch" <<'SH'
+#!/usr/bin/env bash
+[ "$2" -eq 0 ] || exit "$2"
+printf '%s\n' "$3" >> "$1"
+SH
+chmod +x "$FAKEBIN/launch"
+
 # Write one sweep page holding a single pull request with the given review
 # state. Ages are seconds before FM_CR_FIXROUND_NOW.
 write_pr_page() {  # <dir> <decision> <check-state> <draft> <head> <age-secs> <reviewers-json>
@@ -81,16 +88,58 @@ file_mode() {
 }
 
 test_stale_changes_requested_reports_round_one() {
-  local dir state out
-  dir="$TMP_ROOT/round-one"
-  state="$dir/state"
-  mkdir -p "$state"
-  write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev","otherdev"]'
-  out=$(scan "$dir" "$state" "$NOW") || fail "round-one scan failed"
-  [ "$out" = "changes-requested $URL head=$HEAD round=1 reviewers=chipdev,otherdev
+  local dir state out draft
+  for draft in false true; do
+    dir="$TMP_ROOT/round-one-$draft"
+    state="$dir/state"
+    mkdir -p "$state"
+    write_pr_page "$dir" CHANGES_REQUESTED SUCCESS "$draft" "$HEAD" 18000 '["chipdev","otherdev"]'
+    out=$(scan "$dir" "$state" "$NOW") || fail "round-one scan failed"
+    [ "$out" = "changes-requested $URL head=$HEAD round=1 reviewers=chipdev,otherdev
 queue-empty o/r" ] \
-    || fail "stale changes-requested pull request did not report round 1: $out"
-  pass "a stale green changes-requested pull request reports round 1"
+      || fail "stale changes-requested pull request (draft=$draft) did not report round 1: $out"
+  done
+  pass "draft and ready stale green changes-requested pull requests report round 1"
+}
+
+test_wakes_and_unsuccessful_dispatches_do_not_consume_rounds() {
+  local dir state out rc status
+  dir=$(make_case deferred-dispatch)
+  state="$dir/state"
+  mkdir -p "$dir/config"
+  printf 'tmux\n' > "$dir/config/backend"
+  cp "$FAKEBIN/gh" "$dir/fakebin/gh"
+  printf 'github\n%s\ngithub.com\no/r\n7\n' "$URL" > "$state/watch.pr-poll"
+  touch "$state/home-summary.json"
+  write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+
+  FM_TEST_REAL_JQ="$REAL_JQ" FM_TEST_SWEEP_DIR="$dir/sweep" FM_CR_FIXROUND_NOW="$NOW" \
+    perl -e 'alarm 60; exec @ARGV' env FM_HOME="$dir" FM_ROOT_OVERRIDE="$dir" \
+      FM_STATE_OVERRIDE="$state" FM_CONFIG_OVERRIDE="$dir/config" \
+      FM_POLL=0.02 FM_CHECK_INTERVAL=0 FM_HEARTBEAT=999999 FM_SIGNAL_GRACE=0 \
+      PATH="$dir/fakebin:$BASE_PATH" "$ROOT/bin/fm-watch.sh" \
+      > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "changes-requested watcher failed: $(cat "$dir/watch.err")"
+  grep -F "changes-requested $URL head=$HEAD round=1 reviewers=chipdev" "$state/.wake-queue" >/dev/null \
+    || fail "watcher did not durably publish the fix wake: $(cat "$dir/watch.out")"
+  [ ! -e "$state/changes-requested-sweep.seen" ] \
+    || fail "publishing a wake consumed a round before the deferred launch"
+
+  for status in 75 1; do
+    rc=0
+    FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+      "$FAKEBIN/launch" "$dir/launches" "$status" spawn || rc=$?
+    [ "$rc" -eq "$status" ] || fail "dispatch did not preserve launch status $status (got $rc)"
+    [ ! -e "$dir/launches" ] || fail "an unsuccessful launch started a worker"
+    [ ! -e "$state/changes-requested-sweep.seen" ] \
+      || fail "a deferred or failed dispatch consumed a round"
+    out=$(scan "$dir" "$state" "$((NOW + 36000))") || fail "post-deferral scan failed"
+    case "$out" in
+      *" head=$HEAD round=1 "*) ;;
+      *) fail "a deferred or failed dispatch advanced the round: $out" ;;
+    esac
+  done
+  pass "a durable wake, capacity deferral, and failed launch consume no round"
 }
 
 test_fresh_or_ungreen_pull_requests_stay_silent() {
@@ -99,7 +148,6 @@ test_fresh_or_ungreen_pull_requests_stay_silent() {
     'CHANGES_REQUESTED SUCCESS false 3600' \
     'CHANGES_REQUESTED FAILURE false 18000' \
     'CHANGES_REQUESTED PENDING false 18000' \
-    'CHANGES_REQUESTED SUCCESS true 18000' \
     'APPROVED SUCCESS false 18000' \
     'REVIEW_REQUIRED SUCCESS false 18000'; do
     # shellcheck disable=SC2086
@@ -117,11 +165,11 @@ test_fresh_or_ungreen_pull_requests_stay_silent() {
       *changes-requested*) fail "case $spec reported a fix round: $out" ;;
     esac
   done
-  pass "fresh, ungreen, draft, and non-changes-requested pull requests stay silent"
+  pass "fresh, ungreen, and non-changes-requested pull requests stay silent"
 }
 
 test_rounds_advance_then_escalate_and_survive_restart() {
-  local dir state out record
+  local dir state out record rc
   dir="$TMP_ROOT/rounds"
   state="$dir/state"
   record="$state/changes-requested-sweep.seen"
@@ -131,18 +179,35 @@ test_rounds_advance_then_escalate_and_survive_restart() {
   out=$(scan "$dir" "$state" "$NOW") || fail "round 1 scan failed"
   case "$out" in *" round=1 "*) ;; *) fail "first scan did not report round 1: $out" ;; esac
   FM_CR_FIXROUND_NOW="$NOW" PATH="$FAKEBIN:$BASE_PATH" \
-    "$SCRIPT" --cr-record "$state" "$URL" "$HEAD" round1 || fail "round 1 record failed"
+    "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+      "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "round 1 dispatch failed"
   [ "$(file_mode "$record")" = 600 ] || fail "the round record is not private"
   grep -Fx "$URL $HEAD 1 $NOW 0" "$record" >/dev/null \
     || fail "round 1 was not recorded durably: $(cat "$record")"
 
   out=$(scan "$dir" "$state" "$NOW") || fail "repeat scan failed"
   case "$out" in *changes-requested*) fail "a recorded round 1 reported again at once: $out" ;; esac
+  FM_CR_FIXROUND_NOW="$((NOW + 18000))" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "repeat round 1 dispatch failed"
+  [ "$(wc -l < "$dir/launches" | tr -d ' ')" -eq 1 ] || fail "round 1 launched twice"
+  grep -Fx "$URL $HEAD 1 $NOW 0" "$record" >/dev/null \
+    || fail "repeat round 1 changed the dispatch time"
 
   out=$(scan "$dir" "$state" "$((NOW + 18000))") || fail "round 2 scan failed"
   case "$out" in *" round=2 "*) ;; *) fail "second stale interval did not report round 2: $out" ;; esac
+  rc=0
+  FM_CR_FIXROUND_NOW="$((NOW + 18000))" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round2 -- \
+    "$FAKEBIN/launch" "$dir/launches" 75 spawn || rc=$?
+  [ "$rc" -eq 75 ] || fail "round 2 capacity deferral did not propagate"
+  grep -Fx "$URL $HEAD 1 $NOW 0" "$record" >/dev/null \
+    || fail "round 2 capacity deferral changed the round record"
+  out=$(scan "$dir" "$state" "$((NOW + 36000))") || fail "deferred round 2 scan failed"
+  case "$out" in *" round=2 "*) ;; *) fail "deferred round 2 escalated: $out" ;; esac
   FM_CR_FIXROUND_NOW="$((NOW + 18000))" PATH="$FAKEBIN:$BASE_PATH" \
-    "$SCRIPT" --cr-record "$state" "$URL" "$HEAD" round2 || fail "round 2 record failed"
+    "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round2 -- \
+      "$FAKEBIN/launch" "$dir/launches" 0 spawn || fail "round 2 dispatch failed"
+  [ "$(cat "$dir/launches")" = "relaunch
+spawn" ] || fail "the two rounds did not dispatch a relaunch and a spawn"
 
   out=$(scan "$dir" "$state" "$((NOW + 36000))") || fail "escalation scan failed"
   [ "$(printf '%s\n' "$out" | grep -c 'changes-requested-escalated')" -eq 1 ] \
@@ -167,11 +232,35 @@ test_new_head_restarts_rounds() {
   mkdir -p "$state"
   write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
   FM_CR_FIXROUND_NOW="$NOW" PATH="$FAKEBIN:$BASE_PATH" \
-    "$SCRIPT" --cr-record "$state" "$URL" "$HEAD" round2 || fail "seed record failed"
+    "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+      "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "seed round 1 failed"
+  FM_CR_FIXROUND_NOW="$NOW" PATH="$FAKEBIN:$BASE_PATH" \
+    "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round2 -- \
+      "$FAKEBIN/launch" "$dir/launches" 0 relaunch || fail "seed round 2 failed"
   write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD2" 18000 '["chipdev"]'
   out=$(scan "$dir" "$state" "$NOW") || fail "new-head scan failed"
   case "$out" in *" head=$HEAD2 round=1 "*) ;; *) fail "a new head did not restart at round 1: $out" ;; esac
+  FM_CR_FIXROUND_NOW="$NOW" "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD2" round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn || fail "new-head round 1 dispatch failed"
+  grep -Fx "$URL $HEAD2 1 $NOW 0" "$state/changes-requested-sweep.seen" >/dev/null \
+    || fail "a new head did not reset the dispatched count"
   pass "a new head restarts the round count"
+}
+
+test_queue_removal_keeps_its_reason() {
+  local dir state out
+  dir="$TMP_ROOT/queue-removal"
+  state="$dir/state"
+  mkdir -p "$state"
+  write_pr_page "$dir" APPROVED SUCCESS true "$HEAD" 18000 '[]'
+  "$REAL_JQ" '.data.repository.pullRequests.nodes[0].timelineItems.nodes = [
+    {__typename:"RemovedFromMergeQueueEvent", id:"evt7", reason:"failed_checks"}
+  ]' "$dir/sweep/page1.json" > "$dir/sweep/removal.json"
+  mv "$dir/sweep/removal.json" "$dir/sweep/page1.json"
+  out=$(scan "$dir" "$state" "$NOW") || fail "queue-removal scan failed"
+  [ "$out" = "dequeued $URL reason=failed_checks event=evt7
+queue-empty o/r" ] || fail "the sweep lost the queue removal or its reason: $out"
+  pass "queue removals preserve their reason alongside review-state reporting"
 }
 
 test_record_refusals_and_malformed_record_fail_the_scan() {
@@ -180,24 +269,38 @@ test_record_refusals_and_malformed_record_fail_the_scan() {
   state="$dir/state"
   mkdir -p "$state"
   write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
-  PATH="$FAKEBIN:$BASE_PATH" "$SCRIPT" --cr-record "$state" \
-    'https://example.com/o/r/pull/7' "$HEAD" round1 2>/dev/null \
+  "$SCRIPT" --cr-dispatch "$state" 'https://example.com/o/r/pull/7' "$HEAD" round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn 2>/dev/null \
     && fail "a non-GitHub URL was recorded"
-  PATH="$FAKEBIN:$BASE_PATH" "$SCRIPT" --cr-record "$state" \
-    "$URL" 'not-a-head' round1 2>/dev/null \
+  "$SCRIPT" --cr-dispatch "$state" "$URL" 'not-a-head' round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn 2>/dev/null \
     && fail "a malformed head was recorded"
-  PATH="$FAKEBIN:$BASE_PATH" "$SCRIPT" --cr-record "$state" \
-    "$URL" "$HEAD" round3 2>/dev/null \
+  "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round3 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn 2>/dev/null \
     && fail "an unknown round action was recorded"
+  "$SCRIPT" --cr-record "$state" "$URL" "$HEAD" round1 2>/dev/null \
+    && fail "a round was recorded without dispatch"
+  "$SCRIPT" --cr-record "$state" "$URL" "$HEAD" escalated 2>/dev/null \
+    && fail "an escalation was recorded without two dispatched rounds"
+  "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round2 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn 2>/dev/null \
+    && fail "round 2 was dispatched without round 1"
+  [ ! -e "$dir/launches" ] || fail "an invalid dispatch launched a worker"
   printf 'malformed\n' > "$state/changes-requested-sweep.seen"
   chmod 0600 "$state/changes-requested-sweep.seen"
   scan "$dir" "$state" "$NOW" >/dev/null 2>&1 \
     && fail "a malformed round record did not fail the scan"
+  "$SCRIPT" --cr-dispatch "$state" "$URL" "$HEAD" round1 -- \
+    "$FAKEBIN/launch" "$dir/launches" 0 spawn 2>/dev/null \
+    && fail "a malformed round record did not fail dispatch"
+  [ ! -e "$dir/launches" ] || fail "a malformed round record launched a worker"
   pass "record refusals are loud and a malformed record fails the scan"
 }
 
+test_wakes_and_unsuccessful_dispatches_do_not_consume_rounds
 test_stale_changes_requested_reports_round_one
 test_fresh_or_ungreen_pull_requests_stay_silent
 test_rounds_advance_then_escalate_and_survive_restart
 test_new_head_restarts_rounds
+test_queue_removal_keeps_its_reason
 test_record_refusals_and_malformed_record_fail_the_scan

@@ -103,9 +103,9 @@
 #                          discovery retention across recovery and cleanup.
 #                          A sweep changes-requested line (round 1 or 2) or
 #                          changes-requested-escalated line is published as
-#                          its own check wake, then recorded through the
-#                          sweep's --cr-record so the round count survives
-#                          restarts. bin/fm-pr-queue-sweep.sh owns the line
+#                          its own check wake; only escalation is then recorded
+#                          through the sweep's --cr-record.
+#                          bin/fm-pr-queue-sweep.sh owns the line
 #                          format, the stale-head rule, and the record.
 #   check: captain hold <id> released after a passing probe
 #   check: captain hold <id> released but finalization failed; ...
@@ -3170,9 +3170,6 @@ EOF
             sweep_visible=${sweep_line% event=*}
             ;;
           'changes-requested https://github.com/'*' head='*' round='*' reviewers='*|'changes-requested-escalated https://github.com/'*' head='*' rounds=2 reviewers='*)
-            # bin/fm-pr-queue-sweep.sh owns this line and the round record.
-            # Publish the wake first, then record the round, mirroring the
-            # dequeue path above: a failed publish dispatches nothing.
             cr_rest=${sweep_line#* https://github.com/}
             cr_url="https://github.com/${cr_rest%% *}"
             cr_rest=${sweep_line##* head=}
@@ -3198,8 +3195,10 @@ EOF
             [ "${#cr_head}" -ge 40 ] && [ "${#cr_head}" -le 64 ] || continue
             sweep_reason="check: $SCRIPT_DIR/fm-pr-queue-sweep.sh: $sweep_line"
             fm_wake_append check "$cr_key" "$sweep_reason" || exit 1
-            "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --cr-record "$STATE" \
-              "$cr_url" "$cr_head" "$cr_action" || exit 1
+            if [ "$cr_action" = escalated ]; then
+              "$SCRIPT_DIR/fm-pr-queue-sweep.sh" --cr-record "$STATE" \
+                "$cr_url" "$cr_head" "$cr_action" || exit 1
+            fi
             check_sweep_output="${check_sweep_output}${sweep_reason}"$'\n'
             continue
             ;;
