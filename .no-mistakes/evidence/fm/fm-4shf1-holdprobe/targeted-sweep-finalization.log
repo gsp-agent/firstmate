@@ -1,0 +1,1 @@
+$ FM_TEST_ONLY=test_check_sweep_surfaces_interrupted_probe_releases bash tests/fm-watch-triage.test.sh

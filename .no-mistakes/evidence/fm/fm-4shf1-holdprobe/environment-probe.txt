@@ -1,0 +1,7 @@
+Load averages: (190.55810546875, 158.89453125, 96.923828125)
+['/bin/ps', '-p', '82726', '-o', 'pid=,ppid=,comm='] seconds=0.01 exit=0
+82726 63739 /opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python
+
+['tasks-axi', '--version'] seconds=2.42 exit=0
+0.2.6
+

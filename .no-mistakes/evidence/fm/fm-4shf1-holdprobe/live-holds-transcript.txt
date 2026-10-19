@@ -1,0 +1,73 @@
+
+SCENARIO: Sign-in and screen holds persist the hold protocol and release only when their dependency becomes ready
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/manual
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/manual
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold pending-sign-in --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'test -f "$FM_HOME/sign-in-ready"'
+OBSERVED: {"name": "Sign-in and screen holds persist the hold protocol and release only when their dependency becomes ready", "result": "fail", "live": true, "reason": "Command '['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh', 'hold', 'pending-sign-in', '--title', 'Complete the disposable sign-in', '--reason', 'sign in to the disposable service', '--dale-step', 'sign-in', '--probe', 'test -f \"$FM_HOME/sign-in-ready\"']' timed out after 40 seconds", "seconds": 40.51}
+
+SCENARIO: Ordinary holds retain deferral and deactivate old probes; Dale-step creation refuses deferral
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold plain --title 'Choose the next action' --reason 'ordinary choice' --until 2099-01-01
+OBSERVED: {"name": "Ordinary holds retain deferral and deactivate old probes; Dale-step creation refuses deferral", "result": "fail", "live": true, "reason": "Command '['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh', 'hold', 'plain', '--title', 'Choose the next action', '--reason', 'ordinary choice', '--until', '2099-01-01']' timed out after 40 seconds", "seconds": 40.3}
+
+SCENARIO: A changed hold survives a probe that passed for the prior hold
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold changing --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/manual/replace-hold.sh'
+changing
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe changing
+kept: changing probe-failed
+exit=0
+OBSERVED: {"name": "A changed hold survives a probe that passed for the prior hold", "result": "fail", "live": true, "reason": "", "seconds": 40.97}
+
+SCENARIO: Failed, unknown and hung probes retain the hold without notifying the parent; hung descendants stop
+$ FM_HOME=<disposable:quiet-parent> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/quiet-parent
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/quiet-parent
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/quiet-mate
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/quiet-mate
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold failed --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe false
+failed
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe failed
+kept: failed probe-failed
+exit=0
+probe duration seconds=7.63
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show failed --full
+task:
+  id: failed
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "sign in to the disposable service"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:19:01Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: false"
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold unknown --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe nonexistent-disposable-hold-probe
+OBSERVED: {"name": "Failed, unknown and hung probes retain the hold without notifying the parent; hung descendants stop", "result": "fail", "live": true, "reason": "Command '['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh', 'hold', 'unknown', '--title', 'Complete the disposable sign-in', '--reason', 'sign in to the disposable service', '--dale-step', 'sign-in', '--probe', 'nonexistent-disposable-hold-probe']' timed out after 40 seconds", "seconds": 75.59}
+
+SCENARIO: The existing watcher sweeps an idle home on cadence, keeps failures silent and emits one successful-release notification
+$ FM_HOME=<disposable:sweep> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/sweep
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/sweep
+exit=0
+$ FM_HOME=<disposable:sweep> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold signin --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'printf attempted >> "$FM_HOME/probe-attempts"; test -f "$FM_HOME/signed-in"'
+OBSERVED: {"name": "The existing watcher sweeps an idle home on cadence, keeps failures silent and emits one successful-release notification", "result": "fail", "live": true, "reason": "Command '['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh', 'hold', 'signin', '--title', 'Complete the disposable sign-in', '--reason', 'sign in to the disposable service', '--dale-step', 'sign-in', '--probe', 'printf attempted >> \"$FM_HOME/probe-attempts\"; test -f \"$FM_HOME/signed-in\"']' timed out after 40 seconds", "seconds": 40.36}
+
+SCENARIO: An interrupted parent publication emits a recovery notification and reprobe finalizes exactly once
+$ FM_HOME=<disposable:recovery-parent> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/recovery-parent
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/recovery-parent
+exit=0
+$ FM_HOME=<disposable:recovery-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/recovery-mate
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/recovery-mate
+exit=0
+$ FM_HOME=<disposable:recovery-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold signin --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'test -f "$FM_HOME/signed-in"'

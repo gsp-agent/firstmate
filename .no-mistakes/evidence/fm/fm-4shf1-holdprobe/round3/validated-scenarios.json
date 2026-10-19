@@ -1,0 +1,193 @@
+{
+  "target_commit": "29a0868483613e5a24e5744411e1382bb0a9acbf",
+  "scenarios": [
+    {
+      "name": "Sign-in and screen holds persist the hold protocol and release only when their dependency becomes ready",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 62.68,
+      "evidence": "live-holds-round3-transcript.txt"
+    },
+    {
+      "name": "Ordinary holds retain deferral and deactivate old probes; Dale-step creation refuses deferral",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 97.42,
+      "evidence": "live-holds-round3-transcript.txt"
+    },
+    {
+      "name": "A changed hold survives a probe that passed for the prior hold",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 33.16,
+      "evidence": "live-holds-round3-transcript.txt"
+    },
+    {
+      "name": "Failed, unknown and hung probes retain the hold without notifying the parent; hung descendants stop",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 172.03,
+      "evidence": "live-holds-round3-transcript.txt"
+    },
+    {
+      "name": "The existing watcher sweeps an idle home on cadence, keeps failures silent and emits one successful-release notification",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 139.42,
+      "evidence": "live-holds-round3-transcript.txt"
+    },
+    {
+      "name": "An interrupted parent publication emits a recovery notification and reprobe finalizes exactly once",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 157.05,
+      "evidence": "live-holds-round3-transcript.txt"
+    },
+    {
+      "name": "Creation refuses answered world checks from the actual asks-rule CLI for matching published records",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 7.87,
+      "evidence": "live-world-checks-retry-transcript.txt"
+    },
+    {
+      "name": "Creation refuses duplicate world checks from the actual asks-rule CLI for matching published records",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 6.46,
+      "evidence": "live-world-checks-retry-transcript.txt"
+    },
+    {
+      "name": "Creation ignores category and form refusals from the actual asks rule",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "evidence": "live-world-checks-retry-transcript.txt"
+    },
+    {
+      "name": "Normalization failure after release emits an actionable recovery notification; reprobe completes the original occurrence once",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 77.14,
+      "evidence": "live-holds-round3-normalize-transcript.txt"
+    },
+    {
+      "name": "Verification read failure after release emits an actionable recovery notification; reprobe completes the original occurrence once",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 80.32,
+      "evidence": "live-holds-round3-verify-transcript.txt"
+    },
+    {
+      "name": "Request retirement failure after release emits an actionable recovery notification; reprobe completes the original occurrence once",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "seconds": 187.16,
+      "evidence": "live-holds-round3-retire-transcript.txt"
+    },
+    {
+      "name": "An otherwise idle real Claude home arms for its sole probe hold, delivers the final release through exit 2, then stays quiet on the next Stop",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "evidence": "live-primary-t-transcript.txt"
+    },
+    {
+      "name": "A Dale sign-in hold releases when the installed Claude authentication-status probe passes, without changing credentials",
+      "result": "pass",
+      "live": true,
+      "reason": "",
+      "evidence": "real-signin-probe-transcript.txt"
+    }
+  ],
+  "targeted_regressions": [
+    {
+      "name": "dale-step",
+      "command": [
+        "bash",
+        "tests/fm-captain-hold-lifecycle.test.sh",
+        "--dale-step-only"
+      ],
+      "env": {},
+      "status": 124,
+      "seconds": 900.02,
+      "driver_correction": "The 900-second aggregate deadline interrupted a progressing test. Five existing cases completed before the deadline; the two remaining original test functions passed independently with a larger per-function bound.",
+      "resumed_functions": [
+        {
+          "name": "test_reprobe_release_retries_finalize_one_occurrence",
+          "status": 0,
+          "seconds": 447.82
+        },
+        {
+          "name": "test_failed_and_unknown_probes_do_not_notify_the_parent",
+          "status": 0,
+          "seconds": 31.08
+        }
+      ]
+    },
+    {
+      "name": "sweep-probes",
+      "command": [
+        "bash",
+        "tests/fm-watch-triage.test.sh"
+      ],
+      "env": {
+        "FM_TEST_ONLY": "test_check_sweep_reprobes_captain_holds"
+      },
+      "status": 0,
+      "seconds": 223.74
+    },
+    {
+      "name": "sweep-finalization",
+      "command": [
+        "bash",
+        "tests/fm-watch-triage.test.sh"
+      ],
+      "env": {
+        "FM_TEST_ONLY": "test_check_sweep_surfaces_interrupted_probe_releases"
+      },
+      "status": 0,
+      "seconds": 375.7
+    },
+    {
+      "name": "idle-autoarm",
+      "command": [
+        "bash",
+        "tests/fm-claude-stop-autoarm.test.sh"
+      ],
+      "env": {
+        "FM_TEST_ONLY": "test_arms_for_captain_probe_hold_without_inflight"
+      },
+      "status": 0,
+      "seconds": 91.08
+    },
+    {
+      "name": "plist-semantics",
+      "command": [
+        "bash",
+        "tests/fm-drift-nightly.test.sh"
+      ],
+      "env": {
+        "FM_TEST_ONLY": "test_install_and_uninstall_round_trip"
+      },
+      "status": 0,
+      "seconds": 4.36
+    }
+  ],
+  "cleanup": {
+    "disposable_worktree_paths_remaining": [],
+    "git_status_porcelain": "",
+    "primary_tmux_servers": "Stopped on their private fm-lab sockets; watcher stop completed before directory removal."
+  }
+}

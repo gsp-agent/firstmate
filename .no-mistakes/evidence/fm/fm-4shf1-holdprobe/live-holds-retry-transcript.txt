@@ -1,0 +1,408 @@
+
+SCENARIO: Sign-in and screen holds persist the hold protocol and release only when their dependency becomes ready
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/manual
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/manual
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold pending-sign-in --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'test -f "$FM_HOME/sign-in-ready"'
+pending-sign-in
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show pending-sign-in --full
+task:
+  id: pending-sign-in
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "sign in to the disposable service"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:24:27Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: test -f \"$FM_HOME/sign-in-ready\""
+exit=0
+OBSERVED: {"name": "Sign-in and screen holds persist the hold protocol and release only when their dependency becomes ready", "result": "fail", "live": true, "reason": "Hold probe: test -f \"$FM_HOME/sign-in-ready\"", "seconds": 11.67}
+
+SCENARIO: Ordinary holds retain deferral and deactivate old probes; Dale-step creation refuses deferral
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold plain --title 'Choose the next action' --reason 'ordinary choice' --until 2099-01-01
+plain
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show plain --full
+task:
+  id: plain
+  title: Choose the next action
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "ordinary choice"
+  hold_kind: captain
+  hold_until: 2099-01-01
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:24:37Z"
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold refused-sign-in --title 'Complete the step' --reason 'complete the step' --dale-step sign-in --probe true --until 2099-01-01
+
+stderr: fm-captain-hold: --until cannot be combined with --dale-step
+exit=1
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show refused-sign-in --full
+error: "Task \"refused-sign-in\" not found in this backlog"
+code: NOT_FOUND
+help[1]: Run `tasks-axi list` to see existing tasks
+exit=1
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold refused-screen --title 'Complete the step' --reason 'complete the step' --dale-step screen --probe true --until 2099-01-01
+
+stderr: fm-captain-hold: --until cannot be combined with --dale-step
+exit=1
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show refused-screen --full
+error: "Task \"refused-screen\" not found in this backlog"
+code: NOT_FOUND
+help[1]: Run `tasks-axi list` to see existing tasks
+exit=1
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold ordinary-held --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'printf attempted >> "$FM_HOME/historical-attempts"'
+ordinary-held
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold ordinary-held --reason 'choose the next action'
+ordinary-held
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe ordinary-held
+kept: ordinary-held no-probe
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show ordinary-held --full
+task:
+  id: ordinary-held
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "choose the next action"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:24:48Z"
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold ordinary-released --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'printf attempted >> "$FM_HOME/historical-attempts"'
+ordinary-released
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe ordinary-released
+released: ordinary-released
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold ordinary-released --reason 'choose the next action'
+ordinary-released
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe ordinary-released
+kept: ordinary-released no-probe
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show ordinary-released --full
+task:
+  id: ordinary-released
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "choose the next action"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:25:35Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 611121426e1bb308a3628c736e8d3fb80cdef46c722cd17db8904d331bd7db2a\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: printf attempted >> \"$FM_HOME/historical-attempts\""
+exit=0
+OBSERVED: {"name": "Ordinary holds retain deferral and deactivate old probes; Dale-step creation refuses deferral", "result": "pass", "live": true, "reason": "", "seconds": 67.77}
+
+SCENARIO: A changed hold survives a probe that passed for the prior hold
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold changing --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/manual/replace-hold.sh'
+changing
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe changing
+kept: changing stamp-changed
+exit=0
+$ FM_HOME=<disposable:manual> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show changing --full
+task:
+  id: changing
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "sign in to the disposable service"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2099-01-01T00:00:00Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: replacement screen\nHold probe: false"
+exit=0
+OBSERVED: {"name": "A changed hold survives a probe that passed for the prior hold", "result": "pass", "live": true, "reason": "", "seconds": 22.13}
+
+SCENARIO: Failed, unknown and hung probes retain the hold without notifying the parent; hung descendants stop
+$ FM_HOME=<disposable:quiet-parent> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/quiet-parent
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/quiet-parent
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/quiet-mate
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/quiet-mate
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold failed --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe false
+failed
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe failed
+kept: failed probe-failed
+exit=0
+probe duration seconds=0.7
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show failed --full
+task:
+  id: failed
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "sign in to the disposable service"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:26:07Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: false"
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold unknown --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe nonexistent-disposable-hold-probe
+unknown
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe unknown
+kept: unknown probe-failed
+exit=0
+probe duration seconds=1.34
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show unknown --full
+task:
+  id: unknown
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "sign in to the disposable service"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:26:21Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: nonexistent-disposable-hold-probe"
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold hung --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/quiet-mate/hung.sh'
+hung
+exit=0
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe hung
+kept: hung probe-failed
+exit=0
+probe duration seconds=11.33
+$ FM_HOME=<disposable:quiet-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show hung --full
+task:
+  id: hung
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "sign in to the disposable service"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:26:29Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/quiet-mate/hung.sh"
+exit=0
+timeout descendant stopped: hung.pid
+timeout descendant stopped: child.pid
+OBSERVED: {"name": "Failed, unknown and hung probes retain the hold without notifying the parent; hung descendants stop", "result": "pass", "live": true, "reason": "", "seconds": 43.58}
+
+SCENARIO: The existing watcher sweeps an idle home on cadence, keeps failures silent and emits one successful-release notification
+$ FM_HOME=<disposable:sweep> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/sweep
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/sweep
+exit=0
+$ FM_HOME=<disposable:sweep> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold signin --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'printf attempted >> "$FM_HOME/probe-attempts"; test -f "$FM_HOME/signed-in"'
+signin
+exit=0
+$ FM_HOME=<disposable:sweep> bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/predicate.sh
+needed=true in-flight=0 checks=0
+exit=0
+$ FM_HOME=<disposable:sweep> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold unknown --title 'Complete the disposable screen' --reason 'sign in to the disposable service' --dale-step screen --probe nonexistent-disposable-hold-probe
+unknown
+exit=0
+$ FM_HOME=<disposable:sweep> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold hung --title 'Complete the disposable screen' --reason 'sign in to the disposable service' --dale-step screen --probe 'sleep 120'
+hung
+exit=0
+$ FM_HOME=<disposable:sweep> FM_POLL=1 FM_CHECK_INTERVAL=999999 bin/fm-watch.sh
+first completed sweep: all probes kept; stdout empty; durable notification queue empty
+watcher output: ['check: captain hold signin released after a passing probe']
+durable notification: 1792409279	1	check	captain-hold-probe-signin	check: captain hold signin released after a passing probe
+
+$ FM_HOME=<disposable:sweep> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show signin --full
+task:
+  id: signin
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: f3adea371c406e8ea8c3f73c9f263c8359833a4f0f74454a02fb068ea5cee793\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: printf attempted >> \"$FM_HOME/probe-attempts\"; test -f \"$FM_HOME/signed-in\"\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: printf attempted >> \"$FM_HOME/probe-attempts\"; test -f \"$FM_HOME/signed-in\""
+exit=0
+$ FM_HOME=<disposable:sweep> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show unknown --full
+task:
+  id: unknown
+  title: Complete the disposable screen
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "sign in to the disposable service"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:27:03Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: nonexistent-disposable-hold-probe"
+exit=0
+$ FM_HOME=<disposable:sweep> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show hung --full
+task:
+  id: hung
+  title: Complete the disposable screen
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "sign in to the disposable service"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T11:27:14Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: sleep 120"
+exit=0
+OBSERVED: {"name": "The existing watcher sweeps an idle home on cadence, keeps failures silent and emits one successful-release notification", "result": "pass", "live": true, "reason": "", "seconds": 86.19}
+
+SCENARIO: An interrupted parent publication emits a recovery notification and reprobe finalizes exactly once
+$ FM_HOME=<disposable:recovery-parent> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/recovery-parent
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/recovery-parent
+exit=0
+$ FM_HOME=<disposable:recovery-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/recovery-mate
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/retry/recovery-mate
+exit=0
+$ FM_HOME=<disposable:recovery-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold signin --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'test -f "$FM_HOME/signed-in"'
+signin
+exit=0
+$ FM_HOME=<disposable:recovery-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh bind test-board
+bound: test-board -> (any)
+exit=0
+reconcile request result: reconcile: signin
+reconcile-requests: created=1 skipped=0
+
+$ FM_HOME=<disposable:recovery-mate> FM_POLL=1 FM_CHECK_INTERVAL=999999 bin/fm-watch.sh
+watcher output: ['check: captain hold signin released but finalization failed; run bin/fm-captain-hold.sh reprobe signin to finish it']
+$ FM_HOME=<disposable:recovery-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show signin --full
+task:
+  id: signin
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 4406a9b9dcf34f1df77b38990f4ef1e3639fa021fba1403c25485147cb671717\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: test -f \"$FM_HOME/signed-in\"\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: test -f \"$FM_HOME/signed-in\""
+exit=0
+$ FM_HOME=<disposable:recovery-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe signin
+released: signin
+exit=0
+$ FM_HOME=<disposable:recovery-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe signin
+released: signin
+exit=0
+$ FM_HOME=<disposable:recovery-mate> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show signin --full
+task:
+  id: signin
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 4406a9b9dcf34f1df77b38990f4ef1e3639fa021fba1403c25485147cb671717\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: test -f \"$FM_HOME/signed-in\"\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: test -f \"$FM_HOME/signed-in\""
+exit=0
+parent channel:
+needs-decision [key=captain-hold-signin-1] [at=1792409317]: captain hold signin: sign in to the disposable service
+resolved [key=captain-hold-signin-1] [at=1792409340]: captain hold signin: probe-released
+
+OBSERVED: {"name": "An interrupted parent publication emits a recovery notification and reprobe finalizes exactly once", "result": "pass", "live": true, "reason": "", "seconds": 52.02}

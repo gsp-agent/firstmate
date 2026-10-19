@@ -1,0 +1,42 @@
+Before reprobe:
+task:
+  id: signin
+  title: Sign into disposable lab
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "sign in to the disposable service"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T12:09:19Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: claude auth status >/dev/null 2>&1"
+
+Probe command: claude auth status >/dev/null 2>&1
+released: signin
+
+After reprobe:
+task:
+  id: signin
+  title: Sign into disposable lab
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 32a7dfec00a7d1e2b13c11037f73e9f5764d878c609f8bde71bded24955615ba\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: claude auth status >/dev/null 2>&1\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: claude auth status >/dev/null 2>&1"

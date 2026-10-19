@@ -1,0 +1,3 @@
+$ FM_TEST_ONLY=test_check_sweep_reprobes_captain_holds bash tests/fm-watch-triage.test.sh
+fm-captain-hold: tasks-axi show probe-failed exceeded its 10s backlog read bound
+not ok - could not create the failed sweep fixture

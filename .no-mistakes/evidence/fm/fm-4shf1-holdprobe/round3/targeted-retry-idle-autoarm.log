@@ -1,0 +1,2 @@
+$ FM_TEST_ONLY=test_arms_for_captain_probe_hold_without_inflight bash tests/fm-claude-stop-autoarm.test.sh
+ok - auto-arm: a standalone captain probe hold arms and delivers its final release notification once

@@ -1,0 +1,2 @@
+$ FM_TEST_ONLY=test_install_and_uninstall_round_trip bash tests/fm-drift-nightly.test.sh
+ok - install writes the nightly agent and its log path, and uninstall removes it, keeps the log, and repeats

@@ -1,0 +1,1 @@
+check: captain hold signin released after a passing probe

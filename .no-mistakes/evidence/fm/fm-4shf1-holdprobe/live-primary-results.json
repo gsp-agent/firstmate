@@ -1,0 +1,6 @@
+{
+  "name": "A real Claude primary with only a standalone probe hold enters automatic monitoring and receives a release notification",
+  "result": "fail",
+  "live": true,
+  "reason": "the only probe hold released but the primary received no hook notification (hook exit=0)"
+}

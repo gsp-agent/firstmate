@@ -1,0 +1,20 @@
+{
+  "only_probe_hold": {
+    "predicate": "needed=true in-flight=0 checks=0",
+    "stop_handler_exit": 0,
+    "stop_handler_stdout": "",
+    "stop_handler_stderr": "",
+    "generation": "epoch=1 owner_pid=66913 outcome=clean updated_at=1792409421\nMon Oct 19 06:29:51 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/p/bin/fm-claude-stop-autoarm.sh\n",
+    "queued_notification": "1792409418\t1\tcheck\tcaptain-hold-probe-signin\tcheck: captain hold signin released after a passing probe\n",
+    "post_release_predicate": "needed=false in-flight=0 checks=0"
+  },
+  "second_probe_hold_remains": {
+    "predicate": "needed=true in-flight=0 checks=0",
+    "stop_handler_exit": 2,
+    "stop_handler_stdout": "",
+    "stop_handler_stderr": "firstmate watcher wake - one supervision event needs a handling turn now.\ncheck: captain hold signin released after a passing probe\nRun bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.\n",
+    "generation": "epoch=1 owner_pid=88268 outcome=rewake updated_at=1792409546 session_pid=80942 recovery_generation=88946.1792409540.dYSSRP\nMon Oct 19 06:32:05 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/q/bin/fm-claude-stop-autoarm.sh\n",
+    "queued_notification": "1792409540\t1\tcheck\tcaptain-hold-probe-signin\tcheck: captain hold signin released after a passing probe\n",
+    "post_release_predicate": "needed=true in-flight=0 checks=0"
+  }
+}

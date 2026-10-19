@@ -1,0 +1,8 @@
+$  bash tests/fm-captain-hold-lifecycle.test.sh --dale-step-only
+ok - captain holds become visible only after their hold-set timestamp is durable
+ok - release frees held work with the captain's words recorded and the body preserved
+ok - Dale-step holds write owner, timeout and probe lines, refuse answered or duplicate asks at creation, and release only on a passing probe
+ok - ordinary re-holds deactivate released and still-held sign-in and screen probes
+ok - the locked reprobe read rejects a hold changed while its probe ran
+ok - probe releases retry unhold, normalization, publication and retirement without duplicating occurrences
+ok - failed and unknown probes keep their holds without notifying the parent

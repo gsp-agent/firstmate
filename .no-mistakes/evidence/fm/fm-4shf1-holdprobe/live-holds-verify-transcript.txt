@@ -1,0 +1,95 @@
+
+SCENARIO: An interrupted parent publication emits a recovery notification and reprobe finalizes exactly once
+$ FM_HOME=<disposable:recovery-parent-verify> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/verify/recovery-parent-verify
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/verify/recovery-parent-verify
+exit=0
+$ FM_HOME=<disposable:recovery-mate-verify> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/verify/recovery-mate-verify
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/.test-phase/verify/recovery-mate-verify
+exit=0
+$ FM_HOME=<disposable:recovery-mate-verify> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh hold signin --title 'Complete the disposable sign-in' --reason 'sign in to the disposable service' --dale-step sign-in --probe 'test -f "$FM_HOME/signed-in"'
+signin
+exit=0
+$ FM_HOME=<disposable:recovery-mate-verify> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh bind test-board
+bound: test-board -> (any)
+exit=0
+reconcile request result: reconcile: signin
+reconcile-requests: created=1 skipped=0
+
+$ FM_HOME=<disposable:recovery-mate-verify> FM_POLL=1 FM_CHECK_INTERVAL=999999 bin/fm-watch.sh
+Real filesystem fault applied after unhold: verify
+watcher output: ['check: captain hold signin released but finalization failed; run bin/fm-captain-hold.sh reprobe signin to finish it']
+$ FM_HOME=<disposable:recovery-mate-verify> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show signin --full
+task:
+  id: signin
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 4406a9b9dcf34f1df77b38990f4ef1e3639fa021fba1403c25485147cb671717\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: test -f \"$FM_HOME/signed-in\"\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: test -f \"$FM_HOME/signed-in\""
+exit=0
+Decoded persisted body:
+Resolution recorded by fm-captain-hold.
+Decision digest: 4406a9b9dcf34f1df77b38990f4ef1e3639fa021fba1403c25485147cb671717
+Resolution mode: probe-released
+
+Reconciliation evidence:
+Probe passed for the Dale step this hold waits on: test -f "$FM_HOME/signed-in"
+
+Decision owner: dale
+Hold timeout seconds: 3600
+Hold reason: sign in to the disposable service
+Hold probe: test -f "$FM_HOME/signed-in"
+$ FM_HOME=<disposable:recovery-mate-verify> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe signin
+released: signin
+exit=0
+$ FM_HOME=<disposable:recovery-mate-verify> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-captain-hold.sh reprobe signin
+released: signin
+exit=0
+$ FM_HOME=<disposable:recovery-mate-verify> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5988E2EDNGT1XV34F05X546/bin/fm-tasks-axi.sh show signin --full
+task:
+  id: signin
+  title: Complete the disposable sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 4406a9b9dcf34f1df77b38990f4ef1e3639fa021fba1403c25485147cb671717\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: test -f \"$FM_HOME/signed-in\"\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: test -f \"$FM_HOME/signed-in\""
+exit=0
+Decoded persisted body:
+Resolution recorded by fm-captain-hold.
+Decision digest: 4406a9b9dcf34f1df77b38990f4ef1e3639fa021fba1403c25485147cb671717
+Resolution mode: probe-released
+
+Reconciliation evidence:
+Probe passed for the Dale step this hold waits on: test -f "$FM_HOME/signed-in"
+
+Decision owner: dale
+Hold timeout seconds: 3600
+Hold reason: sign in to the disposable service
+Hold probe: test -f "$FM_HOME/signed-in"
+parent channel:
+needs-decision [key=captain-hold-signin-1] [at=1792409723]: captain hold signin: sign in to the disposable service
+resolved [key=captain-hold-signin-1] [at=1792409742]: captain hold signin: probe-released
+
+OBSERVED: {"name": "An interrupted parent publication emits a recovery notification and reprobe finalizes exactly once", "result": "pass", "live": true, "reason": "", "seconds": 31.44}

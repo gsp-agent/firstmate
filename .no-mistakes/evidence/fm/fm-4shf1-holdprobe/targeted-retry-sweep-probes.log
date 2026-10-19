@@ -1,0 +1,2 @@
+$ FM_TEST_ONLY=test_check_sweep_reprobes_captain_holds bash tests/fm-watch-triage.test.sh
+ok - the executable check sweep bounds probes, keeps failures quiet, and wakes once after release

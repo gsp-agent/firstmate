@@ -1,0 +1,2 @@
+$ FM_TEST_ONLY=test_failed_and_unknown_probes_do_not_notify_the_parent bash tests/.validation-lifecycle-selection.test.sh
+ok - failed and unknown probes keep their holds without notifying the parent

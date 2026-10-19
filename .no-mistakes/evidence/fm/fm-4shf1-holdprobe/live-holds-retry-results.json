@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Sign-in and screen holds persist the hold protocol and release only when their dependency becomes ready",
+    "result": "fail",
+    "live": true,
+    "reason": "Hold probe: test -f \"$FM_HOME/sign-in-ready\"",
+    "seconds": 11.67
+  },
+  {
+    "name": "Ordinary holds retain deferral and deactivate old probes; Dale-step creation refuses deferral",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "seconds": 67.77
+  },
+  {
+    "name": "A changed hold survives a probe that passed for the prior hold",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "seconds": 22.13
+  },
+  {
+    "name": "Failed, unknown and hung probes retain the hold without notifying the parent; hung descendants stop",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "seconds": 43.58
+  },
+  {
+    "name": "The existing watcher sweeps an idle home on cadence, keeps failures silent and emits one successful-release notification",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "seconds": 86.19
+  },
+  {
+    "name": "An interrupted parent publication emits a recovery notification and reprobe finalizes exactly once",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "seconds": 52.02
+  }
+]

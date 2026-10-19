@@ -1,0 +1,2 @@
+$ FM_TEST_ONLY=test_reprobe_release_retries_finalize_one_occurrence bash tests/.validation-lifecycle-selection.test.sh
+ok - probe releases retry unhold, normalization, publication and retirement without duplicating occurrences

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Creation refuses answered world checks from the actual asks-rule CLI for matching published records",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "seconds": 7.87
+  },
+  {
+    "name": "Creation refuses duplicate world checks from the actual asks-rule CLI for matching published records",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "seconds": 6.46
+  },
+  {
+    "name": "Creation ignores category and form refusals from the actual asks rule",
+    "result": "pass",
+    "live": true,
+    "reason": ""
+  }
+]

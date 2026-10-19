@@ -1,0 +1,1 @@
+check: captain hold signin released but finalization failed; run bin/fm-captain-hold.sh reprobe signin to finish it

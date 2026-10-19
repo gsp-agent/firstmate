@@ -1,0 +1,10 @@
+{
+  "command": "bin/fm-tasks-axi.sh show pending-sign-in --full -> actual hold-domain.parse_body",
+  "body": "Captain hold set: 2026-10-19T11:24:27Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: sign in to the disposable service\nHold probe: test -f \"$FM_HOME/sign-in-ready\"",
+  "parsed": {
+    "hold_set": "2026-10-19T11:24:27Z",
+    "owner": "dale",
+    "timeout_s": 3600,
+    "reason": "sign in to the disposable service"
+  }
+}

@@ -1,0 +1,61 @@
+[
+  {
+    "name": "dale-step",
+    "command": [
+      "bash",
+      "tests/fm-captain-hold-lifecycle.test.sh",
+      "--dale-step-only"
+    ],
+    "env": {},
+    "status": 124,
+    "seconds": 900.02
+  },
+  {
+    "name": "sweep-probes",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_check_sweep_reprobes_captain_holds"
+    },
+    "status": 0,
+    "seconds": 223.74
+  },
+  {
+    "name": "sweep-finalization",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_check_sweep_surfaces_interrupted_probe_releases"
+    },
+    "status": 0,
+    "seconds": 375.7
+  },
+  {
+    "name": "idle-autoarm",
+    "command": [
+      "bash",
+      "tests/fm-claude-stop-autoarm.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_arms_for_captain_probe_hold_without_inflight"
+    },
+    "status": 0,
+    "seconds": 91.08
+  },
+  {
+    "name": "plist-semantics",
+    "command": [
+      "bash",
+      "tests/fm-drift-nightly.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_install_and_uninstall_round_trip"
+    },
+    "status": 0,
+    "seconds": 4.36
+  }
+]

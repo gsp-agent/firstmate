@@ -1,0 +1,2 @@
+$ FM_TEST_ONLY=test_check_sweep_surfaces_interrupted_probe_releases bash tests/fm-watch-triage.test.sh
+ok - the check sweep wakes for interrupted releases, keeps held failures quiet, and supports replay

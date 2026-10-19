@@ -1,0 +1,9 @@
+[
+  {
+    "name": "An interrupted parent publication emits a recovery notification and reprobe finalizes exactly once",
+    "result": "pass",
+    "live": true,
+    "reason": "",
+    "seconds": 77.14
+  }
+]
