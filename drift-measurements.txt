@@ -778,3 +778,22 @@ Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --up
 Required result: exit 0, zero path-drift and carried-unproven lines, and 25 pending lines naming .agent-config-dtjsb on the resulting head.
 Before, an unreferenced scratch commit with this tree on d636014a, checked with f9e520b1's manifest (--fork <scratch sha> --proof <f9e520b1's drift-proof.txt>): exit 1, path-drift for bin/fm-drift-nightly.sh, docs/scripts.md, drift-measurements.txt, drift-proof.txt and tests/fm-drift-nightly.test.sh, and d636014a and the scratch commit printed as unproven.
 Checked before the commit on that scratch commit with this manifest (--fork <scratch sha>): exit 0, 25 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, keep for f9e520b1, d636014a and the scratch commit, and the same 35 unproven cut commits that f9e520b1's own check prints.
+
+R23 merge of upstream-lean
+Measured: 2026-10-18 (Central), git 2.56.0
+upstream-lean gained one commit since 9ed80766: 9cfe7cfe (https://github.com/gsp-agent/firstmate/pull/42), which clears the required CI checks on upstream-lean and runs the supervision-host suite as two CI lanes. Of its 18 files, bin/fm-pr-made-with.sh, bin/fm-pr-queue-sweep.sh and the two lane wrappers exist only in the fork.
+c5d4fc87 merges it rather than rebasing onto it, because a rebase rewrites every commit hash this manifest pins and flattens the 1f45a22e merge; the head contains upstream-lean either way.
+The one conflict, the supervision-host case list, takes PR 42's two-lane layout without test_routine_successor_close_during_main_turn_is_taken_by_the_host, which 9c86a2e0 cut with PR 34's rearm-resurface offer; the two sides' lists differ in that case alone.
+9cfe7cfe is accepted with proof pending .agent-config-dtjsb, the class Firstmate's decision post-cut-upstream-lean (option B) gave another lane's reviewed PR merged into upstream-lean after the cut.
+Suites on the merged tree:
+$ bash tests/fm-test-run.test.sh: 43 checks passed, including "supervision-host: unset lane runs all cases; CI runs lanes a and b once each on different serial shards" and "changed selection runs each supervision-host case once, through the lanes or the subject".
+$ bash tests/fm-drift-nightly.test.sh: 32 checks passed.
+$ bash tests/fm-teardown.test.sh: 155 checks passed, including PR 42's harness record in the registration fixture beside the restored teardown record keeping.
+
+R23 finalization
+The manifest lists 550f3e6e with its R22 proof and the merge c5d4fc87 with the section above, names 9cfe7cfe as pending .agent-config-dtjsb, and its fixed-parent entry names c5d4fc87 so it selects only the commit delivering this manifest.
+Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
+Required result: exit 0, zero path-drift and carried-unproven lines, and 26 pending lines naming .agent-config-dtjsb on the resulting head.
+Before, an unreferenced scratch commit with this tree on c5d4fc87, checked with 550f3e6e's manifest (--fork <scratch sha> --proof <550f3e6e's drift-proof.txt>): exit 1, path-drift for the 18 files 9cfe7cfe changes plus drift-measurements.txt and drift-proof.txt, and 9cfe7cfe and the scratch commit printed as unproven.
+Checked before the commit on that scratch commit with this manifest (--fork <scratch sha>): exit 0, 26 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, keep for 550f3e6e and the scratch commit, and the same 35 unproven cut commits that 550f3e6e's own check prints.
+The same check with 9cfe7cfe's pending line removed: exit 1 with "carried-unproven: 9cfe7cfef9a9be2e1ffb82a456ff73e421cce143 fix: clear the required CI checks on upstream-lean and split supervision-host tests into two lanes (#42)".
