@@ -11,6 +11,7 @@ set -euo pipefail
 
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+unset FM_SUPERVISION_MODEL
 
 TMP_ROOT=$(fm_test_tmproot fm-inbox)
 INBOX_BIN="$ROOT/bin/fm-inbox.sh"
