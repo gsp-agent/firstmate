@@ -1,0 +1,10 @@
+$ bash bin/fm-test-run.sh --jobs 1 tests/fm-watch-triage.test.sh
+Scenario environment: {"FM_TEST_ONLY": "test_turn_ended_not_working_surfaced"}
+FM_TEST_BEGIN 2026-10-19T04:26:30Z tests/fm-watch-triage.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - a bare turn-end whose crew is not provably working is surfaced (the swallowed-finish fix)
+FM_TEST_END 2026-10-19T04:26:34Z tests/fm-watch-triage.test.sh exit=0 duration_ms=4166 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=4262
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=4166 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-triage.test.sh duration_ms=4166
+
+CLI exit=0 elapsed_seconds=4.44 timeout=False

@@ -1,0 +1,26 @@
+[
+  {
+    "case": "pid-KILL",
+    "runner_exit": -9,
+    "surviving_pids": [],
+    "later_script_started": false,
+    "begin_markers": 1,
+    "cleanup": "TERM"
+  },
+  {
+    "case": "group-KILL",
+    "runner_exit": -9,
+    "surviving_pids": [],
+    "later_script_started": false,
+    "begin_markers": 1,
+    "cleanup": "TERM"
+  },
+  {
+    "case": "group-INT",
+    "runner_exit": 130,
+    "surviving_pids": [],
+    "later_script_started": false,
+    "begin_markers": 1,
+    "cleanup": "INT"
+  }
+]

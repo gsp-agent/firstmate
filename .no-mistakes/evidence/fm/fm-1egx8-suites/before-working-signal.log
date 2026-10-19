@@ -1,0 +1,54 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/before/tests/fm-watch-triage.test.sh
+Scenario environment: {"FM_TEST_ONLY": "test_provably_working_signal_absorbed"}
+not ok - watcher exited for a working: signal whose crew is provably working (should absorb): 
+
+CLI exit=1 elapsed_seconds=84.37 timeout=False
+Observed real watcher files while the selected case was running:
+{"beat_mtime": 1792383898, "last_check_exists": false, "suppressor_exists": false, "wake_output_bytes": 0}
+{"beat_mtime": 1792383898, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383902, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383904, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383905, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383907, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383909, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383910, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383912, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383914, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383915, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383917, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383918, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383920, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383922, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383924, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383925, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383927, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383929, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383930, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383933, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383935, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383936, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383938, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383940, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383941, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383943, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383944, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383946, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383949, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383951, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383952, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383954, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383956, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383958, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383960, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383962, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383964, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383965, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383967, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383969, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383971, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383972, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383974, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383975, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383977, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383978, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}
+{"beat_mtime": 1792383980, "last_check_exists": false, "suppressor_exists": true, "wake_output_bytes": 0}

@@ -1,0 +1,27 @@
+
+CASE pid-KILL
+$ bash bin/fm-test-run.sh --jobs 1 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/signals/pid-KILL/wait.test.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/signals/pid-KILL/later.test.sh
+suite_and_child_pids=[34446, 34487] runner_pid=34216
+FM_TEST_BEGIN 2026-10-19T04:34:35Z /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/signals/pid-KILL/wait.test.sh family=unclassified expected_gate_skip=none
+fixture: suite and child started
+fixture: TERM cleanup finished
+
+{"begin_markers": 1, "case": "pid-KILL", "cleanup": "TERM", "later_script_started": false, "runner_exit": -9, "surviving_pids": []}
+
+CASE group-KILL
+$ bash bin/fm-test-run.sh --jobs 1 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/signals/group-KILL/wait.test.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/signals/group-KILL/later.test.sh
+suite_and_child_pids=[34976, 34986] runner_pid=34842
+FM_TEST_BEGIN 2026-10-19T04:34:36Z /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/signals/group-KILL/wait.test.sh family=unclassified expected_gate_skip=none
+fixture: suite and child started
+fixture: TERM cleanup finished
+
+{"begin_markers": 1, "case": "group-KILL", "cleanup": "TERM", "later_script_started": false, "runner_exit": -9, "surviving_pids": []}
+
+CASE group-INT
+$ bash bin/fm-test-run.sh --jobs 1 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/signals/group-INT/wait.test.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/signals/group-INT/later.test.sh
+suite_and_child_pids=[35282, 35297] runner_pid=35152
+FM_TEST_BEGIN 2026-10-19T04:34:36Z /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz/signals/group-INT/wait.test.sh family=unclassified expected_gate_skip=none
+fixture: suite and child started
+fixture: INT cleanup finished
+
+{"begin_markers": 1, "case": "group-INT", "cleanup": "INT", "later_script_started": false, "runner_exit": 130, "surviving_pids": []}

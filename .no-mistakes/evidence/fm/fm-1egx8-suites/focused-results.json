@@ -1,0 +1,106 @@
+[
+  {
+    "name": "lab-create",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 0.4,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/lab-create.log"
+  },
+  {
+    "name": "before-working-signal",
+    "exit": 1,
+    "expected_exit": 1,
+    "seconds": 84.37,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/before-working-signal.log"
+  },
+  {
+    "name": "after-provably_working_signal_absorbed",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 4.75,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/after-provably_working_signal_absorbed.log"
+  },
+  {
+    "name": "after-turn_ended_provably_working_absorbed",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 4.38,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/after-turn_ended_provably_working_absorbed.log"
+  },
+  {
+    "name": "after-turn_ended_not_working_surfaced",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 4.44,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/after-turn_ended_not_working_surfaced.log"
+  },
+  {
+    "name": "after-actionable_signal_surfaced",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 4.75,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/after-actionable_signal_surfaced.log"
+  },
+  {
+    "name": "after-beacon_stays_fresh_while_absorbing",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 11.97,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/after-beacon_stays_fresh_while_absorbing.log"
+  },
+  {
+    "name": "poll-check-boundary",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 17.34,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/poll-check-boundary.log"
+  },
+  {
+    "name": "runner-contract",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 677.99,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/runner-contract.log"
+  },
+  {
+    "name": "timeout-contract",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 38.47,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/timeout-contract.log"
+  },
+  {
+    "name": "drift-guard-default",
+    "exit": 0,
+    "expected_exit": 0,
+    "seconds": 0.4,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/drift-guard-default.log"
+  },
+  {
+    "name": "padded-bound-cli",
+    "exit": 1,
+    "expected_exit": 1,
+    "seconds": 0.39,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/padded-bound-cli.log"
+  },
+  {
+    "name": "deadline-cli",
+    "exit": 1,
+    "expected_exit": 1,
+    "seconds": 1.97,
+    "pass": true,
+    "log": "/Users/dalecarman/.no-mistakes/evidence/01M595RNA6700Q16CBBH8ZN9M6/deadline-cli.log"
+  }
+]

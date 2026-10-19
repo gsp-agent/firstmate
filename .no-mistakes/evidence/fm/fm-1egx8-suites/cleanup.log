@@ -1,0 +1,4 @@
+Inspected disposable root: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M595RNA6700Q16CBBH8ZN9M6/.nm-focused-e97ck4gz
+Top-level entries: before, cache, claude, config, data, deadline.test.sh, home, lab, own-status.test.sh, poll-probe.sh, signals, state, tmp
+Nonrecursive removal actions: 50
+Disposable root removed: True
