@@ -493,6 +493,7 @@ assert_equals "False" "$(printf '%s' "$stuck" | json_get can_receive)" \
 
 # Mid-turn on an auto-arm primary the watcher has exited on its close and the
 # beacon holds that cycle's last poll, which the model-aware verdict calls live.
+rm -f "$home/state/.claude-autoarm-epoch"
 touch "$home/state/.last-watcher-beat"
 ready=$(run_inbox "$home" ready) || fail "ready should succeed for an auto-arm home between cycles"
 assert_equals "healthy" "$(printf '%s' "$ready" | json_get wake_consumer state)" \
