@@ -70,10 +70,9 @@
 #                   script paths, which use the bounded automatic scheduler.
 #   --per-script-timeout-secs N
 #                   terminate a script that runs longer than N seconds and
-#                   record it as exit 124 (0 disables, the default). The
-#                   --changed applies 1500s automatically, above the slowest
-#                   healthy CI measurement with margin; exceeding it becomes a
-#                   bounded failure, not proof of a hang. --max-wall-ms is checked
+#                   record it as exit 124 (0 disables, the default).
+#                   --changed applies 1500s automatically; exceeding it becomes
+#                   a bounded failure, not proof of a hang. --max-wall-ms is checked
 #                   after the run and so cannot catch a hang on its own.
 #                   External interruption cleanup is outside this runner's
 #                   guarantee; configured per-script bounds remain authoritative.
@@ -185,19 +184,10 @@ JOBS_EXPLICIT=0
 JOBS_MAX=8
 MAX_WALL_MS=
 PER_SCRIPT_TIMEOUT_SECS=0
-# Bound applied automatically on the automatic --changed path, derived from
-# measured healthy runtimes with margin rather than picked: the slowest measured
-# script is tests/fm-supervision-host.test.sh run whole, at about 1244s green
-# under CI load (CI runs it as two lanes, so the hint table below splits that
-# figure between them; docs/fm-test-portable-shards.md), then
-# tests/fm-watch-triage.test.sh at about 1075s. 1500s keeps every measured
-# healthy script under the bound with roughly 1.2x headroom over the slowest
-# loaded measurement, and it stays under the 30-minute normal CI tier so a
-# wedged script fails here,
-# with its output, before the job cap
-# cancels the lane. It is a guard, not a speed control: a HUNG script becomes a
-# bounded failure instead of an unbounded suite, which is the shape that
-# silently outruns a caller's invocation budget.
+# Keep automatic --changed execution below the normal CI job tripwire so a
+# script exceeding this local bound fails with its output before job cancellation.
+# CI lane splitting does not raise the bound for a directly selected subject.
+# docs/fm-test-portable-shards.md owns timing provenance and split measurements.
 CHANGED_DEFAULT_TIMEOUT_SECS=1500
 
 # How many separate-runner shards the portable serial remainder splits into.

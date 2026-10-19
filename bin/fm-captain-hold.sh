@@ -220,7 +220,7 @@
 # It prints nothing on these predicate results and mutates nothing, unless
 # `--identity` asks it to print this call's
 # LIFECYCLE identity, which it does on an exit 0 only. That identity - the
-# hold-set stamp and the count of recorded answers - is what distinguishes two
+# hold-set stamp and the count of lifecycle resolutions - is what distinguishes two
 # successive calls on one task id: re-holding released work starts a new
 # lifecycle without necessarily touching the task's status log, so a consumer
 # that bounds repeated work per call cannot use the task id alone.
@@ -522,8 +522,8 @@ meta_value() {  # <meta> <key>
   grep "^$2=" "$1" 2>/dev/null | tail -1 | cut -d= -f2- || true
 }
 
-# A resolution record written by this script or by the retired
-# fm-decision-hold.sh. Both carry the same leader-then-captain-decision shape.
+# Recognize current lifecycle resolutions and records from the retired
+# fm-decision-hold.sh.
 body_has_resolution_record() {  # <task-body>
   case "$1" in
     *"Resolution recorded by fm-captain-hold."*"Captain decision:"*) return 0 ;;
@@ -604,9 +604,8 @@ closed_answer_replay_mode_compatible() {  # <mode> <task-body>
   return 1
 }
 
-# The record's label is what keeps an evidence-backed reconciliation from
-# reading as the captain's own words. `reconciled` closes a call that went moot
-# and carries verified evidence; every other mode carries what the captain said.
+# Evidence labels keep reconciliation and agent-routing records from reading
+# as the captain's own words.
 resolution_block() {  # <mode>
   local label='Captain decision:'
   [ "$1" != reconciled ] || label='Reconciliation evidence:'
@@ -615,8 +614,8 @@ resolution_block() {  # <mode>
     "$DECISION_DIGEST" "$1" "$label" "$DECISION_TEXT"
 }
 
-# Durable state of one captain call: an active captain hold (annotations
-# surviving even when a date gate has expired) or a recorded captain answer.
+# Durable state of one call: an active captain hold (annotations surviving even
+# when a date gate has expired) or a recognized lifecycle resolution record.
 verify_hold_durable() {  # <task-id>
   local id=$1 show state hold_kind body
   task_show "$id" || fail "captain-held task $id is absent from this home's configured backlog (data directory $DATA)"
@@ -1002,7 +1001,7 @@ refuse_self_inventory() {
   fail "origin $origin cannot be its own captain-call inventory entry; hold a separate captain task for the call and list that task"
 }
 
-# Resolve one entry and verify the row it names is durably captain-held. A
+# Resolve one entry and verify the row it names is durably held or resolved. A
 # resolution failure that is not the read bound keeps resolve_entry's own
 # status - its stderr already named the entry; 124 means the backend never
 # answered, which is not the same as an unknown entry and must not be spent
@@ -1536,8 +1535,7 @@ command_answer() {
   hold_kind=$(show_field_value "$show" hold_kind)
   body=$(show_field "$show" body)
   if [ "$release" = 1 ]; then outcome=released; else outcome=answered; fi
-  # The occurrence the parent line names: the record about to be written is
-  # one past those already in the body, and a retry names the newest one.
+  # An answer during routing recovery must resolve the existing parent occurrence.
   occurrence=$(next_hold_occurrence "$id" "$body")
 
   if [ "$state" = "done" ]; then
