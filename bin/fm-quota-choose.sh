@@ -9,10 +9,15 @@
 # bin/fm-quota-axi-lib.sh owns schema compatibility and the shared row join.
 # For each --candidate in order, it maps <harness> to its primary provider
 # family, then applies the matched row's provider-wide scopes and exact model
-# or product scopes for <model>. A candidate is eligible only when no
-# applicable runway is `exhausted_now` and its known
-# effective percent remaining is greater than zero. The first eligible
-# candidate is printed as "<harness> <model>" and the script exits 0.
+# or product scopes for <model>. Ordinarily, a candidate needs no applicable
+# `exhausted_now` runway and known effective percent remaining greater than
+# zero. Grok's matched account is also eligible when the shared
+# quota_prepaid_usable predicate reports usable prepaid credit.
+# A TOON snapshot that leaves Grok unknown, exhausted_now, or nonpositive
+# cannot supply that credit evidence: the helper exits 2 and requests the
+# permitted quota-axi --json fallback. Pass that captured JSON back before
+# selecting. The first eligible candidate is printed as "<harness> <model>"
+# and the script exits 0.
 # If no candidate is quota-eligible, it prints "none" and exits 1.
 #
 # Candidates are accepted as `--candidate <harness:model>` or as positional
