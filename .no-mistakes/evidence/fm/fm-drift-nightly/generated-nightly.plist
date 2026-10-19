@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.firstmate.drift-nightly</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh</string>
+    <string>nightly</string>
+    <string>--repo</string>
+    <string>/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/repo&lt;&amp;&quot;&apos; test&gt;</string>
+    <string>--log</string>
+    <string>/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs&lt;&amp;&quot;&apos; test&gt;/drift.log</string>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs&lt;&amp;&quot;&apos; test&gt;/drift.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs&lt;&amp;&quot;&apos; test&gt;/drift.log</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>3</integer>
+    <key>Minute</key>
+    <integer>17</integer>
+  </dict>
+</dict>
+</plist>

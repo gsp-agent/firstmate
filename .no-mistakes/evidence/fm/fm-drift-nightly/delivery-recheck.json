@@ -1,0 +1,31 @@
+{
+  "families": [
+    {
+      "count": 1,
+      "duration_ms": 485484,
+      "failed": 0,
+      "name": "pure-contract-unit"
+    }
+  ],
+  "finished_at": "2026-10-19T05:42:13Z",
+  "run_id": "fm-test-run-1792388046674-62067",
+  "scripts": [
+    {
+      "duration_ms": 485484,
+      "exit": 0,
+      "expected_gate_skip": "none",
+      "family": "pure-contract-unit",
+      "gate_skip": false,
+      "gate_skip_reason": "",
+      "path": "tests/fm-task-delivery.test.sh"
+    }
+  ],
+  "selection": "scripts;jobs=1",
+  "started_at": "2026-10-19T05:34:06Z",
+  "summary": {
+    "duration_ms": 486723,
+    "failed": 0,
+    "skipped_gate": 0,
+    "total": 1
+  }
+}

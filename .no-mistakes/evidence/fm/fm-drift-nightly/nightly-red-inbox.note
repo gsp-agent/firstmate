@@ -1,0 +1,9 @@
+id=1792387932-13rj4G
+at=2026-10-19T05:32:12Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-19
+--
+Nightly drift check red on 2026-10-19: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/nightly-green-red/repo.
+path-drift: unexpected.txt
+Log: /Users/dalecarman/.no-mistakes/evidence/01M5999CSVGBG7SM5134TYA5NC/nightly-green-red.log

@@ -1,93 +1,51 @@
 [
   {
-    "name": "Check the delivered fork with its shipped manifest against freshly fetched upstream; accept its effective tree",
+    "name": "Check the submitted fork: its exact accepted tree passes and every pending commit stays visible",
     "result": "pass",
     "live": true,
-    "evidence": "shipped-drift-check.log",
+    "evidence": "submitted-fork-check.log; submitted-fork-summary.json",
     "reason": ""
   },
   {
-    "name": "Commit later edits to the launcher, guard and proof file; reject each with path-drift",
+    "name": "Commit later edits to the guard and proof: neither file is exempt from drift detection",
     "result": "pass",
     "live": true,
-    "evidence": "delivered-adversarial-edits.log",
+    "evidence": "later-guard-and-proof-drift.log",
     "reason": ""
   },
   {
-    "name": "Use fixed-parent acceptance; reject later, inherited, missing and ambiguous approvals",
+    "name": "Try to approve an unproven commit through dirty or staged proof: both attempts remain red",
     "result": "pass",
     "live": true,
-    "evidence": "manifest-boundaries.log",
+    "evidence": "working-tree-proof-tamper.log; staged-proof-tamper.log",
     "reason": ""
   },
   {
-    "name": "Accept a measured patch, reject extra bytes and modes, and accept removal of unproved edits",
+    "name": "Recover an archived cut into a disposable repository: the documented fetch and cherry-pick restore its original tree",
     "result": "pass",
     "live": true,
-    "evidence": "effective-patch-check.log",
+    "evidence": "archive-verify.log; cut-restoration.log; cut-restoration-state.json",
     "reason": ""
   },
   {
-    "name": "Delete an unproved original beside a proven identical copy; report the deletion despite rename detection",
+    "name": "Run the nightly command green, red, and red again: logs persist and only one same-day inbox note and wake are created",
     "result": "pass",
     "live": true,
-    "evidence": "hidden-deletion-check.log",
+    "evidence": "nightly-green-red.log; nightly-red-inbox.note; nightly-red-wake-queue.tsv; nightly-inbox-receipts.json.log",
     "reason": ""
   },
   {
-    "name": "Fetch the cut archives as named branches and recover the pre-cut source tree",
+    "name": "Run nightly when its upstream remote is missing: exit 2 is logged and delivered as a red inbox note",
     "result": "pass",
     "live": true,
-    "evidence": "archive-recovery.log",
+    "evidence": "nightly-check-error.log; nightly-error-inbox.note",
     "reason": ""
   },
   {
-    "name": "Resolve explicit labels and default supported efforts without an API key; refuse conflicts and invalid profiles",
+    "name": "Accept a merge carrying an unlisted commit: it fails until that commit is explicitly pending with its named bead",
     "result": "pass",
     "live": true,
-    "evidence": "label-routing-cli.log",
+    "evidence": "carried-unproven-refused.log; carried-pending-visible.log",
     "reason": ""
-  },
-  {
-    "name": "Select Cursor, Codex or Claude from isolated quota records and preserve per-task boundaries",
-    "result": "pass",
-    "live": true,
-    "evidence": "quota-fallback-cli.log",
-    "reason": ""
-  },
-  {
-    "name": "Preview nightly installation and uninstall; validate schedule inputs without modifying the scheduler",
-    "result": "pass",
-    "live": true,
-    "evidence": "scheduler-preview.log",
-    "reason": ""
-  },
-  {
-    "name": "Advance fork and upstream references during a real check; keep one snapshot and observe changes on the next run",
-    "result": "pass",
-    "live": true,
-    "evidence": "concurrent-reference-check.log",
-    "reason": ""
-  },
-  {
-    "name": "Load supported Grok xhigh and Sol max profiles at startup; improve on upstream and still report invalid fallback configuration",
-    "result": "pass",
-    "live": true,
-    "evidence": "startup-profile-comparison.log",
-    "reason": ""
-  },
-  {
-    "name": "Install and uninstall the nightly job in a real macOS launchd domain",
-    "result": "untested",
-    "live": false,
-    "evidence": "scheduler-preview.log; baseline-fm-drift-nightly.log",
-    "reason": "Exercised isolated install/uninstall previews and the existing mocked-launchctl round trip. The real command always bootstraps or removes gui/<uid>/dev.firstmate.drift-nightly; redirecting FM_DRIFT_AGENT_DIR does not isolate that shared launchd domain. This run expressly forbids system-state changes outside the worktree. The deployment owner must perform the real round trip with explicit host-installation authority or supply an authorized disposable macOS login domain."
-  },
-  {
-    "name": "Cut over the main home to the merged result and remeasure it the next day",
-    "result": "untested",
-    "live": false,
-    "evidence": "shipped-drift-check.log; drift-proof.txt",
-    "reason": "Validated the exact delivery commit in a disposable clone against freshly fetched upstream and checked the recorded cutover/check-back contract. Moving the operator checkout, installing its job, and inspecting real fleet state are explicitly outside this test phase and workspace boundary. The outer delivery owner needs the PM merge/cutover word, must run the main-home acceptance check, then recheck on 2026-10-15."
   }
 ]

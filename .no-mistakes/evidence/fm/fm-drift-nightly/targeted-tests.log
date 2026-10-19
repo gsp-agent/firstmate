@@ -1,0 +1,95 @@
+FM_TEST_BEGIN 2026-10-19T05:28:49Z tests/fm-drift-nightly.test.sh family=unclassified expected_gate_skip=none
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - a shipped proof accepts its own patch and rejects later edits
+ok - the default proof is drift-proof.txt in the committed fork tree, never the working tree
+ok - parent proof does not approve inherited unproven content
+ok - parent proof refuses missing or ambiguous acceptance commits
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+ok - a moving fork ref cannot change the captured check or its report
+ok - a moving upstream ref cannot change the captured check or its report
+ok - the captured upstream includes updates from the completed fetch
+ok - dependent proven patches are accepted regardless of proof-file order
+ok - proof approves a patch rather than the commit's entire file snapshot
+ok - cut unproven changes pass once their effective changes are gone
+ok - a proven change can cut unrelated unproven changes in the same commit
+ok - missing accepted patches are reported as drift
+ok - unproven file modes cannot borrow content proof
+ok - a pending commit is accepted, printed with its bead on every run, and must name its bead
+ok - an accepted merge carries its commits only when each is proven or pending
+ok - unknown proof commits cannot silently authorize changes
+ok - behind is reported and does not fail the check by itself
+ok - a merge commit is labeled merge and adds no path-drift when its tree matches upstream
+ok - a red nightly sends one note a day naming its red lines and log, and a green one sends none
+ok - a nightly whose check exits 2 sends one note naming the error
+ok - a nightly note names at most ten red lines and counts the rest in the log
+ok - install --dry-run prints the job and writes nothing
+ok - install writes the nightly agent and its log path, and uninstall removes it, keeps the log, and repeats
+ok - install escapes &, <, > and quotes in the script, repo and log paths
+ok - a reinstall whose plist fails lint leaves the installed job and plist unchanged
+ok - uninstall deletes the plist only when bootout succeeds or launchctl reports no such service
+ok - the documented cut recovery restores a cut commit from the bundle alone
+ok - install rejects hour 24 and a relative log path
+FM_TEST_END 2026-10-19T05:29:26Z tests/fm-drift-nightly.test.sh exit=0 duration_ms=37278 gate_skip=false
+FM_TEST_BEGIN 2026-10-19T05:29:26Z tests/fm-cursor-guard.test.sh family=unclassified expected_gate_skip=none
+ok - fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit
+ok - GNU stat supports spending-file age
+ok - the real spending file shape at 26% keeps cursor
+ok - crew guard: refuses git symbolic-ref and update-ref in every command position, leaves reads and branch creation alone
+ok - crew guard: pins an empty working directory, leaves explicit ones, other tools and bad input alone
+# all fm-cursor-guard tests passed
+FM_TEST_END 2026-10-19T05:29:41Z tests/fm-cursor-guard.test.sh exit=0 duration_ms=14268 gate_skip=false
+FM_TEST_BEGIN 2026-10-19T05:29:41Z tests/fm-task-delivery.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-spawn/fm-promote: authorized intent preserves exact words and refuses operator-address lines
+ok - fm-spawn: every legacy worker receives scoped role instructions without changing project or primary instructions
+ok - fm-spawn: a ship spawn requires a valid explicit mode and yolo before anything is created
+ok - fm-spawn: scout and secondmate spawns refuse ship delivery flags
+ok - fm-spawn: the brief's recorded mode and the spawn's explicit mode must agree
+ok - fm-spawn: a rigor downgrade against the registered posture is announced, never blocked
+ok - fm-spawn: a scout spawn resolves no delivery posture from the registry
+ok - fm-promote: promotion requires the delivery contract and records it exactly once
+ok - fm-promote: a symlinked task record is refused and its target is left untouched
+ok - fm-promote: a promoted worker receives the same mode-specific delivery contract a briefed one does
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ok - fm-promote: a selected branch prefix reaches both worker instructions and durable task state
+not ok - a ref-format-valid metacharacter prefix should promote safely
+FM_TEST_END 2026-10-19T05:32:31Z tests/fm-task-delivery.test.sh exit=1 duration_ms=169667 gate_skip=false
+FM_TEST_BEGIN 2026-10-19T05:32:31Z tests/fm-self-repo-role.test.sh family=unclassified expected_gate_skip=none
+ok - fm-role.sh report: default, user, and maintainer directives resolve
+ok - fm-role.sh report: malformed, unknown, and unsafe input fails closed
+ok - fm-role.sh check: the default user/operator home cannot publish to firstmate upstream
+ok - fm-role.sh check: a task on an ordinary project is untouched by the boundary
+ok - fm-role.sh check: a matching maintainer scope authorizes the self-repository publication
+ok - fm-role.sh check: scope mismatch and mere upstream remote presence never authorize
+ok - fm-role.sh check: equivalent remote spellings resolve to one publication target
+ok - fm-role.sh check: repository lineage, not remotes, identifies firstmate across forks
+ok - fm-role.sh check: undeterminable lineage or publication target refuses
+ok - fm-role.sh check: recorded one-task consent authorizes its named repository only
+ok - secondmate home: a role file without an inheritance receipt grants nothing
+ok - secondmate home: inherited grants need a matching receipt; receipt-less and revoked grants are dead
+ok - secondmate home: a primary role its own resolver rejects propagates as revocation
+ok - fm_dod_block: upstream consent renders on publishing contracts and is refused on local-only
+ok - fm-brief.sh: --upstream-consent validates, scopes to ship tasks, and renders normalized
+ok - fm-brief.sh: --project applies the self-repository gate at scaffold time
+ok - fm-spawn.sh: the launch gate refuses a user/operator home and passes a matching maintainer
+ok - fm-spawn.sh: consent must agree between flag and brief, and is refused on local-only
+ok - fm-promote.sh: the self-repository gate governs promotion identically to spawn
+ok - fm-spawn.sh: --upstream-consent is refused on secondmate charters
+# all fm-self-repo-role tests passed
+FM_TEST_END 2026-10-19T05:33:24Z tests/fm-self-repo-role.test.sh exit=0 duration_ms=53540 gate_skip=false
+FM_TEST_SUMMARY total=4 failed=1 skipped_gate=0 duration_ms=275817
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=169667 failed=1
+FM_TEST_SUMMARY_FAMILY family=unclassified count=3 duration_ms=105086 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-task-delivery.test.sh duration_ms=169667
+FM_TEST_SLOWEST rank=2 script=tests/fm-self-repo-role.test.sh duration_ms=53540
+FM_TEST_SLOWEST rank=3 script=tests/fm-drift-nightly.test.sh duration_ms=37278
+FM_TEST_SLOWEST rank=4 script=tests/fm-cursor-guard.test.sh duration_ms=14268
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M5999CSVGBG7SM5134TYA5NC/targeted-tests.json

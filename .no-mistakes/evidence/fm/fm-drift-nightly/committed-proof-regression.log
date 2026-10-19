@@ -1,0 +1,27 @@
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/repo
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/repo add -- base.txt
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/repo -c commit.gpgsign=false commit -qm baseline
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/repo branch upstream
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/repo add -- unproven.txt
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/repo -c commit.gpgsign=false commit -qm 'unproven change'
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/repo rev-parse HEAD
+046f39f09c1d80e6457a8d5b2c68c0a1e3243230
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/before-fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/repo --upstream upstream
+behind: 0
+ahead: 1
+path-ok: unproven.txt
+keep: 046f39f09c1d80e6457a8d5b2c68c0a1e3243230 unproven change
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/proof-regression/repo --upstream upstream
+behind: 0
+ahead: 1
+path-drift: unproven.txt
+unproven: 046f39f09c1d80e6457a8d5b2c68c0a1e3243230 unproven change
+[exit 1]

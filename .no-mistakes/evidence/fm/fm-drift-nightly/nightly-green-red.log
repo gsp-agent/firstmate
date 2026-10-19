@@ -1,0 +1,28 @@
+run: 2026-10-19T00:32:11-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/nightly-green-red/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 0
+exit: 0
+run: 2026-10-19T00:32:12-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/nightly-green-red/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: unexpected.txt
+unproven: 423c5dc731c8d449379b418480ee9c0a96a80df9 unproven nightly change
+exit: 1
+queued 1792387932-13rj4G
+  Nightly drift check red on 2026-10-19: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+run: 2026-10-19T00:32:13-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/nightly-green-red/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: unexpected.txt
+unproven: 423c5dc731c8d449379b418480ee9c0a96a80df9 unproven nightly change
+exit: 1
+replay 1792387932-13rj4G
+  Nightly drift check red on 2026-10-19: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.

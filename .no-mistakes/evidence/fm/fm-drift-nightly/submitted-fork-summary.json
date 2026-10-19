@@ -1,0 +1,119 @@
+{
+  "target": "881214e1b05b1db04a216538b5fd32f95430fa72",
+  "upstream": "7df545bf74ff729ed1733f77b0aea02a9b164ac1",
+  "counts": {
+    "path-ok": 90,
+    "path-drift": 0,
+    "carried-unproven": 0,
+    "pending": 26,
+    "keep": 50,
+    "unproven": 35
+  },
+  "pending": [
+    [
+      "116fdc5281d21a9992d7a4bb83ab75ed7bc38740",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "a70ba7abd29e26ad59a844b32c0706ce19951bf0",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "4470e616b494277b607b483a58fd8294b5bda773",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "433c7b85519f64afda78038ac31c4b6a4fb0b23f",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "ff8c5f8def6d93ad0257d66c90e1e8f98e958846",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "67669705d25551948f6ca48d153c1526d2739440",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "8ab8f46d1086aaed5c009a257f8705552fa08b62",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "b8932e8b6269d5d48b0498d4b4aeca60bc72b564",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "e59a6665512399edd2fab7de05f9ee94e8267d5b",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "8ca0dc62b32426d9838012528796a8cd6d9afdcd",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "4439ef547fa08c9537b9b48cfcb17d6311386db5",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "8c448df39091dec2b7824b3636b599d9946dac62",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "4cd46f41f053c80e7ee16cc7580d6eab97bf787f",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "c3b3e1ce3e563fb89c9a760c97af194237f548ef",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "cf0da8c3225c828f3cd8fe05be71ae0c84c186bf",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "586f37f7d271db9e1ae57859b78cc2d877b44926",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "0b8dddb9f0e78af2a34d3d8ef069cb0d55f551c8",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "fb8006527599d03228f7099aa0d342a53146f115",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "c4a5ec6775ea3c61312b69993e7e1d71599c4dae",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "1eef4fdd56eebc7e8ffc2ba772b129453ccc0247",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "559548c816572200119a60c52e051fd54fb58408",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "b0512fc88d185d30fcd966a5e7fa622481b94e47",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "bd9ca126ad8328352c30c01217988972711549a9",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "86fa1306443d3412ace2320aae85d6dcd051f6ce",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "d05e9561bc141ad74dedcb336e620fc340711c2b",
+      ".agent-config-dtjsb"
+    ],
+    [
+      "9cfe7cfef9a9be2e1ffb82a456ff73e421cce143",
+      ".agent-config-dtjsb"
+    ]
+  ],
+  "exit": 0
+}

@@ -1,0 +1,37 @@
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/upstream
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/upstream add -- baseline.txt
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/upstream -c commit.gpgsign=false commit -qm 'configuration baseline'
+[exit 0]
+$ git clone -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/upstream '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/repo<&"'"'"' test>'
+[exit 0]
+$ git -C '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/repo<&"'"'"' test>' remote rename origin kunchenguid
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh install --dry-run --repo '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/repo<&"'"'"' test>' --log '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs<&"'"'"' test>/drift.log'
+dry-run: install
+label: dev.firstmate.drift-nightly
+hour: 3
+minute: 17
+plist: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/agents/dev.firstmate.drift-nightly.plist
+repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/repo<&"' test>
+log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs<&"' test>/drift.log
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh uninstall --dry-run
+dry-run: uninstall
+absent: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/agents/dev.firstmate.drift-nightly.plist
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh install --hour 24 --repo '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/repo<&"'"'"' test>' --log '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs<&"'"'"' test>/drift.log'
+error: --hour must be 0 through 23
+[exit 2]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh install --repo '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/repo<&"'"'"' test>' --log relative.log
+error: --log must be an absolute path
+[exit 2]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh install --hour 3 --minute 17 --repo '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/repo<&"'"'"' test>' --log '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs<&"'"'"' test>/drift.log'
+error: launchctl bootstrap gui/501 failed
+[exit 2]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh uninstall
+error: launchctl bootout gui/501/dev.firstmate.drift-nightly failed with exit 1; kept /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/agents/dev.firstmate.drift-nightly.plist
+[exit 2]
+$ FM_DRIFT_AGENT_DIR=<disposable empty directory> bash bin/fm-drift-nightly.sh uninstall
+uninstalled: absent

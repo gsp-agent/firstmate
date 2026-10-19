@@ -1,0 +1,9 @@
+id=1792387935-lgku1b
+at=2026-10-19T05:32:15Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-19
+--
+Nightly drift check red on 2026-10-19: exit 2 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/nightly-error/repo.
+error: kunchenguid remote is missing
+Log: /Users/dalecarman/.no-mistakes/evidence/01M5999CSVGBG7SM5134TYA5NC/nightly-check-error.log

@@ -1,0 +1,18 @@
+{
+  "Label": "dev.firstmate.drift-nightly",
+  "ProgramArguments": [
+    "/bin/bash",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh",
+    "nightly",
+    "--repo",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/repo<&\"' test>",
+    "--log",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs<&\"' test>/drift.log"
+  ],
+  "StandardOutPath": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs<&\"' test>/drift.log",
+  "StandardErrorPath": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/config-check/logs<&\"' test>/drift.log",
+  "StartCalendarInterval": {
+    "Hour": 3,
+    "Minute": 17
+  }
+}

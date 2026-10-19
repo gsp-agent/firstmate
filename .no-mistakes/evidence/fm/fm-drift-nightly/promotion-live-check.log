@@ -1,0 +1,57 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion
+[exit 0]
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/proj
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/proj add -- base.txt
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/proj -c commit.gpgsign=false commit -qm 'lab base'
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/proj worktree add -q --detach /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/promotion-basic-slot HEAD
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-brief.sh promotion-basic fixture-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/data/promotion-basic/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-promote.sh promotion-basic --mode local-only --yolo off --branch-prefix fix/
+promoted promotion-basic to ship mode=local-only yolo=off (teardown protection restored)
+wrote ship instructions for mode=local-only: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/data/promotion-basic/ship-instructions.md
+next: FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion bin/fm-send.sh fm-promotion-basic "$(cat /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/data/promotion-basic/ship-instructions.md)"
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/promotion-basic-slot/create-branch.sh
+Switched to a new branch 'fix/promotion-basic'
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/promotion-basic-slot branch --show-current
+fix/promotion-basic
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/proj branch --show-current
+main
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/proj worktree add -q --detach /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/promotion-quoted-slot HEAD
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-brief.sh promotion-quoted fixture-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/data/promotion-quoted/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-promote.sh promotion-quoted --mode local-only --yolo off --branch-prefix '$(touch${IFS}injected-marker)/'
+promoted promotion-quoted to ship mode=local-only yolo=off (teardown protection restored)
+wrote ship instructions for mode=local-only: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/data/promotion-quoted/ship-instructions.md
+next: FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion bin/fm-send.sh fm-promotion-quoted "$(cat /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/data/promotion-quoted/ship-instructions.md)"
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/promotion-quoted-slot/create-branch.sh
+Switched to a new branch '$(touch${IFS}injected-marker)/promotion-quoted'
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/promotion-quoted-slot branch --show-current
+$(touch${IFS}injected-marker)/promotion-quoted
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion/projects/proj branch --show-current
+main
+[exit 0]
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/fm-lab-promotion
+[exit 0]

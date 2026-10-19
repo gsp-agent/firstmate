@@ -1,0 +1,7 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/bin/fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/accepted-merge --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/accepted-merge/proof.txt
+behind: 0
+ahead: 2
+path-ok: side.txt
+merge: 0484c2d5d96752d705698aaeeb83b816d144e8fe accepted merge
+carried-unproven: 414c969127594b948c7eba043ef8a1df80ac1bb8 carried custom commit
+[exit 1]

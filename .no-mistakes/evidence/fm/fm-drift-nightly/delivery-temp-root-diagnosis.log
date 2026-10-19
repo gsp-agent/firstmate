@@ -1,0 +1,7 @@
+git check-ref-format --branch '$(touch${IFS}/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/marker)/task-e1'
+fatal: '$(touch${IFS}/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/marker)/task-e1' is not a valid branch name
+[exit 128]
+
+git check-ref-format --branch '$(touch${IFS}/tmp/fm-branch-marker)/task-e1'
+$(touch${IFS}/tmp/fm-branch-marker)/task-e1
+[exit 0]

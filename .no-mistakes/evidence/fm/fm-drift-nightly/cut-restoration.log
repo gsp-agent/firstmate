@@ -1,0 +1,6 @@
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5999CSVGBG7SM5134TYA5NC/.agent-state/drift-test-phase/cut-recovery -c commit.gpgsign=false cherry-pick b606779ed08299d160ccbb154ec7c0dc8277b9d8
+[detached HEAD 3eb9cfb] feat(spawn): keep a Grok crewmate off the captain's Claude and Cursor surface
+ Author: gsp-agent <dale+gspagent@groovejones.com>
+ Date: Mon Oct 12 14:45:20 2026 -0500
+ 3 files changed, 13 insertions(+), 2 deletions(-)
+[exit 0]
