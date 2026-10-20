@@ -1,0 +1,12 @@
+[
+  {
+    "name": "The recorded sign-in and screen fields exactly match the hold-domain contract, and ordinary deferred holds remain supported",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Ordinary re-holds deactivate historical sign-in and screen probes, whether previously active or released",
+    "result": "pass",
+    "live": true
+  }
+]

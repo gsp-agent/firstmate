@@ -1,0 +1,462 @@
+
+FILE: .nm-test-holdprobe/drive.py
+
+import datetime
+import http.server
+import json
+import os
+from pathlib import Path
+import shlex
+import signal
+import subprocess
+import threading
+import time
+import urllib.error
+import urllib.request
+
+ROOT = Path.cwd()
+SCRATCH = ROOT / '.nm-test-holdprobe'
+EVIDENCE = Path('/Users/dalecarman/.no-mistakes/evidence/01M5DNZYARKGF0JRHS1PNANN16')
+TRANSCRIPT = EVIDENCE / 'holdprobe-live-cli.txt'
+RESULTS = []
+CHILDREN = []
+
+def log(message):
+    stamp = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
+    with TRANSCRIPT.open('a') as stream:
+        stream.write(f'[{stamp}] {message}\n')
+    print(message, flush=True)
+
+def env_for(home):
+    env = {key: value for key, value in os.environ.items()
+           if not key.startswith('FM_') and key not in ('TASKS_AXI_FILE', 'TASKS_AXI_BACKEND', 'TMUX')}
+    env.update(FM_HOME=str(home), FM_DALE_ASKS_RULE=str(home / 'absent-asks-rule.py'),
+               TASKS_AXI_BACKEND='markdown', FM_PROCEVENT_CLAIM_ROOT=str(home / 'claims'),
+               FM_POLL='1', FM_CHECK_INTERVAL='3', FM_HEARTBEAT='999999',
+               FM_CHECK_TIMEOUT='60')
+    return env
+
+def run(home, script, *args, expect=0, timeout=45, show=True):
+    command = [str(ROOT / 'bin' / script), *map(str, args)]
+    result = subprocess.run(command, cwd=ROOT, env=env_for(home), text=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+    if show:
+        log('$ FM_HOME=' + str(home.relative_to(ROOT)) + ' ' + shlex.join(['bin/' + script, *map(str, args)]))
+        log(f'exit={result.returncode}\n{result.stdout}{result.stderr}'.rstrip())
+    if expect is not None:
+        assert result.returncode == expect, (command, result.returncode, result.stdout, result.stderr)
+    return result
+
+def make_home(name):
+    home = SCRATCH / name
+    run(home, 'fm-lab-home.sh', 'create', home)
+    (home / '.tasks.toml').write_text('backend = "markdown"\n[markdown]\npath = "data/backlog.md"\narchive = "data/done-archive.md"\ndone_keep = 10\n')
+    (home / 'data/backlog.md').write_text('## In flight\n\n## Queued\n\n## Done\n')
+    return home
+
+def fields(text):
+    parsed = {}
+    for line in text.splitlines():
+        if line.startswith('  ') and ': ' in line:
+            key, value = line.strip().split(': ', 1)
+            if value.startswith('"'):
+                value = json.loads(value)
+            parsed[key] = value
+    return parsed
+
+def task(home, name, show=True):
+    return fields(run(home, 'fm-tasks-axi.sh', 'show', name, '--full', show=show).stdout)
+
+def hold(home, name, step=None, probe=None, **kwargs):
+    args = ['hold', name, '--title', f'Lab {name}', '--reason', 'complete the isolated sign-in step']
+    if step:
+        args += ['--dale-step', step, '--probe', probe]
+    for key, value in kwargs.items():
+        args += ['--' + key.replace('_', '-'), value]
+    return run(home, 'fm-captain-hold.sh', *args)
+
+def wait_for(predicate, description, deadline=60):
+    end = time.monotonic() + deadline
+    while time.monotonic() < end:
+        if predicate():
+            return
+        time.sleep(0.1)
+    raise AssertionError('deadline: ' + description)
+
+def scenario(name, function):
+    log('\nSCENARIO: ' + name)
+    try:
+        function()
+        RESULTS.append(dict(name=name, result='pass', live=True))
+        log('OBSERVED: ' + name + ' passed')
+    except Exception as error:
+        RESULTS.append(dict(name=name, result='fail', live=True, reason=str(error)))
+        log('OBSERVED FAILURE: ' + repr(error))
+
+def stop(process):
+    if process.poll() is None:
+        os.killpg(process.pid, signal.SIGTERM)
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait(timeout=10)
+
+def contract_and_deferral():
+    home = make_home('contract')
+    probe = 'test -f "$FM_HOME/signed-in"'
+    for step in ('sign-in', 'screen'):
+        hold(home, step, step, probe, owner='lab-owner', hold_timeout='600')
+        row = task(home, step)
+        lines = row['body'].splitlines()
+        timestamp = lines[0].removeprefix('Captain hold set: ')
+        datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
+        assert lines[1:5] == ['Decision owner: lab-owner', 'Hold timeout seconds: 600',
+                              'Hold reason: complete the isolated sign-in step', 'Hold probe: ' + probe]
+        assert row['held'] == 'yes' and row['hold_kind'] == 'captain'
+        denied = run(home, 'fm-captain-hold.sh', 'hold', 'deferred-' + step,
+                     '--title', 'Deferred lab step', '--reason', 'complete the isolated sign-in step',
+                     '--dale-step', step, '--probe', 'true', '--until', '2099-01-01', expect=None)
+        assert denied.returncode != 0 and '--until cannot be combined with --dale-step' in denied.stderr
+        missing = run(home, 'fm-tasks-axi.sh', 'show', 'deferred-' + step, '--full', expect=None)
+        assert missing.returncode != 0
+    hold(home, 'ordinary', until='2099-01-01')
+    row = task(home, 'ordinary')
+    assert row['held'] == 'yes' and row['hold_until'] == '2099-01-01'
+    assert not any(line.startswith(('Decision owner:', 'Hold timeout seconds:', 'Hold reason:', 'Hold probe:'))
+                   for line in row['body'].splitlines())
+    run(home, 'fm-captain-hold.sh', 'reprobe', 'ordinary')
+    assert task(home, 'ordinary')['held'] == 'yes'
+
+def watcher_signin():
+    home = make_home('watcher')
+    signed_in = threading.Event()
+    class Service(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200 if signed_in.is_set() else 401)
+            self.end_headers()
+            self.wfile.write(b'signed in\n' if signed_in.is_set() else b'sign-in required\n')
+        def do_POST(self):
+            if self.path != '/signin':
+                self.send_error(404)
+                return
+            signed_in.set()
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'local disposable sign-in completed\n')
+        def log_message(self, *_):
+            pass
+    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Service)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    url = f'http://127.0.0.1:{server.server_port}'
+    signin_probe = 'printf attempt\\n >> "$FM_HOME/signin.attempts"; curl --fail --silent --max-time 2 ' + url + '/status'
+    (home / 'hung.sh').write_text('#!/bin/bash\nprintf "%s\\n" "$$" > "$FM_HOME/hung.pid"\ntrap "" TERM\nsleep 120 &\nprintf "%s\\n" "$!" > "$FM_HOME/hung-child.pid"\nwait\n')
+    try:
+        hold(home, 'signin', 'sign-in', signin_probe)
+        hold(home, 'failed', 'screen', 'printf attempt\\n >> "$FM_HOME/failed.attempts"; false')
+        hold(home, 'unknown', 'screen', 'printf attempt\\n >> "$FM_HOME/unknown.attempts"; fm-lab-command-does-not-exist')
+        hold(home, 'hung', 'screen', 'bash "$FM_HOME/hung.sh"')
+        hold(home, 'ordinary', until='2099-01-01')
+        out = (home / 'watch.out').open('w')
+        err = (home / 'watch.err').open('w')
+        watcher = subprocess.Popen([str(ROOT / 'bin/fm-watch.sh')], cwd=ROOT, env=env_for(home),
+                                   stdin=subprocess.DEVNULL, stdout=out, stderr=err, start_new_session=True)
+        CHILDREN.append(watcher)
+        log('$ FM_HOME=' + str(home.relative_to(ROOT)) + ' FM_POLL=1 FM_CHECK_INTERVAL=3 bin/fm-watch.sh [pid=' + str(watcher.pid) + ']')
+        started = time.monotonic()
+        wait_for(lambda: (home / 'state/.last-check').exists() or watcher.poll() is not None,
+                 'watcher completes its first sweep', 75)
+        assert watcher.poll() is None, (home / 'watch.err').read_text()
+        log(f'First real sweep completed in {time.monotonic() - started:.2f}s; no sign-in has been performed.')
+        for name in ('signin', 'failed', 'unknown', 'hung', 'ordinary'):
+            assert task(home, name)['held'] == 'yes'
+        assert not (home / 'watch.out').read_text()
+        queue = home / 'state/.wake-queue'
+        assert not queue.exists() or not queue.read_text()
+        for name in ('signin', 'failed', 'unknown'):
+            assert (home / (name + '.attempts')).read_text()
+        for filename in ('hung.pid', 'hung-child.pid'):
+            pid = int((home / filename).read_text())
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                log(f'Timed-out probe process {pid} is no longer running.')
+            else:
+                raise AssertionError(f'timed-out process {pid} survived')
+        log('Watcher stdout is empty; durable wake queue is empty. Failed, unknown, timed-out, and unsigned-in holds remain held.')
+        RESULTS.append(dict(name='Failed, unknown, and timed-out probes stay held without a wake; timeout kills the probe subtree', result='pass', live=True))
+        request = urllib.request.Request(url + '/signin', method='POST')
+        with urllib.request.urlopen(request, timeout=3) as response:
+            log('POST ' + url + '/signin -> ' + str(response.status) + ': ' + response.read().decode().strip())
+        completed_signin = time.monotonic()
+        watcher.wait(timeout=75)
+        out.close()
+        err.close()
+        stdout = (home / 'watch.out').read_text()
+        stderr = (home / 'watch.err').read_text()
+        log(f'Watcher closed automatically {time.monotonic() - completed_signin:.2f}s after sign-in, exit={watcher.returncode}.\nstdout:\n{stdout}stderr:\n{stderr}')
+        log('Durable wake queue:\n' + queue.read_text())
+        assert watcher.returncode == 0
+        assert stdout.splitlines() == ['check: captain hold signin released after a passing probe']
+        assert queue.read_text().count('captain-hold-probe-signin') == 1
+        row = task(home, 'signin')
+        assert row['held'] == 'no' and row['state'] != 'done'
+        assert row['body'].startswith('Resolution recorded by fm-captain-hold.')
+        assert 'Resolution mode: probe-released' in row['body']
+        assert 'Reconciliation evidence:' in row['body'] and 'Captain decision:' not in row['body']
+        for name in ('failed', 'unknown', 'hung', 'ordinary'):
+            assert task(home, name)['held'] == 'yes'
+        (EVIDENCE / 'watcher-final-backlog.md').write_text((home / 'data/backlog.md').read_text())
+        (EVIDENCE / 'watcher-release-queue.txt').write_text(queue.read_text())
+    finally:
+        server.shutdown()
+        server.server_close()
+        if 'watcher' in locals():
+            stop(watcher)
+
+def changed_hold():
+    home = make_home('race')
+    (home / 'slow-probe.sh').write_text('#!/bin/bash\ntouch "$FM_HOME/probe-started"\nwhile [ ! -f "$FM_HOME/probe-finish" ]; do sleep 0.1; done\nexit 0\n')
+    for mode in ('stamp', 'probe'):
+        for name in ('probe-started', 'probe-finish'):
+            path = home / name
+            if path.exists():
+                path.unlink()
+        hold(home, 'race-' + mode, 'sign-in', 'bash "$FM_HOME/slow-probe.sh"')
+        command = [str(ROOT / 'bin/fm-captain-hold.sh'), 'reprobe', 'race-' + mode]
+        process = subprocess.Popen(command, cwd=ROOT, env=env_for(home), text=True,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+        CHILDREN.append(process)
+        wait_for(lambda: (home / 'probe-started').exists(), 'real probe begins', 8)
+        row = task(home, 'race-' + mode)
+        original_body = row['body']
+        if mode == 'stamp':
+            body = 'Captain hold set: 2020-01-01T00:00:00Z\n' + original_body.split('\n', 1)[1]
+        else:
+            body = original_body.replace('Hold probe: bash "$FM_HOME/slow-probe.sh"', 'Hold probe: false')
+        path = home / 'changed-body.txt'
+        path.write_text(body)
+        run(home, 'fm-tasks-axi.sh', 'update', 'race-' + mode, '--body-file', path)
+        (home / 'probe-finish').touch()
+        stdout, stderr = process.communicate(timeout=30)
+        log(f'In-flight {mode} change: reprobe exit={process.returncode}\n{stdout}{stderr}')
+        assert process.returncode == 0 and 'stamp-changed' in stdout
+        row = task(home, 'race-' + mode)
+        assert row['held'] == 'yes' and row['body'] == body
+        assert 'Resolution mode: probe-released' not in row['body']
+
+def ordinary_reholds():
+    home = make_home('rehold')
+    for step in ('sign-in', 'screen'):
+        for prior in ('active', 'released'):
+            name = step + '-' + prior
+            countfile = home / (name + '.runs')
+            probe = 'printf run\\n >> ' + shlex.quote(str(countfile))
+            hold(home, name, step, probe)
+            if prior == 'released':
+                run(home, 'fm-captain-hold.sh', 'reprobe', name)
+                assert task(home, name)['held'] == 'no'
+            run(home, 'fm-captain-hold.sh', 'hold', name, '--reason', 'choose the next local action')
+            before = countfile.read_text() if countfile.exists() else ''
+            result = run(home, 'fm-captain-hold.sh', 'reprobe', name)
+            assert 'no-probe' in result.stdout
+            row = task(home, name)
+            assert row['held'] == 'yes' and 'Hold probe:' not in row['body']
+            assert (countfile.read_text() if countfile.exists() else '') == before
+
+if __name__ == '__main__':
+    TRANSCRIPT.write_text('Real product interfaces: fm-captain-hold.sh, fm-tasks-axi.sh (installed tasks-axi markdown backend), fm-watch.sh. No product stubs. Disposable homes are inside the run worktree. The external asks rule is deliberately absent; its declined matching gap is outside this proof.\n')
+    try:
+        scenario('Sign-in and screen holds publish the exact hold-domain fields; deferred step holds are refused before creation; ordinary deferrals remain supported', contract_and_deferral)
+        scenario('A sign-in hold releases itself after a real local sign-in completes and queues exactly one watcher wake', watcher_signin)
+        scenario('A probe that passes after its hold stamp or probe changes cannot release the changed hold', changed_hold)
+        scenario('Ordinary re-holds deactivate historical sign-in and screen probes, whether previously active or released', ordinary_reholds)
+    finally:
+        for child in CHILDREN:
+            stop(child)
+        (EVIDENCE / 'holdprobe-live-results.json').write_text(json.dumps(RESULTS, indent=2) + '\n')
+        log('Live scenario results: ' + json.dumps(RESULTS))
+
+FILE: .nm-test-holdprobe/retry.py
+
+import json
+import drive
+
+drive.SCRATCH = drive.SCRATCH / 'retry'
+drive.SCRATCH.mkdir()
+original_env = drive.env_for
+
+def loaded_host_env(home):
+    env = original_env(home)
+    env['FM_BACKLOG_ROW_TIMEOUT_SECS'] = '60'
+    return env
+
+drive.env_for = loaded_host_env
+drive.log('Retry after a host-load-related 10s backlog read timeout: FM_BACKLOG_ROW_TIMEOUT_SECS=60; the actual hold probe deadline remains 10s.')
+drive.scenario('Sign-in and screen holds publish the exact hold-domain fields; deferred step holds are refused before creation; ordinary deferrals remain supported', drive.contract_and_deferral)
+(drive.EVIDENCE / 'holdprobe-contract-retry.json').write_text(json.dumps(drive.RESULTS, indent=2) + '\n')
+if any(row['result'] != 'pass' for row in drive.RESULTS):
+    raise SystemExit(1)
+
+FILE: .nm-test-holdprobe/interrupt.py
+
+import json
+import subprocess
+import drive
+
+drive.SCRATCH = drive.SCRATCH / 'interrupted'
+drive.SCRATCH.mkdir()
+original_env = drive.env_for
+
+def loaded_host_env(home):
+    env = original_env(home)
+    env['FM_BACKLOG_ROW_TIMEOUT_SECS'] = '60'
+    return env
+
+drive.env_for = loaded_host_env
+
+def replay_release():
+    parent = drive.make_home('parent')
+    home = drive.make_home('mate')
+    (home / '.fm-secondmate-home').write_text('lab-mate\n')
+    binding = home / '.fm-secondmate-parent'
+    valid_binding = 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=' + str(parent) + '\n'
+    binding.write_text(valid_binding)
+    channel = parent / 'state/lab-mate.status'
+    (home / 'ready').touch()
+    probe = 'printf run\\n >> "$FM_HOME/probe-count"; test -f "$FM_HOME/ready"'
+    drive.hold(home, 'signin', 'sign-in', probe)
+    for name, command in [('failed', 'false'), ('unknown', 'fm-lab-missing-command')]:
+        drive.hold(home, name, 'screen', command)
+        before = channel.read_text()
+        drive.run(home, 'fm-captain-hold.sh', 'reprobe', name)
+        assert channel.read_text() == before
+        assert drive.task(home, name)['held'] == 'yes'
+    drive.log('Failed and unknown reprobes left the parent channel byte-for-byte unchanged.')
+    binding.write_text('schema=fm-secondmate-parent.v1\nroute=invalid\n')
+    result = drive.run(home, 'fm-captain-hold.sh', 'reprobe', 'signin', expect=None, timeout=120)
+    assert result.returncode != 0 and result.stdout.splitlines() == ['released: signin']
+    row = drive.task(home, 'signin')
+    assert row['held'] == 'no' and row['body'].count('Resolution recorded by fm-captain-hold.') == 1
+    before = (home / 'probe-count').read_text()
+    (home / 'ready').rename(home / 'not-ready')
+    binding.write_text(valid_binding)
+    for _ in range(2):
+        drive.run(home, 'fm-captain-hold.sh', 'reprobe', 'signin', timeout=120)
+    assert (home / 'probe-count').read_text() == before
+    row = drive.task(home, 'signin')
+    assert row['body'].count('Resolution recorded by fm-captain-hold.') == 1
+    assert 'Captain hold set:' not in row['body']
+    assert channel.read_text().count('resolved [key=captain-hold-signin-1]') == 1
+    drive.log('Repaired parent channel:\n' + channel.read_text())
+    drive.log('Two release retries left the probe counter unchanged and published exactly one resolution.')
+    (drive.EVIDENCE / 'interrupted-release-parent-channel.txt').write_text(channel.read_text())
+
+def silent_idle_guard():
+    home = drive.make_home('idle')
+    root = home / 'source-scope'
+    git_env = drive.env_for(home)
+    git_env.update(GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1')
+    for key in ('GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE'):
+        git_env.pop(key, None)
+    subprocess.run(['git', 'init', '--initial-branch=main', str(root)], env=git_env,
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    env = drive.env_for(home)
+    env.update(FM_ROOT_OVERRIDE=str(root), FM_GUARD_READ_ONLY='1')
+    result = subprocess.run([str(drive.ROOT / 'bin/fm-guard.sh')], cwd=drive.ROOT, env=env,
+                            text=True, capture_output=True, timeout=60)
+    drive.log('$ FM_HOME=' + str(home.relative_to(drive.ROOT)) + ' FM_GUARD_READ_ONLY=1 bin/fm-guard.sh [isolated empty source scope]')
+    drive.log(f'exit={result.returncode}; stdout={result.stdout!r}; stderr={result.stderr!r}')
+    assert result.returncode == 0 and not result.stdout and not result.stderr
+
+drive.scenario('An interrupted probe release reports the partial result, then replay finalizes once without re-running the probe; failed probes leave the parent channel unchanged', replay_release)
+drive.scenario('The idle read-only guard remains silent with no in-flight work', silent_idle_guard)
+(drive.EVIDENCE / 'holdprobe-recovery-results.json').write_text(json.dumps(drive.RESULTS, indent=2) + '\n')
+if any(row['result'] != 'pass' for row in drive.RESULTS):
+    raise SystemExit(1)
+
+FILE: .nm-test-holdprobe/finish.py
+
+import json
+import drive
+
+original_env = drive.env_for
+original_run = drive.run
+
+def loaded_host_env(home):
+    env = original_env(home)
+    env['FM_BACKLOG_ROW_TIMEOUT_SECS'] = '60'
+    return env
+
+def loaded_run(*args, **kwargs):
+    kwargs.setdefault('timeout', 180)
+    return original_run(*args, **kwargs)
+
+drive.env_for = loaded_host_env
+drive.run = loaded_run
+drive.log('Finishing remaining checks with a 180s driver command budget and FM_BACKLOG_ROW_TIMEOUT_SECS=60, retaining the real 10s probe deadline. Earlier partial results remain in this transcript.')
+
+def check_contract():
+    home = drive.SCRATCH / 'retry/contract'
+    probe = 'test -f "$FM_HOME/signed-in"'
+    for step in ('sign-in', 'screen'):
+        row = drive.task(home, step)
+        lines = row['body'].splitlines()
+        drive.datetime.datetime.strptime(lines[0].removeprefix('Captain hold set: '), '%Y-%m-%dT%H:%M:%SZ')
+        assert lines[1:5] == ['Decision owner: lab-owner', 'Hold timeout seconds: 600',
+                              'Hold reason: complete the isolated sign-in step', 'Hold probe: ' + probe]
+        assert row['held'] == 'yes'
+    drive.hold(home, 'ordinary', until='2099-01-01')
+    row = drive.task(home, 'ordinary')
+    assert row['held'] == 'yes' and row['hold_until'] == '2099-01-01'
+    assert not any(line.startswith(('Decision owner:', 'Hold timeout seconds:', 'Hold reason:', 'Hold probe:'))
+                   for line in row['body'].splitlines())
+    drive.run(home, 'fm-captain-hold.sh', 'reprobe', 'ordinary')
+    assert drive.task(home, 'ordinary')['held'] == 'yes'
+    (drive.EVIDENCE / 'hold-domain-backlog.md').write_text((home / 'data/backlog.md').read_text())
+
+def remaining_reholds():
+    home = drive.SCRATCH / 'rehold'
+    name = 'sign-in-released'
+    countfile = home / (name + '.runs')
+    before = countfile.read_text()
+    drive.run(home, 'fm-captain-hold.sh', 'hold', name, '--reason', 'choose the next local action')
+    drive.run(home, 'fm-captain-hold.sh', 'reprobe', name)
+    row = drive.task(home, name)
+    assert row['held'] == 'yes' and 'Hold probe:' not in row['body']
+    assert countfile.read_text() == before
+    for prior in ('active', 'released'):
+        name = 'screen-' + prior
+        countfile = home / (name + '.runs')
+        probe = 'printf run\\n >> ' + drive.shlex.quote(str(countfile))
+        drive.hold(home, name, 'screen', probe)
+        if prior == 'released':
+            drive.run(home, 'fm-captain-hold.sh', 'reprobe', name)
+            assert drive.task(home, name)['held'] == 'no'
+        before = countfile.read_text() if countfile.exists() else ''
+        drive.run(home, 'fm-captain-hold.sh', 'hold', name, '--reason', 'choose the next local action')
+        result = drive.run(home, 'fm-captain-hold.sh', 'reprobe', name)
+        assert 'no-probe' in result.stdout
+        row = drive.task(home, name)
+        assert row['held'] == 'yes' and 'Hold probe:' not in row['body']
+        assert (countfile.read_text() if countfile.exists() else '') == before
+    (drive.EVIDENCE / 'ordinary-rehold-backlog.md').write_text((home / 'data/backlog.md').read_text())
+
+drive.scenario('The recorded sign-in and screen fields exactly match the hold-domain contract, and ordinary deferred holds remain supported', check_contract)
+drive.scenario('Ordinary re-holds deactivate historical sign-in and screen probes, whether previously active or released', remaining_reholds)
+(drive.EVIDENCE / 'holdprobe-final-checks.json').write_text(json.dumps(drive.RESULTS, indent=2) + '\n')
+if any(row['result'] != 'pass' for row in drive.RESULTS):
+    raise SystemExit(1)
+
+FILE: .nm-test-holdprobe/primary-scope.sh
+
+#!/usr/bin/env bash
+set -u
+. bin/fm-primary-scope-lib.sh
+printf 'Primary source: %s\nLab state: %s\n' "$PWD" "$PWD/l/state"
+if fm_primary_scope_matches "$PWD" "$PWD/l/state"; then
+  printf 'Primary hook scope: eligible\n'
+else
+  printf 'Primary hook scope: ineligible (linked gate worktree is not a plain primary checkout or marked secondmate source root).\n'
+fi

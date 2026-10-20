@@ -1,51 +1,29 @@
 [
   {
-    "name": "Dale sign-in fields are consumer-compatible; failed probe stays quiet; completed sign-in releases once",
-    "result": "pass",
+    "name": "Sign-in and screen holds publish the exact hold-domain fields; deferred step holds are refused before creation; ordinary deferrals remain supported",
+    "result": "fail",
     "live": true,
-    "evidence": "holdprobe-live-cli.log",
-    "reason": ""
+    "reason": "(['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/bin/fm-captain-hold.sh', 'hold', 'sign-in', '--title', 'Lab sign-in', '--reason', 'complete the isolated sign-in step', '--dale-step', 'sign-in', '--probe', 'test -f \"$FM_HOME/signed-in\"', '--owner', 'lab-owner', '--hold-timeout', '600'], 124, '', 'fm-captain-hold: tasks-axi show sign-in exceeded its 10s backlog read bound\\n')"
   },
   {
-    "name": "A pending screen remains held until the screen is completed",
+    "name": "Failed, unknown, and timed-out probes stay held without a wake; timeout kills the probe subtree",
     "result": "pass",
-    "live": true,
-    "evidence": "holdprobe-live-cli.log",
-    "reason": ""
+    "live": true
   },
   {
-    "name": "An unknown probe remains held and emits no parent wake",
+    "name": "A sign-in hold releases itself after a real local sign-in completes and queues exactly one watcher wake",
     "result": "pass",
-    "live": true,
-    "evidence": "holdprobe-live-cli.log",
-    "reason": ""
+    "live": true
   },
   {
-    "name": "An ordinary hold keeps its existing text behavior and has no automatic probe",
+    "name": "A probe that passes after its hold stamp or probe changes cannot release the changed hold",
     "result": "pass",
-    "live": true,
-    "evidence": "holdprobe-live-cli.log",
-    "reason": ""
+    "live": true
   },
   {
-    "name": "A successful old probe cannot release a replacement hold with a different stamp",
-    "result": "pass",
+    "name": "Ordinary re-holds deactivate historical sign-in and screen probes, whether previously active or released",
+    "result": "fail",
     "live": true,
-    "evidence": "holdprobe-live-cli.log",
-    "reason": ""
-  },
-  {
-    "name": "A successful old probe cannot release a hold whose probe changed",
-    "result": "pass",
-    "live": true,
-    "evidence": "holdprobe-live-cli.log",
-    "reason": ""
-  },
-  {
-    "name": "The actual asks-rule blocks duplicate and answered asks while kind, form and unavailable rules fail open",
-    "result": "pass",
-    "live": true,
-    "evidence": "holdprobe-live-cli.log",
-    "reason": ""
+    "reason": "Command '['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/bin/fm-captain-hold.sh', 'reprobe', 'sign-in-released']' timed out after 45 seconds"
   }
 ]

@@ -1,0 +1,830 @@
+Real product interfaces: fm-captain-hold.sh, fm-tasks-axi.sh (installed tasks-axi markdown backend), fm-watch.sh. No product stubs. Disposable homes are inside the run worktree. The external asks rule is deliberately absent; its declined matching gap is outside this proof.
+[2026-10-20T22:34:42+00:00] 
+SCENARIO: Sign-in and screen holds publish the exact hold-domain fields; deferred step holds are refused before creation; ordinary deferrals remain supported
+[2026-10-20T22:34:42+00:00] $ FM_HOME=.nm-test-holdprobe/contract bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/contract
+[2026-10-20T22:34:42+00:00] exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/contract
+[2026-10-20T22:35:12+00:00] $ FM_HOME=.nm-test-holdprobe/contract bin/fm-captain-hold.sh hold sign-in --title 'Lab sign-in' --reason 'complete the isolated sign-in step' --dale-step sign-in --probe 'test -f "$FM_HOME/signed-in"' --owner lab-owner --hold-timeout 600
+[2026-10-20T22:35:12+00:00] exit=124
+fm-captain-hold: tasks-axi show sign-in exceeded its 10s backlog read bound
+[2026-10-20T22:35:12+00:00] OBSERVED FAILURE: AssertionError((['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/bin/fm-captain-hold.sh', 'hold', 'sign-in', '--title', 'Lab sign-in', '--reason', 'complete the isolated sign-in step', '--dale-step', 'sign-in', '--probe', 'test -f "$FM_HOME/signed-in"', '--owner', 'lab-owner', '--hold-timeout', '600'], 124, '', 'fm-captain-hold: tasks-axi show sign-in exceeded its 10s backlog read bound\n'))
+[2026-10-20T22:35:12+00:00] 
+SCENARIO: A sign-in hold releases itself after a real local sign-in completes and queues exactly one watcher wake
+[2026-10-20T22:35:15+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/watcher
+[2026-10-20T22:35:15+00:00] exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/watcher
+[2026-10-20T22:35:40+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-captain-hold.sh hold signin --title 'Lab signin' --reason 'complete the isolated sign-in step' --dale-step sign-in --probe 'printf attempt\n >> "$FM_HOME/signin.attempts"; curl --fail --silent --max-time 2 http://127.0.0.1:62298/status'
+[2026-10-20T22:35:40+00:00] exit=0
+signin
+[2026-10-20T22:35:56+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-captain-hold.sh hold failed --title 'Lab failed' --reason 'complete the isolated sign-in step' --dale-step screen --probe 'printf attempt\n >> "$FM_HOME/failed.attempts"; false'
+[2026-10-20T22:35:56+00:00] exit=0
+failed
+[2026-10-20T22:36:09+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-captain-hold.sh hold unknown --title 'Lab unknown' --reason 'complete the isolated sign-in step' --dale-step screen --probe 'printf attempt\n >> "$FM_HOME/unknown.attempts"; fm-lab-command-does-not-exist'
+[2026-10-20T22:36:09+00:00] exit=0
+unknown
+[2026-10-20T22:36:30+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-captain-hold.sh hold hung --title 'Lab hung' --reason 'complete the isolated sign-in step' --dale-step screen --probe 'bash "$FM_HOME/hung.sh"'
+[2026-10-20T22:36:30+00:00] exit=0
+hung
+[2026-10-20T22:36:43+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-captain-hold.sh hold ordinary --title 'Lab ordinary' --reason 'complete the isolated sign-in step' --until 2099-01-01
+[2026-10-20T22:36:43+00:00] exit=0
+ordinary
+[2026-10-20T22:36:43+00:00] $ FM_HOME=.nm-test-holdprobe/watcher FM_POLL=1 FM_CHECK_INTERVAL=3 bin/fm-watch.sh [pid=14379]
+[2026-10-20T22:37:11+00:00] First real sweep completed in 27.22s; no sign-in has been performed.
+[2026-10-20T22:37:12+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show signin --full
+[2026-10-20T22:37:12+00:00] exit=0
+task:
+  id: signin
+  title: Lab signin
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:35:21Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: printf attempt\\n >> \"$FM_HOME/signin.attempts\"; curl --fail --silent --max-time 2 http://127.0.0.1:62298/status"
+[2026-10-20T22:37:13+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show failed --full
+[2026-10-20T22:37:13+00:00] exit=0
+task:
+  id: failed
+  title: Lab failed
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:35:41Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: printf attempt\\n >> \"$FM_HOME/failed.attempts\"; false"
+[2026-10-20T22:37:14+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show unknown --full
+[2026-10-20T22:37:14+00:00] exit=0
+task:
+  id: unknown
+  title: Lab unknown
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:35:57Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: printf attempt\\n >> \"$FM_HOME/unknown.attempts\"; fm-lab-command-does-not-exist"
+[2026-10-20T22:37:14+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show hung --full
+[2026-10-20T22:37:14+00:00] exit=0
+task:
+  id: hung
+  title: Lab hung
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:36:10Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: bash \"$FM_HOME/hung.sh\""
+[2026-10-20T22:37:16+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show ordinary --full
+[2026-10-20T22:37:16+00:00] exit=0
+task:
+  id: ordinary
+  title: Lab ordinary
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: 2099-01-01
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:36:31Z"
+[2026-10-20T22:37:16+00:00] Timed-out probe process 25022 is no longer running.
+[2026-10-20T22:37:16+00:00] Timed-out probe process 25048 is no longer running.
+[2026-10-20T22:37:16+00:00] Watcher stdout is empty; durable wake queue is empty. Failed, unknown, timed-out, and unsigned-in holds remain held.
+[2026-10-20T22:37:16+00:00] POST http://127.0.0.1:62298/signin -> 200: local disposable sign-in completed
+[2026-10-20T22:37:46+00:00] Watcher closed automatically 29.88s after sign-in, exit=0.
+stdout:
+check: captain hold signin released after a passing probe
+stderr:
+
+[2026-10-20T22:37:46+00:00] Durable wake queue:
+1792535850	1	check	captain-hold-probe-signin	check: captain hold signin released after a passing probe
+
+[2026-10-20T22:37:47+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show signin --full
+[2026-10-20T22:37:47+00:00] exit=0
+task:
+  id: signin
+  title: Lab signin
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 34e0a552ad445aa394eba600033fce932c30c311bcbb3f0a55888c4833024fdb\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: printf attempt\\n >> \"$FM_HOME/signin.attempts\"; curl --fail --silent --max-time 2 http://127.0.0.1:62298/status\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: printf attempt\\n >> \"$FM_HOME/signin.attempts\"; curl --fail --silent --max-time 2 http://127.0.0.1:62298/status"
+[2026-10-20T22:37:48+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show failed --full
+[2026-10-20T22:37:48+00:00] exit=0
+task:
+  id: failed
+  title: Lab failed
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:35:41Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: printf attempt\\n >> \"$FM_HOME/failed.attempts\"; false"
+[2026-10-20T22:37:48+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show unknown --full
+[2026-10-20T22:37:48+00:00] exit=0
+task:
+  id: unknown
+  title: Lab unknown
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:35:57Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: printf attempt\\n >> \"$FM_HOME/unknown.attempts\"; fm-lab-command-does-not-exist"
+[2026-10-20T22:37:49+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show hung --full
+[2026-10-20T22:37:49+00:00] exit=0
+task:
+  id: hung
+  title: Lab hung
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:36:10Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: bash \"$FM_HOME/hung.sh\""
+[2026-10-20T22:37:50+00:00] $ FM_HOME=.nm-test-holdprobe/watcher bin/fm-tasks-axi.sh show ordinary --full
+[2026-10-20T22:37:50+00:00] exit=0
+task:
+  id: ordinary
+  title: Lab ordinary
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: 2099-01-01
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:36:31Z"
+[2026-10-20T22:37:50+00:00] OBSERVED: A sign-in hold releases itself after a real local sign-in completes and queues exactly one watcher wake passed
+[2026-10-20T22:37:50+00:00] 
+SCENARIO: A probe that passes after its hold stamp or probe changes cannot release the changed hold
+[2026-10-20T22:37:50+00:00] $ FM_HOME=.nm-test-holdprobe/race bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/race
+[2026-10-20T22:37:50+00:00] exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/race
+[2026-10-20T22:38:00+00:00] $ FM_HOME=.nm-test-holdprobe/race bin/fm-captain-hold.sh hold race-stamp --title 'Lab race-stamp' --reason 'complete the isolated sign-in step' --dale-step sign-in --probe 'bash "$FM_HOME/slow-probe.sh"'
+[2026-10-20T22:38:00+00:00] exit=0
+race-stamp
+[2026-10-20T22:38:06+00:00] $ FM_HOME=.nm-test-holdprobe/race bin/fm-tasks-axi.sh show race-stamp --full
+[2026-10-20T22:38:06+00:00] exit=0
+task:
+  id: race-stamp
+  title: Lab race-stamp
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:37:50Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: bash \"$FM_HOME/slow-probe.sh\""
+[2026-10-20T22:38:08+00:00] $ FM_HOME=.nm-test-holdprobe/race bin/fm-tasks-axi.sh update race-stamp --body-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/race/changed-body.txt
+[2026-10-20T22:38:08+00:00] exit=0
+ok: updated race-stamp (body)
+task:
+  id: race-stamp
+  title: Lab race-stamp
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "fm-hold-v1:Y29tcGxldGUgdGhlIGlzb2xhdGVkIHNpZ24taW4gc3RlcA=="
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2020-01-01T00:00:00Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: bash \"$FM_HOME/slow-probe.sh\""
+help[1]:
+  - Run `tasks-axi show race-stamp --full` to see the result
+[2026-10-20T22:38:10+00:00] In-flight stamp change: reprobe exit=0
+kept: race-stamp stamp-changed
+
+[2026-10-20T22:38:13+00:00] $ FM_HOME=.nm-test-holdprobe/race bin/fm-tasks-axi.sh show race-stamp --full
+[2026-10-20T22:38:13+00:00] exit=0
+task:
+  id: race-stamp
+  title: Lab race-stamp
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2020-01-01T00:00:00Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: bash \"$FM_HOME/slow-probe.sh\""
+[2026-10-20T22:38:39+00:00] $ FM_HOME=.nm-test-holdprobe/race bin/fm-captain-hold.sh hold race-probe --title 'Lab race-probe' --reason 'complete the isolated sign-in step' --dale-step sign-in --probe 'bash "$FM_HOME/slow-probe.sh"'
+[2026-10-20T22:38:39+00:00] exit=0
+race-probe
+[2026-10-20T22:38:47+00:00] $ FM_HOME=.nm-test-holdprobe/race bin/fm-tasks-axi.sh show race-probe --full
+[2026-10-20T22:38:47+00:00] exit=0
+task:
+  id: race-probe
+  title: Lab race-probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:38:13Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: bash \"$FM_HOME/slow-probe.sh\""
+[2026-10-20T22:38:48+00:00] $ FM_HOME=.nm-test-holdprobe/race bin/fm-tasks-axi.sh update race-probe --body-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/race/changed-body.txt
+[2026-10-20T22:38:48+00:00] exit=0
+ok: updated race-probe (body)
+task:
+  id: race-probe
+  title: Lab race-probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "fm-hold-v1:Y29tcGxldGUgdGhlIGlzb2xhdGVkIHNpZ24taW4gc3RlcA=="
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:38:13Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: false"
+help[1]:
+  - Run `tasks-axi show race-probe --full` to see the result
+[2026-10-20T22:39:05+00:00] In-flight probe change: reprobe exit=0
+kept: race-probe stamp-changed
+
+[2026-10-20T22:39:09+00:00] $ FM_HOME=.nm-test-holdprobe/race bin/fm-tasks-axi.sh show race-probe --full
+[2026-10-20T22:39:09+00:00] exit=0
+task:
+  id: race-probe
+  title: Lab race-probe
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:38:13Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: false"
+[2026-10-20T22:39:09+00:00] OBSERVED: A probe that passes after its hold stamp or probe changes cannot release the changed hold passed
+[2026-10-20T22:39:09+00:00] 
+SCENARIO: Ordinary re-holds deactivate historical sign-in and screen probes, whether previously active or released
+[2026-10-20T22:39:09+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold
+[2026-10-20T22:39:09+00:00] exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold
+[2026-10-20T22:39:27+00:00] Retry after a host-load-related 10s backlog read timeout: FM_BACKLOG_ROW_TIMEOUT_SECS=60; the actual hold probe deadline remains 10s.
+[2026-10-20T22:39:28+00:00] 
+SCENARIO: Sign-in and screen holds publish the exact hold-domain fields; deferred step holds are refused before creation; ordinary deferrals remain supported
+[2026-10-20T22:39:28+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/retry/contract
+[2026-10-20T22:39:28+00:00] exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/retry/contract
+[2026-10-20T22:39:48+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh hold sign-in-active --title 'Lab sign-in-active' --reason 'complete the isolated sign-in step' --dale-step sign-in --probe 'printf run\n >> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold/sign-in-active.runs'
+[2026-10-20T22:39:48+00:00] exit=0
+sign-in-active
+[2026-10-20T22:40:02+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-captain-hold.sh hold sign-in --title 'Lab sign-in' --reason 'complete the isolated sign-in step' --dale-step sign-in --probe 'test -f "$FM_HOME/signed-in"' --owner lab-owner --hold-timeout 600
+[2026-10-20T22:40:02+00:00] exit=0
+sign-in
+[2026-10-20T22:40:05+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-tasks-axi.sh show sign-in --full
+[2026-10-20T22:40:05+00:00] exit=0
+task:
+  id: sign-in
+  title: Lab sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:39:29Z\nDecision owner: lab-owner\nHold timeout seconds: 600\nHold reason: complete the isolated sign-in step\nHold probe: test -f \"$FM_HOME/signed-in\""
+[2026-10-20T22:40:06+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-captain-hold.sh hold deferred-sign-in --title 'Deferred lab step' --reason 'complete the isolated sign-in step' --dale-step sign-in --probe true --until 2099-01-01
+[2026-10-20T22:40:06+00:00] exit=1
+fm-captain-hold: --until cannot be combined with --dale-step
+[2026-10-20T22:40:09+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-tasks-axi.sh show deferred-sign-in --full
+[2026-10-20T22:40:09+00:00] exit=1
+error: "Task \"deferred-sign-in\" not found in this backlog"
+code: NOT_FOUND
+help[1]: Run `tasks-axi list` to see existing tasks
+[2026-10-20T22:40:09+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh hold sign-in-active --reason 'choose the next local action'
+[2026-10-20T22:40:09+00:00] exit=0
+sign-in-active
+[2026-10-20T22:40:12+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh reprobe sign-in-active
+[2026-10-20T22:40:12+00:00] exit=0
+kept: sign-in-active no-probe
+[2026-10-20T22:40:13+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-tasks-axi.sh show sign-in-active --full
+[2026-10-20T22:40:13+00:00] exit=0
+task:
+  id: sign-in-active
+  title: Lab sign-in-active
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "choose the next local action"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:39:12Z"
+[2026-10-20T22:40:32+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-captain-hold.sh hold screen --title 'Lab screen' --reason 'complete the isolated sign-in step' --dale-step screen --probe 'test -f "$FM_HOME/signed-in"' --owner lab-owner --hold-timeout 600
+[2026-10-20T22:40:32+00:00] exit=0
+screen
+[2026-10-20T22:40:35+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-tasks-axi.sh show screen --full
+[2026-10-20T22:40:35+00:00] exit=0
+task:
+  id: screen
+  title: Lab screen
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:40:10Z\nDecision owner: lab-owner\nHold timeout seconds: 600\nHold reason: complete the isolated sign-in step\nHold probe: test -f \"$FM_HOME/signed-in\""
+[2026-10-20T22:40:36+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-captain-hold.sh hold deferred-screen --title 'Deferred lab step' --reason 'complete the isolated sign-in step' --dale-step screen --probe true --until 2099-01-01
+[2026-10-20T22:40:36+00:00] exit=1
+fm-captain-hold: --until cannot be combined with --dale-step
+[2026-10-20T22:40:37+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-tasks-axi.sh show deferred-screen --full
+[2026-10-20T22:40:37+00:00] exit=1
+error: "Task \"deferred-screen\" not found in this backlog"
+code: NOT_FOUND
+help[1]: Run `tasks-axi list` to see existing tasks
+[2026-10-20T22:40:37+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh hold sign-in-released --title 'Lab sign-in-released' --reason 'complete the isolated sign-in step' --dale-step sign-in --probe 'printf run\n >> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold/sign-in-released.runs'
+[2026-10-20T22:40:37+00:00] exit=0
+sign-in-released
+[2026-10-20T22:40:51+00:00] 
+SCENARIO: An interrupted probe release reports the partial result, then replay finalizes once without re-running the probe; failed probes leave the parent channel unchanged
+[2026-10-20T22:40:52+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/parent bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/interrupted/parent
+[2026-10-20T22:40:52+00:00] exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/interrupted/parent
+[2026-10-20T22:40:53+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/interrupted/mate
+[2026-10-20T22:40:53+00:00] exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/interrupted/mate
+[2026-10-20T22:41:22+00:00] OBSERVED FAILURE: TimeoutExpired(['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/bin/fm-captain-hold.sh', 'hold', 'ordinary', '--title', 'Lab ordinary', '--reason', 'complete the isolated sign-in step', '--until', '2099-01-01'], 45)
+[2026-10-20T22:41:22+00:00] OBSERVED FAILURE: TimeoutExpired(['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/bin/fm-captain-hold.sh', 'reprobe', 'sign-in-released'], 45)
+[2026-10-20T22:41:22+00:00] Live scenario results: [{"name": "Sign-in and screen holds publish the exact hold-domain fields; deferred step holds are refused before creation; ordinary deferrals remain supported", "result": "fail", "live": true, "reason": "(['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/bin/fm-captain-hold.sh', 'hold', 'sign-in', '--title', 'Lab sign-in', '--reason', 'complete the isolated sign-in step', '--dale-step', 'sign-in', '--probe', 'test -f \"$FM_HOME/signed-in\"', '--owner', 'lab-owner', '--hold-timeout', '600'], 124, '', 'fm-captain-hold: tasks-axi show sign-in exceeded its 10s backlog read bound\\n')"}, {"name": "Failed, unknown, and timed-out probes stay held without a wake; timeout kills the probe subtree", "result": "pass", "live": true}, {"name": "A sign-in hold releases itself after a real local sign-in completes and queues exactly one watcher wake", "result": "pass", "live": true}, {"name": "A probe that passes after its hold stamp or probe changes cannot release the changed hold", "result": "pass", "live": true}, {"name": "Ordinary re-holds deactivate historical sign-in and screen probes, whether previously active or released", "result": "fail", "live": true, "reason": "Command '['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/bin/fm-captain-hold.sh', 'reprobe', 'sign-in-released']' timed out after 45 seconds"}]
+[2026-10-20T22:41:35+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-captain-hold.sh hold signin --title 'Lab signin' --reason 'complete the isolated sign-in step' --dale-step sign-in --probe 'printf run\n >> "$FM_HOME/probe-count"; test -f "$FM_HOME/ready"'
+[2026-10-20T22:41:35+00:00] exit=0
+signin
+[2026-10-20T22:41:43+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-captain-hold.sh hold failed --title 'Lab failed' --reason 'complete the isolated sign-in step' --dale-step screen --probe false
+[2026-10-20T22:41:43+00:00] exit=0
+failed
+[2026-10-20T22:41:44+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-captain-hold.sh reprobe failed
+[2026-10-20T22:41:44+00:00] exit=0
+kept: failed probe-failed
+[2026-10-20T22:41:45+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-tasks-axi.sh show failed --full
+[2026-10-20T22:41:45+00:00] exit=0
+task:
+  id: failed
+  title: Lab failed
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:41:35Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: false"
+[2026-10-20T22:42:02+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-captain-hold.sh hold unknown --title 'Lab unknown' --reason 'complete the isolated sign-in step' --dale-step screen --probe fm-lab-missing-command
+[2026-10-20T22:42:02+00:00] exit=0
+unknown
+[2026-10-20T22:42:04+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-captain-hold.sh reprobe unknown
+[2026-10-20T22:42:04+00:00] exit=0
+kept: unknown probe-failed
+[2026-10-20T22:42:05+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-tasks-axi.sh show unknown --full
+[2026-10-20T22:42:05+00:00] exit=0
+task:
+  id: unknown
+  title: Lab unknown
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:41:45Z\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: fm-lab-missing-command"
+[2026-10-20T22:42:05+00:00] Failed and unknown reprobes left the parent channel byte-for-byte unchanged.
+[2026-10-20T22:42:15+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-captain-hold.sh reprobe signin
+[2026-10-20T22:42:15+00:00] exit=1
+released: signin
+actionable: task signin is held for the captain in this home but that did not reach the parent channel (rc=3)
+fm-captain-hold: could not publish the probe-released task signin to its parent
+[2026-10-20T22:42:18+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-tasks-axi.sh show signin --full
+[2026-10-20T22:42:18+00:00] exit=0
+task:
+  id: signin
+  title: Lab signin
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 01847cf3f9efbf34e44a140eb984f4e6d0732116a840543e445744b60538658c\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: printf run\\n >> \"$FM_HOME/probe-count\"; test -f \"$FM_HOME/ready\"\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: printf run\\n >> \"$FM_HOME/probe-count\"; test -f \"$FM_HOME/ready\""
+[2026-10-20T22:42:34+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-captain-hold.sh reprobe signin
+[2026-10-20T22:42:34+00:00] exit=0
+released: signin
+[2026-10-20T22:42:44+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-captain-hold.sh reprobe signin
+[2026-10-20T22:42:44+00:00] exit=0
+released: signin
+[2026-10-20T22:42:44+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/mate bin/fm-tasks-axi.sh show signin --full
+[2026-10-20T22:42:44+00:00] exit=0
+task:
+  id: signin
+  title: Lab signin
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 01847cf3f9efbf34e44a140eb984f4e6d0732116a840543e445744b60538658c\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: printf run\\n >> \"$FM_HOME/probe-count\"; test -f \"$FM_HOME/ready\"\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: printf run\\n >> \"$FM_HOME/probe-count\"; test -f \"$FM_HOME/ready\""
+[2026-10-20T22:42:44+00:00] Repaired parent channel:
+needs-decision [key=captain-hold-signin-1] [at=1792536094]: captain hold signin: complete the isolated sign-in step
+needs-decision [key=captain-hold-failed-1] [at=1792536103]: captain hold failed: complete the isolated sign-in step
+needs-decision [key=captain-hold-unknown-1] [at=1792536122]: captain hold unknown: complete the isolated sign-in step
+resolved [key=captain-hold-signin-1] [at=1792536154]: captain hold signin: probe-released
+
+[2026-10-20T22:42:44+00:00] Two release retries left the probe counter unchanged and published exactly one resolution.
+[2026-10-20T22:42:44+00:00] OBSERVED: An interrupted probe release reports the partial result, then replay finalizes once without re-running the probe; failed probes leave the parent channel unchanged passed
+[2026-10-20T22:42:44+00:00] 
+SCENARIO: The idle read-only guard remains silent with no in-flight work
+[2026-10-20T22:42:45+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/idle bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/interrupted/idle
+[2026-10-20T22:42:45+00:00] exit=0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/interrupted/idle
+[2026-10-20T22:42:48+00:00] $ FM_HOME=.nm-test-holdprobe/interrupted/idle FM_GUARD_READ_ONLY=1 bin/fm-guard.sh [isolated empty source scope]
+[2026-10-20T22:42:48+00:00] exit=0; stdout=''; stderr=''
+[2026-10-20T22:42:48+00:00] OBSERVED: The idle read-only guard remains silent with no in-flight work passed
+[2026-10-20T22:43:20+00:00] Finishing remaining checks with a 180s driver command budget and FM_BACKLOG_ROW_TIMEOUT_SECS=60, retaining the real 10s probe deadline. Earlier partial results remain in this transcript.
+[2026-10-20T22:43:20+00:00] 
+SCENARIO: The recorded sign-in and screen fields exactly match the hold-domain contract, and ordinary deferred holds remain supported
+[2026-10-20T22:43:20+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-tasks-axi.sh show sign-in --full
+[2026-10-20T22:43:20+00:00] exit=0
+task:
+  id: sign-in
+  title: Lab sign-in
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:39:29Z\nDecision owner: lab-owner\nHold timeout seconds: 600\nHold reason: complete the isolated sign-in step\nHold probe: test -f \"$FM_HOME/signed-in\""
+[2026-10-20T22:43:21+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-tasks-axi.sh show screen --full
+[2026-10-20T22:43:21+00:00] exit=0
+task:
+  id: screen
+  title: Lab screen
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:40:10Z\nDecision owner: lab-owner\nHold timeout seconds: 600\nHold reason: complete the isolated sign-in step\nHold probe: test -f \"$FM_HOME/signed-in\""
+[2026-10-20T22:43:27+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-captain-hold.sh hold ordinary --title 'Lab ordinary' --reason 'complete the isolated sign-in step' --until 2099-01-01
+[2026-10-20T22:43:27+00:00] exit=0
+ordinary
+[2026-10-20T22:43:28+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-tasks-axi.sh show ordinary --full
+[2026-10-20T22:43:28+00:00] exit=0
+task:
+  id: ordinary
+  title: Lab ordinary
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: 2099-01-01
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:40:37Z"
+[2026-10-20T22:43:35+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-captain-hold.sh reprobe ordinary
+[2026-10-20T22:43:35+00:00] exit=0
+kept: ordinary no-probe
+[2026-10-20T22:43:39+00:00] $ FM_HOME=.nm-test-holdprobe/retry/contract bin/fm-tasks-axi.sh show ordinary --full
+[2026-10-20T22:43:39+00:00] exit=0
+task:
+  id: ordinary
+  title: Lab ordinary
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "complete the isolated sign-in step"
+  hold_kind: captain
+  hold_until: 2099-01-01
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:40:37Z"
+[2026-10-20T22:43:39+00:00] OBSERVED: The recorded sign-in and screen fields exactly match the hold-domain contract, and ordinary deferred holds remain supported passed
+[2026-10-20T22:43:39+00:00] 
+SCENARIO: Ordinary re-holds deactivate historical sign-in and screen probes, whether previously active or released
+[2026-10-20T22:43:43+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh hold sign-in-released --reason 'choose the next local action'
+[2026-10-20T22:43:43+00:00] exit=0
+sign-in-released
+[2026-10-20T22:43:44+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh reprobe sign-in-released
+[2026-10-20T22:43:44+00:00] exit=0
+kept: sign-in-released no-probe
+[2026-10-20T22:43:44+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-tasks-axi.sh show sign-in-released --full
+[2026-10-20T22:43:44+00:00] exit=0
+task:
+  id: sign-in-released
+  title: Lab sign-in-released
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "choose the next local action"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:43:39Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 23de6b30eb36a56d906b45305fc7bc95923c1a4a41e5e1d890be3095f98d8400\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: printf run\\n >> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold/sign-in-released.runs"
+[2026-10-20T22:43:47+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh hold screen-active --title 'Lab screen-active' --reason 'complete the isolated sign-in step' --dale-step screen --probe 'printf run\n >> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold/screen-active.runs'
+[2026-10-20T22:43:47+00:00] exit=0
+screen-active
+[2026-10-20T22:43:50+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh hold screen-active --reason 'choose the next local action'
+[2026-10-20T22:43:50+00:00] exit=0
+screen-active
+[2026-10-20T22:43:51+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh reprobe screen-active
+[2026-10-20T22:43:51+00:00] exit=0
+kept: screen-active no-probe
+[2026-10-20T22:43:51+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-tasks-axi.sh show screen-active --full
+[2026-10-20T22:43:51+00:00] exit=0
+task:
+  id: screen-active
+  title: Lab screen-active
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "choose the next local action"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:43:44Z"
+[2026-10-20T22:43:55+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh hold screen-released --title 'Lab screen-released' --reason 'complete the isolated sign-in step' --dale-step screen --probe 'printf run\n >> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold/screen-released.runs'
+[2026-10-20T22:43:55+00:00] exit=0
+screen-released
+[2026-10-20T22:43:59+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh reprobe screen-released
+[2026-10-20T22:43:59+00:00] exit=0
+released: screen-released
+[2026-10-20T22:44:00+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-tasks-axi.sh show screen-released --full
+[2026-10-20T22:44:00+00:00] exit=0
+task:
+  id: screen-released
+  title: Lab screen-released
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 928e4f06397626f86590bad81d04d21690173aca653088cdc587e2d958ec4fff\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: printf run\\n >> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold/screen-released.runs\n\nDecision owner: dale\nHold timeout seconds: 3600\nHold reason: complete the isolated sign-in step\nHold probe: printf run\\n >> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold/screen-released.runs"
+[2026-10-20T22:44:04+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh hold screen-released --reason 'choose the next local action'
+[2026-10-20T22:44:04+00:00] exit=0
+screen-released
+[2026-10-20T22:44:04+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-captain-hold.sh reprobe screen-released
+[2026-10-20T22:44:04+00:00] exit=0
+kept: screen-released no-probe
+[2026-10-20T22:44:05+00:00] $ FM_HOME=.nm-test-holdprobe/rehold bin/fm-tasks-axi.sh show screen-released --full
+[2026-10-20T22:44:05+00:00] exit=0
+task:
+  id: screen-released
+  title: Lab screen-released
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "choose the next local action"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-20T22:44:00Z\n\nResolution recorded by fm-captain-hold.\nDecision digest: 928e4f06397626f86590bad81d04d21690173aca653088cdc587e2d958ec4fff\nResolution mode: probe-released\n\nReconciliation evidence:\nProbe passed for the Dale step this hold waits on: printf run\\n >> /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/.nm-test-holdprobe/rehold/screen-released.runs"
+[2026-10-20T22:44:05+00:00] OBSERVED: Ordinary re-holds deactivate historical sign-in and screen probes, whether previously active or released passed
+
+FINAL INTERPRETATION: All exercised product scenarios passed. Initial backlog-read and 45s driver-budget failures were setup limitations on a host with load averages 72-150; the field/ordinary-hold and re-hold checks were completed with FM_BACKLOG_ROW_TIMEOUT_SECS=60 and a 180s driver command budget. The actual probe deadline stayed 10s. The focused watcher regression initially exceeded its 50s total-sweep assertion (62s), then passed unchanged on retry. The focused Claude auto-arm regression passed, but its arm fixture is not live Claude evidence. Actual Claude was launched on the private fm-lab tmux socket with a 160x48 grid and stopped at workspace trust. The executable scope predicate also rejects this linked gate source root as a primary. No trust store, real fleet home, or credentials were changed.

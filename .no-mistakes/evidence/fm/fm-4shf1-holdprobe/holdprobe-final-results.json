@@ -1,0 +1,29 @@
+{
+  "target": "087f922baf6690ba8fd8136785195a048e7a237a",
+  "live_passes": [
+    "Exact UTC stamp, owner, timeout, reason, and probe fields for sign-in and screen holds",
+    "Dale-step --until refused before task creation; ordinary deferrals preserved",
+    "Failed, unknown, and timed-out probes retain their holds without queue or parent-channel wakes; timed-out process subtree removed",
+    "Local disposable service sign-in releases an actual hold automatically and emits exactly one durable watcher wake",
+    "Changing either stamp or probe during a passing probe retains the changed hold",
+    "Ordinary re-holds clear historical probes for both active and released sign-in/screen holds",
+    "Partial release with a broken parent binding reports failure; retries finalize once without rerunning the probe",
+    "Idle read-only guard exits silently"
+  ],
+  "untested": {
+    "scenario": "Real Claude primary automatically arms for a lone probe hold and receives its final-release wake",
+    "reason": "The normal Claude CLI on a private 160x48 fm-lab tmux session stopped at unaccepted workspace trust. The boundary prohibits modifying its user trust store, and harness guidance prohibits answering that dialog. An executable check also confirms the linked gate worktree is outside primary hook scope, so headless trust skipping alone cannot enable the normal hook chain. Completion needs a trusted disposable primary checkout accepted by the hook scope, or the authorized post-merge proof in the trusted operational home. The private server was stopped."
+  },
+  "targeted_checks": [
+    {
+      "command": "FM_TEST_ONLY=test_check_sweep_reprobes_captain_holds bin/fm-test-run.sh tests/fm-watch-triage.test.sh",
+      "initial": "timing failure: 62s exceeded 50s sweep assertion",
+      "retry": "pass"
+    },
+    {
+      "command": "FM_TEST_ONLY=test_arms_for_captain_probe_hold_without_inflight bin/fm-test-run.sh tests/fm-claude-stop-autoarm.test.sh",
+      "result": "pass",
+      "real_harness": false
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+needs-decision [key=captain-hold-signin-1] [at=1792536094]: captain hold signin: complete the isolated sign-in step
+needs-decision [key=captain-hold-failed-1] [at=1792536103]: captain hold failed: complete the isolated sign-in step
+needs-decision [key=captain-hold-unknown-1] [at=1792536122]: captain hold unknown: complete the isolated sign-in step
+resolved [key=captain-hold-signin-1] [at=1792536154]: captain hold signin: probe-released

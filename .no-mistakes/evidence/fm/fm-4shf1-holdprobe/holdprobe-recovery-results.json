@@ -1,0 +1,12 @@
+[
+  {
+    "name": "An interrupted probe release reports the partial result, then replay finalizes once without re-running the probe; failed probes leave the parent channel unchanged",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "The idle read-only guard remains silent with no in-flight work",
+    "result": "pass",
+    "live": true
+  }
+]

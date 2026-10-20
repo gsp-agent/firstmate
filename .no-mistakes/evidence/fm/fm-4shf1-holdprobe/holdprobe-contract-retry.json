@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Sign-in and screen holds publish the exact hold-domain fields; deferred step holds are refused before creation; ordinary deferrals remain supported",
+    "result": "fail",
+    "live": true,
+    "reason": "Command '['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5DNZYARKGF0JRHS1PNANN16/bin/fm-captain-hold.sh', 'hold', 'ordinary', '--title', 'Lab ordinary', '--reason', 'complete the isolated sign-in step', '--until', '2099-01-01']' timed out after 45 seconds"
+  }
+]
