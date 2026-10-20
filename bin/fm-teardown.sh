@@ -4039,5 +4039,8 @@ teardown_release_locks || true
 if [ "$KIND" != secondmate ]; then
   fm_task_data_expire_others "$DATA" "$STATE" "$ID" \
     || echo "warning: $ID teardown completed, but expiring other tasks' held data needs a retry" >&2
+  # Holds the budget left behind drain in the background with no budget, so a
+  # hold bigger than the budget is not stuck until another teardown.
+  fm_task_data_sweep_start "$DATA" "$STATE" "$ID" || true
 fi
 [ "$TEARDOWN_POOL_SLOT_LOST" = 0 ] || exit "$TEARDOWN_LOST_SLOT_EXIT"

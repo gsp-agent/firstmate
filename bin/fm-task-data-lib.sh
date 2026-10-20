@@ -3,6 +3,10 @@
 # meta lock is still held. Expiring other tasks' holds runs after teardown
 # releases every lock. fm-task-data.py owns retention and recovery rules.
 # Callers source fm-wake-lib.sh for the same locks spawn uses to publish records.
+# The sweep drains pending holds one at a time with no expiry budget, under a
+# single-instance lock and each task's own meta lock; it holds no home-wide
+# lease. Teardown starts it in the background after releasing its own locks,
+# and FM_TASK_DATA_SWEEP=off suppresses that start.
 
 fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
   local data=$1 state=$2 id=$3 project=$4 pr=$5 helper
@@ -109,6 +113,53 @@ fm_task_data_expire_by_hand() { # <data> <state> <id>
   fi
   fm_lock_release "$lock"
   return "$status"
+}
+
+# Drain every pending hold once, least recently tried first, with no expiry
+# budget. Holds marked too large keep their by-hand-only rule. A held meta
+# lock or a live task refuses inside the by-hand expiry and stays held. The
+# hold a teardown just staged for its own task keeps its recovery cycle, so
+# the starting teardown's id is excluded.
+fm_task_data_sweep() { # <data> <state> [started-by-id]
+  local data=$1 state=$2 exclude=${3:-} helper lock listed other expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
+  helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
+  case "$stage_timeout" in ''|0*|*[!0-9]*) stage_timeout=3600 ;; esac
+  command -v python3 >/dev/null 2>&1 || return 1
+  lock="$state/.task-data-sweep.lock"
+  if ! fm_lock_try_acquire "$lock"; then
+    echo "task-data sweep already running; nothing was started" >&2
+    return 0
+  fi
+  export FM_TEARDOWN_DATA_STAGE_TIMEOUT=$stage_timeout
+  if ! listed=$(python3 "$helper" pending "$data"); then
+    fm_lock_release "$lock"
+    return 1
+  fi
+  while IFS=$'\t' read -r other expiry; do
+    [ -n "$other" ] || continue
+    [ "$other" = "$exclude" ] && continue
+    fm_task_id_path_safe "$other" || continue
+    if [ "$expiry" = too-large ]; then
+      echo "warning: task data hold too large to expire automatically, skipped and kept for expiry by hand: $other" >&2
+      continue
+    fi
+    fm_task_data_expire_by_hand "$data" "$state" "$other" || true
+  done <<< "$listed"
+  fm_lock_release "$lock"
+  return 0
+}
+
+# Start one sweep in the background. The sweep's own lock makes a second
+# start while one runs a no-op.
+fm_task_data_sweep_start() { # <data> <state> [started-by-id]
+  local lib
+  [ "${FM_TASK_DATA_SWEEP:-on}" = off ] && return 0
+  lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data-lib.sh"
+  if [ -n "${3:-}" ]; then
+    nohup bash "$lib" sweep "$1" "$2" "$3" >/dev/null 2>&1 </dev/null &
+  else
+    nohup bash "$lib" sweep "$1" "$2" >/dev/null 2>&1 </dev/null &
+  fi
 }
 
 fm_task_data_bead_reference() { # <data> <project> <bead>
@@ -254,6 +305,14 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       # shellcheck source=bin/fm-pr-lib.sh
       . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
       fm_task_data_expire_by_hand "$2" "$3" "$4"
+      ;;
+    sweep)
+      [ "$#" -eq 3 ] || [ "$#" -eq 4 ] || exit 1
+      # shellcheck source=bin/fm-wake-lib.sh
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
+      # shellcheck source=bin/fm-pr-lib.sh
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
+      fm_task_data_sweep "$2" "$3" "${4:-}"
       ;;
     *) exit 1 ;;
   esac

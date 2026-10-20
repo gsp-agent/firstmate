@@ -5824,7 +5824,7 @@ SH
   chmod +x "$case_dir/fakebin/python3" "$case_dir/fakebin/dcg"
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
-  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+  FM_TASK_DATA_SWEEP=off FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
     || fail "teardown with a stuck hold failed: $(cat "$case_dir/err")"
   assert_present "$case_dir/data/bb-fast/.cleanup-hold/scratch.bin" "the stuck hold did not use up the first budget"
   assert_present "$case_dir/data/aa-stuck/.cleanup-hold/scratch.bin" "a hold cut off by the budget lost its data"
@@ -5842,7 +5842,7 @@ SH
     "kind=ship" "mode=local-only" "spawn_gen=task-next"
   FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
     FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
-    FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=5 PATH="$case_dir/fakebin:$PATH" \
+    FM_TASK_DATA_SWEEP=off FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=5 PATH="$case_dir/fakebin:$PATH" \
     "$TEARDOWN" task-next > "$case_dir/next.out" 2> "$case_dir/next.err" \
     || fail "next teardown failed: $(cat "$case_dir/next.err")"
   assert_absent "$case_dir/data/bb-fast/.cleanup-hold" \
@@ -5889,7 +5889,7 @@ SH
   chmod +x "$case_dir/fakebin/python3" "$case_dir/fakebin/dcg"
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
-  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 run_teardown "$case_dir" \
+  FM_TASK_DATA_SWEEP=off FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 run_teardown "$case_dir" \
     > "$case_dir/out" 2> "$case_dir/err" || fail "teardown with a huge hold failed: $(cat "$case_dir/err")"
   [ "$(wc -l < "$case_dir/attempts" | tr -d ' ')" = 1 ] || fail "the first teardown did not try the huge hold once"
   assert_contains "$(cat "$case_dir/err")" "the next teardown that reaches it gives it one full 4s attempt" \
@@ -5897,7 +5897,7 @@ SH
   [ "$(jq -r '.expiry' "$record")" = cut-off ] || fail "the first cut-off was not recorded"
 
   started=$SECONDS
-  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 run_next_teardown "$case_dir" task-next \
+  FM_TASK_DATA_SWEEP=off FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 run_next_teardown "$case_dir" task-next \
     || fail "second teardown failed: $(cat "$case_dir/task-next.err")"
   [ "$(wc -l < "$case_dir/attempts" | tr -d ' ')" = 2 ] || fail "the second teardown did not try the huge hold again"
   [ $((SECONDS - started)) -ge 4 ] || fail "the full attempt stopped before its 4s cap"
@@ -5907,7 +5907,7 @@ SH
     "the second cut-off did not say later teardowns skip the hold"
   [ "$(jq -r '.expiry' "$record")" = too-large ] || fail "the record did not mark the hold too large"
 
-  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 run_next_teardown "$case_dir" task-last \
+  FM_TASK_DATA_SWEEP=off FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=4 run_next_teardown "$case_dir" task-last \
     || fail "third teardown failed: $(cat "$case_dir/task-last.err")"
   [ "$(wc -l < "$case_dir/attempts" | tr -d ' ')" = 2 ] || fail "a hold marked too large was tried again"
   assert_contains "$(cat "$case_dir/task-last.err")" \
