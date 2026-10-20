@@ -53,6 +53,8 @@ child suffixes such as .1. Dates do not qualify.
 A finished task whose required backlog row moved to the configured archive
 resolves that row and its named beads from the completed rows, under the same
 project and PR identity check as the legacy refresh.
+Beads named by a readable owning row merge with the supplied beads and
+resolve before evidence is classified, the same way completed-row beads do.
 Unread task or bead ids appear in each source's unread list in
 record/data-cleanup.json. Expiry appends a warning to the task's status before
 marking that unread set reported, so later expiry passes do not repeat it.
@@ -399,6 +401,12 @@ def backlog_references(source, task_id, limit=None):
     if not legacy:
         backlog["task"] = response["task"]
     source["unread"] = response["unread"]
+    if not legacy and task_id not in source["unread"]:
+        discovered = set(bead_ids(response["text"])) - set(source["beads"])
+        if discovered:
+            source["beads"] = sorted(set(source["beads"]) | discovered)
+            response = read_backlog(False)
+            source["unread"] = response["unread"]
     archived_text = ""
     if not legacy and task_id in source["unread"]:
         try:
