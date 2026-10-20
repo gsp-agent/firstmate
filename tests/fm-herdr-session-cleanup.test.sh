@@ -87,6 +87,7 @@ fixture_workspace_json() {
     "$WS" "$title" "$focused" "$active" "$tabs" "$panes"
 }
 
+# shellcheck disable=SC2329 # Saved via declare -f and called as fm_orig_fixture_workspaces in the replay.
 fixture_workspaces() {
   local title tabs panes
   title=$(cat "$FIXTURE_DIR/title")
@@ -341,6 +342,7 @@ fixture_workspaces() {
   fm_orig_fixture_workspaces | jq '. + [range(0; 64) | {workspace_id:("unused-" + tostring),label:("└ unused-" + tostring + " · p:ZZZZZZZZZZZZZZZZZZZZZZ")} ]'
 }
 MATCH_WORK="$TMP_ROOT/match-work"; : > "$MATCH_WORK"
+# shellcheck disable=SC2329 # Called indirectly by the sourced cleanup during the replay.
 awk() {
   local input
   for input in "$@"; do
