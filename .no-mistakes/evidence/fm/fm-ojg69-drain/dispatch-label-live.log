@@ -1,0 +1,91 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc/dispatch
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc/dispatch
+
+exit=0
+$ bash -x /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-dispatch-resolve.sh --labels priority,ep-opus
+dispatch-resolve:
+  status: clear
+  source: label (ep-opus)
+  profile: --harness 'claude' --model 'opus' --effort 'high'
++ set -u
++ TYPESAFE_API_KEY_PRIVATE=
++ export -n TYPESAFE_API_KEY_PRIVATE
++ unset TYPESAFE_API_KEY
++++ dirname /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-dispatch-resolve.sh
+++ cd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin
+++ pwd
++ SCRIPT_DIR=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin
+++ cd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/..
+++ pwd
++ FM_ROOT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX
++ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc/dispatch
++ CONFIG=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc/dispatch/config
++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-quota-axi-lib.sh
+++ FM_QUOTA_AXI_MIN=0.1.51
+++ FM_QUOTA_PROVIDER_ID_RE='^[a-z0-9]+(-[a-z0-9]+)*\z'
+++ FM_QUOTA_ROW_JQ=$'\n  def quota_lane($harness; $model):\n    if $harness == "codex" then "codex-home"\n    elif ($harness == "pi" or $harness == "pi-signed") and (($model // "") | contains("/"))\n    then ($model | split("/") | first | if . == "codex-native" then "codex-home" else . end)\n    else "" end;\n  def quota_row($snapshot; $provider; $lane):\n    ([$snapshot.providers[]? | select(.provider == $provider)]) as $rows |\n    if $snapshot.schemaVersion == 6 then\n      (([$rows[] | select(.accountKey == $lane)] | first) //\n       ([$rows[] | select(.accountKey == "default")] | first) // null)\n    else ($rows | first) // null\n    end;\n  def quota_prepaid_usable($row):\n    $row != null and $row.provider == "grok" and\n    (((($row.credits.remaining // null) | type) == "number" and ($row.credits.remaining > 0))\n     or (($row.credits.unlimited // false) == true));\n'
++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-control-lib.sh
++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-env-lib.sh
++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-timing-lib.sh
+++ set -u
+++ FM_TIMING_DETAIL_MAX=80
++ . /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-brief-heading-lib.sh
++ CONFIDENCE_FLOOR=0.6
++ TS_MODEL=jev-latest
++ TS_BASE=https://api.typesafe.ai
++ TS_TIMEOUT=5
++ DEFAULT_WHEN='No listed rule applies to this task.'
++ LABELS=
++ LABELS_SET=
++ BRIEF=
++ PROJECT=
++ RULES_PATH=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc/dispatch/config/crew-dispatch.json
++ RULES=
++ NEVER_SEND_PATH=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc/dispatch/config/dispatch-never-send
++ '[' 2 -gt 0 ']'
++ case "$1" in
++ '[' 2 -ge 2 ']'
++ LABELS=priority,ep-opus
++ LABELS_SET=1
++ shift 2
++ '[' 0 -gt 0 ']'
++ '[' -z 1 ']'
++ '[' -z 1 ']'
++ '[' -z 1 ']'
++ '[' -e /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc/dispatch/config/crew-dispatch.json ']'
++ '[' -r /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc/dispatch/config/crew-dispatch.json ']'
++ command -v jq
+++ mktemp
++ RULES=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/tmp.ovXbKXj5HR
++ trap 'rm -f "$RULES"' EXIT
++ cp /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc/dispatch/config/crew-dispatch.json /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/tmp.ovXbKXj5HR
++ chmod 400 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/tmp.ovXbKXj5HR
+++ fm_control_harnesses
+++ printf '%s\n' claude codex opencode pi pi-signed grok kimi cursor gemini muse rovo omp agy devin
+++ jq -Rsc 'split("\n") | map(select(length > 0))'
++ VERIFIED_HARNESSES='["claude","codex","opencode","pi","pi-signed","grok","kimi","cursor","gemini","muse","rovo","omp","agy","devin"]'
+++ jq -r --argjson verified_harnesses '["claude","codex","opencode","pi","pi-signed","grok","kimi","cursor","gemini","muse","rovo","omp","agy","devin"]' --arg provider_re '^[a-z0-9]+(-[a-z0-9]+)*\z' $'\n  def verified($h): $verified_harnesses | index($h);\n  def provider_id($p): ($p | type) == "string" and ($p | test($provider_re));\n  def effort_ok($h; $m; $e):\n    if $e == null then true\n    elif ($e | type) != "string" then false\n    elif $e == "ultra" then (($h == "pi" or $h == "pi-signed") and (($m | type) == "string") and ($m | startswith("codex-native/")) and ($m | length) > 13)\n    elif $h == "claude" then (["low","medium","high","xhigh","max"] | index($e)) != null\n    elif $h == "codex" then ((["low","medium","high","xhigh"] | index($e)) != null or ($e == "max" and ($m == "gpt-5.6-luna" or $m == "gpt-6.1-sol")))\n    elif $h == "grok" then (["low","medium","high","xhigh"] | index($e)) != null\n    elif $h == "agy" then (["low","medium","high"] | index($e)) != null\n    elif $h == "pi" or $h == "pi-signed" or $h == "omp" or $h == "muse" then (["low","medium","high","xhigh","max"] | index($e)) != null\n    elif $h == "rovo" then (["low","medium","high","max"] | index($e)) != null\n    elif $h == "opencode" or $h == "kimi" or $h == "cursor" then false\n    else true end;\n  def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;\n  def floor_bad($f; $need_provider):\n    ($f | type) != "object"\n    or (($f.scope | type) != "string") or (($f.scope | length) == 0)\n    or (($f.min_percent | type) != "number") or ($f.min_percent < 0) or ($f.min_percent > 100)\n    or (if $need_provider\n        then (provider_id($f.provider) | not)\n        else ($f | has("provider"))\n        end);\n  def profile_bad($p):\n    ($p | type) != "object"\n    or (($p.harness | type) != "string") or (($p.harness | length) == 0)\n    or ($p | has("model") and ((.model | type) != "string" or (.model | length) == 0))\n    or ($p | has("effort") and ((.effort | type) != "string" or (.effort | length) == 0))\n    or ($p | has("provider") and (provider_id(.provider) | not))\n    or ($p | has("floor") and floor_bad(.floor; false));\n  def duplicate_profiles($items):\n    ($items | map([.harness, (.model // null), (.effort // null)] | @json)) as $keys\n    | ($keys | length) != ($keys | unique | length);\n  if type != "object" then "top-level value must be an object"\n  elif has("rules") and (.rules | type) != "array" then "rules must be an array"\n  elif any((.rules // [])[]; type != "object") then "each rule must be an object"\n  elif any((.rules // [])[]; (.when | type) != "string" or (.when | length) == 0) then "each rule needs non-empty when"\n  elif any((.rules // [])[]; (profiles(.use) | length) == 0) then "each rule needs at least one use profile"\n  elif any((.rules // [])[]; has("approval") and .approval != "captain") then "approval must be \\"captain\\" when present"\n  elif any((.rules // [])[]; has("min_confidence") and ((.min_confidence | type) != "number" or .min_confidence < 0 or .min_confidence > 1)) then "min_confidence must be a number from 0 through 1 when present"\n  elif any((.rules // [])[]; has("select") and ((.select | type) != "string" or (.select | length) == 0)) then "select must be a non-empty string"\n  elif any((.rules // [])[]; has("select") and .select != "quota-balanced") then\n    "unknown select: " + ([.rules[] | select(has("select") and .select != "quota-balanced") | .select] | unique | join(", "))\n  elif any((.rules // [])[]; has("floor") and floor_bad(.floor; true)) then "rule floor needs scope, min_percent 0..100, and provider matching ^[a-z0-9]+(-[a-z0-9]+)*\\\\z"\n  elif any((.rules // [])[] | profiles(.use)[]; profile_bad(.)) then "each use profile needs harness; model, effort, and floor must be well formed, and provider must match ^[a-z0-9]+(-[a-z0-9]+)*\\\\z when present"\n  elif any((.rules // [])[]; duplicate_profiles(profiles(.use))) then "each rule use must not contain duplicate harness, model, and effort profiles"\n  elif any((.rules // [])[] | profiles(.use)[]; (verified(.harness) | not)) then "each use profile must name a verified harness"\n  elif any((.rules // [])[] | profiles(.use)[]; (effort_ok(.harness; .model; .effort) | not)) then "each use profile effort must be supported by its harness and model"\n  elif has("cursor_fallback") and ((.cursor_fallback | type) != "object" or ((.cursor_fallback.models_pct | type) != "number") or (.cursor_fallback.models_pct | . != floor) or .cursor_fallback.models_pct < 1 or .cursor_fallback.models_pct > 100 or ((.cursor_fallback.max_age_h | type) != "number") or (.cursor_fallback.max_age_h | . != floor) or .cursor_fallback.max_age_h <= 0) then "cursor_fallback needs integer models_pct 1..100 and integer max_age_h > 0"\n  elif has("label_routes") and ((.label_routes | type) != "object" or any(.label_routes[]; (profiles(.) | length) != 1 or (. | type) != "object")) then "label_routes must map each label to one profile object"\n  elif any((.label_routes // {})[]; profile_bad(.)) then "each label_routes profile needs harness; model and effort must be well formed"\n  elif any((.label_routes // {})[]; (verified(.harness) | not)) then "each label_routes profile must name a verified harness"\n  elif any((.label_routes // {})[]; (effort_ok(.harness; .model; .effort) | not)) then "each label_routes profile effort must be supported by its harness and model"\n  elif has("default") and (profiles(.default) | length) == 0 then "default must be a profile object or non-empty profile array"\n  elif has("default") and any(profiles(.default)[]; profile_bad(.)) then "each default profile needs harness; model, effort, and floor must be well formed, and provider must match ^[a-z0-9]+(-[a-z0-9]+)*\\\\z when present"\n  elif has("default") and duplicate_profiles(profiles(.default)) then "default must not contain duplicate harness, model, and effort profiles"\n  elif has("default") and any(profiles(.default)[]; (verified(.harness) | not)) then "each default profile must name a verified harness"\n  elif has("default") and any(profiles(.default)[]; (effort_ok(.harness; .model; .effort) | not)) then "each default profile effort must be supported by its harness and model"\n  else empty end\n' /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/tmp.ovXbKXj5HR
++ rules_err=
++ '[' -z '' ']'
++ '[' -n 1 ']'
++ case ",${LABELS// /}," in
+++ jq -r --arg labels priority,ep-opus $'\n    (.label_routes // {}) as $routes\n    | ($labels | split(",") | map(gsub("^\\\\s+|\\\\s+$"; ""))\n       | map(select(length > 0 and $routes[.] != null)) | first // "")\n  ' /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/tmp.ovXbKXj5HR
++ LABEL_HIT=ep-opus
++ LABELS_QUOTA=null
++ LABELS_PMAP='{}'
++ '[' -z ep-opus ']'
+++ jq -r --arg hit ep-opus --argjson pmap '{}' --argjson quota null $'\n  def quota_lane($harness; $model):\n    if $harness == "codex" then "codex-home"\n    elif ($harness == "pi" or $harness == "pi-signed") and (($model // "") | contains("/"))\n    then ($model | split("/") | first | if . == "codex-native" then "codex-home" else . end)\n    else "" end;\n  def quota_row($snapshot; $provider; $lane):\n    ([$snapshot.providers[]? | select(.provider == $provider)]) as $rows |\n    if $snapshot.schemaVersion == 6 then\n      (([$rows[] | select(.accountKey == $lane)] | first) //\n       ([$rows[] | select(.accountKey == "default")] | first) // null)\n    else ($rows | first) // null\n    end;\n  def quota_prepaid_usable($row):\n    $row != null and $row.provider == "grok" and\n    (((($row.credits.remaining // null) | type) == "number" and ($row.credits.remaining > 0))\n     or (($row.credits.unlimited // false) == true));\n\n    def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;\n    def flat: gsub("[\\\\r\\\\n]"; " ");\n    def bare($m): (($m // "") | split("/") | last);\n    def blocked($prof):\n      ($prof.provider // $pmap[$prof.harness] // null) as $p\n      | if $p == null or $quota == null then false\n        else quota_row($quota; $p; quota_lane($prof.harness; $prof.model)) as $row\n        | if $row == null or quota_prepaid_usable($row) then false\n          else ([$row.quotaSemantics.effectiveAvailability[]? | select(\n                  .scope == "all_models" or .scope == "all_products" or\n                  (bare($prof.model) != "" and (.scope == ("model:" + bare($prof.model)) or .scope == ("product:" + bare($prof.model)))))] ) as $app\n          | any($app[]; ((.runway.status // "") == "exhausted_now") or\n                (.status == "known" and ((.effectivePercentRemaining | type) == "number") and .effectivePercentRemaining <= 0))\n          end\n        end;\n    (.label_routes // {}) as $routes\n    | (if $hit != "" then {src: "label", detail: $hit, p: $routes[$hit]}\n       else {src: "default", detail: "no label matched", p: (profiles(.default // null) | map(select(blocked(.) | not)) | first // null)} end)\n    | if .p == null then "NONE"\n      else ["dispatch-resolve:", "  status: clear", "  source: \\(.src) (\\(.detail | flat))",\n            "  profile: --harness \\(.p.harness | @sh)"\n            + (if .p.model then " --model \\(.p.model | @sh)" else "" end)\n            + (if .p.effort then " --effort \\(.p.effort | @sh)" else "" end)] | join("\\n") end\n  ' /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/tmp.ovXbKXj5HR
++ routed=$'dispatch-resolve:\n  status: clear\n  source: label (ep-opus)\n  profile: --harness \'claude\' --model \'opus\' --effort \'high\''
++ '[' $'dispatch-resolve:\n  status: clear\n  source: label (ep-opus)\n  profile: --harness \'claude\' --model \'opus\' --effort \'high\'' = NONE ']'
++ printf '%s\n' $'dispatch-resolve:\n  status: clear\n  source: label (ep-opus)\n  profile: --harness \'claude\' --model \'opus\' --effort \'high\''
++ exit 0
++ rm -f /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/tmp.ovXbKXj5HR
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-dispatch-resolve.sh --labels docs-only,ep-opus
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+
+exit=1

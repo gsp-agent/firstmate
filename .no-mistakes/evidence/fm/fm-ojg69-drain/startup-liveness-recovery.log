@@ -1,0 +1,2 @@
+before: status=relaunchable state=dead kill=1
+after: rc=1 status=skipped state=alive reason=endpoint revalidated as alive; no relaunch needed

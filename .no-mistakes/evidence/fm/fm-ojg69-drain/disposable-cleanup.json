@@ -1,0 +1,58 @@
+[
+  {
+    "target": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40",
+    "files": 90,
+    "directories": 64,
+    "bytes": 157906,
+    "removed": true
+  },
+  {
+    "target": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-byhd5owj",
+    "files": 0,
+    "directories": 2,
+    "bytes": 0,
+    "removed": true
+  },
+  {
+    "target": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz",
+    "files": 39,
+    "directories": 30,
+    "bytes": 39201,
+    "removed": true
+  },
+  {
+    "target": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz",
+    "files": 13750,
+    "directories": 131,
+    "bytes": 8288958,
+    "removed": true
+  },
+  {
+    "target": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-liveness-58s3vgla",
+    "files": 9,
+    "directories": 8,
+    "bytes": 80,
+    "removed": true
+  },
+  {
+    "target": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc",
+    "files": 9701,
+    "directories": 349,
+    "bytes": 149355256,
+    "removed": true
+  },
+  {
+    "target": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-targeted-8db5l24k",
+    "files": 27,
+    "directories": 1,
+    "bytes": 269,
+    "removed": true
+  },
+  {
+    "target": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.agent-state",
+    "files": 1,
+    "directories": 0,
+    "bytes": 2,
+    "removed": true
+  }
+]

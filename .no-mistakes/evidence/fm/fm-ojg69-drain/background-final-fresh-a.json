@@ -1,0 +1,49 @@
+{
+  "task": "task-a1",
+  "receipt": {
+    "version": 1,
+    "task": "task-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data",
+          "task": "task-a1"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  },
+  "remaining_files": [
+    ".cleanup-hold/clone/.git/HEAD",
+    ".cleanup-hold/clone/.git/config",
+    ".cleanup-hold/clone/.git/description",
+    ".cleanup-hold/clone/.git/hooks/applypatch-msg.sample",
+    ".cleanup-hold/clone/.git/hooks/commit-msg.sample",
+    ".cleanup-hold/clone/.git/hooks/fsmonitor-watchman.sample",
+    ".cleanup-hold/clone/.git/hooks/post-update.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-applypatch.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-commit.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-merge-commit.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-push.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-rebase.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-receive.sample",
+    ".cleanup-hold/clone/.git/hooks/prepare-commit-msg.sample",
+    ".cleanup-hold/clone/.git/hooks/push-to-checkout.sample",
+    ".cleanup-hold/clone/.git/hooks/sendemail-validate.sample",
+    ".cleanup-hold/clone/.git/hooks/update.sample",
+    ".cleanup-hold/clone/.git/info/exclude",
+    ".cleanup-hold/clone/build.bin",
+    ".cleanup-hold/scratch.bin",
+    "brief.md",
+    "findings.txt",
+    "proof.png",
+    "record/data-cleanup.json",
+    "review.md",
+    "status"
+  ]
+}

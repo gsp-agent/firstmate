@@ -1,0 +1,37 @@
+{
+  "work": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz",
+  "results": [
+    {
+      "name": "background cleanup and recovery",
+      "result": "fail",
+      "live": true,
+      "error": "(['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-teardown.sh', 'task-a1'], 1, 'fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/background\\nREFUSED: task task-a1 has a missing, empty, or ambiguous window endpoint; preserving task state.\\n')",
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/background-cleanup-and-recovery.log"
+    },
+    {
+      "name": "single-instance overlapping requests and live-task locks",
+      "result": "fail",
+      "live": true,
+      "error": "(['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-teardown.sh', 'task-b1'], 1, 'fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/overlap\\nREFUSED: task task-b1 has a missing, empty, or ambiguous window endpoint; preserving task state.\\n')",
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/single-instance-overlapping-requests-and-live-task-locks.log"
+    },
+    {
+      "name": "new and saved real-bead filtering",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/new-and-saved-real-bead-filtering.log"
+    },
+    {
+      "name": "archived owning row and bead evidence",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/archived-owning-row-and-bead-evidence.log"
+    },
+    {
+      "name": "unread archived bead collision and status delivery",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/unread-archived-bead-collision-and-status-delivery.log"
+    }
+  ]
+}

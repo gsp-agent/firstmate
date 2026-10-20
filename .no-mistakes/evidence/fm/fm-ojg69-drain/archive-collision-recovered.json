@@ -1,0 +1,28 @@
+{
+  "task": "proof-ksb",
+  "receipt": {
+    "version": 1,
+    "task": "proof-ksb",
+    "complete": true,
+    "expired": true,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-ksb"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data",
+          "task": "proof-ksb"
+        },
+        "unread": []
+      }
+    ]
+  },
+  "remaining_files": [
+    "proof.png",
+    "record/data-cleanup.json"
+  ],
+  "status": "note [at=1792473686]: task data proof-ksb retained whole for retry: unread references: proof-ksb\n"
+}

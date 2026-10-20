@@ -1,0 +1,86 @@
+$ bin/fm-test-run.sh --per-script-timeout-secs 600 tests/fm-drift-nightly.test.sh tests/fm-dispatch-resolve.test.sh tests/fm-secondmate-liveness.test.sh
+FM_TEST_BEGIN 2026-10-20T05:26:05Z tests/fm-secondmate-liveness.test.sh family=secondmate expected_gate_skip=none
+ok - fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable
+ok - fm_backend_tmux_agent_state: rejects malformed targets before probing tmux
+ok - fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior
+ok - fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified
+not ok - a confirmed-dead secondmate should actually be relaunched: SECONDMATE_LIVENESS: secondmate sm1: respawn failed after confirmed agent absence on existing endpoint: error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-targeted-8db5l24k/tmp/fm-test-run.HCYD2T/w1/tmp/fm-secondmate-liveness.r97JcM/sweep-dead/sm1
+SECONDMATE_SYNC: secondmate sm1: skipped: primary default-branch commit cannot be resolved (missing: 'new-window')
+--- output ---
+kill-window -t =firstmate:=fm-sm1
+FM_TEST_END 2026-10-20T05:26:13Z tests/fm-secondmate-liveness.test.sh exit=1 duration_ms=7510 gate_skip=false
+FM_TEST_BEGIN 2026-10-20T05:26:13Z tests/fm-dispatch-resolve.test.sh family=standalone expected_gate_skip=none
+ok - absent key is off: one stderr line, exit 0, no network call
+ok - TYPESAFE_API_KEY= in .env activates the tool; environment and config overrides work
+ok - clear: one rule Choice request, key on the fd header only, spendPriority argmax over every candidate
+ok - never-send list withholds the request on a match or a bad list, and never prints the value
+ok - rules snapshots and shell quoting preserve the profile protocol
+ok - no-rule fallback, Agy, Gemini, and documented configurations resolve
+ok - ambiguous: confidence below the fixed floor hands the decision back
+ok - per-rule confidence floors fall to the most probable runner-up that clears its own floor
+ok - only the brief's task sections and scout tag reach the model, with a whole-brief fallback
+ok - escalate: a rule declared approval: captain never yields a profile
+ok - rule floor: known shortfall falls through while unavailable evidence escalates
+ok - declared provider and profile floor evidence are applied in code
+ok - nonnumeric spendPriority evidence is never ranked
+ok - partial and missing quota evidence remain eligible but unranked
+ok - provider-wide and exact quota rows combine into one limiting candidate
+ok - default: no rule matched resolves among the default profiles
+ok - tie: equal spendPriority never breaks by array order
+ok - no rankable candidate: the tool escalates instead of guessing
+ok - native Codex binds to codex-home before default, independently of Pi accounts and row order
+ok - Pi native adapters bind to codex-home with existing fallbacks and schema 5 compatibility
+ok - schema 6: each candidate binds to its account row; schema 5 is unchanged
+ok - quota evidence comes from one quota-axi --json read, and its failure is an error outcome
+ok - API, transport, and response failures are error outcomes with exit 0
+ok - configuration errors exit 2 before any network call
+ok - worker routing is labels then default, with no model call
+ok - prepaid Grok retains ranking evidence for both rule and default candidates
+ok - default quota and prepaid checks bind to candidate accounts independently of row order
+ok - default chain walks rungs on quota evidence and grok prepaid credits stay usable
+# all fm-dispatch-resolve tests passed
+FM_TEST_END 2026-10-20T05:28:10Z tests/fm-dispatch-resolve.test.sh exit=0 duration_ms=116774 gate_skip=false
+FM_TEST_BEGIN 2026-10-20T05:28:10Z tests/fm-drift-nightly.test.sh family=unclassified expected_gate_skip=none
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof sha makes that path ok and the check exits 0
+ok - a shipped proof accepts its own patch and rejects later edits
+ok - the default proof is drift-proof.txt in the committed fork tree, never the working tree
+ok - parent proof does not approve inherited unproven content
+ok - parent proof refuses missing or ambiguous acceptance commits
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+ok - a moving fork ref cannot change the captured check or its report
+ok - a moving upstream ref cannot change the captured check or its report
+ok - the captured upstream includes updates from the completed fetch
+ok - dependent proven patches are accepted regardless of proof-file order
+ok - proof approves a patch rather than the commit's entire file snapshot
+ok - cut unproven changes pass once their effective changes are gone
+ok - a proven change can cut unrelated unproven changes in the same commit
+ok - missing accepted patches are reported as drift
+ok - unproven file modes cannot borrow content proof
+ok - a pending commit is accepted, printed with its bead on every run, and must name its bead
+ok - an accepted merge carries its commits only when each is proven or pending
+ok - unknown proof commits cannot silently authorize changes
+ok - behind is reported and does not fail the check by itself
+ok - a merge commit is labeled merge and adds no path-drift when its tree matches upstream
+ok - a red nightly sends one note a day naming its red lines and log, and a green one sends none
+ok - a nightly whose check exits 2 sends one note naming the error
+ok - a nightly note names at most ten red lines and counts the rest in the log
+ok - install --dry-run prints the job and writes nothing
+ok - install resolves relative repository arguments before scheduling the job
+ok - the delivered proof accepts its reconciliation squash and rejects later descendants
+ok - install writes the nightly agent and its log path, and uninstall removes it, keeps the log, and repeats
+ok - install escapes &, <, > and quotes in the script, repo and log paths
+ok - a reinstall whose plist fails lint leaves the installed job and plist unchanged
+ok - uninstall deletes the plist only when bootout succeeds or launchctl reports no such service
+ok - the documented cut recovery restores a cut commit from the bundle alone
+ok - install rejects hour 24 and a relative log path
+FM_TEST_END 2026-10-20T05:28:47Z tests/fm-drift-nightly.test.sh exit=0 duration_ms=37157 gate_skip=false
+FM_TEST_SUMMARY total=3 failed=1 skipped_gate=0 duration_ms=161956
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=7510 failed=1
+FM_TEST_SUMMARY_FAMILY family=standalone count=1 duration_ms=116774 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=37157 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-dispatch-resolve.test.sh duration_ms=116774
+FM_TEST_SLOWEST rank=2 script=tests/fm-drift-nightly.test.sh duration_ms=37157
+FM_TEST_SLOWEST rank=3 script=tests/fm-secondmate-liveness.test.sh duration_ms=7510

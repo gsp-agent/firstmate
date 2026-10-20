@@ -1,0 +1,73 @@
+Real Firstmate CLI cleanup on a marked disposable home, using real tasks-axi, br, dcg, git and a private tmux socket.
+
+Foreground expiry was limited to 1s. The real 12,000-file hold exceeded it; teardown returned and its background sweep completed.
+warning: task data old-slow1 expiry stopped after its one full 1s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/state old-slow1
+
+Persisted receipts after the background sweep:
+{"task": "old-slow1", "complete": true, "expired": true, "expiry": null, "remaining_files": ["record/data-cleanup.json"]}
+{"task": "old-large1", "complete": true, "expired": true, "expiry": null, "remaining_files": ["record/data-cleanup.json"]}
+{"task": "old-stage1", "complete": true, "expired": true, "expiry": null, "remaining_files": ["record/data-cleanup.json"]}
+
+A recovery before B completes:
+{
+  "task": "task-a1",
+  "complete": true,
+  "expired": false,
+  "remaining_files": [
+    ".cleanup-hold/clone/.git/HEAD",
+    ".cleanup-hold/clone/.git/config",
+    ".cleanup-hold/clone/.git/description",
+    ".cleanup-hold/clone/.git/hooks/applypatch-msg.sample",
+    ".cleanup-hold/clone/.git/hooks/commit-msg.sample",
+    ".cleanup-hold/clone/.git/hooks/fsmonitor-watchman.sample",
+    ".cleanup-hold/clone/.git/hooks/post-update.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-applypatch.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-commit.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-merge-commit.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-push.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-rebase.sample",
+    ".cleanup-hold/clone/.git/hooks/pre-receive.sample",
+    ".cleanup-hold/clone/.git/hooks/prepare-commit-msg.sample",
+    ".cleanup-hold/clone/.git/hooks/push-to-checkout.sample",
+    ".cleanup-hold/clone/.git/hooks/sendemail-validate.sample",
+    ".cleanup-hold/clone/.git/hooks/update.sample",
+    ".cleanup-hold/clone/.git/info/exclude",
+    ".cleanup-hold/clone/build.bin",
+    ".cleanup-hold/scratch.bin",
+    "brief.md",
+    "findings.txt",
+    "proof.png",
+    "record/data-cleanup.json",
+    "review.md",
+    "status"
+  ]
+}
+
+A after B completes:
+{
+  "task": "task-a1",
+  "complete": true,
+  "expired": true,
+  "remaining_files": [
+    "brief.md",
+    "findings.txt",
+    "proof.png",
+    "record/data-cleanup.json",
+    "review.md",
+    "status"
+  ]
+}
+
+B fresh recovery after B completes:
+{
+  "task": "task-b1",
+  "complete": true,
+  "expired": false,
+  "remaining_files": [
+    ".cleanup-hold/scratch.bin",
+    "record/data-cleanup.json"
+  ]
+}
+
+Observed du -sk for this disposable data directory: before 48200 KiB; after 52 KiB.
+The 90s evidence wait was too short for this unbounded sweep; background-continuation.log records the completed state and the next real teardown on the same lab.

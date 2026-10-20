@@ -1,0 +1,79 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background
+exit=0, elapsed=0.032s
+$ git init -q --initial-branch=main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/projects/demo
+exit=0, elapsed=0.018s
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background
+/tmp/fml.apZhxm
+exit=0, elapsed=0.080s
+$ tmux -L fm-lab new-session -d -s fm-lab -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX /bin/sh
+exit=0, elapsed=0.051s
+$ tmux -L fm-lab display-message -p -t fm-lab '#{socket_path},#{pid},0'
+/private/tmp/fml.apZhxm/tmux-501/fm-lab,28718,0
+exit=0, elapsed=0.007s
+$ tasks-axi add task-a1 'completed local lab task' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data/backlog.md
+ok: added task-a1 (ship) -> Queued
+task:
+  id: task-a1
+  title: completed local lab task
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start task-a1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block task-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data/backlog.md` to record a dependency
+exit=0, elapsed=0.282s
+$ tasks-axi start task-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data/backlog.md
+ok: start task-a1 -> In flight
+help[1]:
+  - Run `tasks-axi done task-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data/backlog.md` when it ships
+exit=0, elapsed=0.253s
+$ tmux -L fm-lab new-window -d -t fm-lab -n fm-task-a1 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX /bin/sh
+exit=0, elapsed=0.010s
+$ git clone --quiet /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/projects/demo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data/task-a1/clone
+stderr:
+warning: You appear to have cloned an empty repository.
+exit=0, elapsed=0.063s
+$ du -sk /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data
+48200	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data
+exit=0, elapsed=0.033s
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-teardown.sh task-a1
+task data task-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data/task-a1/.cleanup-hold until the next completed task
+teardown task-a1 complete (window fm-lab:fm-task-a1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/projects/gone-task-a1)
+Backlog: task-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 5s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: old-large1 old-stage1
+warning: task data old-slow1 expiry stopped after its one full 1s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/state old-slow1
+warning: task-a1 teardown completed, but expiring other tasks' held data needs a retry
+exit=0, elapsed=19.574s
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/live-cleanup.py", line 307, in <module>
+    func()
+    ~~~~^^
+  File "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/live-cleanup.py", line 163, in scenario_background
+    wait_for(lambda: all(load(lab,t).get('expired') for t in ('old-slow1','old-large1','old-stage1')), 'background sweep did not drain old holds', 90)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/live-cleanup.py", line 64, in wait_for
+    raise AssertionError(message)
+AssertionError: background sweep did not drain old holds
+

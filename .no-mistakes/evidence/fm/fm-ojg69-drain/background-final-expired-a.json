@@ -1,0 +1,29 @@
+{
+  "task": "task-a1",
+  "receipt": {
+    "version": 1,
+    "task": "task-a1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background/data",
+          "task": "task-a1"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  },
+  "remaining_files": [
+    "brief.md",
+    "findings.txt",
+    "proof.png",
+    "record/data-cleanup.json",
+    "review.md",
+    "status"
+  ]
+}

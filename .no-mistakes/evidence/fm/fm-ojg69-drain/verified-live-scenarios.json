@@ -1,0 +1,67 @@
+{
+  "scenarios": [
+    {
+      "name": "background cleanup and recovery",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/background-continuation.log",
+      "result": "pass"
+    },
+    {
+      "name": "single-instance overlapping requests and live-task locks",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/single-instance-overlapping-requests-and-live-task-locks.log"
+    },
+    {
+      "name": "new and saved real-bead filtering",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/new-and-saved-real-bead-filtering.log"
+    },
+    {
+      "name": "archived owning row and bead evidence",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/archived-owning-row-and-bead-evidence.log"
+    },
+    {
+      "name": "unread archived bead collision and status delivery",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/unread-archived-bead-collision-and-status-delivery.log"
+    },
+    {
+      "name": "matching label routes without quota and conflicts refuse",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/dispatch-label-live.log"
+    },
+    {
+      "name": "committed drift manifest evaluates and relative install resolves absolute",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/drift-check-live.log"
+    },
+    {
+      "name": "queued recovery revalidates a real Codex replacement before killing or spawning",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/secondmate-revalidation-live.log"
+    }
+  ],
+  "disposable_workdirs": [
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-byhd5owj",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-liveness-58s3vgla",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-runtime-pf4t2uvc",
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-targeted-8db5l24k"
+  ],
+  "setup_corrections": [
+    "Used private tmux shell endpoints for already-exited tasks instead of empty endpoints.",
+    "Raised fixture-only stage headroom to 120s while keeping foreground expiry at 1s.",
+    "Extended the background observation deadline to 300s and completed the same lab after the original 90s observation expired.",
+    "Reran secondmate regression fixtures with normal toolchain temp placement after the in-repository home safety guard correctly refused an invalid setup."
+  ]
+}

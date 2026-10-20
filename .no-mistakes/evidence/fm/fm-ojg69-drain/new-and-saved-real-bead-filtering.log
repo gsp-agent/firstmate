@@ -1,0 +1,77 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter
+exit=0, elapsed=0.028s
+$ git init -q --initial-branch=main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/projects/demo
+exit=0, elapsed=0.016s
+$ br init --prefix proof
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit=0, elapsed=0.185s
+$ br create 'linked lab evidence' --description '[capture](proof.png)' --json
+{"id":"proof-v7a","title":"linked lab evidence","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-20T05:21:04.579141Z","created_by":"dalecarman","updated_at":"2026-10-20T05:21:04.579141Z","source_repo":"demo","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/projects/demo","compaction_level":0,"original_size":0}
+exit=0, elapsed=0.134s
+$ br show proof-v7a --json
+[{"id":"proof-v7a","title":"linked lab evidence","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-20T05:21:04.579141Z","created_by":"dalecarman","updated_at":"2026-10-20T05:21:04.579141Z","source_repo":"demo","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/projects/demo","compaction_level":0,"original_size":0}]
+exit=0, elapsed=0.030s
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/state saved-filter1
+exit=0, elapsed=1.161s
+saved-filter1:
+{
+  "task": "saved-filter1",
+  "receipt": {
+    "version": 1,
+    "task": "saved-filter1",
+    "complete": true,
+    "expired": true,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-v7a"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/data",
+          "task": null
+        },
+        "unread": []
+      }
+    ]
+  },
+  "remaining_files": [
+    "brief.md",
+    "proof.png",
+    "record/data-cleanup.json"
+  ]
+}
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/state new-filter1
+exit=0, elapsed=1.984s
+new-filter1:
+{
+  "task": "new-filter1",
+  "receipt": {
+    "version": 1,
+    "task": "new-filter1",
+    "complete": true,
+    "expired": true,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-v7a"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/data",
+          "task": null
+        },
+        "unread": []
+      }
+    ]
+  },
+  "remaining_files": [
+    "brief.md",
+    "proof.png",
+    "record/data-cleanup.json"
+  ]
+}

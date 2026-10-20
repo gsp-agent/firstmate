@@ -1,0 +1,11 @@
+{
+  "work": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-liveness-58s3vgla",
+  "results": [
+    {
+      "name": "queued recovery revalidates a real Codex replacement before killing or spawning",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/secondmate-revalidation-live.log"
+    }
+  ]
+}

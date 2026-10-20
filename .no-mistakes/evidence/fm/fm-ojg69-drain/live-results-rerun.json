@@ -1,0 +1,12 @@
+{
+  "work": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz",
+  "results": [
+    {
+      "name": "background cleanup and recovery",
+      "result": "fail",
+      "live": true,
+      "error": "background sweep did not drain old holds",
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/background-cleanup-and-recovery.log"
+    }
+  ]
+}

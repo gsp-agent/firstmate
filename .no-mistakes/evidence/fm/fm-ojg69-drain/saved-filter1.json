@@ -1,0 +1,28 @@
+{
+  "task": "saved-filter1",
+  "receipt": {
+    "version": 1,
+    "task": "saved-filter1",
+    "complete": true,
+    "expired": true,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-v7a"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/data",
+          "task": null
+        },
+        "unread": []
+      }
+    ]
+  },
+  "remaining_files": [
+    "brief.md",
+    "proof.png",
+    "record/data-cleanup.json"
+  ]
+}

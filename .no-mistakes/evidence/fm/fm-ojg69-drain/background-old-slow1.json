@@ -1,0 +1,24 @@
+{
+  "task": "old-slow1",
+  "receipt": {
+    "version": 1,
+    "task": "old-slow1",
+    "complete": true,
+    "expired": true,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/background/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/background/data",
+          "task": null
+        },
+        "unread": []
+      }
+    ]
+  },
+  "remaining_files": [
+    "record/data-cleanup.json"
+  ]
+}

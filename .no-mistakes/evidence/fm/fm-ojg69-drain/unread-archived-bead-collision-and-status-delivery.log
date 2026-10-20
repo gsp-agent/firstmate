@@ -1,0 +1,115 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread
+exit=0, elapsed=0.025s
+$ git init -q --initial-branch=main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo
+exit=0, elapsed=0.108s
+$ br init --prefix proof
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit=0, elapsed=0.476s
+$ br create 'linked lab evidence' --description '[capture](proof.png)' --json
+{"id":"proof-ksb","title":"linked lab evidence","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-20T05:21:17.351475Z","created_by":"dalecarman","updated_at":"2026-10-20T05:21:17.351475Z","source_repo":"demo","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo","compaction_level":0,"original_size":0}
+exit=0, elapsed=0.394s
+$ br show proof-ksb --json
+[{"id":"proof-ksb","title":"linked lab evidence","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-20T05:21:17.351475Z","created_by":"dalecarman","updated_at":"2026-10-20T05:21:17.351475Z","source_repo":"demo","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo","compaction_level":0,"original_size":0}]
+exit=0, elapsed=0.025s
+$ br show proof-ksb --json
+{
+  "error": {
+    "code": "DATABASE_ERROR",
+    "message": "Database error: database disk image is malformed: database file too small for header: 73 bytes (< 100)",
+    "hint": null,
+    "retryable": false,
+    "context": null
+  }
+}
+stderr:
+{"level":"warning","code":"sync_merge_pending_unknown","message":"Read-only command is proceeding with automatic sync disabled because pending merge state could not be inspected","inspection_error":"Sync conflict: Pending sync-merge state is unknown because database '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo/.beads/beads.db' does not have the current supported schema","remediation":"Run `br doctor --json` and restore read-only database-family access before mutating."}
+exit=2, elapsed=0.031s
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/state proof-ksb
+stderr:
+warning: task data retained for recovery: [Errno 21] Is a directory: '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/state/proof-ksb.status'
+error: task data proof-ksb is not expired; what remains of it stays held
+exit=1, elapsed=4.938s
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/state
+stderr:
+warning: task data proof-ksb retained whole for retry: unread references: proof-ksb
+error: task data proof-ksb is not expired; what remains of it stays held
+exit=0, elapsed=3.863s
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/state proof-ksb
+stderr:
+error: task data proof-ksb is not expired; what remains of it stays held
+exit=1, elapsed=27.078s
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/state
+stderr:
+error: task data proof-ksb is not expired; what remains of it stays held
+exit=0, elapsed=17.124s
+archive-collision-unread:
+{
+  "task": "proof-ksb",
+  "receipt": {
+    "version": 1,
+    "task": "proof-ksb",
+    "complete": true,
+    "expired": false,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-ksb"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data",
+          "task": "proof-ksb"
+        },
+        "unread": [
+          "proof-ksb"
+        ]
+      }
+    ],
+    "unread_named": [
+      "proof-ksb"
+    ]
+  },
+  "remaining_files": [
+    ".cleanup-hold/proof.png",
+    ".cleanup-hold/scratch.bin",
+    "record/data-cleanup.json"
+  ],
+  "status": "note [at=1792473686]: task data proof-ksb retained whole for retry: unread references: proof-ksb\n"
+}
+$ br show proof-ksb --json
+[{"id":"proof-ksb","title":"linked lab evidence","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-20T05:21:17.351475Z","created_by":"dalecarman","updated_at":"2026-10-20T05:21:17.351475Z","source_repo":"demo","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo","compaction_level":0,"original_size":0}]
+exit=0, elapsed=0.030s
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/state proof-ksb
+exit=0, elapsed=3.705s
+archive-collision-recovered:
+{
+  "task": "proof-ksb",
+  "receipt": {
+    "version": 1,
+    "task": "proof-ksb",
+    "complete": true,
+    "expired": true,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-ksb"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data",
+          "task": "proof-ksb"
+        },
+        "unread": []
+      }
+    ]
+  },
+  "remaining_files": [
+    "proof.png",
+    "record/data-cleanup.json"
+  ],
+  "status": "note [at=1792473686]: task data proof-ksb retained whole for retry: unread references: proof-ksb\n"
+}

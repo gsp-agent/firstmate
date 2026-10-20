@@ -1,0 +1,18 @@
+{
+  "work": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40",
+  "results": [
+    {
+      "name": "background cleanup and recovery",
+      "result": "fail",
+      "live": true,
+      "error": "fresh clone recovery not preserved",
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/background-cleanup-and-recovery.log"
+    },
+    {
+      "name": "single-instance overlapping requests and live-task locks",
+      "result": "pass",
+      "live": true,
+      "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/single-instance-overlapping-requests-and-live-task-locks.log"
+    }
+  ]
+}

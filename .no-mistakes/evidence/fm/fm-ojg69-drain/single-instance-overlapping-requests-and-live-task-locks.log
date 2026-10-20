@@ -1,0 +1,152 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap
+exit=0, elapsed=0.293s
+$ git init -q --initial-branch=main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/projects/demo
+exit=0, elapsed=0.074s
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap
+/tmp/fml.5U4m0b
+exit=0, elapsed=0.385s
+$ tmux -L fm-lab new-session -d -s fm-lab -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX /bin/sh
+exit=0, elapsed=0.031s
+$ tmux -L fm-lab display-message -p -t fm-lab '#{socket_path},#{pid},0'
+/private/tmp/fml.5U4m0b/tmux-501/fm-lab,21218,0
+exit=0, elapsed=0.154s
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/state task-a1
+Paused real sweep process group 22792 while old-slow1 meta lock is held
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/state old-slow1
+stderr:
+error: task old-slow1 is locked by another process; nothing was expired, retry later
+exit=1, elapsed=0.070s
+$ tasks-axi add task-b1 'completed local lab task' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data/backlog.md
+ok: added task-b1 (ship) -> Queued
+task:
+  id: task-b1
+  title: completed local lab task
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start task-b1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block task-b1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data/backlog.md` to record a dependency
+exit=0, elapsed=0.251s
+$ tasks-axi start task-b1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data/backlog.md
+ok: start task-b1 -> In flight
+help[1]:
+  - Run `tasks-axi done task-b1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data/backlog.md` when it ships
+exit=0, elapsed=0.290s
+$ tmux -L fm-lab new-window -d -t fm-lab -n fm-task-b1 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX /bin/sh
+exit=0, elapsed=0.023s
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-teardown.sh task-b1
+task data task-b1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data/task-b1/.cleanup-hold until the next completed task
+teardown task-b1 complete (window fm-lab:fm-task-b1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/projects/gone-task-b1)
+Backlog: task-b1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+stderr:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no live watcher process holds this home lock (last beat: 11s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: task data task-a1 expiry stopped after 1s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 1s attempt
+warning: the 1s task-data expiry budget ran out; holds left for a later teardown: live-c1
+warning: task-b1 teardown completed, but expiring other tasks' held data needs a retry
+exit=0, elapsed=17.689s
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/state task-b1
+stderr:
+task-data sweep already running; requested another pass
+exit=0, elapsed=0.090s
+B teardown completed while A sweep retained only its singleton and old-slow1 task locks
+error: task live-c1 is live; nothing was expired
+error: task live-c1 is live; nothing was expired
+
+overlap-task-a1:
+{
+  "task": "task-a1",
+  "receipt": {
+    "version": 1,
+    "task": "task-a1",
+    "complete": true,
+    "expired": true,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data",
+          "task": null
+        },
+        "unread": []
+      }
+    ],
+    "expiry": "cut-off"
+  },
+  "remaining_files": [
+    "record/data-cleanup.json"
+  ]
+}
+overlap-task-b1:
+{
+  "task": "task-b1",
+  "receipt": {
+    "version": 1,
+    "task": "task-b1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data",
+          "task": "task-b1"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  },
+  "remaining_files": [
+    ".cleanup-hold/scratch.bin",
+    "record/data-cleanup.json"
+  ]
+}
+overlap-live-c1:
+{
+  "task": "live-c1",
+  "receipt": {
+    "version": 1,
+    "task": "live-c1",
+    "complete": true,
+    "expired": false,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data",
+          "task": null
+        }
+      }
+    ]
+  },
+  "remaining_files": [
+    ".cleanup-hold/scratch.bin",
+    "record/data-cleanup.json"
+  ]
+}

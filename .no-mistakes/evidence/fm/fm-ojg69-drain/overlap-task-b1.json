@@ -1,0 +1,25 @@
+{
+  "task": "task-b1",
+  "receipt": {
+    "version": 1,
+    "task": "task-b1",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-be12qt40/overlap/data",
+          "task": "task-b1"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  },
+  "remaining_files": [
+    ".cleanup-hold/scratch.bin",
+    "record/data-cleanup.json"
+  ]
+}

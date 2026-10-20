@@ -1,0 +1,148 @@
+{
+  "saved-filter1": {
+    "task": "saved-filter1",
+    "receipt": {
+      "version": 1,
+      "task": "saved-filter1",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-v7a"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    },
+    "remaining_files": [
+      "brief.md",
+      "proof.png",
+      "record/data-cleanup.json"
+    ]
+  },
+  "new-filter1": {
+    "task": "new-filter1",
+    "receipt": {
+      "version": 1,
+      "task": "new-filter1",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-v7a"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/bead-filter/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    },
+    "remaining_files": [
+      "brief.md",
+      "proof.png",
+      "record/data-cleanup.json"
+    ]
+  },
+  "archived-linked-evidence": {
+    "task": "archived-task1",
+    "receipt": {
+      "version": 1,
+      "task": "archived-task1",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-mzc"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive/data",
+            "task": "archived-task1"
+          },
+          "unread": []
+        }
+      ]
+    },
+    "remaining_files": [
+      "proof.png",
+      "record/data-cleanup.json",
+      "row.png"
+    ]
+  },
+  "archive-collision-unread": {
+    "task": "proof-ksb",
+    "receipt": {
+      "version": 1,
+      "task": "proof-ksb",
+      "complete": true,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-ksb"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data",
+            "task": "proof-ksb"
+          },
+          "unread": [
+            "proof-ksb"
+          ]
+        }
+      ],
+      "unread_named": [
+        "proof-ksb"
+      ]
+    },
+    "remaining_files": [
+      ".cleanup-hold/proof.png",
+      ".cleanup-hold/scratch.bin",
+      "record/data-cleanup.json"
+    ],
+    "status": "note [at=1792473686]: task data proof-ksb retained whole for retry: unread references: proof-ksb\n"
+  },
+  "archive-collision-recovered": {
+    "task": "proof-ksb",
+    "receipt": {
+      "version": 1,
+      "task": "proof-ksb",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-ksb"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-ol6nyxpz/archive-unread/data",
+            "task": "proof-ksb"
+          },
+          "unread": []
+        }
+      ]
+    },
+    "remaining_files": [
+      "proof.png",
+      "record/data-cleanup.json"
+    ],
+    "status": "note [at=1792473686]: task data proof-ksb retained whole for retry: unread references: proof-ksb\n"
+  }
+}

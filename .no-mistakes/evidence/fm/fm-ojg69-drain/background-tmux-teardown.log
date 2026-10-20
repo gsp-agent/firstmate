@@ -1,0 +1,4 @@
+$ tmux -L fm-lab kill-server
+exit=0, elapsed=0.025s
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-live-homnlwiz/background
+exit=0, elapsed=0.324s

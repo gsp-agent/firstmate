@@ -1,0 +1,21 @@
+{
+  "work": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-targeted-8db5l24k",
+  "results": [
+    {
+      "name": "cleanup-regressions",
+      "command": "bin/fm-test-run.sh --per-script-timeout-secs 600 tests/fm-teardown.test.sh",
+      "env": {
+        "FM_TEARDOWN_TEST_GROUP": "task-data-review"
+      },
+      "exit": 0,
+      "seconds": 461.25
+    },
+    {
+      "name": "accepted-runtime-fixes",
+      "command": "bin/fm-test-run.sh --per-script-timeout-secs 600 tests/fm-drift-nightly.test.sh tests/fm-dispatch-resolve.test.sh tests/fm-secondmate-liveness.test.sh",
+      "env": {},
+      "exit": 1,
+      "seconds": 162.01
+    }
+  ]
+}

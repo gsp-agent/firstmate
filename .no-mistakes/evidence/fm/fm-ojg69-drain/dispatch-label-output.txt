@@ -1,0 +1,13 @@
+$ bin/fm-dispatch-resolve.sh --labels priority,ep-opus
+dispatch-resolve:
+  status: clear
+  source: label (ep-opus)
+  profile: --harness 'claude' --model 'opus' --effort 'high'
++ set -u
+
+$ bin/fm-dispatch-resolve.sh --labels docs-only,ep-opus
+dispatch-resolve:
+  status: refused
+  reason: labels docs-only and ep-opus conflict
+
+The full shell execution transcript records no quota-axi invocation for the matching route.

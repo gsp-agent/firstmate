@@ -1,0 +1,132 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-liveness-58s3vgla/home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-liveness-58s3vgla/home
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-liveness-58s3vgla/home
+/tmp/fml.kYuDla
+
+exit=0
+$ tmux -L fm-lab new-session -d -s fm-lab -n fm-sm1 -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX /bin/sh
+
+exit=0
+$ tmux -L fm-lab display-message -p -t fm-lab '#{socket_path},#{pid},0'
+/private/tmp/fml.kYuDla/tmux-501/fm-lab,60169,0
+
+exit=0
+$ tmux -L fm-lab new-session -d -s primary -n fm-sm1 -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX -e FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-liveness-58s3vgla/home codex
+
+exit=0
+$ tmux -L fm-lab capture-pane -p -t primary:fm-sm1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ tmux -L fm-lab display-message -p -t primary:fm-sm1 '#{pane_pid} #{pane_current_command} #{pane_width}x#{pane_height}'
+60316 env 120x40
+
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/liveness-publish-replacement.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX
+
+exit=0
+before: status=relaunchable state=dead kill=1
+after: rc=1 status=skipped state=alive reason=endpoint revalidated as alive; no relaunch needed
+$ tmux -L fm-lab display-message -p -t primary:fm-sm1 '#{pane_pid} #{pane_current_command} #{pane_width}x#{pane_height}'
+60316 node 120x40
+
+exit=0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5BV5GQB0KD20X4J2BKKMYVX/liveness-publish-replacement.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX
+
+exit=0
+before: status=relaunchable state=dead kill=1
+after: rc=1 status=skipped state=alive reason=endpoint revalidated as alive; no relaunch needed
+$ tmux -L fm-lab display-message -p -t primary:fm-sm1 '#{pane_pid} #{pane_current_command} #{pane_width}x#{pane_height}'
+60316 node 120x40
+
+exit=0
+$ tmux -L fm-lab capture-pane -p -t primary:fm-sm1
+
+  Hooks need review
+  10 hooks are new or changed.
+  Hooks can run outside the sandbox after you trust them.
+
+
+› 1. Review hooks
+  2. Trust all and continue
+  3. Continue without trusting (hooks won't run)
+
+  enter confirm · esc skip
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BV5GQB0KD20X4J2BKKMYVX/.phase-liveness-58s3vgla/home
+
+exit=0
