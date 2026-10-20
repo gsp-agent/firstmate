@@ -1,0 +1,87 @@
+{
+  "schema": "fm-secondmate-home-summary.v1",
+  "hold_classifier_schema": "fm-captain-hold-buckets.v1",
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "generated": "2026-10-20T12:54:04Z",
+  "generated_epoch": 1792500844,
+  "home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle",
+  "valid": true,
+  "reason": null,
+  "invalidity": {
+    "kind": null,
+    "ids": []
+  },
+  "state": "no_active_work",
+  "active_children": [],
+  "decisions_open": [],
+  "holds": [],
+  "queued": [
+    {
+      "id": "follow-one",
+      "title": "Work waiting for shipped prerequisite",
+      "blocked_by": "shipped",
+      "blocked_by_ids": [
+        "shipped"
+      ],
+      "unresolved_blocker_ids": [],
+      "blocked_reason": null,
+      "hold_reason": null,
+      "hold_kind": null,
+      "hold_until": null,
+      "hold_bucket": null,
+      "hold_age_days": 0,
+      "captain_actionable": false,
+      "repo": "alpha",
+      "kind": "ship",
+      "since": "2026-10-20"
+    },
+    {
+      "id": "review-follow-two",
+      "title": "Work waiting for shipped prerequisite",
+      "blocked_by": "shipped",
+      "blocked_by_ids": [
+        "shipped"
+      ],
+      "unresolved_blocker_ids": [],
+      "blocked_reason": null,
+      "hold_reason": null,
+      "hold_kind": null,
+      "hold_until": null,
+      "hold_bucket": null,
+      "hold_age_days": 0,
+      "captain_actionable": false,
+      "repo": "alpha",
+      "kind": "ship",
+      "since": "2026-10-20"
+    }
+  ],
+  "landed": [],
+  "endpoints": [],
+  "counts": {
+    "active_children": 0,
+    "decisions_open": 0,
+    "holds": 0,
+    "queued": 2,
+    "landed": 0,
+    "endpoints": 0
+  },
+  "omitted": []
+}

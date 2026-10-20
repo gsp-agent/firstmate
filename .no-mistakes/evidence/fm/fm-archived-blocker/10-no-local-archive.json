@@ -1,0 +1,122 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-10-20T12:54:07Z",
+  "fm_home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-isolation",
+  "roots": {
+    "fm_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T",
+    "state": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-isolation/state",
+    "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-isolation/data",
+    "config": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-isolation/config",
+    "projects": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-isolation/projects"
+  },
+  "backlog": {
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-isolation/data/backlog.md",
+    "records": [
+      {
+        "priority": null,
+        "hold_until": null,
+        "hold_age_days": null,
+        "hold_bucket": null,
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "kind": "ship",
+        "hold_set": null,
+        "report_path": null,
+        "links": [],
+        "raw": "- [ ] isolated - Foreign archive must not resolve this blocked-by: shipped (repo: alpha) (kind: ship)",
+        "body_lines": [],
+        "done": null,
+        "title": "Foreign archive must not resolve this",
+        "hold_reason": null,
+        "captain_actionable": false,
+        "hold_kind": null,
+        "requires_child_metadata": false,
+        "id": "isolated",
+        "blocked_by": "shipped",
+        "checked": false,
+        "repo": "alpha",
+        "merged": null,
+        "blocked_by_ids": [
+          "shipped"
+        ],
+        "body_excerpt": null,
+        "since": null,
+        "blocked_reason": null,
+        "reported": null,
+        "order": 1,
+        "current_role": "queued",
+        "state": "queued",
+        "unresolved_blocker_ids": [
+          "shipped"
+        ],
+        "local_note": null,
+        "pr_url": null,
+        "structured": true
+      }
+    ],
+    "present": true
+  },
+  "tasks": [],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": false,
+      "available": true,
+      "complete": true,
+      "reason": null,
+      "provenance": "registered-table",
+      "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-isolation/data/secondmates.md",
+      "freshness": {
+        "status": "fresh",
+        "observed_at": "2026-10-20T12:54:07Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [],
+    "total_registered": 0,
+    "total": 0,
+    "shown": 0,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}

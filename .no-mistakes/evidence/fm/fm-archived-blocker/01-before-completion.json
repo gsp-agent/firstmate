@@ -1,0 +1,204 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-10-20T12:54:03Z",
+  "fm_home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle",
+  "roots": {
+    "fm_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T",
+    "state": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle/state",
+    "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle/data",
+    "config": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle/config",
+    "projects": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle/projects"
+  },
+  "backlog": {
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle/data/backlog.md",
+    "present": true,
+    "records": [
+      {
+        "merged": null,
+        "hold_age_days": 0,
+        "hold_kind": null,
+        "structured": true,
+        "links": [],
+        "checked": false,
+        "body_excerpt": null,
+        "requires_child_metadata": false,
+        "state": "queued",
+        "id": "shipped",
+        "local_note": null,
+        "body_lines": [],
+        "raw": "- [ ] shipped - Shipped prerequisite (repo: alpha) (kind: ship) (since 2026-10-20)",
+        "blocked_reason": null,
+        "priority": null,
+        "blocked_by": null,
+        "hold_set": null,
+        "reported": null,
+        "hold_reason": null,
+        "captain_actionable": false,
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "unresolved_blocker_ids": [],
+        "since": "2026-10-20",
+        "pr_url": null,
+        "hold_until": null,
+        "report_path": null,
+        "kind": "ship",
+        "repo": "alpha",
+        "current_role": "queued",
+        "order": 1,
+        "title": "Shipped prerequisite",
+        "blocked_by_ids": [],
+        "hold_bucket": null,
+        "done": null
+      },
+      {
+        "done": null,
+        "hold_bucket": null,
+        "blocked_by_ids": [
+          "shipped"
+        ],
+        "title": "Work waiting for shipped prerequisite",
+        "current_role": "queued",
+        "repo": "alpha",
+        "order": 2,
+        "kind": "ship",
+        "report_path": null,
+        "hold_until": null,
+        "pr_url": null,
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "unresolved_blocker_ids": [
+          "shipped"
+        ],
+        "since": "2026-10-20",
+        "captain_actionable": false,
+        "hold_reason": null,
+        "reported": null,
+        "hold_set": null,
+        "blocked_by": "shipped",
+        "priority": null,
+        "blocked_reason": null,
+        "raw": "- [ ] follow-one - Work waiting for shipped prerequisite blocked-by: shipped (repo: alpha) (kind: ship) (since 2026-10-20)",
+        "body_lines": [],
+        "local_note": null,
+        "id": "follow-one",
+        "state": "queued",
+        "requires_child_metadata": false,
+        "body_excerpt": null,
+        "checked": false,
+        "links": [],
+        "hold_kind": null,
+        "structured": true,
+        "hold_age_days": 0,
+        "merged": null
+      },
+      {
+        "requires_child_metadata": false,
+        "state": "queued",
+        "id": "review-follow-two",
+        "local_note": null,
+        "raw": "- [ ] review-follow-two - Work waiting for shipped prerequisite blocked-by: shipped (repo: alpha) (kind: ship) (since 2026-10-20)",
+        "blocked_reason": null,
+        "body_lines": [],
+        "merged": null,
+        "structured": true,
+        "hold_kind": null,
+        "hold_age_days": 0,
+        "links": [],
+        "body_excerpt": null,
+        "checked": false,
+        "order": 3,
+        "current_role": "queued",
+        "repo": "alpha",
+        "report_path": null,
+        "kind": "ship",
+        "title": "Work waiting for shipped prerequisite",
+        "blocked_by_ids": [
+          "shipped"
+        ],
+        "hold_bucket": null,
+        "done": null,
+        "hold_set": null,
+        "priority": null,
+        "blocked_by": "shipped",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "unresolved_blocker_ids": [
+          "shipped"
+        ],
+        "since": "2026-10-20",
+        "hold_reason": null,
+        "reported": null,
+        "captain_actionable": false,
+        "hold_until": null,
+        "pr_url": null
+      }
+    ]
+  },
+  "tasks": [],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": false,
+      "available": true,
+      "complete": true,
+      "reason": null,
+      "provenance": "registered-table",
+      "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle/data/secondmates.md",
+      "freshness": {
+        "status": "fresh",
+        "observed_at": "2026-10-20T12:54:03Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [],
+    "total_registered": 0,
+    "total": 0,
+    "shown": 0,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "scenario": "Archiving a completed prerequisite keeps both dependent tasks resolved",
+    "result": "pass",
+    "baseline_unresolved": 2,
+    "current_unresolved": 0,
+    "live": true
+  },
+  {
+    "scenario": "Refreshing the home summary and Bearings removes the archived prerequisite from current holds",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "scenario": "Mixed blockers clear only archived work while queued, in-flight, and missing IDs still block",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "scenario": "An unfinished current task with an archived ID remains unresolved",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "scenario": "An absent local archive keeps missing blockers open and a data override reads its own adjacent archive",
+    "result": "pass",
+    "live": true
+  }
+]

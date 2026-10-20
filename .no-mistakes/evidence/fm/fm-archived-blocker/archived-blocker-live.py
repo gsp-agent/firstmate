@@ -1,201 +1,166 @@
 #!/usr/bin/env python3
-"""Drive the real task, fleet, summary and bearings CLIs in disposable local homes."""
+"""Drive actual tasks, snapshot, summary, and Bearings CLIs in disposable homes."""
+import hashlib
 import json
 import os
 from pathlib import Path
 import shlex
 import subprocess
-import tempfile
+import sys
 
-ROOT = Path('/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X')
-EVIDENCE = Path('/Users/dalecarman/.no-mistakes/evidence/01M5CGASNXHDRR59BT65X36T6X')
-LAB = Path(tempfile.mkdtemp(prefix='.nm-archived-blocker-', dir=ROOT))
-(EVIDENCE / 'disposable-root.txt').write_text(str(LAB) + '\n')
-LOG = (EVIDENCE / 'archived-blocker-live.log').open('w', buffering=1)
+ROOT = Path("/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T")
+EVIDENCE = Path("/Users/dalecarman/.no-mistakes/evidence/01M5CN7DKM40PFMVES0WRY9R1T")
+WORK = ROOT / ".no-mistakes" / "archived-blocker-live"
+WORK.mkdir(parents=True, exist_ok=False)
+(WORK / "tmp").mkdir()
+BASE_ENV = {k:v for k,v in os.environ.items() if not k.startswith("FM_") and k not in ("TASKS_AXI_FILE", "TASKS_AXI_BACKEND", "TMUX", "TMUX_PANE", "HERDR_SESSION")}
+BASE_ENV.update(TMPDIR=str(WORK / "tmp"), PYTHONDONTWRITEBYTECODE="1")
+TRANSCRIPT = (EVIDENCE / "archived-blocker-cli-transcript.txt").open("w")
 RESULTS = []
 
-def save(name, value):
-    (EVIDENCE / name).write_text(json.dumps(value, indent=2) + '\n')
+def record(s):
+    print(s, flush=True)
+    TRANSCRIPT.write(s + "\n")
+    TRANSCRIPT.flush()
 
+def run(home, args, label=None, env_extra=None, visible=True):
+    env = dict(BASE_ENV, FM_HOME=str(home), FM_ROOT_OVERRIDE=str(ROOT))
+    if env_extra:
+        env.update(env_extra)
+    argv = [str(ROOT / "bin" / args[0]), *args[1:]] if args[0].startswith("fm-") else [str(a) for a in args]
+    record("$ FM_HOME=" + shlex.quote(str(home)) + " " + shlex.join(argv))
+    p = subprocess.run(argv, cwd=ROOT, env=env, text=True, capture_output=True, timeout=90)
+    if label:
+        (EVIDENCE / label).write_text(p.stdout)
+        record("output: " + label)
+    if visible and p.stdout:
+        record(p.stdout.rstrip())
+    if p.stderr:
+        record("stderr: " + p.stderr.rstrip())
+    if p.returncode:
+        raise RuntimeError(f"{shlex.join(argv)} exited {p.returncode}")
+    return p.stdout
 
-def make_home(name):
-    home = LAB / name
-    for child in ('data', 'state', 'config', 'projects'):
-        (home / child).mkdir(parents=True)
-    (home / '.tasks.toml').write_text('backend = "markdown"\n[markdown]\npath = "data/backlog.md"\narchive = "data/done-archive.md"\ndone_keep = 10\n')
-    return home
+def new_home(name):
+    h = WORK / name
+    for child in ("state", "data", "config", "projects"):
+        (h / child).mkdir(parents=True)
+    (h / ".tasks.toml").write_text('backend = "markdown"\n\n[markdown]\npath = "data/backlog.md"\narchive = "data/done-archive.md"\ndone_keep = 10\n')
+    return h
 
+def task(h, *args):
+    return run(h, ["fm-tasks-axi.sh", *args])
 
-def environment(home, data=None):
-    env = os.environ.copy()
-    for key in list(env):
-        if key.startswith('FM_') or key.startswith('TASKS_AXI_'):
-            env.pop(key)
-    env.update(FM_HOME=str(home), FM_ROOT_OVERRIDE=str(ROOT),
-               FM_STATE_OVERRIDE=str(home / 'state'), FM_DATA_OVERRIDE=str(data or home / 'data'),
-               FM_CONFIG_OVERRIDE=str(home / 'config'), FM_PROJECTS_OVERRIDE=str(home / 'projects'))
-    return env
+def snap(h, name, env_extra=None):
+    return json.loads(run(h, ["fm-fleet-snapshot.sh", "--json"], name + ".json", env_extra, False))
 
+def rows(s):
+    return {r["id"]:r for r in s["backlog"]["records"] if r.get("structured")}
 
-def run(label, command, home, data=None, json_output=False):
-    LOG.write('\n$ ' + shlex.join(map(str, command)) + '\n')
-    LOG.write('FM_HOME=' + str(home) + '\n')
-    result = subprocess.run(list(map(str, command)), cwd=ROOT, env=environment(home, data),
-                            text=True, capture_output=True, timeout=100)
-    LOG.write(result.stdout)
-    LOG.write(result.stderr)
-    LOG.write('exit=' + str(result.returncode) + '\n')
-    if result.returncode:
-        raise RuntimeError(f'{label}: exit {result.returncode}: {result.stderr}')
-    if json_output:
-        document = json.loads(result.stdout)
-        save(label + '.json', document)
-        return document
-    return result.stdout
+def show(s, ids):
+    data = [{k:rows(s)[i].get(k) for k in ("id", "state", "blocked_by_ids", "unresolved_blocker_ids")} for i in ids]
+    record(json.dumps(data, indent=2))
 
+try:
+    record("Real CLI versions")
+    for cmd in (["tasks-axi", "--version"], ["/bin/bash", "--version"], ["jq", "--version"]):
+        p = subprocess.run(cmd, text=True, capture_output=True, env=BASE_ENV, timeout=20)
+        record(shlex.join(cmd) + "\n" + (p.stdout or p.stderr).rstrip())
+        assert p.returncode == 0
+    h = new_home("archive-lifecycle")
+    task(h, "add", "shipped", "Shipped prerequisite", "--kind", "ship", "--repo", "alpha")
+    for i in ("follow-one", "review-follow-two"):
+        task(h, "add", i, "Work waiting for shipped prerequisite", "--kind", "ship", "--repo", "alpha", "--blocked-by", "shipped")
+    before = snap(h, "01-before-completion")
+    show(before, ["follow-one", "review-follow-two"])
+    assert not (h / "data/done-archive.md").exists()
+    assert all(rows(before)[i]["unresolved_blocker_ids"] == ["shipped"] for i in ("follow-one", "review-follow-two"))
+    task(h, "done", "shipped", "--no-prune")
+    retained = snap(h, "02-completed-retained")
+    show(retained, ["follow-one", "review-follow-two"])
+    assert rows(retained)["shipped"]["state"] == "done"
+    assert all(rows(retained)[i]["unresolved_blocker_ids"] == [] for i in ("follow-one", "review-follow-two"))
+    task(h, "done", "shipped", "--keep", "0")
+    for f in ("backlog.md", "done-archive.md"):
+        data = (h / "data" / f).read_text()
+        (EVIDENCE / ("03-" + f)).write_text(data)
+        record(f + " after tasks-axi archive:\n" + data)
+    archived = snap(h, "03-archived-current")
+    show(archived, ["follow-one", "review-follow-two"])
+    assert "shipped" not in rows(archived)
+    assert all(rows(archived)[i]["unresolved_blocker_ids"] == [] for i in ("follow-one", "review-follow-two"))
 
-def task(home, *arguments):
-    return run('tasks ' + ' '.join(arguments), [ROOT / 'bin/fm-tasks-axi.sh', *arguments], home)
+    # Execute the actual pre-fix producer with unchanged sibling dependencies.
+    control = WORK / "before-fix-bin"
+    control.mkdir()
+    for source in (ROOT / "bin").iterdir():
+        if source.name != "fm-fleet-snapshot.sh":
+            (control / source.name).symlink_to(source, target_is_directory=source.is_dir())
+    baseline_source = subprocess.check_output(["git", "show", "929f2631:bin/fm-fleet-snapshot.sh"], cwd=ROOT)
+    baseline = control / "fm-fleet-snapshot.sh"
+    baseline.write_bytes(baseline_source)
+    baseline.chmod(0o755)
+    old = json.loads(run(h, [str(baseline), "--json"], "04-before-fix-archived.json", visible=False))
+    show(old, ["follow-one", "review-follow-two"])
+    assert all(rows(old)[i]["unresolved_blocker_ids"] == ["shipped"] for i in ("follow-one", "review-follow-two"))
+    RESULTS.append({"scenario":"Archiving a completed prerequisite keeps both dependent tasks resolved", "result":"pass", "baseline_unresolved":2, "current_unresolved":0, "live":True})
 
+    run(h, ["fm-home-summary-refresh.sh"])
+    ledger = json.loads((h / "state/home-summary.json").read_text())
+    (EVIDENCE / "05-published-home-summary.json").write_text(json.dumps(ledger, indent=2) + "\n")
+    record("Published home summary:\n" + json.dumps(ledger, indent=2))
+    assert ledger["valid"] is True
+    assert ledger["holds"] == []
+    queued = {r["id"]:r for r in ledger["queued"]}
+    assert all(queued[i]["unresolved_blocker_ids"] == [] for i in ("follow-one", "review-follow-two"))
+    bearings = json.loads(run(h, ["fm-bearings-snapshot.sh", "--json"], "06-bearings-after-archive.json"))
+    gates = {r["id"]:r for r in bearings["gates"]}
+    assert all(gates[i]["blocked_by"] == "-" for i in ("follow-one", "review-follow-two"))
+    RESULTS.append({"scenario":"Refreshing the home summary and Bearings removes the archived prerequisite from current holds", "result":"pass", "live":True})
 
-def snapshot(label, home, script=None, data=None):
-    return run(label, ['bash', script or ROOT / 'bin/fm-fleet-snapshot.sh', '--json'],
-               home, data=data, json_output=True)
+    m = new_home("mixed-blockers")
+    task(m, "add", "shipped", "Archived prerequisite", "--kind", "ship", "--repo", "alpha")
+    task(m, "add", "queued-dep", "Still queued", "--kind", "ship", "--repo", "alpha")
+    task(m, "add", "flight-dep", "Still in flight", "--kind", "program", "--repo", "alpha")
+    task(m, "start", "flight-dep")
+    task(m, "add", "gated", "Mixed dependencies", "--kind", "ship", "--repo", "alpha", "--blocked-by", "shipped", "--blocked-by", "queued-dep", "--blocked-by", "flight-dep")
+    task(m, "done", "shipped", "--keep", "0")
+    # A genuinely missing dependency is an accepted backlog contract input.
+    backlog_path = m / "data/backlog.md"
+    body = backlog_path.read_text()
+    body = body.replace("gated - Mixed dependencies", "gated - Mixed dependencies blocked-by: missing-dep")
+    backlog_path.write_text(body)
+    mixed = snap(m, "07-mixed-blockers")
+    show(mixed, ["gated"])
+    assert set(rows(mixed)["gated"]["unresolved_blocker_ids"]) == {"queued-dep", "flight-dep", "missing-dep"}
+    assert "shipped" not in rows(mixed)["gated"]["unresolved_blocker_ids"]
+    assert rows(mixed)["gated"]["blocked_by_ids"] == ["missing-dep", "shipped", "queued-dep", "flight-dep"]
+    mixed_bearings = json.loads(run(m, ["fm-bearings-snapshot.sh", "--json"], "08-mixed-bearings.json"))
+    mixed_gate = next(r for r in mixed_bearings["gates"] if r["id"] == "gated")
+    assert mixed_gate["blocked_by"] == "missing-dep,queued-dep,flight-dep"
+    RESULTS.append({"scenario":"Mixed blockers clear only archived work while queued, in-flight, and missing IDs still block", "result":"pass", "live":True})
 
+    # Re-use an archived ID in the real CLI; current unfinished work wins.
+    task(m, "add", "shipped", "Current work with an archived ID", "--kind", "ship", "--repo", "alpha")
+    reopened = snap(m, "09-current-record-overrides-archive")
+    show(reopened, ["gated", "shipped"])
+    assert set(rows(reopened)["gated"]["unresolved_blocker_ids"]) == {"shipped", "queued-dep", "flight-dep", "missing-dep"}
+    RESULTS.append({"scenario":"An unfinished current task with an archived ID remains unresolved", "result":"pass", "live":True})
 
-def record(document, task_id):
-    return next(row for row in document['backlog']['records'] if row.get('id') == task_id)
-
-
-def check(name, condition, detail):
-    LOG.write(('PASS ' if condition else 'FAIL ') + name + ': ' + detail + '\n')
-    if not condition:
-        raise AssertionError(name + ': ' + detail)
-
-
-def scenario(name, action):
-    try:
-        action()
-        RESULTS.append({'name': name, 'result': 'pass', 'live': True})
-    except Exception as error:
-        LOG.write('FAIL ' + name + ': ' + str(error) + '\n')
-        RESULTS.append({'name': name, 'result': 'fail', 'live': True, 'reason': str(error)})
-    save('live-results.json', RESULTS)
-
-main = make_home('lifecycle')
-
-
-def lifecycle():
-    for task_id, title in [('ac-bkbhy', 'Shipped blocker'), ('ac-c4zpc', 'Dependent implementation'),
-                            ('review-ac-vpw4n', 'Dependent review'), ('captain-approval', 'Approval after shipment')]:
-        args = ['add', task_id, title, '--kind', 'ship', '--repo', 'disposable-project']
-        if task_id != 'ac-bkbhy':
-            args += ['--blocked-by', 'ac-bkbhy']
-        task(main, *args)
-    task(main, 'hold', 'captain-approval', '--reason', 'Approve the completed shipment', '--kind', 'captain')
-    initial = snapshot('lifecycle-queued', main)
-    check('queued blocker remains unresolved', all(record(initial, task_id)['unresolved_blocker_ids'] == ['ac-bkbhy']
-          for task_id in ('ac-c4zpc', 'review-ac-vpw4n', 'captain-approval')), 'all three dependents blocked')
-    run('bearings-before', ['bash', ROOT / 'bin/fm-bearings-snapshot.sh', '--json'], main, json_output=True)
-    task(main, 'done', 'ac-bkbhy', '--no-prune')
-    retained = snapshot('lifecycle-retained-done', main)
-    check('retained Done blocker resolves', all(record(retained, task_id)['unresolved_blocker_ids'] == []
-          for task_id in ('ac-c4zpc', 'review-ac-vpw4n', 'captain-approval')), 'Done in backlog resolves')
-    task(main, 'done', 'ac-bkbhy', '--keep', '0')
-    archived = snapshot('lifecycle-archived', main)
-    check('archive actually replaced the backlog row', all(row.get('id') != 'ac-bkbhy' for row in archived['backlog']['records'])
-          and (main / 'data/done-archive.md').is_file(), 'blocker absent from backlog; archive exists')
-    for name in ('backlog.md', 'done-archive.md'):
-        (EVIDENCE / ('lifecycle-' + name)).write_bytes((main / 'data' / name).read_bytes())
-    check('archived blocker resolves for both reported dependents', all(record(archived, task_id)['unresolved_blocker_ids'] == []
-          for task_id in ('ac-c4zpc', 'review-ac-vpw4n')), 'implementation and review are no longer blocked')
-    before_bin = LAB / 'before-bin'
-    before_bin.mkdir()
-    for entry in (ROOT / 'bin').iterdir():
-        if entry.name != 'fm-fleet-snapshot.sh':
-            (before_bin / entry.name).symlink_to(entry)
-    before_script = before_bin / 'fm-fleet-snapshot.sh'
-    baseline = subprocess.check_output(['git', 'show', '929f2631:bin/fm-fleet-snapshot.sh'], cwd=ROOT)
-    before_script.write_bytes(baseline)
-    before = snapshot('historical-before-fix', main, before_script)
-    check('before/after reproduction', record(before, 'ac-c4zpc')['unresolved_blocker_ids'] == ['ac-bkbhy']
-          and record(archived, 'ac-c4zpc')['unresolved_blocker_ids'] == [], 'same archived records fail before the fix and resolve after it')
-
-
-def downstream():
-    run('publish-home-summary', ['bash', ROOT / 'bin/fm-home-summary-refresh.sh'], main)
-    ledger = json.loads((main / 'state/home-summary.json').read_text())
-    save('published-home-summary.json', ledger)
-    check('published summary is valid', ledger['valid'] is True, 'real atomic home-summary writer published a valid ledger')
-    for task_id in ('ac-c4zpc', 'review-ac-vpw4n', 'captain-approval'):
-        row = next(row for row in ledger['queued'] if row['id'] == task_id)
-        check('published summary resolves ' + task_id, row['unresolved_blocker_ids'] == [], 'no archived blocker remains unresolved')
-    check('captain approval becomes actionable', any(row['id'] == 'captain-approval' for row in ledger['decisions_open']),
-          'approval appears among open captain calls')
-    bearings = run('bearings-after', ['bash', ROOT / 'bin/fm-bearings-snapshot.sh', '--json'], main, json_output=True)
-    check('bearings approval classification', any(row['id'] == 'captain-approval' for row in bearings['decisions_open'])
-          and not any(row['id'] == 'captain-approval' for row in bearings['gates']), 'approval moves from Charted Next to Captain\'s Call')
-    check('bearings no longer names the archived blocker', all(row.get('blocked_by') != 'ac-bkbhy' for row in bearings['gates']),
-          'queued dependencies no longer display the archived blocker')
-    toon = run('bearings-after-human', ['bash', ROOT / 'bin/fm-bearings-snapshot.sh'], main)
-    (EVIDENCE / 'bearings-after.txt').write_text(toon)
-
-
-def mixed_dependencies():
-    home = make_home('mixed-dependencies')
-    task(home, 'add', 'archived', 'Archived dependency', '--kind', 'ship')
-    task(home, 'add', 'queued', 'Queued dependency', '--kind', 'ship')
-    task(home, 'add', 'flight', 'In flight dependency', '--kind', 'ship')
-    task(home, 'start', 'flight')
-    task(home, 'add', 'gated', 'Work with mixed dependencies', '--kind', 'ship', '--blocked-by', 'archived',
-         '--blocked-by', 'queued', '--blocked-by', 'flight')
-    task(home, 'done', 'archived', '--keep', '0')
-    path = home / 'data/backlog.md'
-    text = path.read_text()
-    # Add deliberately dangling and repeated edges as serialized task-input fixtures.
-    text = text.replace('gated - Work with mixed dependencies', 'gated - Work with mixed dependencies blocked-by: missing blocked-by: archived')
-    path.write_text(text)
-    output = snapshot('mixed-dependencies', home)
-    row = record(output, 'gated')
-    check('mixed blockers do not falsely unblock', row['unresolved_blocker_ids'] == ['missing', 'queued', 'flight'],
-          'missing, queued and in-flight blockers stay open; both archived references resolve')
-    (EVIDENCE / 'mixed-dependencies-backlog.md').write_bytes(path.read_bytes())
-    # Adversarial stale archive: a current Queued row must override its old archive entry.
-    with path.open('a') as stream:
-        stream.write('\n')
-    text = path.read_text().replace('## Queued\n', '## Queued\n- [ ] archived - Reopened work (kind: ship)\n')
-    path.write_text(text)
-    reopened = snapshot('reopened-with-stale-archive', home)
-    check('reopened task overrides stale archive', record(reopened, 'gated')['unresolved_blocker_ids'] == ['missing', 'archived', 'queued', 'flight'],
-          'current Queued state wins; repeated edges retain existing first-seen normalization')
-
-
-def archive_boundary():
-    home = make_home('archive-boundary')
-    path = home / 'data/backlog.md'
-    path.write_text('## In flight\n\n## Queued\n- [ ] gated - Strict archive identity blocked-by: exact blocked-by: missing (kind: ship)\n\n## Done\n')
-    absent = snapshot('archive-absent', home)
-    check('absent archive preserves unknown blockers', record(absent, 'gated')['unresolved_blocker_ids'] == ['exact', 'missing'],
-          'snapshot works with no archive')
-    (home / 'data/done-archive.md').write_text('# Done archive\n- [x] exact-extra - Similar id is not exact\n  Discussion mentions missing and exact\n')
-    unrelated = snapshot('archive-near-match', home)
-    check('prose and prefix matches do not resolve', record(unrelated, 'gated')['unresolved_blocker_ids'] == ['exact', 'missing'],
-          'only canonical exact task ids resolve')
-    data = home / 'alternative-data'
-    data.mkdir()
-    (data / 'backlog.md').write_bytes(path.read_bytes())
-    (data / 'done-archive.md').write_text('# Done archive\n- [x] exact - Resolved beside the selected backlog\n')
-    selected = snapshot('archive-data-override', home, data=data)
-    check('archive follows selected data directory', record(selected, 'gated')['unresolved_blocker_ids'] == ['missing'],
-          'FM_DATA_OVERRIDE uses its adjacent archive, not the default home archive')
-    unchanged = snapshot('archive-home-isolation', home)
-    check('another data directory cannot resolve blockers', record(unchanged, 'gated')['unresolved_blocker_ids'] == ['exact', 'missing'],
-          'returning to default data leaves its blockers open')
-
-scenario('Archive a completed blocker and unblock both dependent tasks, with before-fix reproduction', lifecycle)
-scenario('Refresh the published home summary and bearings so archived blockers disappear and the captain call becomes actionable', downstream)
-scenario('Mix archived, queued, in-flight, missing and reopened blockers without falsely unblocking work', mixed_dependencies)
-scenario('Use exact archived task ids from the selected backlog directory; absent archives and unrelated data stay safe', archive_boundary)
-LOG.close()
-print(json.dumps({'disposable_root': str(LAB), 'scenarios': RESULTS}, indent=2))
-raise SystemExit(any(row['result'] != 'pass' for row in RESULTS))
+    n = new_home("archive-isolation")
+    (n / "data/backlog.md").write_text("## In flight\n\n## Queued\n- [ ] isolated - Foreign archive must not resolve this blocked-by: shipped (repo: alpha) (kind: ship)\n\n## Done\n")
+    isolated = snap(n, "10-no-local-archive")
+    show(isolated, ["isolated"])
+    assert rows(isolated)["isolated"]["unresolved_blocker_ids"] == ["shipped"]
+    overridden = snap(n, "11-data-override-own-archive", {"FM_DATA_OVERRIDE":str(h / "data")})
+    show(overridden, ["follow-one", "review-follow-two"])
+    assert all(rows(overridden)[i]["unresolved_blocker_ids"] == [] for i in ("follow-one", "review-follow-two"))
+    RESULTS.append({"scenario":"An absent local archive keeps missing blockers open and a data override reads its own adjacent archive", "result":"pass", "live":True})
+    (EVIDENCE / "archived-blocker-scenario-results.json").write_text(json.dumps(RESULTS, indent=2) + "\n")
+    record("Scenario outcomes:\n" + json.dumps(RESULTS, indent=2))
+except Exception as e:
+    record("FAILED: " + repr(e))
+    (EVIDENCE / "archived-blocker-scenario-results.json").write_text(json.dumps(RESULTS + [{"error":repr(e)}], indent=2) + "\n")
+    raise
+finally:
+    TRANSCRIPT.close()

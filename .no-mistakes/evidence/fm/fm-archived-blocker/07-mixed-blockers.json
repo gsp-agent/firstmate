@@ -1,0 +1,205 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-10-20T12:54:06Z",
+  "fm_home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers",
+  "roots": {
+    "fm_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T",
+    "state": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers/state",
+    "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers/data",
+    "config": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers/config",
+    "projects": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers/projects"
+  },
+  "backlog": {
+    "present": true,
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers/data/backlog.md",
+    "records": [
+      {
+        "local_note": null,
+        "checked": false,
+        "hold_set": null,
+        "title": "Still in flight",
+        "repo": "alpha",
+        "hold_until": null,
+        "hold_bucket": null,
+        "report_path": null,
+        "hold_kind": null,
+        "raw": "- [ ] flight-dep - Still in flight (repo: alpha) (kind: program) (since 2026-10-20)",
+        "blocked_by_ids": [],
+        "hold_age_days": 0,
+        "body_excerpt": null,
+        "order": 1,
+        "requires_child_metadata": false,
+        "hold_reason": null,
+        "done": null,
+        "reported": null,
+        "captain_actionable": false,
+        "pr_url": null,
+        "state": "in_flight",
+        "unresolved_blocker_ids": [],
+        "structured": true,
+        "id": "flight-dep",
+        "links": [],
+        "priority": null,
+        "kind": "program",
+        "blocked_by": null,
+        "since": "2026-10-20",
+        "body_lines": [],
+        "current_role": "program",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "merged": null,
+        "blocked_reason": null
+      },
+      {
+        "structured": true,
+        "state": "queued",
+        "unresolved_blocker_ids": [],
+        "pr_url": null,
+        "id": "queued-dep",
+        "links": [],
+        "since": "2026-10-20",
+        "body_lines": [],
+        "kind": "ship",
+        "blocked_by": null,
+        "priority": null,
+        "blocked_reason": null,
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "merged": null,
+        "current_role": "queued",
+        "hold_set": null,
+        "title": "Still queued",
+        "checked": false,
+        "local_note": null,
+        "blocked_by_ids": [],
+        "hold_age_days": 0,
+        "raw": "- [ ] queued-dep - Still queued (repo: alpha) (kind: ship) (since 2026-10-20)",
+        "hold_until": null,
+        "hold_bucket": null,
+        "report_path": null,
+        "hold_kind": null,
+        "repo": "alpha",
+        "order": 2,
+        "body_excerpt": null,
+        "done": null,
+        "hold_reason": null,
+        "captain_actionable": false,
+        "reported": null,
+        "requires_child_metadata": false
+      },
+      {
+        "pr_url": null,
+        "unresolved_blocker_ids": [
+          "missing-dep",
+          "queued-dep",
+          "flight-dep"
+        ],
+        "state": "queued",
+        "structured": true,
+        "id": "gated",
+        "links": [],
+        "priority": null,
+        "kind": "ship",
+        "blocked_by": "flight-dep",
+        "since": "2026-10-20",
+        "body_lines": [],
+        "current_role": "queued",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "merged": null,
+        "blocked_reason": null,
+        "local_note": null,
+        "hold_set": null,
+        "checked": false,
+        "title": "Mixed dependencies",
+        "repo": "alpha",
+        "hold_bucket": null,
+        "hold_until": null,
+        "report_path": null,
+        "hold_kind": null,
+        "raw": "- [ ] gated - Mixed dependencies blocked-by: missing-dep blocked-by: shipped blocked-by: queued-dep blocked-by: flight-dep (repo: alpha) (kind: ship) (since 2026-10-20)",
+        "blocked_by_ids": [
+          "missing-dep",
+          "shipped",
+          "queued-dep",
+          "flight-dep"
+        ],
+        "hold_age_days": 0,
+        "body_excerpt": null,
+        "order": 3,
+        "requires_child_metadata": false,
+        "done": null,
+        "hold_reason": null,
+        "reported": null,
+        "captain_actionable": false
+      }
+    ]
+  },
+  "tasks": [],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": false,
+      "available": true,
+      "complete": true,
+      "reason": null,
+      "provenance": "registered-table",
+      "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers/data/secondmates.md",
+      "freshness": {
+        "status": "fresh",
+        "observed_at": "2026-10-20T12:54:06Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [],
+    "total_registered": 0,
+    "total": 0,
+    "shown": 0,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}

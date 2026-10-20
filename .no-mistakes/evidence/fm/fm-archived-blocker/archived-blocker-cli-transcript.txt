@@ -1,0 +1,667 @@
+Real CLI versions
+tasks-axi --version
+0.2.6
+/bin/bash --version
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+Copyright (C) 2007 Free Software Foundation, Inc.
+jq --version
+jq-1.8.2
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh add shipped 'Shipped prerequisite' --kind ship --repo alpha
+ok: added shipped (ship, repo alpha) -> Queued
+task:
+  id: shipped
+  title: Shipped prerequisite
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: alpha
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start shipped` to move it to in flight
+  - Run `tasks-axi block shipped --by <other>` to record a dependency
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh add follow-one 'Work waiting for shipped prerequisite' --kind ship --repo alpha --blocked-by shipped
+ok: added follow-one (ship, repo alpha) -> Queued
+task:
+  id: follow-one
+  title: Work waiting for shipped prerequisite
+  state: queued
+  blocked: yes
+  blocked_by: shipped
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: alpha
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: "blocked-by:shipped"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start follow-one` to move it to in flight
+  - Run `tasks-axi block follow-one --by <other>` to record a dependency
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh add review-follow-two 'Work waiting for shipped prerequisite' --kind ship --repo alpha --blocked-by shipped
+ok: added review-follow-two (ship, repo alpha) -> Queued
+task:
+  id: review-follow-two
+  title: Work waiting for shipped prerequisite
+  state: queued
+  blocked: yes
+  blocked_by: shipped
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: alpha
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: "blocked-by:shipped"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start review-follow-two` to move it to in flight
+  - Run `tasks-axi block review-follow-two --by <other>` to record a dependency
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-fleet-snapshot.sh --json
+output: 01-before-completion.json
+[
+  {
+    "id": "follow-one",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": [
+      "shipped"
+    ]
+  },
+  {
+    "id": "review-follow-two",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": [
+      "shipped"
+    ]
+  }
+]
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh done shipped --no-prune
+ok: done shipped -> Done
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-fleet-snapshot.sh --json
+output: 02-completed-retained.json
+[
+  {
+    "id": "follow-one",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": []
+  },
+  {
+    "id": "review-follow-two",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": []
+  }
+]
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh done shipped --keep 0
+ok: done shipped already -> Done; pruned 1
+already: true
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+backlog.md after tasks-axi archive:
+# Backlog
+
+## In flight
+## Queued
+- [ ] follow-one - Work waiting for shipped prerequisite blocked-by: shipped (repo: alpha) (kind: ship) (since 2026-10-20)
+- [ ] review-follow-two - Work waiting for shipped prerequisite blocked-by: shipped (repo: alpha) (kind: ship) (since 2026-10-20)
+## Done
+
+done-archive.md after tasks-axi archive:
+
+## Archived 2026-10-20
+- [x] shipped - Shipped prerequisite (repo: alpha) (kind: ship) (done 2026-10-20)
+
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-fleet-snapshot.sh --json
+output: 03-archived-current.json
+[
+  {
+    "id": "follow-one",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": []
+  },
+  {
+    "id": "review-follow-two",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": []
+  }
+]
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/before-fix-bin/fm-fleet-snapshot.sh --json
+output: 04-before-fix-archived.json
+[
+  {
+    "id": "follow-one",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": [
+      "shipped"
+    ]
+  },
+  {
+    "id": "review-follow-two",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": [
+      "shipped"
+    ]
+  }
+]
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-home-summary-refresh.sh
+Published home summary:
+{
+  "schema": "fm-secondmate-home-summary.v1",
+  "hold_classifier_schema": "fm-captain-hold-buckets.v1",
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "generated": "2026-10-20T12:54:04Z",
+  "generated_epoch": 1792500844,
+  "home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle",
+  "valid": true,
+  "reason": null,
+  "invalidity": {
+    "kind": null,
+    "ids": []
+  },
+  "state": "no_active_work",
+  "active_children": [],
+  "decisions_open": [],
+  "holds": [],
+  "queued": [
+    {
+      "id": "follow-one",
+      "title": "Work waiting for shipped prerequisite",
+      "blocked_by": "shipped",
+      "blocked_by_ids": [
+        "shipped"
+      ],
+      "unresolved_blocker_ids": [],
+      "blocked_reason": null,
+      "hold_reason": null,
+      "hold_kind": null,
+      "hold_until": null,
+      "hold_bucket": null,
+      "hold_age_days": 0,
+      "captain_actionable": false,
+      "repo": "alpha",
+      "kind": "ship",
+      "since": "2026-10-20"
+    },
+    {
+      "id": "review-follow-two",
+      "title": "Work waiting for shipped prerequisite",
+      "blocked_by": "shipped",
+      "blocked_by_ids": [
+        "shipped"
+      ],
+      "unresolved_blocker_ids": [],
+      "blocked_reason": null,
+      "hold_reason": null,
+      "hold_kind": null,
+      "hold_until": null,
+      "hold_bucket": null,
+      "hold_age_days": 0,
+      "captain_actionable": false,
+      "repo": "alpha",
+      "kind": "ship",
+      "since": "2026-10-20"
+    }
+  ],
+  "landed": [],
+  "endpoints": [],
+  "counts": {
+    "active_children": 0,
+    "decisions_open": 0,
+    "holds": 0,
+    "queued": 2,
+    "landed": 0,
+    "endpoints": 0
+  },
+  "omitted": []
+}
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-lifecycle /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-bearings-snapshot.sh --json
+output: 06-bearings-after-archive.json
+{
+  "schema": "fm-bearings.v1",
+  "home": "archived-blocker-live/archive-lifecycle",
+  "generated": "2026-10-20T12:54:05Z",
+  "prs": "not_requested (run: /bearings include PRs)",
+  "contributions": {
+    "scope": "owned contributions per home",
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "complete": true,
+    "proven_clear": true,
+    "unmeasured_homes": 0,
+    "unreadable_records": 0,
+    "unmeasured": 0,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "captain_omitted": 0,
+    "captain": []
+  },
+  "in_flight": [],
+  "secondmates": [],
+  "secondmate_reconcile": [],
+  "decisions_open": [],
+  "landed": [],
+  "gates": [
+    {
+      "id": "follow-one",
+      "title": "Work waiting for shipped prerequisite",
+      "blocked_by": "-",
+      "reason": "-",
+      "owner": "(main)",
+      "filed": "2026-10-20"
+    },
+    {
+      "id": "review-follow-two",
+      "title": "Work waiting for shipped prerequisite",
+      "blocked_by": "-",
+      "reason": "-",
+      "owner": "(main)",
+      "filed": "2026-10-20"
+    }
+  ],
+  "reports": [],
+  "recorded_prs": [],
+  "omitted": [
+    {
+      "surface": "backlog item bodies",
+      "reveal": "--fields bodies"
+    },
+    {
+      "surface": "task paths",
+      "reveal": "--fields paths"
+    },
+    {
+      "surface": "watch/steer actions",
+      "reveal": "--fields actions"
+    },
+    {
+      "surface": "healthy endpoint detail",
+      "reveal": "--fields endpoints"
+    },
+    {
+      "surface": "full scout-report inventory",
+      "reveal": "--all-reports"
+    },
+    {
+      "surface": "live PR discovery + checks",
+      "reveal": "--include-prs"
+    }
+  ]
+}
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh add shipped 'Archived prerequisite' --kind ship --repo alpha
+ok: added shipped (ship, repo alpha) -> Queued
+task:
+  id: shipped
+  title: Archived prerequisite
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: alpha
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start shipped` to move it to in flight
+  - Run `tasks-axi block shipped --by <other>` to record a dependency
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh add queued-dep 'Still queued' --kind ship --repo alpha
+ok: added queued-dep (ship, repo alpha) -> Queued
+task:
+  id: queued-dep
+  title: Still queued
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: alpha
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start queued-dep` to move it to in flight
+  - Run `tasks-axi block queued-dep --by <other>` to record a dependency
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh add flight-dep 'Still in flight' --kind program --repo alpha
+ok: added flight-dep (program, repo alpha) -> Queued
+task:
+  id: flight-dep
+  title: Still in flight
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: program
+  repo: alpha
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start flight-dep` to move it to in flight
+  - Run `tasks-axi block flight-dep --by <other>` to record a dependency
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh start flight-dep
+ok: start flight-dep -> In flight
+help[1]:
+  - Run `tasks-axi done flight-dep --pr <url>` when it ships
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh add gated 'Mixed dependencies' --kind ship --repo alpha --blocked-by shipped --blocked-by queued-dep --blocked-by flight-dep
+ok: added gated (ship, repo alpha) -> Queued
+task:
+  id: gated
+  title: Mixed dependencies
+  state: queued
+  blocked: yes
+  blocked_by: "shipped,queued-dep,flight-dep"
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: alpha
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: "blocked-by:shipped,blocked-by:queued-dep,blocked-by:flight-dep"
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start gated` to move it to in flight
+  - Run `tasks-axi block gated --by <other>` to record a dependency
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh done shipped --keep 0
+ok: done shipped -> Done; pruned 1
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-fleet-snapshot.sh --json
+output: 07-mixed-blockers.json
+[
+  {
+    "id": "gated",
+    "state": "queued",
+    "blocked_by_ids": [
+      "missing-dep",
+      "shipped",
+      "queued-dep",
+      "flight-dep"
+    ],
+    "unresolved_blocker_ids": [
+      "missing-dep",
+      "queued-dep",
+      "flight-dep"
+    ]
+  }
+]
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-bearings-snapshot.sh --json
+output: 08-mixed-bearings.json
+{
+  "schema": "fm-bearings.v1",
+  "home": "archived-blocker-live/mixed-blockers",
+  "generated": "2026-10-20T12:54:06Z",
+  "prs": "not_requested (run: /bearings include PRs)",
+  "contributions": {
+    "scope": "owned contributions per home",
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "complete": true,
+    "proven_clear": true,
+    "unmeasured_homes": 0,
+    "unreadable_records": 0,
+    "unmeasured": 0,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "captain_omitted": 0,
+    "captain": []
+  },
+  "in_flight": [],
+  "secondmates": [],
+  "secondmate_reconcile": [],
+  "decisions_open": [],
+  "landed": [],
+  "gates": [
+    {
+      "id": "queued-dep",
+      "title": "Still queued",
+      "blocked_by": "-",
+      "reason": "-",
+      "owner": "(main)",
+      "filed": "2026-10-20"
+    },
+    {
+      "id": "gated",
+      "title": "Mixed dependencies",
+      "blocked_by": "missing-dep,queued-dep,flight-dep",
+      "reason": "-",
+      "owner": "(main)",
+      "filed": "2026-10-20"
+    }
+  ],
+  "reports": [],
+  "recorded_prs": [],
+  "omitted": [
+    {
+      "surface": "backlog item bodies",
+      "reveal": "--fields bodies"
+    },
+    {
+      "surface": "task paths",
+      "reveal": "--fields paths"
+    },
+    {
+      "surface": "watch/steer actions",
+      "reveal": "--fields actions"
+    },
+    {
+      "surface": "healthy endpoint detail",
+      "reveal": "--fields endpoints"
+    },
+    {
+      "surface": "full scout-report inventory",
+      "reveal": "--all-reports"
+    },
+    {
+      "surface": "live PR discovery + checks",
+      "reveal": "--include-prs"
+    }
+  ]
+}
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-tasks-axi.sh add shipped 'Current work with an archived ID' --kind ship --repo alpha
+ok: added shipped (ship, repo alpha) -> Queued
+task:
+  id: shipped
+  title: Current work with an archived ID
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: alpha
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start shipped` to move it to in flight
+  - Run `tasks-axi block shipped --by <other>` to record a dependency
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/mixed-blockers /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-fleet-snapshot.sh --json
+output: 09-current-record-overrides-archive.json
+[
+  {
+    "id": "gated",
+    "state": "queued",
+    "blocked_by_ids": [
+      "missing-dep",
+      "shipped",
+      "queued-dep",
+      "flight-dep"
+    ],
+    "unresolved_blocker_ids": [
+      "missing-dep",
+      "shipped",
+      "queued-dep",
+      "flight-dep"
+    ]
+  },
+  {
+    "id": "shipped",
+    "state": "queued",
+    "blocked_by_ids": [],
+    "unresolved_blocker_ids": []
+  }
+]
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-isolation /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-fleet-snapshot.sh --json
+output: 10-no-local-archive.json
+[
+  {
+    "id": "isolated",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": [
+      "shipped"
+    ]
+  }
+]
+$ FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/.no-mistakes/archived-blocker-live/archive-isolation /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CN7DKM40PFMVES0WRY9R1T/bin/fm-fleet-snapshot.sh --json
+output: 11-data-override-own-archive.json
+[
+  {
+    "id": "follow-one",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": []
+  },
+  {
+    "id": "review-follow-two",
+    "state": "queued",
+    "blocked_by_ids": [
+      "shipped"
+    ],
+    "unresolved_blocker_ids": []
+  }
+]
+Scenario outcomes:
+[
+  {
+    "scenario": "Archiving a completed prerequisite keeps both dependent tasks resolved",
+    "result": "pass",
+    "baseline_unresolved": 2,
+    "current_unresolved": 0,
+    "live": true
+  },
+  {
+    "scenario": "Refreshing the home summary and Bearings removes the archived prerequisite from current holds",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "scenario": "Mixed blockers clear only archived work while queued, in-flight, and missing IDs still block",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "scenario": "An unfinished current task with an archived ID remains unresolved",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "scenario": "An absent local archive keeps missing blockers open and a data override reads its own adjacent archive",
+    "result": "pass",
+    "live": true
+  }
+]
