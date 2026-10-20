@@ -5410,6 +5410,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy-reuse ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-refs ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-sweep ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-requester ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-ordering ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
@@ -6311,9 +6312,77 @@ SH
     || fail "the single sweep did not expire its hold: $(cat "$record")"
   jq -e '.expired == true' "$case_dir/data/bb-new/record/data-cleanup.json" >/dev/null \
     || fail "the running sweep never picked up the hold added after its snapshot"
-  assert_absent "$case_dir/state/.task-data-sweep.rerun" "the sweep left its rerun request pending"
+  [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = '' ] \
+    || fail "the sweep changed the unnamed requester's identity"
   assert_absent "$case_dir/state/.task-data-sweep.lock" "the sweep did not release its lock"
   pass "fm-teardown: overlapping sweep requests preserve a new hold for another single-instance pass"
+}
+
+test_task_data_sweep_requester_recovery() {
+  local case_dir record first_pid real_python
+  case_dir=$(make_case task-data-sweep-requester)
+  write_pending_hold "$case_dir" task-a1
+  record="$case_dir/data/task-a1/record/data-cleanup.json"
+  jq '.sources[0].beads = ["tst-slow1"]' "$record" > "$record.next" && mv "$record.next" "$record"
+  fm_test_tasks_toml "$case_dir/.tasks.toml"
+  printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+  real_python=$(command -v python3)
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+if [ -n "\${SWEEP_PENDING_GATE:-}" ] && [ "\${2:-}" = pending ] \
+    && [ ! -e "\$SWEEP_PENDING_READY" ]; then
+  "$real_python" "\$@" > "\$SWEEP_PENDING_READY.snapshot" || exit 1
+  touch "\$SWEEP_PENDING_READY"
+  IFS= read -r release < "\$SWEEP_PENDING_GATE"
+  cat "\$SWEEP_PENDING_READY.snapshot"
+  exit 0
+fi
+exec "$real_python" "\$@"
+SH
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+sleep 4
+printf '[{"id":"tst-slow1","description":"no linked files"}]\n'
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/python3" "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  mkfifo "$case_dir/pending-gate"
+  SWEEP_PENDING_GATE="$case_dir/pending-gate" SWEEP_PENDING_READY="$case_dir/pending-ready" \
+    PATH="$case_dir/fakebin:$PATH" \
+    bash "$ROOT/bin/fm-task-data-lib.sh" sweep "$case_dir/data" "$case_dir/state" task-a1 \
+    > "$case_dir/sweep1.out" 2> "$case_dir/sweep1.err" &
+  first_pid=$!
+  while [ ! -e "$case_dir/pending-ready" ]; do
+    kill -0 "$first_pid" 2>/dev/null || fail "A's sweep exited before taking its pending snapshot"
+    sleep 0.1
+  done
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  mkdir -p "$case_dir/data/task-x1"
+  printf 'B fresh recovery\n' > "$case_dir/data/task-x1/fresh.bin"
+  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=1 run_teardown "$case_dir" \
+    > "$case_dir/teardown.out" 2> "$case_dir/teardown.err" \
+    || fail "B's teardown failed: $(cat "$case_dir/teardown.err")"
+  assert_contains "$(cat "$case_dir/teardown.err")" "task data task-a1 expiry stopped after" \
+    "B did not exhaust its foreground expiry attempt on A"
+  PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" sweep \
+    "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/sweep2.out" 2> "$case_dir/sweep2.err" \
+    || fail "B's overlapping sweep request failed"
+  printf 'release\n' > "$case_dir/pending-gate"
+  wait "$first_pid" || fail "A's sweep failed: $(cat "$case_dir/sweep1.err")"
+  assert_present "$case_dir/data/task-x1/.cleanup-hold/fresh.bin" \
+    "A's rerun deleted B's fresh recovery before another task completed"
+  jq -e '.expired == true' "$record" >/dev/null \
+    || fail "B's request left A's hold stuck: $(cat "$record")"
+  jq -e '.expired != true' "$case_dir/data/task-x1/record/data-cleanup.json" >/dev/null \
+    || fail "B's fresh hold was marked expired"
+  [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = task-x1 ] \
+    || fail "the sweep lost B's requester identity"
+  assert_absent "$case_dir/state/.task-data-sweep.lock" "the requester sweep retained its lock"
+  pass "fm-teardown: B's overlapping completion expires A while preserving B's fresh recovery"
 }
 
 test_task_data_refusals() {
@@ -8100,11 +8169,17 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-requester ]; then
+  test_task_data_sweep_requester_recovery
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-sweep ]; then
   test_task_data_unread_named_once
   test_task_data_unread_status_failure_retries
   test_task_data_sweep_expires_big_hold
   test_task_data_sweep_single_instance
+  test_task_data_sweep_requester_recovery
   exit 0
 fi
 
@@ -8153,6 +8228,7 @@ test_task_data_unread_named_once
 test_task_data_unread_status_failure_retries
 test_task_data_sweep_expires_big_hold
 test_task_data_sweep_single_instance
+test_task_data_sweep_requester_recovery
 test_task_data_full_attempt_uses_its_own_limit
 test_task_data_refusals
 test_task_data_references_and_guard
