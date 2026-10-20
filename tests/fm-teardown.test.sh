@@ -6244,6 +6244,43 @@ SH
   pass "fm-teardown: archived task ids never suppress unread beads with the same id, including saved references and staged holds"
 }
 
+test_task_data_row_named_beads() {
+  local case_dir task
+  case_dir=$(make_case task-data-row-beads)
+  task="$case_dir/data/task-x1"
+  mkdir -p "$task/record"
+  printf 'row bead evidence\n' > "$task/proof.png"
+  printf 'scratch\n' > "$task/scratch.bin"
+  printf 'Captain: ship the thing\n' > "$task/brief.md"
+  fm_test_tasks_toml "$case_dir/.tasks.toml"
+  printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+  tasks-axi add task-x1 "Ship it. Bead proof-related" --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi start task-x1 --file "$case_dir/data/backlog.md" >/dev/null
+  jq -n --arg project "$case_dir/project" --arg data "$case_dir/data" \
+    '{version: 1, task: "task-x1", complete: false, expired: false,
+      sources: [{project: $project, pr: "", beads: [], backlog: {data: $data, task: "task-x1"}}]}' \
+    > "$task/record/data-cleanup.json"
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+[ "$2" = proof-related ] || exit 1
+printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" stage \
+    "$case_dir/data" "$case_dir/state" task-x1 "$case_dir/project" '' \
+    > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "staging with a row-named bead failed: $(cat "$case_dir/err")"
+  assert_present "$task/proof.png" "evidence linked only from the owning row's bead was staged as scratch"
+  assert_present "$task/.cleanup-hold/scratch.bin" "unreferenced scratch was not staged as scratch"
+  jq -e '.sources[0].beads == ["proof-related"]' "$task/record/data-cleanup.json" >/dev/null \
+    || fail "the owning row's bead was not recorded: $(cat "$task/record/data-cleanup.json")"
+  pass "fm-teardown: beads named by the readable owning row resolve before evidence is classified"
+}
+
 test_task_data_unread_named_once() {
   local case_dir record
   case_dir=$(make_case task-data-unread-once)
@@ -8285,6 +8322,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
   test_task_data_archived_bead_id_collision
   test_task_data_bead_id_filter
   test_task_data_archived_row_reference
+  test_task_data_row_named_beads
   test_task_data_archived_unread_bead
   test_task_data_unread_named_once
   test_task_data_unread_status_failure_retries
@@ -8361,6 +8399,7 @@ test_task_data_by_hand_expiry_finishes_an_unstaged_hold
 test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
 test_task_data_bead_id_filter
 test_task_data_archived_row_reference
+test_task_data_row_named_beads
 test_task_data_archived_unread_bead
 test_task_data_archived_bead_id_collision
 test_task_data_unread_named_once
