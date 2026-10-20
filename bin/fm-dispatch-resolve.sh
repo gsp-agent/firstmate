@@ -8,10 +8,10 @@
 #
 # Worker routing (--labels, an empty value is allowed): no model judgment or
 #   typesafe.ai call or key. After shared configuration validation and label
-#   conflict checks, attempt one quota-axi --json snapshot when available.
-#   The first matching label in the comma-separated input picks its
-#   `label_routes` profile independently of that snapshot. With no match,
-#   walk the `default` object or array in configured order: skip a rung
+#   conflict checks, the first matching label in the comma-separated input
+#   picks its `label_routes` profile without a quota call. With no match,
+#   attempt one quota-axi --json snapshot when available, then walk the
+#   `default` object or array in configured order: skip a rung
 #   only on concrete evidence it cannot start now (a known applicable row at
 #   0% or exhausted_now, unless Grok prepaid credits remain usable), and treat
 #   an unmeasured, missing, or unreadable quota row as eligible. This path
