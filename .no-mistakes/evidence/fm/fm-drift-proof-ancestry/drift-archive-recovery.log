@@ -1,0 +1,18 @@
+The pre-squash recovery archive is already remote and fetchable before original deletion
+
+$ git ls-remote https://github.com/gsp-agent/firstmate.git refs/heads/archive/fm-drift-nightly-b2216803 refs/heads/fm/fm-drift-nightly
+b2216803f3f438b4fc68f03fbed9816b626769c9	refs/heads/archive/fm-drift-nightly-b2216803
+b2216803f3f438b4fc68f03fbed9816b626769c9	refs/heads/fm/fm-drift-nightly
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/history fetch -q --no-tags https://github.com/gsp-agent/firstmate.git refs/heads/archive/fm-drift-nightly-b2216803
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/history rev-parse FETCH_HEAD
+b2216803f3f438b4fc68f03fbed9816b626769c9
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/history merge-base --is-ancestor ec259ec5 FETCH_HEAD
+exit: 1
+
+Validation error: ('git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/history merge-base --is-ancestor ec259ec5 FETCH_HEAD', 1, '', '')

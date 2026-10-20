@@ -1,0 +1,71 @@
+A merge replays its net first-parent patch and carried commits inherit keep or pending
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending add -- README.md
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending commit -qm 'upstream baseline'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending rev-parse HEAD
+893e3c6bce33f670f27ae8faa62201fdfdeb28ca
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending branch upstream
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending switch -qc fm/feature
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending add -- notes.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending commit -qm 'first carried patch'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending rev-parse HEAD
+f218b564b67ca1c1570dc9973b0601a601fce79a
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending add -- notes.txt drift-proof.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending commit -qm 'replace carried patch with final content'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending rev-parse HEAD
+4e8d58590dddc840b881bc622eafe4424631ffe4
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending switch -q main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending merge -q --no-ff -m 'Merge pull request #8 from test/fm/feature' fm/feature
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending rev-parse HEAD
+82338d335c6d6bb6c7761d040be50209f910c32d
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending --no-fetch --upstream upstream
+behind: 0
+ahead: 3
+path-ok: drift-proof.txt
+path-ok: notes.txt
+pending: 82338d335c6d6bb6c7761d040be50209f910c32d .agent-config-dtjsb Merge pull request #8 from test/fm/feature
+pending: 4e8d58590dddc840b881bc622eafe4424631ffe4 .agent-config-dtjsb replace carried patch with final content
+pending: f218b564b67ca1c1570dc9973b0601a601fce79a .agent-config-dtjsb first carried patch
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/merge-pending/manual-proof.txt
+behind: 0
+ahead: 3
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: 82338d335c6d6bb6c7761d040be50209f910c32d Merge pull request #8 from test/fm/feature
+keep: 4e8d58590dddc840b881bc622eafe4424631ffe4 replace carried patch with final content
+keep: f218b564b67ca1c1570dc9973b0601a601fce79a first carried patch
+exit: 0
+

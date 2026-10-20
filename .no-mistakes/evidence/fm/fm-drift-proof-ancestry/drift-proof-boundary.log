@@ -1,0 +1,85 @@
+Only committed proof is trusted and guard files have no exemption
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof add -- README.md
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof commit -qm 'upstream baseline'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof rev-parse HEAD
+6364bc240a5a2ae55740c80cb885f53188dd6cc5
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof branch upstream
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof add -- notes.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof commit -qm 'add notes (#7)'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof rev-parse HEAD
+40db65efad2133544119ed67d7ad24ab8ce8d14f
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof --no-fetch --upstream upstream
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 40db65efad2133544119ed67d7ad24ab8ce8d14f add notes (#7)
+exit: 1
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof add drift-proof.txt
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof --no-fetch --upstream upstream
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 40db65efad2133544119ed67d7ad24ab8ce8d14f add notes (#7)
+exit: 1
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof add -- drift-proof.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof commit -qm 'add approved manifest (#8)'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof rev-parse HEAD
+a565eff161788dca6f5c7d89a77223ea4379c97d
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof --no-fetch --upstream upstream
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: a565eff161788dca6f5c7d89a77223ea4379c97d add approved manifest (#8)
+keep: 40db65efad2133544119ed67d7ad24ab8ce8d14f add notes (#7)
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof add -- drift-proof.txt bin/fm-drift-nightly.sh
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof commit -qm 'later unapproved guard and manifest'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof rev-parse HEAD
+345ef220ac310b967c4624f7faa69c2532c327e0
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/committed-proof --no-fetch --upstream upstream
+behind: 0
+ahead: 3
+path-ok: notes.txt
+path-drift: bin/fm-drift-nightly.sh
+path-drift: drift-proof.txt
+unproven: 345ef220ac310b967c4624f7faa69c2532c327e0 later unapproved guard and manifest
+keep: a565eff161788dca6f5c7d89a77223ea4379c97d add approved manifest (#8)
+keep: 40db65efad2133544119ed67d7ad24ab8ce8d14f add notes (#7)
+exit: 1
+

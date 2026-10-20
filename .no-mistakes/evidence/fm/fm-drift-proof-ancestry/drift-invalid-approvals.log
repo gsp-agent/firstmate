@@ -1,0 +1,75 @@
+Missing, wrong, duplicate and side-branch-only PR approvals fail closed
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries add -- README.md
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries commit -qm 'upstream baseline'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries rev-parse HEAD
+893e3c6bce33f670f27ae8faa62201fdfdeb28ca
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries branch upstream
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries switch -qc fm/feature
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries add -- notes.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries commit -qm 'side change (#7)'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries rev-parse HEAD
+76210ee211db5f1873863545025531d20cda7b26
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries switch -q main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries merge -q --no-ff -m 'Merge PR #8 from test/feature' fm/feature
+exit: 0
+
+Manual manifest input: 'pr: 99\n'
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries/manual-proof.txt
+stderr:
+error: proof PR has no first-parent commit: 99
+exit: 2
+
+Manual manifest input: 'pr: 7\n'
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries/manual-proof.txt
+stderr:
+error: proof PR has no first-parent commit: 7
+exit: 2
+
+Manual manifest input: 'pr: 8\npending-pr: 8 bead-8\n'
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries/manual-proof.txt
+stderr:
+error: duplicate proof entry for PR 8
+exit: 2
+
+Manual manifest input: 'pending-pr: 8\n'
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries/manual-proof.txt
+stderr:
+error: pending-pr line is not '<number> <bead>': pending-pr: 8
+exit: 2
+
+Manual manifest input: 'pr: 8 extra\n'
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries/manual-proof.txt
+stderr:
+error: proof line is not 'pr: <number>': pr: 8 extra
+exit: 2
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries --no-fetch --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/invalid-entries/manual-proof.txt
+behind: 0
+ahead: 2
+path-drift: notes.txt
+merge: 03412df2bc1f8fc9fdfde8b9e79fc0414dfaac9f Merge PR #8 from test/feature
+unproven: 76210ee211db5f1873863545025531d20cda7b26 side change (#7)
+exit: 1
+

@@ -1,58 +1,51 @@
 [
   {
-    "name": "Remeasure actual upstream-lean after the PR 25 squash and retain required pending classifications",
+    "name": "A PR carries its proof through squash and later unapproved edits still fail",
     "result": "pass",
     "live": true,
-    "evidence": "real-upstream-lean-before.txt; real-upstream-lean-after.txt; real-upstream-lean-measurement.json",
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5C28NPFTCGKAXS7FXBEMZVH/drift-squash-regression.log",
     "reason": ""
   },
   {
-    "name": "Squash a PR carrying its own manifest line; reject a later unproven edit; previous script fails",
+    "name": "A merge replays its net first-parent patch and carried commits inherit keep or pending",
     "result": "pass",
     "live": true,
-    "evidence": "squash-self-proof.txt; squash-previous-script.txt; squash-later-edit.txt",
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5C28NPFTCGKAXS7FXBEMZVH/drift-merge-replay.log",
     "reason": ""
   },
   {
-    "name": "Merge a kept or pending PR and replay its final first-parent patch without restoring a carried cut",
+    "name": "Missing, wrong, duplicate and side-branch-only PR approvals fail closed",
     "result": "pass",
     "live": true,
-    "evidence": "first-parent-keep.txt; first-parent-pending.txt",
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5C28NPFTCGKAXS7FXBEMZVH/drift-invalid-approvals.log",
     "reason": ""
   },
   {
-    "name": "Reject missing, wrong-number, duplicate, bead-less and legacy-SHA proof entries",
+    "name": "Only committed proof is trusted and guard files have no exemption",
     "result": "pass",
     "live": true,
-    "evidence": "manifest-forgotten.txt; manifest-wrong-number.txt; manifest-duplicate.txt; manifest-pending-no-bead.txt; manifest-legacy-sha.txt",
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5C28NPFTCGKAXS7FXBEMZVH/drift-proof-boundary.log",
     "reason": ""
   },
   {
-    "name": "Ignore untracked or staged proof and refuse an entry that exists only on a side branch",
+    "name": "The exact repair tree carries PR 53 proof through squash and merge results",
     "result": "pass",
     "live": true,
-    "evidence": "untracked-proof.txt; staged-proof.txt; side-branch-entry.txt",
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5C28NPFTCGKAXS7FXBEMZVH/drift-pr53-merge-results.log",
     "reason": ""
   },
   {
-    "name": "Fetch the published nightly recovery archive and recover its pre-squash ancestry",
+    "name": "Upstream-lean recovers from the old dangling-SHA failure with zero drift and 59 pending commits",
     "result": "pass",
     "live": true,
-    "evidence": "remote-archive-recovery.txt; drift-live-cli.log (real remote fetch and ancestry check)",
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5C28NPFTCGKAXS7FXBEMZVH/drift-upstream-lean.rerun.log",
     "reason": ""
   },
   {
-    "name": "Deliver the repair as a squash carrying its own numbered proof entry",
+    "name": "The pre-squash recovery archive is already remote and fetchable before original deletion",
     "result": "pass",
     "live": true,
-    "evidence": "repair-squash-with-own-proof.txt (synthetic PR 999999; no forge publication)",
-    "reason": ""
-  },
-  {
-    "name": "Run nightly with PR proof; green sends no note and repeated red runs create one isolated note",
-    "result": "pass",
-    "live": true,
-    "evidence": "nightly-cli-transcript-final.txt; nightly-generated-inbox-note.txt",
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5C28NPFTCGKAXS7FXBEMZVH/drift-archive-recovery.rerun.log",
     "reason": ""
   }
 ]

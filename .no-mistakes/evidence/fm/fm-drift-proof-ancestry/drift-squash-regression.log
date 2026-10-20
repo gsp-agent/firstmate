@@ -1,0 +1,83 @@
+A PR carries its proof through squash and later unapproved edits still fail
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash add -- README.md
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash commit -qm 'upstream baseline'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash rev-parse HEAD
+1d385efe3b160d8351477a9365e87e66455ecd7c
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash branch upstream
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash switch -qc fm/feature
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash add -- notes.txt drift-proof.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash commit -qm 'add notes'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash rev-parse HEAD
+85d998db0bc8076adf69b08172f692584dd41785
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash switch -q main
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash merge -q --squash fm/feature
+Squash commit -- not updating HEAD
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash add -- notes.txt drift-proof.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash commit -qm 'add notes (#7)'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash rev-parse HEAD
+2bba725cf79f2a04c8387409de6c82426b7035c0
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash merge-base --is-ancestor 85d998db0bc8076adf69b08172f692584dd41785 2bba725cf79f2a04c8387409de6c82426b7035c0
+exit: 1
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/previous-drift.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash --no-fetch --upstream upstream
+stderr:
+error: proof line is not a full sha: pr: 7
+exit: 2
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash --no-fetch --upstream upstream
+behind: 0
+ahead: 1
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: 2bba725cf79f2a04c8387409de6c82426b7035c0 add notes (#7)
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash add -- notes.txt
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash commit -qm 'later unproven edits'
+exit: 0
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash rev-parse HEAD
+7a7eea34f58e53a44bd536c8b209eedb4535c5de
+exit: 0
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C28NPFTCGKAXS7FXBEMZVH/.drift-live/squash --no-fetch --upstream upstream
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-drift: notes.txt
+unproven: 7a7eea34f58e53a44bd536c8b209eedb4535c5de later unproven edits
+keep: 2bba725cf79f2a04c8387409de6c82426b7035c0 add notes (#7)
+exit: 1
+
