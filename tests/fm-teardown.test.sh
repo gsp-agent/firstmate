@@ -5408,6 +5408,8 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-github ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy-reuse ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-refs ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-sweep ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-ordering ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
@@ -6041,6 +6043,189 @@ SH
     "the full-attempt warning did not report the configured 1s"
   [ "$(jq -r '.expiry' "$record")" = too-large ] || fail "the cut-off full attempt did not mark the hold too large"
   pass "fm-teardown: the one full attempt lasts FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT even under a longer budget"
+}
+
+test_task_data_bead_id_filter() {
+  local case_dir record
+  case_dir=$(make_case task-data-bead-filter)
+  write_pending_hold "$case_dir" aa-filter
+  record="$case_dir/data/aa-filter/record/data-cleanup.json"
+  jq '.sources[0].beads = ["09-30", "2026-09-29T21", "s-workflow", "proof-related"]' \
+    "$record" > "$record.next" && mv "$record.next" "$record"
+  printf 'Bead 09-30\nBead 2026-09-29T21\nbeads-workflow\n' \
+    > "$case_dir/data/aa-filter/brief.md"
+  printf 'linked evidence\n' > "$case_dir/data/aa-filter/proof.png"
+  fm_test_tasks_toml "$case_dir/.tasks.toml"
+  printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$2" >> "$BR_CALLS"
+[ "$2" = proof-related ] || exit 1
+printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  BR_CALLS="$case_dir/br-calls" PATH="$case_dir/fakebin:$PATH" \
+    bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" aa-filter \
+    > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "expiry with prose bead strings failed: $(cat "$case_dir/err")"
+  grep -Fxq proof-related "$case_dir/br-calls" || fail "the real bead was never read"
+  if grep -Fxq 09-30 "$case_dir/br-calls"; then fail "a date fragment was read as a bead"; fi
+  if grep -Fxq 2026-09-29T21 "$case_dir/br-calls"; then fail "a timestamp was read as a bead"; fi
+  if grep -Fxq s-workflow "$case_dir/br-calls"; then fail "a word fragment was read as a bead"; fi
+  jq -e '.expired == true and .sources[0].beads == ["proof-related"]' "$record" >/dev/null \
+    || fail "the cleanup record kept prose bead strings: $(cat "$record")"
+  assert_absent "$case_dir/data/aa-filter/.cleanup-hold" "the filtered hold did not expire"
+  pass "fm-teardown: only real bead ids count as bead references, in new text and in saved records"
+}
+
+test_task_data_archived_row_reference() {
+  local case_dir task record
+  case_dir=$(make_case task-data-archived-row)
+  task="$case_dir/data/task-x1"
+  mkdir -p "$task" "$case_dir/projects/demo" "$case_dir/history"
+  printf 'row evidence\n' > "$task/row.png"
+  printf 'scratch\n' > "$task/discard.bin"
+  cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+  printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+  cat > "$case_dir/history/completed.md" <<'MD'
+## Archived 2026-10-11
+- [x] task-x1 - finished (repo: demo) (done 2026-10-11)
+  [capture](row.png)
+MD
+  mkdir -p "$task/record"
+  jq -n --arg project "$case_dir/projects/demo" --arg data "$case_dir/data" \
+    '{version: 1, task: "task-x1", complete: false, expired: false,
+      sources: [{project: $project, pr: "", beads: [], backlog: {data: $data, task: "task-x1"}}]}' \
+    > "$task/record/data-cleanup.json"
+  record="$task/record/data-cleanup.json"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/dcg"
+  PATH="$case_dir/fakebin:$PATH" \
+    bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" task-x1 \
+    > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "expiry with an archived task row failed: $(cat "$case_dir/err")"
+  assert_present "$task/row.png" "the archived row's linked evidence was removed"
+  assert_absent "$task/discard.bin" "scratch stayed after the archived row resolved"
+  jq -e '.expired == true' "$record" >/dev/null \
+    || fail "the archived-row hold did not expire: $(cat "$record")"
+  pass "fm-teardown: a finished task whose row moved to the archive still resolves its references"
+}
+
+test_task_data_unread_named_once() {
+  local case_dir record
+  case_dir=$(make_case task-data-unread-once)
+  write_pending_hold "$case_dir" aa-unread
+  record="$case_dir/data/aa-unread/record/data-cleanup.json"
+  jq '.sources[0].beads = ["tst-unread1"]' "$record" > "$record.next" && mv "$record.next" "$record"
+  fm_test_tasks_toml "$case_dir/.tasks.toml"
+  printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$case_dir/fakebin/br"
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  if PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" aa-unread > "$case_dir/out1" 2> "$case_dir/err1"; then
+    fail "the first unread expiry reported success"
+  fi
+  assert_contains "$(cat "$case_dir/err1")" "unread references" \
+    "the first unread expiry did not name the reference"
+  if PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" aa-unread > "$case_dir/out2" 2> "$case_dir/err2"; then
+    fail "the second unread expiry reported success"
+  fi
+  if grep -q "unread references" "$case_dir/err2"; then
+    fail "the second expiry named the same unread reference again: $(cat "$case_dir/err2")"
+  fi
+  assert_present "$case_dir/data/aa-unread/.cleanup-hold/scratch.bin" "an unread hold lost its data"
+  jq -e '.sources[0].unread == ["tst-unread1"]' "$record" >/dev/null \
+    || fail "the cleanup record lost the unread reference: $(cat "$record")"
+  pass "fm-teardown: a still-unreadable reference keeps its folder and is named once, not on every pass"
+}
+
+test_task_data_sweep_expires_big_hold() {
+  local case_dir record i
+  case_dir=$(make_case task-data-sweep-big)
+  write_pending_hold "$case_dir" aa-big
+  record="$case_dir/data/aa-big/record/data-cleanup.json"
+  jq '.sources[0].beads = ["tst-slow1"]' "$record" > "$record.next" && mv "$record.next" "$record"
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+sleep 4
+printf '[{"id":"tst-slow1","description":"no linked files"}]\n'
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 run_teardown "$case_dir" \
+    > "$case_dir/out" 2> "$case_dir/err" || fail "teardown with a big hold failed: $(cat "$case_dir/err")"
+  assert_contains "$(cat "$case_dir/err")" "expiry stopped after" \
+    "teardown did not cut the big hold off at its budget"
+  for ((i = 0; i < 300; i++)); do
+    if jq -e '.expired == true' "$record" >/dev/null 2>&1 \
+        && [ ! -e "$case_dir/data/aa-big/.cleanup-hold" ]; then break; fi
+    sleep 0.1
+  done
+  jq -e '.expired == true' "$record" >/dev/null \
+    || fail "the background sweep never expired the hold teardown cut off: $(cat "$record")"
+  assert_absent "$case_dir/data/aa-big/.cleanup-hold" "the sweep left the big hold behind"
+  pass "fm-teardown: a hold bigger than the teardown budget is expired by the sweep after teardown returns"
+}
+
+test_task_data_sweep_single_instance() {
+  local case_dir record first_pid i
+  case_dir=$(make_case task-data-sweep-single)
+  write_pending_hold "$case_dir" aa-slow
+  record="$case_dir/data/aa-slow/record/data-cleanup.json"
+  jq '.sources[0].beads = ["tst-slow1"]' "$record" > "$record.next" && mv "$record.next" "$record"
+  fm_test_tasks_toml "$case_dir/.tasks.toml"
+  printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+printf 'call\n' >> "$BR_CALLS"
+sleep 5
+printf '[{"id":"tst-slow1","description":"no linked files"}]\n'
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  BR_CALLS="$case_dir/br-calls" PATH="$case_dir/fakebin:$PATH" \
+    bash "$ROOT/bin/fm-task-data-lib.sh" sweep "$case_dir/data" "$case_dir/state" \
+    > "$case_dir/sweep1.out" 2> "$case_dir/sweep1.err" &
+  first_pid=$!
+  for ((i = 0; i < 100; i++)); do [ -e "$case_dir/br-calls" ] && break; sleep 0.1; done
+  [ -e "$case_dir/br-calls" ] || fail "the first sweep never started expiring"
+  BR_CALLS="$case_dir/br-calls" PATH="$case_dir/fakebin:$PATH" \
+    bash "$ROOT/bin/fm-task-data-lib.sh" sweep "$case_dir/data" "$case_dir/state" \
+    > "$case_dir/sweep2.out" 2> "$case_dir/sweep2.err" \
+    || fail "a second sweep start failed instead of doing nothing: $(cat "$case_dir/sweep2.err")"
+  assert_contains "$(cat "$case_dir/sweep2.out" "$case_dir/sweep2.err")" "already" \
+    "the second sweep start did not say it was already running"
+  [ "$(wc -l < "$case_dir/br-calls" | tr -d ' ')" = 1 ] \
+    || fail "the second sweep start expired the hold again"
+  wait "$first_pid" || fail "the first sweep failed: $(cat "$case_dir/sweep1.err")"
+  jq -e '.expired == true' "$record" >/dev/null \
+    || fail "the single sweep did not expire its hold: $(cat "$record")"
+  pass "fm-teardown: a second drain sweep start while one runs does nothing"
 }
 
 test_task_data_refusals() {
@@ -7819,6 +8004,19 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-named-beads ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
+  test_task_data_bead_id_filter
+  test_task_data_archived_row_reference
+  test_task_data_unread_named_once
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-sweep ]; then
+  test_task_data_sweep_expires_big_hold
+  test_task_data_sweep_single_instance
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-legacy ]; then
   test_task_data_legacy_rows
   test_task_data_legacy_ordering
@@ -7858,6 +8056,11 @@ test_task_data_expire_cut_off_hold_moves_back
 test_task_data_expire_too_large_hold_skipped
 test_task_data_by_hand_expiry_finishes_an_unstaged_hold
 test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
+test_task_data_bead_id_filter
+test_task_data_archived_row_reference
+test_task_data_unread_named_once
+test_task_data_sweep_expires_big_hold
+test_task_data_sweep_single_instance
 test_task_data_full_attempt_uses_its_own_limit
 test_task_data_refusals
 test_task_data_references_and_guard
