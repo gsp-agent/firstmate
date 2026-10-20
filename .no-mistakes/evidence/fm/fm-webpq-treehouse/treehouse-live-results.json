@@ -1,0 +1,31 @@
+{
+  "baseline": {
+    "held": 16,
+    "seventeenth_exit": 1
+  },
+  "expansion_in_place": {
+    "old_leases_unchanged": true,
+    "seventeenth_path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo"
+  },
+  "limit": {
+    "held": 24,
+    "twenty_fifth_exit": 1
+  },
+  "default_root": {
+    "root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e",
+    "under_isolated_home_dot_treehouse": true,
+    "all_24_same_pool": true,
+    "no_processes_started": true
+  },
+  "headroom": {
+    "held": 22,
+    "available": 2,
+    "scope": "disposable pool"
+  },
+  "reuse": {
+    "same_paths": true,
+    "slots": 24,
+    "linked_worktree_acquire": true
+  },
+  "leases_released": true
+}

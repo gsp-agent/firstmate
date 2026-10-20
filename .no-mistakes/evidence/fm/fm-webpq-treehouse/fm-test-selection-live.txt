@@ -1,0 +1,24 @@
+Actual fm-test-run.sh in an isolated Git fixture.
+
+$ git init -q -b main
+exit=0
+
+$ git add bin/fm-test-run.sh tests/git-config-helpers.sh
+exit=0
+
+$ git -c user.name=gsp-agent -c user.email=gsp-agent@example.invalid -c commit.gpgsign=false commit -qm 'fixture runner baseline'
+exit=0
+
+$ git add treehouse.toml
+exit=0
+
+$ git -c user.name=gsp-agent -c user.email=gsp-agent@example.invalid -c commit.gpgsign=false commit -qm 'fixture config change'
+exit=0
+
+$ bin/fm-test-run.sh --list --changed --base 'HEAD^'
+exit=0
+fm-test-run: no tests selected for changes vs HEAD^ (map is conservative; use --all for the complete suite)
+
+$ bin/fm-test-run.sh --list --changed --base 'HEAD^'
+exit=2
+fm-test-run: no changed-test mapping for source path: unsupported-source.xyz

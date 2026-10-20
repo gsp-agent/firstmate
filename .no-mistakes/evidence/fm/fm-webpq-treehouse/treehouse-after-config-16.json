@@ -1,0 +1,162 @@
+[
+  {
+    "name": "1",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "9674a65796abdbfd6f1f375485cdafc3",
+    "lease_holder": "fm-cap-lab-1",
+    "leased_at": "2026-10-19T20:40:45.509257-05:00",
+    "processes": []
+  },
+  {
+    "name": "2",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "01187137ed209f082a23ad1f4d227907",
+    "lease_holder": "fm-cap-lab-2",
+    "leased_at": "2026-10-19T20:41:47.928552-05:00",
+    "processes": []
+  },
+  {
+    "name": "3",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "3fd216cf334f820bea3be5fcf7d1f890",
+    "lease_holder": "fm-cap-lab-3",
+    "leased_at": "2026-10-19T20:41:48.145017-05:00",
+    "processes": []
+  },
+  {
+    "name": "4",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "35989aaa12d94cef03d68060ed5537f1",
+    "lease_holder": "fm-cap-lab-4",
+    "leased_at": "2026-10-19T20:41:48.427933-05:00",
+    "processes": []
+  },
+  {
+    "name": "5",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "947a56a3972ddfaf028dd68ee9d5607a",
+    "lease_holder": "fm-cap-lab-5",
+    "leased_at": "2026-10-19T20:41:49.133337-05:00",
+    "processes": []
+  },
+  {
+    "name": "6",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "5b026dc81d6f963a1de0a293d3fb056f",
+    "lease_holder": "fm-cap-lab-6",
+    "leased_at": "2026-10-19T20:41:49.519381-05:00",
+    "processes": []
+  },
+  {
+    "name": "7",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "777df1701745c6a935ab060b13536210",
+    "lease_holder": "fm-cap-lab-7",
+    "leased_at": "2026-10-19T20:41:49.961476-05:00",
+    "processes": []
+  },
+  {
+    "name": "8",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "a1fc404db3d390abb3d0722e3617d7c3",
+    "lease_holder": "fm-cap-lab-8",
+    "leased_at": "2026-10-19T20:41:50.215784-05:00",
+    "processes": []
+  },
+  {
+    "name": "9",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "f4992c9e9edeeb67464acf8fbac1633c",
+    "lease_holder": "fm-cap-lab-9",
+    "leased_at": "2026-10-19T20:41:50.436113-05:00",
+    "processes": []
+  },
+  {
+    "name": "10",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "c8436e2ce1813b1e04577178d410f8e0",
+    "lease_holder": "fm-cap-lab-10",
+    "leased_at": "2026-10-19T20:41:50.628212-05:00",
+    "processes": []
+  },
+  {
+    "name": "11",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "5da43f901d911760340650edbb159d13",
+    "lease_holder": "fm-cap-lab-11",
+    "leased_at": "2026-10-19T20:41:50.834214-05:00",
+    "processes": []
+  },
+  {
+    "name": "12",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "f2d48111fd220707bd1ceac402d77085",
+    "lease_holder": "fm-cap-lab-12",
+    "leased_at": "2026-10-19T20:41:51.021016-05:00",
+    "processes": []
+  },
+  {
+    "name": "13",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "d6f75881781465db03fb2cfce32df99d",
+    "lease_holder": "fm-cap-lab-13",
+    "leased_at": "2026-10-19T20:41:51.214869-05:00",
+    "processes": []
+  },
+  {
+    "name": "14",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "648197512064ccb67a6c6b1541fab330",
+    "lease_holder": "fm-cap-lab-14",
+    "leased_at": "2026-10-19T20:41:51.402313-05:00",
+    "processes": []
+  },
+  {
+    "name": "15",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "4f996265b06bb267f392ca806391fc83",
+    "lease_holder": "fm-cap-lab-15",
+    "leased_at": "2026-10-19T20:41:51.623105-05:00",
+    "processes": []
+  },
+  {
+    "name": "16",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "075ea3fa0bf6f968e347bf3fb74bb933",
+    "lease_holder": "fm-cap-lab-16",
+    "leased_at": "2026-10-19T20:41:51.836038-05:00",
+    "processes": []
+  }
+]

@@ -1,0 +1,242 @@
+[
+  {
+    "name": "1",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "2",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "3",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "4",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "5",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "6",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "7",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "8",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "9",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "10",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "11",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "12",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "13",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "14",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "15",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "16",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "17",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "18",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/18/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "19",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/19/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "20",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/20/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "21",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/21/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "22",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/22/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "23",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  },
+  {
+    "name": "24",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo",
+    "status": "available",
+    "flavor": "git",
+    "lease_id": "",
+    "lease_holder": "",
+    "leased_at": null,
+    "processes": []
+  }
+]

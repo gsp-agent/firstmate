@@ -1,0 +1,923 @@
+[
+  {
+    "command": [
+      "treehouse",
+      "--version"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "v2.3.0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "treehouse",
+      "status",
+      "--json"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "[{\"name\":\"1\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"9674a65796abdbfd6f1f375485cdafc3\",\"lease_holder\":\"fm-cap-lab-1\",\"leased_at\":\"2026-10-19T20:40:45.509257-05:00\",\"processes\":[]}]\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-2"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo\",\"lease_id\":\"01187137ed209f082a23ad1f4d227907\",\"lease_holder\":\"fm-cap-lab-2\",\"leased_at\":\"2026-10-19T20:41:47.928552-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/2/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/2/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-3"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo\",\"lease_id\":\"3fd216cf334f820bea3be5fcf7d1f890\",\"lease_holder\":\"fm-cap-lab-3\",\"leased_at\":\"2026-10-19T20:41:48.145017-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/3/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/3/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-4"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo\",\"lease_id\":\"35989aaa12d94cef03d68060ed5537f1\",\"lease_holder\":\"fm-cap-lab-4\",\"leased_at\":\"2026-10-19T20:41:48.427933-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/4/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/4/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-5"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo\",\"lease_id\":\"947a56a3972ddfaf028dd68ee9d5607a\",\"lease_holder\":\"fm-cap-lab-5\",\"leased_at\":\"2026-10-19T20:41:49.133337-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/5/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/5/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-6"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo\",\"lease_id\":\"5b026dc81d6f963a1de0a293d3fb056f\",\"lease_holder\":\"fm-cap-lab-6\",\"leased_at\":\"2026-10-19T20:41:49.519381-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/6/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/6/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-7"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo\",\"lease_id\":\"777df1701745c6a935ab060b13536210\",\"lease_holder\":\"fm-cap-lab-7\",\"leased_at\":\"2026-10-19T20:41:49.961476-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/7/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/7/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-8"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo\",\"lease_id\":\"a1fc404db3d390abb3d0722e3617d7c3\",\"lease_holder\":\"fm-cap-lab-8\",\"leased_at\":\"2026-10-19T20:41:50.215784-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/8/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/8/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-9"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo\",\"lease_id\":\"f4992c9e9edeeb67464acf8fbac1633c\",\"lease_holder\":\"fm-cap-lab-9\",\"leased_at\":\"2026-10-19T20:41:50.436113-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/9/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/9/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-10"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo\",\"lease_id\":\"c8436e2ce1813b1e04577178d410f8e0\",\"lease_holder\":\"fm-cap-lab-10\",\"leased_at\":\"2026-10-19T20:41:50.628212-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/10/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/10/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-11"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo\",\"lease_id\":\"5da43f901d911760340650edbb159d13\",\"lease_holder\":\"fm-cap-lab-11\",\"leased_at\":\"2026-10-19T20:41:50.834214-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/11/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/11/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-12"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo\",\"lease_id\":\"f2d48111fd220707bd1ceac402d77085\",\"lease_holder\":\"fm-cap-lab-12\",\"leased_at\":\"2026-10-19T20:41:51.021016-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/12/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/12/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-13"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo\",\"lease_id\":\"d6f75881781465db03fb2cfce32df99d\",\"lease_holder\":\"fm-cap-lab-13\",\"leased_at\":\"2026-10-19T20:41:51.214869-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/13/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/13/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-14"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo\",\"lease_id\":\"648197512064ccb67a6c6b1541fab330\",\"lease_holder\":\"fm-cap-lab-14\",\"leased_at\":\"2026-10-19T20:41:51.402313-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/14/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/14/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-15"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo\",\"lease_id\":\"4f996265b06bb267f392ca806391fc83\",\"lease_holder\":\"fm-cap-lab-15\",\"leased_at\":\"2026-10-19T20:41:51.623105-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/15/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/15/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-16"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo\",\"lease_id\":\"075ea3fa0bf6f968e347bf3fb74bb933\",\"lease_holder\":\"fm-cap-lab-16\",\"leased_at\":\"2026-10-19T20:41:51.836038-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/16/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/16/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status",
+      "--json"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "[{\"name\":\"1\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"9674a65796abdbfd6f1f375485cdafc3\",\"lease_holder\":\"fm-cap-lab-1\",\"leased_at\":\"2026-10-19T20:40:45.509257-05:00\",\"processes\":[]},{\"name\":\"2\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"01187137ed209f082a23ad1f4d227907\",\"lease_holder\":\"fm-cap-lab-2\",\"leased_at\":\"2026-10-19T20:41:47.928552-05:00\",\"processes\":[]},{\"name\":\"3\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3fd216cf334f820bea3be5fcf7d1f890\",\"lease_holder\":\"fm-cap-lab-3\",\"leased_at\":\"2026-10-19T20:41:48.145017-05:00\",\"processes\":[]},{\"name\":\"4\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"35989aaa12d94cef03d68060ed5537f1\",\"lease_holder\":\"fm-cap-lab-4\",\"leased_at\":\"2026-10-19T20:41:48.427933-05:00\",\"processes\":[]},{\"name\":\"5\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"947a56a3972ddfaf028dd68ee9d5607a\",\"lease_holder\":\"fm-cap-lab-5\",\"leased_at\":\"2026-10-19T20:41:49.133337-05:00\",\"processes\":[]},{\"name\":\"6\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5b026dc81d6f963a1de0a293d3fb056f\",\"lease_holder\":\"fm-cap-lab-6\",\"leased_at\":\"2026-10-19T20:41:49.519381-05:00\",\"processes\":[]},{\"name\":\"7\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"777df1701745c6a935ab060b13536210\",\"lease_holder\":\"fm-cap-lab-7\",\"leased_at\":\"2026-10-19T20:41:49.961476-05:00\",\"processes\":[]},{\"name\":\"8\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"a1fc404db3d390abb3d0722e3617d7c3\",\"lease_holder\":\"fm-cap-lab-8\",\"leased_at\":\"2026-10-19T20:41:50.215784-05:00\",\"processes\":[]},{\"name\":\"9\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4992c9e9edeeb67464acf8fbac1633c\",\"lease_holder\":\"fm-cap-lab-9\",\"leased_at\":\"2026-10-19T20:41:50.436113-05:00\",\"processes\":[]},{\"name\":\"10\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"c8436e2ce1813b1e04577178d410f8e0\",\"lease_holder\":\"fm-cap-lab-10\",\"leased_at\":\"2026-10-19T20:41:50.628212-05:00\",\"processes\":[]},{\"name\":\"11\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5da43f901d911760340650edbb159d13\",\"lease_holder\":\"fm-cap-lab-11\",\"leased_at\":\"2026-10-19T20:41:50.834214-05:00\",\"processes\":[]},{\"name\":\"12\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f2d48111fd220707bd1ceac402d77085\",\"lease_holder\":\"fm-cap-lab-12\",\"leased_at\":\"2026-10-19T20:41:51.021016-05:00\",\"processes\":[]},{\"name\":\"13\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"d6f75881781465db03fb2cfce32df99d\",\"lease_holder\":\"fm-cap-lab-13\",\"leased_at\":\"2026-10-19T20:41:51.214869-05:00\",\"processes\":[]},{\"name\":\"14\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"648197512064ccb67a6c6b1541fab330\",\"lease_holder\":\"fm-cap-lab-14\",\"leased_at\":\"2026-10-19T20:41:51.402313-05:00\",\"processes\":[]},{\"name\":\"15\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"4f996265b06bb267f392ca806391fc83\",\"lease_holder\":\"fm-cap-lab-15\",\"leased_at\":\"2026-10-19T20:41:51.623105-05:00\",\"processes\":[]},{\"name\":\"16\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"075ea3fa0bf6f968e347bf3fb74bb933\",\"lease_holder\":\"fm-cap-lab-16\",\"leased_at\":\"2026-10-19T20:41:51.836038-05:00\",\"processes\":[]}]\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "1     leased       ~/.treehouse/repo-b3fd4e/1/repo  (held by fm-cap-lab-1)\n2     leased       ~/.treehouse/repo-b3fd4e/2/repo  (held by fm-cap-lab-2)\n3     leased       ~/.treehouse/repo-b3fd4e/3/repo  (held by fm-cap-lab-3)\n4     leased       ~/.treehouse/repo-b3fd4e/4/repo  (held by fm-cap-lab-4)\n5     leased       ~/.treehouse/repo-b3fd4e/5/repo  (held by fm-cap-lab-5)\n6     leased       ~/.treehouse/repo-b3fd4e/6/repo  (held by fm-cap-lab-6)\n7     leased       ~/.treehouse/repo-b3fd4e/7/repo  (held by fm-cap-lab-7)\n8     leased       ~/.treehouse/repo-b3fd4e/8/repo  (held by fm-cap-lab-8)\n9     leased       ~/.treehouse/repo-b3fd4e/9/repo  (held by fm-cap-lab-9)\n10    leased       ~/.treehouse/repo-b3fd4e/10/repo  (held by fm-cap-lab-10)\n11    leased       ~/.treehouse/repo-b3fd4e/11/repo  (held by fm-cap-lab-11)\n12    leased       ~/.treehouse/repo-b3fd4e/12/repo  (held by fm-cap-lab-12)\n13    leased       ~/.treehouse/repo-b3fd4e/13/repo  (held by fm-cap-lab-13)\n14    leased       ~/.treehouse/repo-b3fd4e/14/repo  (held by fm-cap-lab-14)\n15    leased       ~/.treehouse/repo-b3fd4e/15/repo  (held by fm-cap-lab-15)\n16    leased       ~/.treehouse/repo-b3fd4e/16/repo  (held by fm-cap-lab-16)\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-baseline-17"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\nall 16 worktrees are in use or dirty (max_trees = 16). Run 'treehouse status' to see details, or increase max_trees in treehouse.toml\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status",
+      "--json"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "[{\"name\":\"1\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"9674a65796abdbfd6f1f375485cdafc3\",\"lease_holder\":\"fm-cap-lab-1\",\"leased_at\":\"2026-10-19T20:40:45.509257-05:00\",\"processes\":[]},{\"name\":\"2\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"01187137ed209f082a23ad1f4d227907\",\"lease_holder\":\"fm-cap-lab-2\",\"leased_at\":\"2026-10-19T20:41:47.928552-05:00\",\"processes\":[]},{\"name\":\"3\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3fd216cf334f820bea3be5fcf7d1f890\",\"lease_holder\":\"fm-cap-lab-3\",\"leased_at\":\"2026-10-19T20:41:48.145017-05:00\",\"processes\":[]},{\"name\":\"4\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"35989aaa12d94cef03d68060ed5537f1\",\"lease_holder\":\"fm-cap-lab-4\",\"leased_at\":\"2026-10-19T20:41:48.427933-05:00\",\"processes\":[]},{\"name\":\"5\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"947a56a3972ddfaf028dd68ee9d5607a\",\"lease_holder\":\"fm-cap-lab-5\",\"leased_at\":\"2026-10-19T20:41:49.133337-05:00\",\"processes\":[]},{\"name\":\"6\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5b026dc81d6f963a1de0a293d3fb056f\",\"lease_holder\":\"fm-cap-lab-6\",\"leased_at\":\"2026-10-19T20:41:49.519381-05:00\",\"processes\":[]},{\"name\":\"7\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"777df1701745c6a935ab060b13536210\",\"lease_holder\":\"fm-cap-lab-7\",\"leased_at\":\"2026-10-19T20:41:49.961476-05:00\",\"processes\":[]},{\"name\":\"8\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"a1fc404db3d390abb3d0722e3617d7c3\",\"lease_holder\":\"fm-cap-lab-8\",\"leased_at\":\"2026-10-19T20:41:50.215784-05:00\",\"processes\":[]},{\"name\":\"9\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4992c9e9edeeb67464acf8fbac1633c\",\"lease_holder\":\"fm-cap-lab-9\",\"leased_at\":\"2026-10-19T20:41:50.436113-05:00\",\"processes\":[]},{\"name\":\"10\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"c8436e2ce1813b1e04577178d410f8e0\",\"lease_holder\":\"fm-cap-lab-10\",\"leased_at\":\"2026-10-19T20:41:50.628212-05:00\",\"processes\":[]},{\"name\":\"11\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5da43f901d911760340650edbb159d13\",\"lease_holder\":\"fm-cap-lab-11\",\"leased_at\":\"2026-10-19T20:41:50.834214-05:00\",\"processes\":[]},{\"name\":\"12\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f2d48111fd220707bd1ceac402d77085\",\"lease_holder\":\"fm-cap-lab-12\",\"leased_at\":\"2026-10-19T20:41:51.021016-05:00\",\"processes\":[]},{\"name\":\"13\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"d6f75881781465db03fb2cfce32df99d\",\"lease_holder\":\"fm-cap-lab-13\",\"leased_at\":\"2026-10-19T20:41:51.214869-05:00\",\"processes\":[]},{\"name\":\"14\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"648197512064ccb67a6c6b1541fab330\",\"lease_holder\":\"fm-cap-lab-14\",\"leased_at\":\"2026-10-19T20:41:51.402313-05:00\",\"processes\":[]},{\"name\":\"15\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"4f996265b06bb267f392ca806391fc83\",\"lease_holder\":\"fm-cap-lab-15\",\"leased_at\":\"2026-10-19T20:41:51.623105-05:00\",\"processes\":[]},{\"name\":\"16\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"075ea3fa0bf6f968e347bf3fb74bb933\",\"lease_holder\":\"fm-cap-lab-16\",\"leased_at\":\"2026-10-19T20:41:51.836038-05:00\",\"processes\":[]}]\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "git",
+      "add",
+      "treehouse.toml"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "git",
+      "-c",
+      "user.name=gsp-agent",
+      "-c",
+      "user.email=gsp-agent@example.invalid",
+      "-c",
+      "commit.gpgsign=false",
+      "commit",
+      "-qm",
+      "fixture: apply tracked Firstmate pool config"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "treehouse",
+      "status",
+      "--json"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "[{\"name\":\"1\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"9674a65796abdbfd6f1f375485cdafc3\",\"lease_holder\":\"fm-cap-lab-1\",\"leased_at\":\"2026-10-19T20:40:45.509257-05:00\",\"processes\":[]},{\"name\":\"2\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"01187137ed209f082a23ad1f4d227907\",\"lease_holder\":\"fm-cap-lab-2\",\"leased_at\":\"2026-10-19T20:41:47.928552-05:00\",\"processes\":[]},{\"name\":\"3\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3fd216cf334f820bea3be5fcf7d1f890\",\"lease_holder\":\"fm-cap-lab-3\",\"leased_at\":\"2026-10-19T20:41:48.145017-05:00\",\"processes\":[]},{\"name\":\"4\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"35989aaa12d94cef03d68060ed5537f1\",\"lease_holder\":\"fm-cap-lab-4\",\"leased_at\":\"2026-10-19T20:41:48.427933-05:00\",\"processes\":[]},{\"name\":\"5\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"947a56a3972ddfaf028dd68ee9d5607a\",\"lease_holder\":\"fm-cap-lab-5\",\"leased_at\":\"2026-10-19T20:41:49.133337-05:00\",\"processes\":[]},{\"name\":\"6\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5b026dc81d6f963a1de0a293d3fb056f\",\"lease_holder\":\"fm-cap-lab-6\",\"leased_at\":\"2026-10-19T20:41:49.519381-05:00\",\"processes\":[]},{\"name\":\"7\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"777df1701745c6a935ab060b13536210\",\"lease_holder\":\"fm-cap-lab-7\",\"leased_at\":\"2026-10-19T20:41:49.961476-05:00\",\"processes\":[]},{\"name\":\"8\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"a1fc404db3d390abb3d0722e3617d7c3\",\"lease_holder\":\"fm-cap-lab-8\",\"leased_at\":\"2026-10-19T20:41:50.215784-05:00\",\"processes\":[]},{\"name\":\"9\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4992c9e9edeeb67464acf8fbac1633c\",\"lease_holder\":\"fm-cap-lab-9\",\"leased_at\":\"2026-10-19T20:41:50.436113-05:00\",\"processes\":[]},{\"name\":\"10\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"c8436e2ce1813b1e04577178d410f8e0\",\"lease_holder\":\"fm-cap-lab-10\",\"leased_at\":\"2026-10-19T20:41:50.628212-05:00\",\"processes\":[]},{\"name\":\"11\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5da43f901d911760340650edbb159d13\",\"lease_holder\":\"fm-cap-lab-11\",\"leased_at\":\"2026-10-19T20:41:50.834214-05:00\",\"processes\":[]},{\"name\":\"12\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f2d48111fd220707bd1ceac402d77085\",\"lease_holder\":\"fm-cap-lab-12\",\"leased_at\":\"2026-10-19T20:41:51.021016-05:00\",\"processes\":[]},{\"name\":\"13\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"d6f75881781465db03fb2cfce32df99d\",\"lease_holder\":\"fm-cap-lab-13\",\"leased_at\":\"2026-10-19T20:41:51.214869-05:00\",\"processes\":[]},{\"name\":\"14\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"648197512064ccb67a6c6b1541fab330\",\"lease_holder\":\"fm-cap-lab-14\",\"leased_at\":\"2026-10-19T20:41:51.402313-05:00\",\"processes\":[]},{\"name\":\"15\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"4f996265b06bb267f392ca806391fc83\",\"lease_holder\":\"fm-cap-lab-15\",\"leased_at\":\"2026-10-19T20:41:51.623105-05:00\",\"processes\":[]},{\"name\":\"16\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"075ea3fa0bf6f968e347bf3fb74bb933\",\"lease_holder\":\"fm-cap-lab-16\",\"leased_at\":\"2026-10-19T20:41:51.836038-05:00\",\"processes\":[]}]\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-17"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo\",\"lease_id\":\"f4275ce260a9bdec55716174d0d50408\",\"lease_holder\":\"fm-cap-lab-17\",\"leased_at\":\"2026-10-19T20:42:00.577403-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/17/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/17/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-18"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/18/repo\",\"lease_id\":\"e6e39ce254c61278df54c47541f1f314\",\"lease_holder\":\"fm-cap-lab-18\",\"leased_at\":\"2026-10-19T20:42:00.726945-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/18/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/18/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-19"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/19/repo\",\"lease_id\":\"93336024cfb8cf39cb1268d96ae30a1a\",\"lease_holder\":\"fm-cap-lab-19\",\"leased_at\":\"2026-10-19T20:42:00.882617-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/19/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/19/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-20"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/20/repo\",\"lease_id\":\"e53f1a67b37236407c7cb5ea48dc3da6\",\"lease_holder\":\"fm-cap-lab-20\",\"leased_at\":\"2026-10-19T20:42:01.046256-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/20/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/20/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-21"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/21/repo\",\"lease_id\":\"1bc26216aed221883e1c0a6e85d5d4b6\",\"lease_holder\":\"fm-cap-lab-21\",\"leased_at\":\"2026-10-19T20:42:01.203246-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/21/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/21/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-22"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/22/repo\",\"lease_id\":\"3d3ef014072cf48796405e6b5ff8cf40\",\"lease_holder\":\"fm-cap-lab-22\",\"leased_at\":\"2026-10-19T20:42:01.353608-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/22/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/22/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-23"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo\",\"lease_id\":\"09cef4b5082a90cdd0ff20cc067bdf9d\",\"lease_holder\":\"fm-cap-lab-23\",\"leased_at\":\"2026-10-19T20:42:01.498695-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/23/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/23/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-24"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo\",\"lease_id\":\"e7ef636eb74898b89551ddb5af0d9865\",\"lease_holder\":\"fm-cap-lab-24\",\"leased_at\":\"2026-10-19T20:42:01.645191-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/24/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/24/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status",
+      "--json"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "[{\"name\":\"1\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"9674a65796abdbfd6f1f375485cdafc3\",\"lease_holder\":\"fm-cap-lab-1\",\"leased_at\":\"2026-10-19T20:40:45.509257-05:00\",\"processes\":[]},{\"name\":\"2\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"01187137ed209f082a23ad1f4d227907\",\"lease_holder\":\"fm-cap-lab-2\",\"leased_at\":\"2026-10-19T20:41:47.928552-05:00\",\"processes\":[]},{\"name\":\"3\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3fd216cf334f820bea3be5fcf7d1f890\",\"lease_holder\":\"fm-cap-lab-3\",\"leased_at\":\"2026-10-19T20:41:48.145017-05:00\",\"processes\":[]},{\"name\":\"4\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"35989aaa12d94cef03d68060ed5537f1\",\"lease_holder\":\"fm-cap-lab-4\",\"leased_at\":\"2026-10-19T20:41:48.427933-05:00\",\"processes\":[]},{\"name\":\"5\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"947a56a3972ddfaf028dd68ee9d5607a\",\"lease_holder\":\"fm-cap-lab-5\",\"leased_at\":\"2026-10-19T20:41:49.133337-05:00\",\"processes\":[]},{\"name\":\"6\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5b026dc81d6f963a1de0a293d3fb056f\",\"lease_holder\":\"fm-cap-lab-6\",\"leased_at\":\"2026-10-19T20:41:49.519381-05:00\",\"processes\":[]},{\"name\":\"7\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"777df1701745c6a935ab060b13536210\",\"lease_holder\":\"fm-cap-lab-7\",\"leased_at\":\"2026-10-19T20:41:49.961476-05:00\",\"processes\":[]},{\"name\":\"8\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"a1fc404db3d390abb3d0722e3617d7c3\",\"lease_holder\":\"fm-cap-lab-8\",\"leased_at\":\"2026-10-19T20:41:50.215784-05:00\",\"processes\":[]},{\"name\":\"9\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4992c9e9edeeb67464acf8fbac1633c\",\"lease_holder\":\"fm-cap-lab-9\",\"leased_at\":\"2026-10-19T20:41:50.436113-05:00\",\"processes\":[]},{\"name\":\"10\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"c8436e2ce1813b1e04577178d410f8e0\",\"lease_holder\":\"fm-cap-lab-10\",\"leased_at\":\"2026-10-19T20:41:50.628212-05:00\",\"processes\":[]},{\"name\":\"11\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5da43f901d911760340650edbb159d13\",\"lease_holder\":\"fm-cap-lab-11\",\"leased_at\":\"2026-10-19T20:41:50.834214-05:00\",\"processes\":[]},{\"name\":\"12\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f2d48111fd220707bd1ceac402d77085\",\"lease_holder\":\"fm-cap-lab-12\",\"leased_at\":\"2026-10-19T20:41:51.021016-05:00\",\"processes\":[]},{\"name\":\"13\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"d6f75881781465db03fb2cfce32df99d\",\"lease_holder\":\"fm-cap-lab-13\",\"leased_at\":\"2026-10-19T20:41:51.214869-05:00\",\"processes\":[]},{\"name\":\"14\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"648197512064ccb67a6c6b1541fab330\",\"lease_holder\":\"fm-cap-lab-14\",\"leased_at\":\"2026-10-19T20:41:51.402313-05:00\",\"processes\":[]},{\"name\":\"15\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"4f996265b06bb267f392ca806391fc83\",\"lease_holder\":\"fm-cap-lab-15\",\"leased_at\":\"2026-10-19T20:41:51.623105-05:00\",\"processes\":[]},{\"name\":\"16\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"075ea3fa0bf6f968e347bf3fb74bb933\",\"lease_holder\":\"fm-cap-lab-16\",\"leased_at\":\"2026-10-19T20:41:51.836038-05:00\",\"processes\":[]},{\"name\":\"17\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4275ce260a9bdec55716174d0d50408\",\"lease_holder\":\"fm-cap-lab-17\",\"leased_at\":\"2026-10-19T20:42:00.577403-05:00\",\"processes\":[]},{\"name\":\"18\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/18/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e6e39ce254c61278df54c47541f1f314\",\"lease_holder\":\"fm-cap-lab-18\",\"leased_at\":\"2026-10-19T20:42:00.726945-05:00\",\"processes\":[]},{\"name\":\"19\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/19/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"93336024cfb8cf39cb1268d96ae30a1a\",\"lease_holder\":\"fm-cap-lab-19\",\"leased_at\":\"2026-10-19T20:42:00.882617-05:00\",\"processes\":[]},{\"name\":\"20\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/20/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e53f1a67b37236407c7cb5ea48dc3da6\",\"lease_holder\":\"fm-cap-lab-20\",\"leased_at\":\"2026-10-19T20:42:01.046256-05:00\",\"processes\":[]},{\"name\":\"21\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/21/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"1bc26216aed221883e1c0a6e85d5d4b6\",\"lease_holder\":\"fm-cap-lab-21\",\"leased_at\":\"2026-10-19T20:42:01.203246-05:00\",\"processes\":[]},{\"name\":\"22\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/22/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3d3ef014072cf48796405e6b5ff8cf40\",\"lease_holder\":\"fm-cap-lab-22\",\"leased_at\":\"2026-10-19T20:42:01.353608-05:00\",\"processes\":[]},{\"name\":\"23\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"09cef4b5082a90cdd0ff20cc067bdf9d\",\"lease_holder\":\"fm-cap-lab-23\",\"leased_at\":\"2026-10-19T20:42:01.498695-05:00\",\"processes\":[]},{\"name\":\"24\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e7ef636eb74898b89551ddb5af0d9865\",\"lease_holder\":\"fm-cap-lab-24\",\"leased_at\":\"2026-10-19T20:42:01.645191-05:00\",\"processes\":[]}]\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "1     leased       ~/.treehouse/repo-b3fd4e/1/repo  (held by fm-cap-lab-1)\n2     leased       ~/.treehouse/repo-b3fd4e/2/repo  (held by fm-cap-lab-2)\n3     leased       ~/.treehouse/repo-b3fd4e/3/repo  (held by fm-cap-lab-3)\n4     leased       ~/.treehouse/repo-b3fd4e/4/repo  (held by fm-cap-lab-4)\n5     leased       ~/.treehouse/repo-b3fd4e/5/repo  (held by fm-cap-lab-5)\n6     leased       ~/.treehouse/repo-b3fd4e/6/repo  (held by fm-cap-lab-6)\n7     leased       ~/.treehouse/repo-b3fd4e/7/repo  (held by fm-cap-lab-7)\n8     leased       ~/.treehouse/repo-b3fd4e/8/repo  (held by fm-cap-lab-8)\n9     leased       ~/.treehouse/repo-b3fd4e/9/repo  (held by fm-cap-lab-9)\n10    leased       ~/.treehouse/repo-b3fd4e/10/repo  (held by fm-cap-lab-10)\n11    leased       ~/.treehouse/repo-b3fd4e/11/repo  (held by fm-cap-lab-11)\n12    leased       ~/.treehouse/repo-b3fd4e/12/repo  (held by fm-cap-lab-12)\n13    leased       ~/.treehouse/repo-b3fd4e/13/repo  (held by fm-cap-lab-13)\n14    leased       ~/.treehouse/repo-b3fd4e/14/repo  (held by fm-cap-lab-14)\n15    leased       ~/.treehouse/repo-b3fd4e/15/repo  (held by fm-cap-lab-15)\n16    leased       ~/.treehouse/repo-b3fd4e/16/repo  (held by fm-cap-lab-16)\n17    leased       ~/.treehouse/repo-b3fd4e/17/repo  (held by fm-cap-lab-17)\n18    leased       ~/.treehouse/repo-b3fd4e/18/repo  (held by fm-cap-lab-18)\n19    leased       ~/.treehouse/repo-b3fd4e/19/repo  (held by fm-cap-lab-19)\n20    leased       ~/.treehouse/repo-b3fd4e/20/repo  (held by fm-cap-lab-20)\n21    leased       ~/.treehouse/repo-b3fd4e/21/repo  (held by fm-cap-lab-21)\n22    leased       ~/.treehouse/repo-b3fd4e/22/repo  (held by fm-cap-lab-22)\n23    leased       ~/.treehouse/repo-b3fd4e/23/repo  (held by fm-cap-lab-23)\n24    leased       ~/.treehouse/repo-b3fd4e/24/repo  (held by fm-cap-lab-24)\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-over-cap-25"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\nall 24 worktrees are in use or dirty (max_trees = 24). Run 'treehouse status' to see details, or increase max_trees in treehouse.toml\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status",
+      "--json"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "[{\"name\":\"1\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"9674a65796abdbfd6f1f375485cdafc3\",\"lease_holder\":\"fm-cap-lab-1\",\"leased_at\":\"2026-10-19T20:40:45.509257-05:00\",\"processes\":[]},{\"name\":\"2\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"01187137ed209f082a23ad1f4d227907\",\"lease_holder\":\"fm-cap-lab-2\",\"leased_at\":\"2026-10-19T20:41:47.928552-05:00\",\"processes\":[]},{\"name\":\"3\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3fd216cf334f820bea3be5fcf7d1f890\",\"lease_holder\":\"fm-cap-lab-3\",\"leased_at\":\"2026-10-19T20:41:48.145017-05:00\",\"processes\":[]},{\"name\":\"4\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"35989aaa12d94cef03d68060ed5537f1\",\"lease_holder\":\"fm-cap-lab-4\",\"leased_at\":\"2026-10-19T20:41:48.427933-05:00\",\"processes\":[]},{\"name\":\"5\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"947a56a3972ddfaf028dd68ee9d5607a\",\"lease_holder\":\"fm-cap-lab-5\",\"leased_at\":\"2026-10-19T20:41:49.133337-05:00\",\"processes\":[]},{\"name\":\"6\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5b026dc81d6f963a1de0a293d3fb056f\",\"lease_holder\":\"fm-cap-lab-6\",\"leased_at\":\"2026-10-19T20:41:49.519381-05:00\",\"processes\":[]},{\"name\":\"7\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"777df1701745c6a935ab060b13536210\",\"lease_holder\":\"fm-cap-lab-7\",\"leased_at\":\"2026-10-19T20:41:49.961476-05:00\",\"processes\":[]},{\"name\":\"8\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"a1fc404db3d390abb3d0722e3617d7c3\",\"lease_holder\":\"fm-cap-lab-8\",\"leased_at\":\"2026-10-19T20:41:50.215784-05:00\",\"processes\":[]},{\"name\":\"9\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4992c9e9edeeb67464acf8fbac1633c\",\"lease_holder\":\"fm-cap-lab-9\",\"leased_at\":\"2026-10-19T20:41:50.436113-05:00\",\"processes\":[]},{\"name\":\"10\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"c8436e2ce1813b1e04577178d410f8e0\",\"lease_holder\":\"fm-cap-lab-10\",\"leased_at\":\"2026-10-19T20:41:50.628212-05:00\",\"processes\":[]},{\"name\":\"11\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5da43f901d911760340650edbb159d13\",\"lease_holder\":\"fm-cap-lab-11\",\"leased_at\":\"2026-10-19T20:41:50.834214-05:00\",\"processes\":[]},{\"name\":\"12\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f2d48111fd220707bd1ceac402d77085\",\"lease_holder\":\"fm-cap-lab-12\",\"leased_at\":\"2026-10-19T20:41:51.021016-05:00\",\"processes\":[]},{\"name\":\"13\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"d6f75881781465db03fb2cfce32df99d\",\"lease_holder\":\"fm-cap-lab-13\",\"leased_at\":\"2026-10-19T20:41:51.214869-05:00\",\"processes\":[]},{\"name\":\"14\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"648197512064ccb67a6c6b1541fab330\",\"lease_holder\":\"fm-cap-lab-14\",\"leased_at\":\"2026-10-19T20:41:51.402313-05:00\",\"processes\":[]},{\"name\":\"15\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"4f996265b06bb267f392ca806391fc83\",\"lease_holder\":\"fm-cap-lab-15\",\"leased_at\":\"2026-10-19T20:41:51.623105-05:00\",\"processes\":[]},{\"name\":\"16\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"075ea3fa0bf6f968e347bf3fb74bb933\",\"lease_holder\":\"fm-cap-lab-16\",\"leased_at\":\"2026-10-19T20:41:51.836038-05:00\",\"processes\":[]},{\"name\":\"17\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4275ce260a9bdec55716174d0d50408\",\"lease_holder\":\"fm-cap-lab-17\",\"leased_at\":\"2026-10-19T20:42:00.577403-05:00\",\"processes\":[]},{\"name\":\"18\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/18/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e6e39ce254c61278df54c47541f1f314\",\"lease_holder\":\"fm-cap-lab-18\",\"leased_at\":\"2026-10-19T20:42:00.726945-05:00\",\"processes\":[]},{\"name\":\"19\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/19/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"93336024cfb8cf39cb1268d96ae30a1a\",\"lease_holder\":\"fm-cap-lab-19\",\"leased_at\":\"2026-10-19T20:42:00.882617-05:00\",\"processes\":[]},{\"name\":\"20\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/20/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e53f1a67b37236407c7cb5ea48dc3da6\",\"lease_holder\":\"fm-cap-lab-20\",\"leased_at\":\"2026-10-19T20:42:01.046256-05:00\",\"processes\":[]},{\"name\":\"21\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/21/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"1bc26216aed221883e1c0a6e85d5d4b6\",\"lease_holder\":\"fm-cap-lab-21\",\"leased_at\":\"2026-10-19T20:42:01.203246-05:00\",\"processes\":[]},{\"name\":\"22\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/22/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3d3ef014072cf48796405e6b5ff8cf40\",\"lease_holder\":\"fm-cap-lab-22\",\"leased_at\":\"2026-10-19T20:42:01.353608-05:00\",\"processes\":[]},{\"name\":\"23\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"09cef4b5082a90cdd0ff20cc067bdf9d\",\"lease_holder\":\"fm-cap-lab-23\",\"leased_at\":\"2026-10-19T20:42:01.498695-05:00\",\"processes\":[]},{\"name\":\"24\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e7ef636eb74898b89551ddb5af0d9865\",\"lease_holder\":\"fm-cap-lab-24\",\"leased_at\":\"2026-10-19T20:42:01.645191-05:00\",\"processes\":[]}]\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo",
+      "--if-lease-id",
+      "09cef4b5082a90cdd0ff20cc067bdf9d"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo",
+      "--if-lease-id",
+      "e7ef636eb74898b89551ddb5af0d9865"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status",
+      "--json"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "[{\"name\":\"1\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"9674a65796abdbfd6f1f375485cdafc3\",\"lease_holder\":\"fm-cap-lab-1\",\"leased_at\":\"2026-10-19T20:40:45.509257-05:00\",\"processes\":[]},{\"name\":\"2\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"01187137ed209f082a23ad1f4d227907\",\"lease_holder\":\"fm-cap-lab-2\",\"leased_at\":\"2026-10-19T20:41:47.928552-05:00\",\"processes\":[]},{\"name\":\"3\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3fd216cf334f820bea3be5fcf7d1f890\",\"lease_holder\":\"fm-cap-lab-3\",\"leased_at\":\"2026-10-19T20:41:48.145017-05:00\",\"processes\":[]},{\"name\":\"4\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"35989aaa12d94cef03d68060ed5537f1\",\"lease_holder\":\"fm-cap-lab-4\",\"leased_at\":\"2026-10-19T20:41:48.427933-05:00\",\"processes\":[]},{\"name\":\"5\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"947a56a3972ddfaf028dd68ee9d5607a\",\"lease_holder\":\"fm-cap-lab-5\",\"leased_at\":\"2026-10-19T20:41:49.133337-05:00\",\"processes\":[]},{\"name\":\"6\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5b026dc81d6f963a1de0a293d3fb056f\",\"lease_holder\":\"fm-cap-lab-6\",\"leased_at\":\"2026-10-19T20:41:49.519381-05:00\",\"processes\":[]},{\"name\":\"7\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"777df1701745c6a935ab060b13536210\",\"lease_holder\":\"fm-cap-lab-7\",\"leased_at\":\"2026-10-19T20:41:49.961476-05:00\",\"processes\":[]},{\"name\":\"8\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"a1fc404db3d390abb3d0722e3617d7c3\",\"lease_holder\":\"fm-cap-lab-8\",\"leased_at\":\"2026-10-19T20:41:50.215784-05:00\",\"processes\":[]},{\"name\":\"9\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4992c9e9edeeb67464acf8fbac1633c\",\"lease_holder\":\"fm-cap-lab-9\",\"leased_at\":\"2026-10-19T20:41:50.436113-05:00\",\"processes\":[]},{\"name\":\"10\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"c8436e2ce1813b1e04577178d410f8e0\",\"lease_holder\":\"fm-cap-lab-10\",\"leased_at\":\"2026-10-19T20:41:50.628212-05:00\",\"processes\":[]},{\"name\":\"11\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5da43f901d911760340650edbb159d13\",\"lease_holder\":\"fm-cap-lab-11\",\"leased_at\":\"2026-10-19T20:41:50.834214-05:00\",\"processes\":[]},{\"name\":\"12\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f2d48111fd220707bd1ceac402d77085\",\"lease_holder\":\"fm-cap-lab-12\",\"leased_at\":\"2026-10-19T20:41:51.021016-05:00\",\"processes\":[]},{\"name\":\"13\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"d6f75881781465db03fb2cfce32df99d\",\"lease_holder\":\"fm-cap-lab-13\",\"leased_at\":\"2026-10-19T20:41:51.214869-05:00\",\"processes\":[]},{\"name\":\"14\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"648197512064ccb67a6c6b1541fab330\",\"lease_holder\":\"fm-cap-lab-14\",\"leased_at\":\"2026-10-19T20:41:51.402313-05:00\",\"processes\":[]},{\"name\":\"15\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"4f996265b06bb267f392ca806391fc83\",\"lease_holder\":\"fm-cap-lab-15\",\"leased_at\":\"2026-10-19T20:41:51.623105-05:00\",\"processes\":[]},{\"name\":\"16\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"075ea3fa0bf6f968e347bf3fb74bb933\",\"lease_holder\":\"fm-cap-lab-16\",\"leased_at\":\"2026-10-19T20:41:51.836038-05:00\",\"processes\":[]},{\"name\":\"17\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4275ce260a9bdec55716174d0d50408\",\"lease_holder\":\"fm-cap-lab-17\",\"leased_at\":\"2026-10-19T20:42:00.577403-05:00\",\"processes\":[]},{\"name\":\"18\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/18/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e6e39ce254c61278df54c47541f1f314\",\"lease_holder\":\"fm-cap-lab-18\",\"leased_at\":\"2026-10-19T20:42:00.726945-05:00\",\"processes\":[]},{\"name\":\"19\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/19/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"93336024cfb8cf39cb1268d96ae30a1a\",\"lease_holder\":\"fm-cap-lab-19\",\"leased_at\":\"2026-10-19T20:42:00.882617-05:00\",\"processes\":[]},{\"name\":\"20\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/20/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e53f1a67b37236407c7cb5ea48dc3da6\",\"lease_holder\":\"fm-cap-lab-20\",\"leased_at\":\"2026-10-19T20:42:01.046256-05:00\",\"processes\":[]},{\"name\":\"21\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/21/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"1bc26216aed221883e1c0a6e85d5d4b6\",\"lease_holder\":\"fm-cap-lab-21\",\"leased_at\":\"2026-10-19T20:42:01.203246-05:00\",\"processes\":[]},{\"name\":\"22\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/22/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3d3ef014072cf48796405e6b5ff8cf40\",\"lease_holder\":\"fm-cap-lab-22\",\"leased_at\":\"2026-10-19T20:42:01.353608-05:00\",\"processes\":[]},{\"name\":\"23\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"24\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]}]\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo/nested/launch",
+    "exit": 0,
+    "stdout": "1     leased       ~/.treehouse/repo-b3fd4e/1/repo  (held by fm-cap-lab-1)\n2     leased       ~/.treehouse/repo-b3fd4e/2/repo  (held by fm-cap-lab-2)\n3     leased       ~/.treehouse/repo-b3fd4e/3/repo  (held by fm-cap-lab-3)\n4     leased       ~/.treehouse/repo-b3fd4e/4/repo  (held by fm-cap-lab-4)\n5     leased       ~/.treehouse/repo-b3fd4e/5/repo  (held by fm-cap-lab-5)\n6     leased       ~/.treehouse/repo-b3fd4e/6/repo  (held by fm-cap-lab-6)\n7     leased       ~/.treehouse/repo-b3fd4e/7/repo  (held by fm-cap-lab-7)\n8     leased       ~/.treehouse/repo-b3fd4e/8/repo  (held by fm-cap-lab-8)\n9     leased       ~/.treehouse/repo-b3fd4e/9/repo  (held by fm-cap-lab-9)\n10    leased       ~/.treehouse/repo-b3fd4e/10/repo  (held by fm-cap-lab-10)\n11    leased       ~/.treehouse/repo-b3fd4e/11/repo  (held by fm-cap-lab-11)\n12    leased       ~/.treehouse/repo-b3fd4e/12/repo  (held by fm-cap-lab-12)\n13    leased       ~/.treehouse/repo-b3fd4e/13/repo  (held by fm-cap-lab-13)\n14    leased       ~/.treehouse/repo-b3fd4e/14/repo  (held by fm-cap-lab-14)\n15    leased       ~/.treehouse/repo-b3fd4e/15/repo  (held by fm-cap-lab-15)\n16    leased       ~/.treehouse/repo-b3fd4e/16/repo  (held by fm-cap-lab-16)\n17    leased       ~/.treehouse/repo-b3fd4e/17/repo  (held by fm-cap-lab-17)\n18    leased       ~/.treehouse/repo-b3fd4e/18/repo  (held by fm-cap-lab-18)\n19    leased       ~/.treehouse/repo-b3fd4e/19/repo  (held by fm-cap-lab-19)\n20    leased       ~/.treehouse/repo-b3fd4e/20/repo  (held by fm-cap-lab-20)\n21    leased       ~/.treehouse/repo-b3fd4e/21/repo  (held by fm-cap-lab-21)\n22    leased       ~/.treehouse/repo-b3fd4e/22/repo  (held by fm-cap-lab-22)\n23    available    ~/.treehouse/repo-b3fd4e/23/repo\n24    available    ~/.treehouse/repo-b3fd4e/24/repo\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-reuse-a"
+    ],
+    "cwd": ".fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo\",\"lease_id\":\"dd166b880adf9e8184cf39ad5003a231\",\"lease_holder\":\"fm-cap-lab-reuse-a\",\"leased_at\":\"2026-10-19T20:42:19.674323-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/23/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/23/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "get",
+      "--lease",
+      "--json",
+      "--no-fetch",
+      "--lease-holder",
+      "fm-cap-lab-reuse-b"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "{\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo\",\"lease_id\":\"d1be975c099277ac24340ebaf85ee885\",\"lease_holder\":\"fm-cap-lab-reuse-b\",\"leased_at\":\"2026-10-19T20:42:20.228127-05:00\"}\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Leased worktree at ~/.treehouse/repo-b3fd4e/24/repo. Run 'treehouse return ~/.treehouse/repo-b3fd4e/24/repo' to release it.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status",
+      "--json"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "[{\"name\":\"1\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"9674a65796abdbfd6f1f375485cdafc3\",\"lease_holder\":\"fm-cap-lab-1\",\"leased_at\":\"2026-10-19T20:40:45.509257-05:00\",\"processes\":[]},{\"name\":\"2\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"01187137ed209f082a23ad1f4d227907\",\"lease_holder\":\"fm-cap-lab-2\",\"leased_at\":\"2026-10-19T20:41:47.928552-05:00\",\"processes\":[]},{\"name\":\"3\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3fd216cf334f820bea3be5fcf7d1f890\",\"lease_holder\":\"fm-cap-lab-3\",\"leased_at\":\"2026-10-19T20:41:48.145017-05:00\",\"processes\":[]},{\"name\":\"4\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"35989aaa12d94cef03d68060ed5537f1\",\"lease_holder\":\"fm-cap-lab-4\",\"leased_at\":\"2026-10-19T20:41:48.427933-05:00\",\"processes\":[]},{\"name\":\"5\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"947a56a3972ddfaf028dd68ee9d5607a\",\"lease_holder\":\"fm-cap-lab-5\",\"leased_at\":\"2026-10-19T20:41:49.133337-05:00\",\"processes\":[]},{\"name\":\"6\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5b026dc81d6f963a1de0a293d3fb056f\",\"lease_holder\":\"fm-cap-lab-6\",\"leased_at\":\"2026-10-19T20:41:49.519381-05:00\",\"processes\":[]},{\"name\":\"7\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"777df1701745c6a935ab060b13536210\",\"lease_holder\":\"fm-cap-lab-7\",\"leased_at\":\"2026-10-19T20:41:49.961476-05:00\",\"processes\":[]},{\"name\":\"8\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"a1fc404db3d390abb3d0722e3617d7c3\",\"lease_holder\":\"fm-cap-lab-8\",\"leased_at\":\"2026-10-19T20:41:50.215784-05:00\",\"processes\":[]},{\"name\":\"9\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4992c9e9edeeb67464acf8fbac1633c\",\"lease_holder\":\"fm-cap-lab-9\",\"leased_at\":\"2026-10-19T20:41:50.436113-05:00\",\"processes\":[]},{\"name\":\"10\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"c8436e2ce1813b1e04577178d410f8e0\",\"lease_holder\":\"fm-cap-lab-10\",\"leased_at\":\"2026-10-19T20:41:50.628212-05:00\",\"processes\":[]},{\"name\":\"11\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"5da43f901d911760340650edbb159d13\",\"lease_holder\":\"fm-cap-lab-11\",\"leased_at\":\"2026-10-19T20:41:50.834214-05:00\",\"processes\":[]},{\"name\":\"12\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f2d48111fd220707bd1ceac402d77085\",\"lease_holder\":\"fm-cap-lab-12\",\"leased_at\":\"2026-10-19T20:41:51.021016-05:00\",\"processes\":[]},{\"name\":\"13\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"d6f75881781465db03fb2cfce32df99d\",\"lease_holder\":\"fm-cap-lab-13\",\"leased_at\":\"2026-10-19T20:41:51.214869-05:00\",\"processes\":[]},{\"name\":\"14\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"648197512064ccb67a6c6b1541fab330\",\"lease_holder\":\"fm-cap-lab-14\",\"leased_at\":\"2026-10-19T20:41:51.402313-05:00\",\"processes\":[]},{\"name\":\"15\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"4f996265b06bb267f392ca806391fc83\",\"lease_holder\":\"fm-cap-lab-15\",\"leased_at\":\"2026-10-19T20:41:51.623105-05:00\",\"processes\":[]},{\"name\":\"16\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"075ea3fa0bf6f968e347bf3fb74bb933\",\"lease_holder\":\"fm-cap-lab-16\",\"leased_at\":\"2026-10-19T20:41:51.836038-05:00\",\"processes\":[]},{\"name\":\"17\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"f4275ce260a9bdec55716174d0d50408\",\"lease_holder\":\"fm-cap-lab-17\",\"leased_at\":\"2026-10-19T20:42:00.577403-05:00\",\"processes\":[]},{\"name\":\"18\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/18/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e6e39ce254c61278df54c47541f1f314\",\"lease_holder\":\"fm-cap-lab-18\",\"leased_at\":\"2026-10-19T20:42:00.726945-05:00\",\"processes\":[]},{\"name\":\"19\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/19/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"93336024cfb8cf39cb1268d96ae30a1a\",\"lease_holder\":\"fm-cap-lab-19\",\"leased_at\":\"2026-10-19T20:42:00.882617-05:00\",\"processes\":[]},{\"name\":\"20\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/20/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"e53f1a67b37236407c7cb5ea48dc3da6\",\"lease_holder\":\"fm-cap-lab-20\",\"leased_at\":\"2026-10-19T20:42:01.046256-05:00\",\"processes\":[]},{\"name\":\"21\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/21/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"1bc26216aed221883e1c0a6e85d5d4b6\",\"lease_holder\":\"fm-cap-lab-21\",\"leased_at\":\"2026-10-19T20:42:01.203246-05:00\",\"processes\":[]},{\"name\":\"22\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/22/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"3d3ef014072cf48796405e6b5ff8cf40\",\"lease_holder\":\"fm-cap-lab-22\",\"leased_at\":\"2026-10-19T20:42:01.353608-05:00\",\"processes\":[]},{\"name\":\"23\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"dd166b880adf9e8184cf39ad5003a231\",\"lease_holder\":\"fm-cap-lab-reuse-a\",\"leased_at\":\"2026-10-19T20:42:19.674323-05:00\",\"processes\":[]},{\"name\":\"24\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo\",\"status\":\"leased\",\"flavor\":\"git\",\"lease_id\":\"d1be975c099277ac24340ebaf85ee885\",\"lease_holder\":\"fm-cap-lab-reuse-b\",\"leased_at\":\"2026-10-19T20:42:20.228127-05:00\",\"processes\":[]}]\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo",
+      "--if-lease-id",
+      "9674a65796abdbfd6f1f375485cdafc3"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo",
+      "--if-lease-id",
+      "01187137ed209f082a23ad1f4d227907"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo",
+      "--if-lease-id",
+      "3fd216cf334f820bea3be5fcf7d1f890"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo",
+      "--if-lease-id",
+      "35989aaa12d94cef03d68060ed5537f1"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo",
+      "--if-lease-id",
+      "947a56a3972ddfaf028dd68ee9d5607a"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo",
+      "--if-lease-id",
+      "5b026dc81d6f963a1de0a293d3fb056f"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo",
+      "--if-lease-id",
+      "777df1701745c6a935ab060b13536210"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo",
+      "--if-lease-id",
+      "a1fc404db3d390abb3d0722e3617d7c3"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo",
+      "--if-lease-id",
+      "f4992c9e9edeeb67464acf8fbac1633c"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo",
+      "--if-lease-id",
+      "c8436e2ce1813b1e04577178d410f8e0"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo",
+      "--if-lease-id",
+      "5da43f901d911760340650edbb159d13"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo",
+      "--if-lease-id",
+      "f2d48111fd220707bd1ceac402d77085"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo",
+      "--if-lease-id",
+      "d6f75881781465db03fb2cfce32df99d"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo",
+      "--if-lease-id",
+      "648197512064ccb67a6c6b1541fab330"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo",
+      "--if-lease-id",
+      "4f996265b06bb267f392ca806391fc83"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo",
+      "--if-lease-id",
+      "075ea3fa0bf6f968e347bf3fb74bb933"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo",
+      "--if-lease-id",
+      "f4275ce260a9bdec55716174d0d50408"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/18/repo",
+      "--if-lease-id",
+      "e6e39ce254c61278df54c47541f1f314"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/19/repo",
+      "--if-lease-id",
+      "93336024cfb8cf39cb1268d96ae30a1a"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/20/repo",
+      "--if-lease-id",
+      "e53f1a67b37236407c7cb5ea48dc3da6"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/21/repo",
+      "--if-lease-id",
+      "1bc26216aed221883e1c0a6e85d5d4b6"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/22/repo",
+      "--if-lease-id",
+      "3d3ef014072cf48796405e6b5ff8cf40"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo",
+      "--if-lease-id",
+      "dd166b880adf9e8184cf39ad5003a231"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "return",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo",
+      "--if-lease-id",
+      "d1be975c099277ac24340ebaf85ee885"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Worktree returned to pool.\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status",
+      "--json"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "[{\"name\":\"1\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"2\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/2/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"3\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/3/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"4\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/4/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"5\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/5/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"6\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/6/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"7\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/7/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"8\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/8/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"9\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/9/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"10\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/10/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"11\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/11/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"12\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/12/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"13\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/13/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"14\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/14/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"15\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/15/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"16\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/16/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"17\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/17/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"18\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/18/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"19\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/19/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"20\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/20/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"21\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/21/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"22\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/22/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"23\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/23/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]},{\"name\":\"24\",\"path\":\"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/24/repo\",\"status\":\"available\",\"flavor\":\"git\",\"lease_id\":\"\",\"lease_holder\":\"\",\"leased_at\":null,\"processes\":[]}]\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  },
+  {
+    "command": [
+      "treehouse",
+      "status"
+    ],
+    "cwd": ".fm-treehouse-live-lab/repo",
+    "exit": 0,
+    "stdout": "1     available    ~/.treehouse/repo-b3fd4e/1/repo\n2     available    ~/.treehouse/repo-b3fd4e/2/repo\n3     available    ~/.treehouse/repo-b3fd4e/3/repo\n4     available    ~/.treehouse/repo-b3fd4e/4/repo\n5     available    ~/.treehouse/repo-b3fd4e/5/repo\n6     available    ~/.treehouse/repo-b3fd4e/6/repo\n7     available    ~/.treehouse/repo-b3fd4e/7/repo\n8     available    ~/.treehouse/repo-b3fd4e/8/repo\n9     available    ~/.treehouse/repo-b3fd4e/9/repo\n10    available    ~/.treehouse/repo-b3fd4e/10/repo\n11    available    ~/.treehouse/repo-b3fd4e/11/repo\n12    available    ~/.treehouse/repo-b3fd4e/12/repo\n13    available    ~/.treehouse/repo-b3fd4e/13/repo\n14    available    ~/.treehouse/repo-b3fd4e/14/repo\n15    available    ~/.treehouse/repo-b3fd4e/15/repo\n16    available    ~/.treehouse/repo-b3fd4e/16/repo\n17    available    ~/.treehouse/repo-b3fd4e/17/repo\n18    available    ~/.treehouse/repo-b3fd4e/18/repo\n19    available    ~/.treehouse/repo-b3fd4e/19/repo\n20    available    ~/.treehouse/repo-b3fd4e/20/repo\n21    available    ~/.treehouse/repo-b3fd4e/21/repo\n22    available    ~/.treehouse/repo-b3fd4e/22/repo\n23    available    ~/.treehouse/repo-b3fd4e/23/repo\n24    available    ~/.treehouse/repo-b3fd4e/24/repo\n",
+    "stderr": "A new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n"
+  }
+]

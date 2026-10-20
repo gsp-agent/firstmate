@@ -1,0 +1,12 @@
+[
+  {
+    "name": "1",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BEHE9N9PTNTBYGED24YG6Z/.fm-treehouse-live-lab/home/.treehouse/repo-b3fd4e/1/repo",
+    "status": "leased",
+    "flavor": "git",
+    "lease_id": "9674a65796abdbfd6f1f375485cdafc3",
+    "lease_holder": "fm-cap-lab-1",
+    "leased_at": "2026-10-19T20:40:45.509257-05:00",
+    "processes": []
+  }
+]
