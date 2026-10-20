@@ -844,4 +844,4 @@ With the PR-keyed script and manifest, on upstream-lean 8a8b4734 (bash bin/fm-dr
 The 59 pending lines include the seven former weak keeps #8, #11, #12, #16, #17 and #18 and #22, which have no measurement in this file under their SHAs or their PR numbers and are owed on .agent-config-dtjsb like the other pending PRs.
 The squash regression in tests/fm-drift-nightly.test.sh fails on the previous script with exit 2 ("proof line is not a full sha: pr: 7") and passes on this script with exit 0, "path-ok: notes.txt" and "keep: <squash sha> add notes (#7)".
 PR 25's 46 pre-squash branch commits stay reachable on origin archive/fm-drift-nightly-b2216803, pushed from b2216803 before origin/fm/fm-drift-nightly is deleted.
-This repair's own proof is the squash, merge, forgotten-line and wrong-number regressions in tests/fm-drift-nightly.test.sh; its own "pr: <N>" line is added once the repair PR has a number, naming that test file.
+This repair's own proof is the squash, merge, forgotten-line and wrong-number regressions in tests/fm-drift-nightly.test.sh; its own "pr: 53" line names that test file.
