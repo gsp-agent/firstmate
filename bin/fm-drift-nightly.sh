@@ -15,32 +15,34 @@
 # check prints behind and ahead counts, path-ok for changed paths that match
 # the accepted tree, path-drift for every mismatch with that tree, then one
 # line per commit reachable from the captured fork and not captured upstream.
-# Accepted patches are replayed from the merge-base in ancestry order using
-# git merge-tree with each accepted commit's parent as its patch base. An
-# accepted merge's first-parent patch carries every commit it merges (reachable
+# Accepted patches are replayed from the merge-base in first-parent order
+# using git merge-tree with each accepted first-parent commit's parent as
+# its patch base. Only first-parent commits are replayed. An accepted
+# merge's first-parent patch carries every commit it merges (reachable
 # from the merge, not from its first parent or the merge-base), so those
-# carried commits are never replayed on their own. A path is path-ok only when
-# its fork content and mode match the resulting tree.
+# carried commits are never replayed on their own and inherit the carrying
+# PR's class. A path is path-ok only when its fork content and mode match
+# the resulting tree.
 # Missing accepted changes and extra changes are path-drift. Rename detection
 # is disabled so a deletion cannot disappear into a rename onto a proven file.
 # No file is exempt, including the guard and proof files.
-# A commit is pending when the proof file lists it as pending, printed with its
-# bead on every run; carried-unproven when an accepted merge carries it and the
-# proof file neither proves it nor lists it as pending; merge when it has
-# multiple parents; keep when the proof file proves it; and unproven otherwise.
-# Exit 0 when no path-drift or carried-unproven line is printed, 1 when one is,
-# and 2 on usage or git failure. behind is reported and does not change the
-# exit code.
+# A commit is pending when its first-parent PR is listed as pending, printed
+# with its bead on every run; merge when it has multiple parents and is not
+# proven; keep when its first-parent PR is proven; and unproven otherwise.
+# A first-parent PR number is parsed from "Merge pull request #N",
+# "Merge PR #N", "Merge PR N", or a trailing "(#N)" in the commit subject.
+# A first-parent commit with no parseable PR number is unproven.
+# Exit 0 when no path-drift line is printed, 1 when one is, and 2 on usage
+# or git failure. behind is reported and does not change the exit code.
 #
-# The proof file holds one full 40-hex sha per line, or "after: <full sha>"
-# to select the unique reachable commit whose first parent is that sha.
-# This lets a manifest name its own finalized patch before its commit SHA
-# exists, without approving later descendants. Missing or multiple direct
-# children are errors. Selection uses only the captured fork snapshot.
-# "pending: <full sha> <bead>" accepts that commit with its proof still owed
-# on <bead>; it is accepted like a proven commit but never reported as keep.
-# Blank lines and lines whose first character is # are ignored.
-# Listed commits must exist and be reachable from the fork ref.
+# The proof file holds "pr: <number>" or "pending-pr: <number> <bead>" per
+# line. A PR writes its own line before merging; the line lands inside its
+# squash or merge commit and matches afterward, so no SHA can dangle.
+# "pending-pr" accepts that PR with its proof still owed on <bead>; it is
+# accepted like a proven PR but never reported as keep. Duplicate entries
+# are errors. An entry whose PR has no first-parent commit in the captured
+# range is an error. Blank lines and lines whose first character is # are
+# ignored.
 # When --proof is omitted, the proof file is drift-proof.txt in the captured
 # fork commit's tree; a working-tree, staged, or untracked copy is never read.
 # When that tree has no drift-proof.txt, no commit is proven.
@@ -54,7 +56,7 @@
 # exit code, then exits with that code. A nonzero check sends one note through
 # fm-inbox.sh beside this script, which picks the Firstmate home (FM_HOME, else
 # the home holding this script). The note names the exit code, the first ten
-# path-drift, carried-unproven and error lines, a count of the rest, and the
+# path-drift and error lines, a count of the rest, and the
 # log, under request id fm-drift-nightly-<local date>, so a same-day rerun
 # makes no second note. A green check sends nothing.
 # --log names the job's log in the note and defaults to
@@ -90,89 +92,130 @@ die() {
 }
 
 proof_has() {
-  case $PROOF_SHAS in
+  case $KEEP_SHAS in
     *"|$1|"*) return 0 ;;
     *) return 1 ;;
   esac
 }
 
 pending_bead() {
-  local rest=${PENDING_BEADS#*"|$1="}
-  [ "$rest" != "$PENDING_BEADS" ] || return 1
+  local rest=${PENDING_SHA_BEADS#*"|$1="}
+  [ "$rest" != "$PENDING_SHA_BEADS" ] || return 1
   printf '%s\n' "${rest%%|*}"
 }
 
-carried_has() {
-  case $CARRIED_SHAS in
-    *"|$1|"*) return 0 ;;
+pr_number() { # <subject> -> PR number or failure
+  local n
+  case $1 in
+    'Merge pull request #'*) n=${1#Merge pull request #} ;;
+    'Merge PR #'*) n=${1#Merge PR #} ;;
+    'Merge PR '*) n=${1#Merge PR } ;;
+    *'(#'*')') n=${1##*\(#}; n=${n%\)} ;;
     *) return 1 ;;
   esac
+  n=${n%%[^0-9]*}
+  case $n in ''|*[!0-9]*) return 1 ;; esac
+  printf '%s\n' "$n"
 }
 
-proof_successor() {
-  local history sha parent _parents selected=''
-  history=$(git -C "$REPO" rev-list --ancestry-path --parents "$1..$fork") || die "cannot read proof descendants: $1"
-  while read -r sha parent _parents; do
-    [ "$parent" = "$1" ] || continue
-    [ -z "$selected" ] || die "proof parent has multiple direct children: $1"
-    selected=$sha
-  done <<< "$history"
-  [ -n "$selected" ] || die "proof parent has no direct child: $1"
-  printf '%s\n' "$selected"
+class_of_pr() { # <pr> -> keep, pending or failure
+  case $KEEP_PRS in *"|$1|"*) printf 'keep\n'; return 0 ;; esac
+  case $PENDING_PRS in *"|$1|"*) printf 'pending\n'; return 0 ;; esac
+  return 1
 }
 
 load_proof() {
-  PROOF_SHAS='|'
-  PENDING_BEADS='|'
+  KEEP_PRS='|'
+  PENDING_PRS='|'
+  PENDING_PR_BEADS='|'
   [ -n "$PROOF" ] || return 0
   [ -f "$PROOF" ] || die "proof file not found: $PROOF"
-  local line sha bead extra after
+  local line pr bead extra
   while IFS= read -r line || [ -n "$line" ]; do
     case $line in
       ''|\#*) continue ;;
     esac
-    after=0 bead='' extra=''
+    bead='' extra=''
     case $line in
-      'after: '*) after=1; sha=${line#after: } ;;
-      'pending: '*)
-        read -r sha bead extra <<< "${line#pending: }"
+      'pr: '*)
+        read -r pr extra <<< "${line#pr: }"
+        [ -z "$extra" ] || die "proof line is not 'pr: <number>': $line"
+        ;;
+      'pending-pr: '*)
+        read -r pr bead extra <<< "${line#pending-pr: }"
         if [ -n "$extra" ] || ! printf '%s\n' "$bead" | grep -Eq '^[A-Za-z0-9._-]+$'; then
-          die "pending line is not '<full sha> <bead>': $line"
+          die "pending-pr line is not '<number> <bead>': $line"
         fi
         ;;
-      *) sha=$line ;;
+      *) die "proof line is not a PR entry: $line" ;;
     esac
-    printf '%s\n' "$sha" | grep -Eq '^[0-9a-f]{40}$' || die "proof line is not a full sha: $line"
-    git -C "$REPO" rev-parse --verify "${sha}^{commit}" >/dev/null 2>&1 || die "proof commit not found: $sha"
-    git -C "$REPO" merge-base --is-ancestor "$sha" "$fork" || die "proof commit is not reachable from fork: $sha"
-    if [ "$after" -eq 1 ]; then
-      sha=$(proof_successor "$sha") || exit 2
+    printf '%s\n' "$pr" | grep -Eq '^[0-9]+$' || die "proof line is not a PR number: $line"
+    case "|$KEEP_PRS$PENDING_PRS" in *"|$pr|"*) die "duplicate proof entry for PR $pr" ;; esac
+    if [ -n "$bead" ]; then
+      PENDING_PRS="${PENDING_PRS}${pr}|"
+      PENDING_PR_BEADS="${PENDING_PR_BEADS}${pr}=${bead}|"
+    else
+      KEEP_PRS="${KEEP_PRS}${pr}|"
     fi
-    PROOF_SHAS="${PROOF_SHAS}${sha}|"
-    [ -z "$bead" ] || PENDING_BEADS="${PENDING_BEADS}${sha}=${bead}|"
   done < "$PROOF"
+  # Every entry must name a first-parent commit in the captured range.
+  local subject seen='|' entry
+  while IFS= read -r subject; do
+    pr=$(pr_number "$subject") || continue
+    case $seen in *"|$pr|"*) ;; *) seen="${seen}${pr}|" ;; esac
+  done < <(git -C "$REPO" log --first-parent --format=%s "$base..$fork" || die "cannot list first-parent subjects")
+  for entry in $(printf '%s' "$KEEP_PRS$PENDING_PRS" | tr '|' ' '); do
+    [ -n "$entry" ] || continue
+    case $seen in *"|$entry|"*) ;; *) die "proof PR has no first-parent commit: $entry" ;; esac
+  done
+}
+
+classify_commits() {
+  # Build KEEP_SHAS / PENDING_SHA_BEADS for every commit in base..fork from
+  # its first-parent PR; carried commits inherit the carrying PR's class.
+  KEEP_SHAS='|'
+  PENDING_SHA_BEADS='|'
+  git -C "$REPO" log --first-parent --reverse --format='%H %s' "$base..$fork" > "$CHECK_TMP/fp" || die "cannot list first-parent commits"
+  local sha subject pr cls parent carried merged bead line
+  while read -r line; do
+    sha=${line%% *}
+    subject=${line#* }
+    pr=$(pr_number "$subject") || continue
+    cls=$(class_of_pr "$pr") || continue
+    if [ "$cls" = pending ]; then
+      bead=${PENDING_PR_BEADS#*"|$pr="}; bead=${bead%%|*}
+      PENDING_SHA_BEADS="${PENDING_SHA_BEADS}${sha}=${bead}|"
+    else
+      KEEP_SHAS="${KEEP_SHAS}${sha}|"
+    fi
+    parent=$(git -C "$REPO" rev-list --parents -n 1 "$sha") || die "cannot read parents of $sha"
+    # shellcheck disable=SC2086
+    set -- $parent
+    [ $# -gt 2 ] || continue
+    carried=$(git -C "$REPO" rev-list "$sha" "^$2" "^$base") || die "cannot read the commits merged by $sha"
+    while read -r merged; do
+      [ "$merged" = "$sha" ] && continue
+      case $KEEP_SHAS in *"|$merged|"*) continue ;; esac
+      case $PENDING_SHA_BEADS in *"|$merged="*) continue ;; esac
+      if [ "$cls" = pending ]; then
+        PENDING_SHA_BEADS="${PENDING_SHA_BEADS}${merged}=${bead}|"
+      else
+        KEEP_SHAS="${KEEP_SHAS}${merged}|"
+      fi
+    done <<< "$carried"
+  done < "$CHECK_TMP/fp"
 }
 
 replay_proof() {
-  local sha parent others carried merged
   EXPECTED_TREE=$(git -C "$REPO" rev-parse "${base}^{tree}") || die "cannot read the merge-base tree"
-  git -C "$REPO" rev-list --reverse --topo-order --parents "$base..$fork" > "$CHECK_TMP/commits" || die "cannot order fork commits"
-  CARRIED_SHAS='|'
-  while read -r sha parent others; do
-    if [ -z "$others" ] || ! proof_has "$sha"; then
-      continue
-    fi
-    carried=$(git -C "$REPO" rev-list "$sha" "^$parent" "^$base") || die "cannot read the commits merged by $sha"
-    while read -r merged; do
-      [ "$merged" = "$sha" ] || CARRIED_SHAS="${CARRIED_SHAS}${merged}|"
-    done <<< "$carried"
-  done < "$CHECK_TMP/commits"
-  while read -r sha parent others; do
-    proof_has "$sha" || continue
-    ! carried_has "$sha" || continue
-    [ -n "$parent" ] || die "cannot read proof parent: $sha"
+  classify_commits
+  local sha parent _rest line
+  while read -r line; do
+    sha=${line%% *}
+    case $KEEP_SHAS in *"|$sha|"*) ;; *) case $PENDING_SHA_BEADS in *"|$sha="*) ;; *) continue ;; esac ;; esac
+    parent=$(git -C "$REPO" rev-parse "$sha^") || die "cannot read proof parent: $sha"
     EXPECTED_TREE=$(git -C "$REPO" merge-tree --write-tree --no-messages --merge-base="$parent" "$EXPECTED_TREE" "$sha") || die "proof patch conflicts without unproven changes: $sha"
-  done < "$CHECK_TMP/commits"
+  done < "$CHECK_TMP/fp"
 }
 
 int_in_range() { # <value> <max>
@@ -289,7 +332,7 @@ cmd_check() {
   fork=$fork_sha
   upstream=$upstream_sha
   CHECK_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-drift.XXXXXX") || die "cannot create a temporary directory"
-  trap 'rm -f -- "$CHECK_TMP/proof" "$CHECK_TMP/paths" "$CHECK_TMP/commits"; rmdir -- "$CHECK_TMP"' EXIT
+  trap 'rm -f -- "$CHECK_TMP/proof" "$CHECK_TMP/paths" "$CHECK_TMP/commits" "$CHECK_TMP/fp"; rmdir -- "$CHECK_TMP"' EXIT
   if [ -z "$PROOF" ] && git -C "$REPO" cat-file -e "$fork:drift-proof.txt" 2>/dev/null; then
     git -C "$REPO" cat-file blob "$fork:drift-proof.txt" > "$CHECK_TMP/proof" || die "cannot read drift-proof.txt from $fork"
     PROOF=$CHECK_TMP/proof
@@ -321,10 +364,7 @@ cmd_check() {
     set -- $parents
     if bead=$(pending_bead "$sha"); then
       printf 'pending: %s %s %s\n' "$sha" "$bead" "$subject"
-    elif carried_has "$sha" && ! proof_has "$sha"; then
-      printf 'carried-unproven: %s %s\n' "$sha" "$subject"
-      drift=1
-    elif [ $# -gt 2 ]; then
+    elif [ $# -gt 2 ] && ! proof_has "$sha"; then
       printf 'merge: %s %s\n' "$sha" "$subject"
     elif proof_has "$sha"; then
       printf 'keep: %s %s\n' "$sha" "$subject"
@@ -353,7 +393,7 @@ cmd_nightly() {
   printf '%s\n' "$out"
   printf 'exit: %s\n' "$rc"
   [ "$rc" -ne 0 ] || return 0
-  red=$(printf '%s\n' "$out" | awk '/^(path-drift|carried-unproven|error): / { if (++n <= 10) print } END { if (n > 10) printf "%d more red lines in the log.\n", n - 10 }')
+  red=$(printf '%s\n' "$out" | awk '/^(path-drift|error): / { if (++n <= 10) print } END { if (n > 10) printf "%d more red lines in the log.\n", n - 10 }')
   {
     printf 'Nightly drift check red on %s: exit %s for %s.\n' "$day" "$rc" "$repo"
     [ -z "$red" ] || printf '%s\n' "$red"

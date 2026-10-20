@@ -1,153 +1,57 @@
-# Finalized effective patch sequence delivered through PR 25's squash, with behavioral proof from this machine.
-# Historical descriptions name the pre-squash commits; active records name their delivered patches or the squash carrying them.
-# Replay this sequence together: original composite patches are dependencies of the corrective cuts in cfb4a4d1, not approvals to restore their removed behavior.
-# Preimage dependencies through PR 42 supply the patch context for cfb4a4d1; its corrective cuts remain mandatory.
-# These prerequisite patches are not permission to restore the cut behavior.
-b606779ed08299d160ccbb154ec7c0dc8277b9d8
-2f360c82b60815e9f07a84c12256a0fe20db0b6f
-92a657f4ec4b45f9b5b179539b196b1ffc748e58
-e98dda6bd04a94f741d9cf6635a2fdd876371b67
-fccd2fe3482cc9df9951b2a95a334f83ac507048
-a158eb8675cc62ec2fe8fa8d33bfaa64d0df52d6
-981bd823e260fc8586c13ec10a403c43828ba318
-89b9cbcacaccc45b642129aa6cce68ef50f2831c
-dc6078041281132565f5b886cf99db9152f88bb7
-dd8fc4533f44a8d0670c25e11f11e30252058f2e
-a727bbf5a3c51ce9bdc2ebdc14f58d77db3c5eb7
-3ad15feca7b37ce8ef405e268481219ff3a4b5f1
-96e8d817220911f5292fcb61957d5687bc40b1a3
-9cbbbd76419b1dcbe23b7b376c700bf9521adc54
-2c1ca1dcd8a6e18fde320357db7ea70a0b6daf7e
-1d82cb6ea8661cedc95c4a825661c57c3b57ddff
-a129556026c1c2b56dc17c9dddc822978bd2165c
-9c9ddae92ab31b074a90587542f8346f9c1b45ec
-7aad5e45f778cd28bdd047010f6b994480308648
-44a0ba0ad7b5c3539c706cfe04261f522fdf52e8
-17c4d13162f8fcdfb6cc9885a01648cf82b2a7a9
-3ce31900713f4e569dfa2aba6e463115e28eeae4
-f47850ef54ef3a3c38912a7607436a6e1b1c2c90
-f525bbba83a62c03324eaba18920d0fd890a250e
-b0d5875dfea533418e101610f966fc74e30a0c39
-47a7870946c4158308d9b1ebffc82ff30889735c
-37902fa5bb1cb0089a68c4e242f23ba1cfa648b2
-58573e6360fb52575a975fe5970588981e4aef08
-f2214ad4567231cebabbf49d416bde354c995af1
-7a8e6d580c83f104077e31a773a5c15b46172b7f
-516346afbbd8f36b23885c5c5a79ea8f7c8ff972
-eab38dcef5a72c9ecc3b4524eac20376836251a1
-c1b24cc9687cb259d405f17d8b8ab0504e57836f
-8287d35f4152c050bdb77fb26a8262ea42406575
-4877ac8efddab30fb01fb756dc52c81f30adedd5
-# aba49d6b: Grok xhigh reaches the executed launch argv instead of being silently omitted upstream; "R16 effort delivery" in [drift-measurements.txt](drift-measurements.txt).
-aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48
-# ada14efc: both dispatch validators accept that supported effort; "Live routing file" and "R16 routing compatibility" in [drift-measurements.txt](drift-measurements.txt).
-ada14efcab836915609ea325e537fef0e9c45edc
-# Retained portions of composite commits, measured after the cuts below.
-# cce0ab3a: label routing, Codex Sol max delivery and refusal of an unreadable Cursor model catalogue; "R16 routing compatibility", "R16 effort delivery" and "R16 catalogue refusal" in [drift-measurements.txt](drift-measurements.txt).
-cce0ab3a8a709642fc85a3999f6424a8bcb6633d
-# 745991e8: replay dependency only, completely removed by 3d91d6eb below; "R16 proof scope" in [drift-measurements.txt](drift-measurements.txt).
-745991e8e70fab9fb35bb63e5d2c1491c42124da
-# ece80a35: quota-file selection and cursor_fallback validation, plus the measured docs-only routing; "R16 quota fallback" and "Live routing file" in [drift-measurements.txt](drift-measurements.txt).
-ece80a3543c804bd10e8f13ad28775abef9a4e94
-# 8193b236: replay dependency only, completely removed by 3d91d6eb below; "R16 proof scope" in [drift-measurements.txt](drift-measurements.txt).
-8193b2365719da824fe563f01645fe1eb1ccffa0
-# e478c151: quota fallback selects Codex, then Claude for the existing codex-limit record; "R16 quota fallback" and the accepted live ac-q14t1 records in [drift-measurements.txt](drift-measurements.txt).
-# 54a767b5: replay prerequisite for 974e42ac's guard comments; cfb4a4d1 supplies the finalized corrective cuts.
-54a767b5d265e7d4d2b34c54184f2e99979a62eb
-974e42ac3022b10573ff20b963c23bf8ff8ef266
-# 98242c4f: the short-pool path selects Codex without consulting an unrelated plugin pin; "R16 quota fallback" in [drift-measurements.txt](drift-measurements.txt).
-8e41a7db2a33ec9366a5429e8dbeba688c3f9ecc
-# 0efb72c1: required nightly guard with uninstall, absent upstream; "Nightly drift guard measured on this machine" in [drift-measurements.txt](drift-measurements.txt).
-# ce08ec29: original proof-record dependency, finalized below; "Finalized shipped acceptance" in [drift-measurements.txt](drift-measurements.txt).
-# 9f1504c9: exact patch replay and recovery archive; "Counterfactual 1", "Counterfactual 2" and "Cut recovery" in [drift-measurements.txt](drift-measurements.txt).
-# 23b309bf: hidden-deletion refusal and fixed comparison snapshots; "The revised guard rejects the previously hidden deletion" in [drift-measurements.txt](drift-measurements.txt).
-# bad73aa7: guard help, usage and documentation alignment; focused CLI checks in "Finalized shipped acceptance" in [drift-measurements.txt](drift-measurements.txt).
-# e85b9515: restored composite dependency, reduced by 3d91d6eb; "R16 retained behavior after cutting unsupported portions" in [drift-measurements.txt](drift-measurements.txt).
-# 814465e1: recorded routing comparison; "Live routing file" in [drift-measurements.txt](drift-measurements.txt).
-# 3d91d6eb: mandatory corrective cuts and their recovery archive; "R16 retained behavior after cutting unsupported portions" and "Recovery archive consumer" in [drift-measurements.txt](drift-measurements.txt).
-# aaac2ae1: finalized patch replay and fixed-parent selection; "Finalized shipped acceptance" in [drift-measurements.txt](drift-measurements.txt).
-# 6f8648a1: dispatch and Cursor fallback documentation alignment; "D1 documentation finalization" in [drift-measurements.txt](drift-measurements.txt).
-# 5f2b4f1c: finalized documentation drift proof; "D1 documentation finalization" in [drift-measurements.txt](drift-measurements.txt).
-# d5cb3202: quoted empty model assignment and the D1 finalized manifest; "D1 documentation finalization" in [drift-measurements.txt](drift-measurements.txt).
-# 75f251ff: failing install regressions for XML specials in paths and an invalid plist; "Install plist escaping" in [drift-measurements.txt](drift-measurements.txt).
-# 516926a9: install escapes plist values and lints the new plist before replacing the job; "Install plist escaping" in [drift-measurements.txt](drift-measurements.txt).
-# Restored from the archive after chip's reproductions in https://github.com/gsp-agent/firstmate/pull/25#pullrequestreview-5531600854, where upstream fails.
-# 57e99066 and 4cbb765c: crew isolation from archived 4ad5d60f and bcba9dac; chip's Cursor HEAD-move reproduction and the crew guard regression in tests/fm-cursor-guard.test.sh; "R17 crew isolation" in [drift-measurements.txt](drift-measurements.txt).
-4ad5d60fec0b33026e1ebe74be89fb54229585d9
-bcba9dacdb658976bf77dd2415cdc1265c45b072
-# 50f3b5ad, 33ec18c5, 1981e1d5 and 04514afb: teardown keeps a task record until its request is merged or closed, from archived 9733ff85, 14b1c443, 3b60ba95 and ff9a8d36; chip's record-loss reproduction and the two regressions in tests/fm-teardown.test.sh; "R17 teardown record keeping" in [drift-measurements.txt](drift-measurements.txt).
-9733ff859b3f7ac0d8209d37e47df32a626ab2ea
-14b1c4432cfb9443ea03a320adb09bf97c7b047c
-3b60ba95d799a2a56eadec82f27f7a42e22d9b2c
-ff9a8d36cc2e9a71bb15103019f63f9c17e713ed
-# 41bc017c: failing regressions for uninstall on launchctl errors and the documented cut recovery; "R17 uninstall" and "R17 cut recovery" in [drift-measurements.txt](drift-measurements.txt).
-# 0f95e44f: uninstall keeps the plist unless launchctl reports the job gone; "R17 uninstall" in [drift-measurements.txt](drift-measurements.txt).
-# 6a0bee96: the documented cut recovery command works; "R17 cut recovery" in [drift-measurements.txt](drift-measurements.txt).
-# c5b5ad18 and 0030e13b: the Cursor usage fallback runs after the harness resolves from any source; "R17 Cursor fallback after harness choice" in [drift-measurements.txt](drift-measurements.txt).
-# d102d0e9 and 5491620c: cursor_fallback numbers are integers in bootstrap, the dispatch resolver and the guard; "R17 integer fallback numbers" in [drift-measurements.txt](drift-measurements.txt).
-# a56cef1a: R17 manifest finalization; "R17 finalization" in [drift-measurements.txt](drift-measurements.txt).
-# 1f45a22e: merge of upstream-lean 9ed80766 (https://github.com/gsp-agent/firstmate/pull/34 plus the 25 pending commits below); "R18 merge of upstream-lean" in [drift-measurements.txt](drift-measurements.txt).
-# The merge's patch carries the 26 commits it merges. Each is proven or pending below; the check fails on any other carried commit (carried-unproven).
-# 9ed80766: PR 34's kept portions, each proven in "R18 merge of upstream-lean"; its portions for features the cut removed stay out (the merge, 6373a197 and 9c86a2e0).
-9ed8076692548e9cbeb9d90e28c4a5898d499cfd
-# These 25 landed on upstream-lean after the 10-14 cut through reviewed PRs. Their proof is owed on .agent-config-dtjsb, and the check prints each as pending on every run until that bead proves or cuts it.
-# PRs #39, #35, #33, #31, #32 and #21:
-pending: 116fdc5281d21a9992d7a4bb83ab75ed7bc38740 .agent-config-dtjsb
-pending: a70ba7abd29e26ad59a844b32c0706ce19951bf0 .agent-config-dtjsb
-pending: 4470e616b494277b607b483a58fd8294b5bda773 .agent-config-dtjsb
-pending: 433c7b85519f64afda78038ac31c4b6a4fb0b23f .agent-config-dtjsb
-pending: ff8c5f8def6d93ad0257d66c90e1e8f98e958846 .agent-config-dtjsb
-pending: 67669705d25551948f6ca48d153c1526d2739440 .agent-config-dtjsb
-# PR #30:
-pending: 8ab8f46d1086aaed5c009a257f8705552fa08b62 .agent-config-dtjsb
-pending: b8932e8b6269d5d48b0498d4b4aeca60bc72b564 .agent-config-dtjsb
-pending: e59a6665512399edd2fab7de05f9ee94e8267d5b .agent-config-dtjsb
-pending: 8ca0dc62b32426d9838012528796a8cd6d9afdcd .agent-config-dtjsb
-# PR #27, and PR #28 at 586f37f7:
-pending: 4439ef547fa08c9537b9b48cfcb17d6311386db5 .agent-config-dtjsb
-pending: 8c448df39091dec2b7824b3636b599d9946dac62 .agent-config-dtjsb
-pending: 4cd46f41f053c80e7ee16cc7580d6eab97bf787f .agent-config-dtjsb
-pending: c3b3e1ce3e563fb89c9a760c97af194237f548ef .agent-config-dtjsb
-pending: cf0da8c3225c828f3cd8fe05be71ae0c84c186bf .agent-config-dtjsb
-pending: 586f37f7d271db9e1ae57859b78cc2d877b44926 .agent-config-dtjsb
-pending: 0b8dddb9f0e78af2a34d3d8ef069cb0d55f551c8 .agent-config-dtjsb
-pending: fb8006527599d03228f7099aa0d342a53146f115 .agent-config-dtjsb
-pending: c4a5ec6775ea3c61312b69993e7e1d71599c4dae .agent-config-dtjsb
-pending: 1eef4fdd56eebc7e8ffc2ba772b129453ccc0247 .agent-config-dtjsb
-pending: 559548c816572200119a60c52e051fd54fb58408 .agent-config-dtjsb
-pending: b0512fc88d185d30fcd966a5e7fa622481b94e47 .agent-config-dtjsb
-pending: bd9ca126ad8328352c30c01217988972711549a9 .agent-config-dtjsb
-pending: 86fa1306443d3412ace2320aae85d6dcd051f6ce .agent-config-dtjsb
-pending: d05e9561bc141ad74dedcb336e620fc340711c2b .agent-config-dtjsb
-# 6373a197 and 9c86a2e0: cut PR 34's portions that describe or test cut Cursor features, its Pi 1.2 narrowing and its supervision-host quarantine; "R18 merge of upstream-lean" in [drift-measurements.txt](drift-measurements.txt).
-# 93cb683f: R18 manifest finalization; "R18 finalization" in [drift-measurements.txt](drift-measurements.txt).
-# 5ababd20: restores PR 19's git switch -c promotion command from archived 9a849dd4 and 58573e63, where upstream's git checkout -b is refused under this machine's denies ("R19 promotion branch command"), and carries the pending list, the crew guard header, the dead GitLab test removal and the PR 34 recovery by patch ("R19 pending list and corrections"), all in [drift-measurements.txt](drift-measurements.txt).
-9a849dd4fb0b48f91ea1ed033f939aed558c45ed
-# fa3c93df: docs/scripts.md and the Cursor harness reference state the crew guard's scope as its header does; "D2 crew guard scope documentation" in [drift-measurements.txt](drift-measurements.txt).
-# e3bca491: D2 manifest finalization; "D2 finalization" in [drift-measurements.txt](drift-measurements.txt).
-# f9e520b1: reverses 9c86a2e0's cut of PR 34's Pi 1.x narrowing, where upstream's extensions fail the strict typecheck against Pi 1.3.0 and crash on a custom-message before_agent_start; "CI1 Pi 1.x narrowing" and "CI1 finalization" in [drift-measurements.txt](drift-measurements.txt).
-# d636014a: failing regressions for the nightly run's kept log and its one red note a day; "R22 nightly log and red note" in [drift-measurements.txt](drift-measurements.txt).
-# 550f3e6e: the nightly job keeps a log of every run and sends Firstmate one inbox note a day for a red one; "R22 nightly log and red note" and "R22 finalization" in [drift-measurements.txt](drift-measurements.txt).
-# c5d4fc87: merge of upstream-lean 9cfe7cfe (https://github.com/gsp-agent/firstmate/pull/42); its patch carries only 9cfe7cfe, pending below; "R23 merge of upstream-lean" in [drift-measurements.txt](drift-measurements.txt).
-# 9cfe7cfe: PR 42's CI repair, merged into upstream-lean after the cut through its own reviewed PR; proof pending with the 25 above.
-pending: 9cfe7cfef9a9be2e1ffb82a456ff73e421cce143 .agent-config-dtjsb
-# 520736b8: R23 manifest finalization; "R23 finalization" in [drift-measurements.txt](drift-measurements.txt).
-# a1b86280: failing regression for a working-tree drift-proof.txt that proves an unproven commit; "R27 committed proof" in [drift-measurements.txt](drift-measurements.txt).
-# ace8921a: check reads the default proof from the committed fork tree, never the working tree; "R27 committed proof" in [drift-measurements.txt](drift-measurements.txt).
-# 881214e1: R27 manifest finalization; "R27 finalization" in [drift-measurements.txt](drift-measurements.txt).
-# e49413a2: docs/architecture.md matches the bin/fm-spawn.sh and bin/fm-teardown.sh headers on branch preparation and reassigned-slot teardown; "D3 architecture documentation" in [drift-measurements.txt](drift-measurements.txt).
-# cfb4a4d1: PR 25's delivered squash contains the finalized corrective cuts, guard, documentation and proof patches described above.
-cfb4a4d1949f1dd2b953b5b0b496f218ab8c2114
-# Fixed parent selects only the commit delivering this manifest reconciliation, never later descendants.
-after: ec259ec5895012a507c4abd2d7f10de967249e9e
+# Drift proof manifest, keyed on PR number. One line per first-parent PR on
+# upstream-lean, oldest first. "pr: <N>" names a kept PR and the comment above
+# it names its proof in drift-measurements.txt. "pending-pr: <N> <bead>" names
+# a PR whose proof is still owed on that bead. Carried commits inherit the
+# class of the PR whose merge carried them. No SHA is named, so a squash
+# merge cannot strand an entry.
+# "Live routing file", "R16 routing compatibility" and "R16 effort delivery" in drift-measurements.txt.
+pr: 6
+# "R16 routing compatibility", "R16 quota fallback" and "R16 catalogue refusal" in drift-measurements.txt.
+pr: 7
+pending-pr: 8 .agent-config-dtjsb
+# "R17 crew isolation" in drift-measurements.txt.
+pr: 9
+pending-pr: 11 .agent-config-dtjsb
+pending-pr: 12 .agent-config-dtjsb
+# "R16 proof scope" in drift-measurements.txt; net effect cut by #25, replayed as dependency.
+pr: 13
+pending-pr: 16 .agent-config-dtjsb
+pending-pr: 17 .agent-config-dtjsb
+# "R17 teardown record keeping" in drift-measurements.txt.
+pr: 15
+pending-pr: 18 .agent-config-dtjsb
+# "R19 promotion branch command" in drift-measurements.txt.
+pr: 19
+pending-pr: 22 .agent-config-dtjsb
+# "R16 quota fallback" in drift-measurements.txt.
+pr: 26
+pending-pr: 28 .agent-config-dtjsb
+pending-pr: 27 .agent-config-dtjsb
+pending-pr: 30 .agent-config-dtjsb
+pending-pr: 21 .agent-config-dtjsb
+pending-pr: 32 .agent-config-dtjsb
+pending-pr: 31 .agent-config-dtjsb
+pending-pr: 33 .agent-config-dtjsb
+pending-pr: 35 .agent-config-dtjsb
+pending-pr: 39 .agent-config-dtjsb
+# "R18 merge of upstream-lean" in drift-measurements.txt, kept portions enumerated there and cuts listed.
+pr: 34
+pending-pr: 42 .agent-config-dtjsb
+pending-pr: 36 .agent-config-dtjsb
+pending-pr: 38 .agent-config-dtjsb
+pending-pr: 43 .agent-config-dtjsb
+# "PR 25 squash acceptance on upstream-lean" in drift-measurements.txt, plus the sections it names there. The 46 pre-squash branch commits stay reachable on origin archive/fm-drift-nightly-b2216803.
+pr: 25
+pending-pr: 47 .agent-config-dtjsb
+pending-pr: 50 .agent-config-dtjsb
+pending-pr: 49 .agent-config-dtjsb
 # Cut completely: 745991e8's cap/tee changes and 8193b236's stream classifier.
 # Cut portions: cce0ab3a's headless/plugin launch and shared Cursor settings; ece80a35's cap, lock recovery, post-run stream state and plugin fallback; 98242c4f's plugin-pin branch.
 # Every cut commit is reachable from the snapshot ref archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts in archives/fork-cuts.bundle.
 # Recover a cut: git fetch archives/fork-cuts.bundle refs/heads/archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts && git cherry-pick <sha>
 # The bundle also retains the original eight archive/<sha>-<slug> branches; 59299234 and 8bd57783 remain cut.
 # Recover a PR 34 cut by its patch, never by checking out a whole file, which reverts the kept commits in that file: git revert 6373a197cc3e0ea04cc1026eeafd6afd27c8242d or git revert 9c86a2e092aa4ed54378289a5e3ede098c64e69b brings back those cuts; for a cut the merge made, git show 9ed8076692548e9cbeb9d90e28c4a5898d499cfd -- <path> > pr34.patch, keep only that portion's hunks, then git apply --3way pr34.patch
+# PR 25's pre-squash branch (b2216803) is archived as origin archive/fm-drift-nightly-b2216803 before origin/fm/fm-drift-nightly is deleted. Recover a PR 25 branch commit from that ref.
 # The earlier "Install-time proof" list in drift-measurements.txt predates these cuts and is superseded; do not reinstall its whole-commit approvals.
 # Alternate --proof inputs apply only to manual checks (bin/fm-drift-nightly.sh owns selection).
 # Guard and proof files have no automatic exemption; their complete patches must match this sequence.
-# Cutover on the PM's word: let existing Cursor launches finish, fast-forward /Users/dalecarman/dev/firstmate-upstream to the merged result, run its shipped proof check, then install the nightly check from that home, kickstart it once (launchctl kickstart gui/<uid>/dev.firstmate.drift-nightly), and read its log (~/Library/Logs/dev.firstmate.drift-nightly.log) and exit; config/crew-dispatch.json stays as it is.
-# Check back the day after the cutover: the log holds the scheduled 03:17 run with its exit, a red run left one Firstmate inbox note keyed fm-drift-nightly-<date>, and the main home's effective diff is measured against its accepted proof.
