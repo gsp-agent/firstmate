@@ -65,8 +65,6 @@
 # defaulting to 03:17 in the machine's local time, with --repo and --log only,
 # and appends its stdout and stderr to that log. install creates the log's
 # directory, because launchd does not.
-# A relative --repo is stored as an absolute path from install's working
-# directory, so scheduled checks do not depend on launchd's working directory.
 # install XML-escapes each string it writes and replaces the plist only after
 # plutil -lint accepts the new one; a rejected plist exits 2 before launchctl
 # runs, leaving the installed plist and job unchanged.
@@ -386,7 +384,6 @@ cmd_install() {
   done
   int_in_range "$hour" 23 || die "--hour must be 0 through 23"
   int_in_range "$minute" 59 || die "--minute must be 0 through 59"
-  case "$repo" in /*) ;; *) repo="$PWD/$repo" ;; esac
   [ -n "$log" ] || log=$(default_log)
   require_absolute_log "$log"
   local dir plist next lint uid bin

@@ -47,11 +47,6 @@
 # A separate per-home lock serializes relaunches of different mates, since each
 # fresh spawn owns the same task-set lock. The watcher uses its spawn timeout
 # as the lock-wait bound; an untimed sweep defaults to 600 seconds.
-# After that wait, recovery takes the task's control lock and probes again
-# before recording an attempt or killing an endpoint, so a manual relaunch
-# completed during the wait cannot leave a stale death verdict in force.
-# A busy control lock, changed task record, or no-longer-dead endpoint skips
-# recovery without recording an attempt.
 # The attempt ledger (.secondmate-relaunch-<id>, one line per attempt plus one
 # per outcome) is both the durable relaunch record and the input to the
 # watcher's relaunch bound; teardown removes it.
@@ -275,7 +270,7 @@ fm_secondmate_liveness_probe() {  # <meta> <id> <full|poll>
 # FM_SM_LIVE_STATUS=skipped with FM_SM_LIVE_REASON set and this returns 1.
 # Caller holds the liveness lock and owns reporting.
 fm_secondmate_liveness_relaunch() {  # <meta> <id> [timeout-secs]
-  local meta=$1 id=$2 timeout=${3:-} relaunch_lock control_lock wait_seconds rc=0
+  local meta=$1 id=$2 timeout=${3:-} relaunch_lock wait_seconds rc=0
   FM_SM_LIVE_OUT='' FM_SM_LIVE_RC=0
   if ! fm_secondmate_liveness_recent_attempts "$id" 0 >/dev/null; then
     FM_SM_LIVE_STATUS=skipped
@@ -292,30 +287,7 @@ fm_secondmate_liveness_relaunch() {  # <meta> <id> [timeout-secs]
     FM_SM_LIVE_RC=1
     return 1
   fi
-  control_lock="$STATE/.control-$id.lock"
-  if ! fm_lock_try_acquire "$control_lock"; then
-    fm_lock_release "$relaunch_lock" || true
-    FM_SM_LIVE_STATUS=skipped
-    FM_SM_LIVE_REASON="another lifecycle action is already running for task $id"
-    FM_SM_LIVE_RC=1
-    return 1
-  fi
-  if [ "$(fm_meta_get "$meta" kind)" = secondmate ]; then
-    fm_secondmate_liveness_probe "$meta" "$id" poll
-  else
-    FM_SM_LIVE_STATUS=skipped
-    FM_SM_LIVE_REASON="secondmate task record changed while waiting for relaunch"
-  fi
-  if [ "$FM_SM_LIVE_STATUS" != relaunchable ]; then
-    fm_lock_release "$control_lock" || true
-    fm_lock_release "$relaunch_lock" || true
-    FM_SM_LIVE_STATUS=skipped
-    FM_SM_LIVE_REASON="${FM_SM_LIVE_REASON:-endpoint revalidated as $FM_SM_LIVE_STATE; no relaunch needed}"
-    FM_SM_LIVE_RC=1
-    return 1
-  fi
   if ! fm_secondmate_liveness_ledger_add "$id" attempt; then
-    fm_lock_release "$control_lock" || true
     fm_lock_release "$relaunch_lock" || true
     FM_SM_LIVE_STATUS=skipped
     FM_SM_LIVE_REASON="relaunch ledger $STATE/.secondmate-relaunch-$id is unwritable; endpoint left $FM_SM_LIVE_STATE"
@@ -343,7 +315,6 @@ fm_secondmate_liveness_relaunch() {  # <meta> <id> [timeout-secs]
   else
     fm_secondmate_liveness_ledger_add "$id" failed || true
   fi
-  fm_lock_release "$control_lock" || true
   fm_lock_release "$relaunch_lock" || true
   return "$rc"
 }

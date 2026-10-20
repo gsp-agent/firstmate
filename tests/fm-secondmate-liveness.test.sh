@@ -373,7 +373,7 @@ test_sweep_respawns_confirmed_dead_secondmate() {
   assert_contains "$(cat "$log")" "kill-window -t =firstmate:=fm-sm1" \
     "the stale endpoint must be killed before respawn (tmux refuses a same-named window over a live one)"
   assert_contains "$(cat "$log")" "new-window" \
-    "a confirmed-dead secondmate should actually be relaunched: $out"
+    "a confirmed-dead secondmate should actually be relaunched"
   assert_grep 'relaunched' "$w/home/state/.secondmate-relaunch-sm1" \
     "the shared library did not leave the durable per-mate relaunch record"
   pass "sweep: a confirmed-dead secondmate endpoint is killed and respawned"
@@ -469,82 +469,6 @@ test_relaunch_waits_for_other_mates_relaunch_lock() {
     || fail "a relaunch blocked on another mate was counted as an attempt"
   [ ! -s "$log" ] || fail "a blocked relaunch touched the endpoint: $(cat "$log")"
   pass "relaunch: the spawn timeout bounds the lock wait before touching the endpoint"
-}
-
-test_relaunch_revalidates_after_waiting() {
-  local dir mode timeout holder out i
-  for mode in complete busy; do
-    for timeout in '' 5; do
-      dir=$(fm_test_tmproot "liveness-revalidate-$mode")
-      mkdir -p "$dir/state" "$dir/bin"
-      fm_write_meta "$dir/state/sm1.meta" kind=secondmate harness=claude backend=tmux window=firstmate:fm-sm1
-      cat > "$dir/bin/fm-spawn.sh" <<'SH'
-#!/usr/bin/env bash
-printf 'spawn\n' >> "$FM_LIVENESS_TEST_DIR/actions"
-SH
-      chmod +x "$dir/bin/fm-spawn.sh"
-      cat > "$dir/holder.sh" <<'SH'
-#!/usr/bin/env bash
-set -eu
-root=$1 dir=$2 mode=$3
-export STATE="$dir/state" FM_STATE_OVERRIDE="$dir/state" FM_HOME="$dir" FM_ROOT_OVERRIDE="$dir"
-. "$root/bin/fm-wake-lib.sh"
-fm_lock_try_acquire "$STATE/.secondmate-relaunch.lock"
-touch "$dir/holding"
-while [ ! -e "$dir/probed" ]; do sleep 0.02; done
-fm_lock_try_acquire "$STATE/.control-sm1.lock"
-meta_lock=$(fm_meta_lock_path "$STATE/sm1.meta")
-fm_lock_try_acquire "$meta_lock"
-printf 'kind=secondmate\nharness=claude\nbackend=tmux\nwindow=firstmate:fm-sm1-new\n' > "$STATE/sm1.meta.next"
-mv "$STATE/sm1.meta.next" "$STATE/sm1.meta"
-fm_lock_release "$meta_lock"
-if [ "$mode" = complete ]; then fm_lock_release "$STATE/.control-sm1.lock"; fi
-fm_lock_release "$STATE/.secondmate-relaunch.lock"
-if [ "$mode" = busy ]; then
-  while [ ! -e "$dir/finished" ]; do sleep 0.02; done
-  fm_lock_release "$STATE/.control-sm1.lock"
-fi
-SH
-      cat > "$dir/recover.sh" <<'SH'
-#!/usr/bin/env bash
-set -eu
-root=$1 dir=$2 timeout=${3:-}
-export STATE="$dir/state" FM_STATE_OVERRIDE="$dir/state" FM_HOME="$dir" FM_ROOT="$dir" FM_ROOT_OVERRIDE="$dir" FM_LIVENESS_TEST_DIR="$dir"
-. "$root/bin/fm-secondmate-liveness-lib.sh"
-fm_backend_agent_state() {
-  if [ "$2" = firstmate:fm-sm1 ]; then printf 'dead\n'; else printf 'alive\n'; fi
-}
-fm_backend_kill() { printf 'kill %s\n' "$*" >> "$dir/actions"; }
-fm_secondmate_liveness_lock sm1
-fm_secondmate_liveness_probe "$STATE/sm1.meta" sm1 poll
-[ "$FM_SM_LIVE_STATUS" = relaunchable ] && [ "$FM_SM_LIVE_KILL" = 1 ]
-touch "$dir/probed"
-rc=0
-fm_secondmate_liveness_relaunch "$STATE/sm1.meta" sm1 "$timeout" || rc=$?
-fm_secondmate_liveness_unlock sm1
-touch "$dir/finished"
-printf 'rc=%s status=%s reason=%s\n' "$rc" "$FM_SM_LIVE_STATUS" "$FM_SM_LIVE_REASON"
-SH
-      bash "$dir/holder.sh" "$ROOT" "$dir" "$mode" &
-      holder=$!
-      for ((i = 0; i < 200; i++)); do [ -e "$dir/holding" ] && break; sleep 0.02; done
-      assert_present "$dir/holding" "the other mate never acquired the relaunch lock"
-      out=$(bash "$dir/recover.sh" "$ROOT" "$dir" "$timeout") \
-        || fail "the stale-probe fixture failed"
-      wait "$holder" || fail "the lifecycle replacement fixture failed"
-      assert_contains "$out" "rc=1 status=skipped" "a recovered secondmate was relaunched using stale evidence"
-      if [ "$mode" = complete ]; then
-        assert_contains "$out" "endpoint revalidated as alive" "the replacement endpoint was not reprobed"
-      else
-        assert_contains "$out" "another lifecycle action" "recovery did not respect the existing control lock"
-      fi
-      assert_absent "$dir/actions" "a replacement endpoint was killed or duplicated"
-      assert_absent "$dir/state/.secondmate-relaunch-sm1" "a stale verdict recorded a relaunch attempt"
-      assert_absent "$dir/state/.control-sm1.lock" "revalidation left the control lock held"
-      assert_absent "$dir/state/.secondmate-relaunch.lock" "revalidation left the relaunch lock held"
-    done
-  done
-  pass "relaunch: timed and untimed recovery revalidate replacements after waiting under lifecycle serialization"
 }
 
 test_sweep_refuses_relaunch_on_ledger_errors() {
@@ -862,7 +786,6 @@ test_sweep_skipped_under_detect_only
 test_sweep_noop_with_no_secondmate_meta
 test_sweep_skips_mate_whose_liveness_lock_is_held
 test_relaunch_waits_for_other_mates_relaunch_lock
-test_relaunch_revalidates_after_waiting
 test_sweep_refuses_relaunch_on_ledger_errors
 test_remote_poll_probe_maps_states
 test_remote_poll_probe_unreachable_preserves_route
