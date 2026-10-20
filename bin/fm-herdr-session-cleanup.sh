@@ -75,6 +75,22 @@ fm_herdr_cleanup_read_journal() {
   fi
 }
 
+fm_herdr_cleanup_read_unique_journal() { # <journal> <id> <session> <home-real> <title> <token>
+  local journal=$1 id=$2 session=$3 home_real=$4 title=$5 token=$6 other other_id
+  [ -d "$STATE" ] && [ ! -L "$STATE" ] || return 1
+  # Recheck possible title collisions without resnapshotting unrelated journals.
+  for other in "$STATE"/*"$FM_BACKEND_HERDR_PRESENTATION_JOURNAL_SUFFIX"; do
+    [ "$other" != "$journal" ] || continue
+    [ -f "$other" ] && [ ! -L "$other" ] || continue
+    other_id=$(basename "$other" "$FM_BACKEND_HERDR_PRESENTATION_JOURNAL_SUFFIX")
+    fm_task_id_creation_valid "$other_id" || continue
+    [ "$(fm_backend_herdr_projection_workspace_label "$other_id" "$token")" = "$title" ] || continue
+    fm_herdr_cleanup_read_journal "$other" "$other_id" "$session" "$home_real" || continue
+    [ "$FM_BACKEND_HERDR_JOURNAL_PROJECTION_ID" != "$token" ] || return 1
+  done
+  fm_herdr_cleanup_read_journal "$journal" "$id" "$session" "$home_real"
+}
+
 fm_herdr_cleanup_build_index() { # <session> <home-real>
   local session=$1 home_real=$2 journal id expected tmp
   FM_HERDR_CLEANUP_INDEX=
@@ -137,7 +153,7 @@ fm_herdr_cleanup_revalidate() { # <session> <workspace> <tab> <pane> <title> <to
   local journal=$8 id=$9 version=${10} bound_workspace=${11} bound_tab=${12} bound_pane=${13}
   local workspaces workspace_info tabs panes focus
   [ ! -e "$STATE/$id.meta" ] && [ ! -L "$STATE/$id.meta" ] || return 1
-  fm_herdr_cleanup_read_journal "$journal" "$id" "$session" "$home_real" || return 1
+  fm_herdr_cleanup_read_unique_journal "$journal" "$id" "$session" "$home_real" "$title" "$token" || return 1
   [ "$FM_BACKEND_HERDR_JOURNAL_PROJECTION_ID" = "$token" ] \
     && [ "$FM_BACKEND_HERDR_JOURNAL_VERSION" = "$version" ] \
     && [ "$FM_BACKEND_HERDR_JOURNAL_WORKSPACE_ID" = "$bound_workspace" ] \
@@ -183,7 +199,7 @@ fm_herdr_cleanup_one() { # <session> <workspace> <title> <home-real> <journal> <
   local version bound_workspace bound_tab bound_pane presentation_lock snapshot
   local tab pane state close_status=0
   [ "$(fm_herdr_cleanup_title_token "$title")" = "$token" ] || return 0
-  fm_herdr_cleanup_read_journal "$journal" "$id" "$session" "$home_real" || return 0
+  fm_herdr_cleanup_read_unique_journal "$journal" "$id" "$session" "$home_real" "$title" "$token" || return 0
   [ "$FM_BACKEND_HERDR_JOURNAL_PROJECTION_ID" = "$token" ] || return 0
   version=$FM_BACKEND_HERDR_JOURNAL_VERSION
   bound_workspace=$FM_BACKEND_HERDR_JOURNAL_WORKSPACE_ID
@@ -245,7 +261,7 @@ fm_herdr_cleanup_one() { # <session> <workspace> <title> <home-real> <journal> <
   state=$(fm_backend_herdr_pane_agent_state "$session" "$pane")
   if [ "$state" = dead ]; then
     if [ -f "$journal" ] && [ ! -L "$journal" ] \
-      && fm_herdr_cleanup_read_journal "$journal" "$id" "$session" "$home_real" \
+      && fm_herdr_cleanup_read_unique_journal "$journal" "$id" "$session" "$home_real" "$title" "$token" \
       && [ "$FM_BACKEND_HERDR_JOURNAL_PROJECTION_ID" = "$token" ] \
       && [ "$FM_BACKEND_HERDR_JOURNAL_VERSION" = "$version" ] \
       && [ "$FM_BACKEND_HERDR_JOURNAL_WORKSPACE_ID" = "$bound_workspace" ] \

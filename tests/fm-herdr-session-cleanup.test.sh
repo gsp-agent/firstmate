@@ -170,6 +170,9 @@ fm_backend_herdr_cli() {
       ;;
     "api snapshot")
       : > "$FIXTURE_DIR/snapshotted"
+      if [ -e "$FIXTURE_DIR/late-duplicate-journal" ]; then
+        write_v1 fm-task
+      fi
       printf '{"result":{"snapshot":{"focused_workspace_id":"w1","focused_tab_id":"%s","focused_pane_id":"w1:p1","workspaces":' "$(cat "$FIXTURE_DIR/active-tab")"
       fixture_workspaces
       printf ',"tabs":'; fixture_tabs
@@ -279,6 +282,8 @@ reset_fixture; : > "$FIXTURE_DIR/process-unsafe"; assert_preserved "child proces
 reset_fixture; : > "$FIXTURE_DIR/error-api-snapshot"; assert_preserved "unreadable snapshot"
 reset_fixture; : > "$FIXTURE_DIR/error-workspace-get"; assert_preserved "unreadable topology check"
 reset_fixture; : > "$FIXTURE_DIR/race"; assert_preserved "revalidation race"
+reset_fixture; : > "$FIXTURE_DIR/late-duplicate-journal"; assert_preserved "matching journal added after discovery"
+[ -f "$FM_STATE_OVERRIDE/fm-task.herdr-presentation" ] || fail "late duplicate journal was not preserved"
 reset_fixture; printf '%s\n' "$TAB" > "$FIXTURE_DIR/active-tab"; assert_preserved "active target"
 reset_fixture; : > "$FIXTURE_DIR/focus-refuse"; assert_preserved "focus refusal"
 
