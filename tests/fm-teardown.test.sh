@@ -6181,6 +6181,69 @@ SH
   pass "fm-teardown: archived unread beads retain the whole folder through prepare, stage and expiry"
 }
 
+test_task_data_archived_bead_id_collision() {
+  local case_dir task record location action complete variant args=()
+  for action in expire prepare stage; do
+    for complete in true false; do
+      for variant in new saved optional; do
+        case_dir=$(make_case "task-data-archived-collision-$action-$complete-$variant")
+        task="$case_dir/data/task-x1"
+        location="$task"
+        [ "$complete" != true ] || location="$task/.cleanup-hold"
+        mkdir -p "$location" "$task/record" "$case_dir/history" "$case_dir/projects/demo"
+        printf 'bead evidence\n' > "$location/proof.png"
+        printf 'scratch\n' > "$location/scratch.bin"
+        cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+        printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+        printf '## Archived 2026-10-11\n- [x] task-x1 - finished (repo: demo) (done 2026-10-11)\n  Bead task-x1\n' \
+          > "$case_dir/history/completed.md"
+        record="$task/record/data-cleanup.json"
+        jq -n --arg project "$case_dir/projects/demo" --arg data "$case_dir/data" \
+          --arg variant "$variant" --argjson complete "$complete" \
+          '{version: 1, task: "task-x1", complete: $complete, expired: false,
+            sources: [{project: $project, pr: "",
+              beads: (if $variant == "new" then [] else ["task-x1"] end),
+              backlog: {data: $data, task: (if $variant == "optional" then null else "task-x1" end)}}]}' \
+          > "$record"
+        printf '#!/usr/bin/env bash\nexit 1\n' > "$case_dir/fakebin/br"
+        printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
+        chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+        args=()
+        [ "$action" != stage ] || args=("$case_dir/projects/demo" '')
+        PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" "$action" \
+          "$case_dir/data" "$case_dir/state" task-x1 ${args[@]+"${args[@]}"} \
+          > "$case_dir/unread.out" 2> "$case_dir/unread.err" || true
+        assert_present "$location/proof.png" "$action lost evidence for an unread bead sharing the archived task id ($complete/$variant)"
+        assert_present "$location/scratch.bin" "$action moved scratch with an unread bead sharing the archived task id ($complete/$variant)"
+        if [ "$complete" = false ]; then
+          assert_absent "$task/.cleanup-hold" "$action staged data with an unread bead sharing the archived task id ($variant)"
+        fi
+        jq -e --argjson complete "$complete" \
+          '.complete == $complete and .expired == false and .sources[0].beads == ["task-x1"] and .sources[0].unread == ["task-x1"]' \
+          "$record" >/dev/null || fail "$action cleared the colliding bead failure ($complete/$variant): $(cat "$record")"
+        cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+printf '[{"id":"task-x1","description":"[capture](proof.png)"}]\n'
+SH
+        PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire \
+          "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/retry.out" 2> "$case_dir/retry.err" \
+          || fail "expiry failed after the colliding bead recovered ($action/$complete/$variant): $(cat "$case_dir/retry.err")"
+        assert_present "$task/proof.png" "expiry lost evidence after the colliding bead recovered ($action/$complete/$variant)"
+        assert_absent "$task/scratch.bin" "scratch stayed after the colliding bead recovered ($action/$complete/$variant)"
+        assert_absent "$task/.cleanup-hold" "the recovered colliding bead left its hold unexpired ($action/$complete/$variant)"
+        jq -e '.expired == true and .sources[0].unread == []' "$record" >/dev/null \
+          || fail "expiry kept a stale colliding bead failure ($action/$complete/$variant): $(cat "$record")"
+      done
+    done
+  done
+  pass "fm-teardown: archived task ids never suppress unread beads with the same id, including saved references and staged holds"
+}
+
 test_task_data_unread_named_once() {
   local case_dir record
   case_dir=$(make_case task-data-unread-once)
@@ -8219,6 +8282,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-named-beads ]; then
 fi
 
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
+  test_task_data_archived_bead_id_collision
   test_task_data_bead_id_filter
   test_task_data_archived_row_reference
   test_task_data_archived_unread_bead
@@ -8230,6 +8294,7 @@ fi
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-review ]; then
   test_task_data_archived_row_reference
   test_task_data_archived_unread_bead
+  test_task_data_archived_bead_id_collision
   test_task_data_oversized_kept_evidence
   test_task_data_stage_stops_at_its_limit
   test_task_data_stage_limit_bounds_reference_reads
@@ -8297,6 +8362,7 @@ test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
 test_task_data_bead_id_filter
 test_task_data_archived_row_reference
 test_task_data_archived_unread_bead
+test_task_data_archived_bead_id_collision
 test_task_data_unread_named_once
 test_task_data_unread_status_failure_retries
 test_task_data_sweep_expires_big_hold

@@ -410,13 +410,10 @@ def backlog_references(source, task_id, limit=None):
             if (completed["project"], completed["pr"]) != (source["project"], source["pr"]):
                 raise RetainWhole(f"completed row {task_id} changed project or PR")
             archived_text = completed["text"]
-            beads = sorted(set(source["beads"]) | set(completed["beads"]))
-            if beads != source["beads"]:
-                source["beads"] = beads
-                response = read_backlog(False)
-                source["unread"] = response["unread"]
-            if task_id in source["unread"]:
-                source["unread"].remove(task_id)
+            source["unread"].remove(task_id)
+            source["beads"] = sorted(set(source["beads"]) | set(completed["beads"]))
+            response = read_backlog(False)
+            source["unread"] = response["unread"]
     if source["unread"]:
         raise UnreadReferences(f"unread references: {', '.join(source['unread'])}")
     return legacy_text + "\n" + archived_text + "\n" + response["text"]
