@@ -374,23 +374,27 @@ def backlog_references(source, task_id, limit=None):
         backlog["refreshed_text"] = completed["text"]
         source["beads"] = sorted(set(source["beads"]) | set(completed["beads"]))
     legacy_text = backlog["text"] + "\n" + backlog.get("refreshed_text", "") if legacy else ""
-    try:
-        response = json.loads(read_command([
-            "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
-            "backlog-references", backlog["data"], task_id,
-            "1" if backlog["task"] is not None and not legacy else "0", source["project"], *source["beads"],
-        ], str(Path(backlog["data"]).parent), limit))
-        if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
-                or response.get("task") not in (None, task_id)
-                or (backlog["task"] is not None and not legacy and response.get("task") != task_id)
-                or not isinstance(response.get("unread"), list)
-                or any(not isinstance(item, str) for item in response["unread"])):
-            raise ValueError("invalid backlog reference response")
-    except StageLimit:
-        raise
-    except (OSError, ValueError, subprocess.SubprocessError) as error:
-        source["unread"] = sorted(set([task_id, *source["beads"]]))
-        raise UnreadReferences(f"unread references {', '.join(source['unread'])}: {error}") from error
+    def read_backlog(required):
+        try:
+            response = json.loads(read_command([
+                "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
+                "backlog-references", backlog["data"], task_id,
+                "1" if required else "0", source["project"], *source["beads"],
+            ], str(Path(backlog["data"]).parent), limit))
+            if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
+                    or response.get("task") not in (None, task_id)
+                    or (required and response.get("task") != task_id)
+                    or not isinstance(response.get("unread"), list)
+                    or any(not isinstance(item, str) for item in response["unread"])):
+                raise ValueError("invalid backlog reference response")
+            return response
+        except StageLimit:
+            raise
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            source["unread"] = sorted(set([task_id, *source["beads"]]))
+            raise UnreadReferences(f"unread references {', '.join(source['unread'])}: {error}") from error
+
+    response = read_backlog(backlog["task"] is not None and not legacy)
     if not legacy:
         backlog["task"] = response["task"]
     source["unread"] = response["unread"]
@@ -406,7 +410,13 @@ def backlog_references(source, task_id, limit=None):
             if (completed["project"], completed["pr"]) != (source["project"], source["pr"]):
                 raise RetainWhole(f"completed row {task_id} changed project or PR")
             archived_text = completed["text"]
-            source["unread"].remove(task_id)
+            beads = sorted(set(source["beads"]) | set(completed["beads"]))
+            if beads != source["beads"]:
+                source["beads"] = beads
+                response = read_backlog(False)
+                source["unread"] = response["unread"]
+            if task_id in source["unread"]:
+                source["unread"].remove(task_id)
     if source["unread"]:
         raise UnreadReferences(f"unread references: {', '.join(source['unread'])}")
     return legacy_text + "\n" + archived_text + "\n" + response["text"]

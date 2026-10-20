@@ -384,6 +384,7 @@ cmd_install() {
   done
   int_in_range "$hour" 23 || die "--hour must be 0 through 23"
   int_in_range "$minute" 59 || die "--minute must be 0 through 59"
+  case "$repo" in /*) ;; *) repo="$PWD/$repo" ;; esac
   [ -n "$log" ] || log=$(default_log)
   require_absolute_log "$log"
   local dir plist next lint uid bin

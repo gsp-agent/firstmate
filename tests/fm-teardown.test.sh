@@ -100,6 +100,8 @@ export REAL_LSOF_FOR_TEST
 # Tests about the limit set their own value, which overrides this one.
 FM_TEARDOWN_DATA_STAGE_TIMEOUT=${FM_TEARDOWN_DATA_STAGE_TIMEOUT:-600}
 export FM_TEARDOWN_DATA_STAGE_TIMEOUT
+FM_TASK_DATA_SWEEP=off
+export FM_TASK_DATA_SWEEP
 
 # Build a fresh sandbox for one test case. Sets up:
 #   $CASE/state/        - firstmate state dir (with a fresh watcher beacon)
@@ -5411,6 +5413,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-refs ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-sweep ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-requester ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-review ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-ordering ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
@@ -6089,6 +6092,7 @@ test_task_data_archived_row_reference() {
   task="$case_dir/data/task-x1"
   mkdir -p "$task" "$case_dir/projects/demo" "$case_dir/history"
   printf 'row evidence\n' > "$task/row.png"
+  printf 'bead evidence\n' > "$task/proof.png"
   printf 'scratch\n' > "$task/discard.bin"
   cat > "$case_dir/.tasks.toml" <<'TOML'
 backend = "markdown"
@@ -6101,6 +6105,7 @@ TOML
 ## Archived 2026-10-11
 - [x] task-x1 - finished (repo: demo) (done 2026-10-11)
   [capture](row.png)
+  Bead proof-related
 MD
   mkdir -p "$task/record"
   jq -n --arg project "$case_dir/projects/demo" --arg data "$case_dir/data" \
@@ -6112,16 +6117,68 @@ MD
 #!/usr/bin/env bash
 cat >/dev/null
 SH
-  chmod +x "$case_dir/fakebin/dcg"
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+SH
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/br"
   PATH="$case_dir/fakebin:$PATH" \
     bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" task-x1 \
     > "$case_dir/out" 2> "$case_dir/err" \
     || fail "expiry with an archived task row failed: $(cat "$case_dir/err")"
   assert_present "$task/row.png" "the archived row's linked evidence was removed"
+  assert_present "$task/proof.png" "the archived row's bead-linked evidence was removed"
   assert_absent "$task/discard.bin" "scratch stayed after the archived row resolved"
-  jq -e '.expired == true' "$record" >/dev/null \
+  jq -e '.expired == true and .sources[0].beads == ["proof-related"]' "$record" >/dev/null \
     || fail "the archived-row hold did not expire: $(cat "$record")"
   pass "fm-teardown: a finished task whose row moved to the archive still resolves its references"
+}
+
+test_task_data_archived_unread_bead() {
+  local case_dir task record action args=()
+  case_dir=$(make_case task-data-archived-unread-bead)
+  task="$case_dir/data/task-x1"
+  mkdir -p "$task/record" "$case_dir/history" "$case_dir/projects/demo"
+  printf 'bead evidence\n' > "$task/proof.png"
+  printf 'scratch\n' > "$task/scratch.bin"
+  cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+  printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+  printf '## Archived 2026-10-11\n- [x] task-x1 - finished (repo: demo) (done 2026-10-11)\n  Bead proof-related\n' \
+    > "$case_dir/history/completed.md"
+  record="$task/record/data-cleanup.json"
+  jq -n --arg project "$case_dir/projects/demo" --arg data "$case_dir/data" \
+    '{version: 1, task: "task-x1", complete: false, expired: false,
+      sources: [{project: $project, pr: "", beads: [], backlog: {data: $data, task: "task-x1"}}]}' > "$record"
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$case_dir/fakebin/br"
+  printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
+  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  for action in prepare stage expire; do
+    args=()
+    [ "$action" != stage ] || args=("$case_dir/projects/demo" '')
+    PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" "$action" \
+      "$case_dir/data" "$case_dir/state" task-x1 ${args[@]+"${args[@]}"} \
+      > "$case_dir/$action.out" 2> "$case_dir/$action.err" || true
+    assert_present "$task/proof.png" "$action removed unread bead evidence from an archived row"
+    assert_present "$task/scratch.bin" "$action moved scratch before reading the archived row's bead"
+    assert_absent "$task/.cleanup-hold" "$action staged an unread archived-row reference"
+    jq -e '.complete == false and .sources[0].beads == ["proof-related"] and .sources[0].unread == ["proof-related"]' \
+      "$record" >/dev/null || fail "$action lost the archived row's unread bead: $(cat "$record")"
+  done
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+SH
+  PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire \
+    "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/retry.out" 2> "$case_dir/retry.err" \
+    || fail "the archived bead did not recover: $(cat "$case_dir/retry.err")"
+  assert_present "$task/proof.png" "expiry lost the recovered archived bead's evidence"
+  assert_absent "$task/scratch.bin" "scratch stayed after the archived bead recovered"
+  pass "fm-teardown: archived unread beads retain the whole folder through prepare, stage and expiry"
 }
 
 test_task_data_unread_named_once() {
@@ -6204,7 +6261,7 @@ SH
     assert_present "$case_dir/data/aa-unread/.cleanup-hold/scratch.bin" \
       "the failed $variant status append lost held data"
     mv "$case_dir/state/aa-unread.status" "$case_dir/blocked-status"
-    PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
+    FM_TASK_DATA_SWEEP=on PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
       "$case_dir/data" "$case_dir/state" ${args[@]+"${args[@]}"}
     sweep_pid=$!
     wait "$sweep_pid" || fail "the $variant background sweep failed"
@@ -6212,7 +6269,7 @@ SH
       "the background sweep lost the $variant warning with its discarded output"
     jq -e --arg reference "$reference" '.unread_named == [$reference]' "$record" >/dev/null \
       || fail "the delivered $variant reference was not marked reported: $(cat "$record")"
-    PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
+    FM_TASK_DATA_SWEEP=on PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
       "$case_dir/data" "$case_dir/state" ${args[@]+"${args[@]}"}
     sweep_pid=$!
     wait "$sweep_pid" || fail "the repeated $variant background sweep failed"
@@ -6252,7 +6309,7 @@ SH
   chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
-  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=2 run_teardown "$case_dir" \
+  FM_TASK_DATA_SWEEP=on FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=2 run_teardown "$case_dir" \
     > "$case_dir/out" 2> "$case_dir/err" || fail "teardown with a big hold failed: $(cat "$case_dir/err")"
   assert_contains "$(cat "$case_dir/err")" "expiry stopped after its one full 2s attempt" \
     "teardown did not promote the cut-off hold to too-large"
@@ -6363,7 +6420,7 @@ SH
   seed_backlog_in_flight "$case_dir"
   mkdir -p "$case_dir/data/task-x1"
   printf 'B fresh recovery\n' > "$case_dir/data/task-x1/fresh.bin"
-  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=1 run_teardown "$case_dir" \
+  FM_TASK_DATA_SWEEP=on FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=1 run_teardown "$case_dir" \
     > "$case_dir/teardown.out" 2> "$case_dir/teardown.err" \
     || fail "B's teardown failed: $(cat "$case_dir/teardown.err")"
   assert_contains "$(cat "$case_dir/teardown.err")" "task data task-a1 expiry stopped after" \
@@ -8164,8 +8221,23 @@ fi
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
   test_task_data_bead_id_filter
   test_task_data_archived_row_reference
+  test_task_data_archived_unread_bead
   test_task_data_unread_named_once
   test_task_data_unread_status_failure_retries
+  exit 0
+fi
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-review ]; then
+  test_task_data_archived_row_reference
+  test_task_data_archived_unread_bead
+  test_task_data_oversized_kept_evidence
+  test_task_data_stage_stops_at_its_limit
+  test_task_data_stage_limit_bounds_reference_reads
+  test_task_data_slow_expire_releases_locks
+  test_task_data_full_attempt_uses_its_own_limit
+  test_task_data_sweep_expires_big_hold
+  test_task_data_sweep_single_instance
+  test_task_data_sweep_requester_recovery
   exit 0
 fi
 
@@ -8224,6 +8296,7 @@ test_task_data_by_hand_expiry_finishes_an_unstaged_hold
 test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
 test_task_data_bead_id_filter
 test_task_data_archived_row_reference
+test_task_data_archived_unread_bead
 test_task_data_unread_named_once
 test_task_data_unread_status_failure_retries
 test_task_data_sweep_expires_big_hold
