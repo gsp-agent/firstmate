@@ -273,7 +273,8 @@
 #   rules use profiles; docs/configuration.md "Crew dispatch profiles" owns that
 #   enumeration), or the spawn refuses before any worktree or endpoint exists and
 #   prints the file pair or pairs for that harness. Raw commands for a harness
-#   the file names refuse and require the canonical harness/profile launch form.
+#   the file names refuse. A rung skip uses the canonical --harness, --model,
+#   and --effort launch form.
 #   A harness the file never names and a --secondmate spawn are exempt. A relaunch
 #   whose recorded pair matches no profile for its harness adopts the file pair
 #   when the file names exactly one pair for that harness and records it; when
@@ -2423,9 +2424,10 @@ EOF
 # enforce_dispatch_profile: the pair half of the consultation backstop.
 # Fresh crew and scout spawns must land on a pair the dispatch file names
 # for the resolved harness. A relaunch adopts the file pair when the file
-# names exactly one pair for its harness. Raw commands for a named harness
-# require the canonical harness/profile launch form. Exempt: no dispatch
-# file, a harness the file never names, and secondmates.
+# names exactly one pair for its harness. A rung skip uses the canonical
+# --harness, --model, and --effort launch form. Raw commands for a named
+# harness refuse. Exempt: no dispatch file, a harness the file never
+# names, and secondmates.
 enforce_dispatch_profile() {
   local pairs pretty pair model effort eff_model eff_effort count
   [ "$KIND" != secondmate ] || return 0
