@@ -470,6 +470,35 @@ EOF
   pass "backlog normalization preserves strict roles and resolves every blocker compatibly"
 }
 
+test_archived_blocker_resolves() {
+  local home fakebin out
+  command -v tasks-axi >/dev/null 2>&1 || fail "tasks-axi is required for the archived-blocker regression"
+  home=$(make_home archived-blocker)
+  fm_test_tasks_toml "$home/.tasks.toml"
+  (
+    export FM_HOME="$home"
+    tasks="$ROOT/bin/fm-tasks-axi.sh"
+    "$tasks" add shipped "Shipped work" --kind ship --repo alpha \
+      && "$tasks" add queued-dep "Queued dependency" --kind ship --repo alpha \
+      && "$tasks" add flight-dep "In-flight dependency" --kind ship --repo alpha \
+      && "$tasks" start flight-dep \
+      && "$tasks" add gated "Gated work" --kind ship --repo alpha \
+        --blocked-by shipped --blocked-by queued-dep --blocked-by flight-dep \
+      && "$tasks" "done" shipped --keep 0
+  ) >/dev/null || fail "could not build the archived-blocker backlog through tasks-axi"
+  assert_grep "- [x] shipped - " "$home/data/done-archive.md" "completing the blocker did not archive it"
+  assert_no_grep "shipped - " "$home/data/backlog.md" "the archived blocker is still in the backlog"
+
+  fakebin=$(make_fakebin "$home")
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --json)
+  printf '%s' "$out" | jq -e '
+    .backlog.records[] | select(.id == "gated")
+    | .blocked_by_ids == ["shipped", "queued-dep", "flight-dep"]
+      and .unresolved_blocker_ids == ["queued-dep", "flight-dep"]
+  ' >/dev/null || fail "an archived blocker must resolve while queued and in-flight blockers stay open: $out"
+  pass "a blocker archived to done-archive.md resolves; queued and in-flight blockers stay unresolved"
+}
+
 test_event_hints_follow_reconciled_current_state() {
   local home fakebin out hint_gen
   home=$(make_home event-hints)
@@ -1159,6 +1188,7 @@ test_undated_captain_hold_phrasing_and_aging
 test_hold_buckets_are_total_and_text_blind
 test_main_inventory_orphan_and_unstructured_disclosure
 test_normalized_roles_and_plural_blocker_readiness
+test_archived_blocker_resolves
 test_event_hints_follow_reconciled_current_state
 test_open_decision_survives_later_unrelated_event
 test_secondmate_open_decision_survives_live_endpoint
