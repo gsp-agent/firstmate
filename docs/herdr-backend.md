@@ -550,7 +550,7 @@ Typed-plane text is typed once; only Enter is retried.
 When native `agent get` identity is Claude, the adapter types only into an empty composer.
 A Claude composer that already holds text, or cannot be read, before the send is refused with nothing typed.
 Before that Enter, the adapter continues only when the selected composer shows the typed payload, or only Claude paste placeholders with no literal remainder.
-Every Herdr adapter composer read (`fm_backend_herdr_composer_state`, `fm_backend_herdr_composer_content`) captures the current screen, independent of the user's scroll position, whenever `pane get` reports `scroll`.
+Every Herdr adapter composer read (`fm_backend_herdr_composer_state`, `fm_backend_herdr_composer_content`) chooses between the visible viewport and a viewport-height recent capture using `pane get`'s scroll metadata.
 When `scroll.offset_from_bottom` is 0, both reads use the visible viewport, which is then exactly the current screen.
 A pane that reports no `scroll`, as Herdr 0.7.1 (protocol 14) does, reads the visible viewport as before scroll support, so a scrolled Herdr 0.7.1 pane remains scroll-blind.
 When the pane is scrolled, the visible viewport shows old chat, so both reads take `recent` rows trimmed to `scroll.viewport_rows`.

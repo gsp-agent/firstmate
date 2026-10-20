@@ -414,6 +414,12 @@ test_changed_dependency_selection_and_unmapped_failure() {
   git -C "$repo" add bin/fm-timeout-lib.sh
   git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm timeout-lib-change
 
+  printf 'max_trees = 24\nroot = ""\n' >"$repo/treehouse.toml"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  [ -z "$listed" ] || fail "treehouse pool config selected tests: $listed"
+  git -C "$repo" add treehouse.toml
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm treehouse-config-change
+
   printf '\n' >>"$repo/src/unmapped.ts"
   set +e
   (cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD) >"$tmp/out" 2>"$tmp/err"
