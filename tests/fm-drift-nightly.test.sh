@@ -753,7 +753,7 @@ test_install_relative_repo_survives_cwd_change() {
     "$SCRIPT" install --repo . --log "$dir/drift.log" 2>&1) || rc=$?
   expect_code 0 "$rc" "install with a relative repository exits 0: $out"
   FM_HOME="$dir/home" FM_STATE_OVERRIDE="$dir/home/state" FM_DATA_OVERRIDE="$dir/home/data" \
-    python3 -I - "$plist" "$dir/elsewhere" "$dir/repo" <<'PY'
+    python3 -I - "$plist" "$dir/elsewhere" "$dir/repo" <<'PY' || fail "the installed job inspected the wrong repository from a different working directory"
 import os
 import plistlib
 import subprocess
@@ -768,7 +768,6 @@ result = subprocess.run(args, cwd=sys.argv[2], capture_output=True, text=True)
 assert result.returncode == 0, result.stdout + result.stderr
 assert "exit: 0" in result.stdout, result.stdout
 PY
-  [ "$?" = 0 ] || fail "the installed job inspected the wrong repository from a different working directory"
   pass "install resolves relative repository arguments before scheduling the job"
 }
 
