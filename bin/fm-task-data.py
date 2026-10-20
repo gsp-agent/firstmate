@@ -46,16 +46,17 @@ before the owning Firstmate backlog.
 These br reads clear BEADS_DIR, BEADS_DB, and BR_DB so inherited addressing
 cannot select a different database.
 Only strings shaped like real bead ids count as bead references, in new
-text and in saved cleanup records: a leading letter (after an optional dot),
-then hyphen-separated lowercase segments, so dates and word fragments never
-become beads.
+text and in saved cleanup records: an optional leading dot, a lowercase
+alphanumeric prefix of at least two characters starting with a letter, one or
+more hyphen-separated lowercase alphanumeric segments, and optional numeric
+child suffixes such as .1. Dates do not qualify.
 A finished task whose required backlog row moved to the configured archive
-resolves that row from the completed rows, under the same project and PR
-identity check as the legacy refresh.
+resolves that row and its named beads from the completed rows, under the same
+project and PR identity check as the legacy refresh.
 Unread task or bead ids appear in each source's unread list in
-record/data-cleanup.json and are named in one warning; expiry appends that
-warning to the task's status before marking the unread set reported, so it
-is not named again on later passes, and prepare still permits the backlog close.
+record/data-cleanup.json. Expiry appends a warning to the task's status before
+marking that unread set reported, so later expiry passes do not repeat it.
+Prepare and stage still print their own warnings; prepare permits the backlog close.
 Stage and expiry retain all data without moving or deleting it while any
 reference is unreadable; the next successful teardown of a different task retries.
 Stage runs under the task's locks, so its evidence and reference reads and its
@@ -88,23 +89,23 @@ the rest of the hold in place, and mark sets expiry "cut-off" in its record.
 The next teardown that reaches it gives it one full attempt of exactly
 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT seconds (default 60), whatever remains of
 the budget.
-If that attempt is cut off too, mark sets expiry "too-large": later teardowns
-skip the hold, keep what remains of it, and name it in a warning each time so
+If that attempt is cut off too, mark sets expiry "too-large": later foreground
+expiry passes skip the hold, keep what remains, and name it in a warning so
 it can be expired by hand with `bash fm-task-data-lib.sh expire DATA STATE ID`,
 which takes the task's meta lock and refuses a live task.
-After releasing its locks, teardown also starts one single-instance
-background sweep that drains pending holds the same way with no expiry
-budget, excluding the starting task's own fresh hold and including holds marked
-too-large.
-That command stages a never-staged hold and expires it in the same run, so
-its scratch gets no recovery cycle, and it exits non-zero naming a hold it
+By-hand expiry stages an incomplete record and expires it in the same run,
+so its scratch gets no recovery cycle; it exits non-zero naming a hold it
 leaves unexpired.
+After releasing its locks, teardown also starts one single-instance
+background sweep that uses by-hand expiry for pending holds with no foreground
+expiry budget, including holds marked too-large.
+fm-task-data-lib.sh owns sweep invocation, locking, and requester handling.
 Prepare, stage and expire clear a cut-off mark at their first record write; a
 too-large mark stays until expiry finishes.
 The holds the budget never reached are named in one warning.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.
-An interrupted move resumes at the next cycle and receives a full new cycle.
+Foreground expiry resumes an interrupted move with a full new recovery cycle.
 Repeated staging never expires its own hold. Active task ids are skipped.
 Reusing a finished id retains the reference sources of its earlier recovery.
 

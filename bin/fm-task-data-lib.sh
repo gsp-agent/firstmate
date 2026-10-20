@@ -7,6 +7,14 @@
 # single-instance lock and each task's own meta lock; it holds no home-wide
 # lease. Teardown starts it in the background after releasing its own locks,
 # and FM_TASK_DATA_SWEEP=off suppresses that start.
+# Usage: bash fm-task-data-lib.sh expire DATA STATE ID
+#        bash fm-task-data-lib.sh sweep DATA STATE [REQUESTING_ID]
+# A sweep request atomically replaces STATE/.task-data-sweep.rerun with the
+# requesting completion's id; an active sweep takes another pass when that
+# request changes. Each pass excludes its snapshotted requester, and each
+# locked expiry rechecks the latest requester before touching a hold, so that
+# requester's fresh recovery is protected. Omit REQUESTING_ID for an
+# explicit sweep with no fresh recovery to exclude.
 
 fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
   local data=$1 state=$2 id=$3 project=$4 pr=$5 helper
@@ -142,10 +150,9 @@ fm_task_data_expire_by_hand() { # <data> <state> <id> [request]
 }
 
 # Drain every pending hold once, least recently tried first, with no expiry
-# budget, including holds marked too large. A held meta
-# lock or a live task refuses inside the by-hand expiry and stays held. The
-# hold a teardown just staged for its own task keeps its recovery cycle, so
-# the requesting teardown's id is excluded.
+# budget, including holds marked too large. A held meta lock or a live task
+# refuses inside the by-hand expiry and stays held. Requester exclusions are
+# owned by this file's header.
 fm_task_data_sweep() { # <data> <state>
   local data=$1 state=$2 exclude helper lock rerun snapshot listed other _expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"

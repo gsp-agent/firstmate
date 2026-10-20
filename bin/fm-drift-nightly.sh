@@ -65,6 +65,8 @@
 # defaulting to 03:17 in the machine's local time, with --repo and --log only,
 # and appends its stdout and stderr to that log. install creates the log's
 # directory, because launchd does not.
+# A relative --repo is stored as an absolute path from install's working
+# directory, so scheduled checks do not depend on launchd's working directory.
 # install XML-escapes each string it writes and replaces the plist only after
 # plutil -lint accepts the new one; a rejected plist exits 2 before launchctl
 # runs, leaving the installed plist and job unchanged.

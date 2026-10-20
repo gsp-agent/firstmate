@@ -47,6 +47,11 @@
 # A separate per-home lock serializes relaunches of different mates, since each
 # fresh spawn owns the same task-set lock. The watcher uses its spawn timeout
 # as the lock-wait bound; an untimed sweep defaults to 600 seconds.
+# After that wait, recovery takes the task's control lock and probes again
+# before recording an attempt or killing an endpoint, so a manual relaunch
+# completed during the wait cannot leave a stale death verdict in force.
+# A busy control lock, changed task record, or no-longer-dead endpoint skips
+# recovery without recording an attempt.
 # The attempt ledger (.secondmate-relaunch-<id>, one line per attempt plus one
 # per outcome) is both the durable relaunch record and the input to the
 # watcher's relaunch bound; teardown removes it.
