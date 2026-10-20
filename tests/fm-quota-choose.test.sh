@@ -543,19 +543,19 @@ fi
 [ "$out" = "none" ] || fail "provider-level unknown quota returned: $out"
 ok "provider-level unknown quota is not positive"
 
-jq '.providers += [{"provider":"meta","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":25,"runway":{"status":"through_reset"}}]}}]' \
+jq '.providers += [{"provider":"muse","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":25,"runway":{"status":"through_reset"}}]}}]' \
   "$LAB/captured.json" > "$MUSE_POSITIVE"
 out=$(call_choose --snapshot "$MUSE_POSITIVE" --candidate muse:default)
 [ "$out" = "muse default" ] || fail "supported Muse candidate returned: $out"
 ok "Muse candidate is accepted"
 
-jq '.providers += [{"provider":"meta","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"}}]}}]' \
+jq '.providers += [{"provider":"muse","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"}}]}}]' \
   "$LAB/captured.json" > "$MUSE_EXHAUSTED"
 if out=$(call_choose --snapshot "$MUSE_EXHAUSTED" --candidate muse:default 2>/dev/null); then
-  fail "Muse candidate dispatched with exhausted Meta quota"
+  fail "Muse candidate dispatched with exhausted Muse quota"
 fi
-[ "$out" = "none" ] || fail "exhausted Meta quota returned: $out"
-ok "Muse uses Meta quota"
+[ "$out" = "none" ] || fail "exhausted Muse quota returned: $out"
+ok "Muse uses the published muse provider quota"
 
 jq '.providers += [{"provider":"agy","windows":[],"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":25,"runway":{"status":"through_reset"}}]}}]' \
   "$LAB/captured.json" > "$AGY_POSITIVE"
@@ -765,5 +765,96 @@ out=$(bash -c 'set -e; . "$1/fm-quota-axi-lib.sh"; fm_quota_single_provider_for_
   || fail "provider-table lookup exited nonzero under set -e"
 [ "$out" = claude ] || fail "provider-table lookup under set -e printed: $out"
 ok "provider-table lookup prints the provider when called directly under set -e"
+
+cat > "$LAB/grok-credits.json" <<'JSON'
+{
+  "generatedAt": "2030-01-01T00:00:00Z",
+  "schemaVersion": 5,
+  "providers": [
+    { "provider": "claude", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" } } ] } },
+    { "provider": "muse", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" } } ] } },
+    { "provider": "grok", "credits": { "remaining": 48082, "unit": "credits" }, "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_products", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" } } ] } },
+    { "provider": "codex", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 32, "runway": { "status": "through_reset" } } ] } }
+  ]
+}
+JSON
+out=$(call_choose --snapshot "$LAB/grok-credits.json" --candidate claude:opus --candidate muse:spark --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
+[ "$out" = "grok grok-4.7" ] || fail "grok prepaid credits: expected 'grok grok-4.7', got '$out'"
+ok "grok with usable prepaid credits is eligible despite exhausted weekly pool"
+
+jq '(.providers[] | select(.provider == "grok") | .credits.remaining) = 0' "$LAB/grok-credits.json" > "$LAB/grok-nocredits.json"
+out=$(call_choose --snapshot "$LAB/grok-nocredits.json" --candidate claude:opus --candidate muse:spark --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
+[ "$out" = "codex gpt-6-astra" ] || fail "grok without prepaid credits: expected 'codex gpt-6-astra', got '$out'"
+ok "grok with no usable prepaid credits is skipped"
+
+for schema in 5 6; do
+  key_column='' key_value=''
+  if [ "$schema" = 6 ]; then
+    key_column=accountKey,
+    key_value=default,
+  fi
+  GROK_TOON="$LAB/grok-schema-$schema.toon"
+  cat > "$GROK_TOON" <<TOON
+bin: quota-axi
+generatedAt: "2030-01-01T00:00:00Z"
+quota[3]{provider,${key_column}scope,effectivePercentRemaining,spendPriority,runway,confidence,limitedBy,resetsAt}:
+  claude,${key_value}all_models,0,-1,exhausted_now,high,weekly,"2030-01-02T00:00:00Z"
+  grok,${key_value}all_products,0,-1,exhausted_now,high,weekly,"2030-01-02T00:00:00Z"
+  codex,${key_value}all_models,32,-2,through_reset,high,weekly,"2030-01-02T00:00:00Z"
+exhaustion[0]:
+attention[0]:
+TOON
+  if err=$(call_choose --snapshot "$GROK_TOON" --candidate claude:opus --candidate grok:grok-4.7 --candidate codex:gpt-6-astra 2>&1); then
+    fail "schema $schema TOON selected without Grok prepaid evidence: $err"
+  fi
+  [ "$err" = "error: Grok eligibility needs prepaid credit evidence; retry with a quota-axi --json snapshot" ] \
+    || fail "schema $schema TOON did not request JSON evidence: $err"
+  if err=$(call_choose --candidate grok:grok-4.7 --candidate codex:gpt-6-astra < "$GROK_TOON" 2>&1); then
+    fail "schema $schema stdin selected without Grok prepaid evidence: $err"
+  fi
+  [ "$err" = "error: Grok eligibility needs prepaid credit evidence; retry with a quota-axi --json snapshot" ] \
+    || fail "schema $schema stdin did not request JSON evidence: $err"
+
+  for balance in positive zero unlimited missing; do
+    GROK_JSON="$LAB/grok-$schema-$balance.json"
+    jq --argjson schema "$schema" --arg balance "$balance" '
+      .schemaVersion = $schema |
+      if $schema == 6 then .providers |= map(.accountKey = "default") else . end |
+      (.providers[] | select(.provider == "grok")) |=
+        (if $balance == "zero" then .credits.remaining = 0
+         elif $balance == "unlimited" then .credits = {remaining: 0, unlimited: true}
+         elif $balance == "missing" then del(.credits) else . end)
+    ' "$LAB/grok-credits.json" > "$GROK_JSON"
+    expected='grok grok-4.7'
+    case "$balance" in zero|missing) expected='codex gpt-6-astra' ;; esac
+    out=$(call_choose --snapshot "$GROK_JSON" --candidate claude:opus --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
+    [ "$out" = "$expected" ] || fail "schema $schema $balance JSON selected: $out"
+
+    GROK_FALLBACK="$LAB/grok-fallback-$schema-$balance.json"
+    GROK_CALLS="$LAB/grok-fallback-$schema-$balance.calls"
+    QUOTA_AXI_CALLS="$GROK_CALLS" QUOTA_AXI_FIXTURE="$GROK_JSON" "$FAKEBIN/quota-axi" --json > "$GROK_FALLBACK"
+    out=$(call_choose --candidate claude:opus --candidate grok:grok-4.7 --candidate codex:gpt-6-astra < "$GROK_FALLBACK")
+    [ "$out" = "$expected" ] || fail "schema $schema $balance JSON fallback selected: $out"
+    [ "$(wc -l < "$GROK_CALLS" | tr -d '[:space:]')" = 1 ] || fail "schema $schema $balance fallback took more than one snapshot"
+  done
+
+  sed 's/,all_products,0,-1,exhausted_now,/,all_products,50,1,through_reset,/' "$GROK_TOON" > "$LAB/grok-healthy-$schema.toon"
+  out=$(call_choose --snapshot "$LAB/grok-healthy-$schema.toon" --candidate grok:grok-4.7 --candidate codex:gpt-6-astra)
+  [ "$out" = 'grok grok-4.7' ] || fail "schema $schema healthy Grok TOON selected: $out"
+  out=$(call_choose --snapshot "$GROK_TOON" --candidate codex:gpt-6-astra --candidate grok:grok-4.7)
+  [ "$out" = 'codex gpt-6-astra' ] || fail "schema $schema checked prepaid evidence after choosing an earlier candidate: $out"
+done
+ok "schema 5 and 6 TOON request the caller's JSON fallback only when Grok prepaid evidence can affect selection"
+
+if err=$(call_choose --snapshot "$EMPTY_TOON" --candidate grok:grok-4.7 --candidate codex:gpt-6-astra 2>&1); then
+  fail "missing Grok TOON row selected without prepaid evidence: $err"
+fi
+[ "$err" = "error: Grok eligibility needs prepaid credit evidence; retry with a quota-axi --json snapshot" ] \
+  || fail "missing Grok TOON row did not request JSON evidence: $err"
+ok "unknown Grok TOON eligibility requests prepaid evidence before selection"
 
 printf '# all fm-quota-choose tests passed\n'

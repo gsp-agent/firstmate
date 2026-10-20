@@ -1057,4 +1057,168 @@ assert_not_contains "$out" "profile:" "a refused bead gets no profile"
 cp "$BASE_RULES" "$RULES"
 pass "worker routing is labels then default, with no model call"
 
+# ---- default chain walks past concretely exhausted rungs -----------------------
+write_grok_quota() {  # <grok credits remaining>
+  cat > "$QUOTA" <<JSON
+{
+  "generatedAt": "2030-01-01T00:00:00Z",
+  "schemaVersion": 5,
+  "providers": [
+    { "provider": "claude", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" }, "selection": { "spendPriority": -1 } } ] } },
+    { "provider": "muse", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" }, "selection": { "spendPriority": -1 } } ] } },
+    { "provider": "grok", "credits": { "remaining": $1, "unit": "credits" }, "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_products", "status": "known", "effectivePercentRemaining": 0, "runway": { "status": "exhausted_now" }, "selection": { "spendPriority": -1.2184 } } ] } },
+    { "provider": "codex", "quotaSemantics": { "status": "known", "effectiveAvailability": [
+      { "scope": "all_models", "status": "known", "effectivePercentRemaining": 32, "runway": { "status": "projected_exhaustion" }, "selection": { "spendPriority": -2.6567 } } ] } }
+  ]
+}
+JSON
+}
+printf '%s\n' '{"default":[{"harness":"claude","model":"opus"},{"harness":"muse","model":"spark"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"},{"harness":"codex","model":"gpt-6-astra"}]}' > "$RULES"
+write_grok_quota 48082
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'" "default chain skips exhausted claude and muse and picks grok on prepaid credits"
+jq '(.providers[] | select(.provider == "muse") | .quotaSemantics.effectiveAvailability[0]) |= (.effectivePercentRemaining = 25 | .runway.status = "through_reset")' "$QUOTA" > "$QUOTA.tmp" && mv "$QUOTA.tmp" "$QUOTA"
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'muse' --model 'spark'" "default chain keeps muse ahead of grok when muse has room"
+write_grok_quota 0
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'codex' --model 'gpt-6-astra'" "default chain skips grok when prepaid credits are gone"
+jq '(.providers[] | select(.provider == "claude") | .quotaSemantics.effectiveAvailability[0]) |= (.effectivePercentRemaining = 33 | .runway.status = "through_reset")' "$QUOTA" > "$QUOTA.tmp" && mv "$QUOTA.tmp" "$QUOTA"
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'claude' --model 'opus'" "default chain keeps the first rung when it has room"
+
+reset_log
+write_grok_quota 48082
+GROK_QUOTA="$TMP_ROOT/grok-quota.json"
+cp "$QUOTA" "$GROK_QUOTA"
+for choice in default rule_4; do
+  write_response "$RESPONSE" "$choice" 0.9
+  for state in exhausted healthy no_credits unlimited missing_priority lower_priority below_floor unknown_floor unknown_quota; do
+    jq '.default = [{"harness":"grok","model":"grok-4.7","effort":"xhigh"},{"harness":"codex","model":"gpt-6-astra"}] | .rules[3].use = .default' "$BASE_RULES" > "$RULES"
+    cp "$GROK_QUOTA" "$QUOTA"
+    expected=grok
+    case "$state" in
+      healthy)
+        jq '(.providers[] | select(.provider == "grok") | .quotaSemantics.effectiveAvailability[0]) |=
+          (.effectivePercentRemaining = 50 | .runway.status = "through_reset" | .selection.spendPriority = 1)' "$GROK_QUOTA" > "$QUOTA"
+        ;;
+      no_credits)
+        jq '(.providers[] | select(.provider == "grok") | .credits.remaining) = 0' "$GROK_QUOTA" > "$QUOTA"
+        expected=codex
+        ;;
+      unlimited)
+        jq '(.providers[] | select(.provider == "grok") | .credits) = {remaining: 0, unlimited: true}' "$GROK_QUOTA" > "$QUOTA"
+        ;;
+      missing_priority)
+        jq 'del(.providers[] | select(.provider == "grok") | .quotaSemantics.effectiveAvailability[].selection)' "$GROK_QUOTA" > "$QUOTA"
+        expected=codex
+        ;;
+      lower_priority)
+        jq '(.providers[] | select(.provider == "grok") | .quotaSemantics.effectiveAvailability[0].selection.spendPriority) = -3' "$GROK_QUOTA" > "$QUOTA"
+        expected=codex
+        ;;
+      below_floor|unknown_floor)
+        floor_scope=all_products
+        [ "$state" != unknown_floor ] || floor_scope=model:missing
+        jq --arg scope "$floor_scope" '(.default[0].floor) = {scope: $scope, min_percent: 1} | .rules[3].use = .default' "$RULES" > "$RULES.tmp"
+        mv "$RULES.tmp" "$RULES"
+        expected=codex
+        ;;
+      unknown_quota)
+        jq '(.providers[] | select(.provider == "grok") | .quotaSemantics) =
+          {status: "unknown", effectiveAvailability: [{scope: "all_products", status: "unknown", runway: {status: "unknown"}}]}' "$GROK_QUOTA" > "$QUOTA"
+        expected=codex
+        ;;
+    esac
+    TYPESAFE_API_KEY=$KEY run code out err "$BRIEF" --project pager
+    expect_code 0 "$code" "$choice $state exits 0"
+    assert_contains "$out" 'status: clear' "$choice $state resolves a ranked candidate"
+    assert_contains "$out" "profile: --harness '$expected'" "$choice $state preserves ranking and declared floors"
+    if [ "$expected" = grok ]; then
+      assert_contains "$out" 'prepaid credits usable' "$choice $state discloses prepaid evidence"
+      assert_not_contains "$out" 'eligible, unranked' "$choice $state keeps numeric ranking evidence"
+    fi
+  done
+  jq '.default = {harness: "grok", model: "grok-4.7"} | .rules[3].use = .default' "$BASE_RULES" > "$RULES"
+  cp "$GROK_QUOTA" "$QUOTA"
+  TYPESAFE_API_KEY=$KEY run code out err "$BRIEF" --project pager
+  assert_contains "$out" "profile: --harness 'grok'" "$choice selects a sole ranked prepaid candidate"
+done
+pass "prepaid Grok retains ranking evidence for both rule and default candidates"
+
+ACCOUNT_QUOTA="$TMP_ROOT/account-quota.json"
+ACCOUNT_USABLE="$TMP_ROOT/account-usable.json"
+jq '
+  .schemaVersion = 6 |
+  .providers |= map(.accountKey = "default" |
+    if .provider == "claude" then .quotaSemantics.effectiveAvailability[0] |=
+      (.effectivePercentRemaining = 60 | .runway.status = "through_reset")
+    elif .provider == "grok" then .credits.remaining = 0 else . end) |
+  (.providers[] | select(.provider == "codex")) as $codex |
+  (.providers[] | select(.provider == "grok")) as $grok |
+  .providers = [
+    ($codex | .accountKey = "openai-codex-work"),
+    ($grok | .accountKey = "other" | .credits.remaining = 48082),
+    ($codex | .accountKey = "codex-home" | .quotaSemantics.effectiveAvailability[0] |=
+      (.effectivePercentRemaining = 0 | .runway.status = "exhausted_now"))
+  ] + .providers
+' "$GROK_QUOTA" > "$ACCOUNT_QUOTA"
+jq '.providers |= map(
+  if .provider == "codex" then .quotaSemantics.effectiveAvailability[0] |=
+    (if .effectivePercentRemaining == 0 then .effectivePercentRemaining = 80 | .runway.status = "through_reset"
+     else .effectivePercentRemaining = 0 | .runway.status = "exhausted_now" end)
+  elif .provider == "grok" then .credits.remaining = (if .credits.remaining == 0 then 48082 else 0 end)
+  else . end)' "$ACCOUNT_QUOTA" > "$ACCOUNT_USABLE"
+for order in original reversed; do
+  for state in exhausted usable missing; do
+    case "$state" in
+      exhausted) cp "$ACCOUNT_QUOTA" "$QUOTA"; expected=claude ;;
+      usable) cp "$ACCOUNT_USABLE" "$QUOTA"; expected='' ;;
+      missing)
+        jq '.providers |= map(select(.accountKey != "codex-home" and .accountKey != "default" or .provider == "claude"))' "$ACCOUNT_USABLE" > "$QUOTA"
+        expected=''
+        ;;
+    esac
+    if [ "$order" = reversed ]; then
+      jq '.providers |= reverse' "$QUOTA" > "$QUOTA.tmp"
+      mv "$QUOTA.tmp" "$QUOTA"
+    fi
+    for harness in codex grok; do
+      jq --arg h "$harness" '.default = [{harness: $h}, {harness: "claude"}]' "$BASE_RULES" > "$RULES"
+      run code out err --labels ""
+      expect_code 0 "$code" "$harness $state $order account routing exits 0"
+      assert_contains "$out" "profile: --harness '${expected:-$harness}'" "$harness $state $order uses its matched account"
+    done
+  done
+done
+for harness in pi pi-signed; do
+  for lane in codex-native openai-codex-work; do
+    jq --arg h "$harness" --arg m "$lane/gpt-6-astra" '.default = [{harness: $h, model: $m, provider: "codex"}, {harness: "claude"}]' "$BASE_RULES" > "$RULES"
+    for state in exhausted usable; do
+      expected=claude
+      if [ "$state" = exhausted ]; then
+        cp "$ACCOUNT_QUOTA" "$QUOTA"
+        [ "$lane" != openai-codex-work ] || expected=$harness
+      else
+        cp "$ACCOUNT_USABLE" "$QUOTA"
+        [ "$lane" != codex-native ] || expected=$harness
+      fi
+      run code out err --labels ""
+      assert_contains "$out" "profile: --harness '$expected'" "$harness $lane uses its declared provider and account in $state snapshot"
+    done
+  done
+done
+jq '.providers |= map(select(.accountKey != "codex-home"))' "$ACCOUNT_QUOTA" > "$QUOTA"
+jq '.default = [{harness: "codex"}, {harness: "claude"}]' "$BASE_RULES" > "$RULES"
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'codex'" "native Codex uses the default account when codex-home is absent"
+pass "default quota and prepaid checks bind to candidate accounts independently of row order"
+
+cp "$BASE_RULES" "$RULES"
+write_quota "$QUOTA" 0.7597
+pass "default chain walks rungs on quota evidence and grok prepaid credits stay usable"
+
 printf '# all fm-dispatch-resolve tests passed\n'

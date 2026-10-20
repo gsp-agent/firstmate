@@ -25,8 +25,7 @@ The canonical shell helper for a worker that has already performed its model-sel
 Pass it the intake's already-captured default TOON or permitted JSON fallback through stdin or `--snapshot`; it never takes another quota snapshot, so it selects from the same quota state as the intake.
 Pass each candidate as `harness:model`, with earlier candidates preferred.
 The helper's header owns its provider mapping and quota selection mechanics.
-An `exhausted_now` runway vetoes the candidate.
-The helper selects a candidate only when its applicable quota has a known `effectivePercentRemaining` greater than zero.
+If the helper requests Grok prepaid credit evidence, use this skill's permitted TOON-to-JSON fallback and pass its JSON snapshot back to the helper before selecting.
 This is an optional narrow helper with a known limitation: it maps each harness to one primary provider family only, so a candidate whose established provider differs from that primary family is checked against the wrong quota row.
 omp has no primary family, so the helper keys an `omp:` candidate on its model prefix, mapping only `openai-codex/` and `claude-bridge/` and refusing every other prefix; the helper's header owns that mapping.
 Authoritative multi-provider routing - including provider discovery from the harness catalog and quota matching by that explicit provider - stays owned by this skill's intake procedure above and AGENTS.md section 4, not by the helper.
@@ -90,7 +89,7 @@ When a credential's local classification is the only thing standing between a ca
 `bin/fm-vendor-auth-probe.sh` is the only approved vendor-credential probe; its `--help` owns the registered probes and mechanics.
 It takes no harness, model, or provider and returns a fact, not a route: only `authenticated` and `unauthenticated` are ground truth, while `indeterminate`, `timeout`, and `unavailable` establish nothing and must never be read as either outcome.
 Never launch a vendor CLI yourself, and never probe a credential store the candidate does not use.
-Grok prepaid `credits` are unrelated to paid-window headroom; never read them as exhaustion.
+Grok prepaid `credits` are separate from subscription-window headroom; apply the matched account's `quota_prepaid_usable` check in the [shared quota library](../../../bin/fm-quota-axi-lib.sh) before treating a weekly zero or `exhausted_now` as a start veto, preserving any known `spendPriority` for ranking.
 
 Malformed configuration is an actionable error, not a candidate to rank around.
 
@@ -104,7 +103,7 @@ When every remaining candidate is tight, dispatch inside the strongest-reasoning
 
 Known runway that will not last until the inspectable likely-completion horizon fails this gate, even when that candidate has the highest `spendPriority`.
 Read `runway` from the `quota[]` row: `through_reset` passes this generic feasibility floor because the window reaches its refill without exhausting; never compare its `resetsAt` with the completion horizon as though reset were an exhaustion deadline.
-`exhausted_now` is zero, and `projected_exhaustion` uses the matching `exhaustion[]` row's `usableRunwaySeconds`.
+`exhausted_now` is zero unless the [Grok prepaid eligibility exception](#1-eligibility) applies; `projected_exhaustion` uses the matching `exhaustion[]` row's `usableRunwaySeconds`.
 A high `spendPriority` on a nearly empty window that will exhaust soon must not route into a mid-task stall.
 Unknown or unmeasurable runway stays eligible with disclosed uncertainty and is never assumed to pass.
 Do not invent a generic percentage floor, and honor an explicit captain floor for a candidate when one exists.

@@ -6,15 +6,21 @@
 #   fm-dispatch-resolve.sh <brief-file> [--project <name>]
 #   fm-dispatch-resolve.sh --labels <a,b|""> [--project <name>]     (worker routing)
 #
-# Worker routing (--labels, an empty value is allowed): no model judgment, no
-#   key, no network or quota call. After shared configuration validation, the
-#   first matching label in the comma-separated input picks its `label_routes`
-#   profile. With no match, use the `default` object or first default-array
-#   entry; this path does not rank arrays or apply rule approvals or floors.
+# Worker routing (--labels, an empty value is allowed): no model judgment or
+#   typesafe.ai call or key. After shared configuration validation and label
+#   conflict checks, attempt one quota-axi --json snapshot when available.
+#   The first matching label in the comma-separated input picks its
+#   `label_routes` profile independently of that snapshot. With no match,
+#   walk the `default` object or array in configured order: skip a rung
+#   only on concrete evidence it cannot start now (a known applicable row at
+#   0% or exhausted_now, unless Grok prepaid credits remain usable), and treat
+#   an unmeasured, missing, or unreadable quota row as eligible. This path
+#   does not rank arrays by spendPriority or apply rule approvals or floors.
 #   Prints "status: clear ... source: label|default" and the profile line, exit 0.
-#   Missing configuration or no matching route and no default prints escalate,
-#   exit 0. Combining docs-only and ep-opus prints refused with no profile,
-#   exit 1. Usage and configuration errors exit 2, as in brief mode.
+#   Missing configuration, no matching route and no default, or every default
+#   rung concretely exhausted prints escalate, exit 0. Combining docs-only and
+#   ep-opus prints refused with no profile, exit 1. Usage and configuration
+#   errors exit 2, as in brief mode.
 #
 # Brief-mode opt-in gate: TYPESAFE_API_KEY non-empty in this environment, else a
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
@@ -234,14 +240,42 @@ if [ -n "$LABELS_SET" ]; then
     esac
     ;;
   esac
-  routed=$(jq -r --arg labels "$LABELS" '
+  LABELS_QUOTA=null
+  if command -v quota-axi >/dev/null 2>&1; then
+    labels_quota_raw=$(quota-axi --json 2>/dev/null) || labels_quota_raw=''
+    if [ -n "$labels_quota_raw" ] && printf '%s\n' "$labels_quota_raw" | fm_quota_json_valid; then
+      LABELS_QUOTA=$labels_quota_raw
+    fi
+  fi
+  LABELS_PMAP='{}'
+  while IFS= read -r h; do
+    [ -n "$h" ] || continue
+    p=$(fm_quota_single_provider_for_harness "$h" 2>/dev/null) || p=''
+    LABELS_PMAP=$(jq -c --arg h "$h" --arg p "$p" '. + {($h): (if $p == "" then null else $p end)}' <<<"$LABELS_PMAP")
+  done < <(jq -r '
+    def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
+    profiles(.default // null) | map(.harness) | unique | .[]' "$RULES")
+  routed=$(jq -r --arg labels "$LABELS" --argjson pmap "$LABELS_PMAP" --argjson quota "$LABELS_QUOTA" "$FM_QUOTA_ROW_JQ"'
     def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
     def flat: gsub("[\\r\\n]"; " ");
+    def bare($m): (($m // "") | split("/") | last);
+    def blocked($prof):
+      ($prof.provider // $pmap[$prof.harness] // null) as $p
+      | if $p == null or $quota == null then false
+        else quota_row($quota; $p; quota_lane($prof.harness; $prof.model)) as $row
+        | if $row == null or quota_prepaid_usable($row) then false
+          else ([$row.quotaSemantics.effectiveAvailability[]? | select(
+                  .scope == "all_models" or .scope == "all_products" or
+                  (bare($prof.model) != "" and (.scope == ("model:" + bare($prof.model)) or .scope == ("product:" + bare($prof.model)))))] ) as $app
+          | any($app[]; ((.runway.status // "") == "exhausted_now") or
+                (.status == "known" and ((.effectivePercentRemaining | type) == "number") and .effectivePercentRemaining <= 0))
+          end
+        end;
     ($labels | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))) as $ls
     | (.label_routes // {}) as $routes
     | ([$ls[] | select($routes[.] != null)] | first // null) as $hit
     | (if $hit != null then {src: "label", detail: $hit, p: $routes[$hit]}
-       else {src: "default", detail: "no label matched", p: (profiles(.default // null) | first // null)} end)
+       else {src: "default", detail: "no label matched", p: (profiles(.default // null) | map(select(blocked(.) | not)) | first // null)} end)
     | if .p == null then "NONE"
       else ["dispatch-resolve:", "  status: clear", "  source: \(.src) (\(.detail | flat))",
             "  profile: --harness \(.p.harness | @sh)"
@@ -249,7 +283,7 @@ if [ -n "$LABELS_SET" ]; then
             + (if .p.effort then " --effort \(.p.effort | @sh)" else "" end)] | join("\n") end
   ' "$RULES") || die "worker routing failed: $RULES_PATH"
   if [ "$routed" = NONE ]; then
-    printf 'dispatch-resolve:\n  status: escalate\n  reason: no label route matched and no default\n'
+    printf 'dispatch-resolve:\n  status: escalate\n  reason: no label route matched and no eligible default\n'
   else
     printf '%s\n' "$routed"
   fi
@@ -447,10 +481,11 @@ RESULT=$(jq -n --arg floor "$CONFIDENCE_FLOOR" --argjson lat "$LAT_MS" --arg non
       (applicable($p; $lane; ($c.model // ""))) as $rows |
       (evidence($rows)) as $bounds |
       (floor_state($c.floor; $p; $lane)) as $profile_floor_state |
-      if any($rows[]; (.runway.status // "") == "exhausted_now") then
+      (quota_prepaid_usable(prov($p; $lane))) as $prepaid |
+      if ($prepaid | not) and any($rows[]; (.runway.status // "") == "exhausted_now") then
         ($rows | map(select((.runway.status // "") == "exhausted_now")) | first) as $bad |
         {profile: $c, provider: $p, bounds: $bounds, scope: $bad.scope, pct: ($bad.effectivePercentRemaining // null), runway: $bad.runway.status, eligible: false, reason: "runway exhausted_now at \($bad.scope)"}
-      elif any($rows[]; .status == "known" and (.effectivePercentRemaining | type) == "number" and .effectivePercentRemaining <= 0) then
+      elif ($prepaid | not) and any($rows[]; .status == "known" and (.effectivePercentRemaining | type) == "number" and .effectivePercentRemaining <= 0) then
         ($rows | map(select(.status == "known" and (.effectivePercentRemaining | type) == "number" and .effectivePercentRemaining <= 0)) | first) as $bad |
         {profile: $c, provider: $p, bounds: $bounds, scope: $bad.scope, pct: $bad.effectivePercentRemaining, runway: $bad.runway.status, eligible: false, reason: "0% remaining at \($bad.scope)"}
       elif $profile_floor_state == "below" then
@@ -476,7 +511,8 @@ RESULT=$(jq -n --arg floor "$CONFIDENCE_FLOOR" --argjson lat "$LAT_MS" --arg non
       else
         ($rows | min_by(.selection.spendPriority)) as $limiting |
         {profile: $c, provider: $p, bounds: $bounds, scope: $limiting.scope, pct: $limiting.effectivePercentRemaining,
-         spendPriority: $limiting.selection.spendPriority, runway: $limiting.runway.status, eligible: true, reason: "ok"}
+         spendPriority: $limiting.selection.spendPriority, runway: $limiting.runway.status, eligible: true,
+         reason: (if $prepaid then "grok prepaid credits usable (remaining \(prov($p; $lane).credits.remaining // "unknown"))" else "ok" end)}
       end
     end;
   def rule_at($c):
@@ -568,7 +604,7 @@ TEXT=$(jq -r '
       + (if .provider then "  provider=\(.provider | flat)" else "" end)
       + (if .scope then "  scope=\(.scope | flat)  remaining=\(show(.pct))%  spendPriority=\(show(.spendPriority))  runway=\(show(.runway))" else "" end)
       + (if (.bounds // [] | length) > 1 then "  bounds=" + ([.bounds[] | "\(.scope | flat):\(show(.pct))%/\((.runway // .status) | flat)"] | join(",")) else "" end)
-      + "  -> " + (if .unranked then "eligible, unranked: \(.reason | flat): disclosed uncertainty" elif .eligible then "eligible" else "not eligible: \(.reason | flat)" end)),
+      + "  -> " + (if .unranked then "eligible, unranked: \(.reason | flat): disclosed uncertainty" elif .eligible then "eligible" + (if .reason == "ok" then "" else ": \(.reason | flat)" end) else "not eligible: \(.reason | flat)" end)),
   (if .chosen then "  profile: --harness \(.chosen.profile.harness | shell_arg)"
       + (if .chosen.profile.model then " --model \(.chosen.profile.model | shell_arg)" else "" end)
       + (if .chosen.profile.effort then " --effort \(.chosen.profile.effort | shell_arg)" else "" end) else empty end)' <<<"$RESULT") || emit_error "output rendering failed"

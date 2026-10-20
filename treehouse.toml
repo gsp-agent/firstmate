@@ -1,0 +1,6 @@
+# treehouse pool for Firstmate workers (fm-* spawns on this repo).
+# The default cap of 16 filled on 2026-10-19 and Firstmate spawns failed
+# (.agent-config-webpq). A slot is about 393 MB; the starter's load gate, not
+# this cap, decides how many workers run.
+max_trees = 24
+root = ""
