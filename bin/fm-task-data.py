@@ -53,7 +53,8 @@ A finished task whose required backlog row moved to the configured archive
 resolves that row from the completed rows, under the same project and PR
 identity check as the legacy refresh.
 Unread task or bead ids appear in each source's unread list in
-record/data-cleanup.json and are named in one warning; the same unread set
+record/data-cleanup.json and are named in one warning; expiry appends that
+warning to the task's status before marking the unread set reported, so it
 is not named again on later passes, and prepare still permits the backlog close.
 Stage and expiry retain all data without moving or deleting it while any
 reference is unreadable; the next successful teardown of a different task retries.
@@ -93,8 +94,8 @@ it can be expired by hand with `bash fm-task-data-lib.sh expire DATA STATE ID`,
 which takes the task's meta lock and refuses a live task.
 After releasing its locks, teardown also starts one single-instance
 background sweep that drains pending holds the same way with no expiry
-budget, excluding the starting task's own fresh hold; holds marked
-too-large stay by-hand only.
+budget, excluding the starting task's own fresh hold and including holds marked
+too-large.
 That command stages a never-staged hold and expires it in the same run, so
 its scratch gets no recovery cycle, and it exits non-zero naming a hold it
 leaves unexpired.
@@ -155,10 +156,12 @@ def bead_ids(text):
     return sorted(set(BEAD_REF.findall(text)))
 
 
-def unread_named(record):
+def unread_named(record, state, task_id, error):
     unread = sorted({item for source in record["sources"] for item in source.get("unread", [])})
     if not unread or record.get("unread_named") == unread:
         return bool(unread)
+    with (state / f"{task_id}.status").open("a") as stream:
+        stream.write(f"note [at={int(time.time())}]: task data {task_id} retained whole for retry: {error}\n")
     record["unread_named"] = unread
     return False
 
@@ -819,11 +822,11 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         return
     except RetainWhole as error:
-        if action != "expire" or not unread_named(record):
+        if action != "expire" or not unread_named(record, state, task_id, error):
             print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         return
     except UnreadReferences as error:
-        if action != "expire" or not unread_named(record):
+        if action != "expire" or not unread_named(record, state, task_id, error):
             print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         raise SystemExit(1) from error
     finally:
