@@ -102,6 +102,8 @@ fm_test_fake_gh_axi() {
 # The pane path defaults to empty when FM_FAKE_PANE_PATH is unset. Window
 # cleanup and option operations are no-ops. Launch logging is env-gated, so
 # suites that do not set FM_FAKE_LAUNCH_LOG keep a silent send-keys.
+# After a staged codex launch, capture-pane shows codex's in-turn footer, so
+# fm-spawn.sh's codex launch gate sees a started turn; any other launch clears it.
 fm_test_fake_tmux_spawn() {
   local fakebin=$1
   cat > "$fakebin/tmux" <<'SH'
@@ -119,7 +121,27 @@ case "${1:-}" in
     exit 0
     ;;
   has-session|new-session|new-window|kill-window|set-window-option) exit 0 ;;
+  capture-pane)
+    [ ! -e "$0.codex-launched" ] || printf '%s\n' '• Working (1s • esc to interrupt)'
+    exit 0
+    ;;
   send-keys)
+    prev=
+    for a in "$@"; do
+      if [ "$prev" = "-l" ]; then
+        case "$a" in
+          ". '"*"'")
+            staged=${a#". '"}
+            staged=${staged%"'"}
+            case "$(cat "$staged" 2>/dev/null)" in
+              *"codex "*--dangerously-bypass-approvals-and-sandbox*) : >"$0.codex-launched" ;;
+              *) rm -f "$0.codex-launched" ;;
+            esac
+            ;;
+        esac
+      fi
+      prev=$a
+    done
     if [ -n "${FM_FAKE_LAUNCH_LOG:-}" ]; then
       prev=
       for a in "$@"; do
@@ -326,10 +348,14 @@ fm_test_run_spawn() {
   # because bin/fm-spawn.sh prefixes the launch only when the value is non-empty,
   # so every launch-shape assertion in the suite keeps reading the same command.
   # A test that needs the set case opts in through FM_TEST_CLAUDE_CONFIG_DIR.
+  # A codex spawn registers folder trust the same way (bin/fm-codex-trust.sh,
+  # store ${CODEX_HOME:-$HOME/.codex}), so CODEX_HOME is pinned empty for the
+  # same reason, with FM_TEST_CODEX_HOME as the opt-in.
   local spawn_home=$home/user-home
   mkdir -p "$spawn_home"
   FM_ROOT_OVERRIDE='' FM_HOME="$home" HOME="$spawn_home" \
     CLAUDE_CONFIG_DIR="${FM_TEST_CLAUDE_CONFIG_DIR:-}" \
+    CODEX_HOME="${FM_TEST_CODEX_HOME:-}" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
     FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
     FM_SPAWN_NO_GUARD=1 FM_FAKE_PANE_PATH="$pane" TMUX="${TMUX:-fake,1,0}" \

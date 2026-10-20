@@ -119,8 +119,9 @@
 # fm_busy_codex_hooks_verified): the approved contract prefers Codex's
 # app-server turn lifecycle with capability negotiation, and sanctions its
 # stable lifecycle hooks as the intermediate. Neither is usable on the
-# installed binary, so Codex classifies unknown codex-unverified rather than
-# falling back to idle, and fm-spawn installs no Codex busy wiring.
+# installed binary, so Codex classifies unknown codex-unverified (unknown
+# launch-prompt when the supplied tail shows its folder-access prompt) rather
+# than falling back to idle, and fm-spawn installs no Codex busy wiring.
 # docs/verification/supervision.md owns the evidence for both probes.
 #
 # Sourcing: set -u and set -e safe; no subshell-unfriendly globals.
@@ -992,18 +993,37 @@ fm_busy_gemini_launch_prompt_tail() {
   printf '%s' "$buf" | grep -qiE "${FM_BUSY_GEMINI_APIKEY_PROMPT_REGEX:-Enter Gemini API Key}"
 }
 
+# fm_busy_codex_launch_prompt_tail: Codex's full-screen "Folder access" prompt,
+# live-verified on codex-cli 0.163.0 (docs/verification/codex.md) in both of
+# its shapes. A repository root with no saved decision asks "Trust this
+# folder?" over a "Trust and continue" option; a root saved as untrusted offers
+# "Open restricted" under the same "Folder access" heading instead. Each shape's
+# own heading or question is paired with its own option line, both required
+# together, for the same self-referential-prose reason as Claude's pairing.
+fm_busy_codex_launch_prompt_tail() {
+  local buf
+  buf=$(cat)
+  if printf '%s' "$buf" | grep -qE 'Trust this folder\?' \
+    && printf '%s' "$buf" | grep -qE 'Trust and continue'; then
+    return 0
+  fi
+  printf '%s' "$buf" | grep -qE 'Folder access' \
+    && printf '%s' "$buf" | grep -qE 'Open restricted'
+}
+
 # fm_busy_launch_prompt_parked: dispatch to the signature above for <harness>,
 # or fail when this harness has none. Consumes the tail on stdin. Scoped to
-# exactly the harnesses fm-spawn.sh arms with the fm-spawn busy source
-# (claude*, opencode*, pi, pi-signed, omp, gemini) since only those can ever
-# read a pinned "busy fm-spawn" record; codex and standalone Kimi already
-# classify unknown before a record is ever consulted, and opencode ships no
-# trust dialog at all.
+# the harnesses fm-spawn.sh arms with the fm-spawn busy source (claude*,
+# opencode*, pi, pi-signed, omp, gemini), which can read a pinned "busy
+# fm-spawn" record, plus codex, whose unknown verdict and launch gate both read
+# its prompt signature. Standalone Kimi classifies unknown before a record is
+# ever consulted, and opencode ships no trust dialog at all.
 fm_busy_launch_prompt_parked() {  # <harness>
   case "${1:-}" in
     claude*) fm_busy_claude_launch_prompt_tail ;;
     pi | pi-signed | omp) fm_busy_pi_launch_prompt_tail ;;
     gemini) fm_busy_gemini_launch_prompt_tail ;;
+    codex*) fm_busy_codex_launch_prompt_tail ;;
     *) return 1 ;;
   esac
 }
@@ -1029,7 +1049,11 @@ fm_busy_classify() {  # <backend> <target> <harness> <id> <state-dir> [tail40]
       ;;
     codex*)
       if ! fm_busy_codex_semantic_source; then
-        printf 'unknown codex-unverified'
+        if [ -n "$tail40" ] && printf '%s' "$tail40" | fm_busy_launch_prompt_parked "$harness"; then
+          printf 'unknown launch-prompt'
+        else
+          printf 'unknown codex-unverified'
+        fi
         return 0
       fi
       ;;

@@ -376,6 +376,50 @@ test_launch_prompt_gemini_dialogs() {
   pass "a Gemini launch parked on its trust, auth-picker, or API-key dialog classifies unknown launch-prompt"
 }
 
+test_launch_prompt_codex_folder_access() {
+  local state out
+  state=$(new_state_dir launch-prompt-codex)
+  out=$(fm_busy_classify tmux w1 codex t1 "$state" '  Folder access
+  /tmp/fm-codex-trust/wt
+
+  Note: You'"'"'re in a subdirectory of a Git project. Trusting will apply to the repository root:
+  /tmp/fm-codex-trust/proj
+
+  Trust this folder? Codex can read, edit, and run files here, subject to your permission settings.
+
+› 1. Trust and continue
+  2. Quit
+
+  enter continue · esc quit')
+  [ "$out" = "unknown launch-prompt" ] \
+    || fail "a codex launch on its folder-trust prompt must classify unknown launch-prompt, got '$out'"
+  out=$(fm_busy_classify tmux w1 codex t1 "$state" '  Folder access
+  /tmp/fm-codex-trust/wt
+
+  Config, hooks, and exec policies from untrusted folders stay disabled.
+
+› 1. Open restricted
+  2. Quit
+
+  enter continue · esc quit')
+  [ "$out" = "unknown launch-prompt" ] \
+    || fail "a codex launch on its restricted-folder prompt must classify unknown launch-prompt, got '$out'"
+  out=$(fm_busy_classify tmux w1 codex t1 "$state" '  >_ OpenAI Codex (v0.163.0)
+  permissions: YOLO mode
+
+› Trust this folder? is what the old prompt asked
+
+  ? for shortcuts')
+  [ "$out" = "unknown codex-unverified" ] \
+    || fail "a codex session quoting the question without its option line must stay codex-unverified, got '$out'"
+  "$EV" arm "$state" t2 >/dev/null
+  out=$(fm_busy_classify tmux w1 claude t2 "$state" 'Trust this folder?
+› 1. Trust and continue')
+  [ "$out" = "busy fm-spawn" ] \
+    || fail "codex's prompt text must never reclassify another harness, got '$out'"
+  pass "a codex launch on either folder-access prompt classifies unknown launch-prompt, scoped to codex"
+}
+
 test_launch_prompt_never_shortens_a_working_launch() {
   local state out
   state=$(new_state_dir launch-prompt-working)
@@ -613,6 +657,7 @@ test_launch_prompt_claude_trust_dialog
 test_launch_prompt_pi_trust_dialog
 test_launch_prompt_pi_requires_both_markers
 test_launch_prompt_gemini_dialogs
+test_launch_prompt_codex_folder_access
 test_launch_prompt_never_shortens_a_working_launch
 test_launch_prompt_scoped_to_armed_harnesses
 test_launch_prompt_never_reclassifies_an_advanced_record
