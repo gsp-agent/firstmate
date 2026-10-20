@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Mismatched crew/scout effort or model is refused before worktree or endpoint allocation",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": ""
+  },
+  {
+    "name": "Raw commands on a configured harness refuse and print its dispatch pair",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": ""
+  },
+  {
+    "name": "Profiles in default objects/arrays, label routes, and rule arrays all enforce their pairs",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": ""
+  },
+  {
+    "name": "The configured canonical Grok xhigh pair allocates and launches with the recorded profile",
+    "result": "fail",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": "\nThe default interactive shell is now zsh.\nTo update your account to use zsh, please run `chsh -s /bin/zsh`.\nFor more details, please visit https://support.apple.com/kb/HT208050.\nDales-MacBook-Pro-M4-7:project dalecarman$ treehouse get\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live/pool/.treehouse/project-e72c61/1\n/project. Type 'exit' to return.\n\nThe default interactive shell is now zsh.\nTo update your account to use zsh, please run `chsh -s /bin/zsh`.\nFor more details, please visit https://support.apple.com/kb/HT208050.\nbash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live/pool/.treehouse/project-e72c61/1/proje\nct'\nbash-3.2$ export GOTMPDIR=/tmp/fm-matching/gotmp\nbash-3.2$ export COMPACT_ADVISER_DISABLE=1\nbash-3.2$ export FM_TASK_ID=matching\nbash-3.2$ . '/tmp/fm-matching+32fd58668aaee50c2725ea322044ed99aebbdf1b0ab4307c62fa169c3cf7f639/launch.s1792523239.95614.4517.sh'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+  },
+  {
+    "name": "A raw command on an unnamed harness still executes successfully",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": ""
+  },
+  {
+    "name": "A reasoned canonical rung skip can select another configured pair",
+    "result": "fail",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": "\nThe default interactive shell is now zsh.\nTo update your account to use zsh, please run `chsh -s /bin/zsh`.\nFor more details, please visit https://support.apple.com/kb/HT208050.\nDales-MacBook-Pro-M4-7:project dalecarman$ treehouse get\nA new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live/pool/.treehouse/project-e72c61/3\n/project. Type 'exit' to return.\n\nThe default interactive shell is now zsh.\nTo update your account to use zsh, please run `chsh -s /bin/zsh`.\nFor more details, please visit https://support.apple.com/kb/HT208050.\nbash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live/pool/.treehouse/project-e72c61/3/proje\nct'\nbash-3.2$ export GOTMPDIR=/tmp/fm-rung-skip/gotmp\nbash-3.2$ export COMPACT_ADVISER_DISABLE=1\nbash-3.2$ export FM_TASK_ID=rung-skip\nbash-3.2$ . '/tmp/fm-rung-skip+32fd58668aaee50c2725ea322044ed99aebbdf1b0ab4307c62fa169c3cf7f639/launch.s1792523252.2647.23816.sh'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+  },
+  {
+    "name": "Without a dispatch file a raw named-harness launch keeps existing behavior",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": ""
+  },
+  {
+    "name": "Pre-fix medium launch is reproduced and an already-stopped task relaunches at the file xhigh pair",
+    "result": "fail",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": "\nThe default interactive shell is now zsh.\nTo update your account to use zsh, please run `chsh -s /bin/zsh`.\nFor more details, please visit https://support.apple.com/kb/HT208050.\nDales-MacBook-Pro-M4-7:project dalecarman$ treehouse get\nA new version of treehouse is available: v2.3.0 \u2192 v3.1.4\nRun \"treehouse update\" to update\n\n\ud83c\udf33 Setting up worktree...\n\ud83c\udf33 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live/pool/.treehouse/project-e72c61/5\n/project. Type 'exit' to return.\n\nThe default interactive shell is now zsh.\nTo update your account to use zsh, please run `chsh -s /bin/zsh`.\nFor more details, please visit https://support.apple.com/kb/HT208050.\nbash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live/pool/.treehouse/project-e72c61/5/proje\nct'\nbash-3.2$ export GOTMPDIR=/tmp/fm-regression/gotmp\nbash-3.2$ export COMPACT_ADVISER_DISABLE=1\nbash-3.2$ export FM_TASK_ID=regression\nbash-3.2$ . '/tmp/fm-regression+32fd58668aaee50c2725ea322044ed99aebbdf1b0ab4307c62fa169c3cf7f639/launch.s1792523265.13935.30079.sh'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+  },
+  {
+    "name": "An already-stopped relaunch refuses ambiguous configured pairs and preserves the task record",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": ""
+  },
+  {
+    "name": "A secondmate raw launch remains exempt even when its named harness has a different configured effort",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard.log",
+    "reason": ""
+  }
+]

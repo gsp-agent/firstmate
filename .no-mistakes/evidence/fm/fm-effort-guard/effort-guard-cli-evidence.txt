@@ -1,0 +1,123 @@
+Product CLI excerpts from live-effort-guard-verified.log.
+Real tmux (160x45), Treehouse, Firstmate entrypoints, and Grok 1.0.62.
+Launch-profile validation stops at real CLI invocation; no authenticated model completion was requested.
+
+Dispatch configuration: {"rules": [{"when": "livecheck", "use": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}]}
+
+SCENARIO: Mismatched crew/scout effort or model is refused before worktree or endpoint allocation
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh bad-ship /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --mode local-only --yolo off --harness grok --model grok-4.7 --effort medium
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh bad-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh bad-model /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.6 --effort xhigh
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.6 xhigh matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+
+SCENARIO: Raw commands on a configured harness refuse and print its dispatch pair
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh raw-ship /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --mode local-only --yolo off 'grok --always-approve --model grok-4.7 --reasoning-effort medium'
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh raw-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout 'grok --always-approve --model grok-4.7 --reasoning-effort medium'
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh raw-matching /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout 'grok --always-approve --model grok-4.7 --reasoning-effort xhigh'
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+
+SCENARIO: Profiles in default objects/arrays, label routes, and rule arrays all enforce their pairs
+Dispatch configuration: {"default": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh source-default-object /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+Dispatch configuration: {"default": [{"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}, {"harness": "grok", "model": "grok-4.7", "effort": "high"}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh source-default-array /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 high, grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+Dispatch configuration: {"label_routes": {"livecheck": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh source-label /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+Dispatch configuration: {"rules": [{"when": "livecheck", "use": [{"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}, {"harness": "grok", "model": "grok-4.7", "effort": "high"}]}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh source-rule-array /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 high, grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+Dispatch configuration: {"rules": [{"when": "livecheck", "use": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}]}
+
+SCENARIO: The configured canonical Grok xhigh pair allocates and launches with the recorded profile
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh matching /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort xhigh
+spawned matching harness=grok kind=scout window=primary:fm-matching worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/1/project
+[exit 0]
+Persisted task profile: {"kind": "scout", "harness": "grok", "model": "grok-4.7", "effort": "xhigh", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/1/project", "window": "primary:fm-matching"}
+Running CLI argv: grok --always-approve --model grok-4.7 --reasoning-effort xhigh \040-c
+
+SCENARIO: A raw command on an unnamed harness still executes successfully
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh unnamed /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout 'printf "UNNAMED_RAW_LAUNCHED\n"'
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+spawned unnamed harness=printf kind=scout window=primary:fm-unnamed worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/2/project
+[exit 0]
+
+SCENARIO: A reasoned canonical rung skip can select another configured pair
+Dispatch configuration: {"default": [{"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}, {"harness": "grok", "model": "grok-4.7", "effort": "high"}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh rung-skip /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort high
+spawned rung-skip harness=grok kind=scout window=primary:fm-rung-skip worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/3/project
+[exit 0]
+Persisted task profile: {"kind": "scout", "harness": "grok", "model": "grok-4.7", "effort": "high", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/3/project", "window": "primary:fm-rung-skip"}
+Running CLI argv: grok --always-approve --model grok-4.7 --reasoning-effort high \040-c
+
+SCENARIO: Without a dispatch file a raw named-harness launch keeps existing behavior
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh no-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout 'grok --version' --model grok-4.7 --effort medium
+spawned no-file harness=grok kind=scout window=primary:fm-no-file worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/4/project
+[exit 0]
+
+SCENARIO: Pre-fix medium launch is reproduced and an already-stopped task relaunches at the file xhigh pair
+Dispatch configuration: {"rules": [{"when": "livecheck", "use": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/before/bin/fm-spawn.sh regression /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+spawned regression harness=grok kind=scout window=primary:fm-regression worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project
+[exit 0]
+Persisted task profile: {"kind": "scout", "harness": "grok", "model": "grok-4.7", "effort": "medium", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project", "window": "primary:fm-regression"}
+Running CLI argv: grok --always-approve --model grok-4.7 --reasoning-effort medium \040-c
+Pre-fix regression reproduced: dispatch file names xhigh, but a real medium launch was accepted.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh regression --relaunch
+dispatch profile: relaunch of regression adopts the dispatch file pair for grok (grok-4.7 xhigh) over the recorded grok-4.7 medium
+spawned regression harness=grok kind=scout window=primary:fm-regression worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project
+[exit 0]
+Persisted task profile: {"kind": "scout", "harness": "grok", "model": "grok-4.7", "effort": "xhigh", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project", "window": "primary:fm-regression"}
+Running CLI argv: grok --always-approve --model grok-4.7 --reasoning-effort xhigh \040-c
+
+SCENARIO: An already-stopped relaunch refuses ambiguous configured pairs and preserves the task record
+Dispatch configuration: {"default": [{"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}, {"harness": "grok", "model": "grok-4.7", "effort": "high"}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh no-file --relaunch
+error: config/crew-dispatch.json is active - relaunch of no-file on grok grok-4.7 medium matches no dispatch profile for grok, and the file names more than one pair for that harness (grok-4.7 high, grok-4.7 xhigh); resolve one pair at intake rather than guessing
+[exit 1]
+Refusal preserved the stopped task record and both identity axes: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/4/project, primary:fm-no-file
+
+SCENARIO: A secondmate raw launch remains exempt even when its named harness has a different configured effort
+Dispatch configuration: {"default": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/product/bin/fm-spawn.sh secondmate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/secondmate --secondmate 'grok --version' --model grok-4.7 --effort medium
+spawned secondmate harness=grok kind=secondmate mode=secondmate yolo=off window=primary:fm-secondmate worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/secondmate
+[exit 0]
+Secondmate named raw launch remained exempt, with its medium pair recorded.
+Cleanup verified: every recorded live-lab Grok process exited; both private tmux socket directories were removed by fm-lab-home.sh teardown.
+
+Recorded rung-skip input from the disposable task instructions:
+Perform the isolated effort guard launch check. Rung skip reason: bounded manual check selects the configured second rung.
+
+Final cleanup: removed all disposable fixtures and product snapshots from the worktree after the focused suites completed.

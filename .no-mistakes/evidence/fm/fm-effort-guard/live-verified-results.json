@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Mismatched crew/scout effort or model is refused before worktree or endpoint allocation",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "Raw commands on a configured harness refuse and print its dispatch pair",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "Profiles in default objects/arrays, label routes, and rule arrays all enforce their pairs",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "The configured canonical Grok xhigh pair allocates and launches with the recorded profile",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "A raw command on an unnamed harness still executes successfully",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "A reasoned canonical rung skip can select another configured pair",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "Without a dispatch file a raw named-harness launch keeps existing behavior",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "Pre-fix medium launch is reproduced and an already-stopped task relaunches at the file xhigh pair",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "An already-stopped relaunch refuses ambiguous configured pairs and preserves the task record",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  },
+  {
+    "name": "A secondmate raw launch remains exempt even when its named harness has a different configured effort",
+    "result": "pass",
+    "live": true,
+    "evidence": "/Users/dalecarman/.no-mistakes/evidence/01M5CFFE0SW6E27P1VQJFKWX7F/live-effort-guard-verified.log",
+    "reason": ""
+  }
+]

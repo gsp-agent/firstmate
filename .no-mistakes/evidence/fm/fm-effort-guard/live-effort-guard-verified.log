@@ -1,0 +1,389 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+/tmp/fml.v6u1qH
+[exit 0]
+$ tmux -L fm-lab -f /dev/null new-session -d -x 160 -y 45 -s primary -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F -e FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home /bin/bash --noprofile --norc
+
+[exit 0]
+$ tmux -L fm-lab display-message -p -t primary '#{socket_path}'
+/private/tmp/fml.v6u1qH/tmux-501/fm-lab
+[exit 0]
+$ tmux -L fm-lab display-message -p -t primary '#{pid}'
+70602
+[exit 0]
+$ tmux -L fm-lab display-message -p -t primary 'terminal grid #{pane_width}x#{pane_height}'
+terminal grid 160x45
+[exit 0]
+$ tmux -L fm-lab set-environment -g TREEHOUSE_ROOT /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool
+
+[exit 0]
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project
+
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project add README.md .gitignore treehouse.toml
+
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project commit -qm 'Seed disposable lab'
+
+[exit 0]
+$ grok --version
+grok 1.0.62 (1474f9cbdd91)
+[exit 0]
+Dispatch configuration: {"rules": [{"when": "livecheck", "use": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}]}
+
+SCENARIO: Mismatched crew/scout effort or model is refused before worktree or endpoint allocation
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh bad-ship lab-project --mode local-only --project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/bad-ship/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh bad-ship /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --mode local-only --yolo off --harness grok --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh bad-scout lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/bad-scout/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh bad-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh bad-model lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/bad-model/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh bad-model /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.6 --effort xhigh
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.6 xhigh matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+
+SCENARIO: Raw commands on a configured harness refuse and print its dispatch pair
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh raw-ship lab-project --mode local-only --project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/raw-ship/brief.md (ship, mode=local-only; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh raw-ship /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --mode local-only --yolo off 'grok --always-approve --model grok-4.7 --reasoning-effort medium'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh raw-scout lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/raw-scout/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh raw-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout 'grok --always-approve --model grok-4.7 --reasoning-effort medium'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh raw-matching lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/raw-matching/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh raw-matching /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout 'grok --always-approve --model grok-4.7 --reasoning-effort xhigh'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+
+SCENARIO: Profiles in default objects/arrays, label routes, and rule arrays all enforce their pairs
+Dispatch configuration: {"default": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh source-default-object lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/source-default-object/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh source-default-object /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+Dispatch configuration: {"default": [{"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}, {"harness": "grok", "model": "grok-4.7", "effort": "high"}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh source-default-array lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/source-default-array/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh source-default-array /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 high, grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+Dispatch configuration: {"label_routes": {"livecheck": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh source-label lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/source-label/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh source-label /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+Dispatch configuration: {"rules": [{"when": "livecheck", "use": [{"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}, {"harness": "grok", "model": "grok-4.7", "effort": "high"}]}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh source-rule-array lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/source-rule-array/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh source-rule-array /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 high, grok-4.7 xhigh); pass the file pair for this harness
+[exit 1]
+$ tmux -L fm-lab list-windows -t primary -F '#{window_name}'
+bash
+[exit 0]
+Observed refusal with unchanged endpoint inventory, worktree pool, and no task metadata.
+Dispatch configuration: {"rules": [{"when": "livecheck", "use": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}]}
+
+SCENARIO: The configured canonical Grok xhigh pair allocates and launches with the recorded profile
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh matching lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/matching/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh matching /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort xhigh
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+spawned matching harness=grok kind=scout window=primary:fm-matching worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/1/project
+[exit 0]
+Persisted task profile: {"kind": "scout", "harness": "grok", "model": "grok-4.7", "effort": "xhigh", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/1/project", "window": "primary:fm-matching"}
+$ tmux -L fm-lab display-message -p -t primary:fm-matching '#{pane_pid}'
+31681
+[exit 0]
+Running CLI argv: grok --always-approve --model grok-4.7 --reasoning-effort xhigh \040-c
+
+SCENARIO: A raw command on an unnamed harness still executes successfully
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh unnamed lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/unnamed/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh unnamed /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout 'printf "UNNAMED_RAW_LAUNCHED\n"'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+spawned unnamed harness=printf kind=scout window=primary:fm-unnamed worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/2/project
+[exit 0]
+$ tmux -L fm-lab capture-pane -p -t primary:fm-unnamed -S -60
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project
+-ad401d/2/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401
+d/2/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-unnamed/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=unnamed
+bash-3.2$ . '/tmp/fm-unnamed+00a853201337086b437bc300b32fd01c60d82d301281626f168d83c7797c68f2/launch.s1792523577.38616.18789.sh'
+UNNAMED_RAW_LAUNCHED
+bash-3.2$
+[exit 0]
+
+SCENARIO: A reasoned canonical rung skip can select another configured pair
+Dispatch configuration: {"default": [{"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}, {"harness": "grok", "model": "grok-4.7", "effort": "high"}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh rung-skip lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/rung-skip/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh rung-skip /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort high
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rung-skip harness=grok kind=scout window=primary:fm-rung-skip worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/3/project
+[exit 0]
+Persisted task profile: {"kind": "scout", "harness": "grok", "model": "grok-4.7", "effort": "high", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/3/project", "window": "primary:fm-rung-skip"}
+$ tmux -L fm-lab display-message -p -t primary:fm-rung-skip '#{pane_pid}'
+48524
+[exit 0]
+Running CLI argv: grok --always-approve --model grok-4.7 --reasoning-effort high \040-c
+
+SCENARIO: Without a dispatch file a raw named-harness launch keeps existing behavior
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh no-file lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/no-file/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh no-file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout 'grok --version' --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned no-file harness=grok kind=scout window=primary:fm-no-file worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/4/project
+[exit 0]
+$ tmux -L fm-lab capture-pane -p -t primary:fm-no-file -S -60
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project
+-ad401d/4/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401
+d/4/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-no-file/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=no-file
+bash-3.2$ . '/tmp/fm-no-file+00a853201337086b437bc300b32fd01c60d82d301281626f168d83c7797c68f2/launch.s1792523600.53120.18275.sh'
+grok 1.0.62 (1474f9cbdd91)
+bash-3.2$
+[exit 0]
+
+SCENARIO: Pre-fix medium launch is reproduced and an already-stopped task relaunches at the file xhigh pair
+Extracted tracked product 8a8b4734 into disposable /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/before
+Dispatch configuration: {"rules": [{"when": "livecheck", "use": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-brief.sh regression lab-project --scout
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home/data/regression/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/before/bin/fm-spawn.sh regression /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project --scout --harness grok --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned regression harness=grok kind=scout window=primary:fm-regression worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project
+[exit 0]
+Persisted task profile: {"kind": "scout", "harness": "grok", "model": "grok-4.7", "effort": "medium", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project", "window": "primary:fm-regression"}
+$ tmux -L fm-lab display-message -p -t primary:fm-regression '#{pane_pid}'
+60606
+[exit 0]
+Running CLI argv: grok --always-approve --model grok-4.7 --reasoning-effort medium \040-c
+Pre-fix regression reproduced: dispatch file names xhigh, but a real medium launch was accepted.
+$ tmux -L fm-lab respawn-pane -k -t primary:fm-regression -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project /bin/bash --noprofile --norc
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-control.sh regression exit
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+already-stopped regression harness=grok backend=tmux endpoint=primary:fm-regression worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh regression --relaunch
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+dispatch profile: relaunch of regression adopts the dispatch file pair for grok (grok-4.7 xhigh) over the recorded grok-4.7 medium
+spawned regression harness=grok kind=scout window=primary:fm-regression worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project
+[exit 0]
+Persisted task profile: {"kind": "scout", "harness": "grok", "model": "grok-4.7", "effort": "xhigh", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/project", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/5/project", "window": "primary:fm-regression"}
+$ tmux -L fm-lab display-message -p -t primary:fm-regression '#{pane_pid}'
+66772
+[exit 0]
+Running CLI argv: grok --always-approve --model grok-4.7 --reasoning-effort xhigh \040-c
+
+SCENARIO: An already-stopped relaunch refuses ambiguous configured pairs and preserves the task record
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-control.sh no-file exit
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+already-stopped no-file harness=grok backend=tmux endpoint=primary:fm-no-file worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/4/project
+[exit 0]
+Dispatch configuration: {"default": [{"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}, {"harness": "grok", "model": "grok-4.7", "effort": "high"}]}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-spawn.sh no-file --relaunch
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: config/crew-dispatch.json is active - relaunch of no-file on grok grok-4.7 medium matches no dispatch profile for grok, and the file names more than one pair for that harness (grok-4.7 high, grok-4.7 xhigh); resolve one pair at intake rather than guessing
+[exit 1]
+Refusal preserved the stopped task record and both identity axes: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/pool/.treehouse/project-ad401d/4/project, primary:fm-no-file
+
+SCENARIO: A secondmate raw launch remains exempt even when its named harness has a different configured effort
+Extracted tracked product HEAD into disposable /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/product
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/secondmate
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/secondmate
+[exit 0]
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/secondmate
+
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/secondmate add AGENTS.md
+
+[exit 0]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/secondmate commit -qm 'Seed disposable home'
+
+[exit 0]
+Dispatch configuration: {"default": {"harness": "grok", "model": "grok-4.7", "effort": "xhigh"}}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/product/bin/fm-spawn.sh secondmate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/secondmate --secondmate 'grok --version' --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: secondmate secondmate sync skipped before launch: primary default-branch commit cannot be resolved
+spawned secondmate harness=grok kind=secondmate mode=secondmate yolo=off window=primary:fm-secondmate worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/secondmate
+[exit 0]
+$ tmux -L fm-lab capture-pane -p -t primary:fm-secondmate -S -60
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:secondmate dalecarman$ export GOTMPDIR=/tmp/fm-secondmate/gotmp
+Dales-MacBook-Pro-M4-7:secondmate dalecarman$ export COMPACT_ADVISER_DISABLE=1
+Dales-MacBook-Pro-M4-7:secondmate dalecarman$ . '/tmp/fm-secondmate+00a853201337086b437bc300b32fd01c60d82d301281626f168d83c7797c68f2/launch.s1792523630.73323.19
+476.sh'
+grok 1.0.62 (1474f9cbdd91)
+Dales-MacBook-Pro-M4-7:secondmate dalecarman$
+[exit 0]
+Secondmate named raw launch remained exempt, with its medium pair recorded.
+$ tmux -L fm-lab kill-server
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CFFE0SW6E27P1VQJFKWX7F/.test-effort-guard/live-verified/home
+
+[exit 0]
+Stopped the owned lab tmux server and removed its private socket directory.
+
+Stopped verified disposable Grok PID 37293 after the named lab server was closed.
+Stopped verified disposable Grok PID 52392 after the named lab server was closed.
+Stopped verified disposable Grok PID 71507 after the named lab server was closed.
+Cleanup verified: every recorded live-lab Grok process exited; both private tmux socket directories were removed by fm-lab-home.sh teardown.
+
+Final cleanup: removed all disposable fixtures and product snapshots from the worktree after the focused suites completed.
