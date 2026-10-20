@@ -1,9 +1,7 @@
-# Drift proof manifest, keyed on PR number. One line per first-parent PR on
-# upstream-lean, oldest first. "pr: <N>" names a kept PR and the comment above
-# it names its proof in drift-measurements.txt. "pending-pr: <N> <bead>" names
-# a PR whose proof is still owed on that bead. Carried commits inherit the
-# class of the PR whose merge carried them. No SHA is named, so a squash
-# merge cannot strand an entry.
+# Drift proof manifest. bin/fm-drift-nightly.sh's header owns the PR-keyed
+# format and replay rules; CONTRIBUTING.md owns the per-PR proof requirement.
+# Entries follow first-parent PR order on upstream-lean, oldest first.
+# Comments name each kept PR's failing-first test or measurement.
 # "Live routing file", "R16 routing compatibility" and "R16 effort delivery" in drift-measurements.txt.
 pr: 6
 # "R16 routing compatibility", "R16 quota fallback" and "R16 catalogue refusal" in drift-measurements.txt.
@@ -40,7 +38,7 @@ pending-pr: 42 .agent-config-dtjsb
 pending-pr: 36 .agent-config-dtjsb
 pending-pr: 38 .agent-config-dtjsb
 pending-pr: 43 .agent-config-dtjsb
-# "PR 25 squash acceptance on upstream-lean" in drift-measurements.txt, plus the sections it names there. The 46 pre-squash branch commits stay reachable on origin archive/fm-drift-nightly-b2216803.
+# "PR 25 squash acceptance on upstream-lean" in drift-measurements.txt, plus the sections it names there.
 pr: 25
 pending-pr: 47 .agent-config-dtjsb
 pending-pr: 50 .agent-config-dtjsb

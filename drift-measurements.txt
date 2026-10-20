@@ -1,3 +1,7 @@
+The current manifest format and replay rules are owned by bin/fm-drift-nightly.sh's header.
+The PR-keyed acceptance measurement is "PR 25 squash acceptance on upstream-lean" below.
+Earlier measurements apply to the revisions they name; their SHA entries, pending:, after:, and carried-unproven examples describe earlier guard versions, not the current manifest or output.
+
 Nightly drift guard measured on this machine
 Measured: 2026-10-14T13:08:36.431099-05:00
 Platform: Darwin 27.2.0 arm64
