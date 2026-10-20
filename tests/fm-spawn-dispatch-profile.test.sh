@@ -476,7 +476,7 @@ test_active_dispatch_profile_allows_positional_harness() {
   pass "active crew-dispatch profile allows the legacy positional harness form"
 }
 
-test_active_dispatch_profile_allows_raw_launch_command() {
+test_active_dispatch_profile_allows_raw_launch_on_unnamed_harness() {
   local rec id out status launch
   id=profile-raw-z15
   rec=$(make_spawn_case profile-raw claude "$id")
@@ -486,7 +486,7 @@ test_active_dispatch_profile_allows_raw_launch_command() {
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
     "$id" "$PROJ_DIR" "custom-agent --flag")
   status=$?
-  expect_code 0 "$status" "raw launch command should satisfy active dispatch-profile requirement"
+  expect_code 0 "$status" "raw launch on an unnamed harness should satisfy active dispatch-profile requirement"
   assert_contains "$out" "spawned $id harness=custom-agent" "spawn did not report raw command harness"
   assert_meta_profile "$HOME_DIR/state/$id.meta" custom-agent default default
   launch=$(cat "$LAUNCH_LOG")
@@ -494,7 +494,85 @@ test_active_dispatch_profile_allows_raw_launch_command() {
   # so it carries the compact-adviser floor, the AI-trailer strip, and the
   # worker git identity; nothing else may rewrite the captain's own command.
   [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; $(task_inbox_export "$HOME_DIR" "$id")$(worker_git_exports "$HOME_DIR" "$id")custom-agent --flag" ] || fail "raw launch command changed"$'\n'"actual: $launch"
-  pass "active crew-dispatch profile allows the raw launch-command escape hatch"
+  pass "active crew-dispatch profile allows raw launches on unnamed harnesses"
+}
+
+test_dispatch_profile_refuses_named_raw_launches() {
+  local rec id out status kind form tool raw
+  local -a args
+  for kind in scout ship; do
+    for form in positional explicit-profile; do
+      id="profile-raw-$kind-$form"
+      rec=$(make_spawn_case "$id" grok "$id")
+      read_case_record "$rec"
+      enable_livecheck_dispatch_profile "$HOME_DIR"
+      for tool in tmux treehouse; do
+        cp "$FAKEBIN_DIR/$tool" "$FAKEBIN_DIR/$tool.original"
+        cat > "$FAKEBIN_DIR/$tool" <<'SH'
+#!/usr/bin/env bash
+case "$(basename "$0"):${1:-}" in
+  tmux:new-window|tmux:new-session|tmux:split-window|treehouse:get)
+    printf '%s\n' "$*" >> "$FM_FAKE_PROVISION_LOG" ;;
+esac
+exec "$0.original" "$@"
+SH
+      done
+      raw='grok --always-approve --model grok-4.7 --reasoning-effort medium'
+      args=("$id" "$PROJ_DIR")
+      if [ "$form" = positional ]; then
+        args+=("$raw")
+      else
+        printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}],"default":[{"harness":"grok","model":"grok-4.7","effort":"high"}],"label_routes":{"bounded":{"harness":"grok","model":"grok-4.7","effort":"low"}}}' \
+          > "$HOME_DIR/config/crew-dispatch.json"
+        args+=(--harness "$raw" --model grok-4.7 --effort xhigh)
+      fi
+      if [ "$kind" = scout ]; then
+        args+=(--scout)
+      else
+        args+=(--mode no-mistakes --yolo off)
+      fi
+      out=$(FM_FAKE_PROVISION_LOG="$CASE_DIR/provision.log" \
+        run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "${args[@]}")
+      status=$?
+      expect_code 1 "$status" "raw $kind $form launch on a named harness should refuse: $out"
+      assert_contains "$out" "canonical --harness grok" "raw launch refusal did not require a canonical launch"
+      assert_contains "$out" "grok-4.7 xhigh" "raw launch refusal did not print the file pair"
+      if [ "$form" = explicit-profile ]; then
+        assert_contains "$out" "grok-4.7 high" "raw launch refusal omitted the default pair"
+        assert_contains "$out" "grok-4.7 low" "raw launch refusal omitted the label-route pair"
+      fi
+      assert_absent "$CASE_DIR/provision.log" "raw launch provisioned a worktree or endpoint before refusal"
+      assert_absent "$HOME_DIR/state/$id.meta" "raw launch refusal wrote task metadata"
+      [ ! -s "$LAUNCH_LOG" ] || fail "refused raw launch sent a command: $(cat "$LAUNCH_LOG")"
+    done
+  done
+  pass "named raw ship and scout launches refuse before provisioning, even with matching profile flags"
+}
+
+test_raw_named_harness_without_dispatch_or_with_secondmate_spawns() {
+  local rec id out status scope sm raw
+  local -a args
+  raw='grok --always-approve --model grok-4.7 --reasoning-effort medium'
+  for scope in no-file secondmate; do
+    id="profile-raw-$scope"
+    rec=$(make_spawn_case "$id" grok "$id")
+    read_case_record "$rec"
+    if [ "$scope" = secondmate ]; then
+      enable_livecheck_dispatch_profile "$HOME_DIR"
+      sm="$CASE_DIR/secondmate-home"
+      make_seeded_secondmate_home "$sm" "$id"
+      args=("$id" "$sm" "$raw" --secondmate)
+    else
+      args=("$id" "$PROJ_DIR" "$raw" --mode no-mistakes --yolo off)
+    fi
+    out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "${args[@]}")
+    status=$?
+    expect_code 0 "$status" "raw $scope launch should remain exempt: $out"
+    assert_contains "$out" "spawned $id harness=grok" "exempt raw launch did not report grok"
+    assert_meta_profile "$HOME_DIR/state/$id.meta" grok default default
+    assert_contains "$(cat "$LAUNCH_LOG")" "$raw" "exempt raw launch command changed"
+  done
+  pass "raw named harness launches preserve no-file and secondmate exemptions"
 }
 
 test_dispatch_profile_mismatched_effort_refuses_livecheck_case() {
@@ -2481,7 +2559,9 @@ test_active_dispatch_profile_requires_explicit_harness_for_ship
 test_active_dispatch_profile_requires_explicit_harness_for_scout
 test_active_dispatch_profile_allows_explicit_harness
 test_active_dispatch_profile_allows_positional_harness
-test_active_dispatch_profile_allows_raw_launch_command
+test_active_dispatch_profile_allows_raw_launch_on_unnamed_harness
+test_dispatch_profile_refuses_named_raw_launches
+test_raw_named_harness_without_dispatch_or_with_secondmate_spawns
 test_dispatch_profile_mismatched_effort_refuses_livecheck_case
 test_dispatch_profile_matching_pair_spawns
 test_dispatch_profile_unnamed_harness_spawns

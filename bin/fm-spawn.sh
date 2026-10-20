@@ -272,8 +272,9 @@
 #   dispatch profile the file names for that harness (default, label_routes, and
 #   rules use profiles; docs/configuration.md "Crew dispatch profiles" owns that
 #   enumeration), or the spawn refuses before any worktree or endpoint exists and
-#   prints the file pair or pairs for that harness. A harness the file never
-#   names, a raw launch command, and a --secondmate spawn are exempt. A relaunch
+#   prints the file pair or pairs for that harness. Raw commands for a harness
+#   the file names refuse and require the canonical harness/profile launch form.
+#   A harness the file never names and a --secondmate spawn are exempt. A relaunch
 #   whose recorded pair matches no profile for its harness adopts the file pair
 #   when the file names exactly one pair for that harness and records it; when
 #   the file names more than one pair it refuses and prints them, because
@@ -2422,12 +2423,12 @@ EOF
 # enforce_dispatch_profile: the pair half of the consultation backstop.
 # Fresh crew and scout spawns must land on a pair the dispatch file names
 # for the resolved harness. A relaunch adopts the file pair when the file
-# names exactly one pair for its harness. Exempt: no dispatch file, a
-# harness the file never names, a raw launch command, and secondmates.
+# names exactly one pair for its harness. Raw commands for a named harness
+# require the canonical harness/profile launch form. Exempt: no dispatch
+# file, a harness the file never names, and secondmates.
 enforce_dispatch_profile() {
   local pairs pretty pair model effort eff_model eff_effort count
   [ "$KIND" != secondmate ] || return 0
-  [ "$RAW_LAUNCH" = 0 ] || return 0
   [ -f "$CONFIG/crew-dispatch.json" ] || return 0
   if ! command -v jq >/dev/null 2>&1; then
     echo "error: config/crew-dispatch.json is active - jq is required to read its dispatch profiles for harness $HARNESS" >&2
@@ -2439,6 +2440,10 @@ enforce_dispatch_profile() {
   fi
   [ -n "$pairs" ] || return 0
   pretty=$(dispatch_profile_pairs_pretty "$pairs")
+  if [ "$RAW_LAUNCH" != 0 ]; then
+    echo "error: config/crew-dispatch.json is active - raw launch command for $HARNESS requires the canonical --harness $HARNESS launch with a dispatch profile (file: $pretty); pass the file pair for this harness with --model and --effort" >&2
+    exit 1
+  fi
   if [ "$RELAUNCH" -eq 1 ]; then
     if [ "$MODEL_SET" -eq 1 ]; then
       eff_model=$MODEL
