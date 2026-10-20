@@ -45,8 +45,16 @@ Named .agent-config-* and gsp-* beads use br from ~/.agent-config and
 before the owning Firstmate backlog.
 These br reads clear BEADS_DIR, BEADS_DB, and BR_DB so inherited addressing
 cannot select a different database.
-Unread task or bead ids appear in teardown warnings and each source's unread
-list in record/data-cleanup.json; prepare still permits the backlog close.
+Only strings shaped like real bead ids count as bead references, in new
+text and in saved cleanup records: a leading letter (after an optional dot),
+then hyphen-separated lowercase segments, so dates and word fragments never
+become beads.
+A finished task whose required backlog row moved to the configured archive
+resolves that row from the completed rows, under the same project and PR
+identity check as the legacy refresh.
+Unread task or bead ids appear in each source's unread list in
+record/data-cleanup.json and are named in one warning; the same unread set
+is not named again on later passes, and prepare still permits the backlog close.
 Stage and expiry retain all data without moving or deleting it while any
 reference is unreadable; the next successful teardown of a different task retries.
 Stage runs under the task's locks, so its evidence and reference reads and its
@@ -83,6 +91,10 @@ If that attempt is cut off too, mark sets expiry "too-large": later teardowns
 skip the hold, keep what remains of it, and name it in a warning each time so
 it can be expired by hand with `bash fm-task-data-lib.sh expire DATA STATE ID`,
 which takes the task's meta lock and refuses a live task.
+After releasing its locks, teardown also starts one single-instance
+background sweep that drains pending holds the same way with no expiry
+budget, excluding the starting task's own fresh hold; holds marked
+too-large stay by-hand only.
 That command stages a never-staged hold and expires it in the same run, so
 its scratch gets no recovery cycle, and it exits non-zero naming a hold it
 leaves unexpired.
@@ -131,6 +143,24 @@ HOLD = ".cleanup-hold"
 RECEIPT = "record/data-cleanup.json"
 TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 MARKS = ("cut-off", "too-large")
+BEAD_ID = re.compile(r"\.?[a-z][a-z0-9]+(?:-[a-z0-9]+)+(?:\.[0-9]+)*")
+BEAD_REF = re.compile(r"\b[Bb]eads?(?:_id)?[ \t:=`]+(\.?[a-z][a-z0-9]+(?:-[a-z0-9]+)+(?:\.[0-9]+)*)")
+
+
+def is_bead_id(value):
+    return isinstance(value, str) and BEAD_ID.fullmatch(value) is not None
+
+
+def bead_ids(text):
+    return sorted(set(BEAD_REF.findall(text)))
+
+
+def unread_named(record):
+    unread = sorted({item for source in record["sources"] for item in source.get("unread", [])})
+    if not unread or record.get("unread_named") == unread:
+        return bool(unread)
+    record["unread_named"] = unread
+    return False
 
 
 class UnreadReferences(ValueError):
@@ -320,7 +350,7 @@ def completed_row_source(data, title, text):
         raise ValueError("completed backlog row has multiple PRs")
     if len(text.encode()) > LIMIT:
         raise ValueError("completed backlog row exceeds 1 MiB")
-    beads = sorted(set(re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", text)))
+    beads = bead_ids(text)
     return {"project": str(project), "pr": next(iter(prs), ""), "beads": beads, "text": text}
 
 
@@ -361,9 +391,22 @@ def backlog_references(source, task_id, limit=None):
     if not legacy:
         backlog["task"] = response["task"]
     source["unread"] = response["unread"]
+    archived_text = ""
+    if not legacy and task_id in source["unread"]:
+        try:
+            completed = completed_source(Path(backlog["data"]), task_id, limit)
+        except StageLimit:
+            raise
+        except (OSError, ValueError, subprocess.SubprocessError):
+            completed = None
+        if completed is not None:
+            if (completed["project"], completed["pr"]) != (source["project"], source["pr"]):
+                raise RetainWhole(f"completed row {task_id} changed project or PR")
+            archived_text = completed["text"]
+            source["unread"].remove(task_id)
     if source["unread"]:
         raise UnreadReferences(f"unread references: {', '.join(source['unread'])}")
-    return legacy_text + "\n" + response["text"]
+    return legacy_text + "\n" + archived_text + "\n" + response["text"]
 
 
 def references(views, sources, task_id, limit=None):
@@ -376,8 +419,7 @@ def references(views, sources, task_id, limit=None):
         sources[-1]["unread"] = sorted(set(sources[-1].get("unread", [])) | set(oversized))
         raise RetainWhole(f"kept evidence over 16 MiB: {', '.join(oversized)}")
     local = "\n".join(texts)
-    beads = set(re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", local))
-    sources[-1]["beads"] = sorted(set(sources[-1]["beads"]) | beads)
+    sources[-1]["beads"] = sorted(set(sources[-1]["beads"]) | set(bead_ids(local)))
     for source in sources:
         project, pr = source["project"], source["pr"]
         texts.append(backlog_references(source, task_id, limit))
@@ -695,6 +737,8 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                         or not isinstance(backlog.get("refreshed_text", ""), str)
                         or (backlog.get("legacy") and not isinstance(backlog.get("text"), str))):
                     raise ValueError("invalid backlog source")
+        for source in record["sources"]:
+            source["beads"] = sorted({bead for bead in source["beads"] if is_bead_id(bead)})
         if action == "expire" and record.get("expired"):
             return
     elif action == "expire":
@@ -750,8 +794,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         if source:
             record["sources"].remove(source)
         record["sources"].append(source or {"project": project, "pr": pr, "beads": []})
-        record["sources"][-1]["beads"] = sorted(set(record["sources"][-1]["beads"]) | set(
-            re.findall(r"\b[Bb]ead(?:_id)?[ \t:=`]*([.]?[\w.]+-[\w-]+)", local)))
+        record["sources"][-1]["beads"] = sorted(set(record["sources"][-1]["beads"]) | set(bead_ids(local)))
     for source in record["sources"]:
         source.setdefault("backlog", {"data": str(data), "task": None})
     views = [(root, files, repos)]
@@ -776,10 +819,16 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         return
     except RetainWhole as error:
-        print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
+        if action != "expire" or not unread_named(record):
+            print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         return
+    except UnreadReferences as error:
+        if action != "expire" or not unread_named(record):
+            print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
+        raise SystemExit(1) from error
     finally:
         write_record(root, record)
+    record.pop("unread_named", None)
     try:
         targets, directories = retention_paths(root, files, all_directories, repos, text, limit)
     except StageLimit as error:
