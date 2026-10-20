@@ -240,22 +240,29 @@ if [ -n "$LABELS_SET" ]; then
     esac
     ;;
   esac
+  LABEL_HIT=$(jq -r --arg labels "$LABELS" '
+    (.label_routes // {}) as $routes
+    | ($labels | split(",") | map(gsub("^\\s+|\\s+$"; ""))
+       | map(select(length > 0 and $routes[.] != null)) | first // "")
+  ' "$RULES") || die "worker routing failed: $RULES_PATH"
   LABELS_QUOTA=null
-  if command -v quota-axi >/dev/null 2>&1; then
-    labels_quota_raw=$(quota-axi --json 2>/dev/null) || labels_quota_raw=''
-    if [ -n "$labels_quota_raw" ] && printf '%s\n' "$labels_quota_raw" | fm_quota_json_valid; then
-      LABELS_QUOTA=$labels_quota_raw
-    fi
-  fi
   LABELS_PMAP='{}'
-  while IFS= read -r h; do
-    [ -n "$h" ] || continue
-    p=$(fm_quota_single_provider_for_harness "$h" 2>/dev/null) || p=''
-    LABELS_PMAP=$(jq -c --arg h "$h" --arg p "$p" '. + {($h): (if $p == "" then null else $p end)}' <<<"$LABELS_PMAP")
-  done < <(jq -r '
-    def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
-    profiles(.default // null) | map(.harness) | unique | .[]' "$RULES")
-  routed=$(jq -r --arg labels "$LABELS" --argjson pmap "$LABELS_PMAP" --argjson quota "$LABELS_QUOTA" "$FM_QUOTA_ROW_JQ"'
+  if [ -z "$LABEL_HIT" ]; then
+    if command -v quota-axi >/dev/null 2>&1; then
+      labels_quota_raw=$(quota-axi --json 2>/dev/null) || labels_quota_raw=''
+      if [ -n "$labels_quota_raw" ] && printf '%s\n' "$labels_quota_raw" | fm_quota_json_valid; then
+        LABELS_QUOTA=$labels_quota_raw
+      fi
+    fi
+    while IFS= read -r h; do
+      [ -n "$h" ] || continue
+      p=$(fm_quota_single_provider_for_harness "$h" 2>/dev/null) || p=''
+      LABELS_PMAP=$(jq -c --arg h "$h" --arg p "$p" '. + {($h): (if $p == "" then null else $p end)}' <<<"$LABELS_PMAP")
+    done < <(jq -r '
+      def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
+      profiles(.default // null) | map(.harness) | unique | .[]' "$RULES")
+  fi
+  routed=$(jq -r --arg hit "$LABEL_HIT" --argjson pmap "$LABELS_PMAP" --argjson quota "$LABELS_QUOTA" "$FM_QUOTA_ROW_JQ"'
     def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
     def flat: gsub("[\\r\\n]"; " ");
     def bare($m): (($m // "") | split("/") | last);
@@ -271,10 +278,8 @@ if [ -n "$LABELS_SET" ]; then
                 (.status == "known" and ((.effectivePercentRemaining | type) == "number") and .effectivePercentRemaining <= 0))
           end
         end;
-    ($labels | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))) as $ls
-    | (.label_routes // {}) as $routes
-    | ([$ls[] | select($routes[.] != null)] | first // null) as $hit
-    | (if $hit != null then {src: "label", detail: $hit, p: $routes[$hit]}
+    (.label_routes // {}) as $routes
+    | (if $hit != "" then {src: "label", detail: $hit, p: $routes[$hit]}
        else {src: "default", detail: "no label matched", p: (profiles(.default // null) | map(select(blocked(.) | not)) | first // null)} end)
     | if .p == null then "NONE"
       else ["dispatch-resolve:", "  status: clear", "  source: \(.src) (\(.detail | flat))",
