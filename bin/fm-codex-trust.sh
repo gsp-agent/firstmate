@@ -128,10 +128,12 @@ fi
 
 if ! python3 -I - "$STORE" "$CODEX_ROOT" <<'PY'
 import copy
+import fcntl
 import hashlib
 import os
 import sys
 import tempfile
+import time
 
 try:
     import tomllib
@@ -233,14 +235,27 @@ def attempt():
 
 
 try:
-    for i in range(3):
-        result = attempt()
-        if result == "recorded":
-            sys.exit(0)
-        if result == "moved" and i >= 1:
-            print(f"error: {store} was modified while trust was being recorded; refusing to overwrite it", file=sys.stderr)
-            sys.exit(1)
-except Refusal as err:
+    lock_fd = os.open(os.path.dirname(store), os.O_RDONLY)
+    try:
+        deadline = time.monotonic() + 30
+        while True:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise Refusal(f"timed out after 30 seconds waiting to record trust in {store}")
+                time.sleep(0.05)
+        for i in range(3):
+            result = attempt()
+            if result == "recorded":
+                sys.exit(0)
+            if result == "moved" and i >= 1:
+                print(f"error: {store} was modified while trust was being recorded; refusing to overwrite it", file=sys.stderr)
+                sys.exit(1)
+    finally:
+        os.close(lock_fd)
+except (Refusal, OSError) as err:
     print(f"error: {err}", file=sys.stderr)
     sys.exit(1)
 print(f"error: {store} did not retain trust for {key} after 3 attempts", file=sys.stderr)

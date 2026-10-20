@@ -420,6 +420,55 @@ test_launch_prompt_codex_folder_access() {
   pass "a codex launch on either folder-access prompt classifies unknown launch-prompt, scoped to codex"
 }
 
+test_codex_prompt_requires_active_dialog_structure() {
+  local state heading option selected pane out
+  state=$(new_state_dir codex-dialog-structure)
+  for option in 'Trust and continue' 'Open restricted'; do
+    heading='Trust this folder?'
+    [ "$option" != 'Open restricted' ] || heading='Folder access'
+    for selected in '' '› '; do
+      pane=$(printf ' \t%s \t\n \t%s1. %s \t\n  2. Quit\n \tenter continue · esc quit \t\n\n \t\n' \
+        "$heading" "$selected" "$option")
+      out=$(fm_busy_classify tmux w1 codex t1 "$state" "$pane")
+      assert_equals 'unknown launch-prompt' "$out" \
+        "a trimmed dialog with option '$selected' must match $option"
+    done
+    pane=$(printf '%s\nThe option is 1. %s\nenter continue · esc quit\n' "$heading" "$option")
+    out=$(fm_busy_classify tmux w1 codex t1 "$state" "$pane")
+    assert_equals 'unknown codex-unverified' "$out" "an inline $option must not count as a menu option"
+    pane=$(printf '%s\n1. %s (quoted)\nenter continue · esc quit\n' "$heading" "$option")
+    out=$(fm_busy_classify tmux w1 codex t1 "$state" "$pane")
+    assert_equals 'unknown codex-unverified' "$out" "a suffixed $option must not count as a menu option"
+    pane=$(printf '%s\n1. %s\n' "$heading" "$option")
+    out=$(fm_busy_classify tmux w1 codex t1 "$state" "$pane")
+    assert_equals 'unknown codex-unverified' "$out" "a $option menu without its footer must not match"
+  done
+  pass "codex requires a whole menu option and the final dialog footer for both prompt shapes"
+}
+
+test_codex_quoted_dialogs_above_a_working_turn_are_not_prompts() {
+  local state pane out
+  state=$(new_state_dir codex-quoted-dialogs)
+  pane='› Investigate these Codex folder-access dialogs:
+  Folder access
+  Trust this folder? Codex can read, edit, and run files here.
+› 1. Trust and continue
+  2. Quit
+  enter continue · esc quit
+  Folder access
+  Config, hooks, and exec policies from untrusted folders stay disabled.
+› 1. Open restricted
+  2. Quit
+  enter continue · esc quit
+• Working (1s • esc to interrupt)
+› Ask Codex to do anything
+  ? for shortcuts'
+  out=$(fm_busy_classify tmux w1 codex t1 "$state" "$pane")
+  assert_equals 'unknown codex-unverified' "$out" \
+    "quoted dialogs above a working footer and composer must not classify as a prompt"
+  pass "codex ignores both complete quoted dialogs above a working turn and composer"
+}
+
 test_launch_prompt_never_shortens_a_working_launch() {
   local state out
   state=$(new_state_dir launch-prompt-working)
@@ -658,6 +707,8 @@ test_launch_prompt_pi_trust_dialog
 test_launch_prompt_pi_requires_both_markers
 test_launch_prompt_gemini_dialogs
 test_launch_prompt_codex_folder_access
+test_codex_prompt_requires_active_dialog_structure
+test_codex_quoted_dialogs_above_a_working_turn_are_not_prompts
 test_launch_prompt_never_shortens_a_working_launch
 test_launch_prompt_scoped_to_armed_harnesses
 test_launch_prompt_never_reclassifies_an_advanced_record

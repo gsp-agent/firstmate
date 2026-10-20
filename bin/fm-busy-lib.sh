@@ -1002,13 +1002,14 @@ fm_busy_gemini_launch_prompt_tail() {
 # together, for the same self-referential-prose reason as Claude's pairing.
 fm_busy_codex_launch_prompt_tail() {
   local buf
-  buf=$(cat)
-  if printf '%s' "$buf" | grep -qE 'Trust this folder\?' \
-    && printf '%s' "$buf" | grep -qE 'Trust and continue'; then
+  buf=$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')
+  [ "${buf##*$'\n'}" = 'enter continue · esc quit' ] || return 1
+  if printf '%s' "$buf" | grep -qF 'Trust this folder?' \
+    && printf '%s' "$buf" | grep -qE '^(›[[:space:]]*)?1\. Trust and continue$'; then
     return 0
   fi
-  printf '%s' "$buf" | grep -qE 'Folder access' \
-    && printf '%s' "$buf" | grep -qE 'Open restricted'
+  printf '%s' "$buf" | grep -qF 'Folder access' \
+    && printf '%s' "$buf" | grep -qE '^(›[[:space:]]*)?1\. Open restricted$'
 }
 
 # fm_busy_launch_prompt_parked: dispatch to the signature above for <harness>,

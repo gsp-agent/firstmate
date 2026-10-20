@@ -4923,8 +4923,8 @@ codex_wait_for_turn() {  # 0 turn started, 1 folder-access prompt, 2 neither
   local pane i=0 max=${FM_CODEX_READY_POLLS:-120} interval=${FM_CODEX_POLL_INTERVAL:-0.5}
   while [ "$i" -lt "$max" ]; do
     pane=$(spawn_gate_capture)
-    printf '%s' "$pane" | fm_busy_launch_prompt_parked codex && return 1
     printf '%s\n' "$pane" | grep -Eq "$CODEX_TURN_STARTED" && return 0
+    printf '%s' "$pane" | fm_busy_launch_prompt_parked codex && return 1
     i=$((i + 1))
     [ "$i" -ge "$max" ] || sleep "$interval"
   done

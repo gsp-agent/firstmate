@@ -141,6 +141,53 @@ test_registration_is_idempotent() {
   pass "fm-codex-trust.sh: a repeat registration leaves the store byte-identical"
 }
 
+test_concurrent_registrations_preserve_all_roots() {
+  local shared i
+  local cases=()
+  shared="$TMP_ROOT/concurrent-store"
+  mkdir -p "$shared"
+  for i in 1 2 3 4 5 6; do
+    read_case "$(make_case "concurrent-$i")"
+    cases+=("$HOME_DIR" "$WT" "$PROJ")
+  done
+  python3 -I - "$TRUST" "$shared" "${cases[@]}" <<'PY' || fail "concurrent trust registrations failed"
+import fcntl
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tomllib
+
+helper, shared, *cases = sys.argv[1:]
+processes = []
+lock_fd = os.open(shared, os.O_RDONLY)
+try:
+    fcntl.flock(lock_fd, fcntl.LOCK_EX)
+    for home, wt, proj in zip(cases[::3], cases[1::3], cases[2::3]):
+        env = dict(os.environ, HOME=home, CODEX_HOME=shared)
+        processes.append(subprocess.Popen([helper, wt, proj], env=env,
+                                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True))
+    for process in processes:
+        try:
+            output, _ = process.communicate(timeout=0.5)
+        except subprocess.TimeoutExpired:
+            continue
+        raise AssertionError(f"registration did not wait for the shared directory lock: {output}")
+finally:
+    os.close(lock_fd)
+    outputs = [process.communicate(timeout=35)[0] for process in processes]
+
+for process, output in zip(processes, outputs):
+    assert process.returncode == 0, output
+with open(Path(shared) / "config.toml", "rb") as handle:
+    projects = tomllib.load(handle)["projects"]
+for proj in cases[2::3]:
+    assert projects[str(Path(proj).resolve())]["trust_level"] == "trusted", proj
+assert {path.name for path in Path(shared).iterdir()} == {"config.toml"}
+PY
+  pass "fm-codex-trust.sh: concurrent registrations wait for the store directory lock and preserve every root"
+}
+
 test_existing_trusted_entry_in_any_spelling_is_left_alone() {
   local rec out root before
   rec=$(make_case already)
@@ -343,6 +390,27 @@ fake_screen() {
       printf '  Trust this folder? Codex can read, edit, and run files here.\n› 1. Trust and continue\n  2. Quit\n  enter continue · esc quit\n'
       ;;
     turn) printf '› Read the brief\n• Working (1s • esc to interrupt)\n› Ask Codex to do anything\n  ? for shortcuts\n' ;;
+    quoted-turn|quoted-finished)
+      cat <<'EOF'
+› Investigate these Codex folder-access dialogs:
+  Folder access
+  Trust this folder? Codex can read, edit, and run files here.
+› 1. Trust and continue
+  2. Quit
+  enter continue · esc quit
+  Folder access
+  Config, hooks, and exec policies from untrusted folders stay disabled.
+› 1. Open restricted
+  2. Quit
+  enter continue · esc quit
+EOF
+      if [ "$state" = quoted-turn ]; then
+        printf '• Working (1s • esc to interrupt)\n'
+      else
+        printf '• Worked for 1s\n'
+      fi
+      printf '› Ask Codex to do anything\n  ? for shortcuts\n'
+      ;;
     *) printf 'shell starting\n$ \n' ;;
   esac
 }
@@ -517,6 +585,20 @@ test_spawn_forwards_codex_home_to_the_store_it_wrote() {
   pass "fm-spawn: codex forwards CODEX_HOME so the worker reads the store the spawn wrote"
 }
 
+test_spawn_accepts_turns_quoting_both_folder_access_dialogs() {
+  local id screen out
+  for screen in quoted-turn quoted-finished; do
+    id="codex-$screen-$$"
+    read_codex_spawn_case "$(make_codex_spawn_case "$screen" "$id")"
+    out=$(FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id")
+    expect_code 0 $? "a codex turn quoting the dialogs must pass the spawn gate: $out"
+    assert_contains "$out" "spawned $id harness=codex" "the quoted $screen did not report success"
+    assert_not_contains "$(cat "$CASE_DIR/tmux-calls.log")" "kill-window" \
+      "a codex $screen quoting the dialogs had its endpoint closed"
+  done
+  pass "fm-spawn: running and finished turns quoting both folder-access dialogs pass the launch gate"
+}
+
 test_prompt_despite_registration_fails_the_spawn_at_once() {
   local id out rc calls captures
   id="codex-prompt-c3-$$"
@@ -576,6 +658,7 @@ test_unregistrable_root_refuses_before_launch() {
 test_fresh_worktree_trusts_the_primary_checkout_root
 test_append_preserves_every_existing_byte
 test_registration_is_idempotent
+test_concurrent_registrations_preserve_all_roots
 test_existing_trusted_entry_in_any_spelling_is_left_alone
 test_explicit_untrusted_decision_is_not_overridden
 test_entries_that_need_an_in_place_edit_are_refused
@@ -588,6 +671,7 @@ test_symlinked_store_writes_its_target
 test_missing_python_is_refused
 test_spawn_pre_trusts_the_root_and_launches_into_a_running_turn
 test_spawn_forwards_codex_home_to_the_store_it_wrote
+test_spawn_accepts_turns_quoting_both_folder_access_dialogs
 test_prompt_despite_registration_fails_the_spawn_at_once
 test_launch_that_never_starts_a_turn_fails_the_spawn
 test_unregistrable_root_refuses_before_launch
