@@ -1179,6 +1179,46 @@ test_spawn_relaunch_without_a_harness_reuses_the_recorded_one() {
 # its brief is the scout scaffold: it never gained a Ship branch line, and a
 # relaunch cannot regenerate the brief (--branch-prefix is refused there). The
 # recorded branch is authoritative, so the relaunch must proceed on it.
+test_spawn_relaunch_adopts_the_single_dispatch_pair() {
+  local dir out
+  dir=$(new_case dispatchadopt rl43)
+  add_ship_task "$dir" rl43 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl43.meta"
+  printf 'effort=medium\n' >> "$dir/home/state/rl43.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/becomes"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl43 --relaunch)
+  [ "$(meta_field "$dir" rl43 model)" = grok-4.7 ] \
+    || fail "relaunch should record the dispatch file model, got '$(meta_field "$dir" rl43 model)'"
+  [ "$(meta_field "$dir" rl43 effort)" = xhigh ] \
+    || fail "relaunch should adopt the dispatch file effort xhigh, got '$(meta_field "$dir" rl43 effort)'"
+  assert_contains "$out" "spawned rl43 harness=grok" "the relaunch should report grok"
+  pass "fm-spawn --relaunch: a recorded pair matching no dispatch profile launches on the file pair and records it"
+}
+
+test_spawn_relaunch_refuses_when_the_file_offers_two_pairs() {
+  local dir out rc
+  dir=$(new_case dispatchmulti rl44)
+  add_ship_task "$dir" rl44 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl44.meta"
+  printf 'effort=medium\n' >> "$dir/home/state/rl44.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}],"default":{"harness":"grok","model":"grok-4.7","effort":"high"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/becomes"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl44 --relaunch); rc=$?
+  [ "$rc" -ne 0 ] || fail "relaunch with two dispatch pairs to choose from should refuse"
+  assert_contains "$out" "xhigh" "refusal did not print the first dispatch pair"
+  assert_contains "$out" "high" "refusal did not print the second dispatch pair"
+  [ "$(meta_field "$dir" rl44 effort)" = medium ] \
+    || fail "refused relaunch should keep the recorded effort, got '$(meta_field "$dir" rl44 effort)'"
+  pass "fm-spawn --relaunch: more than one dispatch pair for the harness refuses rather than guessing"
+}
+
 test_spawn_relaunch_of_promoted_scout_uses_the_recorded_branch() {
   local dir out
   dir=$(new_case promotebranch rl42)
@@ -2566,6 +2606,8 @@ test_secondmate_relaunch_onto_a_crewmate_only_adapter_refuses_before_stop
 test_explicit_secondmate_harness_ignores_configured_profile_axes
 test_ship_relaunch_ignores_the_crew_harness_config
 test_spawn_relaunch_without_a_harness_reuses_the_recorded_one
+test_spawn_relaunch_adopts_the_single_dispatch_pair
+test_spawn_relaunch_refuses_when_the_file_offers_two_pairs
 test_spawn_relaunch_of_promoted_scout_uses_the_recorded_branch
 test_promoted_scout_relaunch_receives_the_current_delivery_contract
 test_prefixed_prior_harness_wiring_is_still_retired

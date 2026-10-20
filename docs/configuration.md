@@ -1195,6 +1195,11 @@ Firstmate resolves the rule's profile object or array under `AGENTS.md` section 
 **Spawn requirements**
 
 - When the file exists, `fm-spawn.sh` enforces that contract by refusing crewmate and scout spawns that lack an explicit harness (`--harness`, a positional adapter, or a raw launch command).
+- The resolved model and effort must also equal one profile the file names for that harness across `default`, `label_routes`, and each rule's `use` profiles, with an omitted model or effort axis reading as the harness default.
+- A spawn whose pair matches no named profile for its harness refuses before any worktree or endpoint is provisioned and prints the file pair or pairs for that harness.
+- A harness the file never names, a raw launch command, and a secondmate spawn are exempt from the pair check.
+- A relaunch whose recorded pair matches no profile for its harness launches on the file pair and records it when the file names exactly one pair for that harness.
+- A relaunch refuses and prints the pairs when the file names more than one pair for its harness, because choosing among profile candidates stays with firstmate intake.
 - Batch spawns satisfy the same requirement with a shared `--harness`.
 - Secondmate spawns are exempt and still resolve through `config/secondmate-harness` and its optional model and effort tokens.
 

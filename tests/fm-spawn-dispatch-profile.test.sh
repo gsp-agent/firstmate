@@ -80,6 +80,12 @@ enable_dispatch_profile() {
     > "$home/config/crew-dispatch.json"
 }
 
+enable_livecheck_dispatch_profile() {
+  local home=$1
+  printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}],"default":{"harness":"codex","model":"gpt-5","effort":"medium"}}' \
+    > "$home/config/crew-dispatch.json"
+}
+
 make_seeded_secondmate_home() {
   local home=$1 id=$2
   mkdir -p "$home/bin" "$home/data"
@@ -443,13 +449,13 @@ test_active_dispatch_profile_allows_explicit_harness() {
   enable_dispatch_profile "$HOME_DIR"
 
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
-    "$id" "$PROJ_DIR" --harness codex --model gpt-5 --effort high)
+    "$id" "$PROJ_DIR" --harness codex --model gpt-5 --effort medium)
   status=$?
   expect_code 0 "$status" "explicit harness should satisfy active dispatch-profile requirement"
   assert_contains "$out" "spawned $id harness=codex" "spawn did not report explicit codex harness"
-  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5 high
+  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5 medium
   launch=$(cat "$LAUNCH_LOG")
-  assert_contains "$launch" "codex --model 'gpt-5' -c 'model_reasoning_effort=\"high\"' --dangerously-bypass-approvals-and-sandbox" \
+  assert_contains "$launch" "codex --model 'gpt-5' -c 'model_reasoning_effort=\"medium\"' --dangerously-bypass-approvals-and-sandbox" \
     "explicit harness launch did not thread model and effort"
   pass "active crew-dispatch profile allows an explicit resolved harness"
 }
@@ -462,11 +468,11 @@ test_active_dispatch_profile_allows_positional_harness() {
   enable_dispatch_profile "$HOME_DIR"
 
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
-    "$id" "$PROJ_DIR" codex --model gpt-5 --effort high)
+    "$id" "$PROJ_DIR" codex --model gpt-5 --effort medium)
   status=$?
   expect_code 0 "$status" "positional harness should satisfy active dispatch-profile requirement"
   assert_contains "$out" "spawned $id harness=codex" "spawn did not report positional codex harness"
-  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5 high
+  assert_meta_profile "$HOME_DIR/state/$id.meta" codex gpt-5 medium
   pass "active crew-dispatch profile allows the legacy positional harness form"
 }
 
@@ -489,6 +495,73 @@ test_active_dispatch_profile_allows_raw_launch_command() {
   # worker git identity; nothing else may rewrite the captain's own command.
   [ "$launch" = "export COMPACT_ADVISER_DISABLE=1; $(task_inbox_export "$HOME_DIR" "$id")$(worker_git_exports "$HOME_DIR" "$id")custom-agent --flag" ] || fail "raw launch command changed"$'\n'"actual: $launch"
   pass "active crew-dispatch profile allows the raw launch-command escape hatch"
+}
+
+test_dispatch_profile_mismatched_effort_refuses_livecheck_case() {
+  local rec id out status
+  id=profile-livecheck-mismatch-z28
+  rec=$(make_spawn_case profile-livecheck-mismatch grok "$id")
+  read_case_record "$rec"
+  enable_livecheck_dispatch_profile "$HOME_DIR"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$id" "$PROJ_DIR" --harness grok --model grok-4.7 --effort medium 2>&1)
+  status=$?
+  expect_code 1 "$status" "grok grok-4.7 medium should refuse when the dispatch file names grok-4.7 xhigh"
+  assert_contains "$out" "grok-4.7" "refusal did not print the dispatch file model"
+  assert_contains "$out" "xhigh" "refusal did not print the dispatch file effort"
+  assert_absent "$HOME_DIR/state/$id.meta" "mismatched spawn should happen before meta is written"
+  [ ! -s "$LAUNCH_LOG" ] || fail "mismatched spawn sent a launch: $(cat "$LAUNCH_LOG")"
+  pass "dispatch profile refuses the heru-sj4-livecheck pair grok grok-4.7 medium against the file pair xhigh"
+}
+
+test_dispatch_profile_matching_pair_spawns() {
+  local rec id out status
+  id=profile-livecheck-match-z29
+  rec=$(make_spawn_case profile-livecheck-match grok "$id")
+  read_case_record "$rec"
+  enable_livecheck_dispatch_profile "$HOME_DIR"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$id" "$PROJ_DIR" --harness grok --model grok-4.7 --effort xhigh)
+  status=$?
+  expect_code 0 "$status" "matching dispatch pair should spawn"
+  assert_contains "$out" "spawned $id harness=grok" "matching spawn did not report grok"
+  assert_meta_profile "$HOME_DIR/state/$id.meta" grok grok-4.7 xhigh
+  pass "dispatch profile allows the matching grok grok-4.7 xhigh pair"
+}
+
+test_dispatch_profile_unnamed_harness_spawns() {
+  local rec id out status
+  id=profile-livecheck-unnamed-z30
+  rec=$(make_spawn_case profile-livecheck-unnamed claude "$id")
+  read_case_record "$rec"
+  enable_livecheck_dispatch_profile "$HOME_DIR"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$id" "$PROJ_DIR" --harness claude)
+  status=$?
+  expect_code 0 "$status" "a harness the dispatch file never names should spawn as today"
+  assert_contains "$out" "spawned $id harness=claude" "unnamed harness spawn did not report claude"
+  pass "dispatch profile leaves a harness it never names untouched"
+}
+
+test_dispatch_profile_secondmate_with_mismatched_pair_spawns() {
+  local rec id sm out status
+  id=profile-livecheck-secondmate-z31
+  rec=$(make_spawn_case profile-livecheck-secondmate grok "$id")
+  read_case_record "$rec"
+  enable_livecheck_dispatch_profile "$HOME_DIR"
+  sm="$CASE_DIR/secondmate-home"
+  make_seeded_secondmate_home "$sm" "$id"
+
+  out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$id" "$sm" --secondmate --harness grok --model grok-4.7 --effort medium)
+  status=$?
+  expect_code 0 "$status" "secondmate spawn should be exempt from the dispatch pair guard"
+  assert_contains "$out" "spawned $id harness=grok kind=secondmate" "secondmate spawn did not report grok secondmate"
+  assert_meta_profile "$HOME_DIR/state/$id.meta" grok grok-4.7 medium
+  pass "dispatch profile leaves secondmate spawns untouched even on a mismatched pair"
 }
 
 test_chained_raw_launch_strips_ai_trailer_in_every_step() {
@@ -1626,13 +1699,13 @@ test_batch_forwards_shared_profile_flags() {
   enable_dispatch_profile "$HOME_DIR"
 
   out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
-    "$id1=$PROJ_DIR" "$id2=$PROJ_DIR" --harness codex --model gpt-5 --effort high)
+    "$id1=$PROJ_DIR" "$id2=$PROJ_DIR" --harness codex --model gpt-5 --effort medium)
   status=$?
   expect_code 0 "$status" "batch spawn with shared profile flags should succeed"
   assert_contains "$out" "spawned $id1 harness=codex" "first batch task did not use shared harness"
   assert_contains "$out" "spawned $id2 harness=codex" "second batch task did not use shared harness"
-  assert_meta_profile "$HOME_DIR/state/$id1.meta" codex gpt-5 high
-  assert_meta_profile "$HOME_DIR/state/$id2.meta" codex gpt-5 high
+  assert_meta_profile "$HOME_DIR/state/$id1.meta" codex gpt-5 medium
+  assert_meta_profile "$HOME_DIR/state/$id2.meta" codex gpt-5 medium
   pass "batch dispatch forwards shared --harness, --model, and --effort to every pair"
 }
 
@@ -2409,6 +2482,10 @@ test_active_dispatch_profile_requires_explicit_harness_for_scout
 test_active_dispatch_profile_allows_explicit_harness
 test_active_dispatch_profile_allows_positional_harness
 test_active_dispatch_profile_allows_raw_launch_command
+test_dispatch_profile_mismatched_effort_refuses_livecheck_case
+test_dispatch_profile_matching_pair_spawns
+test_dispatch_profile_unnamed_harness_spawns
+test_dispatch_profile_secondmate_with_mismatched_pair_spawns
 test_chained_raw_launch_strips_ai_trailer_in_every_step
 test_claude_threads_model_and_effort
 test_codex_threads_model_and_effort
