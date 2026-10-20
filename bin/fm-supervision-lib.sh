@@ -63,7 +63,7 @@ for line in sys.stdin:
 # grace-seconds defaults to $FM_GUARD_GRACE, then 300, matching fm-guard.sh.
 # Always returns 0; callers read the vars, or use fm_supervision_unhealthy below.
 fm_supervision_status() {
-  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} meta source check id beat m age probe_holds
+  local state=$1 beacon_grace=${2:-${FM_GUARD_GRACE:-300}} meta source check id beat m age probe_holds
   FM_SUP_IN_FLIGHT=0
   FM_SUP_NEEDED=false
   FM_SUP_WATCHER_FRESH=false
@@ -98,11 +98,12 @@ fm_supervision_status() {
   fi
   if [ "$FM_SUP_NEEDED" = false ]; then
     probe_holds=$(
+      exec 2>/dev/null
       # shellcheck source=bin/fm-timeout-lib.sh
       . "${BASH_SOURCE[0]%/*}/fm-timeout-lib.sh"
       FM_HOME="${FM_HOME:-${state%/*}}" \
         fm_run_timed 10 "${BASH_SOURCE[0]%/*}/fm-tasks-axi.sh" list --state held --fields hold_kind,body
-    ) 2>/dev/null || probe_holds=
+    ) || probe_holds=
     if [ -n "$(printf '%s\n' "$probe_holds" | fm_supervision_probe_hold_ids)" ]; then
       FM_SUP_NEEDED=true
     fi
@@ -114,7 +115,7 @@ fm_supervision_status() {
     if [ -n "$m" ]; then
       age=$(( $(date +%s) - m ))
       FM_SUP_BEACON_DESC="${age}s ago"
-      [ "$age" -lt "$grace" ] && FM_SUP_WATCHER_FRESH=true
+      [ "$age" -lt "$beacon_grace" ] && FM_SUP_WATCHER_FRESH=true
     else
       # shellcheck disable=SC2034 # Read by callers (fm-guard.sh) after sourcing.
       FM_SUP_BEACON_DESC=unknown
