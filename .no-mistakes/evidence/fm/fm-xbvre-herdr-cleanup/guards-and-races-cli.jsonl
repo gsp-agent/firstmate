@@ -1,0 +1,55 @@
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["workspace", "list"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}
+{"mutation_after_real_snapshot": [{"path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/home/state/changed-journal.herdr-presentation", "content": "version=1\ntask_id=changed-journal\nprojection_id=i5seWnOQyisA5cd08VyKmA\n"}]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["workspace", "list"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}
+{"mutation_after_real_snapshot": [{"path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/home/state/fm-late-duplicate.herdr-presentation", "content": "version=1\ntask_id=fm-late-duplicate\nprojection_id=BA9rEWTF-l8k7IPOX-On1w\n"}]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "get", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["agent", "get", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "process-info", "--pane", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["workspace", "list"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["workspace", "get", "wA"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["tab", "list", "--workspace", "wA"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "list", "--workspace", "wA"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "get", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["agent", "get", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "process-info", "--pane", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["workspace", "list"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["tab", "list", "--workspace", "w8"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["workspace", "list"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["tab", "list", "--workspace", "w8"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "get", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "get", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["agent", "get", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["tab", "list", "--workspace", "wA"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "list", "--workspace", "wA"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["workspace", "list"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "process-info", "--pane", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["terminal", "title", "clear"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "get", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["workspace", "list"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["tab", "list", "--workspace", "w8"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["pane", "get", "wA:p1"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["workspace", "list"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}
+{"mutation_after_real_snapshot": [{"path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/home/state/fm-late-before-fix.herdr-presentation", "content": "version=1\ntask_id=fm-late-before-fix\nprojection_id=dmg5wAnsEu2i38T6fwun5w\n"}]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-guards-and-races-85688-3355", "args": ["api", "snapshot"]}

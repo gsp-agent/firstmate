@@ -1,0 +1,7 @@
+lock acquired: harness pid 26160
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/baseline-bin/backends/herdr.sh: line 79: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/bin/fm-composer-lib.sh: No such file or directory
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/baseline-bin/backends/herdr.sh: line 87: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/bin/fm-transition-lib.sh: No such file or directory
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/baseline-bin/backends/herdr.sh: line 94: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/bin/fm-agent-process-lib.sh: No such file or directory
+warning: herdr session-start projection cleanup: duplicate preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: mismatched-binding preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: active-target preserved because its locked candidate snapshot was ambiguous

@@ -1,0 +1,2 @@
+lock acquired: harness pid 26160
+warning: herdr session-start projection cleanup: race-parent preserved because immediate revalidation changed or was unreadable

@@ -1,0 +1,35 @@
+Real cleanup against guarded Herdr labs; unmodified API responses.
+batch-70x55: fm-lab-batch-70x55-43893-23399, Herdr 0.9.1, protocol 22
+batch-70x55/batch: cleanup exit=0, elapsed=19.77s; 
+batch-70x55: 70 initial reads + 3 exact-journal rechecks per closure = 76; 53 unmatched panes and exact focus preserved
+batch-70x55: teardown confirmed absent; default-session tripwire unchanged
+guards-and-races: fm-lab-guards-and-races-85688-3355, Herdr 0.9.1, protocol 22
+guards-and-races/guards: cleanup exit=0, elapsed=12.495s; warning: herdr session-start projection cleanup: duplicate preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: mismatched-binding preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: active-target preserved because its locked candidate snapshot was ambiguous
+guards: duplicate journals, duplicate workspace token, metadata, cross-home/bad v2 bindings, focused target, and changed journal all preserved
+guards-and-races/late-duplicate: cleanup exit=0, elapsed=11.639s; warning: herdr session-start projection cleanup: duplicate preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: mismatched-binding preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: active-target preserved because its locked candidate snapshot was ambiguous
+late-duplicate race: {"name": "A second matching journal after indexing preserves the candidate", "result": "fail", "pane": "wA:p1", "original_journal_retained": false, "duplicate_journal_retained": true}
+guards-and-races/late-duplicate-before-fix: cleanup exit=0, elapsed=10.528s; /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/baseline-bin/backends/herdr.sh: line 79: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/bin/fm-composer-lib.sh: No such file or directory
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/baseline-bin/backends/herdr.sh: line 87: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/bin/fm-transition-lib.sh: No such file or directory
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/baseline-bin/backends/herdr.sh: line 94: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-guards-and-races-85688-3355/bin/fm-agent-process-lib.sh: No such file or directory
+warning: herdr session-start projection cleanup: duplicate preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: mismatched-binding preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: active-target preserved because its locked candidate snapshot was ambiguous
+late-duplicate counterfactual: parent cleanup preserves the same raced journal/pane shape
+guards-and-races: teardown confirmed absent; default-session tripwire unchanged
+Live validation complete: [{"name": "70 journals and 55 candidates use one batch; exact v1/v2 orphans close", "result": "pass"}, {"name": "Ambiguous ownership and changed prerequisites preserve real panes and journals", "result": "pass"}, {"name": "A second matching journal after indexing preserves the candidate", "result": "fail"}]
+race-confirmation: fm-lab-race-confirmatio-64461-30723, Herdr 0.9.1, protocol 22
+race-confirmation/parent-control: cleanup exit=0, elapsed=4.631s; 
+parent control: unambiguous idle pane closes with original cleanup and current backend; no missing-library errors
+race-confirmation/current-race: cleanup exit=0, elapsed=5.191s; 
+race confirmation: {"implementation": "current", "pane": "w3:p1", "candidate_retained": false, "original_journal_retained": false, "late_duplicate_journal_retained": true, "focus_preserved": true}
+race-confirmation/parent-race: cleanup exit=0, elapsed=1.757s; warning: herdr session-start projection cleanup: race-parent preserved because immediate revalidation changed or was unreadable
+race confirmation: {"implementation": "parent", "pane": "w4:p1", "candidate_retained": true, "original_journal_retained": true, "late_duplicate_journal_retained": true, "focus_preserved": true}
+race-confirmation/journal-change: cleanup exit=0, elapsed=1.839s; warning: herdr session-start projection cleanup: journal-change preserved because immediate revalidation changed or was unreadable
+immediate revalidation: {"guard": "journal-change", "candidate_retained": true, "journal_retained": true, "immediate_revalidation_refused": true}
+race-confirmation/metadata-appears: cleanup exit=0, elapsed=1.612s; warning: herdr session-start projection cleanup: metadata-appears preserved because immediate revalidation changed or was unreadable
+immediate revalidation: {"guard": "metadata-appears", "candidate_retained": true, "journal_retained": true, "immediate_revalidation_refused": true}
+race-confirmation: teardown confirmed absent; default-session tripwire unchanged

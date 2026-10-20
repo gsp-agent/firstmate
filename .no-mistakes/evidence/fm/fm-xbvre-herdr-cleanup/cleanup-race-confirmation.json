@@ -1,0 +1,30 @@
+[
+  {
+    "implementation": "current",
+    "pane": "w3:p1",
+    "candidate_retained": false,
+    "original_journal_retained": false,
+    "late_duplicate_journal_retained": true,
+    "focus_preserved": true
+  },
+  {
+    "implementation": "parent",
+    "pane": "w4:p1",
+    "candidate_retained": true,
+    "original_journal_retained": true,
+    "late_duplicate_journal_retained": true,
+    "focus_preserved": true
+  },
+  {
+    "guard": "journal-change",
+    "candidate_retained": true,
+    "journal_retained": true,
+    "immediate_revalidation_refused": true
+  },
+  {
+    "guard": "metadata-appears",
+    "candidate_retained": true,
+    "journal_retained": true,
+    "immediate_revalidation_refused": true
+  }
+]

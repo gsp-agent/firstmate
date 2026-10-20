@@ -1,0 +1,81 @@
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["api", "snapshot"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["agent", "get", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "get", "w2"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w2"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "list", "--workspace", "w2"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["agent", "get", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["agent", "get", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w2"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "list", "--workspace", "w2"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["terminal", "title", "clear"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["api", "snapshot"]}
+{"mutation_after_real_snapshot": [{"path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-race-confirmatio-64461-30723/home/state/fm-race-current.herdr-presentation", "content": "version=1\ntask_id=fm-race-current\nprojection_id=mbZGt0uMuIngRM8VsSq2Cg\n"}]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["agent", "get", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "get", "w3"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w3"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "list", "--workspace", "w3"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["agent", "get", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["agent", "get", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w3"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "list", "--workspace", "w3"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["terminal", "title", "clear"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["api", "snapshot"]}
+{"mutation_after_real_snapshot": [{"path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-race-confirmatio-64461-30723/home/state/fm-race-parent.herdr-presentation", "content": "version=1\ntask_id=fm-race-parent\nprojection_id=4466YGZcexou3Bdc64HOBw\n"}]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w4:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["agent", "get", "w4:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w4:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["api", "snapshot"]}
+{"mutation_after_real_snapshot": [{"path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-race-confirmatio-64461-30723/home/state/journal-change.herdr-presentation", "content": "version=1\ntask_id=journal-change\nprojection_id=ZmVkY2JhOTg3NjU0MzIxMA\n"}]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w5:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["agent", "get", "w5:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w5:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["workspace", "list"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["api", "snapshot"]}
+{"mutation_after_real_snapshot": [{"path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4/.test-cleanup-tmp/fm-lab-race-confirmatio-64461-30723/home/state/metadata-appears.meta", "content": "now-owned\n"}]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "get", "w6:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["agent", "get", "w6:p1"]}
+{"session": "fm-lab-race-confirmatio-64461-30723", "args": ["pane", "process-info", "--pane", "w6:p1"]}

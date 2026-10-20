@@ -1,0 +1,2 @@
+lock acquired: harness pid 69695
+warning: herdr session-start projection cleanup: metadata-appears preserved because immediate revalidation changed or was unreadable

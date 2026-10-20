@@ -1,0 +1,2 @@
+lock acquired: harness pid 69695
+warning: herdr session-start projection cleanup: binding-change preserved because its locked candidate snapshot was ambiguous

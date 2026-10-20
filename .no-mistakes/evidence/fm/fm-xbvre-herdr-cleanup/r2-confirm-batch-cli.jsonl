@@ -1,0 +1,58 @@
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["api", "snapshot"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["agent", "get", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "process-info", "--pane", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "get", "w2"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w2"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "list", "--workspace", "w2"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["agent", "get", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "process-info", "--pane", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["agent", "get", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w2"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "list", "--workspace", "w2"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "process-info", "--pane", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["terminal", "title", "clear"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w2:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["session", "list", "--json"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["api", "snapshot"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["agent", "get", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "process-info", "--pane", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "get", "w3"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w3"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "list", "--workspace", "w3"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["agent", "get", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "process-info", "--pane", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["agent", "get", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w3"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "list", "--workspace", "w3"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "process-info", "--pane", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["terminal", "title", "clear"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["tab", "list", "--workspace", "w1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["pane", "get", "w3:p1"]}
+{"session": "fm-lab-r2-confirm-batch-32344-23155", "args": ["workspace", "list"]}

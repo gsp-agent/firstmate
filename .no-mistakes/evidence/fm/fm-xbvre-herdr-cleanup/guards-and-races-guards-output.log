@@ -1,0 +1,4 @@
+lock acquired: harness pid 26160
+warning: herdr session-start projection cleanup: duplicate preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: mismatched-binding preserved because its locked candidate snapshot was ambiguous
+warning: herdr session-start projection cleanup: active-target preserved because its locked candidate snapshot was ambiguous

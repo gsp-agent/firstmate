@@ -1,0 +1,3262 @@
+{
+  "id": "cli:api:snapshot",
+  "result": {
+    "snapshot": {
+      "agents": [],
+      "focused_pane_id": "w1:p1",
+      "focused_tab_id": "w1:t1",
+      "focused_workspace_id": "w1",
+      "layouts": [
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1:t1",
+          "workspace_id": "w1",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w4:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w4:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w4:t1",
+          "workspace_id": "w4",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w5:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w5:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w5:t1",
+          "workspace_id": "w5",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w6:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w6:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w6:t1",
+          "workspace_id": "w6",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w7:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w7:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w7:t1",
+          "workspace_id": "w7",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w8:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w8:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w8:t1",
+          "workspace_id": "w8",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w9:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w9:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w9:t1",
+          "workspace_id": "w9",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wA:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wA:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wA:t1",
+          "workspace_id": "wA",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wB:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wB:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wB:t1",
+          "workspace_id": "wB",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wC:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wC:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wC:t1",
+          "workspace_id": "wC",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wD:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wD:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wD:t1",
+          "workspace_id": "wD",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wE:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wE:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wE:t1",
+          "workspace_id": "wE",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wF:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wF:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wF:t1",
+          "workspace_id": "wF",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wG:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wG:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wG:t1",
+          "workspace_id": "wG",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wH:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wH:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wH:t1",
+          "workspace_id": "wH",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wJ:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wJ:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wJ:t1",
+          "workspace_id": "wJ",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wK:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wK:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wK:t1",
+          "workspace_id": "wK",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wM:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wM:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wM:t1",
+          "workspace_id": "wM",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wN:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wN:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wN:t1",
+          "workspace_id": "wN",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wP:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wP:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wP:t1",
+          "workspace_id": "wP",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wQ:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wQ:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wQ:t1",
+          "workspace_id": "wQ",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wR:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wR:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wR:t1",
+          "workspace_id": "wR",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wS:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wS:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wS:t1",
+          "workspace_id": "wS",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wT:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wT:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wT:t1",
+          "workspace_id": "wT",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wV:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wV:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wV:t1",
+          "workspace_id": "wV",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wW:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wW:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wW:t1",
+          "workspace_id": "wW",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wX:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wX:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wX:t1",
+          "workspace_id": "wX",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wY:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wY:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wY:t1",
+          "workspace_id": "wY",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "wZ:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "wZ:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "wZ:t1",
+          "workspace_id": "wZ",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w0:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w0:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w0:t1",
+          "workspace_id": "w0",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w11:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w11:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w11:t1",
+          "workspace_id": "w11",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w12:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w12:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w12:t1",
+          "workspace_id": "w12",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w13:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w13:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w13:t1",
+          "workspace_id": "w13",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w14:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w14:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w14:t1",
+          "workspace_id": "w14",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w15:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w15:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w15:t1",
+          "workspace_id": "w15",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w16:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w16:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w16:t1",
+          "workspace_id": "w16",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w17:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w17:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w17:t1",
+          "workspace_id": "w17",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w18:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w18:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w18:t1",
+          "workspace_id": "w18",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w19:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w19:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w19:t1",
+          "workspace_id": "w19",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1A:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1A:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1A:t1",
+          "workspace_id": "w1A",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1B:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1B:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1B:t1",
+          "workspace_id": "w1B",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1C:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1C:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1C:t1",
+          "workspace_id": "w1C",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1D:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1D:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1D:t1",
+          "workspace_id": "w1D",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1E:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1E:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1E:t1",
+          "workspace_id": "w1E",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1F:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1F:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1F:t1",
+          "workspace_id": "w1F",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1G:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1G:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1G:t1",
+          "workspace_id": "w1G",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1H:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1H:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1H:t1",
+          "workspace_id": "w1H",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1J:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1J:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1J:t1",
+          "workspace_id": "w1J",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1K:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1K:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1K:t1",
+          "workspace_id": "w1K",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1M:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1M:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1M:t1",
+          "workspace_id": "w1M",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1N:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1N:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1N:t1",
+          "workspace_id": "w1N",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1P:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1P:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1P:t1",
+          "workspace_id": "w1P",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1Q:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1Q:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1Q:t1",
+          "workspace_id": "w1Q",
+          "zoomed": false
+        },
+        {
+          "area": {
+            "height": 40,
+            "width": 120,
+            "x": 0,
+            "y": 0
+          },
+          "focused_pane_id": "w1R:p1",
+          "panes": [
+            {
+              "focused": true,
+              "pane_id": "w1R:p1",
+              "rect": {
+                "height": 40,
+                "width": 120,
+                "x": 0,
+                "y": 0
+              }
+            }
+          ],
+          "splits": [],
+          "tab_id": "w1R:t1",
+          "workspace_id": "w1R",
+          "zoomed": false
+        }
+      ],
+      "panes": [
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": true,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1:t1",
+          "terminal_id": "term_65e3cd819d2771",
+          "workspace_id": "w1"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w4:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w4:t1",
+          "terminal_id": "term_65e3cd820321f4",
+          "workspace_id": "w4"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w5:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w5:t1",
+          "terminal_id": "term_65e3cd821fd4b5",
+          "workspace_id": "w5"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w6:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w6:t1",
+          "terminal_id": "term_65e3cd82ae5886",
+          "workspace_id": "w6"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w7:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w7:t1",
+          "terminal_id": "term_65e3cd82da8b97",
+          "workspace_id": "w7"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w8:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w8:t1",
+          "terminal_id": "term_65e3cd8316ae28",
+          "workspace_id": "w8"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w9:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w9:t1",
+          "terminal_id": "term_65e3cd83383239",
+          "workspace_id": "w9"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wA:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wA:t1",
+          "terminal_id": "term_65e3cd8364634a",
+          "workspace_id": "wA"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wB:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wB:t1",
+          "terminal_id": "term_65e3cd83a09f5b",
+          "workspace_id": "wB"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wC:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wC:t1",
+          "terminal_id": "term_65e3cd83eac36c",
+          "workspace_id": "wC"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wD:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wD:t1",
+          "terminal_id": "term_65e3cd8456f71d",
+          "workspace_id": "wD"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wE:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wE:t1",
+          "terminal_id": "term_65e3cd8481c44e",
+          "workspace_id": "wE"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wF:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wF:t1",
+          "terminal_id": "term_65e3cd84a58a3f",
+          "workspace_id": "wF"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wG:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wG:t1",
+          "terminal_id": "term_65e3cd84bc0d410",
+          "workspace_id": "wG"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wH:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wH:t1",
+          "terminal_id": "term_65e3cd84d01a111",
+          "workspace_id": "wH"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wJ:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wJ:t1",
+          "terminal_id": "term_65e3cd84f69cb12",
+          "workspace_id": "wJ"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wK:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wK:t1",
+          "terminal_id": "term_65e3cd85069ac13",
+          "workspace_id": "wK"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wM:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wM:t1",
+          "terminal_id": "term_65e3cd852b56e14",
+          "workspace_id": "wM"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wN:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wN:t1",
+          "terminal_id": "term_65e3cd85407ba15",
+          "workspace_id": "wN"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wP:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wP:t1",
+          "terminal_id": "term_65e3cd8569ca716",
+          "workspace_id": "wP"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wQ:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wQ:t1",
+          "terminal_id": "term_65e3cd8584a2c17",
+          "workspace_id": "wQ"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wR:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wR:t1",
+          "terminal_id": "term_65e3cd85e070918",
+          "workspace_id": "wR"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wS:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wS:t1",
+          "terminal_id": "term_65e3cd85f2c9719",
+          "workspace_id": "wS"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wT:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wT:t1",
+          "terminal_id": "term_65e3cd85ff6f51a",
+          "workspace_id": "wT"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wV:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wV:t1",
+          "terminal_id": "term_65e3cd862b27c1b",
+          "workspace_id": "wV"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wW:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wW:t1",
+          "terminal_id": "term_65e3cd8642d441c",
+          "workspace_id": "wW"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wX:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wX:t1",
+          "terminal_id": "term_65e3cd865dc001d",
+          "workspace_id": "wX"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wY:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wY:t1",
+          "terminal_id": "term_65e3cd86741c61e",
+          "workspace_id": "wY"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "wZ:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "wZ:t1",
+          "terminal_id": "term_65e3cd8685ffd1f",
+          "workspace_id": "wZ"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w0:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w0:t1",
+          "terminal_id": "term_65e3cd86ab9c020",
+          "workspace_id": "w0"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w11:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w11:t1",
+          "terminal_id": "term_65e3cd86b904c21",
+          "workspace_id": "w11"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w12:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w12:t1",
+          "terminal_id": "term_65e3cd86cfd0322",
+          "workspace_id": "w12"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w13:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w13:t1",
+          "terminal_id": "term_65e3cd8707eb123",
+          "workspace_id": "w13"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w14:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w14:t1",
+          "terminal_id": "term_65e3cd87358fa24",
+          "workspace_id": "w14"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w15:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w15:t1",
+          "terminal_id": "term_65e3cd87880a225",
+          "workspace_id": "w15"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w16:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w16:t1",
+          "terminal_id": "term_65e3cd87bc11126",
+          "workspace_id": "w16"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w17:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w17:t1",
+          "terminal_id": "term_65e3cd87f514d27",
+          "workspace_id": "w17"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w18:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w18:t1",
+          "terminal_id": "term_65e3cd886cf1e28",
+          "workspace_id": "w18"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w19:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w19:t1",
+          "terminal_id": "term_65e3cd889016229",
+          "workspace_id": "w19"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1A:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1A:t1",
+          "terminal_id": "term_65e3cd88fdd792a",
+          "workspace_id": "w1A"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1B:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1B:t1",
+          "terminal_id": "term_65e3cd8925d432b",
+          "workspace_id": "w1B"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1C:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1C:t1",
+          "terminal_id": "term_65e3cd8975e842c",
+          "workspace_id": "w1C"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1D:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1D:t1",
+          "terminal_id": "term_65e3cd89ce0d42d",
+          "workspace_id": "w1D"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1E:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1E:t1",
+          "terminal_id": "term_65e3cd8a4147b2e",
+          "workspace_id": "w1E"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1F:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1F:t1",
+          "terminal_id": "term_65e3cd8a832992f",
+          "workspace_id": "w1F"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1G:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1G:t1",
+          "terminal_id": "term_65e3cd8aedd4930",
+          "workspace_id": "w1G"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1H:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1H:t1",
+          "terminal_id": "term_65e3cd8b34cee31",
+          "workspace_id": "w1H"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1J:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1J:t1",
+          "terminal_id": "term_65e3cd8b8983132",
+          "workspace_id": "w1J"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1K:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1K:t1",
+          "terminal_id": "term_65e3cd8bd170733",
+          "workspace_id": "w1K"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1M:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1M:t1",
+          "terminal_id": "term_65e3cd8c2d62834",
+          "workspace_id": "w1M"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1N:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1N:t1",
+          "terminal_id": "term_65e3cd8cca0e435",
+          "workspace_id": "w1N"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1P:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1P:t1",
+          "terminal_id": "term_65e3cd8d4643d36",
+          "workspace_id": "w1P"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1Q:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1Q:t1",
+          "terminal_id": "term_65e3cd8db030f37",
+          "workspace_id": "w1Q"
+        },
+        {
+          "agent_status": "unknown",
+          "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "focused": false,
+          "foreground_cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BJC9DERBCXTG4TD2TYVSB4",
+          "pane_id": "w1R:p1",
+          "revision": 0,
+          "scroll": {
+            "max_offset_from_bottom": 0,
+            "offset_from_bottom": 0,
+            "viewport_rows": 40
+          },
+          "tab_id": "w1R:t1",
+          "terminal_id": "term_65e3cd8e3a04538",
+          "workspace_id": "w1R"
+        }
+      ],
+      "protocol": 22,
+      "tabs": [
+        {
+          "agent_status": "unknown",
+          "focused": true,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1:t1",
+          "workspace_id": "w1"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w4:t1",
+          "workspace_id": "w4"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w5:t1",
+          "workspace_id": "w5"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w6:t1",
+          "workspace_id": "w6"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w7:t1",
+          "workspace_id": "w7"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w8:t1",
+          "workspace_id": "w8"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w9:t1",
+          "workspace_id": "w9"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wA:t1",
+          "workspace_id": "wA"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wB:t1",
+          "workspace_id": "wB"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wC:t1",
+          "workspace_id": "wC"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wD:t1",
+          "workspace_id": "wD"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wE:t1",
+          "workspace_id": "wE"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wF:t1",
+          "workspace_id": "wF"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wG:t1",
+          "workspace_id": "wG"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wH:t1",
+          "workspace_id": "wH"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wJ:t1",
+          "workspace_id": "wJ"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wK:t1",
+          "workspace_id": "wK"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wM:t1",
+          "workspace_id": "wM"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wN:t1",
+          "workspace_id": "wN"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wP:t1",
+          "workspace_id": "wP"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wQ:t1",
+          "workspace_id": "wQ"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wR:t1",
+          "workspace_id": "wR"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wS:t1",
+          "workspace_id": "wS"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wT:t1",
+          "workspace_id": "wT"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wV:t1",
+          "workspace_id": "wV"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wW:t1",
+          "workspace_id": "wW"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wX:t1",
+          "workspace_id": "wX"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wY:t1",
+          "workspace_id": "wY"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "wZ:t1",
+          "workspace_id": "wZ"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w0:t1",
+          "workspace_id": "w0"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w11:t1",
+          "workspace_id": "w11"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w12:t1",
+          "workspace_id": "w12"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w13:t1",
+          "workspace_id": "w13"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w14:t1",
+          "workspace_id": "w14"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w15:t1",
+          "workspace_id": "w15"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w16:t1",
+          "workspace_id": "w16"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w17:t1",
+          "workspace_id": "w17"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w18:t1",
+          "workspace_id": "w18"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w19:t1",
+          "workspace_id": "w19"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1A:t1",
+          "workspace_id": "w1A"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1B:t1",
+          "workspace_id": "w1B"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1C:t1",
+          "workspace_id": "w1C"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1D:t1",
+          "workspace_id": "w1D"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1E:t1",
+          "workspace_id": "w1E"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1F:t1",
+          "workspace_id": "w1F"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1G:t1",
+          "workspace_id": "w1G"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1H:t1",
+          "workspace_id": "w1H"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1J:t1",
+          "workspace_id": "w1J"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1K:t1",
+          "workspace_id": "w1K"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1M:t1",
+          "workspace_id": "w1M"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1N:t1",
+          "workspace_id": "w1N"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1P:t1",
+          "workspace_id": "w1P"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1Q:t1",
+          "workspace_id": "w1Q"
+        },
+        {
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "1",
+          "number": 1,
+          "pane_count": 1,
+          "tab_id": "w1R:t1",
+          "workspace_id": "w1R"
+        }
+      ],
+      "version": "0.9.1",
+      "workspaces": [
+        {
+          "active_tab_id": "w1:t1",
+          "agent_status": "unknown",
+          "focused": true,
+          "label": "test-anchor",
+          "number": 1,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1"
+        },
+        {
+          "active_tab_id": "w4:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-0 \u00b7 p:iuIbMT_dE2t-B-KUThMDZA",
+          "number": 2,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w4"
+        },
+        {
+          "active_tab_id": "w5:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-1 \u00b7 p:gmW_Lf_vXyAGpyluMmVvzg",
+          "number": 3,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w5"
+        },
+        {
+          "active_tab_id": "w6:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-2 \u00b7 p:L96o-q_PRyPNnnFENGzwfw",
+          "number": 4,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w6"
+        },
+        {
+          "active_tab_id": "w7:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-3 \u00b7 p:accwyLzDmZJACjG2pL7qzQ",
+          "number": 5,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w7"
+        },
+        {
+          "active_tab_id": "w8:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-4 \u00b7 p:LUrioOfZWjS3g1aCpsFYJA",
+          "number": 6,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w8"
+        },
+        {
+          "active_tab_id": "w9:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-5 \u00b7 p:XylZ1c5hn8pPpckw-9z1Ew",
+          "number": 7,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w9"
+        },
+        {
+          "active_tab_id": "wA:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-6 \u00b7 p:h-fy0xgshfySAmOopFuJvw",
+          "number": 8,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wA"
+        },
+        {
+          "active_tab_id": "wB:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-7 \u00b7 p:gHqI_MgNUqPO7s1sOrU4Bw",
+          "number": 9,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wB"
+        },
+        {
+          "active_tab_id": "wC:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-8 \u00b7 p:88RCdQoNOikus2ohwgT02Q",
+          "number": 10,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wC"
+        },
+        {
+          "active_tab_id": "wD:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-9 \u00b7 p:q9whKQHzuM9wJe3q11uBuA",
+          "number": 11,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wD"
+        },
+        {
+          "active_tab_id": "wE:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-10 \u00b7 p:qVgytx0P6RMpbXDw3xQcmg",
+          "number": 12,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wE"
+        },
+        {
+          "active_tab_id": "wF:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-11 \u00b7 p:oP4bqLhN4-XaJL02mVyi9A",
+          "number": 13,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wF"
+        },
+        {
+          "active_tab_id": "wG:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-12 \u00b7 p:5lKTUCdabyws9cqQ2A1kBQ",
+          "number": 14,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wG"
+        },
+        {
+          "active_tab_id": "wH:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-13 \u00b7 p:eGdn4nXK-mNO_5pjAyyEcg",
+          "number": 15,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wH"
+        },
+        {
+          "active_tab_id": "wJ:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-14 \u00b7 p:P9rcKCCyAkxz-a-QTCa2KA",
+          "number": 16,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wJ"
+        },
+        {
+          "active_tab_id": "wK:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-15 \u00b7 p:MdE6YiJYBtX4sTHDgDw09Q",
+          "number": 17,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wK"
+        },
+        {
+          "active_tab_id": "wM:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-16 \u00b7 p:KcpyJVYcSD5kBHnTYinO9A",
+          "number": 18,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wM"
+        },
+        {
+          "active_tab_id": "wN:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-17 \u00b7 p:RPaVukFzrTrd8Sgw_JcWzQ",
+          "number": 19,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wN"
+        },
+        {
+          "active_tab_id": "wP:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-18 \u00b7 p:4TyA3aRcvx2X2rJwUvC5BA",
+          "number": 20,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wP"
+        },
+        {
+          "active_tab_id": "wQ:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-19 \u00b7 p:UWEO2vpok010OG6XGka48Q",
+          "number": 21,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wQ"
+        },
+        {
+          "active_tab_id": "wR:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-20 \u00b7 p:Gf2K7nW7e4eOmE0pU2-ufA",
+          "number": 22,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wR"
+        },
+        {
+          "active_tab_id": "wS:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-21 \u00b7 p:aiy0SBjdWblHmOvx1aAarQ",
+          "number": 23,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wS"
+        },
+        {
+          "active_tab_id": "wT:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-22 \u00b7 p:h6FxkAD9lEWTzeaaJxhI4A",
+          "number": 24,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wT"
+        },
+        {
+          "active_tab_id": "wV:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-23 \u00b7 p:gDk57VeKAa5F7SFJcbcUOw",
+          "number": 25,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wV"
+        },
+        {
+          "active_tab_id": "wW:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-24 \u00b7 p:MV0yCWKpYYlugIPCrHxBhA",
+          "number": 26,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wW"
+        },
+        {
+          "active_tab_id": "wX:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-25 \u00b7 p:wB1DPPIGuLYGspgeDQas1w",
+          "number": 27,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wX"
+        },
+        {
+          "active_tab_id": "wY:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-26 \u00b7 p:mNbo9qB0rx4smxPuX-ajhQ",
+          "number": 28,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wY"
+        },
+        {
+          "active_tab_id": "wZ:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-27 \u00b7 p:GxJTP1fEP3utUyl9eog4hg",
+          "number": 29,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "wZ"
+        },
+        {
+          "active_tab_id": "w0:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-28 \u00b7 p:P9fwU9rQmZ4bXRbZGAlf4w",
+          "number": 30,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w0"
+        },
+        {
+          "active_tab_id": "w11:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-29 \u00b7 p:HdM_7cciobmOlWfpN5MdqQ",
+          "number": 31,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w11"
+        },
+        {
+          "active_tab_id": "w12:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-30 \u00b7 p:8ea8GDSn3ORBljosBmG23Q",
+          "number": 32,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w12"
+        },
+        {
+          "active_tab_id": "w13:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-31 \u00b7 p:wEemeZJplx43gpnTR-BrKQ",
+          "number": 33,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w13"
+        },
+        {
+          "active_tab_id": "w14:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-32 \u00b7 p:_rYplo79OhlkvE2ZUIgbmg",
+          "number": 34,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w14"
+        },
+        {
+          "active_tab_id": "w15:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-33 \u00b7 p:DJNY7tYei2-D8GOf8WDZUg",
+          "number": 35,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w15"
+        },
+        {
+          "active_tab_id": "w16:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-34 \u00b7 p:qo8VW6l9CoKAfz8CZvpFSA",
+          "number": 36,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w16"
+        },
+        {
+          "active_tab_id": "w17:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-35 \u00b7 p:HqVVGepOqLYPakiirv3_Ag",
+          "number": 37,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w17"
+        },
+        {
+          "active_tab_id": "w18:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-36 \u00b7 p:k_QnZ-qhtuQGwH9wA6q3yw",
+          "number": 38,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w18"
+        },
+        {
+          "active_tab_id": "w19:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-37 \u00b7 p:C1zNMIo99t4c24YUEUpkhA",
+          "number": 39,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w19"
+        },
+        {
+          "active_tab_id": "w1A:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-38 \u00b7 p:v5TANOwwc3KwIXbvBvqdXQ",
+          "number": 40,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1A"
+        },
+        {
+          "active_tab_id": "w1B:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-39 \u00b7 p:GLu8wtCYqqW_DidZEIfPbA",
+          "number": 41,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1B"
+        },
+        {
+          "active_tab_id": "w1C:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-40 \u00b7 p:cDPqCvZwrquHi7ohX6NwTA",
+          "number": 42,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1C"
+        },
+        {
+          "active_tab_id": "w1D:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-41 \u00b7 p:Zsj9vjkywcx434w-0KYlEQ",
+          "number": 43,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1D"
+        },
+        {
+          "active_tab_id": "w1E:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-42 \u00b7 p:-IcKUiIc5SkOy619wPZJFA",
+          "number": 44,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1E"
+        },
+        {
+          "active_tab_id": "w1F:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-43 \u00b7 p:OyGf55hPdNetHUiaa4YqqQ",
+          "number": 45,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1F"
+        },
+        {
+          "active_tab_id": "w1G:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-44 \u00b7 p:C2wKLRfILx97HT8mQpExhw",
+          "number": 46,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1G"
+        },
+        {
+          "active_tab_id": "w1H:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-45 \u00b7 p:pMMLXATg5XgZ6wZYkXptgQ",
+          "number": 47,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1H"
+        },
+        {
+          "active_tab_id": "w1J:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-46 \u00b7 p:BMRFLMp-rqhTYDtal-uC-g",
+          "number": 48,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1J"
+        },
+        {
+          "active_tab_id": "w1K:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-47 \u00b7 p:LCXtmCCED3kiV7iA5VUPXw",
+          "number": 49,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1K"
+        },
+        {
+          "active_tab_id": "w1M:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-48 \u00b7 p:oKQmp3pjdcBiJUDVKRlv_A",
+          "number": 50,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1M"
+        },
+        {
+          "active_tab_id": "w1N:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-49 \u00b7 p:NQdkkZyba6_yTCEVqoHH7Q",
+          "number": 51,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1N"
+        },
+        {
+          "active_tab_id": "w1P:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-50 \u00b7 p:yv9VY157z_iQ_9hqlSt7MA",
+          "number": 52,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1P"
+        },
+        {
+          "active_tab_id": "w1Q:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-51 \u00b7 p:f63ee2MVGSH3kWV1CnhikQ",
+          "number": 53,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1Q"
+        },
+        {
+          "active_tab_id": "w1R:t1",
+          "agent_status": "unknown",
+          "focused": false,
+          "label": "\u2514 unmatched-52 \u00b7 p:sC9NFEBSjWXN8tV0j7weXQ",
+          "number": 54,
+          "pane_count": 1,
+          "tab_count": 1,
+          "workspace_id": "w1R"
+        }
+      ]
+    },
+    "type": "session_snapshot"
+  }
+}
