@@ -1,0 +1,9 @@
+id=1792474250-TjrNJX
+at=2026-10-20T05:30:50Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-20
+--
+Nightly drift check red on 2026-10-20: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BVRCV3QQMRTF34PSAMRW21/.agent-state/drift-live-validation-v2/nightly-fork.
+path-drift: notes.txt
+Log: /Users/dalecarman/.no-mistakes/evidence/01M5BVRCV3QQMRTF34PSAMRW21/nightly-cli-transcript-final.txt

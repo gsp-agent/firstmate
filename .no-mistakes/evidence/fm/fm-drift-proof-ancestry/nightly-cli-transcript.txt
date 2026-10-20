@@ -1,0 +1,41 @@
+green
+run: 2026-10-20T00:28:50-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BVRCV3QQMRTF34PSAMRW21/.agent-state/drift-live-validation/nightly-upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: a11fcf0351537c68622d9f89b2b4f3c976fc155a accepted feature (#7)
+exit: 0
+
+red
+run: 2026-10-20T00:28:50-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BVRCV3QQMRTF34PSAMRW21/.agent-state/drift-live-validation/nightly-upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-drift: notes.txt
+unproven: f6a2e5bfabcb177e2ff683e82b291428335e11f0 unproven edit after measured PR
+keep: a11fcf0351537c68622d9f89b2b4f3c976fc155a accepted feature (#7)
+exit: 1
+queued 1792474130-EuN0FI
+  Nightly drift check red on 2026-10-20: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+
+red-repeat
+run: 2026-10-20T00:28:50-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BVRCV3QQMRTF34PSAMRW21/.agent-state/drift-live-validation/nightly-upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-drift: notes.txt
+unproven: f6a2e5bfabcb177e2ff683e82b291428335e11f0 unproven edit after measured PR
+keep: a11fcf0351537c68622d9f89b2b4f3c976fc155a accepted feature (#7)
+exit: 1
+replay 1792474130-EuN0FI
+  Nightly drift check red on 2026-10-20: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+

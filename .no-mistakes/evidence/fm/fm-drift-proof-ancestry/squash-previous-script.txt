@@ -1,0 +1,2 @@
+error: proof line is not a full sha: pr: 7
+exit: 2

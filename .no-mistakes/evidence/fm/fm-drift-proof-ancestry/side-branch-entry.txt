@@ -1,0 +1,2 @@
+error: proof PR has no first-parent commit: 7
+exit: 2

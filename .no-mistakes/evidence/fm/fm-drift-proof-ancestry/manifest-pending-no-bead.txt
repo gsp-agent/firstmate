@@ -1,0 +1,2 @@
+error: pending-pr line is not '<number> <bead>': pending-pr: 7
+exit: 2

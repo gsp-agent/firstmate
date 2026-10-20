@@ -1,0 +1,30 @@
+{
+  "fork": "8a8b47345424ebaf2fef14d5d20b6d637a00d4b3",
+  "upstream": "7df545bf74ff729ed1733f77b0aea02a9b164ac1",
+  "counts": {
+    "behind": 0,
+    "ahead": 85,
+    "path-ok": 107,
+    "pending": 59,
+    "keep": 26,
+    "path-drift": 0,
+    "unproven": 0
+  },
+  "required_pending": {
+    "8": "pending: dc6078041281132565f5b886cf99db9152f88bb7 .agent-config-dtjsb Merge PR #8 (carry 4 commits onto upstream-lean; Opus reviewer PASS at 89b9cbcac; Dale 8:0x PM: don't wait on Grok)",
+    "11": "pending: a129556026c1c2b56dc17c9dddc822978bd2165c .agent-config-dtjsb Merge pull request #11 from gsp-agent/fm/a3ov3-4-fm",
+    "12": "pending: 44a0ba0ad7b5c3539c706cfe04261f522fdf52e8 .agent-config-dtjsb Merge pull request #12 from gsp-agent/fm/a3ov3-2-fm",
+    "16": "pending: 17c4d13162f8fcdfb6cc9885a01648cf82b2a7a9 .agent-config-dtjsb fix(bin): close GitLab-landed backlog items with the merge request URL as a note (#16)",
+    "17": "pending: f47850ef54ef3a3c38912a7607436a6e1b1c2c90 .agent-config-dtjsb Merge pull request #17 from gsp-agent/fm/ep-watch-resurface",
+    "18": "pending: 37902fa5bb1cb0089a68c4e242f23ba1cfa648b2 .agent-config-dtjsb Merge pull request #18 from gsp-agent/fm/sync-upstream-20261013",
+    "22": "pending: 8287d35f4152c050bdb77fb26a8262ea42406575 .agent-config-dtjsb Merge pull request #22 from gsp-agent/fm/fm-test-machine-line",
+    "36": "pending: d862d5e8746eab41bd6a4ca2973ed66009bcc26f .agent-config-dtjsb fix(bin): keep task-data cleanup moving when kept reports are large or slow to read (#36)",
+    "38": "pending: 031cd2d2175bcf9775630519096d24226d55bc42 .agent-config-dtjsb feat(bin): admit one extra worker past project capacity when a headroom reading reports room (#38)",
+    "43": "pending: c9cc2d326693fe8e9e8d2dd7a05cc89e724752ba .agent-config-dtjsb fix: prevent teardown stalls and false inbox readiness failures (#43)",
+    "47": "pending: d55766ddee031bc994f83a60a051a04e0ee645d5 .agent-config-dtjsb fix: honor quota fallback order and Grok prepaid credits (#47)",
+    "50": "pending: 24b06030ff677645eafedea8a6a56ce2450db7f4 .agent-config-dtjsb fix: prevent lazy-fetch status hangs and orphaned subprocesses (#50)",
+    "49": "pending: 8a8b47345424ebaf2fef14d5d20b6d637a00d4b3 .agent-config-dtjsb fix: raise Firstmate worktree pool capacity to 24 (#49)"
+  },
+  "pr25": "keep: cfb4a4d1949f1dd2b953b5b0b496f218ab8c2114 feat: prune fork customizations and add nightly drift checks (#25)",
+  "exit": 0
+}

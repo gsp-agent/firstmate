@@ -1,0 +1,10 @@
+previous: FM_DRIFT_REGRESSION_SCRIPT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BVRCV3QQMRTF34PSAMRW21/.agent-state/drift-live-validation-v2/previous-fm-drift-nightly.sh bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BVRCV3QQMRTF34PSAMRW21/.agent-state/drift-squash-regression/squash-regression.sh
+Squash commit -- not updating HEAD
+not ok - a squash carrying its own manifest line exits 0: error: proof line is not a full sha: pr: 7: expected exit 0, got 2
+exit: 1
+
+candidate: FM_DRIFT_REGRESSION_SCRIPT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BVRCV3QQMRTF34PSAMRW21/bin/fm-drift-nightly.sh bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5BVRCV3QQMRTF34PSAMRW21/.agent-state/drift-squash-regression/squash-regression.sh
+Squash commit -- not updating HEAD
+ok - a squash-merged branch carries its own manifest line and later edits fail
+exit: 0
+

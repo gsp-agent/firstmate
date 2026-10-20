@@ -1,0 +1,12 @@
+{
+  "fork": "8a8b47345424ebaf2fef14d5d20b6d637a00d4b3",
+  "upstream": "45dd50a5e12bc3f5e009a4e18fa35ce7f7a71681",
+  "exit": 0,
+  "behind": 46,
+  "ahead": 85,
+  "path-ok": 107,
+  "path-drift": 0,
+  "keep": 26,
+  "pending": 59,
+  "unproven": 0
+}

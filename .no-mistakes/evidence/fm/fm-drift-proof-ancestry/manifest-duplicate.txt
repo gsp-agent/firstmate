@@ -1,0 +1,2 @@
+error: duplicate proof entry for PR 7
+exit: 2

@@ -1,0 +1,58 @@
+[
+  {
+    "name": "Remeasure actual upstream-lean after the PR 25 squash and retain required pending classifications",
+    "result": "pass",
+    "live": true,
+    "evidence": "real-upstream-lean-before.txt; real-upstream-lean-after.txt; real-upstream-lean-measurement.json",
+    "reason": ""
+  },
+  {
+    "name": "Squash a PR carrying its own manifest line; reject a later unproven edit; previous script fails",
+    "result": "pass",
+    "live": true,
+    "evidence": "squash-self-proof.txt; squash-previous-script.txt; squash-later-edit.txt",
+    "reason": ""
+  },
+  {
+    "name": "Merge a kept or pending PR and replay its final first-parent patch without restoring a carried cut",
+    "result": "pass",
+    "live": true,
+    "evidence": "first-parent-keep.txt; first-parent-pending.txt",
+    "reason": ""
+  },
+  {
+    "name": "Reject missing, wrong-number, duplicate, bead-less and legacy-SHA proof entries",
+    "result": "pass",
+    "live": true,
+    "evidence": "manifest-forgotten.txt; manifest-wrong-number.txt; manifest-duplicate.txt; manifest-pending-no-bead.txt; manifest-legacy-sha.txt",
+    "reason": ""
+  },
+  {
+    "name": "Ignore untracked or staged proof and refuse an entry that exists only on a side branch",
+    "result": "pass",
+    "live": true,
+    "evidence": "untracked-proof.txt; staged-proof.txt; side-branch-entry.txt",
+    "reason": ""
+  },
+  {
+    "name": "Fetch the published nightly recovery archive and recover its pre-squash ancestry",
+    "result": "pass",
+    "live": true,
+    "evidence": "remote-archive-recovery.txt; drift-live-cli.log (real remote fetch and ancestry check)",
+    "reason": ""
+  },
+  {
+    "name": "Deliver the repair as a squash carrying its own numbered proof entry",
+    "result": "pass",
+    "live": true,
+    "evidence": "repair-squash-with-own-proof.txt (synthetic PR 999999; no forge publication)",
+    "reason": ""
+  },
+  {
+    "name": "Run nightly with PR proof; green sends no note and repeated red runs create one isolated note",
+    "result": "pass",
+    "live": true,
+    "evidence": "nightly-cli-transcript-final.txt; nightly-generated-inbox-note.txt",
+    "reason": ""
+  }
+]

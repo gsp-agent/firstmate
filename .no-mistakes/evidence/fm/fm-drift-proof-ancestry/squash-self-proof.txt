@@ -1,0 +1,6 @@
+behind: 0
+ahead: 1
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: 415cfb18c18ab268bca132b059c3af39c542931d measured feature (#7)
+exit: 0

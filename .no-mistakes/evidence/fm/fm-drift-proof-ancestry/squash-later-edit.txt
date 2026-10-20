@@ -1,0 +1,7 @@
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-drift: notes.txt
+unproven: 6ba12c184f0fc84a6992899e0e77e4161010a527 later edit with no proof
+keep: 415cfb18c18ab268bca132b059c3af39c542931d measured feature (#7)
+exit: 1

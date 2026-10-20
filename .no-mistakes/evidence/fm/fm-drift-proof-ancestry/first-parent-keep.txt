@@ -1,0 +1,7 @@
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: d4dcdf6d61c9463f52cb4a0af3484e0a6fc423ed Merge pull request #8 from fixture/feature
+keep: e01574de33228d6ab6fd7649c29bf090954fd527 unlabelled carried feature
+exit: 0

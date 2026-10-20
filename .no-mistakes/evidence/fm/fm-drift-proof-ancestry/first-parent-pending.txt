@@ -1,0 +1,7 @@
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-ok: notes.txt
+pending: ff9b1a7c3100104973861741c72bcca4bda1477f .agent-config-dtjsb Merge pull request #8 from fixture/feature
+pending: 4aec4a94b46fbc0fbbe35745c95339770a94753c .agent-config-dtjsb unlabelled carried feature
+exit: 0
