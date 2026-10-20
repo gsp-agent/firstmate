@@ -139,7 +139,7 @@ pending: 9cfe7cfef9a9be2e1ffb82a456ff73e421cce143 .agent-config-dtjsb
 # cfb4a4d1: PR 25's delivered squash contains the finalized corrective cuts, guard, documentation and proof patches described above.
 cfb4a4d1949f1dd2b953b5b0b496f218ab8c2114
 # Fixed parent selects only the commit delivering this manifest reconciliation, never later descendants.
-after: cfb4a4d1949f1dd2b953b5b0b496f218ab8c2114
+after: ec259ec5895012a507c4abd2d7f10de967249e9e
 # Cut completely: 745991e8's cap/tee changes and 8193b236's stream classifier.
 # Cut portions: cce0ab3a's headless/plugin launch and shared Cursor settings; ece80a35's cap, lock recovery, post-run stream state and plugin fallback; 98242c4f's plugin-pin branch.
 # Every cut commit is reachable from the snapshot ref archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts in archives/fork-cuts.bundle.

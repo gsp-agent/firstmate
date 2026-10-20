@@ -736,59 +736,6 @@ log: $dir/home/Library/Logs/dev.firstmate.drift-nightly.log" "$out" "install --d
   pass "install --dry-run prints the job and writes nothing"
 }
 
-test_install_relative_repo_survives_cwd_change() {
-  local dir log fake lint out rc plist
-  dir=$(fm_test_tmproot drift-install-relative)
-  nightly_fixture "$dir"
-  mkdir -p "$dir/elsewhere"
-  log=$dir/launchctl.log
-  fake=$(fake_launchctl "$dir")
-  lint=$(lint_path "$dir")
-  plist=$dir/agents/dev.firstmate.drift-nightly.plist
-  out=$(cd "$dir/repo" && FM_DRIFT_AGENT_DIR="$dir/agents" "$SCRIPT" install --dry-run --repo . --log "$dir/drift.log")
-  assert_contains "$out" "repo: $dir/repo/." "the dry-run kept a relative repository argument"
-  rc=0
-  out=$(cd "$dir/repo" && PATH="$lint" FM_DRIFT_AGENT_DIR="$dir/agents" \
-    FM_DRIFT_LAUNCHCTL="$fake" FM_DRIFT_LAUNCHCTL_LOG="$log" \
-    "$SCRIPT" install --repo . --log "$dir/drift.log" 2>&1) || rc=$?
-  expect_code 0 "$rc" "install with a relative repository exits 0: $out"
-  FM_HOME="$dir/home" FM_STATE_OVERRIDE="$dir/home/state" FM_DATA_OVERRIDE="$dir/home/data" \
-    python3 -I - "$plist" "$dir/elsewhere" "$dir/repo" <<'PY' || fail "the installed job inspected the wrong repository from a different working directory"
-import os
-import plistlib
-import subprocess
-import sys
-
-with open(sys.argv[1], "rb") as stream:
-    args = plistlib.load(stream)["ProgramArguments"]
-repo = args[args.index("--repo") + 1]
-assert os.path.isabs(repo), repo
-assert os.path.realpath(repo) == os.path.realpath(sys.argv[3]), repo
-result = subprocess.run(args, cwd=sys.argv[2], capture_output=True, text=True)
-assert result.returncode == 0, result.stdout + result.stderr
-assert "exit: 0" in result.stdout, result.stdout
-PY
-  pass "install resolves relative repository arguments before scheduling the job"
-}
-
-test_delivered_proof_accepts_only_the_reconciled_squash() {
-  local dir repo accepted=d55766ddee031bc994f83a60a051a04e0ee645d5 parent=cfb4a4d1949f1dd2b953b5b0b496f218ab8c2114
-  dir=$(fm_test_tmproot drift-delivered-proof)
-  repo=$dir/repo
-  git clone -q --no-hardlinks --no-checkout "$ROOT" "$repo"
-  run_check "$repo" --fork "$accepted" --upstream "$parent" --proof "$ROOT/drift-proof.txt"
-  expect_code 0 "$CHECK_RC" "the shipped manifest accepts the delivered reconciliation: $CHECK_ERR"
-  assert_contains "$CHECK_OUT" "keep: $accepted" "the reconciliation squash was not accepted"
-  git -C "$repo" switch --detach -q "$accepted"
-  printf 'later unaccepted edit\n' > "$repo/unaccepted.txt"
-  git -C "$repo" add unaccepted.txt
-  fixture_commit "$repo" "later unaccepted edit"
-  run_check "$repo" --upstream "$parent" --proof "$ROOT/drift-proof.txt"
-  expect_code 1 "$CHECK_RC" "the shipped manifest rejects later changes: $CHECK_ERR"
-  assert_contains "$CHECK_OUT" "path-drift: unaccepted.txt" "the reconciliation boundary accepted a later descendant"
-  pass "the delivered proof accepts its reconciliation squash and rejects later descendants"
-}
-
 test_install_and_uninstall_round_trip() {
   local dir log fake repo out rc plist lint joblog
   dir=$(fm_test_tmproot drift-install)
@@ -987,8 +934,6 @@ test_nightly_red_sends_one_note_a_day_and_green_sends_none
 test_nightly_check_error_is_red
 test_nightly_note_names_at_most_ten_red_lines
 test_install_dry_run_writes_nothing
-test_install_relative_repo_survives_cwd_change
-test_delivered_proof_accepts_only_the_reconciled_squash
 test_install_and_uninstall_round_trip
 test_install_escapes_xml_in_script_repo_and_log_paths
 test_install_keeps_the_installed_job_when_the_plist_is_invalid

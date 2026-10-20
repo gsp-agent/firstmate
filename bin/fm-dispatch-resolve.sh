@@ -8,10 +8,10 @@
 #
 # Worker routing (--labels, an empty value is allowed): no model judgment or
 #   typesafe.ai call or key. After shared configuration validation and label
-#   conflict checks, the first matching label in the comma-separated input
-#   picks its `label_routes` profile without a quota call. With no match,
-#   attempt one quota-axi --json snapshot when available, then walk the
-#   `default` object or array in configured order: skip a rung
+#   conflict checks, attempt one quota-axi --json snapshot when available.
+#   The first matching label in the comma-separated input picks its
+#   `label_routes` profile independently of that snapshot. With no match,
+#   walk the `default` object or array in configured order: skip a rung
 #   only on concrete evidence it cannot start now (a known applicable row at
 #   0% or exhausted_now, unless Grok prepaid credits remain usable), and treat
 #   an unmeasured, missing, or unreadable quota row as eligible. This path
@@ -240,29 +240,22 @@ if [ -n "$LABELS_SET" ]; then
     esac
     ;;
   esac
-  LABEL_HIT=$(jq -r --arg labels "$LABELS" '
-    (.label_routes // {}) as $routes
-    | ($labels | split(",") | map(gsub("^\\s+|\\s+$"; ""))
-       | map(select(length > 0 and $routes[.] != null)) | first // "")
-  ' "$RULES") || die "worker routing failed: $RULES_PATH"
   LABELS_QUOTA=null
-  LABELS_PMAP='{}'
-  if [ -z "$LABEL_HIT" ]; then
-    if command -v quota-axi >/dev/null 2>&1; then
-      labels_quota_raw=$(quota-axi --json 2>/dev/null) || labels_quota_raw=''
-      if [ -n "$labels_quota_raw" ] && printf '%s\n' "$labels_quota_raw" | fm_quota_json_valid; then
-        LABELS_QUOTA=$labels_quota_raw
-      fi
+  if command -v quota-axi >/dev/null 2>&1; then
+    labels_quota_raw=$(quota-axi --json 2>/dev/null) || labels_quota_raw=''
+    if [ -n "$labels_quota_raw" ] && printf '%s\n' "$labels_quota_raw" | fm_quota_json_valid; then
+      LABELS_QUOTA=$labels_quota_raw
     fi
-    while IFS= read -r h; do
-      [ -n "$h" ] || continue
-      p=$(fm_quota_single_provider_for_harness "$h" 2>/dev/null) || p=''
-      LABELS_PMAP=$(jq -c --arg h "$h" --arg p "$p" '. + {($h): (if $p == "" then null else $p end)}' <<<"$LABELS_PMAP")
-    done < <(jq -r '
-      def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
-      profiles(.default // null) | map(.harness) | unique | .[]' "$RULES")
   fi
-  routed=$(jq -r --arg hit "$LABEL_HIT" --argjson pmap "$LABELS_PMAP" --argjson quota "$LABELS_QUOTA" "$FM_QUOTA_ROW_JQ"'
+  LABELS_PMAP='{}'
+  while IFS= read -r h; do
+    [ -n "$h" ] || continue
+    p=$(fm_quota_single_provider_for_harness "$h" 2>/dev/null) || p=''
+    LABELS_PMAP=$(jq -c --arg h "$h" --arg p "$p" '. + {($h): (if $p == "" then null else $p end)}' <<<"$LABELS_PMAP")
+  done < <(jq -r '
+    def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
+    profiles(.default // null) | map(.harness) | unique | .[]' "$RULES")
+  routed=$(jq -r --arg labels "$LABELS" --argjson pmap "$LABELS_PMAP" --argjson quota "$LABELS_QUOTA" "$FM_QUOTA_ROW_JQ"'
     def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
     def flat: gsub("[\\r\\n]"; " ");
     def bare($m): (($m // "") | split("/") | last);
@@ -278,8 +271,10 @@ if [ -n "$LABELS_SET" ]; then
                 (.status == "known" and ((.effectivePercentRemaining | type) == "number") and .effectivePercentRemaining <= 0))
           end
         end;
-    (.label_routes // {}) as $routes
-    | (if $hit != "" then {src: "label", detail: $hit, p: $routes[$hit]}
+    ($labels | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))) as $ls
+    | (.label_routes // {}) as $routes
+    | ([$ls[] | select($routes[.] != null)] | first // null) as $hit
+    | (if $hit != null then {src: "label", detail: $hit, p: $routes[$hit]}
        else {src: "default", detail: "no label matched", p: (profiles(.default // null) | map(select(blocked(.) | not)) | first // null)} end)
     | if .p == null then "NONE"
       else ["dispatch-resolve:", "  status: clear", "  source: \(.src) (\(.detail | flat))",
