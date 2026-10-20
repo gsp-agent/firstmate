@@ -1,0 +1,16 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small
+exit: 0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/projects/demo
+exit: 0
+Baseline: aa-old has 512 held files (65536 bytes), no task metadata.
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/state previous-task
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/state fresh-requester
+task-data sweep already running; requested another pass
+exit: 0
+{"task": "aa-old", "expired": false, "held_files": 384}
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/live-sweep-driver.py", line 71, in <module>
+    assert obj.get('expired') is expected
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

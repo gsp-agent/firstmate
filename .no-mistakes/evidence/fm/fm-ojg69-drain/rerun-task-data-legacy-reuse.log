@@ -1,0 +1,12 @@
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.xcdLzp/task-data-legacy-reuse-expired/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.xcdLzp/task-data-legacy-reuse-unexpired/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.xcdLzp/task-data-legacy-reuse-legacy/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.xcdLzp/task-data-legacy-reuse-direct/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: expired legacy history permits reused retirement while unexpired conflicts retain recovery
+task data reused: scratch recoverable in /private/tmp/fm-teardown-tests.xcdLzp/task-data-reuse/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/tmp/fm-teardown-tests.xcdLzp/task-data-reuse/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: reusing a completed id keeps its earlier recovery's reference sources
+task data reused: scratch recoverable in /private/tmp/fm-teardown-tests.xcdLzp/task-data-expired-held/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/tmp/fm-teardown-tests.xcdLzp/task-data-expired-held/data/reused/.cleanup-hold until the next completed task
+task data reused: scratch recoverable in /private/tmp/fm-teardown-tests.xcdLzp/task-data-expired-empty/data/reused/.cleanup-hold until the next completed task
+ok - fm-teardown: both expiry transitions preserve earlier PR and bead sources

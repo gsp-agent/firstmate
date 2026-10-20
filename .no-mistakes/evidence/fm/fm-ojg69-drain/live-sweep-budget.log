@@ -1,0 +1,16 @@
+Disposable-process setup: DCG_HOOK_TIMEOUT_MS=20000; enabled guard rules and allowlists are unchanged.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-budget
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-budget
+exit: 0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-budget/projects/demo
+exit: 0
+Baseline: aa-old has 512 held files (65536 bytes), no task metadata.
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-budget/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-budget/state previous-task
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-budget/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-budget/state fresh-requester
+task-data sweep already running; requested another pass
+exit: 0
+{"task": "aa-old", "expired": true, "held_files": 0}
+{"task": "bb-arrived-after-snapshot", "expired": true, "held_files": 0}
+{"task": "fresh-requester", "expired": false, "held_files": 1}
+OBSERVED: a second request joined the real running sweep; its added older hold expired, its fresh recovery survived, and every sweep lock was released.
+LIVE_SWEEP_RESULT: pass

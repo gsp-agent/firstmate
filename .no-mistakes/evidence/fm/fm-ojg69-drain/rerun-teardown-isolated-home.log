@@ -1,0 +1,14 @@
+ok - a missing teardown startup source refuses before cleanup
+ok - an unreadable teardown startup source refuses before cleanup
+ok - a missing adapter sibling refuses before cleanup
+not ok - missing-child-source: the refusal did not name the missing source
+Diagnostic from /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/fm-teardown-tests.uehx2n/missing-child-adapter-sibling/stderr
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 34s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: unsafe secondmate home removal target /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/fm-teardown-tests.uehx2n/missing-child-adapter-sibling/secondmate-home is inside the firstmate repo
+Diagnostic from /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/fm-teardown-tests.uehx2n/missing-child-adapter-sibling/stdout

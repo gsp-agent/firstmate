@@ -1,0 +1,65 @@
+$ br show proof-6o5 --json
+[{"id":"proof-6o5","title":"Deadline evidence","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-20T10:18:11.124212Z","created_by":"dalecarman","updated_at":"2026-10-20T10:18:11.124212Z","source_repo":"demo","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/projects/demo","compaction_level":0,"original_size":0}]
+exit: 0
+A real disposable Beads database is exclusively locked while staging has a 1s deadline.
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/rerun-locked-taskdata.sh stage deadline-task-verified /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/projects/demo ''
+warning: task data deadline-task-verified retained whole for retry: reference matching passed its 1s stage limit
+exit: 0
+{
+  "task": "deadline-task-verified",
+  "cleanup_record": {
+    "version": 1,
+    "task": "deadline-task-verified",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-6o5"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/data",
+          "task": null
+        }
+      }
+    ],
+    "complete": false,
+    "retained": "reference matching passed its 1s stage limit"
+  }
+}
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/rerun-locked-taskdata.sh stage deadline-task-verified /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/projects/demo ''
+task data deadline-task-verified: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/data/deadline-task-verified/.cleanup-hold until the next completed task
+exit: 0
+OBSERVED: a blocked real evidence reader hit the staging deadline before any move; after unlocking it, retry staged scratch and kept linked evidence.
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/rerun-locked-taskdata.sh stage linked-task-verified /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/projects/demo ''
+warning: task data retained for recovery: not a real directory: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/data/linked-task-verified
+exit: 1
+OBSERVED: staging refused a symlinked task directory and left the target bytes untouched.
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/rerun-locked-taskdata.sh stage oversized-task-verified /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/projects/demo ''
+warning: task data oversized-task-verified retained whole for retry: kept evidence over 16 MiB: brief.md
+exit: 0
+{
+  "task": "oversized-task-verified",
+  "brief_bytes": 16777217,
+  "cleanup_record": {
+    "version": 1,
+    "task": "oversized-task-verified",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/data",
+          "task": null
+        },
+        "unread": [
+          "brief.md"
+        ]
+      }
+    ],
+    "complete": false
+  }
+}
+OBSERVED: an oversized retained evidence file was named in the retry record and the whole task folder stayed intact.
+LIVE_BOUNDARIES_RESULT: pass

@@ -1,0 +1,156 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home
+exit: 0
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/upstream
+exit: 0
+$ git commit -q --allow-empty -m 'upstream baseline'
+exit: 0
+$ git clone -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/upstream /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork
+exit: 0
+$ git remote rename origin kunchenguid
+exit: 0
+$ git rev-parse HEAD
+417c1637e113071c835e1258cf6c8c8e2211bc0e
+exit: 0
+$ git add accepted.txt drift-proof.txt
+exit: 0
+$ git commit -qm 'accepted measured change'
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork --no-fetch
+behind: 0
+ahead: 1
+path-ok: accepted.txt
+path-ok: drift-proof.txt
+keep: 63e6899034faf467ea53c76894025c624ce21ac8 accepted measured change
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/nightly.log
+run: 2026-10-20T03:53:46-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-ok: accepted.txt
+path-ok: drift-proof.txt
+keep: 63e6899034faf467ea53c76894025c624ce21ac8 accepted measured change
+exit: 0
+exit: 0
+OBSERVED: accepted committed patches pass; a green scheduled invocation creates no inbox note.
+$ git add pending.txt
+exit: 0
+$ git commit -qm 'pending measurement'
+exit: 0
+$ git rev-parse HEAD
+b424f3f5826e93b0da2c2cc7bf45be6d6b616254
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/pending-proof.txt
+behind: 0
+ahead: 2
+path-ok: accepted.txt
+path-ok: drift-proof.txt
+path-ok: pending.txt
+pending: b424f3f5826e93b0da2c2cc7bf45be6d6b616254 proof-followup pending measurement
+keep: 63e6899034faf467ea53c76894025c624ce21ac8 accepted measured change
+exit: 0
+OBSERVED: pending proof preserves its bead and is reported as pending, never keep.
+$ git add accepted.txt
+exit: 0
+$ git commit -qm 'unproven edit to accepted file'
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-drift-nightly.sh check --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork --no-fetch --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/pending-proof.txt
+behind: 0
+ahead: 3
+path-ok: drift-proof.txt
+path-ok: pending.txt
+path-drift: accepted.txt
+unproven: b6df74942953f59142ff605bc2763ea5eb76ed34 unproven edit to accepted file
+pending: b424f3f5826e93b0da2c2cc7bf45be6d6b616254 proof-followup pending measurement
+keep: 63e6899034faf467ea53c76894025c624ce21ac8 accepted measured change
+exit: 1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/nightly.log
+run: 2026-10-20T03:53:48-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 3
+path-ok: drift-proof.txt
+path-drift: accepted.txt
+path-drift: pending.txt
+unproven: b6df74942953f59142ff605bc2763ea5eb76ed34 unproven edit to accepted file
+unproven: b424f3f5826e93b0da2c2cc7bf45be6d6b616254 pending measurement
+keep: 63e6899034faf467ea53c76894025c624ce21ac8 accepted measured change
+exit: 1
+queued 1792486430-uerLEz
+  Nightly drift check red on 2026-10-20: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+exit: 1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/nightly.log
+run: 2026-10-20T03:53:50-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 3
+path-ok: drift-proof.txt
+path-drift: accepted.txt
+path-drift: pending.txt
+unproven: b6df74942953f59142ff605bc2763ea5eb76ed34 unproven edit to accepted file
+unproven: b424f3f5826e93b0da2c2cc7bf45be6d6b616254 pending measurement
+keep: 63e6899034faf467ea53c76894025c624ce21ac8 accepted measured change
+exit: 1
+replay 1792486430-uerLEz
+  Nightly drift check red on 2026-10-20: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+exit: 1
+PERSISTED NIGHTLY NOTE:
+id=1792486430-uerLEz
+at=2026-10-20T08:53:50Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-20
+--
+Nightly drift check red on 2026-10-20: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork.
+path-drift: accepted.txt
+path-drift: pending.txt
+Log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/nightly.log
+
+OBSERVED: unproven edits fail; repeated red scheduled invocations persist one daily note.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-drift-nightly.sh install --dry-run --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/nightly.log
+dry-run: install
+label: dev.firstmate.drift-nightly
+hour: 3
+minute: 17
+plist: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/agents/dev.firstmate.drift-nightly.plist
+repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/projects/fork
+log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/nightly.log
+exit: 0
+OBSERVED: installation preview writes no job or agent directory; cutover was not performed.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-quota-choose.sh --snapshot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/quota.json codex:sol claude:sonnet
+codex sol
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-quota-choose.sh --snapshot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/quota.json grok:grok-4.7 codex:sol
+grok grok-4.7
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-quota-choose.sh --snapshot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/cli-home/quota.json grok:grok-4.7 codex:sol
+codex sol
+exit: 0
+OBSERVED: the quota consumer preserves candidate order, uses usable prepaid credits, and falls back when those credits are empty.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-cursor-guard.sh fallback proof-routing
+cursor
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-cursor-guard.sh fallback proof-routing
+codex Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 2026-10-20-spending.txt
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-cursor-guard.sh fallback proof-routing
+claude Cursor Models at 100% (limit 85%) and no prepaid/on-demand credit room in 2026-10-20-spending.txt; Codex usage exhausted
+exit: 0
+OBSERVED: Cursor credit room retains Cursor; exhausted credits select Codex and a recorded Codex limit selects Claude.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-role.sh report
+fm-role: user (default)
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-role.sh check /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2
+refused: this home runs as firstmate user/operator and holds no publication authority for github.com/gsp-agent/firstmate
+exit: 1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-role.sh report
+fm-role: user (default)
+exit: 0
+OBSERVED: a fresh home is an operator and cannot authorize upstream publication from repository identity alone.
+LIVE_CLI_RESULT: pass

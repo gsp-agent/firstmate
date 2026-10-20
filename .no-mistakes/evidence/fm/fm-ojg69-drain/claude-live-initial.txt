@@ -1,0 +1,14 @@
+dalecarman@Dales-MacBook-Pro-M4-7 01M5C3XYXFM7NBK7ZVCGA9DWM2 % bash /Users/dalecarman/.no-mis
+takes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/herdr-home-local-config
+/start-claude.sh
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-tes
+t/herdr-home-local-config/start-claude.sh: line 2: /Users/dalecarman/.no-mistakes/worktrees/a
+5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/CLAUDE_CONFIG_DIR=/Users/dalecarman/.no-mistakes/workt
+rees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/herdr-home-local-config/claude-con
+fig: No such file or directory
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-tes
+t/herdr-home-local-config/start-claude.sh: line 2: exec: /Users/dalecarman/.no-mistakes/workt
+rees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/CLAUDE_CONFIG_DIR=/Users/dalecarman/.no-mistakes
+/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/herdr-home-local-config/clau
+de-config: cannot execute: No such file or directory
+dalecarman@Dales-MacBook-Pro-M4-7 01M5C3XYXFM7NBK7ZVCGA9DWM2 %

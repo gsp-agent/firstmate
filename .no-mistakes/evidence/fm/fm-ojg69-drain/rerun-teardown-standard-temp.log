@@ -1,0 +1,13 @@
+ok - a missing teardown startup source refuses before cleanup
+ok - an unreadable teardown startup source refuses before cleanup
+ok - a missing adapter sibling refuses before cleanup
+ok - a forced descendant with a missing adapter sibling refuses before cleanup
+ok - a forced secondmate with a missing own adapter sibling refuses before child cleanup
+ok - present required sources still reach the ordinary teardown refusal
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.KW3hXl/task-data-legacy-archive/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.KW3hXl/task-data-legacy-current/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.KW3hXl/task-data-legacy-no-pr/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.KW3hXl/task-data-legacy-gitlab-note/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.KW3hXl/task-data-legacy-gerrit-note/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /private/tmp/fm-teardown-tests.KW3hXl/task-data-legacy-repeated-note/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: legacy preparation uses the latest completed row and preserves missing or active tasks

@@ -1,0 +1,15 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-sweep-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-sweep-home
+exit: 0
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-sweep-home/projects/demo
+exit: 0
+Baseline: aa-old has 16 held files; no task metadata or sweep is active.
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-sweep-home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-sweep-home/state previous-task
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-sweep-home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-sweep-home/state fresh-requester
+task-data sweep already running; requested another pass
+exit: 0
+{"task": "aa-old", "expired": true, "held_files": 0}
+{"task": "bb-arrived-after-snapshot", "expired": true, "held_files": 0}
+{"task": "fresh-requester", "expired": false, "held_files": 1}
+OBSERVED: an overlapping completion joined one real sweep; its older added hold drained, its fresh recovery survived, and sweep locks released.
+LIVE_SWEEP_RESULT: pass

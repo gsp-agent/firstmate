@@ -1,0 +1,23 @@
+dalecarman@Dales-MacBook-Pro-M4-7 01M5C3XYXFM7NBK7ZVCGA9DWM2 % bash /Users/dalecarman/.no-mis
+takes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/herdr-home-local-config
+-2/start-claude.sh
+ ▐▛███▛█   Claude Code v2.1.304
+▝▜██████▀  Opus 5.5 · API Usage Billing
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2
+
+
+⏺ Auto mode lets Claude handle permission prompts automatically — Claude checks each
+  tool call for risky actions and prompt injection before executing. Actions Claude
+  identifies as safe are executed, while actions Claude identifies as risky are
+  blocked and Claude may try a different approach. Ideal for long-running tasks.
+  Sessions are slightly more expensive. Claude can make mistakes that allow harmful
+  commands to run, it's recommended to only use in isolated environments. Shift+Tab
+  to change mode.
+
+─────────────────────────────────────────────────────────────────────────────────────────────
+❯ /exit[0m[7m [0m
+─────────────────────────────────────────────────────────────────────────────────────────────
+  ❯ /exit                       Exit the CLI
+    /context                    Visualize current context usage as a colored grid
+    /quiet                      Enter quiet supervision mode when the captain invokes
+                                /quiet or asks for quiet mode, quiet-while-present, or few…

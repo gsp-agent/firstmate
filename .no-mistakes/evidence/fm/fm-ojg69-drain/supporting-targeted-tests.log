@@ -1,0 +1,126 @@
+FM_TEST_BEGIN 2026-10-20T08:51:41Z tests/fm-pr-made-with.test.sh family=pr-forge expected_gate_skip=none
+ok - the body names the worker and each no-mistakes agent whose commit the pull request carries
+ok - a rerun leaves a complete body alone
+ok - only the latest ok committing call before each commit names its agent, the worker's own agent adds nothing, and an unattributed commit exits 1 naming it
+ok - a fixing run on the task's branch counts before it records the pull request
+ok - a task record's symlinked project matches the resolved path no-mistakes records
+ok - a fixing run on the pull request's head branch counts when the task record names another branch
+ok - an empty body gets the worker line, and a default model is left out
+ok - a CRLF body that already names every engine is left alone
+ok - an absent or unreadable database exits 1 after naming the worker and each commit it could not attribute
+ok - a URL that is not a GitHub pull request needs nothing
+ok - a failed edit, a missing task record, and a bad URL exit nonzero
+FM_TEST_END 2026-10-20T08:52:23Z tests/fm-pr-made-with.test.sh exit=0 duration_ms=41186 gate_skip=false
+FM_TEST_BEGIN 2026-10-20T08:52:23Z tests/fm-quota-choose.test.sh family=standalone expected_gate_skip=none
+ok - help renders the complete header only
+ok - first positive candidate wins
+ok - exhausted provider is skipped
+ok - no positive candidate returns none and exit 1
+ok - positional candidates work
+ok - specific model scope bounds generic quota
+ok - omp openai-codex prefix matches the bare codex model scope
+ok - omp without a mapped prefix fails closed
+ok - default model uses provider-wide quota
+ok - fractional positive quota is eligible
+ok - unknown harness fails closed
+ok - all candidates are validated before selection
+ok - malformed provider data fails closed
+ok - multiple JSON values fail closed
+ok - known-empty quota fails closed
+ok - semantics and availability statuses must agree
+ok - exhausted runway vetoes unknown headroom
+ok - unknown headroom is not positive quota
+ok - partial semantics accept mixed availability
+ok - stdin snapshot is accepted
+ok - empty model candidate fails closed
+ok - bare harness maps to default model
+ok - default TOON snapshot is accepted
+ok - renderer-shaped TOON snapshot is accepted
+ok - malformed nonzero TOON envelopes fail closed
+ok - zero-row TOON has no positive quota
+ok - empty-array TOON has no positive quota
+ok - inline attention TOON has no positive quota
+ok - TOON attention identities fail closed
+ok - truncated zero-row TOON fails closed
+ok - malformed zero-row TOON fails closed
+ok - zero-row TOON rejects leading garbage
+ok - counted TOON rows require every declared field
+ok - TOON conversion preserves unknown-headroom exhaustion
+ok - trailing empty TOON fields fail closed
+ok - quoted TOON scope vetoes dispatch
+ok - provider-level unknown quota is not positive
+ok - Muse candidate is accepted
+ok - Muse uses the published muse provider quota
+ok - Agy remains resolver-only
+ok - duplicate providers fail closed
+ok - empty quota scopes fail closed
+ok - whitespace quota identities fail closed
+ok - out-of-range quota fails closed
+ok - invalid runway status fails closed
+ok - missing applicable quota is not positive
+ok - any exhausted applicable scope vetoes dispatch
+ok - named model quota matches exact identity only
+ok - invalid availability status fails closed
+ok - native Codex never infers an account from a Pi lane
+ok - native Codex binds to codex-home before default, independently of model and row order
+ok - the same path still selects from a schema 5 snapshot by provider alone
+ok - schema 6 requires accountKey on every row and uniqueness on provider + accountKey
+ok - schema 6 TOON with the accountKey column is accepted
+ok - helper reuses the captured quota snapshot
+ok - provider-table lookup writes nothing to stderr when SIGPIPE is ignored
+ok - provider-table lookup reads the whole table before answering
+ok - provider-table lookup prints the provider when called directly under set -e
+ok - grok with usable prepaid credits is eligible despite exhausted weekly pool
+ok - grok with no usable prepaid credits is skipped
+ok - schema 5 and 6 TOON request the caller's JSON fallback only when Grok prepaid evidence can affect selection
+ok - unknown Grok TOON eligibility requests prepaid evidence before selection
+# all fm-quota-choose tests passed
+FM_TEST_END 2026-10-20T08:52:53Z tests/fm-quota-choose.test.sh exit=0 duration_ms=29379 gate_skip=false
+FM_TEST_BEGIN 2026-10-20T08:52:53Z tests/fm-cursor-guard.test.sh family=unclassified expected_gate_skip=none
+ok - fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit
+ok - GNU stat supports spending-file age
+ok - the real spending file shape at 26% keeps cursor
+ok - crew guard: refuses git symbolic-ref and update-ref in every command position, leaves reads and branch creation alone
+ok - crew guard: pins an empty working directory, leaves explicit ones, other tools and bad input alone
+# all fm-cursor-guard tests passed
+FM_TEST_END 2026-10-20T08:53:28Z tests/fm-cursor-guard.test.sh exit=0 duration_ms=34769 gate_skip=false
+FM_TEST_BEGIN 2026-10-20T08:53:28Z tests/fm-project-capacity.test.sh family=backend-dispatch expected_gate_skip=none
+ok - a project with no declared capacity keeps today's uncapped dispatch
+ok - a spawn is admitted while its project still has a free place
+ok - a spawn beyond capacity is deferred before any record, brief, endpoint, worktree, or backlog move exists
+ok - a project name with spaces is declared by taking the capacity from the last field
+not ok - tests/fm-project-capacity.test.sh exceeded the per-script bound of 360s and was terminated
+FM_TEST_END 2026-10-20T08:59:34Z tests/fm-project-capacity.test.sh exit=124 duration_ms=364588 gate_skip=false
+FM_TEST_BEGIN 2026-10-20T08:59:37Z tests/fm-self-repo-role.test.sh family=unclassified expected_gate_skip=none
+ok - fm-role.sh report: default, user, and maintainer directives resolve
+ok - fm-role.sh report: malformed, unknown, and unsafe input fails closed
+ok - fm-role.sh check: the default user/operator home cannot publish to firstmate upstream
+ok - fm-role.sh check: a task on an ordinary project is untouched by the boundary
+ok - fm-role.sh check: a matching maintainer scope authorizes the self-repository publication
+ok - fm-role.sh check: scope mismatch and mere upstream remote presence never authorize
+ok - fm-role.sh check: equivalent remote spellings resolve to one publication target
+ok - fm-role.sh check: repository lineage, not remotes, identifies firstmate across forks
+ok - fm-role.sh check: undeterminable lineage or publication target refuses
+ok - fm-role.sh check: recorded one-task consent authorizes its named repository only
+ok - secondmate home: a role file without an inheritance receipt grants nothing
+ok - secondmate home: inherited grants need a matching receipt; receipt-less and revoked grants are dead
+ok - secondmate home: a primary role its own resolver rejects propagates as revocation
+ok - fm_dod_block: upstream consent renders on publishing contracts and is refused on local-only
+ok - fm-brief.sh: --upstream-consent validates, scopes to ship tasks, and renders normalized
+ok - fm-brief.sh: --project applies the self-repository gate at scaffold time
+ok - fm-spawn.sh: the launch gate refuses a user/operator home and passes a matching maintainer
+ok - fm-spawn.sh: consent must agree between flag and brief, and is refused on local-only
+ok - fm-promote.sh: the self-repository gate governs promotion identically to spawn
+ok - fm-spawn.sh: --upstream-consent is refused on secondmate charters
+# all fm-self-repo-role tests passed
+FM_TEST_END 2026-10-20T09:02:04Z tests/fm-self-repo-role.test.sh exit=0 duration_ms=145448 gate_skip=false
+FM_TEST_SUMMARY total=5 failed=1 skipped_gate=0 duration_ms=663418
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=364588 failed=1
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=41186 failed=0
+FM_TEST_SUMMARY_FAMILY family=standalone count=1 duration_ms=29379 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=2 duration_ms=180217 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-project-capacity.test.sh duration_ms=364588
+FM_TEST_SLOWEST rank=2 script=tests/fm-self-repo-role.test.sh duration_ms=145448
+FM_TEST_SLOWEST rank=3 script=tests/fm-pr-made-with.test.sh duration_ms=41186
+FM_TEST_SLOWEST rank=4 script=tests/fm-cursor-guard.test.sh duration_ms=34769
+FM_TEST_SLOWEST rank=5 script=tests/fm-quota-choose.test.sh duration_ms=29379

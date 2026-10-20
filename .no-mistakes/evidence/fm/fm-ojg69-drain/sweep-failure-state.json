@@ -1,0 +1,80 @@
+{
+  "invocation": "bash bin/fm-task-data-lib.sh sweep DATA STATE previous-task; overlapping sweep DATA STATE fresh-requester",
+  "sweep_exit_code": 0,
+  "guard_decisions": [
+    {
+      "decision": "deny",
+      "rule": "core.limits:evaluation-timeout",
+      "reason": "dcg could not finish evaluating this command within 5000ms (spent 5036ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging."
+    },
+    {
+      "decision": "deny",
+      "rule": "core.limits:evaluation-timeout",
+      "reason": "dcg could not finish evaluating this command within 5000ms (spent 7064ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging."
+    }
+  ],
+  "persisted_state": {
+    "aa-old": {
+      "record": {
+        "version": 1,
+        "task": "aa-old",
+        "complete": true,
+        "expired": false,
+        "sources": [
+          {
+            "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/projects/demo",
+            "pr": "",
+            "beads": [],
+            "backlog": {
+              "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/data",
+              "task": null
+            },
+            "unread": []
+          }
+        ]
+      },
+      "held_files": 384
+    },
+    "bb-arrived-after-snapshot": {
+      "record": {
+        "version": 1,
+        "task": "bb-arrived-after-snapshot",
+        "complete": true,
+        "expired": true,
+        "sources": [
+          {
+            "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/projects/demo",
+            "pr": "",
+            "beads": [],
+            "backlog": {
+              "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/data",
+              "task": null
+            },
+            "unread": []
+          }
+        ]
+      },
+      "held_files": 0
+    },
+    "fresh-requester": {
+      "record": {
+        "version": 1,
+        "task": "fresh-requester",
+        "complete": true,
+        "expired": false,
+        "sources": [
+          {
+            "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/projects/demo",
+            "pr": "",
+            "beads": [],
+            "backlog": {
+              "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/sweep-home-small/data",
+              "task": null
+            }
+          }
+        ]
+      },
+      "held_files": 1
+    }
+  }
+}

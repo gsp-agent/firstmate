@@ -1,0 +1,11 @@
+ok - fm-teardown: a finished task whose row moved to the archive still resolves its references
+ok - fm-teardown: archived unread beads retain the whole folder through prepare, stage and expiry
+ok - fm-teardown: archived task ids never suppress unread beads with the same id, including saved references and staged holds
+ok - fm-teardown: kept evidence over 16 MiB is not read, keeps the folder whole, closes the backlog item and is retried
+ok - fm-teardown: a stage past its limit moves nothing, keeps the folder whole, stays within memory on accented text, closes the backlog item and is retried
+ok - fm-teardown: the stage limit also bounds slow reference reads before matching
+ok - fm-teardown: a slow expiry of another task's data neither blocks fm-send, outlasts its budget, nor starves other holds
+ok - fm-teardown: the one full attempt lasts FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT even under a longer budget
+ok - fm-teardown: the sweep expires newly promoted and saved too-large holds, staged or unstaged
+ok - fm-teardown: overlapping sweep requests preserve a new hold for another single-instance pass
+ok - fm-teardown: B's overlapping completion expires A while preserving B's fresh recovery

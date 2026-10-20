@@ -1,0 +1,338 @@
+{
+  "task": "task-first",
+  "meta_exists": false,
+  "files": [
+    ".cleanup-hold/discard.bin",
+    "brief.md",
+    "linked.txt",
+    "proof.png",
+    "record/data-cleanup.json",
+    "report.md"
+  ],
+  "cleanup_record": {
+    "version": 1,
+    "task": "task-first",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-e4w"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data",
+          "task": "task-first"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  }
+}
+Resuming the same disposable live setup after a host-load timeout; first retirement already completed.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-teardown.sh task-second
+task data task-second: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/task-second/.cleanup-hold until the next completed task
+teardown task-second complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/gone-copy, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261020T101121Z-6050)
+Backlog: task-second is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: task data task-first expiry stopped after 2s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 2s attempt
+warning: task-second teardown completed, but expiring other tasks' held data needs a retry
+exit: 0
+{
+  "task": "task-first",
+  "meta_exists": false,
+  "files": [
+    "brief.md",
+    "discard.bin",
+    "linked.txt",
+    "proof.png",
+    "record/data-cleanup.json",
+    "report.md"
+  ],
+  "cleanup_record": {
+    "version": 1,
+    "task": "task-first",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-e4w"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data",
+          "task": "task-first"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+{
+  "task": "task-second",
+  "meta_exists": false,
+  "files": [
+    ".cleanup-hold/fresh.bin",
+    "brief.md",
+    "record/data-cleanup.json"
+  ],
+  "cleanup_record": {
+    "version": 1,
+    "task": "task-second",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data",
+          "task": "task-second"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  }
+}
+OBSERVED: the next completion restored late-linked evidence and preserved its own fresh recovery.
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/rerun-locked-taskdata.sh prepare task-archived
+exit: 0
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/state task-archived
+task data task-archived: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/task-archived/.cleanup-hold until the next completed task
+task data task-archived expired; nothing of it stays held
+exit: 0
+{
+  "task": "task-archived",
+  "meta_exists": false,
+  "files": [
+    "proof.png",
+    "record/data-cleanup.json",
+    "row.png"
+  ],
+  "cleanup_record": {
+    "version": 1,
+    "task": "task-archived",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-e4w"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data",
+          "task": "task-archived",
+          "legacy": true,
+          "text": "- [x] task-archived - finished (repo: demo) (done 2026-10-11)\n  [capture](row.png)\n  Bead proof-e4w",
+          "refreshed_text": "- [x] task-archived - finished (repo: demo) (done 2026-10-11)\n  [capture](row.png)\n  Bead proof-e4w"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+OBSERVED: archived backlog and real Beads references retained both images while scratch expired.
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/unread
+exit: 0
+$ br init --prefix proof --json
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit: 0
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/state proof-e4w
+warning: task data proof-e4w retained whole for retry: unread references: proof-e4w
+error: task data proof-e4w is not expired; what remains of it stays held
+exit: 1
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/state proof-e4w
+error: task data proof-e4w is not expired; what remains of it stays held
+exit: 1
+{
+  "task": "proof-e4w",
+  "meta_exists": false,
+  "files": [
+    ".cleanup-hold/proof.png",
+    ".cleanup-hold/scratch.bin",
+    "record/data-cleanup.json"
+  ],
+  "cleanup_record": {
+    "version": 1,
+    "task": "proof-e4w",
+    "complete": true,
+    "expired": false,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/unread",
+        "pr": "",
+        "beads": [
+          "proof-e4w"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data",
+          "task": "proof-e4w"
+        },
+        "unread": [
+          "proof-e4w"
+        ]
+      }
+    ],
+    "unread_named": [
+      "proof-e4w"
+    ]
+  }
+}
+OBSERVED: an archived row could not clear an unread bead with the same id; recovery stayed intact and the warning was written once.
+$ br sync --flush-only
+Nothing to export (no dirty issues)
+exit: 0
+$ br sync --import-only
+Imported from JSONL:
+  Processed: 1 issues
+  Created: 1 issues
+  Updated: 0 issues
+  Rebuilt blocked cache
+exit: 0
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/state proof-e4w
+exit: 0
+{
+  "task": "proof-e4w",
+  "meta_exists": false,
+  "files": [
+    "proof.png",
+    "record/data-cleanup.json"
+  ],
+  "cleanup_record": {
+    "version": 1,
+    "task": "proof-e4w",
+    "complete": true,
+    "expired": true,
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/unread",
+        "pr": "",
+        "beads": [
+          "proof-e4w"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data",
+          "task": "proof-e4w"
+        },
+        "unread": []
+      }
+    ]
+  }
+}
+OBSERVED: after the real bead became readable, retry restored its image and deleted only scratch.
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/rerun-locked-taskdata.sh stage old-big /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo ''
+task data old-big: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/old-big/.cleanup-hold until the next completed task
+exit: 0
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/rerun-locked-taskdata.sh mark old-big too-large
+exit: 0
+$ tasks-axi add task-third 'retirement validation' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md
+ok: added task-third (ship) -> Queued
+task:
+  id: task-third
+  title: retirement validation
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start task-third --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block task-third --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md` to record a dependency
+exit: 0
+$ tasks-axi start task-third --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md
+ok: start task-third -> In flight
+help[1]:
+  - Run `tasks-axi done task-third --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md` when it ships
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-teardown.sh task-third
+task data task-third: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/task-third/.cleanup-hold until the next completed task
+teardown task-third complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/gone-copy, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261020T101807Z-56876)
+Backlog: task-third is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: old-big
+warning: task data task-second expiry stopped after 2s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full 2s attempt
+warning: task-third teardown completed, but expiring other tasks' held data needs a retry
+exit: 0
+{
+  "task": "old-big",
+  "meta_exists": false,
+  "files": [
+    "record/data-cleanup.json"
+  ],
+  "cleanup_record": {
+    "version": 1,
+    "task": "old-big",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data",
+          "task": null
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": true
+  }
+}
+{
+  "task": "task-third",
+  "meta_exists": false,
+  "files": [
+    ".cleanup-hold/fresh.bin",
+    "brief.md",
+    "record/data-cleanup.json"
+  ],
+  "cleanup_record": {
+    "version": 1,
+    "task": "task-third",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data",
+          "task": "task-third"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  }
+}
+OBSERVED: the background sweep reclaimed an older 8 MiB too-large hold without another completion and preserved the requester.
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/state task-third
+error: task task-third is live; nothing was expired
+exit: 1
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/state task-third
+error: task task-third is locked by another process; nothing was expired, retry later
+exit: 1
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/rerun-locked-taskdata.sh expire task-third
+warning: task data retained for recovery: dcg is unavailable
+exit: 1
+OBSERVED: expiry refused a live task, another live process lock, and an unavailable deletion guard, preserving recovery bytes.
+LIVE_DATA_RESULT: pass

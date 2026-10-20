@@ -1,0 +1,13 @@
+dalecarman@Dales-MacBook-Pro-M4-7 01M5C3XYXFM7NBK7ZVCGA9DWM2 % bash /Users/dalecarman/.no-mis
+takes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-live-test/herdr-home-local-config
+-2/start-claude.sh
+ ▐▛███▛█   Claude Code v2.1.304
+▝▜██████▀  Opus 5.5 · API Usage Billing
+ ▝▝   ▝▝   ~/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2
+
+
+─────────────────────────────────────────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents            Not logged in · Run /login
+                                                                         ◐ medium · /effort

@@ -1,0 +1,28 @@
+$ bash /Users/dalecarman/.no-mistakes/evidence/01M5C3XYXFM7NBK7ZVCGA9DWM2/rerun-locked-taskdata.sh stage oversized-task /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/projects/demo ''
+warning: task data oversized-task retained whole for retry: kept evidence over 16 MiB: brief.md
+exit: 0
+{
+  "task": "oversized-task",
+  "brief_bytes": 16777217,
+  "cleanup_record": {
+    "version": 1,
+    "task": "oversized-task",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/projects/demo",
+        "pr": "",
+        "beads": [],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-boundary-home/data",
+          "task": null
+        },
+        "unread": [
+          "brief.md"
+        ]
+      }
+    ],
+    "complete": false
+  }
+}
+OBSERVED: an oversized retained evidence file was named in the retry record and the whole task folder stayed intact.
+LIVE_OVERSIZED_RESULT: pass

@@ -1,0 +1,10 @@
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/fm-teardown-tests.KZHCh7/task-data-legacy-archive/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/fm-teardown-tests.KZHCh7/task-data-legacy-current/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/fm-teardown-tests.KZHCh7/task-data-legacy-no-pr/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/fm-teardown-tests.KZHCh7/task-data-legacy-gitlab-note/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/fm-teardown-tests.KZHCh7/task-data-legacy-gerrit-note/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/fm-teardown-tests.KZHCh7/task-data-legacy-repeated-note/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: legacy preparation uses the latest completed row and preserves missing or active tasks
+ok - fm-teardown: current completed rows beat archives and unprovable conflicting sources stay whole
+warning: task data task-x1 retained whole for retry: unread references: task-x1
+not ok - expired first stage failed

@@ -1,0 +1,112 @@
+First-retirement excerpt from rerun-live-task-data.log. The later host timeout remains in that full log.
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home
+exit: 0
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo
+exit: 0
+$ br init --prefix proof --json
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit: 0
+$ br create 'Linked evidence' -d '[capture](proof.png)' --json
+{"id":"proof-e4w","title":"Linked evidence","description":"[capture](proof.png)","status":"open","priority":2,"issue_type":"task","created_at":"2026-10-20T10:07:35.005576Z","created_by":"dalecarman","updated_at":"2026-10-20T10:07:35.005576Z","source_repo":"demo","source_repo_path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo","compaction_level":0,"original_size":0}
+exit: 0
+Baseline: no pending task-data holds.
+$ python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-task-data.py pending /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data
+exit: 0
+$ tasks-axi add task-first 'retirement validation' --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md
+ok: added task-first (ship) -> Queued
+task:
+  id: task-first
+  title: retirement validation
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start task-first --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block task-first --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md` to record a dependency
+exit: 0
+$ tasks-axi start task-first --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md
+ok: start task-first -> In flight
+help[1]:
+  - Run `tasks-axi done task-first --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md` when it ships
+exit: 0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/bin/fm-teardown.sh task-first
+task data task-first: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/task-first/.cleanup-hold until the next completed task
+teardown task-first complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/gone-copy, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261020T100749Z-3761)
+Backlog: task-first is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit: 0
+{
+  "task": "task-first",
+  "meta_exists": false,
+  "files": [
+    ".cleanup-hold/discard.bin",
+    "brief.md",
+    "linked.txt",
+    "proof.png",
+    "record/data-cleanup.json",
+    "report.md"
+  ],
+  "cleanup_record": {
+    "version": 1,
+    "task": "task-first",
+    "sources": [
+      {
+        "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/projects/demo",
+        "pr": "",
+        "beads": [
+          "proof-e4w"
+        ],
+        "backlog": {
+          "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data",
+          "task": "task-first"
+        },
+        "unread": []
+      }
+    ],
+    "complete": true,
+    "expired": false
+  }
+}
+$ tasks-axi show task-first --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5C3XYXFM7NBK7ZVCGA9DWM2/.nm-test-tmp/live-data-home/data/backlog.md --full
+task:
+  id: task-first
+  title: retirement validation
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-20
+  deps: none
+  links: none
+  body: local main
+exit: 0
+OBSERVED: teardown closed its task, kept evidence and held scratch; date-like strings did not become beads.
