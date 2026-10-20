@@ -5411,6 +5411,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-github ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-legacy-reuse ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-refs ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-row-reread ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-sweep ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-requester ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-review ] \
@@ -6279,6 +6280,95 @@ SH
   jq -e '.sources[0].beads == ["proof-related"]' "$task/record/data-cleanup.json" >/dev/null \
     || fail "the owning row's bead was not recorded: $(cat "$task/record/data-cleanup.json")"
   pass "fm-teardown: beads named by the readable owning row resolve before evidence is classified"
+}
+
+test_task_data_row_reread_archiving() {
+  local helper=${1:-$ROOT/bin/fm-task-data.py} real_tasks case_dir task record location action known variant destination complete rc args=()
+  real_tasks=$(command -v tasks-axi)
+  for action in expire stage prepare; do
+    for known in true false; do
+      for variant in archived missing; do
+        case_dir=$(make_case "task-data-row-reread-$action-$known-$variant")
+        task="$case_dir/data/task-x1"
+        record="$task/record/data-cleanup.json"
+        location=$task
+        complete=false
+        if [ "$action" = expire ]; then
+          location="$task/.cleanup-hold"
+          complete=true
+        fi
+        mkdir -p "$location" "$task/record"
+        printf 'row evidence\n' > "$location/row.png"
+        printf 'bead evidence\n' > "$location/proof.png"
+        printf 'scratch\n' > "$location/scratch.bin"
+        fm_test_tasks_toml "$case_dir/.tasks.toml"
+        printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n- [x] task-x1 - finished. Bead proof-related (repo: %s) (done 2026-10-11)\n  [capture](row.png)\n' \
+          "$case_dir/project" > "$case_dir/data/backlog.md"
+        destination="$case_dir/data/done-archive.md"
+        [ "$variant" != missing ] || destination="$case_dir/unavailable-row.md"
+        jq -n --arg project "$case_dir/project" --arg data "$case_dir/data" \
+          --argjson known "$known" --argjson complete "$complete" \
+          '{version: 1, task: "task-x1", complete: $complete, expired: false,
+            sources: [{project: $project, pr: "", beads: [],
+              backlog: {data: $data, task: (if $known then "task-x1" else null end)}}]}' > "$record"
+        cat > "$case_dir/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+"$FM_TEST_REAL_TASKS_AXI" "$@" || exit $?
+if [ "${1:-} ${2:-}" = 'show task-x1' ]; then
+  case " $* " in
+    *" --full "*)
+      mv "$FM_TEST_ROW_HOME/data/backlog.md" "$FM_TEST_ROW_DESTINATION" || exit 1
+      printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$FM_TEST_ROW_HOME/data/backlog.md"
+      ;;
+  esac
+fi
+SH
+        cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+[ "$2" = proof-related ] || exit 1
+printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+SH
+        printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
+        chmod +x "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+        args=()
+        [ "$action" != stage ] || args=("$case_dir/project" '')
+        rc=0
+        FM_TEST_REAL_TASKS_AXI="$real_tasks" FM_TEST_ROW_HOME="$case_dir" FM_TEST_ROW_DESTINATION="$destination" \
+          PATH="$case_dir/fakebin:$PATH" python3 "$helper" "$action" \
+          "$case_dir/data" "$case_dir/state" task-x1 ${args[@]+"${args[@]}"} \
+          > "$case_dir/out" 2> "$case_dir/err" || rc=$?
+        assert_present "$destination" "$action did not move the observed owning row ($known/$variant)"
+        if [ "$variant" = missing ]; then
+          if [ "$action" = prepare ]; then
+            expect_code 0 "$rc" "prepare must permit retirement with an unread owning row"
+          else
+            expect_code 1 "$rc" "$action accepted an owning row lost during reread ($known)"
+          fi
+          assert_present "$location/row.png" "$action lost row-linked evidence with no recoverable owner ($known)"
+          assert_present "$location/proof.png" "$action moved bead evidence with no recoverable owner ($known)"
+          assert_present "$location/scratch.bin" "$action moved scratch with no recoverable owner ($known)"
+          jq -e --argjson complete "$complete" \
+            '.complete == $complete and .expired == false and .sources[0].unread == ["task-x1"]' \
+            "$record" >/dev/null || fail "$action forgot the observed owning row during reread ($known): $(cat "$record")"
+        else
+          expect_code 0 "$rc" "$action could not recover the row archived during reread ($known): $(cat "$case_dir/err")"
+          assert_present "$task/row.png" "$action lost evidence when its owning row was archived during reread ($known)"
+          assert_present "$task/proof.png" "$action lost the archived row's bead evidence ($known)"
+          jq -e '.sources[0].beads == ["proof-related"] and .sources[0].unread == []' "$record" >/dev/null \
+            || fail "$action did not resolve the archived owning row's bead ($known): $(cat "$record")"
+          case "$action" in
+            expire)
+              assert_absent "$task/.cleanup-hold" "expiry left recovered scratch behind ($known)"
+              jq -e '.expired == true' "$record" >/dev/null || fail "expiry did not finish after archive recovery ($known)"
+              ;;
+            stage) assert_present "$task/.cleanup-hold/scratch.bin" "staging skipped scratch after archive recovery ($known)" ;;
+            prepare) assert_present "$task/scratch.bin" "prepare moved scratch during archive recovery ($known)" ;;
+          esac
+        fi
+      done
+    done
+  done
+  pass "fm-teardown: row rereads recover archived owners or retain all data through prepare, stage and expiry"
 }
 
 test_task_data_unread_named_once() {
@@ -8318,11 +8408,17 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-named-beads ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-row-reread ]; then
+  test_task_data_row_reread_archiving "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
   test_task_data_archived_bead_id_collision
   test_task_data_bead_id_filter
   test_task_data_archived_row_reference
   test_task_data_row_named_beads
+  test_task_data_row_reread_archiving
   test_task_data_archived_unread_bead
   test_task_data_unread_named_once
   test_task_data_unread_status_failure_retries
@@ -8400,6 +8496,7 @@ test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
 test_task_data_bead_id_filter
 test_task_data_archived_row_reference
 test_task_data_row_named_beads
+test_task_data_row_reread_archiving
 test_task_data_archived_unread_bead
 test_task_data_archived_bead_id_collision
 test_task_data_unread_named_once

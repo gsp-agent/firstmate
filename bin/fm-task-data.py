@@ -405,7 +405,7 @@ def backlog_references(source, task_id, limit=None):
         discovered = set(bead_ids(response["text"])) - set(source["beads"])
         if discovered:
             source["beads"] = sorted(set(source["beads"]) | discovered)
-            response = read_backlog(False)
+            response = read_backlog(backlog["task"] is not None)
             source["unread"] = response["unread"]
     archived_text = ""
     if not legacy and task_id in source["unread"]:
