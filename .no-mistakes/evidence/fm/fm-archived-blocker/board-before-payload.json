@@ -1,0 +1,43 @@
+{
+  "schema": "fm-bearings-board.v1",
+  "home": "disposable archived-blocker validation",
+  "generated": "2026-10-20T11:34:26Z",
+  "prs_live": false,
+  "captains_call": [],
+  "underway": [],
+  "landed": [],
+  "charted": [
+    {
+      "id": "ac-bkbhy",
+      "repo": "disposable-project",
+      "title": "Shipped blocker",
+      "reason": null,
+      "dispatchable": true,
+      "filed": "2026-10-20"
+    },
+    {
+      "id": "ac-c4zpc",
+      "repo": "disposable-project",
+      "title": "Dependent implementation",
+      "reason": "blocked-by ac-bkbhy",
+      "dispatchable": false,
+      "filed": "2026-10-20"
+    },
+    {
+      "id": "review-ac-vpw4n",
+      "repo": "disposable-project",
+      "title": "Dependent review",
+      "reason": "blocked-by ac-bkbhy",
+      "dispatchable": false,
+      "filed": "2026-10-20"
+    },
+    {
+      "id": "captain-approval",
+      "repo": "disposable-project",
+      "title": "Approval after shipment",
+      "reason": "blocked-by ac-bkbhy: Approve the complet\u2026",
+      "dispatchable": false,
+      "filed": "2026-10-20"
+    }
+  ]
+}

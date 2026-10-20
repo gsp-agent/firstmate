@@ -1,0 +1,123 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-10-20T11:34:57Z",
+  "fm_home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary",
+  "roots": {
+    "fm_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X",
+    "state": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/state",
+    "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/alternative-data",
+    "config": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/config",
+    "projects": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/projects"
+  },
+  "backlog": {
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/alternative-data/backlog.md",
+    "present": true,
+    "records": [
+      {
+        "priority": null,
+        "hold_age_days": null,
+        "order": 1,
+        "links": [],
+        "structured": true,
+        "report_path": null,
+        "title": "Strict archive identity",
+        "hold_reason": null,
+        "hold_until": null,
+        "hold_bucket": null,
+        "blocked_by": "missing",
+        "hold_kind": null,
+        "body_lines": [],
+        "repo": null,
+        "done": null,
+        "requires_child_metadata": false,
+        "since": null,
+        "id": "gated",
+        "kind": "ship",
+        "local_note": null,
+        "captain_actionable": false,
+        "hold_set": null,
+        "merged": null,
+        "body_excerpt": null,
+        "checked": false,
+        "unresolved_blocker_ids": [
+          "missing"
+        ],
+        "blocked_by_ids": [
+          "exact",
+          "missing"
+        ],
+        "current_role": "queued",
+        "state": "queued",
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "blocked_reason": null,
+        "reported": null,
+        "pr_url": null,
+        "raw": "- [ ] gated - Strict archive identity blocked-by: exact blocked-by: missing (kind: ship)"
+      }
+    ]
+  },
+  "tasks": [],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": false,
+      "available": true,
+      "complete": true,
+      "reason": null,
+      "provenance": "registered-table",
+      "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/alternative-data/secondmates.md",
+      "freshness": {
+        "status": "fresh",
+        "observed_at": "2026-10-20T11:34:57Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [],
+    "total_registered": 0,
+    "total": 0,
+    "shown": 0,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}

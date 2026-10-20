@@ -1,0 +1,190 @@
+{
+  "same_archived_records_before_fix": [
+    {
+      "id": "ac-c4zpc",
+      "state": "queued",
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [
+        "ac-bkbhy"
+      ],
+      "hold_bucket": null,
+      "captain_actionable": false
+    },
+    {
+      "id": "review-ac-vpw4n",
+      "state": "queued",
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [
+        "ac-bkbhy"
+      ],
+      "hold_bucket": null,
+      "captain_actionable": false
+    },
+    {
+      "id": "captain-approval",
+      "state": "queued",
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [
+        "ac-bkbhy"
+      ],
+      "hold_bucket": "blocked",
+      "captain_actionable": false
+    }
+  ],
+  "same_archived_records_after_fix": [
+    {
+      "id": "ac-c4zpc",
+      "state": "queued",
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [],
+      "hold_bucket": null,
+      "captain_actionable": false
+    },
+    {
+      "id": "review-ac-vpw4n",
+      "state": "queued",
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [],
+      "hold_bucket": null,
+      "captain_actionable": false
+    },
+    {
+      "id": "captain-approval",
+      "state": "queued",
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [],
+      "hold_bucket": "live",
+      "captain_actionable": true
+    }
+  ],
+  "mixed_blockers": [
+    {
+      "id": "gated",
+      "state": "queued",
+      "blocked_by_ids": [
+        "missing",
+        "archived",
+        "queued",
+        "flight"
+      ],
+      "unresolved_blocker_ids": [
+        "missing",
+        "queued",
+        "flight"
+      ],
+      "hold_bucket": null,
+      "captain_actionable": false
+    }
+  ],
+  "reopened_with_stale_archive": [
+    {
+      "id": "gated",
+      "state": "queued",
+      "blocked_by_ids": [
+        "missing",
+        "archived",
+        "queued",
+        "flight"
+      ],
+      "unresolved_blocker_ids": [
+        "missing",
+        "archived",
+        "queued",
+        "flight"
+      ],
+      "hold_bucket": null,
+      "captain_actionable": false
+    }
+  ],
+  "absent_archive": [
+    {
+      "id": "gated",
+      "state": "queued",
+      "blocked_by_ids": [
+        "exact",
+        "missing"
+      ],
+      "unresolved_blocker_ids": [
+        "exact",
+        "missing"
+      ],
+      "hold_bucket": null,
+      "captain_actionable": false
+    }
+  ],
+  "near_match_archive": [
+    {
+      "id": "gated",
+      "state": "queued",
+      "blocked_by_ids": [
+        "exact",
+        "missing"
+      ],
+      "unresolved_blocker_ids": [
+        "exact",
+        "missing"
+      ],
+      "hold_bucket": null,
+      "captain_actionable": false
+    }
+  ],
+  "selected_data_directory": [
+    {
+      "id": "gated",
+      "state": "queued",
+      "blocked_by_ids": [
+        "exact",
+        "missing"
+      ],
+      "unresolved_blocker_ids": [
+        "missing"
+      ],
+      "hold_bucket": null,
+      "captain_actionable": false
+    }
+  ],
+  "bearings_after": {
+    "decisions_open": [
+      {
+        "id": "captain-approval",
+        "key": "captain-approval",
+        "verb": "captain-hold",
+        "summary": "Approval after shipment: Approve the completed shipment",
+        "owner": "(main)"
+      }
+    ],
+    "gates": [
+      {
+        "id": "ac-c4zpc",
+        "title": "Dependent implementation",
+        "blocked_by": "-",
+        "reason": "-",
+        "owner": "(main)",
+        "filed": "2026-10-20"
+      },
+      {
+        "id": "review-ac-vpw4n",
+        "title": "Dependent review",
+        "blocked_by": "-",
+        "reason": "-",
+        "owner": "(main)",
+        "filed": "2026-10-20"
+      }
+    ]
+  },
+  "visual_evidence_scope": "The unchanged shipped board template rendered in Chromium with payloads composed from actual bearings JSON. The before image is the queued blocker before completion. The after image is after archiving. Lavish session creation, answer submission and worker dispatch were not part of this change or check.",
+  "driver_expectation_correction": "The initial driver expected duplicate unresolved ids on a reopened blocker. Existing product normalization deduplicates ids in first-seen order. The driver expectation was corrected and all scenarios re-driven successfully; initial logs are retained.",
+  "cleanup": "Both worktree-local disposable roots removed after dcg allowed the exact guarded cleanup command. Browser task 118 finished with no pages kept."
+}

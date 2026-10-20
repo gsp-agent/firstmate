@@ -1,0 +1,124 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-10-20T11:34:58Z",
+  "fm_home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary",
+  "roots": {
+    "fm_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X",
+    "state": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/state",
+    "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/data",
+    "config": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/config",
+    "projects": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/projects"
+  },
+  "backlog": {
+    "present": true,
+    "records": [
+      {
+        "structured": true,
+        "links": [],
+        "order": 1,
+        "hold_bucket": null,
+        "current_role": "queued",
+        "hold_set": null,
+        "unresolved_blocker_ids": [
+          "exact",
+          "missing"
+        ],
+        "blocked_reason": null,
+        "hold_until": null,
+        "checked": false,
+        "merged": null,
+        "priority": null,
+        "body_excerpt": null,
+        "title": "Strict archive identity",
+        "state": "queued",
+        "raw": "- [ ] gated - Strict archive identity blocked-by: exact blocked-by: missing (kind: ship)",
+        "hold_kind": null,
+        "requires_child_metadata": false,
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "blocked_by_ids": [
+          "exact",
+          "missing"
+        ],
+        "local_note": null,
+        "reported": null,
+        "pr_url": null,
+        "body_lines": [],
+        "captain_actionable": false,
+        "repo": null,
+        "done": null,
+        "since": null,
+        "kind": "ship",
+        "hold_age_days": null,
+        "report_path": null,
+        "id": "gated",
+        "blocked_by": "missing",
+        "hold_reason": null
+      }
+    ],
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/data/backlog.md"
+  },
+  "tasks": [],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": false,
+      "available": true,
+      "complete": true,
+      "reason": null,
+      "provenance": "registered-table",
+      "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/archive-boundary/data/secondmates.md",
+      "freshness": {
+        "status": "fresh",
+        "observed_at": "2026-10-20T11:34:58Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [],
+    "total_registered": 0,
+    "total": 0,
+    "shown": 0,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}

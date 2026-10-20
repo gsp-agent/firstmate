@@ -1,0 +1,130 @@
+{
+  "schema": "fm-secondmate-home-summary.v1",
+  "hold_classifier_schema": "fm-captain-hold-buckets.v1",
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "generated": "2026-10-20T11:34:28Z",
+  "generated_epoch": 1792496068,
+  "home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/lifecycle",
+  "valid": true,
+  "reason": null,
+  "invalidity": {
+    "kind": null,
+    "ids": []
+  },
+  "state": "captain_decision",
+  "active_children": [],
+  "decisions_open": [
+    {
+      "id": "captain-approval",
+      "key": "captain-approval",
+      "verb": "captain-hold",
+      "summary": "Approval after shipment",
+      "reason": "Approve the completed shipment",
+      "hold_until": null,
+      "hold_bucket": "live",
+      "hold_age_days": 0,
+      "source": "backlog"
+    }
+  ],
+  "holds": [
+    {
+      "id": "captain-approval",
+      "title": "Approval after shipment",
+      "blocked_by": null,
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [],
+      "reason": "Approve the completed shipment",
+      "source": "backlog"
+    }
+  ],
+  "queued": [
+    {
+      "id": "ac-c4zpc",
+      "title": "Dependent implementation",
+      "blocked_by": "ac-bkbhy",
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [],
+      "blocked_reason": null,
+      "hold_reason": null,
+      "hold_kind": null,
+      "hold_until": null,
+      "hold_bucket": null,
+      "hold_age_days": 0,
+      "captain_actionable": false,
+      "repo": "disposable-project",
+      "kind": "ship",
+      "since": "2026-10-20"
+    },
+    {
+      "id": "review-ac-vpw4n",
+      "title": "Dependent review",
+      "blocked_by": "ac-bkbhy",
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [],
+      "blocked_reason": null,
+      "hold_reason": null,
+      "hold_kind": null,
+      "hold_until": null,
+      "hold_bucket": null,
+      "hold_age_days": 0,
+      "captain_actionable": false,
+      "repo": "disposable-project",
+      "kind": "ship",
+      "since": "2026-10-20"
+    },
+    {
+      "id": "captain-approval",
+      "title": "Approval after shipment",
+      "blocked_by": "ac-bkbhy",
+      "blocked_by_ids": [
+        "ac-bkbhy"
+      ],
+      "unresolved_blocker_ids": [],
+      "blocked_reason": null,
+      "hold_reason": "Approve the completed shipment",
+      "hold_kind": "captain",
+      "hold_until": null,
+      "hold_bucket": "live",
+      "hold_age_days": 0,
+      "captain_actionable": true,
+      "repo": "disposable-project",
+      "kind": "ship",
+      "since": "2026-10-20"
+    }
+  ],
+  "landed": [],
+  "endpoints": [],
+  "counts": {
+    "active_children": 0,
+    "decisions_open": 1,
+    "holds": 1,
+    "queued": 3,
+    "landed": 0,
+    "endpoints": 0
+  },
+  "omitted": []
+}

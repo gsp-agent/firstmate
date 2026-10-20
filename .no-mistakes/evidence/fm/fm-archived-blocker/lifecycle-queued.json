@@ -1,0 +1,247 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-10-20T11:34:26Z",
+  "fm_home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/lifecycle",
+  "roots": {
+    "fm_root": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X",
+    "state": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/lifecycle/state",
+    "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/lifecycle/data",
+    "config": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/lifecycle/config",
+    "projects": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/lifecycle/projects"
+  },
+  "backlog": {
+    "records": [
+      {
+        "repo": "disposable-project",
+        "merged": null,
+        "pr_url": null,
+        "reported": null,
+        "structured": true,
+        "checked": false,
+        "kind": "ship",
+        "requires_child_metadata": false,
+        "since": "2026-10-20",
+        "hold_set": null,
+        "unresolved_blocker_ids": [],
+        "current_role": "queued",
+        "blocked_by_ids": [],
+        "report_path": null,
+        "hold_kind": null,
+        "done": null,
+        "hold_reason": null,
+        "id": "ac-bkbhy",
+        "links": [],
+        "blocked_reason": null,
+        "state": "queued",
+        "hold_until": null,
+        "title": "Shipped blocker",
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "blocked_by": null,
+        "local_note": null,
+        "body_excerpt": null,
+        "hold_age_days": 0,
+        "priority": null,
+        "body_lines": [],
+        "raw": "- [ ] ac-bkbhy - Shipped blocker (repo: disposable-project) (kind: ship) (since 2026-10-20)",
+        "captain_actionable": false,
+        "hold_bucket": null,
+        "order": 1
+      },
+      {
+        "blocked_by": "ac-bkbhy",
+        "local_note": null,
+        "title": "Dependent implementation",
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "hold_until": null,
+        "state": "queued",
+        "links": [],
+        "blocked_reason": null,
+        "hold_reason": null,
+        "id": "ac-c4zpc",
+        "order": 2,
+        "hold_bucket": null,
+        "body_lines": [],
+        "raw": "- [ ] ac-c4zpc - Dependent implementation blocked-by: ac-bkbhy (repo: disposable-project) (kind: ship) (since 2026-10-20)",
+        "captain_actionable": false,
+        "priority": null,
+        "hold_age_days": 0,
+        "body_excerpt": null,
+        "requires_child_metadata": false,
+        "since": "2026-10-20",
+        "kind": "ship",
+        "checked": false,
+        "structured": true,
+        "pr_url": null,
+        "reported": null,
+        "merged": null,
+        "repo": "disposable-project",
+        "done": null,
+        "hold_kind": null,
+        "report_path": null,
+        "blocked_by_ids": [
+          "ac-bkbhy"
+        ],
+        "current_role": "queued",
+        "unresolved_blocker_ids": [
+          "ac-bkbhy"
+        ],
+        "hold_set": null
+      },
+      {
+        "pr_url": null,
+        "reported": null,
+        "repo": "disposable-project",
+        "merged": null,
+        "requires_child_metadata": false,
+        "since": "2026-10-20",
+        "kind": "ship",
+        "structured": true,
+        "checked": false,
+        "current_role": "queued",
+        "unresolved_blocker_ids": [
+          "ac-bkbhy"
+        ],
+        "hold_set": null,
+        "done": null,
+        "hold_kind": null,
+        "report_path": null,
+        "blocked_by_ids": [
+          "ac-bkbhy"
+        ],
+        "links": [],
+        "blocked_reason": null,
+        "hold_reason": null,
+        "id": "review-ac-vpw4n",
+        "blocked_by": "ac-bkbhy",
+        "local_note": null,
+        "title": "Dependent review",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "hold_until": null,
+        "state": "queued",
+        "priority": null,
+        "hold_age_days": 0,
+        "body_excerpt": null,
+        "order": 3,
+        "hold_bucket": null,
+        "body_lines": [],
+        "raw": "- [ ] review-ac-vpw4n - Dependent review blocked-by: ac-bkbhy (repo: disposable-project) (kind: ship) (since 2026-10-20)",
+        "captain_actionable": false
+      },
+      {
+        "local_note": null,
+        "blocked_by": "ac-bkbhy",
+        "completion": {
+          "date": null,
+          "verb": null
+        },
+        "title": "Approval after shipment",
+        "state": "queued",
+        "hold_until": null,
+        "blocked_reason": null,
+        "links": [],
+        "id": "captain-approval",
+        "hold_reason": "Approve the completed shipment",
+        "order": 4,
+        "hold_bucket": "blocked",
+        "raw": "- [ ] captain-approval - Approval after shipment blocked-by: ac-bkbhy (repo: disposable-project) (kind: ship) (since 2026-10-20) (hold: Approve the completed shipment) (hold-kind: captain)",
+        "captain_actionable": false,
+        "body_lines": [],
+        "priority": null,
+        "hold_age_days": 0,
+        "body_excerpt": null,
+        "since": "2026-10-20",
+        "requires_child_metadata": false,
+        "kind": "ship",
+        "checked": false,
+        "structured": true,
+        "reported": null,
+        "pr_url": null,
+        "merged": null,
+        "repo": "disposable-project",
+        "done": null,
+        "hold_kind": "captain",
+        "report_path": null,
+        "blocked_by_ids": [
+          "ac-bkbhy"
+        ],
+        "current_role": "queued",
+        "unresolved_blocker_ids": [
+          "ac-bkbhy"
+        ],
+        "hold_set": null
+      }
+    ],
+    "present": true,
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/lifecycle/data/backlog.md"
+  },
+  "tasks": [],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": false,
+      "available": true,
+      "complete": true,
+      "reason": null,
+      "provenance": "registered-table",
+      "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5CGASNXHDRR59BT65X36T6X/.nm-archived-blocker-xd629dm3/lifecycle/data/secondmates.md",
+      "freshness": {
+        "status": "fresh",
+        "observed_at": "2026-10-20T11:34:26Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [],
+    "total_registered": 0,
+    "total": 0,
+    "shown": 0,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}

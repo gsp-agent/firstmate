@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Archive a completed blocker and unblock both dependent tasks, with before-fix reproduction",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Refresh the published home summary and bearings so archived blockers disappear and the captain call becomes actionable",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Mix archived, queued, in-flight, missing and reopened blockers without falsely unblocking work",
+    "result": "fail",
+    "live": true,
+    "reason": "reopened task overrides stale archive: current Queued state wins, including repeated edges"
+  },
+  {
+    "name": "Use exact archived task ids from the selected backlog directory; absent archives and unrelated data stay safe",
+    "result": "pass",
+    "live": true
+  }
+]
