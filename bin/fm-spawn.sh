@@ -268,18 +268,9 @@
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
-#   profile consultation. The resolved model and effort must also equal one
-#   dispatch profile the file names for that harness (default, label_routes, and
-#   rules use profiles; docs/configuration.md "Crew dispatch profiles" owns that
-#   enumeration), or the spawn refuses before any worktree or endpoint exists and
-#   prints the file pair or pairs for that harness. Raw commands for a harness
-#   the file names refuse. A rung skip uses the canonical --harness, --model,
-#   and --effort launch form.
-#   A harness the file never names and a --secondmate spawn are exempt. A relaunch
-#   whose recorded pair matches no profile for its harness adopts the file pair
-#   when the file names exactly one pair for that harness and records it; when
-#   the file names more than one pair it refuses and prints them, because
-#   choosing among profile candidates stays with firstmate intake.
+#   profile consultation. docs/configuration.md "Crew dispatch profiles" owns
+#   the accepted model/effort pairs, raw-command restrictions, and relaunch pair
+#   selection.
 #   A --secondmate spawn is exempt and resolves the SECONDMATE
 #   harness (config/secondmate-harness -> config/crew-harness -> own), so the
 #   secondmate-vs-crewmate split is DURABLE across every respawn (recovery,
@@ -2421,13 +2412,10 @@ EOF
   printf '%s\n' "$out"
 }
 
-# enforce_dispatch_profile: the pair half of the consultation backstop.
-# Fresh crew and scout spawns must land on a pair the dispatch file names
-# for the resolved harness. A relaunch adopts the file pair when the file
-# names exactly one pair for its harness. A rung skip uses the canonical
-# --harness, --model, and --effort launch form. Raw commands for a named
-# harness refuse. Exempt: no dispatch file, a harness the file never
-# names, and secondmates.
+# enforce_dispatch_profile: the pair half of the consultation backstop;
+# docs/configuration.md "Crew dispatch profiles" owns the acceptance rules.
+# Canonical flags cannot prove what a raw command actually launches, so even
+# matching flags cannot make a raw command satisfy the named-harness check.
 enforce_dispatch_profile() {
   local pairs pretty pair model effort eff_model eff_effort count
   [ "$KIND" != secondmate ] || return 0

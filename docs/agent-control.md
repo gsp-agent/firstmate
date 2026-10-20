@@ -69,7 +69,7 @@ A relaunch does take one session reference when the endpoint's own runtime recor
 `relaunch` is the only verb that changes durable records, so it runs as a transaction with a journal at `state/<id>.control-relaunch`, the prior record preserved beside it, and a ship or scout's prior instructions preserved when a progress note is appended.
 
 1. **Resolve the profile.**
-   An explicit `--harness`, `--model`, or `--effort` wins.
+   An explicit `--harness`, `--model`, or `--effort` selects the requested replacement profile.
    Otherwise a `kind=secondmate` task re-resolves its durable `config/secondmate-harness` pin, including that file's optional model and effort tokens, exactly as every other respawn does - so setting the pin and relaunching is the ordinary way to move a secondmate's runtime.
    A ship or scout keeps the harness already recorded for it, because that harness comes from firstmate's dispatch-profile judgment at intake and must not be silently re-read from configuration.
    A recorded raw-command basename that differs from its resolved adapter cannot reproduce the command actually running, so relaunch refuses before the checkpoint unless the caller passes an explicit `--harness` to choose the replacement runtime deliberately.
@@ -87,6 +87,7 @@ A relaunch does take one session reference when the endpoint's own runtime recor
    For a ship or scout, the [live-session check](configuration.md#live-session-check) runs after checkpointing and recording the note, immediately before stopping; a non-clear result exits 75 and restores the prior instructions without stopping the agent or changing its task record.
 5. **Launch the replacement** through its single owner, `bin/fm-spawn.sh --relaunch`, which reuses the recorded worktree instead of creating one, adopts the recorded endpoint when it still exists, clears the previous harness's per-task wiring, and arms a fresh busy generation.
    The launch owner repeats live-session admission immediately before dispatch.
+   This launch applies the [dispatch pair requirements](configuration.md#crew-dispatch-profiles-configcrew-dispatchjson).
    When the recorded endpoint is proven gone rather than merely idle or unreachable - which only Herdr can establish - the launch owner creates one fresh endpoint in that same worktree and the republished record rebinds the task to it - see [Reclaiming a task whose endpoint is gone](#reclaiming-a-task-whose-endpoint-is-gone).
 6. **Preserve runtime-bound status authority where supported.**
    The endpoint's runtime may bind pane status to one session identity; the launch owner preserves it only when that runtime records a reference the replacement adapter can consume, and otherwise launches the ordinary fresh session.
