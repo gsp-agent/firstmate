@@ -1,0 +1,35 @@
+{
+  "contract": "Typed semantics of the project no-mistakes YAML configuration",
+  "base_commit": "7dd35426d7d089d1d090cc65d9eb84dfc18175c0",
+  "target_commit": "d0eb47d88a43b3891d3dde7ed53b41dae63423e5",
+  "changed_paths": [
+    ".no-mistakes.yaml"
+  ],
+  "baseline": {
+    "agent": null,
+    "disable_project_settings": true
+  },
+  "target": {
+    "agent": [
+      "codex"
+    ],
+    "disable_project_settings": true,
+    "ordered_top_level_keys": [
+      "disable_project_settings",
+      "agent",
+      "document",
+      "commands",
+      "test"
+    ]
+  },
+  "unrelated_settings": {
+    "equal_to_baseline": true,
+    "keys": [
+      "document",
+      "commands",
+      "test"
+    ]
+  },
+  "live": false,
+  "limitation": "This configuration-only change has no Firstmate runtime surface. Parsing proves the declarative selection and scope, not agent launches or interpretation of AGENTS.md. A future trusted pipeline run and publication of the existing PR signature/attestation belong to the outer executor, outside this test phase."
+}
