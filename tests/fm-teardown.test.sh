@@ -6143,6 +6143,8 @@ SH
   fi
   assert_contains "$(cat "$case_dir/err1")" "unread references" \
     "the first unread expiry did not name the reference"
+  assert_contains "$(cat "$case_dir/state/aa-unread.status")" "unread references: tst-unread1" \
+    "the first unread expiry did not append the reference to status"
   if PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
       "$case_dir/data" "$case_dir/state" aa-unread > "$case_dir/out2" 2> "$case_dir/err2"; then
     fail "the second unread expiry reported success"
@@ -6151,17 +6153,92 @@ SH
     fail "the second expiry named the same unread reference again: $(cat "$case_dir/err2")"
   fi
   assert_present "$case_dir/data/aa-unread/.cleanup-hold/scratch.bin" "an unread hold lost its data"
-  jq -e '.sources[0].unread == ["tst-unread1"]' "$record" >/dev/null \
+  [ "$(wc -l < "$case_dir/state/aa-unread.status" | tr -d ' ')" = 1 ] \
+    || fail "the second expiry appended the same unread reference to status again"
+  jq -e '.sources[0].unread == ["tst-unread1"] and .unread_named == ["tst-unread1"]' "$record" >/dev/null \
     || fail "the cleanup record lost the unread reference: $(cat "$record")"
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+printf '[{"id":"tst-unread1","description":"no linked files"}]\n'
+SH
+  PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+    "$case_dir/data" "$case_dir/state" aa-unread > "$case_dir/out3" 2> "$case_dir/err3" \
+    || fail "expiry failed after the unread reference recovered: $(cat "$case_dir/err3")"
+  jq -e '.expired == true and (has("unread_named") | not)' "$record" >/dev/null \
+    || fail "successful expiry kept suppression for the recovered reference: $(cat "$record")"
   pass "fm-teardown: a still-unreadable reference keeps its folder and is named once, not on every pass"
 }
 
+test_task_data_unread_status_failure_retries() {
+  local case_dir record variant sweep_pid reference args=()
+  . "$ROOT/bin/fm-task-data-lib.sh"
+  for variant in bead pr; do
+    case_dir=$(make_case "task-data-unread-status-$variant")
+    write_pending_hold "$case_dir" aa-unread
+    record="$case_dir/data/aa-unread/record/data-cleanup.json"
+    if [ "$variant" = bead ]; then
+      reference=tst-unread1
+      jq '.sources[0].beads = ["tst-unread1"]' "$record" > "$record.next" && mv "$record.next" "$record"
+      args=(fresh-task)
+    else
+      reference=https://github.com/example/demo/pull/1
+      jq --arg pr "$reference" '.sources[0].pr = $pr' "$record" > "$record.next" && mv "$record.next" "$record"
+      args=()
+    fi
+    fm_test_tasks_toml "$case_dir/.tasks.toml"
+    printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+    printf '#!/usr/bin/env bash\nexit 1\n' > "$case_dir/fakebin/br"
+    cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+    chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+    mkdir "$case_dir/state/aa-unread.status"
+    if PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+        "$case_dir/data" "$case_dir/state" aa-unread > "$case_dir/out1" 2> "$case_dir/err1"; then
+      fail "expiry succeeded when the $variant warning could not be appended to status"
+    fi
+    jq -e 'has("unread_named") | not' "$record" >/dev/null \
+      || fail "a failed status append marked the $variant reference reported: $(cat "$record")"
+    assert_present "$case_dir/data/aa-unread/.cleanup-hold/scratch.bin" \
+      "the failed $variant status append lost held data"
+    mv "$case_dir/state/aa-unread.status" "$case_dir/blocked-status"
+    PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
+      "$case_dir/data" "$case_dir/state" ${args[@]+"${args[@]}"}
+    sweep_pid=$!
+    wait "$sweep_pid" || fail "the $variant background sweep failed"
+    assert_contains "$(cat "$case_dir/state/aa-unread.status")" "$reference" \
+      "the background sweep lost the $variant warning with its discarded output"
+    jq -e --arg reference "$reference" '.unread_named == [$reference]' "$record" >/dev/null \
+      || fail "the delivered $variant reference was not marked reported: $(cat "$record")"
+    PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
+      "$case_dir/data" "$case_dir/state" ${args[@]+"${args[@]}"}
+    sweep_pid=$!
+    wait "$sweep_pid" || fail "the repeated $variant background sweep failed"
+    [ "$(wc -l < "$case_dir/state/aa-unread.status" | tr -d ' ')" = 1 ] \
+      || fail "the background sweep appended the same $variant warning twice"
+    assert_present "$case_dir/data/aa-unread/.cleanup-hold/scratch.bin" \
+      "the unread $variant reference lost held data"
+  done
+  pass "fm-teardown: failed unread-status appends retry before suppression through both background launch forms"
+}
+
 test_task_data_sweep_expires_big_hold() {
-  local case_dir record i
+  local case_dir record other i
   case_dir=$(make_case task-data-sweep-big)
   write_pending_hold "$case_dir" aa-big
   record="$case_dir/data/aa-big/record/data-cleanup.json"
-  jq '.sources[0].beads = ["tst-slow1"]' "$record" > "$record.next" && mv "$record.next" "$record"
+  jq '.sources[0].beads = ["tst-slow1"] | .expiry = "cut-off"' \
+    "$record" > "$record.next" && mv "$record.next" "$record"
+  touch -t 202001010000 "$record"
+  for other in bb-too-large cc-unstaged; do
+    write_pending_hold "$case_dir" "$other"
+    python3 "$ROOT/bin/fm-task-data.py" mark "$case_dir/data" "$other" too-large
+  done
+  record="$case_dir/data/cc-unstaged/record/data-cleanup.json"
+  jq '.complete = false' "$record" > "$record.next" && mv "$record.next" "$record"
+  mv "$case_dir/data/cc-unstaged/.cleanup-hold/scratch.bin" "$case_dir/data/cc-unstaged/scratch.bin"
+  record="$case_dir/data/aa-big/record/data-cleanup.json"
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
 sleep 4
@@ -6174,19 +6251,24 @@ SH
   chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
-  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 run_teardown "$case_dir" \
+  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=2 FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=2 run_teardown "$case_dir" \
     > "$case_dir/out" 2> "$case_dir/err" || fail "teardown with a big hold failed: $(cat "$case_dir/err")"
-  assert_contains "$(cat "$case_dir/err")" "expiry stopped after" \
-    "teardown did not cut the big hold off at its budget"
+  assert_contains "$(cat "$case_dir/err")" "expiry stopped after its one full 2s attempt" \
+    "teardown did not promote the cut-off hold to too-large"
   for ((i = 0; i < 300; i++)); do
-    if jq -e '.expired == true' "$record" >/dev/null 2>&1 \
-        && [ ! -e "$case_dir/data/aa-big/.cleanup-hold" ]; then break; fi
+    if jq -se 'all(.[]; .expired == true)' "$record" \
+        "$case_dir/data/bb-too-large/record/data-cleanup.json" \
+        "$case_dir/data/cc-unstaged/record/data-cleanup.json" >/dev/null 2>&1; then break; fi
     sleep 0.1
   done
-  jq -e '.expired == true' "$record" >/dev/null \
-    || fail "the background sweep never expired the hold teardown cut off: $(cat "$record")"
-  assert_absent "$case_dir/data/aa-big/.cleanup-hold" "the sweep left the big hold behind"
-  pass "fm-teardown: a hold bigger than the teardown budget is expired by the sweep after teardown returns"
+  for other in aa-big bb-too-large cc-unstaged; do
+    record="$case_dir/data/$other/record/data-cleanup.json"
+    jq -e '.expired == true and (has("expiry") | not)' "$record" >/dev/null \
+      || fail "the background sweep never expired $other: $(cat "$record")"
+    assert_absent "$case_dir/data/$other/.cleanup-hold" "the sweep left $other behind"
+    assert_absent "$case_dir/data/$other/scratch.bin" "the sweep left $other scratch unstaged"
+  done
+  pass "fm-teardown: the sweep expires newly promoted and saved too-large holds, staged or unstaged"
 }
 
 test_task_data_sweep_single_instance() {
@@ -6214,18 +6296,24 @@ SH
   first_pid=$!
   for ((i = 0; i < 100; i++)); do [ -e "$case_dir/br-calls" ] && break; sleep 0.1; done
   [ -e "$case_dir/br-calls" ] || fail "the first sweep never started expiring"
+  write_pending_hold "$case_dir" bb-new
   BR_CALLS="$case_dir/br-calls" PATH="$case_dir/fakebin:$PATH" \
     bash "$ROOT/bin/fm-task-data-lib.sh" sweep "$case_dir/data" "$case_dir/state" \
     > "$case_dir/sweep2.out" 2> "$case_dir/sweep2.err" \
-    || fail "a second sweep start failed instead of doing nothing: $(cat "$case_dir/sweep2.err")"
+    || fail "a second sweep start failed instead of requesting another pass: $(cat "$case_dir/sweep2.err")"
   assert_contains "$(cat "$case_dir/sweep2.out" "$case_dir/sweep2.err")" "already" \
     "the second sweep start did not say it was already running"
   [ "$(wc -l < "$case_dir/br-calls" | tr -d ' ')" = 1 ] \
     || fail "the second sweep start expired the hold again"
+  assert_present "$case_dir/state/.task-data-sweep.rerun" "the overlapping sweep request was dropped"
   wait "$first_pid" || fail "the first sweep failed: $(cat "$case_dir/sweep1.err")"
   jq -e '.expired == true' "$record" >/dev/null \
     || fail "the single sweep did not expire its hold: $(cat "$record")"
-  pass "fm-teardown: a second drain sweep start while one runs does nothing"
+  jq -e '.expired == true' "$case_dir/data/bb-new/record/data-cleanup.json" >/dev/null \
+    || fail "the running sweep never picked up the hold added after its snapshot"
+  assert_absent "$case_dir/state/.task-data-sweep.rerun" "the sweep left its rerun request pending"
+  assert_absent "$case_dir/state/.task-data-sweep.lock" "the sweep did not release its lock"
+  pass "fm-teardown: overlapping sweep requests preserve a new hold for another single-instance pass"
 }
 
 test_task_data_refusals() {
@@ -8008,10 +8096,13 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
   test_task_data_bead_id_filter
   test_task_data_archived_row_reference
   test_task_data_unread_named_once
+  test_task_data_unread_status_failure_retries
   exit 0
 fi
 
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-sweep ]; then
+  test_task_data_unread_named_once
+  test_task_data_unread_status_failure_retries
   test_task_data_sweep_expires_big_hold
   test_task_data_sweep_single_instance
   exit 0
@@ -8059,6 +8150,7 @@ test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
 test_task_data_bead_id_filter
 test_task_data_archived_row_reference
 test_task_data_unread_named_once
+test_task_data_unread_status_failure_retries
 test_task_data_sweep_expires_big_hold
 test_task_data_sweep_single_instance
 test_task_data_full_attempt_uses_its_own_limit

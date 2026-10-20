@@ -116,41 +116,43 @@ fm_task_data_expire_by_hand() { # <data> <state> <id>
 }
 
 # Drain every pending hold once, least recently tried first, with no expiry
-# budget. Holds marked too large keep their by-hand-only rule. A held meta
+# budget, including holds marked too large. A held meta
 # lock or a live task refuses inside the by-hand expiry and stays held. The
 # hold a teardown just staged for its own task keeps its recovery cycle, so
 # the starting teardown's id is excluded.
 fm_task_data_sweep() { # <data> <state> [started-by-id]
-  local data=$1 state=$2 exclude=${3:-} helper lock listed other expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
+  local data=$1 state=$2 exclude=${3:-} helper lock rerun listed other _expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   case "$stage_timeout" in ''|0*|*[!0-9]*) stage_timeout=3600 ;; esac
   command -v python3 >/dev/null 2>&1 || return 1
   lock="$state/.task-data-sweep.lock"
+  rerun="$state/.task-data-sweep.rerun"
+  touch "$rerun" || return 1
   if ! fm_lock_try_acquire "$lock"; then
-    echo "task-data sweep already running; nothing was started" >&2
+    echo "task-data sweep already running; requested another pass" >&2
     return 0
   fi
   export FM_TEARDOWN_DATA_STAGE_TIMEOUT=$stage_timeout
-  if ! listed=$(python3 "$helper" pending "$data"); then
-    fm_lock_release "$lock"
-    return 1
-  fi
-  while IFS=$'\t' read -r other expiry; do
-    [ -n "$other" ] || continue
-    [ "$other" = "$exclude" ] && continue
-    fm_task_id_path_safe "$other" || continue
-    if [ "$expiry" = too-large ]; then
-      echo "warning: task data hold too large to expire automatically, skipped and kept for expiry by hand: $other" >&2
-      continue
+  while :; do
+    if ! rm -f -- "$rerun" || ! listed=$(python3 "$helper" pending "$data"); then
+      fm_lock_release "$lock"
+      return 1
     fi
-    fm_task_data_expire_by_hand "$data" "$state" "$other" || true
-  done <<< "$listed"
-  fm_lock_release "$lock"
+    while IFS=$'\t' read -r other _expiry; do
+      [ -n "$other" ] || continue
+      [ "$other" = "$exclude" ] && continue
+      fm_task_id_path_safe "$other" || continue
+      fm_task_data_expire_by_hand "$data" "$state" "$other" || true
+    done <<< "$listed"
+    fm_lock_release "$lock"
+    [ -e "$rerun" ] || break
+    fm_lock_try_acquire "$lock" || break
+  done
   return 0
 }
 
 # Start one sweep in the background. The sweep's own lock makes a second
-# start while one runs a no-op.
+# start while one runs request another pass.
 fm_task_data_sweep_start() { # <data> <state> [started-by-id]
   local lib
   [ "${FM_TASK_DATA_SWEEP:-on}" = off ] && return 0
