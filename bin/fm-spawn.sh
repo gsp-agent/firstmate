@@ -5879,10 +5879,8 @@ if [ "$RELAUNCH" -eq 1 ]; then
 fi
 LAUNCH=${LAUNCH//__PIRESUME__/$RESUME_ARGS}
 LAUNCH=${LAUNCH//__CLAUDEPERMFLAG__/$CLAUDE_PERM_FLAG}
-# MCP trim (.agent-config-mxwex): a Claude task worker called no MCP server in
-# a 7-day transcript count, and an MCP-configured Claude main idles at ~9% of a
-# core vs ~2.4% bare. Task workers launch with an empty strict MCP config;
-# secondmates keep the default set. FM_CREW_MCP_TRIM=0 restores today's launch.
+# Keep unused inherited MCP servers from adding idle child processes to workers.
+# docs/configuration.md "Claude worker MCP servers" owns the launch policy.
 if [ "$HARNESS" = claude ] && [ "$KIND" != secondmate ] && [ "${FM_CREW_MCP_TRIM:-1}" = 1 ]; then
   printf '%s\n' '{"mcpServers":{}}' > "$STATE_REAL/$ID.mcp-crew.json"
   mcp_trim_flags="$(shell_quote --strict-mcp-config) $(shell_quote --mcp-config) $(shell_quote "$STATE_REAL/$ID.mcp-crew.json") "

@@ -910,6 +910,16 @@ The file is a captain-wide safety preference, so it is inherited into secondmate
 
 The [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) records the permission-mode observations and the distinct startup dialogs.
 
+## Claude worker MCP servers (FM_CREW_MCP_TRIM)
+
+Ship and scout workers launched through the Claude adapter load no MCP servers by default, avoiding idle MCP child processes for task workers.
+Each spawn or relaunch writes an empty `mcpServers` configuration to the launching home's `state/<id>.mcp-crew.json` and selects it with Claude's strict MCP configuration flags.
+Claude secondmates retain their normal MCP configuration, and other harnesses are unaffected.
+Set `FM_CREW_MCP_TRIM=0` in the environment running `fm-spawn.sh` to restore normal MCP loading for the next Claude worker launch.
+Unset or empty values default to `1`; only `1` enables trimming.
+This launch policy does not edit user or project MCP configuration.
+[`bin/fm-spawn.sh`](../bin/fm-spawn.sh) owns the launch mechanics; [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) covers the default Claude launch line.
+
 ## Worker tool exclusions (config/crew-exclude-tools)
 
 The optional local, gitignored `config/crew-exclude-tools` hides named tools from this home's ship and scout workers, for example to keep an MCP server's write tools out of reach while its read tools stay available.
