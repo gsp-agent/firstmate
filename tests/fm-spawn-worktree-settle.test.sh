@@ -19,6 +19,12 @@
 # comparing only against the project adopted it and the isolation guard then
 # refused the launch. The cases below cover both the transient and the pane
 # that never leaves the primary at all.
+#
+# The loop also has to notice a `treehouse get` that returns without entering a
+# worktree, such as a full pool: the pane never moves, so only treehouse's own
+# exit says the wait is over. The fake pane below runs the line fm-spawn sends
+# it in a real shell, so a fake treehouse that prints the pool-full line and
+# exits is seen exactly as a pane would show it.
 set -u
 
 # shellcheck source=tests/fixtures.sh
@@ -31,6 +37,13 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-worktree-settle)
 # query returns FM_FAKE_PANE_STALE for the first FM_FAKE_PANE_STALE_READS
 # calls, then FM_FAKE_PANE_PATH forever after - reproducing a pane that
 # transiently reports a stale cwd before settling into the real worktree.
+# Its pane runs the `treehouse get` line it is sent in a real shell from
+# FM_FAKE_PANE_PROJECT, appending what that prints to FM_FAKE_PANE_LOG for
+# capture-pane, and its session keeps a window list in FM_FAKE_WINDOWS so a
+# closed window is really gone. The fake treehouse follows FM_FAKE_TREEHOUSE:
+# `pool-full` prints Treehouse's pool-full line and exits, and anything else
+# opens a worktree subshell that, like the real one, holds the foreground for
+# the worker's whole life, so the line that ran it never resumes.
 make_settle_fakebin() {
   local dir=$1 fakebin
   fakebin=$(fm_fakebin "$dir")
@@ -52,16 +65,44 @@ case "$*" in
     exit 0
     ;;
 esac
+windows=${FM_FAKE_WINDOWS:?FM_FAKE_WINDOWS unset}
 case "${1:-}" in
-  display-message) printf 'firstmate\n'; exit 0 ;;
-  list-windows) exit 0 ;;
-  has-session|new-session|new-window|kill-window) exit 0 ;;
-  send-keys) exit 0 ;;
+  display-message) printf 'firstmate\n' ;;
+  list-windows) cat "$windows" 2>/dev/null ;;
+  new-window)
+    while [ "$#" -gt 0 ]; do
+      [ "$1" != -n ] || printf '%s\n' "$2" >>"$windows"
+      shift
+    done
+    printf '@1\n'
+    ;;
+  kill-window)
+    grep -vxF -- "${3##*:=}" "$windows" >"$windows.next"
+    mv "$windows.next" "$windows"
+    ;;
+  capture-pane) cat "${FM_FAKE_PANE_LOG:?}" 2>/dev/null ;;
+  send-keys)
+    case "${4:-}" in
+      *"treehouse get"*)
+        (cd "${FM_FAKE_PANE_PROJECT:?}" &&
+          bash -c 'export FM_FAKE_PANE_SHELL=$$; eval "$1"' fake-pane "$4") >>"${FM_FAKE_PANE_LOG:?}" 2>&1
+        ;;
+    esac
+    ;;
 esac
 exit 0
 SH
   chmod +x "$fakebin/tmux"
-  fm_fake_exit0 "$fakebin" treehouse
+  cat > "$fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' '🌳 Setting up worktree...' >&2
+if [ "${FM_FAKE_TREEHOUSE:-}" = pool-full ]; then
+  printf '%s\n' "all 16 worktrees are in use or dirty (max_trees = 16). Run 'treehouse status' to see details, or increase max_trees in treehouse.toml" >&2
+  exit 1
+fi
+kill -KILL "${FM_FAKE_PANE_SHELL:?}"
+SH
+  chmod +x "$fakebin/treehouse"
   printf '%s\n' "$fakebin"
 }
 
@@ -97,7 +138,7 @@ EOF
 }
 
 read_settle_record() {
-  IFS='|' read -r _ HOME_DIR PROJ_DIR WT_DIR STALE_DIR FAKEBIN_DIR COUNTFILE STALE_READS <<EOF
+  IFS='|' read -r CASE_DIR HOME_DIR PROJ_DIR WT_DIR STALE_DIR FAKEBIN_DIR COUNTFILE STALE_READS <<EOF
 $1
 EOF
 }
@@ -110,6 +151,8 @@ run_settle_spawn() {
     FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" \
     FM_FAKE_PANE_PATH="$WT_DIR" FM_FAKE_PANE_STALE="$STALE_DIR" \
     FM_FAKE_PANE_STALE_READS="$STALE_READS" FM_FAKE_PANE_COUNTFILE="$COUNTFILE" \
+    FM_FAKE_PANE_PROJECT="$PROJ_DIR" FM_FAKE_PANE_LOG="$CASE_DIR/pane.log" \
+    FM_FAKE_WINDOWS="$CASE_DIR/windows" FM_FAKE_TREEHOUSE="${FM_FAKE_TREEHOUSE:-}" \
     PATH="$FAKEBIN_DIR:$PATH" \
     "$SPAWN" "$id" "$PROJ_DIR" --mode no-mistakes --yolo off 2>&1
 }
@@ -221,9 +264,64 @@ test_primary_checkout_that_never_settles_fails_at_the_deadline() {
   pass "a pane stuck on the primary checkout fails loudly at the deadline"
 }
 
+# The 10-19 incident: `treehouse get` finds the pool full, says so, and exits at
+# once, so the pane never leaves the project. The spawn must refuse on the first
+# read after treehouse returned, quote treehouse's own line, and close the window
+# it opened, so a retry is refused for the full pool again rather than for a
+# leftover window.
+test_pool_full_treehouse_get_refuses_at_once() {
+  local rec id out status reads
+  id=settle-pool-full-z5
+  rec=$(make_settle_case settle-pool-full "$id" 100000)
+  read_settle_record "$rec"
+  STALE_DIR=$PROJ_DIR
+  fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+
+  out=$(FM_FAKE_TREEHOUSE=pool-full run_settle_spawn "$id")
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn launched although treehouse get found the pool full"$'\n'"$out"
+  assert_contains "$out" "all 16 worktrees are in use or dirty (max_trees = 16)" \
+    "the refusal did not quote treehouse's own reason"
+  assert_contains "$out" "$PROJ_DIR" "the refusal did not name the project whose pool is full"
+  reads=$(cat "$COUNTFILE")
+  [ "$reads" -eq 1 ] || fail "spawn read the pane $reads times after treehouse get had already exited - expected to refuse on the first read"$'\n'"$out"
+  assert_no_grep "fm-$id" "$CASE_DIR/windows" "the refused spawn left its window behind"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "refused spawn published task metadata"
+
+  out=$(FM_FAKE_TREEHOUSE=pool-full run_settle_spawn "$id")
+  assert_not_contains "$out" "already exists" "a retry was refused for the first attempt's leftover window"
+  assert_contains "$out" "all 16 worktrees are in use or dirty (max_trees = 16)" \
+    "a retry did not reach treehouse get again"
+  pass "a treehouse get that exits on a full pool refuses at once with treehouse's reason and leaves no window"
+}
+
+# A slow but working `treehouse get` prints while it fetches and sets up the
+# slot, and the pane stays on the project the whole time. Treehouse output is not
+# an exit, so the spawn keeps waiting and launches once the pane reaches the
+# worktree.
+test_slow_treehouse_get_still_launches() {
+  local rec id out status
+  id=settle-slow-z6
+  rec=$(make_settle_case settle-slow "$id" 40)
+  read_settle_record "$rec"
+  STALE_DIR=$PROJ_DIR
+  fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+
+  out=$(run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should launch once a slow treehouse get reaches the worktree"$'\n'"$out"
+  assert_grep "Setting up worktree" "$CASE_DIR/pane.log" "the fake pane never ran treehouse get"
+  assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the worktree the slow treehouse get entered"
+  grep -qxF -- "fm-$id" "$CASE_DIR/windows" || fail "the launched worker's window is missing"
+  pass "a slow but working treehouse get still launches"
+}
+
 test_single_stale_first_read_is_not_accepted
 test_already_settled_pane_costs_one_confirm_read
 test_transient_primary_checkout_is_not_accepted
 test_primary_checkout_that_never_settles_fails_at_the_deadline
+test_pool_full_treehouse_get_refuses_at_once
+test_slow_treehouse_get_still_launches
 
 echo "# all fm-spawn-worktree-settle tests passed"
