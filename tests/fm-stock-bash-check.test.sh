@@ -33,6 +33,7 @@ write_suite() {
 }
 
 # make_fixture <dir>: a repo where every check passes under stock Bash 3.2.
+# Its suite counts are the script's expected counts.
 make_fixture() {
   local repo=$1
   mkdir -p "$repo/bin" "$repo/tests"
@@ -126,13 +127,13 @@ test_the_memory_cap_stops_a_growing_step() {
   stock_only "a step past the memory cap is stopped and fails naming the cap" || return 0
   local repo="$TMP_ROOT/memory" started elapsed
   make_fixture "$repo"
-  printf '#!/usr/bin/env bash\nexec perl -e '"'"'$x = "a" x (512 * 1024 * 1024); sleep 120'"'"'\n' \
+  printf '#!/usr/bin/env bash\nexec perl -e '"'"'$x = "a" x (256 * 1024 * 1024); sleep 120'"'"'\n' \
     > "$repo/tests/fm-fleet-snapshot-view.test.sh"
   started=$(date +%s)
-  run_check "$repo" FM_STOCK_BASH_RSS_KIB=131072
+  run_check "$repo" FM_STOCK_BASH_RSS_KIB=65536
   elapsed=$(($(date +%s) - started))
   expect_code 1 "$RC" "a step past the memory cap"
-  assert_contains "$OUT" "snapshot-view: stopped at the 131072 KiB process-tree memory cap" "the failure names the cap"
+  assert_contains "$OUT" "snapshot-view: stopped at the 65536 KiB process-tree memory cap" "the failure names the cap"
   [ "$elapsed" -lt 90 ] || fail "the memory cap took ${elapsed}s to stop a step sleeping 120s"
   pass "a step past the memory cap is stopped and fails naming the cap"
 }

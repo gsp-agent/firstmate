@@ -212,7 +212,8 @@ fm_stock_bash_suite() {  # <step> <count> <tests/script> [NAME=value...]
 }
 
 # The Bash 3.2 regressions and their exact passing counts. A suite that
-# changes its count changes it here in the same commit.
+# changes its count changes it here, and in tests/fm-stock-bash-check.test.sh's
+# fixture, in the same commit.
 fm_stock_bash_checks() {
   fm_stock_bash_suite snapshot-view 19 tests/fm-fleet-snapshot-view.test.sh
   fm_stock_bash_suite bearings 60 tests/fm-bearings-snapshot.test.sh
