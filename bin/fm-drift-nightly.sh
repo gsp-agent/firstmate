@@ -33,7 +33,7 @@
 # proven; keep when its first-parent PR is proven; and unproven otherwise.
 # A first-parent PR number is parsed from "Merge pull request #N",
 # "Merge PR #N", "Merge PR N", or a trailing "(#N)" in the commit subject.
-# A first-parent commit with no parseable PR number is unproven.
+# A first-parent commit with no parseable PR number is never accepted for replay.
 # Exit 0 when no path-drift line is printed and every numbered first-parent
 # PR has a proof entry, 1 on either mismatch, and 2 on usage or git failure.
 # Unnumbered first-parent commits whose changes are later cut do not fail
