@@ -69,7 +69,8 @@
 #              re-resolves its durable config/secondmate-harness pin (harness
 #              plus its optional model and effort tokens) exactly as any other
 #              respawn does, while a ship or scout keeps the exact adapter
-#              already recorded for it.
+#              already recorded for it, then takes the launch route that
+#              bin/fm-cursor-guard.sh owns before the old agent stops.
 #              A prefixed raw-command basename cannot reconstruct its launch
 #              command, so relaunch requires an explicit --harness for it.
 #              A replacement Claude or Pi profile must also pass this home's
@@ -950,6 +951,18 @@ resolve_relaunch_profile() {
     TARGET_EFFORT=$PRIOR_EFFORT
   else
     TARGET_EFFORT=default
+  fi
+  # A ship or scout replacement takes the launch route bin/fm-cursor-guard.sh
+  # owns here, before the stop, so the record, journal, and outcome name the
+  # harness that is actually launched; fm-spawn takes this choice as final.
+  if [ "$KIND" != secondmate ]; then
+    local route
+    route=$(FM_STATE_OVERRIDE="$STATE" "$SCRIPT_DIR/fm-cursor-guard.sh" route "$ID" "$TARGET_HARNESS" "$PRIOR_HARNESS") \
+      || die "the launch route for $ID on '$TARGET_HARNESS' could not be read (bin/fm-cursor-guard.sh); nothing was stopped"
+    if [ "${route%% *}" != "$TARGET_HARNESS" ]; then
+      echo "$TARGET_HARNESS fallback: relaunching $ID on the ${route%% *} harness (default model xhigh): ${route#* }" >&2
+      TARGET_HARNESS=${route%% *} TARGET_MODEL=default TARGET_EFFORT=xhigh
+    fi
   fi
   if [ "$TARGET_EFFORT" = ultra ]; then
     "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1

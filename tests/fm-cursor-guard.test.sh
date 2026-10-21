@@ -87,7 +87,7 @@ codex_session() {
 task_meta() {
   printf 'worktree=%s\nharness=codex\nspawn_gen=s%s.1.1\n' "$2" "$(( $(date +%s) - 600 ))" > "$FM_STATE_OVERRIDE/$1.meta"
 }
-limit_msg='You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 10:13 AM.'
+limit_msg="You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 10:13 AM."
 
 [ "$("$TOOL" route c1 codex)" = codex ] || fail "a codex task with no record must stay on codex"
 task_meta c1 "$TMP_ROOT/wt-c1"

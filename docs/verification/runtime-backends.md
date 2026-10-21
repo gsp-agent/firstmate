@@ -774,6 +774,34 @@ It captures the launch `bin/fm-spawn.sh` actually builds, replays those exact fl
 It spends no model tokens, so it runs by default wherever Codex is installed.
 The portable half, `tests/fm-spawn-dispatch-profile.test.sh`, pins the split the launch template makes: a crewmate launches hook-free while a secondmate, which runs a primary session on this repository's own project hooks, keeps them.
 
+## Codex usage-limit stop
+
+Verified 2026-10-21 on codex-cli 0.163.0, macOS arm64.
+`bin/fm-cursor-guard.sh route` reads the stop from the session rollout, because Codex keeps its TUI open after the limit and its turn-end notify payload carries no error.
+A local server answering every request with HTTP 429 and an `{"error":{"type":"usage_limit_reached",...}}` body stood in for the provider:
+
+```sh
+MOCK_KEY=dummy CODEX_HOME="$scratch/codexhome" codex exec --skip-git-repo-check -C "$scratch/work" \
+  -c 'model_provider="mock"' \
+  -c 'model_providers.mock={name="mock",base_url="http://127.0.0.1:<port>/v1",wire_api="responses",env_key="MOCK_KEY"}' \
+  -m gpt-5 "say hi"
+```
+
+Codex made one `POST /v1/responses`, exited 1, and wrote a rollout whose first line is `session_meta` naming the launch directory and whose last `task_complete` carries the stop:
+
+```text
+{"type":"session_meta","cwd":"<scratch>/work","cli_version":"0.163.0"}
+{"type":"task_complete","error":{"message":"You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 10:13 AM.","codex_error_info":"usage_limit_exceeded"}}
+```
+
+No `error` event is persisted for this stop.
+The same shape appears in a real interactive codex-cli 0.162.1 TUI session that hit the account limit on 2026-10-16.
+
+`tests/fm-codex-limit-live-e2e.test.sh` is the command that refreshes this record.
+It runs the installed Codex against that local server, then asks the route about a task recorded in that directory, and fails naming the harness and version unless the route writes `state/<id>.codex-limit` and answers `claude`.
+It spends no model tokens, so it runs by default wherever Codex is installed.
+The portable half, `tests/fm-cursor-guard.test.sh`, pins which session counts: only the task's own newest one since its launch, and only when its last turn ended on the limit.
+
 ## Composer classification matrix
 
 The shared composer classifier (`bin/fm-composer-lib.sh`, `fm_composer_classify_screen`) owns every composer shape fleet-wide; each backend contributes only a capture and a capability descriptor.

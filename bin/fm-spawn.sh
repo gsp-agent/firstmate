@@ -105,10 +105,13 @@
 #   validated state/<id>.meta, so --backend, --scout, --secondmate, a project
 #   positional, and batch pairs are all refused alongside it; only harness,
 #   model, and effort may change, which is what makes a harness switch one
-#   ordinary relaunch. It refuses unless the recorded endpoint is positively
-#   agent-free on a backend with a recovery-grade agent-state classifier (tmux
-#   or herdr), and clears the previous harness's per-task wiring before arming
-#   the new incarnation. Two verdicts are agent-free: a `dead` endpoint is
+#   ordinary relaunch. On the recorded harness an omitted --model or --effort
+#   keeps the recorded value, and a ship or scout then takes the launch route
+#   that bin/fm-cursor-guard.sh owns, as every fresh one does. It refuses
+#   unless the recorded endpoint is positively agent-free on a backend with a
+#   recovery-grade agent-state classifier (tmux or herdr), and clears the
+#   previous harness's per-task wiring before arming the new incarnation.
+#   Two verdicts are agent-free: a `dead` endpoint is
 #   ADOPTED as-is, while an endpoint PROVEN gone is RE-CREATED in the recorded
 #   worktree and the republished record rebinds the task to it. That proof is
 #   its own step, because a backend's `missing` also covers an endpoint that is
@@ -2292,6 +2295,18 @@ if [ "$RELAUNCH" -eq 1 ]; then
     echo "error: task $ID has no recorded harness; pass --harness to relaunch it" >&2
     exit 1
   }
+  # On the recorded harness, an omitted axis keeps the recorded value; a
+  # control-driven relaunch has already resolved both and passes them.
+  if [ "$SPAWN_CONTROL_PARENT" = 0 ] && [ "$ARG3" = "$RELAUNCH_PRIOR_HARNESS" ]; then
+    if [ "$MODEL_SET" -eq 0 ]; then
+      MODEL=$(fm_meta_get "$RELAUNCH_META" model)
+      [ "$MODEL" != default ] || MODEL=
+    fi
+    if [ "$EFFORT_SET" -eq 0 ]; then
+      EFFORT=$(fm_meta_get "$RELAUNCH_META" effort)
+      [ "$EFFORT" != default ] || EFFORT=
+    fi
+  fi
 elif [ "$KIND" = secondmate ]; then
   case "${POS[1]:-}" in
   '' | claude | codex | opencode | pi | pi-signed | grok | kimi | cursor | gemini | muse | rovo | omp | agy | devin)
@@ -2737,21 +2752,22 @@ case "$ARG3" in
   ;;
 esac
 
-# Apply the quota-file fallback owned by bin/fm-cursor-guard.sh; its header
-# defines freshness, credit-room eligibility, and fallback selection.
-if [ "$HARNESS" = cursor ] && [ "$RAW_LAUNCH" = 0 ] && [ "$KIND" != secondmate ]; then
-  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
-  case "$CURSOR_FALLBACK" in
-  codex* | claude*)
-    HARNESS=${CURSOR_FALLBACK%% *} MODEL='' EFFORT=xhigh
+# Every crewmate or scout launch takes the route owned by bin/fm-cursor-guard.sh;
+# its header defines the Cursor fallback and the Codex usage-limit marker. A
+# control-driven relaunch arrives already routed by bin/fm-control.sh.
+if [ "$RAW_LAUNCH" = 0 ] && [ "$KIND" != secondmate ] && [ "$SPAWN_CONTROL_PARENT" = 0 ]; then
+  LAUNCH_ROUTE=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" route "$ID" "$HARNESS" "$RELAUNCH_PRIOR_HARNESS") || {
+    echo "error: the launch route for $ID on '$HARNESS' could not be read (bin/fm-cursor-guard.sh); nothing was launched" >&2
+    exit 1
+  }
+  if [ "${LAUNCH_ROUTE%% *}" != "$HARNESS" ]; then
+    echo "$HARNESS fallback: launching $ID on the ${LAUNCH_ROUTE%% *} harness (default model xhigh): ${LAUNCH_ROUTE#* }" >&2
+    HARNESS=${LAUNCH_ROUTE%% *} MODEL='' EFFORT=xhigh
     LAUNCH=$(launch_template "$HARNESS" "$KIND") || {
-      echo "error: no launch template for the cursor fallback harness '$HARNESS'" >&2
+      echo "error: no launch template for the fallback harness '$HARNESS'" >&2
       exit 1
     }
-    echo "cursor fallback: launching $ID on the $HARNESS harness (${MODEL:-default model} xhigh): ${CURSOR_FALLBACK#* }" >&2
-    printf '%s\n' "${CURSOR_FALLBACK#* }" > "$STATE/$ID.cursor-fallback"
-    ;;
-  esac
+  fi
 fi
 
 # muse, gemini, agy, and devin are verified as CREWMATE/SCOUT adapters only. A secondmate is
