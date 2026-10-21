@@ -179,7 +179,8 @@ test_default_proof_comes_from_the_committed_fork_tree() {
   assert_equals "behind: 0
 ahead: 1
 path-drift: notes.txt
-unproven: $sha add notes (#7)" "$CHECK_OUT" "an untracked drift-proof.txt proves nothing"
+unproven: $sha add notes (#7)
+error: missing manifest entry for PR 7" "$CHECK_OUT" "an untracked drift-proof.txt proves nothing"
   printf '# no proof\n' > "$repo/drift-proof.txt"
   git -C "$repo" add drift-proof.txt
   fixture_commit "$repo" "add empty proof (#8)"
@@ -214,7 +215,8 @@ path-drift: bin/fm-drift-nightly.sh
 path-drift: docs/scripts.md
 path-drift: drift-proof.txt
 path-drift: tests/fm-drift-nightly.test.sh
-unproven: $sha add guard files (#7)" "$CHECK_OUT" "every unproven guard file drifts"
+unproven: $sha add guard files (#7)
+error: missing manifest entry for PR 7" "$CHECK_OUT" "every unproven guard file drifts"
   printf 'pr: 7\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 0 "$CHECK_RC" "exact proven guard patches exit 0: $CHECK_ERR"
@@ -573,8 +575,49 @@ test_wrong_proof_pr_number_stays_red_and_is_named() {
 ahead: 1
 path-drift: notes.txt
 unproven: $sha add notes (#7)
+error: missing manifest entry for PR 7
 unmatched: 99" "$CHECK_OUT" "the wrong number authorizes nothing and is named unmatched"
   pass "a wrong proof PR number authorizes nothing, stays red, and is named unmatched"
+}
+
+test_reverted_numbered_pr_without_manifest_stays_red() {
+  local kind root repo entry
+  for kind in squash merge; do
+    root=$(fm_test_tmproot "drift-reverted-$kind")
+    nightly_fixture "$root"
+    repo=$root/repo
+    git -C "$repo" switch -q -c fm/feature
+    printf 'custom\n' > "$repo/notes.txt"
+    git -C "$repo" add notes.txt
+    fixture_commit "$repo" "add notes (#17)"
+    git -C "$repo" switch -q main
+    if [ "$kind" = squash ]; then
+      git -C "$repo" merge -q --squash fm/feature
+      fixture_commit "$repo" "add notes (#7)"
+    else
+      git -C "$repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' merge -q --no-ff -m "Merge pull request #7 from gsp-agent/fm/feature" fm/feature
+    fi
+    git -C "$repo" rm -q notes.txt
+    printf 'pr: 8\n' > "$repo/drift-proof.txt"
+    git -C "$repo" add drift-proof.txt
+    fixture_commit "$repo" "cut notes (#8)"
+    run_check "$repo" --upstream kunchenguid/main
+    expect_code 1 "$CHECK_RC" "a forgotten $kind PR stays red after a listed PR reverts it: $CHECK_ERR"
+    assert_not_contains "$CHECK_OUT" 'path-drift:' "the $kind replay matches the fork tree"
+    assert_contains "$CHECK_OUT" 'error: missing manifest entry for PR 7' "the forgotten $kind PR is named"
+    assert_not_contains "$CHECK_OUT" 'error: missing manifest entry for PR 17' "a carried PR is not a first-parent PR"
+    run_nightly "$root"
+    expect_code 1 "$NIGHTLY_RC" "the nightly stays red for the forgotten $kind PR"
+    assert_equals 1 "$(note_count "$root/home")" "the forgotten $kind PR sends one note"
+    assert_contains "$(note_body "$root/home")" 'error: missing manifest entry for PR 7' "the nightly note names the forgotten $kind PR"
+    for entry in 'pr: 7' 'pending-pr: 7 bead-7'; do
+      printf 'pr: 8\n%s\n' "$entry" > "$repo/proof.txt"
+      run_check "$repo" --upstream kunchenguid/main --proof "$repo/proof.txt"
+      expect_code 0 "$CHECK_RC" "the reverted $kind PR accepts $entry: $CHECK_ERR"
+      assert_not_contains "$CHECK_OUT" 'error:' "a listed $kind PR has no missing entry"
+    done
+  done
+  pass "reverted numbered squash and merge PRs require manifest entries and send nightly notes"
 }
 
 test_open_pr_own_line_is_unmatched_until_its_squash_lands() {
@@ -921,6 +964,7 @@ test_pending_commit_is_accepted_and_printed_with_its_bead
 test_merge_merged_branch_carries_its_own_pending_line
 test_forgotten_manifest_line_is_path_drift_and_unproven
 test_wrong_proof_pr_number_stays_red_and_is_named
+test_reverted_numbered_pr_without_manifest_stays_red
 test_open_pr_own_line_is_unmatched_until_its_squash_lands
 test_behind_count_is_reported_and_does_not_fail_alone
 test_merge_commit_is_labeled_merge

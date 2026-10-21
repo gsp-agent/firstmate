@@ -14,8 +14,9 @@
 # compared, not working-tree or staged changes.
 # check prints behind and ahead counts, path-ok for changed paths that match
 # the accepted tree, path-drift for every mismatch with that tree, one line
-# per commit reachable from the captured fork and not captured upstream, then
-# one unmatched line per proof entry whose PR has no first-parent commit.
+# per commit reachable from the captured fork and not captured upstream, one
+# error line per numbered first-parent PR missing a proof entry, then one
+# unmatched line per proof entry whose PR has no first-parent commit.
 # Accepted patches are replayed from the merge-base in first-parent order
 # using git merge-tree with each accepted first-parent commit's parent as
 # its patch base. Only first-parent commits are replayed. An accepted
@@ -33,8 +34,10 @@
 # A first-parent PR number is parsed from "Merge pull request #N",
 # "Merge PR #N", "Merge PR N", or a trailing "(#N)" in the commit subject.
 # A first-parent commit with no parseable PR number is unproven.
-# Exit 0 when no path-drift line is printed, 1 when one is, and 2 on usage
-# or git failure. behind is reported and does not change the exit code.
+# Exit 0 when no path-drift line is printed and every numbered first-parent
+# PR has a proof entry, 1 on either mismatch, and 2 on usage or git failure.
+# Unnumbered first-parent commits whose changes are later cut do not fail
+# the check. behind is reported and does not change the exit code.
 #
 # The proof file holds "pr: <number>" or "pending-pr: <number> <bead>" per
 # line. A PR writes its own line before merging; the line lands inside its
@@ -44,9 +47,9 @@
 # are errors. An entry whose PR has no first-parent commit in the captured
 # range proves nothing and prints "unmatched: <number>" without changing the
 # exit code: an open PR's own line stays unmatched until its squash or merge
-# commit lands, and a wrong number leaves the real PR unproven, so its paths
-# are path-drift. Blank lines and lines whose first character is # are
-# ignored.
+# commit lands, and a wrong number leaves the real PR unproven and prints
+# "error: missing manifest entry for PR <number>" even if its paths match.
+# Blank lines and lines whose first character is # are ignored.
 # When --proof is omitted, the proof file is drift-proof.txt in the captured
 # fork commit's tree; a working-tree, staged, or untracked copy is never read.
 # When that tree has no drift-proof.txt, no commit is proven.
@@ -369,6 +372,12 @@ cmd_check() {
       printf 'unproven: %s %s\n' "$sha" "$subject"
     fi
   done < <(git -C "$REPO" rev-list "$upstream..$fork")
+  for pr in $(printf '%s' "$SEEN_PRS" | tr '|' ' '); do
+    if ! class_of_pr "$pr" >/dev/null; then
+      printf 'error: missing manifest entry for PR %s\n' "$pr"
+      drift=1
+    fi
+  done
   for pr in $(printf '%s' "$KEEP_PRS$PENDING_PRS" | tr '|' ' '); do
     case $SEEN_PRS in *"|$pr|"*) ;; *) printf 'unmatched: %s\n' "$pr" ;; esac
   done
