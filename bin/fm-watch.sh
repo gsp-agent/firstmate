@@ -2618,6 +2618,15 @@ reconcile_requests_detached() {
 
 PR_POLL_CONTROL_LOCK=
 PR_POLL_PUBLISH_LOCK=
+FM_PR_POLL_BATCH_CACHE=
+export FM_PR_POLL_BATCH_CACHE
+
+poll_batch_cache_clear() {
+  if [ -n "${FM_PR_POLL_BATCH_CACHE:-}" ]; then
+    rm -f -- "$FM_PR_POLL_BATCH_CACHE" || true
+  fi
+  FM_PR_POLL_BATCH_CACHE=
+}
 
 pr_poll_control_release() {
   [ -z "$PR_POLL_CONTROL_LOCK" ] || fm_lock_release "$PR_POLL_CONTROL_LOCK" || return 1
@@ -2653,6 +2662,7 @@ watcher_cleanup() {
   if [ "$exit_status" -ne 0 ] && watcher_world_gone; then
     echo "watcher: exiting - $WATCHER_GONE" >&2
   fi
+  poll_batch_cache_clear
   pr_poll_publish_release || cleanup_status=1
   pr_poll_control_release || cleanup_status=1
   if [ "$(cat "$WATCH_LOCK/pid" 2>/dev/null || true)" = "${WATCHER_PID:-}" ]; then
@@ -2956,6 +2966,15 @@ $sweep_listed
 EOF
       fi
     fi
+    # bin/fm-pr-poll.sh reads every authenticated GitHub poll in this sweep in one query.
+    FM_PR_POLL_BATCH_CACHE=$(mktemp "$STATE/.fm-pr-poll-batch.XXXXXX") || exit 1
+    chmod 0600 "$FM_PR_POLL_BATCH_CACHE" || exit 1
+    # Authentication visits every candidate before querying GitHub, so allow
+    # one check budget per candidate plus one for the query.
+    pr_poll_batch_checks=("$STATE"/*.check.sh)
+    FM_PR_POLL_STATE="$STATE" CHECK_TIMEOUT=$((CHECK_TIMEOUT * (${#pr_poll_batch_checks[@]} + 1))) \
+      run_check_capture "$SCRIPT_DIR/fm-pr-poll.sh" --batch-prefetch "$STATE" || exit 1
+    pr_poll_batch_status=$FM_CHECK_STATUS
     for c in "$STATE"/*.check.sh; do
       [ -e "$c" ] || continue
       is_pr_poll=0
@@ -2983,6 +3002,11 @@ EOF
           host=$FM_PR_POLL_SNAPSHOT_HOST
           path=$FM_PR_POLL_SNAPSHOT_PATH
           number=$FM_PR_POLL_SNAPSHOT_NUMBER
+          # An interrupted prefetch can leave uncovered cache keys. Keep that
+          # failed sweep silent rather than issuing an individual query.
+          if [ "$provider" = github ] && [ "$pr_poll_batch_status" -ne 0 ]; then
+            continue
+          fi
           PR_POLL_CONTROL_LOCK="$STATE/.control-$id.lock"
           fm_lock_acquire_wait "$PR_POLL_CONTROL_LOCK" || exit 1
           if ! fm_pr_poll_snapshot_matches "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; then
@@ -3109,6 +3133,7 @@ EOF
       fi
       pr_poll_control_release || exit 1
     done
+    poll_batch_cache_clear
     # Open pull requests in a watched merge-queue repository. The sweep header
     # owns the line and the seen record.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
