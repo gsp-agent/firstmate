@@ -768,6 +768,9 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-project-capacity-lib.sh"
 # shellcheck source=bin/fm-worker-account-lib.sh
 . "$SCRIPT_DIR/fm-worker-account-lib.sh"
+# shellcheck source=bin/fm-task-reap-lib.sh
+. "$SCRIPT_DIR/fm-task-reap-lib.sh"
+TASK_REAP_ACTOR=spawn
 # Fail closed before any fleet mutation: a no-mistakes gate agent must never spawn
 # a direct report (see bin/fm-gate-refuse-lib.sh).
 fm_refuse_if_gate_agent
@@ -4852,10 +4855,14 @@ rovo_wait_for_delivery() {
 # ORCA_ABORT_CLEANUP is already cleared and neither the abort trap nor a
 # teardown owns this endpoint yet, so a gate failure must close the launched
 # process here or it keeps running as an orphaned autonomous agent outside
-# task control. Mirrors fm-teardown.sh's own generic kill call. On orca only
-# the exact terminal is closed: that stops the CLI while its worktree stays
-# for the record's own teardown, which owns worktree deletion.
+# task control. Closing the endpoint alone is not enough: a launched codex
+# survives its pane's hangup, so every process rooted in the task's own
+# worktree is reaped first, as teardown does. Mirrors fm-teardown.sh's own
+# generic kill call. On orca only the exact terminal is closed: that stops the
+# CLI while its worktree stays for the record's own teardown, which owns
+# worktree deletion.
 spawn_gate_endpoint_cleanup() {
+  [ "$KIND" = secondmate ] || [ -z "$WT" ] || reap_task_worktree_processes worktree "$WT" || true
   if [ "$BACKEND" = orca ]; then
     fm_backend_kill orca "$T" 2>/dev/null && SPAWN_ENDPOINT_CLOSED=1 || true
     return 0

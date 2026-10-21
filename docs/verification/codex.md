@@ -8,7 +8,7 @@ The skill tree rooted at [`.agents/skills/harness-adapters/SKILL.md`](../../.age
 | Field | Value |
 |---|---|
 | Version | `codex-cli 0.163.0` |
-| Verified | 2026-10-20 |
+| Verified | 2026-10-20, rejected-launch cleanup 2026-10-21 |
 | Platform | macOS 27.2 arm64 |
 | Backend | tmux, on private sockets (`tmux -L <name>`); no fleet session was touched |
 | Store | a throwaway `CODEX_HOME` per run, holding only a symlink to the operator's `auth.json`; the operator's own `config.toml` was never written |
@@ -118,9 +118,35 @@ exit=1
 
 A direct codex launch into a third clone with no entry and no registration parked on the "Trust this folder?" prompt, and `fm_busy_launch_prompt_parked codex` matched that capture.
 
+## A rejected launch can outlive its window
+
+On 2026-10-21 the spawn above was rerun with a `codex` wrapper first on `PATH` that pointed the real CLI at a second throwaway `CODEX_HOME` holding no trust entry, so the launch parked on the prompt despite the registration and the gate rejected it before any turn started.
+Each run used a private tmux server whose pane shell was the only variable, and listed every process naming the proof directory two seconds after the spawn returned.
+Before the fix, the gate's window close ended codex under `zsh` 5.9 and GNU bash 5.3.20, but under macOS `/bin/bash` 3.2.57 the Node shim and the native binary kept running, the shim reparented to launchd:
+
+```
+error: codex parked on its folder-access prompt in window firstmate:fm-fhzhp-orphan-p10-before-bash32 despite the pre-registered trust, so the worker could not reach its brief; inspect window firstmate:fm-fhzhp-orphan-p10-before-bash32
+exit=1
+=== codex processes still running for this launch, 2 s after the spawn returned
+77370     1 77370 S    node
+78085 77370 77370 S    /opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
+```
+
+SIGTERM stopped both.
+The gate now reaps every process rooted in the task's worktree through `bin/fm-task-reap-lib.sh` before it closes the window, and the same `/bin/bash` 3.2.57 run leaves nothing behind:
+
+```
+error: codex parked on its folder-access prompt in window firstmate:fm-fhzhp-orphan-p13-after-bash32 despite the pre-registered trust, so the worker could not reach its brief; inspect window firstmate:fm-fhzhp-orphan-p13-after-bash32
+spawn: reaping leaked worktree process(es) for fhzhp-orphan-p13-after-bash32: 68929 77541 78945
+spawn: force-killing leaked worktree process(es) for fhzhp-orphan-p13-after-bash32: 68929
+exit=1
+=== codex processes still running for this launch, 2 s after the spawn returned
+(none)
+```
+
 ## Regression coverage
 
 `tests/fm-codex-trust.test.sh` pins the helper's registration, byte preservation, refusals, and store selection against throwaway stores.
-It also drives `bin/fm-spawn.sh` against a fake pane that draws the screens above: a pre-trusted root reaches a running turn, a set `CODEX_HOME` is forwarded to the launch, the prompt fails the spawn on sight after the welcome screen and closes the endpoint, a launch that never starts a turn fails at the bound naming the version, and an unregistrable root refuses before launch.
+It also drives `bin/fm-spawn.sh` against a fake pane that draws the screens above: a pre-trusted root reaches a running turn, a set `CODEX_HOME` is forwarded to the launch, the prompt fails the spawn on sight after the welcome screen and closes the endpoint, a launch that never starts a turn fails at the bound naming the version, a rejected launch leaves no SIGHUP-ignoring worker process running in its worktree, and an unregistrable root refuses before launch.
 `tests/fm-busy-state.test.sh` pins the classifier's `unknown launch-prompt` verdict for both prompt shapes.
 `FM_LAUNCH_PROMPT_SIGNALS_LIVE=1 bash tests/fm-launch-prompt-signals-live-e2e.test.sh` re-checks the first prompt shape against the installed codex, as recorded in [runtime-backends.md](runtime-backends.md#launch-prompt-backstop-signatures); rerun it after a codex upgrade.

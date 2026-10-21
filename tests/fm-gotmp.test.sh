@@ -100,6 +100,7 @@ SH
   ln -s "$ROOT/bin/fm-parent-channel-lib.sh" "$fake/bin/fm-parent-channel-lib.sh"
   ln -s "$ROOT/bin/fm-task-data-lib.sh" "$fake/bin/fm-task-data-lib.sh"
   ln -s "$ROOT/bin/fm-task-data.py" "$fake/bin/fm-task-data.py"
+  ln -s "$ROOT/bin/fm-task-reap-lib.sh" "$fake/bin/fm-task-reap-lib.sh"
   # fm-guard.sh: stub (teardown calls it with `|| true`).
   cat > "$fake/bin/fm-guard.sh" <<'SH'
 #!/usr/bin/env bash
@@ -204,6 +205,7 @@ SH
   ln -s "$ROOT/bin/fm-parent-channel-lib.sh" "$fake/bin/fm-parent-channel-lib.sh"
   ln -s "$ROOT/bin/fm-task-data-lib.sh" "$fake/bin/fm-task-data-lib.sh"
   ln -s "$ROOT/bin/fm-task-data.py" "$fake/bin/fm-task-data.py"
+  ln -s "$ROOT/bin/fm-task-reap-lib.sh" "$fake/bin/fm-task-reap-lib.sh"
   cat > "$fake/bin/fm-guard.sh" <<'SH'
 #!/usr/bin/env bash
 exit 0
