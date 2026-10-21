@@ -15,13 +15,17 @@
 #                      room and falls back. Bare Grok draws the same
 #                      pool, so it is no fallback there. The fallback reason is written to
 #                      state/<id>.cursor-fallback, and the Codex choice then takes the codex route.
-#                      codex: Claude when state/<id>.codex-limit exists. Before reading it, the
+#                      codex: Claude when state/<id>.codex-limit is non-empty. With no marker, the
 #                      route looks for the task's current Codex session: the newest
 #                      ${CODEX_HOME:-~/.codex}/sessions rollout modified since the spawn_gen epoch
 #                      in state/<id>.meta whose session_meta cwd is the recorded worktree. When that
 #                      session's last task_complete carries codex_error_info usage_limit_exceeded,
-#                      the route writes the marker with Codex's own message, so the stop routes
-#                      this launch and every later one to Claude.
+#                      route writes the marker with Codex's own message, so this and every later
+#                      Codex route for the task select Claude. A retiring Codex generation, named by
+#                      recorded-harness or the meta harness, is scanned before target-harness
+#                      early returns, including a healthy Cursor choice, so overrides preserve the
+#                      stop before the replacement changes spawn_gen. Other target harnesses keep
+#                      their normal route even when that scan writes the marker.
 #                      An explicit harness other than cursor for a task recorded on cursor is kept
 #                      and named in state/<id>.cursor-fallback. Any other harness prints unchanged.
 # The usage directory defaults to ~/.agent-state/a3ov3/cursor-usage.

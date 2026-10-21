@@ -1192,7 +1192,7 @@ This section is the single owner of the canonical schema and its per-field seman
 | Profile `model` and `effort`; rule `why` | Optional. |
 
 [`fm-dispatch-resolve.sh --labels`](../bin/fm-dispatch-resolve.sh) uses `label_routes` without a brief or API key; its header owns label precedence, the quota-aware default-array walk, and conflict refusals.
-Cursor crewmate and scout launches consult the quota-file guard before Cursor preflight; [`fm-spawn.sh`](../bin/fm-spawn.sh) owns the substituted launch profile and the secondmate exclusion.
+Crewmate and scout launches and relaunches follow the [launch-route guard](../bin/fm-cursor-guard.sh); [`fm-spawn.sh`](../bin/fm-spawn.sh) owns the substituted launch profile and the secondmate exclusion, and [transactional relaunch](agent-control.md#transactional-relaunch) covers control-plane ordering.
 
 **Fields applied only by brief-mode resolution**
 
