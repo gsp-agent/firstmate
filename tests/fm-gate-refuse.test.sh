@@ -280,10 +280,14 @@ test_lab_home_helper() {
 # run_spawn <cwd> <home> <id> <proj> <pane> <fakebin> [ASSIGN...] -> combined output
 # Gate-refuse cases must cd into a controlled cwd and drop both refusal signals
 # so the suite stays hermetic when it itself runs inside a real gate worktree.
+# The codex launch records folder trust under HOME (bin/fm-codex-trust.sh), so
+# HOME is a throwaway and CODEX_HOME is cleared, never the developer's store.
 run_spawn() {
   local cwd=$1 home=$2 id=$3 proj=$4 pane=$5 fakebin=$6; shift 6
   fm_test_spawn_brief "$home" "$id" brief
+  mkdir -p "$home/user-home"
   ( cd "$cwd" && env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS \
+      HOME="$home/user-home" CODEX_HOME='' \
       FM_ROOT_OVERRIDE='' FM_HOME="$home" \
       FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
       FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \

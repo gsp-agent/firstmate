@@ -101,7 +101,10 @@ case "$*" in
     exit 0
     ;;
 esac
-case "${1:-}" in display-message) printf 'firstmate\n' ;; esac
+case "${1:-}" in
+  display-message) printf 'firstmate\n' ;;
+  capture-pane) printf '%s\n' '• Working (1s • esc to interrupt)' ;;
+esac
 exit 0
 SH
   cat > "$fakebin/treehouse" <<'SH'
@@ -194,7 +197,11 @@ new_worktree() {  # <case-dir> <name>
 run_spawn() {  # <case-dir> <home> <pane-path> <args...>
   local case_dir=$1 home=$2 pane=$3
   shift 3
-  FM_ROOT_OVERRIDE='' FM_HOME="$home" \
+  # A codex spawn records folder trust under HOME (bin/fm-codex-trust.sh), so
+  # HOME is a throwaway and CODEX_HOME is cleared, never the developer's store.
+  mkdir -p "$case_dir/user-home"
+  HOME="$case_dir/user-home" CODEX_HOME='' \
+    FM_ROOT_OVERRIDE='' FM_HOME="$home" \
     FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_PROJECTS_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
     FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" FM_BACKEND=tmux \
     FM_FAKE_PANE_PATH="$pane" FM_FAKE_CALL_LOG="$case_dir/calls.log" \
