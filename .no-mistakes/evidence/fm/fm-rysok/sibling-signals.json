@@ -1,0 +1,38 @@
+[
+  {
+    "signal": "SIGTERM",
+    "suite_pid": 18985,
+    "sibling_pid": 19636,
+    "sibling_alive_before_signal": true,
+    "exit": 143,
+    "sibling_alive_after_suite": false,
+    "result": "pass"
+  },
+  {
+    "signal": "SIGINT",
+    "suite_pid": 19888,
+    "sibling_pid": 20294,
+    "sibling_alive_before_signal": true,
+    "exit": 130,
+    "sibling_alive_after_suite": false,
+    "result": "pass"
+  },
+  {
+    "signal": "SIGHUP",
+    "suite_pid": 20590,
+    "sibling_pid": 21307,
+    "sibling_alive_before_signal": true,
+    "exit": 129,
+    "sibling_alive_after_suite": false,
+    "result": "pass"
+  },
+  {
+    "signal": "SIGQUIT",
+    "suite_pid": 21711,
+    "sibling_pid": 23276,
+    "sibling_alive_before_signal": true,
+    "exit": 131,
+    "sibling_alive_after_suite": false,
+    "result": "pass"
+  }
+]

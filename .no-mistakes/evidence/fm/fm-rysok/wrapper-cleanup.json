@@ -1,0 +1,134 @@
+[
+  {
+    "scenario": "normal",
+    "suite_pid": 52676,
+    "pids": {
+      "node": 53024,
+      "grant": 53150,
+      "outcome": 53152
+    },
+    "alive_before": {
+      "node": true,
+      "grant": true,
+      "outcome": true
+    },
+    "exit": 0,
+    "alive_after": {
+      "node": false,
+      "grant": false,
+      "outcome": false
+    },
+    "fixture_removed": true,
+    "result": "pass"
+  },
+  {
+    "scenario": "failure",
+    "suite_pid": 59223,
+    "pids": {
+      "node": 59749,
+      "grant": 60241,
+      "outcome": 60244
+    },
+    "alive_before": {
+      "node": true,
+      "grant": true,
+      "outcome": true
+    },
+    "exit": 1,
+    "alive_after": {
+      "node": false,
+      "grant": false,
+      "outcome": false
+    },
+    "fixture_removed": true,
+    "result": "pass"
+  },
+  {
+    "scenario": "group-SIGTERM",
+    "suite_pid": 77102,
+    "pids": {
+      "node": 82526,
+      "grant": 83430,
+      "outcome": 83438
+    },
+    "alive_before": {
+      "node": true,
+      "grant": true,
+      "outcome": true
+    },
+    "exit": 143,
+    "alive_after": {
+      "node": false,
+      "grant": false,
+      "outcome": false
+    },
+    "fixture_removed": true,
+    "result": "pass"
+  },
+  {
+    "scenario": "group-SIGINT",
+    "suite_pid": 85125,
+    "pids": {
+      "node": 86586,
+      "grant": 86995,
+      "outcome": 87003
+    },
+    "alive_before": {
+      "node": true,
+      "grant": true,
+      "outcome": true
+    },
+    "exit": 130,
+    "alive_after": {
+      "node": false,
+      "grant": false,
+      "outcome": false
+    },
+    "fixture_removed": true,
+    "result": "pass"
+  },
+  {
+    "scenario": "group-SIGHUP",
+    "suite_pid": 87703,
+    "pids": {
+      "node": 88296,
+      "grant": 88569,
+      "outcome": 88572
+    },
+    "alive_before": {
+      "node": true,
+      "grant": true,
+      "outcome": true
+    },
+    "exit": 129,
+    "alive_after": {
+      "node": false,
+      "grant": false,
+      "outcome": false
+    },
+    "fixture_removed": true,
+    "result": "pass"
+  },
+  {
+    "scenario": "group-SIGQUIT",
+    "suite_pid": 88856,
+    "pids": {
+      "node": 89358,
+      "grant": 89609,
+      "outcome": 89612
+    },
+    "alive_before": {
+      "node": true,
+      "grant": true,
+      "outcome": true
+    },
+    "exit": 131,
+    "alive_after": {
+      "node": false,
+      "grant": false,
+      "outcome": false
+    },
+    "fixture_removed": true,
+    "result": "pass"
+  }
+]

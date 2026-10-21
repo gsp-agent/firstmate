@@ -1,0 +1,8 @@
+file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5QFQD3801ZHQ2XDKPQEQ9/.test-rysok-live/lifecycle/child-driver.mjs:15
+if(process.env.PROBE_EXIT==='throw') throw new Error('intentional lifecycle assertion failure');
+                                           ^
+
+Error: intentional lifecycle assertion failure
+    at file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5QFQD3801ZHQ2XDKPQEQ9/.test-rysok-live/lifecycle/child-driver.mjs:15:44
+
+Node.js v26.12.0

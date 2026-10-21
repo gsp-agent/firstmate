@@ -1,0 +1,9 @@
+not ok - cache-key probe B failed: <anonymous_script>:221
+  throw new Error(`timed out waiting for ${label}`);
+        ^
+
+Error: timed out waiting for branch wake prompt
+    at settle (eval at <anonymous> (file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5QFQD3801ZHQ2XDKPQEQ9/[eval1]:2:7), <anonymous>:221:9)
+    at async file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5QFQD3801ZHQ2XDKPQEQ9/[eval1]:5:1
+
+Node.js v26.12.0

@@ -1,0 +1,588 @@
+[
+  {
+    "name": "before-fix-normal-exit",
+    "before_fix": true,
+    "signal": null,
+    "signal_target": null,
+    "suite_pid": 70668,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 71229,
+        "ppid": 70930,
+        "pgid": 70668,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 71233,
+        "ppid": 70930,
+        "pgid": 70668,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 71241,
+        "ppid": 70930,
+        "pgid": 70668,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "children_after_home_removal": [
+      71229,
+      71233,
+      71241
+    ],
+    "exit_code": 0,
+    "survivors": [
+      {
+        "pid": 71229,
+        "ppid": 1,
+        "pgid": 70668,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "pid": 71233,
+        "ppid": 1,
+        "pgid": 70668,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "pid": 71241,
+        "ppid": 1,
+        "pgid": 70668,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "pid": 73338,
+        "ppid": 71241,
+        "pgid": 70668,
+        "stat": "S",
+        "executable": "(sleep)"
+      },
+      {
+        "pid": 73344,
+        "ppid": 71233,
+        "pgid": 70668,
+        "stat": "S",
+        "executable": "sleep"
+      },
+      {
+        "pid": 73376,
+        "ppid": 71229,
+        "pgid": 70668,
+        "stat": "S",
+        "executable": "sleep"
+      }
+    ],
+    "fixture_registry_remaining": [],
+    "result": "reproduced",
+    "elapsed_seconds": 2.63
+  },
+  {
+    "name": "normal-driver-exit",
+    "before_fix": false,
+    "signal": null,
+    "signal_target": null,
+    "suite_pid": 73657,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 73952,
+        "ppid": 73761,
+        "pgid": 73761,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 73955,
+        "ppid": 73761,
+        "pgid": 73761,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 73958,
+        "ppid": 73761,
+        "pgid": 73761,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "children_after_home_removal": [
+      73952,
+      73955,
+      73958
+    ],
+    "exit_code": 0,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 0,
+    "result": "pass",
+    "elapsed_seconds": 11.2
+  },
+  {
+    "name": "nonzero-driver-exit",
+    "before_fix": false,
+    "signal": null,
+    "signal_target": null,
+    "suite_pid": 84974,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 85154,
+        "ppid": 85080,
+        "pgid": 85080,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 85156,
+        "ppid": 85080,
+        "pgid": 85080,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 85159,
+        "ppid": 85080,
+        "pgid": 85080,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "children_after_home_removal": [
+      85154,
+      85156,
+      85159
+    ],
+    "exit_code": 23,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 23,
+    "result": "pass",
+    "elapsed_seconds": 10.98
+  },
+  {
+    "name": "failed-node-assertion",
+    "before_fix": false,
+    "signal": null,
+    "signal_target": null,
+    "suite_pid": 97069,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 97297,
+        "ppid": 97183,
+        "pgid": 97183,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 97304,
+        "ppid": 97183,
+        "pgid": 97183,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 97307,
+        "ppid": 97183,
+        "pgid": 97183,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "children_after_home_removal": [
+      97297,
+      97304,
+      97307
+    ],
+    "exit_code": 1,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 1,
+    "result": "pass",
+    "elapsed_seconds": 11.27
+  },
+  {
+    "name": "active-children-term",
+    "before_fix": false,
+    "signal": "TERM",
+    "signal_target": "suite process group",
+    "suite_pid": 10718,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 10988,
+        "ppid": 10868,
+        "pgid": 10868,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 10994,
+        "ppid": 10868,
+        "pgid": 10868,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 11010,
+        "ppid": 10868,
+        "pgid": 10868,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "children_after_home_removal": [
+      10988,
+      10994,
+      11010
+    ],
+    "exit_code": 143,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 143,
+    "result": "pass",
+    "elapsed_seconds": 3.26
+  },
+  {
+    "name": "active-children-int",
+    "before_fix": false,
+    "signal": "INT",
+    "signal_target": "suite process group",
+    "suite_pid": 14421,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 14726,
+        "ppid": 14636,
+        "pgid": 14636,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 14733,
+        "ppid": 14636,
+        "pgid": 14636,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 14742,
+        "ppid": 14636,
+        "pgid": 14636,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "children_after_home_removal": [
+      14726,
+      14733,
+      14742
+    ],
+    "exit_code": 130,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 130,
+    "result": "pass",
+    "elapsed_seconds": 3.48
+  },
+  {
+    "name": "active-children-hup",
+    "before_fix": false,
+    "signal": "HUP",
+    "signal_target": "suite process group",
+    "suite_pid": 18275,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 18707,
+        "ppid": 18458,
+        "pgid": 18458,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 18717,
+        "ppid": 18458,
+        "pgid": 18458,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 18723,
+        "ppid": 18458,
+        "pgid": 18458,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "children_after_home_removal": [
+      18707,
+      18717,
+      18723
+    ],
+    "exit_code": 129,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 129,
+    "result": "pass",
+    "elapsed_seconds": 4.66
+  },
+  {
+    "name": "active-children-quit",
+    "before_fix": false,
+    "signal": "QUIT",
+    "signal_target": "suite process group",
+    "suite_pid": 22696,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 23213,
+        "ppid": 22895,
+        "pgid": 22895,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 23216,
+        "ppid": 22895,
+        "pgid": 22895,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 23218,
+        "ppid": 22895,
+        "pgid": 22895,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "children_after_home_removal": [
+      23213,
+      23216,
+      23218
+    ],
+    "exit_code": 131,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 131,
+    "result": "pass",
+    "elapsed_seconds": 11.9
+  },
+  {
+    "name": "foreign-holder-term",
+    "before_fix": false,
+    "signal": "TERM",
+    "signal_target": "suite PID",
+    "suite_pid": 36024,
+    "active_holder": {
+      "pid": 36228,
+      "ppid": 36024,
+      "pgid": 36024,
+      "stat": "S",
+      "executable": "sleep"
+    },
+    "exit_code": 143,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 143,
+    "result": "pass",
+    "elapsed_seconds": 1.18
+  },
+  {
+    "name": "foreign-holder-int",
+    "before_fix": false,
+    "signal": "INT",
+    "signal_target": "suite PID",
+    "suite_pid": 37188,
+    "active_holder": {
+      "pid": 37347,
+      "ppid": 37188,
+      "pgid": 37188,
+      "stat": "S",
+      "executable": "sleep"
+    },
+    "exit_code": 130,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 130,
+    "result": "pass",
+    "elapsed_seconds": 1.22
+  },
+  {
+    "name": "foreign-holder-hup",
+    "before_fix": false,
+    "signal": "HUP",
+    "signal_target": "suite PID",
+    "suite_pid": 38223,
+    "active_holder": {
+      "pid": 38569,
+      "ppid": 38223,
+      "pgid": 38223,
+      "stat": "S",
+      "executable": "sleep"
+    },
+    "exit_code": 129,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 129,
+    "result": "pass",
+    "elapsed_seconds": 1.34
+  },
+  {
+    "name": "foreign-holder-quit",
+    "before_fix": false,
+    "signal": "QUIT",
+    "signal_target": "suite PID",
+    "suite_pid": 39650,
+    "active_holder": {
+      "pid": 39999,
+      "ppid": 39650,
+      "pgid": 39650,
+      "stat": "S",
+      "executable": "sleep"
+    },
+    "exit_code": 131,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 131,
+    "result": "pass",
+    "elapsed_seconds": 1.15
+  }
+]

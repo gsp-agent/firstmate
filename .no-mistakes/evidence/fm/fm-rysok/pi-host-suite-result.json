@@ -1,0 +1,37 @@
+{
+  "command": "bin/fm-test-run.sh tests/fm-pi-branch-extension.test.sh --per-script-timeout-secs 900",
+  "exit_code": 1,
+  "elapsed_seconds": 5.31,
+  "baseline": [
+    {
+      "pid": 21551,
+      "ppid": 21545,
+      "pgid": 60544,
+      "executable": "bash",
+      "owned": false
+    },
+    {
+      "pid": 53756,
+      "ppid": 1,
+      "pgid": 49600,
+      "executable": "bash",
+      "owned": false
+    }
+  ],
+  "after": [
+    {
+      "pid": 28803,
+      "ppid": 28802,
+      "pgid": 60544,
+      "executable": "bash",
+      "owned": false
+    },
+    {
+      "pid": 53756,
+      "ppid": 1,
+      "pgid": 49600,
+      "executable": "bash",
+      "owned": false
+    }
+  ]
+}

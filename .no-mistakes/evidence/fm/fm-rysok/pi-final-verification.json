@@ -1,0 +1,111 @@
+{
+  "historical_incident_survivors": 7,
+  "suite_exit_code": 0,
+  "suite_elapsed_seconds": 208.98,
+  "lifecycle": [
+    {
+      "name": "before-fix-normal-exit",
+      "result": "reproduced",
+      "exit_code": 0,
+      "survivors": 6
+    },
+    {
+      "name": "normal-driver-exit",
+      "result": "pass",
+      "exit_code": 0,
+      "survivors": 0
+    },
+    {
+      "name": "nonzero-driver-exit",
+      "result": "pass",
+      "exit_code": 23,
+      "survivors": 0
+    },
+    {
+      "name": "failed-node-assertion",
+      "result": "pass",
+      "exit_code": 1,
+      "survivors": 0
+    },
+    {
+      "name": "active-children-term",
+      "result": "pass",
+      "exit_code": 143,
+      "survivors": 0
+    },
+    {
+      "name": "active-children-int",
+      "result": "pass",
+      "exit_code": 130,
+      "survivors": 0
+    },
+    {
+      "name": "active-children-hup",
+      "result": "pass",
+      "exit_code": 129,
+      "survivors": 0
+    },
+    {
+      "name": "active-children-quit",
+      "result": "pass",
+      "exit_code": 131,
+      "survivors": 0
+    },
+    {
+      "name": "foreign-holder-term",
+      "result": "pass",
+      "exit_code": 143,
+      "survivors": 0
+    },
+    {
+      "name": "foreign-holder-int",
+      "result": "pass",
+      "exit_code": 130,
+      "survivors": 0
+    },
+    {
+      "name": "foreign-holder-hup",
+      "result": "pass",
+      "exit_code": 129,
+      "survivors": 0
+    },
+    {
+      "name": "foreign-holder-quit",
+      "result": "pass",
+      "exit_code": 131,
+      "survivors": 0
+    }
+  ],
+  "stub_bound": [
+    {
+      "name": "before-fix-stub-bound",
+      "result": "reproduced",
+      "survivors": 6
+    },
+    {
+      "name": "fixed-stub-bound",
+      "result": "pass",
+      "survivors": 0
+    }
+  ],
+  "final_tagged_processes": [
+    {
+      "pid": 12387,
+      "ppid": 12383,
+      "pgid": 60544,
+      "executable": "bash",
+      "owned": false
+    },
+    {
+      "pid": 53756,
+      "ppid": 1,
+      "pgid": 49600,
+      "executable": "bash",
+      "owned": false
+    }
+  ],
+  "own_survivors": [],
+  "scratch_exists": false,
+  "transient_drivers": [],
+  "git_status": ""
+}

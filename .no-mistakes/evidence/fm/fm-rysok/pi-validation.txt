@@ -1,0 +1,16 @@
+Pi child-cleanup live validation
+
+Historical incident baseline: 7 orphaned grant/outcome commands.
+Complete targeted suite: exit 0, 208.98 seconds; no capability skips.
+Command: bin/fm-test-run.sh tests/fm-pi-branch-extension.test.sh --per-script-timeout-secs 900
+
+Counterfactual: the pre-fix test definitions leave all three real publish/release/mark-read commands orphaned (PPID 1) after the driver exits. Those deliberately created survivors were stopped immediately after observation.
+Fixed definitions: normal exit, exit 23, and intentional Node failure preserve their exit codes and leave zero survivors.
+Interruptions: TERM, INT, HUP and QUIT to the suite process group with three active real commands each leave zero survivors.
+Foreign holder: TERM, INT, HUP and QUIT sent directly to the suite PID during the actual secondary-session case each stop its sleep 60 holder and leave zero survivors.
+Timeout cause: with FM_TEST_STUB_MAX_BLOCK_SECONDS=1, all three real scripts still wait beyond two seconds after their home is removed; pre-fix they survive driver exit, and fixed they are reaped. This variable bounds cooperating stubs, not the real scripts' lock loop.
+
+Post-run process checks: zero processes belonging to this validation. One pre-existing unrelated FM_TEST_SEAM process remained unchanged and was not signalled.
+The initial host-Pi attempt could not import its missing pi-server dependency. A disposable workspace-local installation of Pi 0.85.0 and pi-server 0.85.0 resolved the setup failure; all tests then ran.
+Disposable dependencies, fixture homes and temporary drivers were removed. No source changes.
+CLI/process lifecycle change: no rendered UI was changed or launched.

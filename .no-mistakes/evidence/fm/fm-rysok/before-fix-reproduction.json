@@ -1,0 +1,17 @@
+{
+  "stub_bound_seconds": 1,
+  "observed_after_exit_seconds": 1.6,
+  "commit": "fe60494c^",
+  "exit": 1,
+  "pids": {
+    "node": 12807,
+    "grant": 13072,
+    "outcome": 13075
+  },
+  "alive_after_suite": {
+    "node": false,
+    "grant": true,
+    "outcome": true
+  },
+  "fixture_removed": true
+}

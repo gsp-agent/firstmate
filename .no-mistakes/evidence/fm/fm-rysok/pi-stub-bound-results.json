@@ -1,0 +1,164 @@
+[
+  {
+    "name": "before-fix-stub-bound",
+    "before_fix": true,
+    "signal": null,
+    "signal_target": null,
+    "suite_pid": 16479,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 17205,
+        "ppid": 16788,
+        "pgid": 16479,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 17210,
+        "ppid": 16788,
+        "pgid": 16479,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 17218,
+        "ppid": 16788,
+        "pgid": 16479,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "stub_bound_seconds": 1,
+    "observed_lock_wait_seconds": 2,
+    "children_after_home_removal": [
+      17205,
+      17210,
+      17218
+    ],
+    "exit_code": 0,
+    "survivors": [
+      {
+        "pid": 17205,
+        "ppid": 1,
+        "pgid": 16479,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "pid": 17210,
+        "ppid": 1,
+        "pgid": 16479,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "pid": 17218,
+        "ppid": 1,
+        "pgid": 16479,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "pid": 22713,
+        "ppid": 17210,
+        "pgid": 16479,
+        "stat": "S",
+        "executable": "(sleep)"
+      },
+      {
+        "pid": 22934,
+        "ppid": 17205,
+        "pgid": 16479,
+        "stat": "S",
+        "executable": "(sleep)"
+      },
+      {
+        "pid": 22936,
+        "ppid": 17218,
+        "pgid": 16479,
+        "stat": "S",
+        "executable": "sleep"
+      }
+    ],
+    "fixture_registry_remaining": [],
+    "result": "reproduced",
+    "elapsed_seconds": 4.6
+  },
+  {
+    "name": "fixed-stub-bound",
+    "before_fix": false,
+    "signal": null,
+    "signal_target": null,
+    "suite_pid": 23326,
+    "active_children": [
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "publish",
+          "1",
+          "1"
+        ],
+        "pid": 24014,
+        "ppid": 23588,
+        "pgid": 23588,
+        "stat": "R",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-wake-grant.sh",
+          "release",
+          "1"
+        ],
+        "pid": 24017,
+        "ppid": 23588,
+        "pgid": 23588,
+        "stat": "S",
+        "executable": "bash"
+      },
+      {
+        "command": [
+          "fm-branch-outcome.sh",
+          "mark-read",
+          "--through",
+          "4"
+        ],
+        "pid": 24030,
+        "ppid": 23588,
+        "pgid": 23588,
+        "stat": "S",
+        "executable": "bash"
+      }
+    ],
+    "stub_bound_seconds": 1,
+    "observed_lock_wait_seconds": 2,
+    "children_after_home_removal": [
+      24014,
+      24017,
+      24030
+    ],
+    "exit_code": 0,
+    "survivors": [],
+    "fixture_registry_remaining": [],
+    "expected_exit_code": 0,
+    "result": "pass",
+    "elapsed_seconds": 13.18
+  }
+]
