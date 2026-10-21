@@ -28,6 +28,7 @@
 # The check rollup is a second read, and only after the cheap fields show the
 # pull request is open, not a draft, and otherwise mergeable. A closed, draft,
 # conflicting, or still-UNKNOWN pull request never requests that rollup.
+# Its head must match the cheap read before either check set is evaluated.
 # UNKNOWN remains the bounded retry the caller already owns.
 # A required check that never reported is absent from the checks
 # list rather than red, so github_read_required_contexts below reads the
@@ -45,7 +46,8 @@
 # source fails, so known missing checks and all read errors are reported together.
 # github_branch_rules_unavailable_on_plan owns the narrow plan-unavailable
 # exception; every other unreadable required source refuses.
-# Every failing condition is reported, not just the first.
+# Failing cheap conditions are reported together before any check reads;
+# after they pass, check failures are collected together.
 # The verified head is then passed to gh as
 # --match-head-commit, so a push that lands between that read and the merge
 # fails the merge instead of landing commits nothing verified. Reading that
