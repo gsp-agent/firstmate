@@ -490,6 +490,11 @@ if [ "${1:-}" = --version ]; then
 fi
 store="${CODEX_HOME:-$HOME/.codex}/config.toml"
 printf '%s\n' "$store" > "$FM_FAKE_CODEX_STATE.store"
+if [ -n "${FM_FAKE_CODEX_LINGER:-}" ]; then
+  # The real CLI outlives its pane's hangup, so this stand-in ignores SIGHUP.
+  (cd "$FM_FAKE_PANE_PATH" && trap '' HUP && exec sleep 600) </dev/null >/dev/null 2>&1 &
+  printf '%s\n' "$!" > "$FM_FAKE_CODEX_LINGER"
+fi
 if [ -n "${FM_FAKE_CODEX_SCREEN:-}" ]; then
   printf '%s\n' "$FM_FAKE_CODEX_SCREEN" > "$FM_FAKE_CODEX_STATE"
 elif [ "${FM_FAKE_CODEX_IGNORE_TRUST:-0}" != 1 ] && python3 -I -c '
@@ -560,6 +565,7 @@ run_codex_spawn() {
     FM_FAKE_CODEX_ROOT="$ROOT_KEY" \
     FM_FAKE_CODEX_IGNORE_TRUST="${FM_FAKE_CODEX_IGNORE_TRUST:-0}" \
     FM_FAKE_CODEX_SCREEN="${FM_FAKE_CODEX_SCREEN:-}" \
+    FM_FAKE_CODEX_LINGER="${FM_FAKE_CODEX_LINGER:-}" \
     FM_CODEX_READY_POLLS=4 FM_CODEX_POLL_INTERVAL=0 \
     PATH="$FAKEBIN:$PATH" \
     "$SPAWN" "$id" "$PROJ" --harness codex --mode no-mistakes --yolo off "$@" 2>&1
@@ -716,6 +722,25 @@ test_launch_that_never_starts_a_turn_fails_the_spawn() {
   pass "fm-spawn: a codex launch that never starts a turn fails after the bound, naming the version"
 }
 
+test_rejected_launch_leaves_no_worker_running() {
+  local id out rc pid screen
+  for screen in welcome-then-prompt welcome; do
+    id="codex-orphan-$screen-$$"
+    read_codex_spawn_case "$(make_codex_spawn_case "orphan-$screen" "$id")"
+    rc=0
+    out=$(FM_FAKE_CODEX_LINGER="$CASE_DIR/worker.pid" FM_FAKE_CODEX_IGNORE_TRUST=1 \
+      FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id") || rc=$?
+    [ "$rc" -ne 0 ] || fail "the $screen launch must fail the spawn: $out"
+    pid=$(cat "$CASE_DIR/worker.pid" 2>/dev/null || true)
+    case "$pid" in ''|*[!0-9]*) fail "the fake codex did not start its lingering worker" ;; esac
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -KILL "$pid" 2>/dev/null || true
+      fail "a rejected $screen codex launch left its SIGHUP-ignoring worker running in the worktree"
+    fi
+  done
+  pass "fm-spawn: a rejected codex launch stops the worker it started, not only its endpoint"
+}
+
 test_unregistrable_root_refuses_before_launch() {
   local id out rc before
   id="codex-refuse-c5-$$"
@@ -755,4 +780,5 @@ test_prompt_despite_registration_fails_the_spawn_at_once
 test_reused_pane_history_never_confirms_a_replacement_launch
 test_running_turn_without_a_launch_echo_passes
 test_launch_that_never_starts_a_turn_fails_the_spawn
+test_rejected_launch_leaves_no_worker_running
 test_unregistrable_root_refuses_before_launch
