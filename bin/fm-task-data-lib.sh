@@ -234,7 +234,8 @@ MAP
 # A named bead has one owner: the database its prefix maps to, else this
 # home's backlog for an id a task can carry. Prints the bead and returns 0,
 # returns 3 when the owner answered that it does not exist or nothing can own
-# it, and fails when the owner cannot be read or the read times out.
+# it, returns 4 when a markdown backlog lacks the row so its archive decides,
+# and fails when the owner cannot be read or the read times out.
 # br runs from / so no database above the working directory can answer.
 fm_task_data_bead_reference() { # <data> <bead>
   local data=$1 bead=$2 db out status=0
@@ -257,11 +258,12 @@ fm_task_data_bead_reference() { # <data> <bead>
     return 0
   fi
   [ "$FM_BACKLOG_ROW_RESULT" = not_found ] || return 1
+  [ -z "$FM_BACKLOG_AXI_FILE" ] || return 4
   return 3
 }
 
 fm_task_data_backlog_references() { # <data> <id> <required> [bead...]
-  local data=$1 id=$2 required=$3 script_dir row out status text='' task='' unread='[]'
+  local data=$1 id=$2 required=$3 script_dir row out status text='' task='' unread='[]' archived='[]'
   shift 3
   script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || return 1
   # shellcheck source=bin/fm-tasks-axi-lib.sh
@@ -271,7 +273,7 @@ fm_task_data_backlog_references() { # <data> <id> <required> [bead...]
   fm_backlog_tasks_axi_addressing "$data" || return 1
   if [ -n "$FM_BACKLOG_AXI_FILE" ] && [ ! -e "$FM_BACKLOG_AXI_FILE" ] && [ ! -L "$FM_BACKLOG_AXI_FILE" ] \
       && [ "$required" = 0 ] && [ "$#" -eq 0 ]; then
-    printf '{"task":null,"text":"","unread":[]}\n'
+    printf '{"task":null,"text":"","unread":[],"archived":[]}\n'
     return 0
   fi
   unset TASKS_AXI_FILE
@@ -292,12 +294,14 @@ fm_task_data_backlog_references() { # <data> <id> <required> [bead...]
     out=$(fm_task_data_bead_reference "$data" "$row" 2>/dev/null) || status=$?
     if [ "$status" = 0 ] && [ -n "$out" ]; then
       text="$text$out"$'\n'
+    elif [ "$status" = 4 ]; then
+      archived=$(printf '%s' "$archived" | jq -c --arg id "$row" '. + [$id]')
     elif [ "$status" != 3 ]; then
       unread=$(printf '%s' "$unread" | jq -c --arg id "$row" '. + [$id]')
     fi
   done
-  printf '%s' "$text" | jq -Rs --arg task "$task" --argjson unread "$unread" \
-    '{task: (if $task == "" then null else $task end), text: ., unread: $unread}'
+  printf '%s' "$text" | jq -Rs --arg task "$task" --argjson unread "$unread" --argjson archived "$archived" \
+    '{task: (if $task == "" then null else $task end), text: ., unread: $unread, archived: $archived}'
 }
 
 fm_task_data_pr_references() {

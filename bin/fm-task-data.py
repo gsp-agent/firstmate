@@ -50,7 +50,8 @@ the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
 Backlog sources retain their home addressing in the cleanup record.
 A named bead is read from the one database that owns its prefix, whatever
 project the task recorded; fm-task-data-lib.sh keeps that prefix map, and an
-id whose prefix is not in it is read from the owning Firstmate backlog.
+id whose prefix is not in it is read from the owning Firstmate backlog,
+including its configured archive.
 A bead its owner reports not found links nothing and is not unread; only an
 owner that cannot be read, or a read that times out, leaves it unread.
 These br reads clear BEADS_DIR, BEADS_DB, and BR_DB so inherited addressing
@@ -299,7 +300,7 @@ def local_references(root, files, repos, limit=None):
     return "\n".join(texts), oversized
 
 
-def completed_source(data, task_id, limit=None):
+def completed_rows(data, task_id, limit=None):
     try:
         import tomllib
     except ImportError as error:
@@ -351,6 +352,11 @@ def completed_source(data, task_id, limit=None):
             except ValueError:
                 completed = ""
             candidates.append((path == backlog, completed, match[4], "\n".join(lines[index:end])))
+    return candidates
+
+
+def completed_source(data, task_id, limit=None):
+    candidates = completed_rows(data, task_id, limit)
     if not candidates:
         raise ValueError("no completed backlog row")
     candidates = [row for row in candidates if row[0]] or candidates
@@ -413,14 +419,25 @@ def backlog_references(source, task_id, limit=None):
                     or response.get("task") not in (None, task_id)
                     or (required and response.get("task") != task_id)
                     or not isinstance(response.get("unread"), list)
-                    or any(not isinstance(item, str) for item in response["unread"])):
+                    or not isinstance(response.get("archived"), list)
+                    or any(not isinstance(item, str) for item in response["unread"] + response["archived"])):
                 raise ValueError("invalid backlog reference response")
-            return response
         except StageLimit:
             raise
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             source["unread"] = sorted(set([task_id, *source["beads"]]))
             raise UnreadReferences(f"unread references {', '.join(source['unread'])}: {error}") from error
+        # tasks-axi show cannot see archived rows, so the archive decides.
+        for bead in response["archived"]:
+            try:
+                rows = completed_rows(Path(backlog["data"]), bead, limit)
+            except StageLimit:
+                raise
+            except (OSError, ValueError, subprocess.SubprocessError):
+                response["unread"].append(bead)
+                continue
+            response["text"] += "".join(row[3] + "\n" for row in rows)
+        return response
 
     response = read_backlog(backlog["task"] is not None and not legacy)
     if not legacy:
