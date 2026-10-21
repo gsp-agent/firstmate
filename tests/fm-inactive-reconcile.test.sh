@@ -1010,7 +1010,7 @@ test_nonterminal_and_captain_held_states_do_not_report() {
 
 test_terminal_herdr_child_pane_closes_and_records_stay() {
   local state out record fingerprint
-  for state in done failed; do
+  for state in "done" failed; do
     make_world "pane-close-$state"
     write_herdr_child "$MAIN" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
     FM_FAKE_CREW_STATE="$state" run_reconcile "$MAIN" --startup
@@ -1032,7 +1032,7 @@ test_terminal_herdr_child_pane_closes_and_records_stay() {
 
 test_other_backend_panes_stay_open() {
   local backend meta state
-  for state in done failed; do
+  for state in "done" failed; do
     for backend in default tmux zellij orca cmux; do
       make_world "pane-keep-$state-$backend"
       write_child "$MAIN" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
@@ -1063,7 +1063,7 @@ test_other_backend_panes_stay_open() {
 
 test_herdr_close_requires_semantic_idle() {
   local state evidence meta
-  for state in done failed; do
+  for state in "done" failed; do
     for evidence in busy unknown missing malformed stale codex grok; do
       make_world "pane-$state-$evidence"
       write_herdr_child "$MAIN" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
@@ -1094,7 +1094,7 @@ test_herdr_close_requires_semantic_idle() {
 test_pending_steering_keeps_terminal_herdr_pane_open() {
   local route state delivery task_home phase lock message
   for route in main ledger; do
-    for state in done failed; do
+    for state in "done" failed; do
       for delivery in '' fire-and-forget; do
         make_world "pending-steer-$route-$state-${delivery:-ordinary}"
         task_home="$MAIN"
@@ -1131,7 +1131,7 @@ test_native_submit_and_terminal_closure_are_serialized() {
   local route state task_home selector order send_pid reconcile_pid send_rc reconcile_rc ready active_before_close
   local native_activity receipt_phase meta_lock
   for route in main ledger; do
-    for state in done failed; do
+    for state in "done" failed; do
       make_world "native-close-$route-$state"
       task_home="$MAIN"
       selector=child
@@ -1151,7 +1151,7 @@ test_native_submit_and_terminal_closure_are_serialized() {
       ready=1
       active_before_close=0
       native_activity=0
-      if [ "$state" = done ]; then
+      if [ "$state" = "done" ]; then
         order=submit-first
         selector=default:w1:p1
         run_native_submit "$task_home" "$selector" "$order" > "$WORLD/send.out" 2> "$WORLD/send.err" &
@@ -1218,7 +1218,7 @@ test_herdr_prevalidation_and_unproven_identity_stay_open() {
     write_herdr_child "$MAIN" child 'done: implementation ready for validation'
     set_child_field "$MAIN/state/child.meta" mode "$mode"
     age "$MAIN/state/child.meta"
-    FM_FAKE_CREW_STATE=done run_reconcile "$MAIN" --startup
+    FM_FAKE_CREW_STATE="done" run_reconcile "$MAIN" --startup
     [ "$(herdr_close_count)" = 0 ] || fail "pre-validation $mode handoff pane closed"
   done
   for evidence in task endpoint incarnation captain-held recent; do
@@ -1242,7 +1242,7 @@ test_herdr_prevalidation_and_unproven_identity_stay_open() {
 test_secondmate_ledger_children_close_without_duplicate_reports() {
   local state route receipt
   for route in local remote; do
-    for state in done failed; do
+    for state in "done" failed; do
       make_world "ledger-close-$route-$state"; bind_secondmate "$route"
       write_herdr_child "$MATE" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
       if [ "$route" = local ]; then
@@ -1296,7 +1296,7 @@ test_retained_herdr_outcome_is_bound_to_spawn_and_endpoint() {
         age "$MAIN/state/child.status" ;;
     esac
     age "$MAIN/state/child.meta"
-    FM_FAKE_CREW_STATE=done run_reconcile "$MAIN" --startup
+    FM_FAKE_CREW_STATE="done" run_reconcile "$MAIN" --startup
     [ -e "$WORLD/herdr-closed" ] || fail "$variant fixture did not close its pane"
     record=$(find "$MAIN/state/terminal-outcomes" -name '*.pending' -type f | head -1)
     case "$variant" in

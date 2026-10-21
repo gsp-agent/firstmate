@@ -539,10 +539,10 @@ close_terminal_child_pane() { # <id> <meta> <fingerprint>
   [ "$(status_line_verb "$last")" != captain-held ] || return 0
   kind=$(meta_field "$meta" kind)
   mode=$(meta_field "$meta" mode)
-  if [ "$state" = done ] && [ "${kind:-ship}" = ship ]; then
+  if [ "$state" = "done" ] && [ "${kind:-ship}" = ship ]; then
     case "$mode" in
       no-mistakes|'')
-        if [ "$(status_line_verb "$last")" = done ] \
+        if [ "$(status_line_verb "$last")" = "done" ] \
           && ! fm_dod_should_gate_ship_done ship "$mode" "$last"; then
           return 0
         fi
