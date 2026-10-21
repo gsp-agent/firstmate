@@ -61,7 +61,7 @@
 #     docs/verification/supervision.md records the survival check). The hook
 #     waits for the successor's one status line, adds one banner line when no
 #     live watcher was confirmed, and never withholds the wake for it; the
-#     next Stop's foreground arm attaches to that live cycle. The supervision
+#     next Stop's foreground arm takes that covering cycle over. The supervision
 #     host owns its own successors, so its path is unchanged.
 #   - Supervision host: a home that runs it (by default on this Claude
 #     primary; docs/configuration.md "Supervision host" owns the gate and its
@@ -359,7 +359,9 @@ run_arm() {  # <output file, or empty for none>
 # successor receives the closed arm's pid as FM_WATCH_PREDECESSOR_ARM_PID; it
 # must outlive this hook's exit, so it is detached three ways: nohup, stdio
 # away from the hook's pipes, and its own process group. Its one status line
-# is awaited within the arm's own confirmation budget plus slack. Sets
+# is awaited within the arm's own confirmation budget plus slack. It is a
+# covering successor (bin/fm-watch-arm.sh FM_WATCH_COVER), so a fleet event
+# during the handling turn does not leave the home uncovered. Sets
 # SUCCESSOR_FAILURE to the banner line for an unconfirmed successor.
 SUCCESSOR_FAILURE=
 start_handling_successor() {  # <closed-arm-pid>
@@ -372,7 +374,7 @@ start_handling_successor() {  # <closed-arm-pid>
   fi
   case $- in *m*) monitor_was_on=1 ;; esac
   set -m 2>/dev/null || true
-  FM_WATCH_PREDECESSOR_ARM_PID=$1 FM_GUARD_GRACE="$GRACE" \
+  FM_WATCH_COVER=1 FM_WATCH_PREDECESSOR_ARM_PID=$1 FM_GUARD_GRACE="$GRACE" \
     nohup "$SCRIPT_DIR/fm-watch-arm.sh" >"$out" 2>&1 </dev/null &
   pid=$!
   [ "$monitor_was_on" -eq 1 ] || set +m 2>/dev/null || true

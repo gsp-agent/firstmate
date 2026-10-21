@@ -52,9 +52,10 @@
 #     that is unsafe or holds nothing for the branch) stay main's. That
 #     pass-through starts the successor watcher cycle and leaves it running
 #     before the close is printed, so supervision continues when the session
-#     drops the handoff. It confirms no handling handoff, so the recovery
-#     marker still reads downtime and the re-arm owner delivers the close to
-#     main. The host records that successor's arm before relinquishing it
+#     drops the handoff and, as a covering successor (bin/fm-watch-arm.sh
+#     FM_WATCH_COVER), through main's whole turn. It confirms no handling
+#     handoff, so the recovery marker still reads downtime and the re-arm
+#     owner delivers the close to main. The host records that successor's arm before relinquishing it
 #     (detach_successor owns the persistence check and failure path). The
 #     session's next park without --restart requests a take-over of its cycle
 #     rather than an ordinary attach; bin/fm-watch-arm.sh's --take-over header owns the
@@ -671,11 +672,13 @@ stand_down() {  # <why>
 
 # Start the successor cycle and wait until it proves a live watcher. Sets
 # SUCCESSOR_WATCHER and SUCCESSOR_GENERATION (empty when the arm attached).
+# It is a covering successor (bin/fm-watch-arm.sh FM_WATCH_COVER), so once this
+# host leaves it for main and exits, it keeps the home covered for the turn.
 start_successor() {  # <predecessor-arm-pid>
   local deadline line
   SUCCESSOR_WATCHER=
   SUCCESSOR_GENERATION=
-  start_arm "$1" || return 1
+  FM_WATCH_COVER=1 start_arm "$1" || return 1
   SUCCESSOR_PID=$STARTED_ARM_PID
   SUCCESSOR_OUT=$STARTED_ARM_OUT
   deadline=$(( $(date +%s) + READY_TIMEOUT ))

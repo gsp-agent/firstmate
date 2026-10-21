@@ -180,7 +180,8 @@ So that successor is the one deliberate detached launch in the continuity path:
 
 This is the shape `bin/fm-startup-network.sh` uses, and [`verification/supervision.md`](verification/supervision.md#detached-session-open-workers-survive-the-hook) verified that it survives the hook.
 
-The next Stop's foreground arm attaches to that live cycle.
+That successor is a covering one, as is the successor the supervision host leaves for main: after its owner exits, a fleet event that closes its watcher starts the next handling-successor watcher in the same arm, so the home stays covered for the rest of main's turn while the wake waits in the durable queue.
+The next Stop's foreground arm takes that covering cycle over and owns a fresh one, which surfaces any wake queued during the turn; the [arm header](../bin/fm-watch-arm.sh) owns `FM_WATCH_COVER` and the claim every arm makes first.
 A successor that confirms no live watcher adds one line to the rewake banner and never withholds the wake.
 The next Stop then re-arms as before.
 
@@ -456,6 +457,7 @@ They also prove that a legacy or handoff-phase watcher marker from an absent rep
 - The already-acknowledged confirmation no-op for a matching generation, with its mismatched-generation, dead-pid, and lock-mismatch rejections preserved.
 - The manual-restart generation churn that makes a confirmation for the churned generation report a mismatch, which an arm check without a reopen leaves in place.
 - A take-over that stays quiet after a confirmed TERM, still surfaces queued work and self-exit downtime, and attaches without stopping a cycle the named arm does not own.
+- A covering successor left for main that keeps one live watcher with a fresh beat through a mid-turn event, hands over to the turn-end arm or a take-over with exactly one watcher left, and closes on its wake as before while its owner still runs.
 - The disposable-checkout arm refusal.
 - The home-gone and state-gone watcher exits.
 - The test reaper that stops a watcher armed for a temporary home.
