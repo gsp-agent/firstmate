@@ -4862,14 +4862,22 @@ rovo_wait_for_delivery() {
 # CLI while its worktree stays for the record's own teardown, which owns
 # worktree deletion.
 spawn_gate_endpoint_cleanup() {
-  [ "$KIND" = secondmate ] || [ -z "$WT" ] || reap_task_worktree_processes worktree "$WT" || true
+  local worker_stopped=0
+  if [ "$KIND" != secondmate ] && [ -n "$WT" ] &&
+    command -v lsof >/dev/null 2>&1 &&
+    reap_task_worktree_processes worktree "$WT"; then
+    worker_stopped=1
+  fi
+  if [ "$worker_stopped" = 0 ]; then
+    echo "warning: could not verify worker shutdown for task $ID in worktree $WT; preserving its git-hooks strip" >&2
+  fi
   if [ "$BACKEND" = orca ]; then
-    fm_backend_kill orca "$T" 2>/dev/null && SPAWN_ENDPOINT_CLOSED=1 || true
+    fm_backend_kill orca "$T" 2>/dev/null && [ "$worker_stopped" = 1 ] && SPAWN_ENDPOINT_CLOSED=1 || true
     return 0
   fi
   local tab_id=
   [ "$BACKEND" = zellij ] && tab_id=$ZELLIJ_TAB_ID
-  fm_backend_kill "$BACKEND" "$T" "$tab_id" "fm-$ID" 2>/dev/null && SPAWN_ENDPOINT_CLOSED=1 || true
+  fm_backend_kill "$BACKEND" "$T" "$tab_id" "fm-$ID" 2>/dev/null && [ "$worker_stopped" = 1 ] && SPAWN_ENDPOINT_CLOSED=1 || true
 }
 
 # agy carries its brief on the launch command, so it needs no delivery gate,

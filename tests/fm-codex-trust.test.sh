@@ -741,6 +741,40 @@ test_rejected_launch_leaves_no_worker_running() {
   pass "fm-spawn: a rejected codex launch stops the worker it started, not only its endpoint"
 }
 
+test_rejected_launch_with_failed_process_scan_keeps_strip() {
+  local id out rc pid screen alive warning
+  for screen in welcome-then-prompt welcome; do
+    id="codex-scan-failed-$screen-$$"
+    read_codex_spawn_case "$(make_codex_spawn_case "scan-failed-$screen" "$id")"
+    cat > "$FAKEBIN/lsof" <<'SH'
+#!/usr/bin/env bash
+exit 1
+SH
+    chmod +x "$FAKEBIN/lsof"
+    rc=0
+    out=$(FM_FAKE_CODEX_LINGER="$CASE_DIR/worker.pid" FM_FAKE_CODEX_IGNORE_TRUST=1 \
+      FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id") || rc=$?
+    pid=$(cat "$CASE_DIR/worker.pid" 2>/dev/null || true)
+    case "$pid" in ''|*[!0-9]*) fail "the fake codex did not start its lingering worker" ;; esac
+    alive=0
+    if kill -0 "$pid" 2>/dev/null; then
+      alive=1
+      kill -KILL "$pid" 2>/dev/null || true
+    fi
+    [ "$rc" -ne 0 ] || fail "the $screen launch must still fail when lsof fails: $out"
+    assert_equals 1 "$alive" "the failed scan did not leave a worker whose shutdown was unverified"
+    assert_contains "$(cat "$CASE_DIR/tmux-calls.log")" "kill-window" \
+      "the rejected $screen launch did not close its endpoint when lsof failed"
+    warning="warning: could not verify worker shutdown for task $id in worktree $WT; preserving its git-hooks strip"
+    assert_contains "$out" "$warning" "the failed scan did not warn with the task and worktree"
+    assert_equals 1 "$(printf '%s\n' "$out" | grep -Fc "$warning")" \
+      "the failed scan did not emit exactly one shutdown warning"
+    [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "the rejected spawn did not roll back its provisional task record"
+    [ -d "$HOME_DIR/state/$id.git-hooks" ] || fail "the rejected spawn removed the unverified worker's strip directory"
+  done
+  pass "fm-spawn: a rejected launch with a failed process scan closes its endpoint and keeps its strip"
+}
+
 test_unregistrable_root_refuses_before_launch() {
   local id out rc before
   id="codex-refuse-c5-$$"
@@ -781,4 +815,5 @@ test_reused_pane_history_never_confirms_a_replacement_launch
 test_running_turn_without_a_launch_echo_passes
 test_launch_that_never_starts_a_turn_fails_the_spawn
 test_rejected_launch_leaves_no_worker_running
+test_rejected_launch_with_failed_process_scan_keeps_strip
 test_unregistrable_root_refuses_before_launch
