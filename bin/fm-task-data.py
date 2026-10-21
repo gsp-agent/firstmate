@@ -26,7 +26,11 @@ paths remain absolute.
 Missing, ambiguous, or active rows retain the whole folder.
 Legacy row references in the open recovery cycle are refreshed before staging
 and expiry, with the original row retained as evidence in the cleanup record.
-A changed project or PR identity in that cycle retains the whole folder.
+A row that changes the task's owner in that cycle retains the whole folder.
+Only another repository, or another PR where both name one, changes the owner;
+a PR the row adds where the record has none is a reference.
+A row's bare repo name names a registered project, which a recorded checkout
+matches by its directory name or its origin repository's name.
 Expired legacy rows and their last refreshed references remain historical
 evidence and are no longer compared with the current row when the task id is reused.
 Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
@@ -63,7 +67,7 @@ more hyphen-separated lowercase alphanumeric segments, and optional numeric
 child suffixes such as .1. Dates do not qualify.
 A finished task whose required backlog row moved to the configured archive
 resolves that row and its named beads from the completed rows, under the same
-project and PR identity check as the legacy refresh.
+owner check as the legacy refresh.
 Beads named by a readable owning row merge with the supplied beads and
 resolve before evidence is classified, the same way completed-row beads do.
 Unread task or bead ids appear in each source's unread list in
@@ -377,7 +381,8 @@ def completed_row_source(data, title, text):
     repos = re.findall(r"\((?:[^()]*\+\s*)?repo:\s*([^)]+)\)", title)
     if not repos:
         raise ValueError("completed backlog row has no project")
-    project = Path(repos[-1].strip()).expanduser()
+    repo = repos[-1].strip()
+    project = Path(repo).expanduser()
     if not project.is_absolute():
         if len(project.parts) != 1 or str(project) in (".", ".."):
             raise ValueError("completed backlog row has an ambiguous project path")
@@ -388,7 +393,31 @@ def completed_row_source(data, title, text):
     if len(text.encode()) > LIMIT:
         raise ValueError("completed backlog row exceeds 1 MiB")
     beads = bead_ids(text)
-    return {"project": str(project), "pr": next(iter(prs), ""), "beads": beads, "text": text}
+    return {"project": str(project), "repo": repo, "pr": next(iter(prs), ""), "beads": beads, "text": text}
+
+
+def repository_names(project, limit=None):
+    path = Path(project).expanduser()
+    if not path.is_absolute():
+        return {project}
+    names = {path.name}
+    if not (path / ".git").exists():
+        return names
+    try:
+        url = read_command(["git", "-C", str(path), "remote", "get-url", "origin"], str(path), limit)
+    except StageLimit:
+        raise
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return names
+    names.add(re.sub(r"\.git$", "", re.split(r"[/:]", url.strip().rstrip("/"))[-1]))
+    return names
+
+
+def same_owner(row, source, limit=None):
+    # A PR URL names its repository, so two PRs settle the owner by themselves.
+    if row["pr"] and source["pr"]:
+        return row["pr"] == source["pr"]
+    return not repository_names(row["repo"], limit).isdisjoint(repository_names(source["project"], limit))
 
 
 def backlog_references(source, task_id, limit=None):
@@ -402,7 +431,7 @@ def backlog_references(source, task_id, limit=None):
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             source["unread"] = [task_id]
             raise RetainWhole(f"unread completed row {task_id}: {error}") from error
-        if (completed["project"], completed["pr"]) != (source["project"], source["pr"]):
+        if not same_owner(completed, source, limit):
             source["unread"] = [task_id]
             raise RetainWhole(f"completed row {task_id} changed project or PR")
         backlog["refreshed_text"] = completed["text"]
@@ -458,7 +487,7 @@ def backlog_references(source, task_id, limit=None):
         except (OSError, ValueError, subprocess.SubprocessError):
             completed = None
         if completed is not None:
-            if (completed["project"], completed["pr"]) != (source["project"], source["pr"]):
+            if not same_owner(completed, source, limit):
                 raise RetainWhole(f"completed row {task_id} changed project or PR")
             archived_text = completed["text"]
             source["unread"].remove(task_id)
