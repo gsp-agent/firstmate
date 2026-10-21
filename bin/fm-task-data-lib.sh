@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Task-data staging runs only after teardown removes the task record, while its
-# meta lock is still held. Expiring other tasks' holds runs after teardown
+# Task-data staging runs at the shared retirement boundary, while the task's
+# protection and meta lock are still held. Expiring other tasks' holds runs after teardown
 # releases every lock. fm-task-data.py owns retention and recovery rules.
 # Callers source fm-wake-lib.sh for the same locks spawn uses to publish records.
 # The sweep drains pending holds one at a time with no expiry budget, under a
@@ -17,18 +17,6 @@
 # Each locked expiry rechecks the latest requester before touching a hold.
 # That recheck protects the requester's fresh recovery.
 # A later, different completion may still expire an earlier hold.
-
-fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
-  local data=$1 state=$2 id=$3 project=$4 pr=$5 helper
-  helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
-  fm_task_id_path_safe "$id" || return 1
-  [ ! -e "$state/$id.meta" ] && [ ! -L "$state/$id.meta" ] || return 1
-  command -v python3 >/dev/null 2>&1 || {
-    echo "warning: task data retained: python3 is unavailable" >&2
-    return 1
-  }
-  python3 "$helper" stage "$data" "$state" "$id" "$project" "$pr"
-}
 
 fm_task_data_sweep_request() {
   local state=$1 id=$2 request
@@ -90,7 +78,9 @@ fm_task_data_expire_others() { # <data> <state> <id>
       rc=1
       continue
     fi
-    if [ "$other" != "$id" ] && [ "$other" != "$requester" ] && [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ]; then
+    if [ "$other" != "$id" ] && [ "$other" != "$requester" ] \
+        && [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ] \
+        && [ ! -e "$state/$other.backlog-close" ] && [ ! -L "$state/$other.backlog-close" ]; then
       limit=$remaining
       [ "${marks[i]}" != cut-off ] || limit=$full
       touch -h -c "$data/$other/record/data-cleanup.json" 2>/dev/null || true
@@ -134,7 +124,8 @@ fm_task_data_expire_by_hand() { # <data> <state> <id> [request]
       return 0
     fi
   fi
-  if [ -e "$state/$id.meta" ] || [ -L "$state/$id.meta" ]; then
+  if [ -e "$state/$id.meta" ] || [ -L "$state/$id.meta" ] \
+      || [ -e "$state/$id.backlog-close" ] || [ -L "$state/$id.backlog-close" ]; then
     echo "error: task $id is live; nothing was expired" >&2
     status=1
   else

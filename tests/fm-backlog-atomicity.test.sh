@@ -1894,8 +1894,8 @@ test_completion_preserves_records_when_meta_removal_fails() {
     "teardown did not report task-record removal failure"
   assert_present "$meta" "teardown lost meta after its removal failed"
   assert_present "$marker" "teardown discarded recovery after meta removal failed"
-  [ "$(row_state "$case_dir" "$id")" = in_flight ] \
-    || fail "teardown closed the row before verifying meta removal"
+  [ "$(row_state "$case_dir" "$id")" = done ] \
+    || fail "teardown lost the successful backlog close while retaining task protection"
   pass "completion preserves recovery state when task-record removal fails"
 }
 
@@ -2239,8 +2239,8 @@ test_recovery_retry_preserves_incomplete_cleanup_warning() {
   break_verb "$case_dir" show
 
   out=$(run_bootstrap "$case_dir")
-  assert_absent "$home/state/$id.meta" \
-    "failed replay did not cross the task-record removal boundary"
+  assert_present "$home/state/$id.meta" \
+    "failed replay removed the task's recovery protection"
   assert_present "$marker" "failed replay discarded its pending close"
   rm -f "$case_dir/fakebin/tasks-axi"
 

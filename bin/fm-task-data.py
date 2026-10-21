@@ -2,15 +2,17 @@
 """Retain task evidence and hold scratch until the next completed task.
 
 Usage: fm-task-data.py prepare DATA STATE ID [PR]
+       fm-task-data.py retire DATA STATE ID [PR]
        fm-task-data.py stage DATA STATE ID PROJECT PR
        fm-task-data.py expire DATA STATE ID
        fm-task-data.py pending DATA
        fm-task-data.py mark DATA ID cut-off|too-large
-Prepare, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
+Prepare, retire, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
 lock also used by spawn.
 Pending takes no lock and prints, in one pass, each unexpired cleanup record's
 task id and expiry mark, tab-separated, least recently tried first.
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
+Retire stages under the retiring task's existing protection; expiry also refuses pending closes.
 Without metadata, prepare reads the latest completed markdown backlog row,
 including the configured archive (legacy mode needs tomllib), when there is no
 cleanup record or the expired record holds a legacy row.
@@ -706,11 +708,11 @@ def stage_limit():
 def cleanup(action, data, state, task_id, project="", pr=""):
     if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
-    limit = stage_limit() if action == "stage" else None
+    limit = stage_limit() if action in ("stage", "retire") else None
     data, state = real_directory(data), real_directory(state)
     meta = state / f"{task_id}.meta"
     values = None
-    if action == "prepare":
+    if action in ("prepare", "retire"):
         if meta.exists() or meta.is_symlink():
             if meta.is_symlink() or not meta.is_file():
                 raise ValueError("unsafe retiring task record")
@@ -719,7 +721,9 @@ def cleanup(action, data, state, task_id, project="", pr=""):
                 return
             project = values.get("project", "")
             pr = pr or values.get("pr", "")
-    elif meta.exists() or meta.is_symlink():
+    elif (meta.exists() or meta.is_symlink()
+          or (action == "expire" and ((state / f"{task_id}.backlog-close").exists()
+                                     or (state / f"{task_id}.backlog-close").is_symlink()))):
         raise ValueError(f"task is still live: {task_id}")
     root = data / task_id
     if not root.exists() and not root.is_symlink():
@@ -760,7 +764,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
             source["beads"] = sorted({bead for bead in source["beads"] if is_bead_id(bead)})
         if action == "expire" and record.get("expired"):
             return
-    elif action == "expire":
+    elif action in ("expire", "retire"):
         return
     new_legacy = action == "prepare" and values is None and (
         record is None or (record.get("expired") and any(
@@ -773,7 +777,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
             return
-    if action == "prepare" and values is None:
+    if action in ("prepare", "retire") and values is None:
         if new_legacy:
             project, pr = legacy["project"], legacy["pr"]
         else:
@@ -806,7 +810,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
             "project": project, "pr": pr, "beads": legacy["beads"],
             "backlog": {"data": str(data), "task": task_id, "legacy": True, "text": legacy["text"]},
         })
-    if action in ("prepare", "stage"):
+    if action in ("prepare", "stage", "retire"):
         source = next((item for item in record["sources"]
                        if item["project"] == project and item["pr"] == pr
                        and item.get("backlog", {"data": str(data)})["data"] == str(data)), None)
@@ -922,14 +926,14 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(0)
     try:
-        arities = {"prepare": {5, 6}, "stage": {7}, "expire": {5}, "pending": {3}, "mark": {5}}
+        arities = {"prepare": {5, 6}, "retire": {5, 6}, "stage": {7}, "expire": {5}, "pending": {3}, "mark": {5}}
         if len(sys.argv) < 2 or len(sys.argv) not in arities.get(sys.argv[1], ()):
             raise ValueError(__doc__)
         if sys.argv[1] == "pending":
             pending(sys.argv[2])
         elif sys.argv[1] == "mark":
             mark(*sys.argv[2:])
-        elif sys.argv[1] == "prepare" and len(sys.argv) == 6:
+        elif sys.argv[1] in ("prepare", "retire") and len(sys.argv) == 6:
             cleanup(*sys.argv[1:5], pr=sys.argv[5])
         else:
             cleanup(*sys.argv[1:])

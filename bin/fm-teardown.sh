@@ -3978,14 +3978,6 @@ if [ -e "$HERDR_PRESENTATION_JOURNAL" ] || [ -L "$HERDR_PRESENTATION_JOURNAL" ];
     echo "warning: retaining herdr presentation journal for $ID; it still names a projected workspace the session-start sweep owns, not the closed endpoint" >&2
   fi
 fi
-if [ "$KIND" != secondmate ] && ! fm_task_data_sweep_request "$STATE" "$ID"; then
-  if [ "$BACKLOG_CLOSED" = 1 ] && ! fm_backlog_close_marker_clear "$STATE" "$ID"; then
-    echo "error: $ID's task-data completion could not be published or its pending retirement cancelled ($FM_BACKLOG_TRANSITION_ERROR); retaining its task record" >&2
-    exit 1
-  fi
-  echo "error: $ID's task-data completion could not be published; retaining its task record and data, retry teardown" >&2
-  exit 1
-fi
 # The record is gone, so the backlog must not still show this task in flight
 # when teardown reports success. Still under this task's meta lock, so a steer
 # racing the same id stays serialized exactly as it was before. A captain-held
@@ -4016,10 +4008,6 @@ else
     echo "error: $ID's endpoint and local copy are cleaned up, but its task record could not be removed ($FM_BACKLOG_TRANSITION_ERROR)" >&2
     exit 1
   fi
-fi
-if [ "$KIND" != secondmate ]; then
-  fm_task_data_cleanup "$DATA" "$STATE" "$ID" "$PROJ" "$PR_URL" \
-    || echo "warning: $ID teardown completed, but task-data cleanup needs a retry" >&2
 fi
 fm_lock_release "$META_LOCK"
 META_LOCK_HELD=0
