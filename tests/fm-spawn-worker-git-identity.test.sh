@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# tests/fm-spawn-worker-git-identity.test.sh - config/worker-git-identity makes
-# every agent this fleet launches commit as that identity, without writing the
-# captain's global git config or the project's shared repository config.
+# tests/fm-spawn-worker-git-identity.test.sh - every agent commits as gsp-agent
+# or the configured identity, without writing the captain's global git config
+# or the project's shared repository config.
 #
 # The assertions never read bin/fm-spawn.sh's source. They drive the real spawn
 # against a fake pane and a real isolated git worktree, then EXECUTE the launch
@@ -19,7 +19,6 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-worker-git-identity)
 AGENT_NAME='Fleet Agent'
 AGENT_EMAIL='fleet-agent@example.invalid'
 AGENT_IDENT="$AGENT_NAME <$AGENT_EMAIL>"
-CAPTAIN_IDENT='Captain Person <captain@example.invalid>'
 CAPTAIN_GITCONFIG="$TMP_ROOT/captain.gitconfig"
 printf '[user]\n\tname = Captain Person\n\temail = captain@example.invalid\n' > "$CAPTAIN_GITCONFIG"
 
@@ -71,13 +70,14 @@ SH
 
 # Replay the pane exports and the emitted launch in <dir>, the way the pane
 # shell would run them, with the captain's identity as the global git config.
-emitted_launch_git() {  # <fakebin> <launch-log> <pane-log> <dir>
-  local launch preamble
+emitted_launch_git() {  # <fakebin> <launch-log> <pane-log> <dir> [NAME=value]...
+  local launch preamble fakebin=$1 dir=$4
   launch=$(cat "$2")
   preamble=$(grep '^export ' "$3")
-  (cd "$4" && env -i HOME="$TMP_ROOT/pane-home" PATH="$1:$PATH" TERM=xterm \
+  shift 4
+  (cd "$dir" && env -i HOME="$TMP_ROOT/pane-home" PATH="$fakebin:$PATH" TERM=xterm \
     TMUX=synthetic-pane GIT_CONFIG_GLOBAL="$CAPTAIN_GITCONFIG" GIT_CONFIG_NOSYSTEM=1 \
-    /bin/sh -c "$preamble
+    "$@" /bin/sh -c "$preamble
 $launch")
 }
 
@@ -87,11 +87,12 @@ probe_field() {  # <probe-output> <field>
 
 file_sum() { cksum < "$1"; }
 
-assert_agent_commit() {  # <probe-output> <label>
-  assert_equals "$AGENT_NAME" "$(probe_field "$1" name)" "$2: git config user.name"
-  assert_equals "$AGENT_EMAIL" "$(probe_field "$1" email)" "$2: git config user.email"
-  assert_equals "$AGENT_IDENT" "$(probe_field "$1" author)" "$2: the first commit's author"
-  assert_equals "$AGENT_IDENT" "$(probe_field "$1" committer)" "$2: the first commit's committer"
+assert_agent_commit() {  # <probe-output> <label> [name] [email]
+  local name=${3:-$AGENT_NAME} email=${4:-$AGENT_EMAIL}
+  assert_equals "$name" "$(probe_field "$1" name)" "$2: git config user.name"
+  assert_equals "$email" "$(probe_field "$1" email)" "$2: git config user.email"
+  assert_equals "$name <$email>" "$(probe_field "$1" author)" "$2: the first commit's author"
+  assert_equals "$name <$email>" "$(probe_field "$1" committer)" "$2: the first commit's committer"
 }
 
 test_ship_commits_as_the_configured_identity() {
@@ -146,7 +147,7 @@ test_identity_applies_when_ai_trailers_are_kept() {
   pass "the identity applies on its own when the home keeps AI trailers"
 }
 
-test_absent_identity_leaves_git_identity_alone() {
+test_absent_identity_uses_the_agent_default() {
   local rec id out status seen
   id=ident-absent-a1
   rec=$(make_case absent codex "$id")
@@ -155,14 +156,57 @@ test_absent_identity_leaves_git_identity_alone() {
   out=$(run_case_spawn "$id" "$PROJ_DIR" --mode no-mistakes --yolo off)
   status=$?
   expect_code 0 "$status" "spawn without a worker git identity should succeed: $out"
-  assert_not_contains "$(cat "$LAUNCH_LOG")" 'user.email' \
-    "a home without config/worker-git-identity must not set an identity"
   install_git_probe "$FAKEBIN_DIR" codex
   seen=$(emitted_launch_git "$FAKEBIN_DIR" "$LAUNCH_LOG" "$PANE_LOG" "$WT_DIR") \
     || fail "absent identity: the emitted launch failed to run"$'\n'"$seen"
-  assert_equals "$CAPTAIN_IDENT" "$(probe_field "$seen" author)" \
-    "without the setting a worker keeps git's own identity resolution"
-  pass "an absent config/worker-git-identity leaves the worker's git identity unchanged"
+  assert_agent_commit "$seen" "unconfigured worker" gsp-agent dale+gspagent@groovejones.com
+  pass "an unconfigured worker's first commit carries the gsp-agent identity"
+}
+
+test_raw_identity_overrides_refuse_the_spawn() {
+  local rec id out status seen override n=0
+  for override in \
+    "GIT_AUTHOR_NAME='Captain Person' GIT_AUTHOR_EMAIL=captain@example.invalid identity-probe --commit" \
+    "env GIT_AUTHOR_EMAIL=captain@example.invalid identity-probe --commit" \
+    "GIT_COMMITTER_NAME='Captain Person' identity-probe --commit" \
+    "export GIT_COMMITTER_EMAIL=captain@example.invalid; identity-probe --commit"; do
+    n=$((n + 1))
+    id="ident-raw-$n"
+    rec=$(make_case "raw-$n" codex "$id")
+    read_case "$rec"
+    printf '%s\n' "$AGENT_IDENT" > "$HOME_DIR/config/worker-git-identity"
+
+    out=$(run_case_spawn "$id" "$PROJ_DIR" "$override" --mode no-mistakes --yolo off)
+    status=$?
+    if [ "$status" -eq 0 ]; then
+      install_git_probe "$FAKEBIN_DIR" identity-probe
+      seen=$(emitted_launch_git "$FAKEBIN_DIR" "$LAUNCH_LOG" "$PANE_LOG" "$WT_DIR") \
+        || fail "raw override: the emitted launch failed to run"$'\n'"$seen"
+      fail "a raw identity override launched a worker: $seen"
+    fi
+    assert_contains "$out" 'worker git identity' "the raw override refusal should explain the conflict"
+    assert_equals '' "$(cat "$LAUNCH_LOG")" "a raw identity override still launched a worker"
+  done
+  pass "raw author and committer overrides refuse the spawn before launch"
+}
+
+test_raw_launch_replaces_inherited_identity() {
+  local rec id out status seen
+  id=ident-inherited-a1
+  rec=$(make_case inherited codex "$id")
+  read_case "$rec"
+  : > "$HOME_DIR/config/keep-ai-trailers"
+
+  out=$(run_case_spawn "$id" "$PROJ_DIR" 'identity-probe --commit' --mode no-mistakes --yolo off)
+  status=$?
+  expect_code 0 "$status" "a raw launch without identity assignments should succeed: $out"
+  install_git_probe "$FAKEBIN_DIR" identity-probe
+  seen=$(emitted_launch_git "$FAKEBIN_DIR" "$LAUNCH_LOG" "$PANE_LOG" "$WT_DIR" \
+    'GIT_AUTHOR_NAME=Captain Person' GIT_AUTHOR_EMAIL=captain@example.invalid \
+    'GIT_COMMITTER_NAME=Captain Person' GIT_COMMITTER_EMAIL=captain@example.invalid) \
+    || fail "inherited identity: the emitted launch failed to run"$'\n'"$seen"
+  assert_agent_commit "$seen" "raw worker with inherited identity" gsp-agent dale+gspagent@groovejones.com
+  pass "an unconfigured raw worker replaces inherited author and committer identity with trailers kept"
 }
 
 test_malformed_identity_refuses_the_spawn() {
@@ -225,6 +269,8 @@ test_secondmate_and_its_crew_inherit_the_identity() {
 
 test_ship_commits_as_the_configured_identity
 test_identity_applies_when_ai_trailers_are_kept
-test_absent_identity_leaves_git_identity_alone
+test_absent_identity_uses_the_agent_default
+test_raw_identity_overrides_refuse_the_spawn
+test_raw_launch_replaces_inherited_identity
 test_malformed_identity_refuses_the_spawn
 test_secondmate_and_its_crew_inherit_the_identity

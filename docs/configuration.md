@@ -1121,11 +1121,12 @@ The flag does not govern the `Made-with:` lines Firstmate adds to a task's GitHu
 
 ### Worker git identity
 
-The optional local, gitignored `config/worker-git-identity` holds one line in git's `Name <email>` form, such as `fleet-agent <fleet-agent@example.com>`.
-With it present, every crewmate, scout, and secondmate this home launches commits as that identity from its first commit, on a fresh spawn and on a relaunch alike.
+Every crewmate, scout, and secondmate this home launches commits as `gsp-agent <dale+gspagent@groovejones.com>` by default, from its first commit on fresh spawns and relaunches alike.
+The optional local, gitignored `config/worker-git-identity` selects a different worker identity with one line in git's `Name <email>` form, such as `fleet-agent <fleet-agent@example.com>`.
 The launch carries it in the same pane-scoped `GIT_CONFIG` export as the AI-trailer `core.hooksPath`, as `user.name` and `user.email`, so `git config user.email` inside the launched agent reports it and it takes precedence over any repository or global identity there.
+It also replaces inherited `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, and `GIT_COMMITTER_EMAIL`, which Git otherwise ranks above configuration.
+Raw launch commands assigning those variables refuse before launch; select the worker identity through `config/worker-git-identity` instead.
 No git config file is written: the captain's `~/.gitconfig` and the project's shared repository config keep their values, so the captain's own commits, and any shell outside a launched agent, keep the captain's identity.
-With the file absent, launched agents resolve their identity from git's config files as before.
 A file that does not hold one well-formed line refuses the spawn before launch rather than falling back to another identity.
 The setting is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract, so a secondmate's own workers commit as the same identity.
 Commits a no-mistakes pipeline makes in its own worktrees are outside this setting, because its daemon runs outside every launched agent's environment and takes its identity from the repository's own config.

@@ -564,13 +564,16 @@
 # owns the identities, the hook install, and chaining the repository git is
 # actually running in so a project husky hook still runs. Author identity is
 # not rewritten.
-# When config/worker-git-identity holds a "Name <email>" line, every spawn adds
-# user.name and user.email to that same pane-scoped GIT_CONFIG export, so the
+# Every spawn defaults to gsp-agent <dale+gspagent@groovejones.com>, or the
+# "Name <email>" in config/worker-git-identity. It adds user.name and user.email
+# to that same pane-scoped GIT_CONFIG export, so the
 # launched agent commits as that identity from its first commit and
 # `git config user.email` inside the pane reports it. No git config file is
 # written: ~/.gitconfig and the project's shared repository config keep their
 # values. A file that does not hold one well-formed line refuses the spawn
-# before launch. docs/configuration.md "Worker git identity" owns the setting.
+# before launch. Author and committer environment variables are replaced too;
+# raw launch commands assigning them are refused. docs/configuration.md
+# "Worker git identity" owns the setting.
 # Publishing the record and moving this home's backlog item to In flight are one
 # step, not two: bin/fm-backlog-transition-lib.sh owns that invariant, and this
 # script performs the transition under the task's own meta lock before it reports
@@ -731,8 +734,8 @@ if ! KEEP_AI_TRAILERS=$(fm_config_source_present "$CONFIG/keep-ai-trailers"); th
   exit 1
 fi
 # config/worker-git-identity: one "Name <email>" line (see the header above).
-WORKER_GIT_NAME=
-WORKER_GIT_EMAIL=
+WORKER_GIT_NAME=gsp-agent
+WORKER_GIT_EMAIL=dale+gspagent@groovejones.com
 if ! WORKER_GIT_IDENTITY_PRESENT=$(fm_config_source_present "$CONFIG/worker-git-identity"); then
   exit 1
 fi
@@ -2721,6 +2724,12 @@ case "$ARG3" in
 *' '*) # raw launch command (unverified-adapter escape hatch)
   RAW_LAUNCH=1
   LAUNCH=$ARG3
+  case "$LAUNCH" in
+  *GIT_AUTHOR_NAME=* | *GIT_AUTHOR_EMAIL=* | *GIT_COMMITTER_NAME=* | *GIT_COMMITTER_EMAIL=*)
+    echo "error: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments" >&2
+    exit 1
+    ;;
+  esac
   HARNESS=""
   for word in $LAUNCH; do
     case "$word" in [A-Za-z_]*=*) continue ;; *)
@@ -6114,13 +6123,11 @@ spawn_git_config_add() {  # <key> <value>
 if [ "$KEEP_AI_TRAILERS" = 0 ]; then
   spawn_git_config_add core.hooksPath "$GIT_HOOKS_DIR"
 fi
-if [ -n "$WORKER_GIT_EMAIL" ]; then
-  spawn_git_config_add user.name "$WORKER_GIT_NAME"
-  spawn_git_config_add user.email "$WORKER_GIT_EMAIL"
-fi
-if [ "$GIT_CONFIG_EXPORT_COUNT" -gt 0 ]; then
-  LAUNCH="export GIT_CONFIG_COUNT=$GIT_CONFIG_EXPORT_COUNT$GIT_CONFIG_EXPORT; $LAUNCH"
-fi
+spawn_git_config_add user.name "$WORKER_GIT_NAME"
+spawn_git_config_add user.email "$WORKER_GIT_EMAIL"
+LAUNCH="export GIT_CONFIG_COUNT=$GIT_CONFIG_EXPORT_COUNT$GIT_CONFIG_EXPORT; $LAUNCH"
+# Git's author/committer environment takes precedence even over command config.
+LAUNCH="export GIT_AUTHOR_NAME=$(shell_quote "$WORKER_GIT_NAME") GIT_AUTHOR_EMAIL=$(shell_quote "$WORKER_GIT_EMAIL") GIT_COMMITTER_NAME=$(shell_quote "$WORKER_GIT_NAME") GIT_COMMITTER_EMAIL=$(shell_quote "$WORKER_GIT_EMAIL"); $LAUNCH"
 # Every agent this fleet launches - crewmate, scout, and secondmate, on a fresh
 # spawn and on a relaunch alike - runs with the compact-adviser kill switch on.
 # This is an export statement rather than a forwarded ambient name or a
