@@ -1,0 +1,112 @@
+Isolated session: fm-lab-pane-live-second
+{"client":{"version":"0.9.1","channel":"stable","protocol":22,"endpoint_protocol_generation":1,"endpoint_capabilities":["surface_interest","presentation_effects_fence","health_check"],"remote_host_bridge":true,"remote_bridge_idle_timeout":true,"binary":"/Users/dalecarman/.local/bin/herdr","session":"fm-lab-pane-live-second"},"server":{"status":"running","running":true,"version":"0.9.1","protocol":22,"capabilities":{"live_handoff":true,"detached_server_daemon":false,"endpoint_protocol_generation":1,"surface_interest":true,"health_check":true},"compatible":true,"endpoint_compatible":true,"socket":"/Users/dalecarman/.config/herdr/sessions/fm-lab-pane-live-second/herdr.sock","session":"fm-lab-pane-live-second","restart_needed":false,"server_binary_stale":false},"update":{"restart_needed":false,"server_binary_stale":false}}
+Before close-done: state: done · source: status-log · disposable completed worker
+close-done baseline terminal pane exists: PASS
+state: done · source: status-log · disposable completed worker
+scan main-live: actionable: inactive terminal outcome awaiting captain presentation: child=close-done state=done
+close-done removed and terminal result retained: PASS
+state: done · source: status-log · retained terminal outcome: herdr pane intentionally closed
+schema=fm-terminal-outcome.v1
+fingerprint=8276ae3502d00fc46b42c455a89d07f3
+task_id=close-done
+incarnation=live-close-done
+state=done
+outcome_key=inactive-outcome-main-close-done-done
+origin=direct
+pr=
+created_epoch=1792599124
+notice_emitted=0
+status_head=1ed28c0066f4263505e67b80e71e525a
+pane_close_target=fm-lab-pane-live-second:w1:p1
+phase=presentation
+
+Before close-failed: state: failed · source: status-log · disposable completed worker
+close-failed baseline terminal pane exists: PASS
+state: failed · source: status-log · disposable completed worker
+scan main-live: actionable: inactive terminal outcome awaiting captain presentation: child=close-failed state=failed
+close-failed removed and terminal result retained: PASS
+state: failed · source: status-log · retained terminal outcome: herdr pane intentionally closed
+schema=fm-terminal-outcome.v1
+fingerprint=4ae3e5e00c05160ca3ba3a666083bc7f
+task_id=close-failed
+incarnation=live-close-failed
+state=failed
+outcome_key=inactive-outcome-main-close-failed-failed
+origin=direct
+pr=
+created_epoch=1792599134
+notice_emitted=0
+status_head=d5b02e1f0d120a7541e95587f498f06a
+pane_close_target=fm-lab-pane-live-second:w2:p1
+phase=presentation
+
+scan home-busy: 
+busy keeps terminal pane open: PASS
+state: working · source: pane · harness busy (claude-hook)
+scan home-unknown: 
+unknown keeps terminal pane open: PASS
+state: unknown · source: pane · harness state unavailable (unknown claude-hook)
+scan home-prevalidation: actionable: inactive terminal outcome awaiting captain presentation: child=guard-prevalidation state=done
+prevalidation keeps terminal pane open: PASS
+state: done · source: status-log · implementation ready for validation
+scan home-held: 
+held keeps terminal pane open: PASS
+state: unknown · source: none · no current-state source available
+scan home-recent: 
+recent keeps terminal pane open: PASS
+state: failed · source: status-log · disposable failure
+Inbox enqueue pending: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FAPAF0D3J798QZSVJHE250/.tmp-pane-validation/live-second/home-pending/state/guard-pending.inbox/001.msg
+scan home-pending: actionable: inactive terminal outcome awaiting captain presentation: child=guard-pending state=failed
+pending keeps terminal pane open: PASS
+state: failed · source: status-log · disposable failure
+Inbox enqueue fire-and-forget: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FAPAF0D3J798QZSVJHE250/.tmp-pane-validation/live-second/home-fire-and-forget/state/guard-fire-and-forget.inbox/001.msg
+scan home-fire-and-forget: actionable: inactive terminal outcome awaiting captain presentation: child=guard-fire-and-forget state=failed
+fire-and-forget keeps terminal pane open: PASS
+state: failed · source: status-log · disposable failure
+scan home-identity: fm-inactive-reconcile: guard-identity terminal pane left open: endpoint identity not proven
+actionable: inactive terminal outcome awaiting captain presentation: child=guard-identity state=failed
+identity keeps terminal pane open: PASS
+state: failed · source: status-log · disposable failure
+scan mate-live: 
+scan mate-live: 
+ledger-done closes and reports to parent once: PASS
+state: done · source: status-log · retained terminal outcome: herdr pane intentionally closed
+done [key=child-outcome-ledger-done-done-48db5adb] [at=1792599168]: child ledger-done done: disposable scout report complete mode=no-mistakes yolo=off report=data/ledger-done/report.md
+
+scan mate-live: 
+scan mate-live: 
+ledger-failed closes and reports to parent once: PASS
+state: failed · source: status-log · retained terminal outcome: herdr pane intentionally closed
+done [key=child-outcome-ledger-done-done-48db5adb] [at=1792599168]: child ledger-done done: disposable scout report complete mode=no-mistakes yolo=off report=data/ledger-done/report.md
+failed [key=child-outcome-ledger-failed-failed-701e91e8] [at=1792599186]: child ledger-failed failed: disposable scout report complete mode=no-mistakes yolo=off report=data/ledger-failed/report.md
+
+closed result rejects another incarnation: PASS
+state: unknown · source: none · backend target gone: fm-lab-pane-live-second:w1:p1
+NATIVE UNTESTED: CLI did not reach a usable composer.
+env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE -u FM_CONF
+IG_OVERRIDE -u FM_PROJECTS_OVERRIDE claude --safe-mode --permission-mode auto --tools ""
+
+╭─.tmp-pane-validation/live-second/claude-live on 🌱 HEAD [?]
+╰─❯ env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE -u FM_
+CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE claude --safe-mode --permission-mode auto --tools ""
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Accessing workspace:
+
+ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FAPAF0D3J798QZSVJHE250/.tmp-pane-validation/live-second/clau
+ de-live
+
+ Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source
+ project, or work from your team). If not, take a moment to review what's in this folder first.
+
+ Claude Code'll be able to read, edit, and execute files here.
+
+ Security guide
+
+ ❯ No, exit
+   Yes, I trust this folder
+
+ Enter to confirm · Esc to cancel
+
+Guarded lab cleanup exit 0
+

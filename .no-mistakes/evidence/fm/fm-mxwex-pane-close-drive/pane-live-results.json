@@ -1,0 +1,82 @@
+[
+  {
+    "name": "close-done baseline terminal pane exists",
+    "pass": true,
+    "details": "state: done \u00b7 source: status-log \u00b7 disposable completed worker"
+  },
+  {
+    "name": "close-done removed and terminal result retained",
+    "pass": true,
+    "details": "state: done \u00b7 source: status-log \u00b7 retained terminal outcome: herdr pane intentionally closed\nschema=fm-terminal-outcome.v1\nfingerprint=8276ae3502d00fc46b42c455a89d07f3\ntask_id=close-done\nincarnation=live-close-done\nstate=done\noutcome_key=inactive-outcome-main-close-done-done\norigin=direct\npr=\ncreated_epoch=1792599124\nnotice_emitted=0\nstatus_head=1ed28c0066f4263505e67b80e71e525a\npane_close_target=fm-lab-pane-live-second:w1:p1\nphase=presentation\n"
+  },
+  {
+    "name": "close-failed baseline terminal pane exists",
+    "pass": true,
+    "details": "state: failed \u00b7 source: status-log \u00b7 disposable completed worker"
+  },
+  {
+    "name": "close-failed removed and terminal result retained",
+    "pass": true,
+    "details": "state: failed \u00b7 source: status-log \u00b7 retained terminal outcome: herdr pane intentionally closed\nschema=fm-terminal-outcome.v1\nfingerprint=4ae3e5e00c05160ca3ba3a666083bc7f\ntask_id=close-failed\nincarnation=live-close-failed\nstate=failed\noutcome_key=inactive-outcome-main-close-failed-failed\norigin=direct\npr=\ncreated_epoch=1792599134\nnotice_emitted=0\nstatus_head=d5b02e1f0d120a7541e95587f498f06a\npane_close_target=fm-lab-pane-live-second:w2:p1\nphase=presentation\n"
+  },
+  {
+    "name": "busy keeps terminal pane open",
+    "pass": true,
+    "details": "state: working \u00b7 source: pane \u00b7 harness busy (claude-hook)"
+  },
+  {
+    "name": "unknown keeps terminal pane open",
+    "pass": true,
+    "details": "state: unknown \u00b7 source: pane \u00b7 harness state unavailable (unknown claude-hook)"
+  },
+  {
+    "name": "prevalidation keeps terminal pane open",
+    "pass": true,
+    "details": "state: done \u00b7 source: status-log \u00b7 implementation ready for validation"
+  },
+  {
+    "name": "held keeps terminal pane open",
+    "pass": true,
+    "details": "state: unknown \u00b7 source: none \u00b7 no current-state source available"
+  },
+  {
+    "name": "recent keeps terminal pane open",
+    "pass": true,
+    "details": "state: failed \u00b7 source: status-log \u00b7 disposable failure"
+  },
+  {
+    "name": "pending keeps terminal pane open",
+    "pass": true,
+    "details": "state: failed \u00b7 source: status-log \u00b7 disposable failure"
+  },
+  {
+    "name": "fire-and-forget keeps terminal pane open",
+    "pass": true,
+    "details": "state: failed \u00b7 source: status-log \u00b7 disposable failure"
+  },
+  {
+    "name": "identity keeps terminal pane open",
+    "pass": true,
+    "details": "state: failed \u00b7 source: status-log \u00b7 disposable failure"
+  },
+  {
+    "name": "ledger-done closes and reports to parent once",
+    "pass": true,
+    "details": "state: done \u00b7 source: status-log \u00b7 retained terminal outcome: herdr pane intentionally closed\ndone [key=child-outcome-ledger-done-done-48db5adb] [at=1792599168]: child ledger-done done: disposable scout report complete mode=no-mistakes yolo=off report=data/ledger-done/report.md\n"
+  },
+  {
+    "name": "ledger-failed closes and reports to parent once",
+    "pass": true,
+    "details": "state: failed \u00b7 source: status-log \u00b7 retained terminal outcome: herdr pane intentionally closed\ndone [key=child-outcome-ledger-done-done-48db5adb] [at=1792599168]: child ledger-done done: disposable scout report complete mode=no-mistakes yolo=off report=data/ledger-done/report.md\nfailed [key=child-outcome-ledger-failed-failed-701e91e8] [at=1792599186]: child ledger-failed failed: disposable scout report complete mode=no-mistakes yolo=off report=data/ledger-failed/report.md\n"
+  },
+  {
+    "name": "closed result rejects another incarnation",
+    "pass": true,
+    "details": "state: unknown \u00b7 source: none \u00b7 backend target gone: fm-lab-pane-live-second:w1:p1"
+  },
+  {
+    "name": "native CLI serialized with closure",
+    "pass": null,
+    "details": "env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE -u FM_CONF\nIG_OVERRIDE -u FM_PROJECTS_OVERRIDE claude --safe-mode --permission-mode auto --tools \"\"\n\n\u256d\u2500.tmp-pane-validation/live-second/claude-live on \ud83c\udf31 HEAD [?]\n\u2570\u2500\u276f env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE -u FM_\nCONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE claude --safe-mode --permission-mode auto --tools \"\"\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n Accessing workspace:\n\n /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FAPAF0D3J798QZSVJHE250/.tmp-pane-validation/live-second/clau\n de-live\n\n Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source\n project, or work from your team). If not, take a moment to review what's in this folder first.\n\n Claude Code'll be able to read, edit, and execute files here.\n\n Security guide\n\n \u276f No, exit\n   Yes, I trust this folder\n\n Enter to confirm \u00b7 Esc to cancel\n"
+  }
+]

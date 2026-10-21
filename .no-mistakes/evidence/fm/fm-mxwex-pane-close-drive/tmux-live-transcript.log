@@ -1,0 +1,97 @@
+Before done: state: done · source: status-log · disposable terminal worker
+
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done
+
+After done: state: done · source: status-log · disposable terminal worker
+
+TMUX disposable terminal worker
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PASS: done worker on default tmux backend retains its window and terminal result.
+Before failed: state: failed · source: status-log · disposable terminal worker
+
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=failed
+
+After failed: state: failed · source: status-log · disposable terminal worker
+
+TMUX disposable terminal worker
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PASS: failed worker on default tmux backend retains its window and terminal result.
+Private tmux server stopped.
