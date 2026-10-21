@@ -152,8 +152,10 @@
 #      attributed to this crew, a dead endpoint also reports unknown · none rather
 #      than trusting a stale status log. On tmux and herdr, which own a
 #      recovery-grade classifier, only its positive death evidence reads as gone
-#      (the endpoint is authoritatively absent, or its pane holds no agent); an
-#      endpoint that merely failed to answer reports unknown · none as
+#      (the endpoint is authoritatively absent, or its pane holds no agent).
+#      An intentionally closed herdr pane retains its accepted terminal outcome
+#      when the receipt matches its exact endpoint and spawn_gen incarnation.
+#      An endpoint that merely failed to answer reports unknown · none as
 #      unreachable, and an alive endpoint whose scrollback read failed is still
 #      classified by step 4. Backends with no classifier keep reading a failed
 #      capture as gone. The fallback's own comment owns the per-verdict rules.
@@ -1302,7 +1304,25 @@ if ! pane_readable "$BACKEND_TARGET"; then
   case "$TASK_BACKEND:$AGENT_STATE" in
     tmux:alive|herdr:alive)
       ;;
-    tmux:missing|herdr:missing)
+    herdr:missing)
+      closed_spawn_gen=$(meta_value spawn_gen)
+      if [ -n "$closed_spawn_gen" ] && [ ! -L "$STATE/terminal-outcomes" ]; then
+        for closed_record in "$STATE/terminal-outcomes"/*.pending "$STATE/terminal-outcomes"/*.reported "$STATE/terminal-outcomes"/*.presented; do
+          [ -f "$closed_record" ] && [ ! -L "$closed_record" ] || continue
+          [ "$(fm_backend_meta_exact_value "$closed_record" schema)" = fm-terminal-outcome.v1 ] || continue
+          [ "$(fm_backend_meta_exact_value "$closed_record" task_id)" = "$ID" ] || continue
+          [ "$(fm_backend_meta_exact_value "$closed_record" incarnation)" = "$closed_spawn_gen" ] || continue
+          [ "$(fm_backend_meta_exact_value "$closed_record" pane_close_target)" = "$BACKEND_TARGET" ] || continue
+          closed_state=$(fm_backend_meta_exact_value "$closed_record" state)
+          [ "$closed_state" = "$LOG_VERB" ] || continue
+          case "$closed_state" in
+            done|failed) emit "$closed_state" status-log "retained terminal outcome: herdr pane intentionally closed" ;;
+          esac
+        done
+      fi
+      emit unknown none "backend target gone: $BACKEND_TARGET"
+      ;;
+    tmux:missing)
       emit unknown none "backend target gone: $BACKEND_TARGET"
       ;;
     tmux:dead|herdr:dead)

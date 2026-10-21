@@ -50,17 +50,19 @@
 # It considers only a direct ordinary crewmate whose newest meta, status, or
 # turn-ended mtime is older than that interval and whose last status is not
 # captain-held. In a secondmate home a child whose ledger already ends in a
-# terminal done or failed line belongs to the ledger-first path above and is
-# skipped here, so one outcome is never reported twice. It then uses
-# fm-crew-state.sh as the sole current-state source.
+# terminal done or failed line belongs to the ledger-first delivery path above,
+# but remains eligible for pane closure. It uses fm-crew-state.sh as the sole
+# current-state source.
 # Only a done or failed state is suspicious enough to create a durable terminal
 # outcome record or wake the supervisor.
 # Working, paused, parked, blocked, unknown, persistent secondmates, and
 # captain-held work retain their existing supervision semantics.
 #
-# A done or failed crewmate's turn is over, so its session pane no longer needs
-# to stay resident: the scan also closes the task's backend pane through
-# fm_backend_kill (FM_INACTIVE_CLOSE_PANE=0 disables). Only the pane closes.
+# An aged done or failed herdr crewmate with positive semantic idle evidence
+# may have its pane closed through fm_backend_kill. A no-mistakes ship's
+# pre-validation done handoff stays open, as do all other runtime backends.
+# Only the pane closes, after the accepted terminal outcome and close target
+# are durable in the incarnation-bound receipt.
 # The meta, worktree, status, and transcript stay on disk for teardown, and a
 # later follow-up wakes the task through fm-control's relaunch, which is the
 # documented wake for an exited agent. Endpoint identity is proven with the
@@ -78,7 +80,9 @@
 #
 # New fm-terminal-outcome.v1 receipts contain schema, fingerprint, task_id,
 # incarnation, state, outcome_key, origin, phase, pr, created_epoch, and
-# notice_emitted, plus optional status_head and ledger_claim fields. The
+# notice_emitted, plus optional status_head, ledger_claim, and pane_close_target
+# fields. pane_close_target binds an intentional herdr close to its exact
+# endpoint and spawn_gen incarnation for fm-crew-state.sh's retained reading. The
 # inactive-path fingerprint binds only the spawn incarnation, task id, terminal
 # state, and PR text, never the child's last status line, so a child that keeps
 # appending routine prose after one terminal outcome yields at most one parent
@@ -117,15 +121,8 @@ CREW_STATE_BIN="${FM_INACTIVE_CREW_STATE_BIN:-$SCRIPT_DIR/fm-crew-state.sh}"
 . "$SCRIPT_DIR/fm-dod-lib.sh"
 # shellcheck source=bin/fm-backend.sh
 . "$SCRIPT_DIR/fm-backend.sh"
-
-FM_INACTIVE_CLOSE_PANE=${FM_INACTIVE_CLOSE_PANE:-1}
-case "$FM_INACTIVE_CLOSE_PANE" in
-  0|1) ;;
-  *)
-    printf 'fm-inactive-reconcile: FM_INACTIVE_CLOSE_PANE must be 0 or 1\n' >&2
-    exit 2
-    ;;
-esac
+# shellcheck source=bin/fm-busy-lib.sh
+. "$SCRIPT_DIR/fm-busy-lib.sh"
 
 FM_INACTIVE_RECONCILE_SECS=${FM_INACTIVE_RECONCILE_SECS:-900}
 case "$FM_INACTIVE_RECONCILE_SECS" in
@@ -515,26 +512,59 @@ report_child() { # <id>
   report_child_ledger_locked "$id" "$meta"
 }
 
-# Close a terminal crewmate's backend pane, keeping every durable record.
+# Close a terminal herdr crewmate's pane, keeping every durable record.
 # Best-effort by design: teardown stays the authoritative cleanup, and a
 # follow-up wakes the task through fm-control's relaunch. Any doubt about the
 # endpoint's identity, or a close that cannot do its job, warns and leaves the
 # pane exactly as it was.
-close_terminal_child_pane() { # <id> <meta>
-  local id=$1 meta=$2
-  [ "$FM_INACTIVE_CLOSE_PANE" = 1 ] || return 0
+close_terminal_child_pane() { # <id> <meta> <fingerprint>
+  local id=$1 meta=$2 fingerprint=$3 record suffix kind mode last state spawn_gen busy
+  [ "$(meta_field "$meta" backend)" = herdr ] || return 0
+  spawn_gen=$(meta_field "$meta" spawn_gen)
+  valid_id "$spawn_gen" || return 0
+  record=
+  for suffix in pending reported presented; do
+    record=$(record_path "$fingerprint" "$suffix")
+    [ -f "$record" ] && [ ! -L "$record" ] && break
+    record=
+  done
+  [ -n "$record" ] || return 0
+  [ "$(record_value "$record" incarnation)" = "$spawn_gen" ] || return 0
+  state=$(record_value "$record" state)
+  case "$state" in done|failed) ;; *) return 0 ;; esac
+  last=$(last_status_line "$STATE/$id.status")
+  [ "$(status_line_verb "$last")" != captain-held ] || return 0
+  kind=$(meta_field "$meta" kind)
+  mode=$(meta_field "$meta" mode)
+  if [ "$state" = done ] && [ "${kind:-ship}" = ship ]; then
+    case "$mode" in
+      no-mistakes|'')
+        if [ "$(status_line_verb "$last")" = done ] \
+          && ! fm_dod_should_gate_ship_done ship "$mode" "$last"; then
+          return 0
+        fi
+        ;;
+    esac
+  fi
+  [ "$(last_activity_age "$meta" "$STATE/$id.status" "$STATE/$id.turn-ended")" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
   if ! fm_backend_validate_task_endpoint "$meta" "$id" 2>/dev/null; then
     printf 'fm-inactive-reconcile: %s terminal pane left open: endpoint identity not proven\n' "$id" >&2
     return 0
   fi
-  fm_backend_kill "$FM_BACKEND_VALIDATED_BACKEND" "$FM_BACKEND_VALIDATED_TARGET" \
-    "$(meta_field "$meta" zellij_tab_id)" "fm-$id" \
+  busy=$(fm_busy_classify_meta "$meta" "$id" "$STATE")
+  case "$busy" in
+    'idle grok-regex') return 0 ;;
+    'idle '*) ;;
+    *) return 0 ;;
+  esac
+  record_field_set "$record" pane_close_target "$FM_BACKEND_VALIDATED_TARGET" || return 0
+  fm_backend_kill herdr "$FM_BACKEND_VALIDATED_TARGET" \
     || printf 'fm-inactive-reconcile: %s terminal pane close did not complete; pane left open\n' "$id" >&2
   return 0
 }
 
 reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeout>
-  local id=$1 meta=$2 self=${3:-} timeout=$4 status turn last age state_line state pr incarnation fingerprint outcome_key payload kind state_rc=0
+  local id=$1 meta=$2 self=${3:-} timeout=$4 status turn last age state_line state pr incarnation fingerprint outcome_key payload kind ledger_rc=1 state_rc=0
   [ -f "$meta" ] && [ ! -L "$meta" ] || return 0
   kind=$(meta_field "$meta" kind)
   [ "$kind" = secondmate ] && return 0
@@ -545,7 +575,10 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
   # A ledger that states its own outcome is the ledger-first path's to deliver.
   if [ -n "$self" ]; then
     child_terminal_ledger_line "$status" >/dev/null
-    case "$?" in 0|2) return 0 ;; esac
+    case "$?" in
+      0) [ "$(meta_field "$meta" backend)" = herdr ] || return 0 ;;
+      2) return 0 ;;
+    esac
   fi
   age=$(last_activity_age "$meta" "$status" "$turn")
   [ "$age" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
@@ -554,17 +587,22 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
   [ "$state_rc" -ne 124 ] || return 3
   last=$(last_status_line "$status")
   if [ -n "$self" ]; then
-    child_terminal_ledger_line "$status" >/dev/null
-    case "$?" in 0|2) return 0 ;; esac
+    child_terminal_ledger_line "$status" >/dev/null && ledger_rc=0 || ledger_rc=$?
+    [ "$ledger_rc" -ne 2 ] || return 0
   fi
   case "$state_line" in
     'state: done '*) state='done' ;;
     'state: failed '*) state='failed' ;;
     *) return 0 ;;
   esac
-  close_terminal_child_pane "$id" "$meta"
   pr=$(pr_for_task "$meta")
   incarnation=$(meta_incarnation "$meta")
+  if [ "$ledger_rc" -eq 0 ]; then
+    [ "$(status_line_verb "$last")" = "$state" ] || return 0
+    fingerprint=$(sha256_text "$incarnation|$id|$state|ledger|$last")
+    close_terminal_child_pane "$id" "$meta" "$fingerprint"
+    return 0
+  fi
   # The receipt identity binds structured fields only: a persistent child that
   # keeps appending routine prose after one terminal outcome must not mint a
   # fresh parent event per sentence. The last line stays in the record as
@@ -576,6 +614,7 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
     outcome_key="inactive-outcome-main-$id-$state"
   fi
   ensure_record "$fingerprint" "$id" "$incarnation" "$state" "$outcome_key" direct "upstream" "$pr" "$(sha256_text "$last")" || return 1
+  close_terminal_child_pane "$id" "$meta" "$fingerprint"
   [ -n "$RECORD_PENDING" ] || return 0
   if [ -n "$self" ]; then
     if report_to_parent "$id" "$state" "$outcome_key" "$fingerprint" "$pr"; then

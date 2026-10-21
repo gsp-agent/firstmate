@@ -11,6 +11,8 @@ GRANT="$ROOT/bin/fm-wake-grant.sh"
 WATCH="$ROOT/bin/fm-watch.sh"
 TMP_ROOT=$(fm_test_tmproot fm-inactive-reconcile)
 fm_git_identity fmtest fmtest@example.invalid
+FM_REAL_MKTEMP=$(command -v mktemp)
+export FM_REAL_MKTEMP
 
 set_mtime() { # <epoch> <path>
   local epoch=$1 path=$2 stamp
@@ -45,6 +47,50 @@ case "${1:-}" in
   kill-window) exit 0 ;;
 esac
 SH
+  cat > "$fake/herdr" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${FM_HERDR_WORLD:?}/herdr.log"
+case "${1:-} ${2:-}" in
+  'status --json')
+    printf '{"client":{"version":"0.8.0","protocol":14},"server":{"running":true}}\n' ;;
+  'session list')
+    printf '{"sessions":[{"name":"default","running":true,"socket_path":"%s/herdr.sock"}]}\n' "$FM_HERDR_WORLD" ;;
+  'workspace list') printf '{"result":{"workspaces":[]}}\n' ;;
+  'pane get')
+    [ "${FM_FAKE_HERDR_UNREACHABLE:-0}" = 1 ] && exit 1
+    if [ -e "$FM_HERDR_WORLD/herdr-closed" ]; then
+      printf '{"error":{"code":"pane_not_found"}}\n'
+      exit 1
+    fi
+    printf '{"result":{"pane":{"pane_id":"%s","tab_id":"w1:t1","workspace_id":"w1"}}}\n' "$3" ;;
+  'pane read')
+    [ "${FM_FAKE_HERDR_UNREACHABLE:-0}" = 1 ] && exit 1
+    [ ! -e "$FM_HERDR_WORLD/herdr-closed" ] || exit 1
+    printf 'all quiet\n> \n' ;;
+  'pane close')
+    for record in "$FM_STATE_OVERRIDE/terminal-outcomes"/*; do
+      [ -f "$record" ] || continue
+      if grep -Fxq "pane_close_target=default:$3" "$record"; then
+        : > "$FM_HERDR_WORLD/outcome-before-close"
+      fi
+    done
+    [ "${FM_FAKE_HERDR_CLOSE_FAIL:-0}" = 0 ] || exit 1
+    : > "$FM_HERDR_WORLD/herdr-closed" ;;
+  'agent get') printf '{"result":{"agent":{"agent_status":"idle"}}}\n' ;;
+  *) exit 1 ;;
+esac
+SH
+  cat > "$fake/no-mistakes" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+  cat > "$fake/mktemp" <<'SH'
+#!/usr/bin/env bash
+case "${FM_FAKE_FAIL_RECORD_WRITE:-}:${1:-}" in
+  pending:*/terminal-outcomes/.pending.*|record:*/terminal-outcomes/.record.*) exit 1 ;;
+esac
+exec "${FM_REAL_MKTEMP:?}" "$@"
+SH
   local tool
   for tool in gh gh-axi curl; do
     cat > "$fake/$tool" <<'SH'
@@ -53,7 +99,44 @@ printf '%s\n' "$(basename "$0")" >> "${FM_FORGE_LOG:?}"
 exit 97
 SH
   done
+  for tool in zellij orca cmux; do
+    cat > "$fake/$tool" <<'SH'
+#!/usr/bin/env bash
+printf '%s %s\n' "$(basename "$0")" "$*" >> "${FM_HERDR_WORLD:?}/other-backends.log"
+SH
+  done
   chmod +x "$fake"/*
+}
+
+set_child_field() {
+  local meta=$1 key=$2 value=$3
+  awk -v key="$key" 'index($0, key "=") != 1' "$meta" > "$meta.tmp"
+  printf '%s=%s\n' "$key" "$value" >> "$meta.tmp"
+  mv "$meta.tmp" "$meta"
+}
+
+write_herdr_child() {
+  local home=$1 id=$2 status=$3
+  write_child "$home" "$id" "$status"
+  set_child_field "$home/state/$id.meta" window default:w1:p1
+  set_child_field "$home/state/$id.meta" harness claude
+  printf '%s\n' 'backend=herdr' "endpoint_task_id=$id" 'herdr_session=default' \
+    'herdr_workspace_id=w1' 'herdr_tab_id=w1:t1' 'herdr_pane_id=w1:p1' >> "$home/state/$id.meta"
+  "$ROOT/bin/fm-busy-event.sh" arm "$home/state" "$id" --state idle --source claude-hook --event stop >/dev/null
+  age "$home/state/$id.meta"
+}
+
+read_child_state() {
+  PATH="$WORLD/fakebin:$PATH" FM_HOME="$1" FM_STATE_OVERRIDE="$1/state" \
+    FM_HERDR_WORLD="$WORLD" FM_CREW_STATE_NO_FORGE=1 "$ROOT/bin/fm-crew-state.sh" "$2"
+}
+
+herdr_close_count() {
+  if [ -f "$WORLD/herdr.log" ]; then
+    grep -c '^pane close ' "$WORLD/herdr.log" || true
+  else
+    printf '0\n'
+  fi
 }
 
 make_world() { # <name>
@@ -111,7 +194,7 @@ run_reconcile() { # <home> [--startup]
   PATH="$WORLD/fakebin:$PATH" FM_ROOT_OVERRIDE="$WORLD/root" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" FM_CONFIG_OVERRIDE="$home/config" \
     FM_INACTIVE_RECONCILE_SECS=60 FM_INACTIVE_CREW_STATE_BIN="$WORLD/fakebin/fm-crew-state.sh" \
-    FM_TMUX_LOG="$WORLD/tmux.log" FM_FORGE_LOG="$WORLD/forge.log" "$RECON" scan ${option:+"$option"}
+    FM_TMUX_LOG="$WORLD/tmux.log" FM_FORGE_LOG="$WORLD/forge.log" FM_HERDR_WORLD="$WORLD" "$RECON" scan ${option:+"$option"}
 }
 
 tmux_kill_count() { # <world>
@@ -484,10 +567,13 @@ test_pr_field_requires_recorded_pr_or_ready_signal_line() {
 # flight, the ledger path remains the single owner on the next poll.
 test_terminal_line_during_state_read_yields_to_ledger_delivery() {
   make_world state-ledger-race; bind_secondmate local
-  write_child "$MATE" child 'working: finishing now'
+  write_herdr_child "$MATE" child 'working: finishing now'
   cat > "$WORLD/fakebin/fm-crew-state.sh" <<'SH'
 #!/usr/bin/env bash
-printf 'done: completed during state read\n' >> "$FM_STATE_OVERRIDE/$1.status"
+if [ ! -e "$FM_HERDR_WORLD/state-appended" ]; then
+  printf 'done: PR https://example.test/owner/repo/pull/1 checks green\n' >> "$FM_STATE_OVERRIDE/$1.status"
+  : > "$FM_HERDR_WORLD/state-appended"
+fi
 printf 'state: done · source: fake\n'
 SH
   chmod +x "$WORLD/fakebin/fm-crew-state.sh"
@@ -500,6 +586,12 @@ SH
     || fail "the next ledger pass did not deliver the raced terminal line exactly once"
   ! grep -q 'inactive-outcome-' "$MAIN/state/mate.status" \
     || fail "one raced terminal event was reported by both reconciliation paths"
+  [ "$(herdr_close_count)" = 0 ] || fail "a newly appended terminal ledger line closed its pane"
+  age "$MATE/state/child.meta" "$MATE/state/child.status" "$MATE/state/child.turn-ended"
+  run_reconcile "$MATE" --startup
+  [ "$(herdr_close_count)" = 1 ] || fail "raced terminal ledger outcome never became eligible for closure"
+  [ "$(grep -c 'child-outcome-child-done-' "$MAIN/state/mate.status")" = 1 ] \
+    || fail "closing the raced terminal outcome duplicated its parent report"
   pass "terminal lines arriving during state reads remain ledger-owned"
 }
 
@@ -864,34 +956,194 @@ test_nonterminal_and_captain_held_states_do_not_report() {
   pass "nonterminal and captain-held workers remain outside inactive terminal reporting"
 }
 
-# A terminal crewmate's pane closes with its outcome; its records stay.
-test_terminal_child_pane_closes_and_records_stay() {
-  make_world pane-close; write_child "$MAIN" child 'done: PR https://example.test/owner/repo/pull/1 checks green'
-  FM_FAKE_CREW_STATE='done' run_reconcile "$MAIN" --startup
-  grep -Fxq 'kill-window -t =firstmate:=fm-child' "$WORLD/tmux.log" \
-    || fail "terminal child pane was not closed"
-  [ -f "$MAIN/state/child.meta" ] && [ -f "$MAIN/state/child.status" ] \
-    || fail "terminal child records were removed with its pane"
-  [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "terminal outcome was not retained"
-  pass "terminal child pane closes and its records stay"
+test_terminal_herdr_child_pane_closes_and_records_stay() {
+  local state out record fingerprint
+  for state in done failed; do
+    make_world "pane-close-$state"
+    write_herdr_child "$MAIN" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
+    FM_FAKE_CREW_STATE="$state" run_reconcile "$MAIN" --startup
+    [ "$(herdr_close_count)" = 1 ] || fail "$state herdr child pane was not closed"
+    [ -e "$WORLD/outcome-before-close" ] || fail "$state outcome was not durable before closing"
+    [ -f "$MAIN/state/child.meta" ] && [ -f "$MAIN/state/child.status" ] \
+      && [ -d "$MAIN/projects/child" ] || fail "$state child records or worktree were removed"
+    [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "$state terminal outcome was not retained"
+    out=$(read_child_state "$MAIN" child)
+    assert_contains "$out" "state: $state" "closed $state child lost its retained current state"
+    record=$(find "$MAIN/state/terminal-outcomes" -name '*.pending' -type f)
+    fingerprint=$(sed -n 's/^fingerprint=//p' "$record")
+    FM_HOME="$MAIN" FM_STATE_OVERRIDE="$MAIN/state" "$RECON" acknowledge "$fingerprint"
+    out=$(read_child_state "$MAIN" child)
+    assert_contains "$out" "state: $state" "presentation discarded the closed $state outcome"
+  done
+  pass "terminal herdr panes close after persistence and retain current state through presentation"
 }
 
-test_failed_child_pane_closes() {
-  make_world pane-close-failed; write_child "$MAIN" child 'failed: boom'
-  FM_FAKE_CREW_STATE='failed' run_reconcile "$MAIN" --startup
-  grep -Fxq 'kill-window -t =firstmate:=fm-child' "$WORLD/tmux.log" \
-    || fail "failed child pane was not closed"
-  pass "failed child pane closes"
+test_other_backend_panes_stay_open() {
+  local backend meta state
+  for state in done failed; do
+    for backend in default tmux zellij orca cmux; do
+      make_world "pane-keep-$state-$backend"
+      write_child "$MAIN" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
+      meta="$MAIN/state/child.meta"
+      if [ "$backend" != default ]; then
+        printf 'backend=%s\nendpoint_task_id=child\n' "$backend" >> "$meta"
+        case "$backend" in
+          zellij)
+            set_child_field "$meta" window zs:1
+            printf '%s\n' 'zellij_session=zs' 'zellij_tab_id=1' 'zellij_pane_id=1' >> "$meta" ;;
+          orca)
+            set_child_field "$meta" window fm-child
+            printf 'terminal=term-1\norca_worktree_id=wid::%s\n' "$MAIN/projects/child" >> "$meta" ;;
+          cmux)
+            set_child_field "$meta" window workspace:surface
+            printf '%s\n' 'cmux_workspace_id=workspace' 'cmux_surface_id=surface' >> "$meta" ;;
+        esac
+        age "$meta"
+      fi
+      FM_FAKE_CREW_STATE="$state" run_reconcile "$MAIN" --startup
+      [ "$(tmux_kill_count "$WORLD")" = 0 ] && [ ! -s "$WORLD/other-backends.log" ] \
+        || fail "$backend endpoint was touched"
+      [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "$backend outcome was not reconciled"
+    done
+  done
+  pass "tmux, Zellij, Orca, and cmux endpoints stay open"
 }
 
-test_pane_close_opt_out_and_nonterminal_safety() {
-  make_world pane-close-off; write_child "$MAIN" child 'done: PR https://example.test/owner/repo/pull/1 checks green'
-  FM_FAKE_CREW_STATE='done' FM_INACTIVE_CLOSE_PANE=0 run_reconcile "$MAIN" --startup
-  [ "$(tmux_kill_count "$WORLD")" = 0 ] || fail "FM_INACTIVE_CLOSE_PANE=0 still closed a pane"
-  make_world pane-close-working; write_child "$MAIN" child 'working: still active'
-  FM_FAKE_CREW_STATE='working' run_reconcile "$MAIN" --startup
-  [ "$(tmux_kill_count "$WORLD")" = 0 ] || fail "working child pane was closed"
-  pass "pane close honors its opt-out and never touches a working child"
+test_herdr_close_requires_semantic_idle() {
+  local state evidence meta
+  for state in done failed; do
+    for evidence in busy unknown missing malformed stale codex grok; do
+      make_world "pane-$state-$evidence"
+      write_herdr_child "$MAIN" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
+      meta="$MAIN/state/child.meta"
+      case "$evidence" in
+        busy|unknown)
+          "$ROOT/bin/fm-busy-event.sh" apply "$MAIN/state" child "$evidence" --current-gen --source claude-hook --event test ;;
+        missing|codex|grok)
+          "$ROOT/bin/fm-busy-event.sh" retire "$MAIN/state" child --current-gen
+          if [ "$evidence" != missing ]; then set_child_field "$meta" harness "$evidence"; fi ;;
+        malformed) printf 'invalid\n' > "$MAIN/state/child.busy-state" ;;
+        stale) printf 'replacement-gen\n' > "$MAIN/state/child.busy-gen" ;;
+      esac
+      age "$meta"
+      FM_FAKE_CREW_STATE="$state" run_reconcile "$MAIN" --startup
+      [ "$(herdr_close_count)" = 0 ] || fail "$state pane closed with $evidence evidence"
+    done
+  done
+  for state in working paused parked blocked unknown; do
+    make_world "pane-nonterminal-$state"
+    write_herdr_child "$MAIN" child 'working: still active'
+    FM_FAKE_CREW_STATE="$state" run_reconcile "$MAIN" --startup
+    [ "$(herdr_close_count)" = 0 ] || fail "$state pane closed despite nonterminal state"
+  done
+  pass "only positive semantic idle permits terminal herdr closure"
+}
+
+test_herdr_prevalidation_and_unproven_identity_stay_open() {
+  local mode evidence meta
+  for mode in no-mistakes ''; do
+    make_world "pane-handoff-${mode:-default}"
+    write_herdr_child "$MAIN" child 'done: implementation ready for validation'
+    set_child_field "$MAIN/state/child.meta" mode "$mode"
+    age "$MAIN/state/child.meta"
+    FM_FAKE_CREW_STATE=done run_reconcile "$MAIN" --startup
+    [ "$(herdr_close_count)" = 0 ] || fail "pre-validation $mode handoff pane closed"
+  done
+  for evidence in task endpoint incarnation captain-held recent; do
+    make_world "pane-identity-$evidence"
+    write_herdr_child "$MAIN" child 'failed: boom'
+    meta="$MAIN/state/child.meta"
+    case "$evidence" in
+      task) set_child_field "$meta" endpoint_task_id other ;;
+      endpoint) set_child_field "$meta" herdr_pane_id w1:p2 ;;
+      incarnation) set_child_field "$meta" spawn_gen '' ;;
+      captain-held) printf 'captain-held: awaiting captain\n' > "$MAIN/state/child.status" ;;
+      recent) touch "$MAIN/state/child.turn-ended" ;;
+    esac
+    age "$meta"
+    FM_FAKE_CREW_STATE=failed run_reconcile "$MAIN" --startup
+    [ "$(herdr_close_count)" = 0 ] || fail "pane closed with $evidence identity/activity"
+  done
+  pass "pre-validation handoffs, ambiguous identities, held work, and recent turns stay open"
+}
+
+test_secondmate_ledger_children_close_without_duplicate_reports() {
+  local state route receipt
+  for route in local remote; do
+    for state in done failed; do
+      make_world "ledger-close-$route-$state"; bind_secondmate "$route"
+      write_herdr_child "$MATE" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
+      if [ "$route" = local ]; then
+        "$ROOT/bin/fm-busy-event.sh" apply "$MATE/state" child busy --current-gen --source claude-hook --event test
+        FM_FAKE_CREW_STATE="$state" run_reconcile "$MATE" --startup
+        [ "$(herdr_close_count)" = 0 ] || fail "a running ledger child was closed"
+        assert_contains "$(read_child_state "$MATE" child)" 'state: working' "terminal ledger hid a running turn"
+        "$ROOT/bin/fm-busy-event.sh" apply "$MATE/state" child idle --current-gen --source claude-hook --event stop
+      else
+        FM_FAKE_CREW_STATE="$state" FM_FAKE_HERDR_CLOSE_FAIL=1 run_reconcile "$MATE" --startup
+        [ ! -e "$WORLD/herdr-closed" ] || fail "failed close removed the pane"
+        assert_contains "$(read_child_state "$MATE" child)" "state: $state" "a failed close broke live terminal state"
+      fi
+      [ "$(outcome_count "$MATE" reported)" = 1 ] || fail "ledger outcome was not reported"
+      FM_FAKE_CREW_STATE="$state" run_reconcile "$MATE" --startup
+      [ -e "$WORLD/herdr-closed" ] || fail "deduplicated ledger outcome prevented a later pane close"
+      [ "$(outcome_count "$MATE" reported)" = 1 ] && [ "$(outcome_count "$MATE" pending)" = 0 ] \
+        || fail "ledger closure created a duplicate outcome"
+      if [ "$route" = local ]; then receipt="$MAIN/state/mate.status"; else receipt="$MATE/state/parent-replies.status"; fi
+      [ "$(wc -l < "$receipt" | tr -d ' ')" = 1 ] || fail "ledger close duplicated its parent report"
+      assert_contains "$(read_child_state "$MATE" child)" "state: $state" "reported ledger closure lost terminal state"
+    done
+  done
+  pass "ledger-owned terminal children close in both parent routes without duplicate reports"
+}
+
+test_herdr_close_waits_for_durable_outcome() {
+  local failure
+  for failure in pending record; do
+    make_world "pane-write-failed-$failure"
+    write_herdr_child "$MAIN" child 'failed: boom'
+    FM_FAKE_CREW_STATE=failed FM_FAKE_FAIL_RECORD_WRITE="$failure" run_reconcile "$MAIN" --startup >/dev/null 2>&1 || true
+    [ "$(herdr_close_count)" = 0 ] || fail "$failure write failure still closed the pane"
+  done
+  pass "outcome and close-intent write failures preserve the pane"
+}
+
+test_retained_herdr_outcome_is_bound_to_spawn_and_endpoint() {
+  local variant record out
+  for variant in scout direct-PR local-only spawn endpoint task unmarked unreachable earlier-failure; do
+    make_world "pane-retained-$variant"
+    write_herdr_child "$MAIN" child 'done: PR https://example.test/owner/repo/pull/1 checks green'
+    case "$variant" in
+      scout) set_child_field "$MAIN/state/child.meta" kind scout ;;
+      direct-PR|local-only) set_child_field "$MAIN/state/child.meta" mode "$variant" ;;
+      earlier-failure)
+        printf 'failed: earlier attempt\n' > "$MAIN/state/child.status"
+        age "$MAIN/state/child.meta" "$MAIN/state/child.status"
+        FM_FAKE_CREW_STATE=failed FM_FAKE_HERDR_CLOSE_FAIL=1 run_reconcile "$MAIN" --startup
+        printf 'done: PR https://example.test/owner/repo/pull/1 checks green\n' >> "$MAIN/state/child.status"
+        age "$MAIN/state/child.status" ;;
+    esac
+    age "$MAIN/state/child.meta"
+    FM_FAKE_CREW_STATE=done run_reconcile "$MAIN" --startup
+    [ -e "$WORLD/herdr-closed" ] || fail "$variant fixture did not close its pane"
+    record=$(find "$MAIN/state/terminal-outcomes" -name '*.pending' -type f | head -1)
+    case "$variant" in
+      spawn) set_child_field "$MAIN/state/child.meta" spawn_gen replacement ;;
+      endpoint) set_child_field "$MAIN/state/child.meta" window default:w1:p2 ;;
+      task) set_child_field "$record" task_id other ;;
+      unmarked) set_child_field "$record" pane_close_target '' ;;
+    esac
+    if [ "$variant" = unreachable ]; then
+      out=$(FM_FAKE_HERDR_UNREACHABLE=1 read_child_state "$MAIN" child)
+    else
+      out=$(read_child_state "$MAIN" child)
+    fi
+    case "$variant" in
+      scout|direct-PR|local-only|earlier-failure) assert_contains "$out" 'state: done' "$variant lost its closed outcome" ;;
+      *) assert_contains "$out" 'state: unknown' "$variant incorrectly reused a closed outcome" ;;
+    esac
+  done
+  pass "retained closed outcomes require the exact spawn, endpoint, and confirmed missing pane"
 }
 
 # The actual watcher poll invokes the helper, while an idle secondmate remains
@@ -1107,9 +1359,13 @@ test_relaunch_cannot_replace_metadata_during_state_snapshot
 test_heartbeat_cap_does_not_delay_reconciliation
 test_scan_marker_replaces_symlink_safely
 test_nonterminal_and_captain_held_states_do_not_report
-test_terminal_child_pane_closes_and_records_stay
-test_failed_child_pane_closes
-test_pane_close_opt_out_and_nonterminal_safety
+test_terminal_herdr_child_pane_closes_and_records_stay
+test_other_backend_panes_stay_open
+test_herdr_close_requires_semantic_idle
+test_herdr_prevalidation_and_unproven_identity_stay_open
+test_secondmate_ledger_children_close_without_duplicate_reports
+test_herdr_close_waits_for_durable_outcome
+test_retained_herdr_outcome_is_bound_to_spawn_and_endpoint
 test_watcher_hook_and_idle_secondmate_exemption
 test_watcher_poll_delivers_child_ledger_line_to_parent
 test_stalled_state_read_is_bounded_and_scan_progresses
