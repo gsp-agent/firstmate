@@ -2476,10 +2476,8 @@ case "$ARG3" in
   ;;
 esac
 
-# Deterministic Cursor fallback (no model judgment), whether --harness or
-# config/crew-harness chose cursor: usage at the threshold, no or stale usage
-# file => Codex, or Claude when its last Codex run hit one.
-# Codex and Claude run their CLI's default model.
+# Apply the quota-file fallback owned by bin/fm-cursor-guard.sh; its header
+# defines freshness, credit-room eligibility, and fallback selection.
 if [ "$HARNESS" = cursor ] && [ "$RAW_LAUNCH" = 0 ] && [ "$KIND" != secondmate ]; then
   CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
   case "$CURSOR_FALLBACK" in
