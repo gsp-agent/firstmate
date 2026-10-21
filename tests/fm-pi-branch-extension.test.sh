@@ -12,6 +12,15 @@ set -u
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+foreign_pid=''
+kill_foreign_holder() {
+  [ -n "$foreign_pid" ] || return 0
+  kill "$foreign_pid" 2>/dev/null || true
+  wait "$foreign_pid" 2>/dev/null || true
+  foreign_pid=''
+}
+trap 'kill_foreign_holder; fm_test_cleanup' EXIT
+
 TMP_ROOT=$(fm_test_tmproot fm-pi-branch-extension)
 EXT="$ROOT/.pi/extensions/fm-branch-supervision.ts"
 export NODE_NO_WARNINGS=1
@@ -4551,7 +4560,7 @@ EOF
 }
 
 test_secondary_session_stays_inert() {
-  local repo home out status foreign_pid
+  local repo home out status
   repo="$TMP_ROOT/secondary-root"
   home="$TMP_ROOT/secondary-home"
   mkdir -p "$home/state" "$home/config"
@@ -4580,7 +4589,7 @@ process.exit(0);
 EOF
   status=$?
   out=$(cat "$TMP_ROOT/node-output")
-  kill "$foreign_pid" 2>/dev/null || true
+  kill_foreign_holder
   expect_code 0 "$status" "a secondary session must stay inert: $out"
   pass "a Pi session that does not own the lock accepts nothing and mutates no branch state"
 }
