@@ -87,6 +87,7 @@ fixture_workspace_json() {
     "$WS" "$title" "$focused" "$active" "$tabs" "$panes"
 }
 
+# shellcheck disable=SC2329 # Saved via declare -f and called as fm_orig_fixture_workspaces in the replay.
 fixture_workspaces() {
   local title tabs panes
   title=$(cat "$FIXTURE_DIR/title")
@@ -170,6 +171,9 @@ fm_backend_herdr_cli() {
       ;;
     "api snapshot")
       : > "$FIXTURE_DIR/snapshotted"
+      if [ -e "$FIXTURE_DIR/late-duplicate-journal" ]; then
+        write_v1 fm-task
+      fi
       printf '{"result":{"snapshot":{"focused_workspace_id":"w1","focused_tab_id":"%s","focused_pane_id":"w1:p1","workspaces":' "$(cat "$FIXTURE_DIR/active-tab")"
       fixture_workspaces
       printf ',"tabs":'; fixture_tabs
@@ -279,6 +283,8 @@ reset_fixture; : > "$FIXTURE_DIR/process-unsafe"; assert_preserved "child proces
 reset_fixture; : > "$FIXTURE_DIR/error-api-snapshot"; assert_preserved "unreadable snapshot"
 reset_fixture; : > "$FIXTURE_DIR/error-workspace-get"; assert_preserved "unreadable topology check"
 reset_fixture; : > "$FIXTURE_DIR/race"; assert_preserved "revalidation race"
+reset_fixture; : > "$FIXTURE_DIR/late-duplicate-journal"; assert_preserved "matching journal added after discovery"
+[ -f "$FM_STATE_OVERRIDE/fm-task.herdr-presentation" ] || fail "late duplicate journal was not preserved"
 reset_fixture; printf '%s\n' "$TAB" > "$FIXTURE_DIR/active-tab"; assert_preserved "active target"
 reset_fixture; : > "$FIXTURE_DIR/focus-refuse"; assert_preserved "focus refusal"
 
@@ -325,5 +331,38 @@ FM_HOME="$INTEGRATION_ROOT/home" FM_ROOT_OVERRIDE="$INTEGRATION_ROOT" \
   || fail "read-only session start failed"
 [ ! -s "$TRACE" ] || fail "read-only session start ran stale projection cleanup"
 pass "session start runs cleanup only after acquiring its home lock"
+
+reset_fixture
+SNAP_COUNT="$TMP_ROOT/snap.count"; : > "$SNAP_COUNT"
+eval "$(declare -f fm_backend_herdr_projection_journal_snapshot | sed '1s/^[^ ]*/fm_orig_journal_snapshot/')"
+fm_backend_herdr_projection_journal_snapshot() { printf '%s\n' "$2" >> "$SNAP_COUNT"; fm_orig_journal_snapshot "$@"; }
+for id in task-a task-b task-c task-d task-e task-f task-g task-h; do write_v1 "$id"; done
+eval "$(declare -f fixture_workspaces | sed '1s/^[^ ]*/fm_orig_fixture_workspaces/')"
+fixture_workspaces() {
+  fm_orig_fixture_workspaces | jq '. + [range(0; 64) | {workspace_id:("unused-" + tostring),label:("└ unused-" + tostring + " · p:ZZZZZZZZZZZZZZZZZZZZZZ")} ]'
+}
+MATCH_WORK="$TMP_ROOT/match-work"; : > "$MATCH_WORK"
+# shellcheck disable=SC2329 # Called indirectly by the sourced cleanup during the replay.
+awk() {
+  local input
+  for input in "$@"; do
+    [ ! -f "$input" ] || wc -l < "$input" >> "$MATCH_WORK"
+  done
+  command awk "$@"
+}
+fm_herdr_session_cleanup >/dev/null 2>&1
+unset -f awk
+MATCH_ROWS=$(awk '{ n += $1 } END { print n+0 }' "$MATCH_WORK")
+[ "$MATCH_ROWS" -le 170 ] || fail "matching reread $MATCH_ROWS mapping rows for 66 workspaces and 9 journals"
+[ "$(wc -l < "$SNAP_COUNT" | tr -d ' ')" = 12 ] || fail "cleanup did not scan 9 journals once plus 3 exact-candidate revalidations"
+[ "$(grep -c '^task$' "$SNAP_COUNT")" = 4 ] || fail "cleanup omitted the selected journal's safety revalidations"
+[ ! -e "$FM_STATE_OVERRIDE/$ID.herdr-presentation" ] || fail "batch matching did not retire the exact candidate"
+[ "$(wc -l < "$CLOSE_LOG" | tr -d ' ')" = 1 ] || fail "batch matching closed more than the exact candidate"
+for id in task-a task-b task-c task-d task-e task-f task-g task-h; do
+  [ -e "$FM_STATE_OVERRIDE/$id.herdr-presentation" ] || fail "batch matching retired an unmatched journal"
+done
+eval "$(declare -f fm_orig_journal_snapshot | sed '1s/^[^ ]*/fm_backend_herdr_projection_journal_snapshot/')"
+eval "$(declare -f fm_orig_fixture_workspaces | sed '1s/^[^ ]*/fixture_workspaces/')"
+pass "cleanup matches all workspaces in one batch while retaining exact-journal revalidation"
 
 printf 'all fm-herdr-session-cleanup tests passed\n'
