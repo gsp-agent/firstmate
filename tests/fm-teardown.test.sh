@@ -5428,7 +5428,8 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-sweep ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-requester ] \
   && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-review ] \
-  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-ordering ]; then
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-ordering ] \
+  && [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data-retiring ]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
   test_missing_adapter_sibling_refuses_before_cleanup
@@ -6570,12 +6571,14 @@ SH
   wait "$first_pid" || fail "the first sweep failed: $(cat "$case_dir/sweep1.err")"
   jq -e '.expired == true' "$record" >/dev/null \
     || fail "the single sweep did not expire its hold: $(cat "$record")"
-  jq -e '.expired == true' "$case_dir/data/bb-new/record/data-cleanup.json" >/dev/null \
-    || fail "the running sweep never picked up the hold added after its snapshot"
+  jq -e '.expired != true' "$case_dir/data/bb-new/record/data-cleanup.json" >/dev/null \
+    || fail "an explicit overlap expired the hold added after the snapshot"
+  assert_present "$case_dir/data/bb-new/.cleanup-hold/scratch.bin" \
+    "an explicit overlap deleted the hold added after the snapshot"
   [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = '' ] \
     || fail "the sweep changed the unnamed requester's identity"
   assert_absent "$case_dir/state/.task-data-sweep.lock" "the sweep did not release its lock"
-  pass "fm-teardown: overlapping sweep requests preserve a new hold for another single-instance pass"
+  pass "fm-teardown: an explicit sweep leaves the slot unchanged and keeps a hold added while it runs"
 }
 
 test_task_data_sweep_requester_recovery() {
@@ -6643,6 +6646,187 @@ SH
     || fail "the sweep lost B's requester identity"
   assert_absent "$case_dir/state/.task-data-sweep.lock" "the requester sweep retained its lock"
   pass "fm-teardown: B's overlapping completion expires A while preserving B's fresh recovery"
+}
+
+# Stubs so a fixture expiry can delete a hold that has no bead references.
+write_expiry_tools() { # <case-dir>
+  local case_dir=$1
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+printf '[]\n'
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+}
+
+# The background sweep teardown starts has discarded output. Wait until it has
+# had time to take the sweep lock and release it, and fail if the named hold
+# disappears while that sweep is the only one running.
+wait_until_sweep_settles() { # <state> <hold-file> <what>
+  local state=$1 hold=$2 what=$3 i
+  for ((i = 0; i < 150; i++)); do
+    [ -f "$hold" ] || fail "$what"
+    if [ "$i" -ge 20 ] && [ ! -e "$state/.task-data-sweep.lock" ]; then
+      return 0
+    fi
+    sleep 0.1
+  done
+  [ ! -e "$state/.task-data-sweep.lock" ] || fail "$what; the sweep was still running"
+  [ -f "$hold" ] || fail "$what"
+}
+
+test_task_data_explicit_sweep_keeps_retiring_hold() {
+  local case_dir real_python saved_sweep
+  case_dir=$(make_case task-data-explicit-sweep)
+  real_python=$(command -v python3)
+  write_expiry_tools "$case_dir"
+  write_pending_hold "$case_dir" cc-old
+  mkdir -p "$case_dir/data/task-x1"
+  printf 'A fresh recovery\n' > "$case_dir/data/task-x1/fresh.bin"
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+if [ "\${EXPLICIT_SWEEP_CHILD:-}" != 1 ] && [ "\${2:-}" = stage ]; then
+  "$real_python" "\$@"
+  rc=\$?
+  EXPLICIT_SWEEP_CHILD=1 PATH="$case_dir/fakebin:\$PATH" \
+    bash "$ROOT/bin/fm-task-data-lib.sh" sweep "\$3" "\$4" \
+    > "$case_dir/explicit.out" 2> "$case_dir/explicit.err" || true
+  exit "\$rc"
+fi
+exec "$real_python" "\$@"
+SH
+  chmod +x "$case_dir/fakebin/python3"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  saved_sweep=${FM_TASK_DATA_SWEEP:-}
+  FM_TASK_DATA_SWEEP=on run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "teardown with an explicit sweep in stage failed: $(cat "$case_dir/err")"
+  wait_until_sweep_settles "$case_dir/state" \
+    "$case_dir/data/task-x1/.cleanup-hold/fresh.bin" \
+    "an explicit sweep during teardown deleted the retiring hold"
+  assert_absent "$case_dir/data/cc-old/.cleanup-hold" \
+    "an explicit sweep stopped expiring every other hold"
+  [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = task-x1 ] \
+    || fail "the explicit sweep replaced the retiring requester: $(cat "$case_dir/state/.task-data-sweep.rerun")"
+  FM_TASK_DATA_SWEEP=$saved_sweep
+  pass "fm-teardown: an explicit sweep during teardown keeps the retiring hold and the slot"
+}
+
+test_task_data_overlapping_teardown_keeps_retiring_hold() {
+  local case_dir real_python saved_sweep a_pid b_pid i
+  case_dir=$(make_case task-data-overlapping-teardown)
+  real_python=$(command -v python3)
+  write_expiry_tools "$case_dir"
+  mkdir -p "$case_dir/data/task-x1" "$case_dir/data/task-b1" "$case_dir/ready" "$case_dir/gate"
+  printf 'A fresh recovery\n' > "$case_dir/data/task-x1/fresh.bin"
+  printf 'B fresh recovery\n' > "$case_dir/data/task-b1/fresh.bin"
+  mkfifo "$case_dir/gate/task-x1" "$case_dir/gate/task-b1"
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+if [ "\${2:-}" = stage ]; then
+  "$real_python" "\$@"
+  rc=\$?
+  case "\${5:-}" in
+    task-x1|task-b1)
+      touch "$case_dir/ready/\${5}"
+      IFS= read -r _ < "$case_dir/gate/\${5}"
+      ;;
+  esac
+  exit "\$rc"
+fi
+exec "$real_python" "\$@"
+SH
+  chmod +x "$case_dir/fakebin/python3"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  saved_sweep=${FM_TASK_DATA_SWEEP:-}
+  FM_TASK_DATA_SWEEP=on run_teardown "$case_dir" > "$case_dir/a.out" 2> "$case_dir/a.err" &
+  a_pid=$!
+  for ((i = 0; i < 200; i++)); do
+    [ -e "$case_dir/ready/task-x1" ] && break
+    sleep 0.1
+  done
+  if [ ! -e "$case_dir/ready/task-x1" ]; then
+    kill "$a_pid" 2>/dev/null || true
+    fail "A's teardown never staged its hold: $(cat "$case_dir/a.err" 2>/dev/null)"
+  fi
+  FM_TASK_DATA_SWEEP=on run_next_teardown "$case_dir" task-b1 \
+    > "$case_dir/b.out" 2> "$case_dir/b.err" &
+  b_pid=$!
+  for ((i = 0; i < 200; i++)); do
+    [ -e "$case_dir/ready/task-b1" ] && break
+    sleep 0.1
+  done
+  if [ ! -e "$case_dir/ready/task-b1" ]; then
+    printf 'release\n' > "$case_dir/gate/task-x1" || true
+    kill "$a_pid" "$b_pid" 2>/dev/null || true
+    fail "B's teardown never staged its hold: $(cat "$case_dir/b.err" 2>/dev/null)"
+  fi
+  printf 'release\n' > "$case_dir/gate/task-x1"
+  wait "$a_pid" || fail "A's teardown failed: $(cat "$case_dir/a.err")"
+  wait_until_sweep_settles "$case_dir/state" \
+    "$case_dir/data/task-x1/.cleanup-hold/fresh.bin" \
+    "A's own teardown deleted A's fresh hold after B replaced the slot"
+  assert_present "$case_dir/data/task-b1/.cleanup-hold/fresh.bin" \
+    "A's passes deleted B's fresh hold"
+  printf 'release\n' > "$case_dir/gate/task-b1"
+  wait "$b_pid" || fail "B's teardown failed: $(cat "$case_dir/b.err")"
+  for ((i = 0; i < 150; i++)); do
+    [ -f "$case_dir/data/task-b1/.cleanup-hold/fresh.bin" ] \
+      || fail "B's own teardown deleted B's fresh hold"
+    if [ "$i" -ge 20 ] && [ ! -e "$case_dir/state/.task-data-sweep.lock" ]; then
+      break
+    fi
+    sleep 0.1
+  done
+  assert_present "$case_dir/data/task-b1/.cleanup-hold/fresh.bin" \
+    "B's own teardown deleted B's fresh hold"
+  if [ -f "$case_dir/data/task-x1/.cleanup-hold/fresh.bin" ]; then
+    fail "B's later completion left A's hold in place"
+  fi
+  FM_TASK_DATA_SWEEP=$saved_sweep
+  pass "fm-teardown: overlapping teardowns keep each retiring hold, and B's completion can still expire A's"
+}
+
+test_task_data_failed_slot_write_keeps_retiring_hold() {
+  local case_dir real_mv saved_sweep
+  case_dir=$(make_case task-data-failed-slot-write)
+  real_mv=$(command -v mv)
+  write_expiry_tools "$case_dir"
+  write_pending_hold "$case_dir" previous-id
+  write_pending_hold "$case_dir" cc-old
+  mkdir -p "$case_dir/data/task-x1"
+  printf 'A fresh recovery\n' > "$case_dir/data/task-x1/fresh.bin"
+  printf 'previous-id\n' > "$case_dir/state/.task-data-sweep.rerun"
+  cat > "$case_dir/fakebin/mv" <<SH
+#!/usr/bin/env bash
+for arg in "\$@"; do
+  case "\$arg" in
+    */.task-data-sweep.rerun) exit 1 ;;
+  esac
+done
+exec "$real_mv" "\$@"
+SH
+  chmod +x "$case_dir/fakebin/mv"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  saved_sweep=${FM_TASK_DATA_SWEEP:-}
+  FM_TASK_DATA_SWEEP=on run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "teardown with a failed slot write failed: $(cat "$case_dir/err")"
+  wait_until_sweep_settles "$case_dir/state" \
+    "$case_dir/data/task-x1/.cleanup-hold/fresh.bin" \
+    "a failed slot write let teardown delete the retiring hold"
+  assert_present "$case_dir/data/previous-id/.cleanup-hold/scratch.bin" \
+    "the previous requester's hold was expired"
+  assert_absent "$case_dir/data/cc-old/.cleanup-hold" \
+    "a failed slot write stopped expiring every other hold"
+  [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = previous-id ] \
+    || fail "the failed write changed the slot: $(cat "$case_dir/state/.task-data-sweep.rerun")"
+  FM_TASK_DATA_SWEEP=$saved_sweep
+  pass "fm-teardown: a failed slot write still keeps the retiring hold and the previous requester"
 }
 
 test_task_data_refusals() {
@@ -8458,6 +8642,13 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-requester ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-retiring ]; then
+  test_task_data_explicit_sweep_keeps_retiring_hold
+  test_task_data_overlapping_teardown_keeps_retiring_hold
+  test_task_data_failed_slot_write_keeps_retiring_hold
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-sweep ]; then
   test_task_data_unread_named_once
   test_task_data_unread_status_failure_retries
@@ -8517,6 +8708,9 @@ test_task_data_unread_status_failure_retries
 test_task_data_sweep_expires_big_hold
 test_task_data_sweep_single_instance
 test_task_data_sweep_requester_recovery
+test_task_data_explicit_sweep_keeps_retiring_hold
+test_task_data_overlapping_teardown_keeps_retiring_hold
+test_task_data_failed_slot_write_keeps_retiring_hold
 test_task_data_full_attempt_uses_its_own_limit
 test_task_data_refusals
 test_task_data_references_and_guard

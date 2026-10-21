@@ -9,12 +9,15 @@
 # and FM_TASK_DATA_SWEEP=off suppresses that start.
 # Usage: bash fm-task-data-lib.sh expire DATA STATE ID
 #        bash fm-task-data-lib.sh sweep DATA STATE [REQUESTING_ID]
-# A sweep request atomically replaces STATE/.task-data-sweep.rerun with the
-# requesting completion's id; an active sweep takes another pass when that
-# request changes. Each pass excludes its snapshotted requester, and each
-# locked expiry rechecks the latest requester before touching a hold, so that
-# requester's fresh recovery is protected. Omit REQUESTING_ID for an
-# explicit sweep with no fresh recovery to exclude.
+# A named sweep request atomically replaces STATE/.task-data-sweep.rerun with that completion's id.
+# An active sweep takes another pass when that slot changes.
+# An explicit sweep omits REQUESTING_ID and never replaces an existing slot.
+# It creates an empty slot only when none exists.
+# Each pass excludes the slot's snapshotted requester and the retiring id given to that pass.
+# A new slot value never replaces that retiring id.
+# Each locked expiry rechecks the latest requester before touching a hold.
+# That recheck protects the requester's fresh recovery.
+# A later, different completion may still expire an earlier hold.
 
 fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
   local data=$1 state=$2 id=$3 project=$4 pr=$5 helper
@@ -38,8 +41,8 @@ fm_task_data_sweep_request() {
   return 1
 }
 
-fm_task_data_expire_others() { # <data> <state>
-  local data=$1 state=$2 requester helper lib listed other expiry lock budget full start remaining limit status rc=0 i
+fm_task_data_expire_others() { # <data> <state> <id>
+  local data=$1 state=$2 id=$3 requester helper lib listed other expiry lock budget full start remaining limit status rc=0 i
   local pending=() marks=() too_large=()
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data-lib.sh"
@@ -51,7 +54,7 @@ fm_task_data_expire_others() { # <data> <state>
   requester=$(cat "$state/.task-data-sweep.rerun") || return 1
   listed=$(python3 "$helper" pending "$data") || return 1
   while IFS=$'\t' read -r other expiry; do
-    if [ -z "$other" ] || [ "$other" = "$requester" ] || ! fm_task_id_path_safe "$other"; then
+    if [ -z "$other" ] || [ "$other" = "$id" ] || [ "$other" = "$requester" ] || ! fm_task_id_path_safe "$other"; then
       continue
     elif [ "$expiry" = too-large ]; then
       too_large+=("$other")
@@ -83,7 +86,7 @@ fm_task_data_expire_others() { # <data> <state>
       rc=1
       continue
     fi
-    if [ "$other" != "$requester" ] && [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ]; then
+    if [ "$other" != "$id" ] && [ "$other" != "$requester" ] && [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ]; then
       limit=$remaining
       [ "${marks[i]}" != cut-off ] || limit=$full
       touch -h -c "$data/$other/record/data-cleanup.json" 2>/dev/null || true
@@ -153,8 +156,8 @@ fm_task_data_expire_by_hand() { # <data> <state> <id> [request]
 # budget, including holds marked too large. A held meta lock or a live task
 # refuses inside the by-hand expiry and stays held. Requester exclusions are
 # owned by this file's header.
-fm_task_data_sweep() { # <data> <state>
-  local data=$1 state=$2 exclude helper lock rerun snapshot listed other _expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
+fm_task_data_sweep() { # <data> <state> [exclude-id]
+  local data=$1 state=$2 keep=${3:-} exclude helper lock rerun snapshot listed other _expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   case "$stage_timeout" in ''|0*|*[!0-9]*) stage_timeout=3600 ;; esac
   command -v python3 >/dev/null 2>&1 || return 1
@@ -178,6 +181,7 @@ fm_task_data_sweep() { # <data> <state>
     fi
     while IFS=$'\t' read -r other _expiry; do
       [ -n "$other" ] || continue
+      [ -n "$keep" ] && [ "$other" = "$keep" ] && continue
       [ "$other" = "$exclude" ] && continue
       fm_task_id_path_safe "$other" || continue
       fm_task_data_expire_by_hand "$data" "$state" "$other" "$rerun" || true
@@ -190,13 +194,12 @@ fm_task_data_sweep() { # <data> <state>
   return 0
 }
 
-# Start one sweep in the background. The sweep's own lock makes a second
-# start while one runs request another pass.
-fm_task_data_sweep_start() { # <data> <state> [started-by-id]
-  local lib
-  if [ "$#" -ge 3 ]; then
-    fm_task_data_sweep_request "$2" "$3" || return 1
-  elif [ ! -e "$2/.task-data-sweep.rerun" ]; then
+# Start one sweep in the background. The id is excluded for this sweep's
+# lifetime and is not written into the slot. A second start while one runs
+# reports that the sweep is already running.
+fm_task_data_sweep_start() { # <data> <state> [exclude-id]
+  local lib exclude=${3:-}
+  if [ ! -e "$2/.task-data-sweep.rerun" ]; then
     fm_task_data_sweep_request "$2" '' || return 1
   fi
   [ "${FM_TASK_DATA_SWEEP:-on}" = off ] && return 0
@@ -207,7 +210,7 @@ fm_task_data_sweep_start() { # <data> <state> [started-by-id]
     . "${lib%/*}/fm-wake-lib.sh" || exit 1
     # shellcheck source=bin/fm-pr-lib.sh
     . "${lib%/*}/fm-pr-lib.sh" || exit 1
-    fm_task_data_sweep "$1" "$2"
+    fm_task_data_sweep "$1" "$2" "$exclude"
   ) >/dev/null 2>&1 </dev/null &
 }
 
@@ -361,7 +364,11 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
       # shellcheck source=bin/fm-pr-lib.sh
       . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
-      fm_task_data_sweep_request "$3" "${4:-}" || exit 1
+      if [ -n "${4:-}" ]; then
+        fm_task_data_sweep_request "$3" "$4" || exit 1
+      elif [ ! -e "$3/.task-data-sweep.rerun" ]; then
+        fm_task_data_sweep_request "$3" '' || exit 1
+      fi
       fm_task_data_sweep "$2" "$3"
       ;;
     *) exit 1 ;;
