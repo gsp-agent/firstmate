@@ -119,7 +119,7 @@
 # session-start sweep could still close, while a journal bound to any other pane
 # - or a version 1 attempt whose workspace is still present or unreadable - may
 # name a live quarantined space and is retained for that sweep.
-# After successful task retirement, bin/fm-task-data.py owns pruning data/<id>/
+# At ship or scout retirement, bin/fm-task-data.py owns pruning data/<id>/
 # and one-cycle scratch recovery; brief.md remains available to successor spawns.
 # Worktree-slot ownership (teardown-slot-collision): a treehouse pool slot is
 # reused across tasks, so a stale, duplicated, or drifted worktree= record can
@@ -3785,10 +3785,6 @@ else
     exit 1
   fi
 fi
-if [ "$KIND" != secondmate ]; then
-  fm_task_data_cleanup "$DATA" "$STATE" "$ID" "$PROJ" "$PR_URL" \
-    || echo "warning: $ID teardown completed, but task-data cleanup needs a retry" >&2
-fi
 fm_lock_release "$META_LOCK"
 META_LOCK_HELD=0
 if [ "$KIND" != scout ] && [ "$KIND" != secondmate ] && [ "$MODE" != local-only ]; then
@@ -3815,5 +3811,8 @@ teardown_release_locks || true
 if [ "$KIND" != secondmate ]; then
   fm_task_data_expire_others "$DATA" "$STATE" "$ID" \
     || echo "warning: $ID teardown completed, but expiring other tasks' held data needs a retry" >&2
+  # Holds the budget left behind drain in the background with no budget, so a
+  # hold bigger than the budget is not stuck until another teardown.
+  fm_task_data_sweep_start "$DATA" "$STATE" || true
 fi
 [ "$TEARDOWN_POOL_SLOT_LOST" = 0 ] || exit "$TEARDOWN_LOST_SLOT_EXIT"
