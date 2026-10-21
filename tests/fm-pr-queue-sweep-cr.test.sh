@@ -150,6 +150,7 @@ write_pr_page() {  # <dir> <decision> <check-state> <draft> <head> <age-secs> <r
 
 write_review_page() {
   local dir=$1 page=$2 more=$3 cursor=$4 reviews=$5
+  # shellcheck disable=SC2016 # jq, not the shell, expands these variables.
   "$REAL_JQ" -n --argjson reviews "$reviews" --argjson more "$more" --arg cursor "$cursor" '
     {data:{repository:{pullRequest:{author:{login:"prauthor"},
       latestOpinionatedReviews:{nodes:$reviews, pageInfo:{hasNextPage:$more, endCursor:$cursor}}
@@ -307,6 +308,7 @@ test_historical_rounds_do_not_retain_repository_discovery() {
         closed) pr_state=CLOSED ;;
         merged) pr_state=MERGED; merged=true ;;
       esac
+      # shellcheck disable=SC2016 # jq, not the shell, expands these variables.
       "$REAL_JQ" --arg head "$current_head" --arg state "$pr_state" --argjson merged "$merged" \
         '.data.repository.pullRequests.nodes[0] as $pr |
         .data.repository.pullRequests.nodes = [
@@ -324,6 +326,7 @@ test_historical_rounds_do_not_retain_repository_discovery() {
   state="$dir/state"
   mkdir -p "$state"
   write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+  # shellcheck disable=SC2016 # jq, not the shell, expands these variables.
   "$REAL_JQ" '.data.repository.pullRequests.nodes[0] as $pr |
     .data.repository.pullRequests.nodes = [($pr + {state:"CLOSED"}), ($pr + {number:8})]
   ' "$dir/sweep/page1.json" > "$dir/sweep/mixed.json"
@@ -346,6 +349,7 @@ test_reviewer_lookups_refresh_progress_on_success_and_failure() {
     mkdir -p "$state"
     touch "$dir/beacon"
     write_pr_page "$dir" CHANGES_REQUESTED SUCCESS false "$HEAD" 18000 '["chipdev"]'
+    # shellcheck disable=SC2016 # jq, not the shell, expands these variables.
     "$REAL_JQ" '.data.repository.pullRequests.nodes[0] as $pr |
       .data.repository.pullRequests.nodes = [range(7;10) as $n | $pr + {number:$n}]
     ' "$dir/sweep/page1.json" > "$dir/sweep/multiple.json"
