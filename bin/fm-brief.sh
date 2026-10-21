@@ -142,11 +142,11 @@
 # regular file, or text carrying its own "Delivery contract: mode=" line (which
 # a later scout promotion could not outrank), stops the scaffold before
 # anything is written. Secondmate charters never take it.
-# Refuses to overwrite an existing brief, at the write itself: the brief is
-# created exclusively (noclobber, so O_EXCL), so of two scaffolds racing for
-# one task - or a scaffold and bin/fm-spawn.sh --queue-start, which scaffolds
-# through this script - exactly one creates it and the other exits 1 with
-# nothing written. That creation is the brief's ownership claim.
+# The brief is created exclusively (noclobber, so O_EXCL): of two scaffolds
+# racing for one task - or a scaffold and bin/fm-spawn.sh --queue-start, which
+# scaffolds through this script - exactly one creates it and the other exits 1
+# with nothing written, so that creation is the brief's ownership claim.
+# Refuses to overwrite an existing brief.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
