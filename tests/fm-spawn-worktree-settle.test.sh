@@ -157,6 +157,149 @@ run_settle_spawn() {
     "$SPAWN" "$id" "$PROJ_DIR" --mode no-mistakes --yolo off 2>&1
 }
 
+make_settle_herdr_fake() {
+  cat > "$FAKEBIN_DIR/herdr" <<'PY'
+#!/usr/bin/env python3
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+args = sys.argv[1:]
+root = Path(os.environ["FM_FAKE_HERDR_DIR"])
+state_path = root / "herdr.json"
+state = json.loads(state_path.read_text()) if state_path.exists() else {
+    "workspaces": [{"workspace_id": "w1", "label": "firstmate", "focused": True, "active_tab_id": "w1:t0"}],
+    "tabs": [{"workspace_id": "w1", "tab_id": "w1:t0", "label": "captain", "focused": True}],
+    "panes": [{"workspace_id": "w1", "tab_id": "w1:t0", "pane_id": "w1:p0"}],
+}
+action = tuple(args[:2])
+close_mode = os.environ.get("FM_FAKE_HERDR_CLOSE", "closed")
+
+def emit(result):
+    print(json.dumps({"result": result}))
+
+def option(name):
+    return args[args.index(name) + 1]
+
+def remove_pane(pane_id):
+    tabs = {p["tab_id"] for p in state["panes"] if p["pane_id"] == pane_id}
+    state["panes"] = [p for p in state["panes"] if p["pane_id"] != pane_id]
+    state["tabs"] = [t for t in state["tabs"] if t["tab_id"] not in tabs]
+    spaces = {t["workspace_id"] for t in state["tabs"]}
+    state["workspaces"] = [w for w in state["workspaces"] if w["workspace_id"] in spaces]
+
+if action == ("status", "--json"):
+    print(json.dumps({"client": {"version": "0.8.0", "protocol": 19}, "server": {"running": True, "version": "0.8.0", "protocol": 19}}))
+elif action == ("session", "list"):
+    print(json.dumps({"sessions": [{"name": os.environ["HERDR_SESSION"], "running": True, "socket_path": str(root / "herdr.sock")}]}))
+elif action == ("workspace", "list"):
+    spaces = state["workspaces"]
+    if (root / "treehouse-returned").exists() and os.environ.get("FM_FAKE_HERDR_FOCUS_UNREADABLE") == "1":
+        spaces = [dict(w, focused=False) for w in spaces]
+    emit({"type": "workspace_list", "workspaces": spaces})
+elif action == ("workspace", "create"):
+    workspace = {"workspace_id": "w2", "label": option("--label"), "focused": False, "active_tab_id": "w2:t0"}
+    tab = {"workspace_id": "w2", "tab_id": "w2:t0", "label": "1", "focused": True}
+    pane = {"workspace_id": "w2", "tab_id": "w2:t0", "pane_id": "w2:p0"}
+    state["workspaces"].append(workspace)
+    state["tabs"].append(tab)
+    state["panes"].append(pane)
+    emit({"workspace": workspace, "tab": tab, "root_pane": pane})
+elif action == ("tab", "create"):
+    workspace = option("--workspace")
+    tab = {"workspace_id": workspace, "tab_id": workspace + ":t1", "label": option("--label"), "focused": False}
+    pane = {"workspace_id": workspace, "tab_id": tab["tab_id"], "pane_id": workspace + ":p1", "foreground_cwd": os.environ["FM_FAKE_PANE_PROJECT"]}
+    state["tabs"].append(tab)
+    state["panes"].append(pane)
+    emit({"tab": tab, "root_pane": pane})
+elif action in (("tab", "list"), ("pane", "list")):
+    kind = "tabs" if args[0] == "tab" else "panes"
+    emit({kind: [item for item in state[kind] if item["workspace_id"] == option("--workspace")]})
+elif action in (("tab", "get"), ("pane", "get")):
+    kind = args[0]
+    item = next((item for item in state[kind + "s"] if item[kind + "_id"] == args[2]), None)
+    if item:
+        emit({kind: item})
+    else:
+        code = "unavailable" if close_mode == "unknown" and (root / "treehouse-returned").exists() else kind + "_not_found"
+        print(json.dumps({"error": {"code": code}}))
+        sys.exit(1)
+elif action == ("pane", "run"):
+    if "treehouse get" in args[3]:
+        script = root / "treehouse-line.sh"
+        script.write_text('export FM_FAKE_PANE_SHELL=$$\n' + args[3] + "\n")
+        with Path(os.environ["FM_FAKE_PANE_LOG"]).open("a") as log:
+            subprocess.run(["bash", str(script)], cwd=os.environ["FM_FAKE_PANE_PROJECT"], stdout=log, stderr=log, check=False)
+        (root / "treehouse-returned").touch()
+elif action == ("pane", "read"):
+    log = Path(os.environ["FM_FAKE_PANE_LOG"])
+    print(log.read_text() if log.exists() else "", end="")
+elif action == ("pane", "close"):
+    if (root / "treehouse-returned").exists() and close_mode == "refused":
+        print(json.dumps({"error": {"code": "close_refused"}}))
+        sys.exit(1)
+    if not (root / "treehouse-returned").exists() or close_mode != "noop":
+        remove_pane(args[2])
+elif action == ("terminal", "title"):
+    emit({"reason": "no_foreground_client"})
+elif args[0] in ("agent", "api") or action == ("pane", "process-info"):
+    sys.exit(1)
+else:
+    print("unexpected fake herdr call: " + repr(args), file=sys.stderr)
+    sys.exit(2)
+state_path.write_text(json.dumps(state))
+PY
+  chmod +x "$FAKEBIN_DIR/herdr"
+}
+
+test_pool_full_herdr_cleanup_is_confirmed() (
+  local layout=$1 close_mode=$2 rec id out status lock_path
+  id="settle-herdr-$layout-$close_mode"
+  rec=$(make_settle_case "$id" "$id" 100000)
+  read_settle_record "$rec"
+  make_settle_herdr_fake
+  fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+  printf 'on\n' > "$HOME_DIR/config/herdr-presentation-spaces"
+  unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID HERDR_SOCKET_PATH
+  export FM_HOME="$HOME_DIR" FM_STATE_OVERRIDE="$HOME_DIR/state" FM_BACKEND=herdr
+  export HERDR_SESSION="$id" FM_FAKE_HERDR_DIR="$CASE_DIR" PATH="$FAKEBIN_DIR:$PATH"
+  export FM_FAKE_HERDR_CLOSE="$close_mode" FM_FAKE_HERDR_FOCUS_UNREADABLE=1
+  . "$ROOT/bin/fm-wake-lib.sh"
+  . "$ROOT/bin/fm-backend.sh"
+  fm_backend_source herdr || fail "could not load the Herdr adapter"
+  lock_path=$(fm_backend_herdr_presentation_session_lock_path "$HERDR_SESSION") || fail "could not resolve the fake session's presentation lock"
+  if [ "$layout" = flat ]; then
+    fm_lock_try_acquire "$lock_path" || fail "could not hold the presentation lock"
+  fi
+
+  out=$(FM_FAKE_TREEHOUSE=pool-full run_settle_spawn "$id")
+  status=$?
+  if [ "$layout" = flat ]; then
+    [ -e "$lock_path" ] || fail "spawn removed another process's presentation lock"
+    fm_lock_release "$lock_path" || fail "could not release the presentation lock"
+    assert_contains "$out" "presentation focus lock unavailable" "the spawn did not contend with the held lock"
+  else
+    [ -f "$HOME_DIR/state/$id.herdr-presentation" ] || fail "the spawn did not create a projection"
+  fi
+  [ "$status" -ne 0 ] || fail "Herdr spawn launched on a full pool"$'\n'"$out"
+  assert_contains "$out" "all 16 worktrees are in use or dirty (max_trees = 16)" "Herdr refusal lost treehouse's reason"$'\n'"$out"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "Herdr refusal published task metadata"
+  if [ "$close_mode" = closed ]; then
+    jq -e --arg label "fm-$id" 'all(.tabs[]; .label != $label) and (.workspaces | length) == 1 and (.panes | length) == 1 and .panes[0].pane_id == "w1:p0"' "$CASE_DIR/herdr.json" >/dev/null || fail "Herdr refusal left its tab, pane, or workspace behind"$'\n'"$out"
+    assert_contains "$out" "was closed" "the refusal did not confirm the closed endpoint"
+  else
+    if [ "$close_mode" != unknown ]; then
+      jq -e --arg label "fm-$id" 'any(.tabs[]; .label == $label)' "$CASE_DIR/herdr.json" >/dev/null || fail "the refused close did not leave a pane to report"
+    fi
+    assert_not_contains "$out" "was closed" "the refusal falsely reported a confirmed close"$'\n'"$out"
+    assert_contains "$out" "could not confirm closure" "the refusal did not report the unconfirmed endpoint"$'\n'"$out"
+    assert_contains "$out" "inspect window $HERDR_SESSION:" "the refusal did not identify the endpoint to inspect"
+  fi
+  pass "a pool-full $layout Herdr refusal confirms $close_mode cleanup"
+)
+
 # A single stale first read (the exact incident) must not be accepted: the
 # loop should keep polling until two consecutive reads agree, landing on the
 # real settled worktree instead.
@@ -323,5 +466,11 @@ test_transient_primary_checkout_is_not_accepted
 test_primary_checkout_that_never_settles_fails_at_the_deadline
 test_pool_full_treehouse_get_refuses_at_once
 test_slow_treehouse_get_still_launches
+test_pool_full_herdr_cleanup_is_confirmed flat closed || exit 1
+test_pool_full_herdr_cleanup_is_confirmed flat refused || exit 1
+test_pool_full_herdr_cleanup_is_confirmed flat noop || exit 1
+test_pool_full_herdr_cleanup_is_confirmed flat unknown || exit 1
+test_pool_full_herdr_cleanup_is_confirmed projected closed || exit 1
+test_pool_full_herdr_cleanup_is_confirmed projected noop || exit 1
 
 echo "# all fm-spawn-worktree-settle tests passed"

@@ -4799,10 +4799,34 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
       candidate=""
       [ -z "$p" ] || last_reason=$SPAWN_WT_REASON
       if treehouse_said=$(spawn_treehouse_get_returned); then
-        # The endpoint holds nothing yet. A projected Herdr task is closed by the
-        # abort cleanup on exit; every other endpoint is closed here.
-        [ "$HERDR_PROJECTION_ABORT_CLEANUP" = 1 ] || rovo_endpoint_cleanup
-        echo "error: treehouse get exited without entering a worktree for project '$PROJ_ABS', so no worker was launched and its window $T was closed; treehouse said:"$'\n'"${treehouse_said:-  (no output)}" >&2
+        if [ "$HERDR_PROJECTION_ABORT_CLEANUP" = 1 ]; then
+          fm_backend_herdr_projection_cleanup_exact \
+            "$HERDR_PROJECTION_ABORT_SESSION" \
+            "$HERDR_PROJECTION_ABORT_TASK_PANE" \
+            "$HERDR_PROJECTION_ABORT_SEEDED_PANE"
+          HERDR_PROJECTION_ABORT_CLEANUP=0
+        else
+          rovo_endpoint_cleanup
+        fi
+        treehouse_unclosed=$T
+        if [ "$BACKEND" = herdr ]; then
+          SPAWN_ENDPOINT_CLOSED=1
+          treehouse_unclosed=
+          for treehouse_pane in "$HERDR_PANE_ID" "${HERDR_PROJECTION_ABORT_SEEDED_PANE:-}"; do
+            [ -n "$treehouse_pane" ] || continue
+            if ! fm_backend_herdr_endpoint_confirmed_gone "$HERDR_SES:$treehouse_pane" &&
+              ! fm_backend_herdr_explicit_close_pane_confirmed "$HERDR_SES" "$treehouse_pane"; then
+              SPAWN_ENDPOINT_CLOSED=0
+              treehouse_unclosed="${treehouse_unclosed:+$treehouse_unclosed }$HERDR_SES:$treehouse_pane"
+            fi
+          done
+        fi
+        if [ "$SPAWN_ENDPOINT_CLOSED" = 1 ]; then
+          treehouse_cleanup="its window $T was closed"
+        else
+          treehouse_cleanup="could not confirm closure of its endpoint; inspect window $treehouse_unclosed"
+        fi
+        echo "error: treehouse get exited without entering a worktree for project '$PROJ_ABS', so no worker was launched; $treehouse_cleanup; treehouse said:"$'\n'"${treehouse_said:-  (no output)}" >&2
         exit 1
       fi
     fi
