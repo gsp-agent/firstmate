@@ -68,7 +68,12 @@ print(repr(data))
 ' "$1" "$2"
 }
 
-file_mode() { stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1"; }
+file_mode() {
+  python3 -I -c '
+import os, stat, sys
+print(format(stat.S_IMODE(os.stat(sys.argv[1]).st_mode), "o"))
+' "$1"
+}
 
 python_free_path() {  # <case-dir> -> a bin dir holding the script's own tools but no python3
   local dir=$1/nopython-bin tool
