@@ -1800,8 +1800,8 @@ test_space_containing_scout_report_marker_replays() {
   out=$(FM_DATA_OVERRIDE="$data" run_teardown "$case_dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "space-path scout teardown unexpectedly completed"
   assert_present "$marker" "space-path scout teardown recorded no pending close"
-  assert_absent "$(home_of "$case_dir")/state/$id.meta" \
-    "space-path scout teardown retained meta after recording its close"
+  assert_present "$(home_of "$case_dir")/state/$id.meta" \
+    "failed space-path scout close removed the task's recovery protection"
   rm -f "$case_dir/fakebin/tasks-axi"
 
   out=$(FM_DATA_OVERRIDE="$data" run_bootstrap "$case_dir")
@@ -1810,6 +1810,8 @@ test_space_containing_scout_report_marker_replays() {
   assert_grep "data/$id/report.md" "$backlog" \
     "report path from a space-containing data directory was lost during replay"
   assert_absent "$marker" "space-containing report marker remained after replay"
+  assert_absent "$(home_of "$case_dir")/state/$id.meta" \
+    "successful space-path scout replay retained the task record"
   pass "space-containing scout report paths round-trip through recovery"
 }
 
@@ -2317,8 +2319,8 @@ test_recovery_preserves_both_records_when_meta_removal_fails() {
   assert_present "$meta" "failed recovery removed the task record"
   assert_present "$(home_of "$case_dir")/state/$id.backlog-close" \
     "failed recovery discarded the pending close"
-  [ "$(row_state "$case_dir" "$id")" = in_flight ] \
-    || fail "failed recovery closed the backlog before removing meta"
+  [ "$(row_state "$case_dir" "$id")" = "done" ] \
+    || fail "failed meta removal lost the successful backlog close"
 
   rm -f "$case_dir/fakebin/rm"
   out=$(run_bootstrap "$case_dir")
