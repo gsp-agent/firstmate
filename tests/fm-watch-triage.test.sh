@@ -6714,6 +6714,7 @@ SH
       --reason "complete the Dale step" --dale-step screen --probe "$probe" >/dev/null \
       || fail "could not create the $mode sweep fixture"
   done
+  set_mtime 1 "$state/.last-check"
   started=$(date +%s)
   watch_bg "$state" "$fakebin" "$out" env "FM_HOME=$dir" "FM_ROOT_OVERRIDE=$dir" \
     "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config" FM_CHECK_TIMEOUT=60 \
@@ -6843,6 +6844,7 @@ SH
         printf 'schema=fm-secondmate-parent.v1\nroute=invalid\n' > "$dir/.fm-secondmate-parent"
         ;;
     esac
+    set_mtime 1 "$state/.last-check"
     watch_bg "$state" "$fakebin" "$out" env "FM_HOME=$dir" "FM_ROOT_OVERRIDE=$dir" \
       "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config" \
       "REAL_TASKS_AXI=$real_tasks" "REAL_RM=$real_rm" "FM_TEST_PROBE_FAILURE=$stage" \
