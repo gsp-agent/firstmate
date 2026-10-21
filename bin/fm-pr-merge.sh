@@ -161,8 +161,9 @@
 # its verdict cannot outlive a push. A gate that is not an executable file,
 # exits non-zero, or runs past FM_PR_MERGE_GATE_TIMEOUT seconds (default 60,
 # also used for any value that is not a positive whole number) refuses the
-# merge, and its last output line is quoted in the refusal. Only the gate's
-# own exit counts: a child it leaves running does not hold the merge.
+# merge, and its last output line, read from the last 64 KiB it wrote by the
+# time it exited, is quoted in the refusal. Only the gate's own exit counts: a
+# child it leaves running, even one still writing, does not hold the merge.
 # --attended-override does not skip it. With no config/merge-gate nothing
 # changes. A home uses it, for example, to require an approving review at the
 # exact head from someone other than the author, which GitHub's own settings do
@@ -1359,7 +1360,7 @@ require_released_captain_hold() {
 # config/merge-gate, the home's own pre-merge gate (header). Runs only once
 # the live read has verified FM_PR_MERGE_HEAD.
 github_require_merge_gate() {
-  local gate="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}/merge-gate" log status=0 last
+  local gate="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}/merge-gate" log status=0 last='' size skip=0
   local seconds=${FM_PR_MERGE_GATE_TIMEOUT:-}
   # fm_run_timed reads a bound of 0 as no deadline at all.
   case "$seconds" in '' | 0* | *[!0-9]*) seconds=60 ;; esac
@@ -1377,7 +1378,15 @@ github_require_merge_gate() {
     return 1
   fi
   fm_run_timed "$seconds" "$gate" "$URL" "$FM_PR_MERGE_HEAD" >"$log" 2>&1 </dev/null || status=$?
-  last=$(sed '/^[[:space:]]*$/d' "$log" | tail -n 1 | cut -c1-400)
+  # Only the last 64 KiB written by the gate's exit: a child it leaves writing
+  # moves the end of the log, so a reader that waited for that end never ends.
+  size=$(stat -c %s "$log" 2>/dev/null || stat -f %z "$log" 2>/dev/null) || size=0
+  case "$size" in '' | *[!0-9]*) size=0 ;; esac
+  [ "$size" -le 65536 ] || skip=$((size - 65536))
+  if [ "$size" -gt 0 ]; then
+    last=$(tail -c "+$((skip + 1))" "$log" | head -c "$((size - skip))" | sed '/^[[:space:]]*$/d' |
+      tail -n 1 | cut -c1-400)
+  fi
   rm -f "$log"
   [ "$status" -eq 0 ] && return 0
   if fm_timed_out "$status"; then
