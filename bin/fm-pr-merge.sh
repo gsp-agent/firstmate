@@ -833,8 +833,25 @@ forgejo_default_merge_style() {
 # The reported name is also what --allow-red matches. An unnamed check run is
 # grouped alone and can neither supersede nor be superseded, because unrelated
 # unnamed checks must not be treated as one.
+# Dale 10-21 (.agent-config-ydbn7, decision c): nothing runs on GitHub CI for
+# a repo with Actions disabled, so its stale check runs mean nothing there.
+# 0 when Actions is disabled for $PR_OWNER/$PR_REPO (read once, then cached).
+FM_PR_ACTIONS_DISABLED=''
+github_actions_disabled() {
+  if [ -z "$FM_PR_ACTIONS_DISABLED" ]; then
+    if gh api "repos/$PR_OWNER/$PR_REPO/actions/permissions" 2>/dev/null \
+        | jq -e '.enabled == false' >/dev/null 2>&1; then
+      FM_PR_ACTIONS_DISABLED=true
+    else
+      FM_PR_ACTIONS_DISABLED=false
+    fi
+  fi
+  [ "$FM_PR_ACTIONS_DISABLED" = true ]
+}
+
 github_checks_not_green() {
   local json=$1
+  if github_actions_disabled; then return 0; fi
   printf '%s' "$json" | jq -r '
     def settled_at:
       if type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
@@ -892,6 +909,7 @@ github_read_required_contexts() {
   local base=$1 branch_path branch_json rules_json classic='' ruleset='' api_err api_err_text
   FM_PR_GITHUB_REQUIRED='[]'
   FM_PR_GITHUB_REQUIRED_ERROR=
+  if github_actions_disabled; then return 0; fi
   branch_path=$(github_urlencode_path_segment "$base")
 
   if ! branch_json=$(gh api "repos/$PR_OWNER/$PR_REPO/branches/$branch_path" 2>/dev/null) \
@@ -1116,6 +1134,20 @@ EOF
     done <<EOF
 $missing
 EOF
+  fi
+
+  # Dale 10-21 (.agent-config-ydbn7): no merge without chip's approval at the
+  # exact head on any path through here (agent-config #312 merged unreviewed).
+  # An attended override is the operator's explicit word and still binds head.
+  if [ "$ATTENDED_OVERRIDE" != true ]; then
+    if ! gh api "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/reviews?per_page=100" 2>/dev/null \
+        | jq -e --arg head "$live_head" --arg reviewer "${FM_MERGE_REVIEWER:-carmanchip23-dev}" '
+          [.[] | select(.user.login == $reviewer and .commit_id == $head
+             and (.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "COMMENTED"))]
+          | last | .state == "APPROVED"' >/dev/null 2>&1; then
+      refusals="$refusals  - no approval by ${FM_MERGE_REVIEWER:-carmanchip23-dev} at head $live_head
+"
+    fi
   fi
 
   if [ -n "$refusals" ]; then
