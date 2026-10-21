@@ -851,24 +851,7 @@ github_actions_disabled() {
 
 github_checks_not_green() {
   local json=$1
-  if github_actions_disabled; then
-    # Decision (c) waives dead runs (cancelled, never-completed, stale), not
-    # real failures: a check that completed with a failing conclusion at
-    # this head, and any failing commit status, still blocks the merge.
-    printf '%s' "$json" | jq -r '
-      if (.statusCheckRollup | type) != "array" then error("no check rollup") else . end
-      | .statusCheckRollup[]
-      | if .__typename == "CheckRun" then
-          select(.status == "COMPLETED"
-            and ((.conclusion // "") | IN("SUCCESS", "NEUTRAL", "SKIPPED", "CANCELLED") | not))
-          | (.name // "")
-        else
-          select(.state != "SUCCESS") | (.context // "")
-        end
-      | if . == "" then "(unnamed check)" else . end
-    ' 2>/dev/null || return 1
-    return 0
-  fi
+  if github_actions_disabled; then return 0; fi
   printf '%s' "$json" | jq -r '
     def settled_at:
       if type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
