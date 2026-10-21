@@ -57,6 +57,7 @@ case "${1:-}" in
   list-windows) exit 0 ;;
   has-session|new-session|new-window|kill-window) exit 0 ;;
   send-keys) exit 0 ;;
+  capture-pane) printf '%s\n' '• Working (1s • esc to interrupt)'; exit 0 ;;
 esac
 exit 0
 SH
@@ -104,7 +105,11 @@ EOF
 
 run_settle_spawn() {
   local id=$1
-  FM_ROOT_OVERRIDE='' FM_HOME="$HOME_DIR" \
+  # A codex spawn records folder trust under HOME (bin/fm-codex-trust.sh), so
+  # HOME is a throwaway and CODEX_HOME is cleared, never the developer's store.
+  mkdir -p "$HOME_DIR/user-home"
+  HOME="$HOME_DIR/user-home" CODEX_HOME='' \
+    FM_ROOT_OVERRIDE='' FM_HOME="$HOME_DIR" \
     FM_STATE_OVERRIDE="$HOME_DIR/state" FM_DATA_OVERRIDE="$HOME_DIR/data" \
     FM_PROJECTS_OVERRIDE="$HOME_DIR/projects" FM_CONFIG_OVERRIDE="$HOME_DIR/config" \
     FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" \

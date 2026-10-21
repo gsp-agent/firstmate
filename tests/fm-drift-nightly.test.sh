@@ -858,6 +858,11 @@ test_bad_install_arguments_exit_2() {
   pass "install rejects hour 24 and a relative log path"
 }
 
+if [ -n "${FM_TEST_ONLY:-}" ]; then
+  "$FM_TEST_ONLY"
+  exit
+fi
+
 test_unproven_file_is_path_drift_and_exits_1
 test_proof_sha_makes_that_path_ok_and_exits_0
 test_squash_merged_branch_carries_its_own_manifest_line

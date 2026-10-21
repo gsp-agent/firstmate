@@ -26,7 +26,7 @@ Markers are compact trailing HTML comments, deliberately cheap because marker by
 - `<!--g-->` - migration-only: an unconfirmed legacy entry that has consumed its one grace cycle, carrying no date because grace is not reinforcement.
 
 ```markdown
-- See `bin/fm-spawn.sh` for ship-branch preparation. <!--a:2026-08-03-->
+- Treehouse pool slots share one repo; follow bin/fm-spawn.sh's branch-preparation contract before editing. <!--a:2026-08-03-->
 - While state/.afk exists, the away-daemon owns triage (until the afk-wake fix lands; tracked: afk-pi-wake-bypass-r1). <!--p:2026-07-20-->
 - Never restart the shared no-mistakes daemon while runs are active. <!--P-->
 - Codex writes its trust prompt to stderr, not stdout. <!--a:2026-07-28/6-->

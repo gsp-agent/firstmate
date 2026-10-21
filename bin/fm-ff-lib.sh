@@ -24,6 +24,11 @@
 # A tracked-files fast-forward never touches the gitignored operational dirs
 # (data/, state/, config/, projects/, .no-mistakes/), so it cannot disturb a
 # secondmate's backlog, projects, or in-flight work.
+# A home that is checked out on upstream-lean follows origin/upstream-lean instead of the
+# default branch: that is where this fork's PRs merge while its main stays frozen. Such a
+# home is dirty only for tracked changes, because it carries untracked operational
+# directories (.worktrees/, local skills) and git itself refuses a fast-forward that would
+# overwrite an untracked file, which is then reported as a failed fast-forward.
 # The seeded .fm-secondmate-home identity marker is gitignored too; the local
 # sync tolerates only that marker during the one-time upgrade of pre-ignore
 # linked-worktree homes.
@@ -38,6 +43,7 @@
 # its checked-out default branch under the same guard.
 
 SUB_HOME_MARKER="${SUB_HOME_MARKER:-.fm-secondmate-home}"
+LEAN_BRANCH="${FM_LEAN_BRANCH:-upstream-lean}"
 # shellcheck source=bin/fm-secondmate-registry-lib.sh
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-secondmate-registry-lib.sh"
 
@@ -72,6 +78,13 @@ primary_head_commit() {
   local root=$1 default
   default=$(default_branch "$root") || return 1
   git -C "$root" rev-parse --verify --quiet "refs/heads/$default^{commit}" 2>/dev/null || return 1
+}
+
+# True when <dir> is checked out on the lean branch and origin has it (call after a fetch).
+lean_line_checked_out() {
+  local dir=$1
+  [ "$(git -C "$dir" symbolic-ref --quiet --short HEAD 2>/dev/null)" = "$LEAN_BRANCH" ] \
+    && git -C "$dir" show-ref --verify --quiet "refs/remotes/origin/$LEAN_BRANCH"
 }
 
 resolve_path() {
@@ -396,7 +409,7 @@ ff_target() {
     return 0
   fi
 
-  local default base cur instr local_rev base_rev before after out
+  local default base cur instr local_rev base_rev before after out dirt lean=no
   default=$(default_branch "$dir") || {
     echo "$label: skipped: cannot determine default branch"
     return 0
@@ -411,6 +424,10 @@ ff_target() {
     if ! fetch_once "$dir"; then
       echo "$label: skipped: fetch failed"
       return 0
+    fi
+    if lean_line_checked_out "$dir"; then
+      default=$LEAN_BRANCH
+      lean=yes
     fi
     base="origin/$default"
   else
@@ -432,7 +449,12 @@ ff_target() {
     return 0
   fi
 
-  if [ -n "$(dirty_status "$dir" "$ignore_seed_marker")" ]; then
+  if [ "$lean" = yes ]; then
+    dirt=$(git -C "$dir" status --porcelain --untracked-files=no 2>/dev/null | head -1)
+  else
+    dirt=$(dirty_status "$dir" "$ignore_seed_marker")
+  fi
+  if [ -n "$dirt" ]; then
     echo "$label: skipped: dirty working tree"
     return 0
   fi

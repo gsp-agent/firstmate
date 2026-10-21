@@ -14,8 +14,9 @@
 # That cadence is hours long and condition-aware: a paused: line naming
 # `until <UTC ISO 8601>` is rechecked when that time passes, but a declared time
 # beyond FM_PAUSE_RESURFACE_SECS cannot extend the ordinary recheck cadence, and
-# while an away record (state/.afk-contract, never quiet mode's) exists an
-# item held for the captain is never rechecked at all, in either posture.
+# while an away record (state/.afk-contract, never quiet mode's) exists,
+# captain-facing stale-alarm rechecks are suppressed in either supervision
+# shape. The independent probe sweep is described among the check reasons below.
 # While state/.afk exists, the daemon owns triage and this watcher queues and exits
 # on every wake. Printed reason lines:
 #   signal: <file>...      status/turn-end signals, surfaced when a listed status
@@ -100,6 +101,15 @@
 #                          block, snapshot watched GitHub repositories for
 #                          bin/fm-pr-queue-sweep.sh. bin/fm-pr-lib.sh owns
 #                          discovery retention across recovery and cleanup.
+#   check: captain hold <id> released after a passing probe
+#   check: captain hold <id> released but finalization failed; ...
+#                          Each CHECK_INTERVAL sweep calls fm-captain-hold.sh
+#                          reprobe for active captain holds with a Hold probe
+#                          body line, including while away. That wrapper owns
+#                          probe deadlines and release guards. Kept holds stay
+#                          silent; a release queues one reason. If finalization
+#                          fails, that reason names the reprobe command needed
+#                          to finish the recorded release.
 #   check: process-event result captured: <keys>
 #                          a durably captured process-to-event result is queued
 #                          and has not been surfaced yet; reported once per
@@ -204,6 +214,8 @@ WATCH_HOME_EXISTED=0
 . "$SCRIPT_DIR/fm-push-transition-lib.sh"
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
+# shellcheck source=bin/fm-supervision-lib.sh
+. "$SCRIPT_DIR/fm-supervision-lib.sh"
 # Only for the arm-time check on FM_PROCEVENT_LAUNCH_CONFIRM_SECONDS below;
 # the per-cycle reconcile itself runs as a separate process.
 # shellcheck source=bin/fm-procevent-lib.sh
@@ -841,6 +853,21 @@ recorded_windows() {
     seen="$seen|$w|"
     printf '%s\n' "$w"
   done
+}
+
+# The pane-stale loop's order: the least-recently-visited window first. wake()
+# exits the watcher, so a scan that always began at the first .meta never
+# reached a late window while earlier ones kept waking; on 10-21, 80 of 100 live
+# windows went unvisited for 6.5 h (.agent-config-6keoe). Every visit writes
+# .count-<key>, so its mtime is the last visit. A window never visited sorts
+# first, and ties keep the recorded order.
+stale_scan_windows() {
+  local w m i=0
+  while IFS= read -r w; do
+    m=$(stat_mtime "$STATE/.count-$(window_key "$w")") || m=0
+    printf '%s\t%s\t%s\n' "${m:-0}" "$i" "$w"
+    i=$((i + 1))
+  done < <(recorded_windows) | sort -t $'\t' -k1,1n -k2,2n | cut -f3-
 }
 
 # Print the oldest structurally valid ACTIONABLE row in a local secondmate's
@@ -2888,6 +2915,29 @@ while :; do
     rejected_checks=
     contribution_check_output=
     check_sweep_output=
+    FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
+      run_check_capture "$SCRIPT_DIR/fm-tasks-axi.sh" list --state held --fields hold_kind,body || exit 1
+    if [ "$FM_CHECK_STATUS" -eq 0 ]; then
+      captain_probe_ids=$(printf '%s\n' "$FM_CHECK_RESULT" | fm_supervision_probe_hold_ids) || captain_probe_ids=
+      while IFS= read -r captain_probe_id; do
+        [ -n "$captain_probe_id" ] || continue
+        FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
+          run_check_capture "$SCRIPT_DIR/fm-captain-hold.sh" reprobe "$captain_probe_id" || exit 1
+        case "$FM_CHECK_RESULT" in
+          "released: $captain_probe_id")
+            if [ "$FM_CHECK_STATUS" -eq 0 ]; then
+              reason="check: captain hold $captain_probe_id released after a passing probe"
+            else
+              reason="check: captain hold $captain_probe_id released but finalization failed; run bin/fm-captain-hold.sh reprobe $captain_probe_id to finish it"
+            fi
+            fm_wake_append check "captain-hold-probe-$captain_probe_id" "$reason" || exit 1
+            check_sweep_output="${check_sweep_output}${reason}"$'\n'
+            ;;
+        esac
+      done <<EOF
+$captain_probe_ids
+EOF
+    fi
     # Read watched repositories before this cycle retires a terminal watch.
     # The startup snapshot still names a repository whose receipt was recovered
     # before this block. bin/fm-pr-queue-sweep.sh owns the line format.
@@ -3491,7 +3541,7 @@ EOF
         clear_pause_tracking "$key"
       fi
     fi
-  done < <(recorded_windows)
+  done < <(stale_scan_windows)
 
   # Heartbeat: the watcher runs a cheap fleet-scan at a regular cadence no matter
   # what. Time-based via .last-heartbeat mtime; interval doubles per consecutive

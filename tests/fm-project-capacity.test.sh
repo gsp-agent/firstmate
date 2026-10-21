@@ -101,7 +101,10 @@ case "$*" in
     exit 0
     ;;
 esac
-case "${1:-}" in display-message) printf 'firstmate\n' ;; esac
+case "${1:-}" in
+  display-message) printf 'firstmate\n' ;;
+  capture-pane) printf '%s\n' '• Working (1s • esc to interrupt)' ;;
+esac
 exit 0
 SH
   cat > "$fakebin/treehouse" <<'SH'
@@ -194,7 +197,11 @@ new_worktree() {  # <case-dir> <name>
 run_spawn() {  # <case-dir> <home> <pane-path> <args...>
   local case_dir=$1 home=$2 pane=$3
   shift 3
-  FM_ROOT_OVERRIDE='' FM_HOME="$home" \
+  # A codex spawn records folder trust under HOME (bin/fm-codex-trust.sh), so
+  # HOME is a throwaway and CODEX_HOME is cleared, never the developer's store.
+  mkdir -p "$case_dir/user-home"
+  HOME="$case_dir/user-home" CODEX_HOME='' \
+    FM_ROOT_OVERRIDE='' FM_HOME="$home" \
     FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_PROJECTS_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
     FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" FM_BACKEND=tmux \
     FM_FAKE_PANE_PATH="$pane" FM_FAKE_CALL_LOG="$case_dir/calls.log" \
@@ -1167,6 +1174,228 @@ EOF
   pass "every local home shares one extra start per project per window"
 }
 
+wait_for_file() {  # <path> <description>
+  local path=$1 description=$2 i=0
+  while [ ! -f "$path" ]; do
+    i=$((i + 1))
+    [ "$i" -lt 400 ] || fail "$description"
+    sleep 0.05
+  done
+}
+
+# A same-project teardown started while a headroom reading runs takes the
+# project lock the reading no longer holds, so it completes instead of
+# refusing with exit 1. The spawn then recounts, finds the freed place, and
+# launches inside the declared count without consuming the extra-start window.
+test_teardown_during_headroom_reading_is_not_refused() {
+  local case_dir home out rc=0 rc_td=0 pid_a rc_a=0 wt_a
+  case_dir=$(make_case reading-teardown task-a)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  mkdir -p "$case_dir/pool/1"
+  git -C "$case_dir/project" worktree add --quiet -b pool-live "$case_dir/pool/1/project"
+  printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' \
+    "$case_dir/pool/1/project" > "$case_dir/pool/treehouse-state.json"
+  write_live "$home" live-a "$case_dir/project"
+  sed -i.bak "s|^worktree=.*|worktree=$case_dir/pool/1/project|" "$home/state/live-a.meta" &&
+    rm -f "$home/state/live-a.meta.bak"
+  install_reading "$case_dir/reading" <<EOF
+: > $(printf '%q' "$case_dir/reading.started")
+i=0
+while [ ! -f $(printf '%q' "$case_dir/reading.release") ]; do
+  i=\$((i + 1))
+  [ "\$i" -lt 400 ] || exit 1
+  sleep 0.05
+done
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$case_dir/reading.started" "the headroom reading never started: $(cat "$case_dir/a.out")"
+  out=$(FM_ROOT_OVERRIDE='' FM_HOME="$home" FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
+    FM_FAKE_CALL_LOG="$case_dir/calls.log" PATH="$case_dir/fakebin:$PATH" \
+    "$TEARDOWN" live-a 2>&1) || rc_td=$?
+  : > "$case_dir/reading.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$rc_td" "a teardown started during a headroom reading was refused: $out"
+  assert_absent "$home/state/live-a.meta" "the teardown during a reading left its record"
+  expect_code 0 "$rc_a" "the spawn whose reading a teardown raced did not launch: $(cat "$case_dir/a.out")"
+  assert_contains "$(cat "$case_dir/a.out")" "spawned task-a" "the spawn after the teardown did not launch"
+  [ "$(overshare_count "$home")" = 0 ] ||
+    fail "a spawn admitted by the recount's freed place consumed the extra-start window: $(overshare_records "$home")"
+  pass "a teardown started during a headroom reading completes, and the spawn recounts into the freed place"
+}
+
+# A same-project spawn from another local home started while a headroom
+# reading runs also takes the freed project lock instead of refusing with
+# exit 1. It takes that window's one extra start, and the first spawn,
+# recounting after its own reading, finds the window spent and defers with 75.
+test_spawn_during_headroom_reading_takes_the_extra_start() {
+  local case_dir home mate mate_project out_b rc_b=0 pid_a rc_a=0 wt_a
+  case_dir=$(make_case reading-spawn-race task-a)
+  home="$case_dir/home"
+  mate="$case_dir/mate"
+  make_home "$mate" task-m
+  mate_project="$mate/projects/project"
+  git clone -q "$(git -C "$case_dir/project" remote get-url origin)" "$mate_project"
+  printf '%s\n' schema=fm-secondmate-parent.v1 route=local "parent_home=$home" > "$mate/.fm-secondmate-parent"
+  printf -- '- mate - a local mate (home: %s; scope: project work; projects: project; added 2026-09-01)\n' "$mate" \
+    > "$home/data/secondmates.md"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  install_reading "$case_dir/reading" <<EOF
+printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
+runs=\$(wc -l < $(printf '%q' "$case_dir/reading.log") | tr -d ' ')
+if [ "\$runs" = 1 ]; then
+  : > $(printf '%q' "$case_dir/reading.started")
+  i=0
+  while [ ! -f $(printf '%q' "$case_dir/reading.release") ]; do
+    i=\$((i + 1))
+    [ "\$i" -lt 400 ] || exit 1
+    sleep 0.05
+  done
+fi
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  git -C "$mate_project" worktree add --quiet -b wt-m "$case_dir/wt-m"
+  spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$case_dir/reading.started" "the first headroom reading never started: $(cat "$case_dir/a.out")"
+  out_b=$(run_spawn "$case_dir" "$mate" "$case_dir/wt-m" task-m "$mate_project" --mode no-mistakes --yolo off) || rc_b=$?
+  : > "$case_dir/reading.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$rc_b" "a spawn started during a headroom reading was refused: $out_b"
+  assert_contains "$out_b" "spawned task-m" "the spawn started during a reading did not launch"
+  expect_code "$DEFER_EXIT" "$rc_a" "the first spawn was not deferred after the recount: $(cat "$case_dir/a.out")"
+  assert_contains "$(cat "$case_dir/a.out")" "already started one worker past that count in the current window" \
+    "the first spawn did not find the window spent after its recount"
+  assert_absent "$home/state/task-a.meta" "the deferred first spawn published a record"
+  [ "$(overshare_count "$home")" = 1 ] ||
+    fail "the window did not hold exactly one extra start after the recount: $(overshare_records "$home")"
+  pass "a spawn started during a headroom reading launches, and the first spawn defers on the spent window after its recount"
+}
+
+# When another holder takes the project lock while a reading runs, the
+# spawn's try-acquire retake fails and it defers with 75, launching nothing
+# and consuming no window.
+test_failed_retake_after_headroom_reading_defers() {
+  local case_dir home pid_a rc_a=0 holder wt_a i=0
+  case_dir=$(make_case reading-retake task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  install_reading "$case_dir/reading" <<EOF
+: > $(printf '%q' "$case_dir/reading.started")
+i=0
+while [ ! -f $(printf '%q' "$case_dir/reading.release") ]; do
+  i=\$((i + 1))
+  [ "\$i" -lt 400 ] || exit 1
+  sleep 0.05
+done
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  wt_a=$(new_worktree "$case_dir" task-c)
+  spawn_ship "$case_dir" task-c "$wt_a" > "$case_dir/c.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$case_dir/reading.started" "the headroom reading never started: $(cat "$case_dir/c.out")"
+  # shellcheck disable=SC2016 # expanded by the holder's own shell
+  FM_HOME="$home" FM_STATE_OVERRIDE='' bash -c '
+    . "$1/bin/fm-wake-lib.sh"
+    lock=$(fm_treehouse_project_lock_path "$2") || exit 1
+    fm_lock_try_acquire "$lock" || exit 1
+    : > "$3.held"
+    while [ ! -f "$3.release" ]; do sleep 0.05; done
+    fm_lock_release "$lock"
+  ' _ "$ROOT" "$case_dir/project" "$case_dir/holder" &
+  holder=$!
+  wait_for_file "$case_dir/holder.held" "the lock holder never took the project lock during the reading"
+  : > "$case_dir/reading.release"
+  wait "$pid_a" || rc_a=$?
+  : > "$case_dir/holder.release"
+  wait "$holder" || true
+  expect_code "$DEFER_EXIT" "$rc_a" "a failed retake after a headroom reading did not defer: $(cat "$case_dir/c.out")"
+  assert_contains "$(cat "$case_dir/c.out")" "deferred:" "a failed retake did not report a deferral"
+  assert_absent "$home/state/task-c.meta" "a spawn whose retake failed published a record"
+  [ "$(overshare_count "$home")" = 0 ] ||
+    fail "a spawn whose retake failed consumed the extra-start window: $(overshare_records "$home")"
+  pass "a failed retake after a headroom reading defers with 75 and consumes no window"
+}
+
+test_same_home_spawns_during_headroom_reading_defer() {
+  local case_dir home wt_a pid_a rc_a=0 checks_rc=0 before worktrees kind out rc
+  case_dir=$(make_case reading-same-home task-a task-b)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  write_live "$home" live-a "$case_dir/project"
+  install_reading "$case_dir/reading" <<EOF
+printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
+: > $(printf '%q' "$case_dir/reading.started")
+i=0
+while [ ! -f $(printf '%q' "$case_dir/reading.release") ]; do
+  i=\$((i + 1))
+  [ "\$i" -lt 400 ] || exit 1
+  sleep 0.05
+done
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  FM_FAKE_HOLD="$case_dir/publication" spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$case_dir/reading.started" "the same-home reading never started: $(cat "$case_dir/a.out")"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  (
+    for kind in ship scout batch-ship batch-scout; do
+      rc=0
+      case "$kind" in
+        ship)
+          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" task-b "$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
+          ;;
+        scout)
+          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" task-b "$case_dir/project" --scout) || rc=$?
+          ;;
+        batch-ship)
+          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" "task-b=$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
+          ;;
+        batch-scout)
+          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" "task-b=$case_dir/project" --scout) || rc=$?
+          ;;
+      esac
+      expect_code "$DEFER_EXIT" "$rc" "a same-home $kind started during a reading did not defer: $out"
+      assert_nothing_created "$case_dir" "$home" task-b "$before" "$worktrees"
+      case "$kind" in batch-*) assert_contains "$out" "batch: DEFERRED task-b" "the $kind did not report its queued entry" ;; esac
+    done
+    [ "$(reading_runs "$case_dir/reading.log")" = 1 ] || fail "same-home contenders ran another reading"
+    [ "$(overshare_count "$home")" = 0 ] || fail "same-home contenders consumed the extra-start window"
+  ) || checks_rc=$?
+  : > "$case_dir/reading.release"
+  if [ "$checks_rc" = 0 ]; then
+    (
+      wait_for_file "$case_dir/publication.reached" "the first spawn never reached publication: $(cat "$case_dir/a.out")"
+      before=$(call_count "$case_dir")
+      worktrees=$(worktree_list "$case_dir")
+      rc=0
+      out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" task-b "$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
+      expect_code 1 "$rc" "ordinary publication contention changed after the reading: $out"
+      assert_nothing_created "$case_dir" "$home" task-b "$before" "$worktrees"
+    ) || checks_rc=$?
+  fi
+  : > "$case_dir/publication.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$checks_rc" "same-home contention checks failed"
+  expect_code 0 "$rc_a" "the reading spawn did not launch: $(cat "$case_dir/a.out")"
+  assert_present "$home/state/task-a.meta" "the reading spawn published no record"
+  assert_absent "$home/state/task-b.meta" "the contending task published a record"
+  [ "$(overshare_count "$home")" = 1 ] || fail "the reading spawn did not take exactly one extra start"
+  pass "same-home ships, scouts, and batch entries defer during a reading and retain publication protection"
+}
+
 test_undeclared_capacity_keeps_dispatch_uncapped
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind
@@ -1194,3 +1423,7 @@ test_absent_headroom_command_keeps_the_capacity_deferral
 test_failed_missing_and_hung_readings_defer
 test_zero_capacity_admits_no_overshare
 test_local_homes_share_one_extra_start
+test_teardown_during_headroom_reading_is_not_refused
+test_spawn_during_headroom_reading_takes_the_extra_start
+test_failed_retake_after_headroom_reading_defers
+test_same_home_spawns_during_headroom_reading_defer

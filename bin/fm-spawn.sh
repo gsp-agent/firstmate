@@ -2,6 +2,7 @@
 # Spawn a direct report: a crewmate in a treehouse or Orca worktree, or a
 # secondmate in its isolated firstmate home.
 # Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--upstream-consent <host>/<owner>/<repo>] [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
+#        fm-spawn.sh <task-id> <project-dir> --queue-start [--branch-prefix <prefix>] [--base-branch <branch>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
@@ -61,6 +62,33 @@
 #   base_branch= in state/<id>.meta, which a relaunch reuses and later review and
 #   cleanup read; it is refused on secondmates and relaunches, and without it
 #   nothing changes.
+#   --queue-start starts a queued ship whose whole backlog note is the
+#   standard PM intake template, nothing added:
+#     pm-<request> inbox <inbox-id>; done on the bead. no-mistakes, yolo off;
+#     merge on the PM's word. Default route[ (labels <label>[, <label>...])].
+#   It is how a caller outside the primary session (agent-config's queue fill)
+#   starts ready work in a free place. Everything it decides comes from ONE read
+#   of the task (tasks-axi show --full), made under this task's spawn lock: the
+#   row must read queued, unheld and unblocked and be a ship; the template sets
+#   mode no-mistakes and yolo off; its labels go to bin/fm-dispatch-resolve.sh
+#   --labels, which must answer clear from its default route, and that profile
+#   is the launch's harness, model and effort. Any other note, a label route, a
+#   scout or another state refuses with exit 1 and leaves the item for the
+#   captain. --mode, --yolo, --harness, --model, --effort and
+#   --upstream-consent are refused with it; without --branch-prefix the branch
+#   takes the project's registered prefix (bin/fm-project-mode.sh).
+#   data/<task-id>/brief.md is the claim on the item. One that already exists
+#   means a hand start owns it: the queue start exits 1 and leaves it alone.
+#   Otherwise, after the capacity check (so a deferral still leaves nothing),
+#   it scaffolds the brief through bin/fm-brief.sh, whose exclusive create
+#   refuses when a hand start's brief appeared meanwhile, then fills
+#   `## Captain's intent` with the item's title and note and `## Firstmate
+#   spec` with the queue-start spec, from that same read. A hand start racing
+#   it meets the same two claims, the brief's creation and this spawn lock: one
+#   wins and the other refuses with nothing to undo. A note edited after the
+#   read is a mid-task change, as for any hand start. A queue start that fails
+#   before its launch is sent removes the brief it wrote, unless it changed
+#   since, so the item is exactly as queued as before.
 #   Ship/scout launches always put fm-dod-lib.sh's current worker role scope
 #   first in the private launch-brief overlay, including the exact task-owned
 #   steering inbox. This never rewrites a project's instruction files or a
@@ -177,10 +205,20 @@
 #   Every single-task invocation holds one task-id-scoped lock across backend
 #   creation through metadata publication, so concurrent same-id spawns serialize
 #   even when they select different backends. A fresh spawn first takes the
-#   per-home task-set lock and refuses rather than waits when another operation
-#   owns it. The refusal names another spawn or forced teardown when the recorded
-#   holder role is known, otherwise another operation. --relaunch is exempt
+#   per-home task-set lock and keeps it through publication, including during a
+#   headroom reading, so forced teardown cannot remove its state mid-spawn.
+#   While the holder records role task-spawn-reading, a competing fresh spawn
+#   prints `deferred:`, exits 75, and leaves its backlog item queued; this also
+#   applies to scouts and batch entries. Other task-set contention refuses with
+#   exit 1, naming the recorded holder role when known. --relaunch is exempt
 #   because the existing task's control lock covers it.
+#   From the moment the launch file is staged, HUP, INT and TERM are deferred
+#   to the backlog commit: a worker may already be running, so an interrupted
+#   spawn still moves its item In flight, or reports what it could verify. A
+#   fresh spawn that exits nonzero after sending its launch, with its endpoint
+#   still open and its item still queued, holds the item for the captain
+#   (bin/fm-captain-hold.sh) naming that window, because a retry would start a
+#   second worker beside one that may be running.
 #   A fresh Treehouse-backed spawn also takes the project-identity lock in the local
 #   root Firstmate home's state directory before slot allocation and holds it through
 #   task metadata publication. Teardown holds that same lock while proving and
@@ -209,11 +247,18 @@
 #   render, endpoint, worktree, record, or backlog move exists, so the task stays
 #   exactly as queued as it was, unless the reading named in
 #   config/project-capacity-headroom admits this project's one extra start for
-#   the current window (bin/fm-project-capacity-lib.sh owns that rule). An
+#   the current window (bin/fm-project-capacity-lib.sh owns that rule). That
+#   reading runs after this spawn releases the project lock, and its verdict
+#   applies only after a try-acquire retake, a recount, and a window recheck
+#   under the retaken lock; a failed retake also defers with 75. A place freed
+#   during the reading admits the spawn within the cap without consuming the
+#   extra-start window, even if the reading reported no room. Absent that
+#   reading's configuration, no lock is released for it. An
 #   unreadable declaration refuses with exit 1.
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
+#   Regression coverage: tests/fm-project-capacity.test.sh.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
@@ -723,6 +768,9 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-project-capacity-lib.sh"
 # shellcheck source=bin/fm-worker-account-lib.sh
 . "$SCRIPT_DIR/fm-worker-account-lib.sh"
+# shellcheck source=bin/fm-task-reap-lib.sh
+. "$SCRIPT_DIR/fm-task-reap-lib.sh"
+TASK_REAP_ACTOR=spawn
 # Fail closed before any fleet mutation: a no-mistakes gate agent must never spawn
 # a direct report (see bin/fm-gate-refuse-lib.sh).
 fm_refuse_if_gate_agent
@@ -752,6 +800,7 @@ UPSTREAM_CONSENT=
 UPSTREAM_CONSENT_SET=0
 TRACEPARENT_SET=0
 RELAUNCH=0
+QUEUE_START=0
 # Opt-in only: exact-resume presentation-order lock waits instead of refusing.
 # Absent/unset keeps upstream refuse-on-contention. See header.
 HERDR_RESUME_LOCK_WAIT=0
@@ -824,6 +873,7 @@ for a in "$@"; do
     KIND_SET=1
     ;;
   --relaunch) RELAUNCH=1 ;;
+  --queue-start) QUEUE_START=1 ;;
   --herdr-resume-lock-wait) HERDR_RESUME_LOCK_WAIT=1 ;;
   --harness) want_value=harness ;;
   --harness=*)
@@ -935,6 +985,26 @@ case "$EFFORT" in
   ;;
 esac
 
+# --queue-start (header above) is a fresh single ship whose delivery and
+# profile come from its own backlog note, read under the spawn lock below, so
+# every flag that would decide them here is refused.
+if [ "$QUEUE_START" -eq 1 ]; then
+  [ "$RELAUNCH" -eq 0 ] && [ "$KIND_SET" -eq 0 ] || {
+    echo "error: --queue-start is a fresh ship start; --relaunch, --scout and --secondmate cannot combine with it" >&2
+    exit 1
+  }
+  [ "${#POS[@]}" -eq 2 ] && [ "${POS[0]%%=*}" = "${POS[0]}" ] || {
+    echo "error: --queue-start takes exactly <task-id> <project-dir>" >&2
+    exit 1
+  }
+  for queue_start_flag in "mode:$MODE_SET" "yolo:$YOLO_SET" "harness:$HARNESS_SET" "model:$MODEL_SET" "effort:$EFFORT_SET" "upstream-consent:$UPSTREAM_CONSENT_SET"; do
+    [ "${queue_start_flag#*:}" -eq 0 ] || {
+      echo "error: --queue-start reads this task's delivery and profile from its backlog note; --${queue_start_flag%%:*} cannot be passed with it" >&2
+      exit 1
+    }
+  done
+fi
+
 # --relaunch reuses an existing task's endpoint, worktree, project, and kind,
 # so every axis this block resolves for a fresh spawn instead comes from that
 # task's own durable record below. Contradicting it on the command line is a
@@ -973,7 +1043,9 @@ else
   # firstmate's per-task decision, so they are required and closed-set validated
   # here rather than resolved from the project registry. Scouts deliver a report
   # and record no delivery posture; secondmate spawns hardcode theirs.
-  if [ "$KIND" = ship ]; then
+  if [ "$KIND" = ship ] && [ "$QUEUE_START" -eq 1 ]; then
+    : # Mode and yolo come from the backlog note under the spawn lock.
+  elif [ "$KIND" = ship ]; then
     [ "$MODE_SET" -eq 1 ] || {
       echo "error: ship spawns require --mode <no-mistakes|direct-PR|local-only>; resolve it at intake from the captain's instruction and the project's registered posture in data/projects.md" >&2
       exit 1
@@ -1360,6 +1432,10 @@ CONFIG_INHERIT_LOCK_HELD=0
 GIT_HOOKS_DIR=
 SPAWN_LAUNCH_SENT=0
 SPAWN_ENDPOINT_CLOSED=0
+SPAWN_DEFERRED_SIGNAL=
+QUEUE_START_TASK=
+QUEUE_START_BRIEF_CLAIMED=0
+QUEUE_START_BRIEF_DIGEST=
 
 spawn_fresh_commit_rollback() {
   if fm_backlog_atomic_transition rollback "$STATE/$ID.meta" \
@@ -1385,6 +1461,25 @@ parse_orca_worktree_result() {
     ORCA_TERMINAL=${rest#*$'\t'}
   else
     ORCA_TERMINAL=
+  fi
+}
+
+# A fresh spawn that sent its launch but never moved its item In flight, while
+# its endpoint is still open, holds the item for the captain (header above).
+# Runs from the abort path under this task's spawn lock, before the provisional
+# record is rolled back, so no retry can start between the two.
+spawn_hold_launched_item() {  # <exit-status>
+  local reason
+  [ "$RELAUNCH" -eq 0 ] && [ "${BACKLOG_TRANSITION:-0}" = 1 ] || return 0
+  [ "$SPAWN_LAUNCH_SENT" = 1 ] && [ "$SPAWN_ENDPOINT_CLOSED" = 0 ] || return 0
+  fm_backlog_row_probe "$DATA" "$ID" || return 0
+  [ "$FM_BACKLOG_ROW_STATE" = "queued no no" ] || return 0
+  reason="fm-spawn sent this task's launch into ${T:-its window} but exited $1 before moving it In flight, and that window is still open, so a worker may be running there. Look at the window: close it and its local copy ${WT:-} or keep its work, then release this hold before starting the task again."
+  if fm_run_timed 60 env FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_DATA_OVERRIDE="$DATA" \
+    FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-captain-hold.sh" hold "$ID" --reason "$reason" >/dev/null 2>&1; then
+    echo "error: task $ID's launch was sent into ${T:-its window}, which is still open, but the spawn did not finish; its backlog item is held for the captain rather than left queued for a retry" >&2
+  else
+    echo "error: task $ID's launch was sent into ${T:-its window}, which is still open, but the spawn did not finish, and its backlog item could NOT be held for the captain; hold it (bin/fm-captain-hold.sh hold $ID --reason ...) before anything starts it again" >&2
   fi
 }
 
@@ -1472,6 +1567,16 @@ spawn_abort_cleanup() {
         fi
       fi
     fi
+  fi
+  if [ "$status" -ne 0 ] && [ "$SPAWN_TASK_LOCK_HELD" = 1 ]; then
+    # A queue start that never sent its launch leaves its item exactly as
+    # queued as it found it: the brief it claimed goes, unless it changed since.
+    if [ "$QUEUE_START_BRIEF_CLAIMED" = 1 ] && [ "$SPAWN_LAUNCH_SENT" = 0 ] &&
+      [ -f "$DATA/$ID/brief.md" ] && [ ! -L "$DATA/$ID/brief.md" ] &&
+      [ "$(cksum <"$DATA/$ID/brief.md" 2>/dev/null)" = "$QUEUE_START_BRIEF_DIGEST" ]; then
+      rm -f -- "${DATA:?}/${ID:?}/brief.md" 2>/dev/null || true
+    fi
+    spawn_hold_launched_item "$status"
   fi
   if [ "$SPAWN_TASK_LOCK_HELD" = 1 ]; then
     SPAWN_TASK_LOCK_HELD=0
@@ -1810,6 +1915,10 @@ if [ "$RELAUNCH" -eq 0 ]; then
   }
   if ! fm_lock_try_acquire "$SPAWN_TASK_SET_LOCK"; then
     case "$(fm_lock_role "$SPAWN_TASK_SET_LOCK" 2>/dev/null || true)" in
+      task-spawn-reading)
+        echo "deferred: this home's task set is held by a spawn running a headroom reading; task $ID was not launched and its backlog item stays queued" >&2
+        exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+        ;;
       task-spawn)
         echo "error: this home's task set is locked by another spawn; refusing to create task $ID rather than racing it" >&2
         ;;
@@ -1872,6 +1981,158 @@ if ! fm_lock_try_acquire "$SPAWN_TASK_LOCK"; then
   exit 1
 fi
 SPAWN_TASK_LOCK_HELD=1
+# --queue-start (header above). QUEUE_START_PY decides from, and later fills
+# the brief from, the one `tasks-axi show --full` read taken here.
+IFS= read -r -d '' QUEUE_START_PY <<'PY' || true
+import json, re, sys
+
+TEMPLATE = (r"pm-[A-Za-z0-9._-]+ inbox [0-9]+-[A-Za-z0-9]+; done on the bead\. "
+            r"no-mistakes, yolo off; merge on the PM['\u2019]s word\. "
+            r"Default route(?: \(labels ([a-z0-9:._-]+(?:, [a-z0-9:._-]+)*)\))?\.")
+
+
+def refuse(why):
+    print(why)
+    sys.exit(1)
+
+
+def fields(text):
+    out = {}
+    for line in text.splitlines():
+        for key in ("state", "held", "blocked", "kind", "title", "body"):
+            prefix = "  " + key + ": "
+            if key not in out and line.startswith(prefix):
+                raw = line[len(prefix):]
+                if raw.startswith('"'):
+                    try:
+                        raw = json.loads(raw)
+                    except ValueError:
+                        refuse("its backlog %s cannot be read" % key)
+                out[key] = raw
+    return out
+
+
+task = fields(sys.stdin.read())
+if sys.argv[1] == "decide":
+    row = " ".join(task.get(key) or "?" for key in ("state", "held", "blocked"))
+    if row != "queued no no":
+        refuse("its backlog item reads %s, not queued, unheld and unblocked" % row)
+    if task.get("kind") != "ship":
+        refuse("it is a %s, and a queue start starts ships only" % (task.get("kind") or "task of no kind"))
+    match = re.fullmatch(TEMPLATE, (task.get("body") or "").strip())
+    if not match:
+        refuse("its note is not the standard PM intake template; left to the captain")
+    print((match.group(1) or "").replace(", ", ","))
+else:
+    brief, spec = sys.argv[2], sys.argv[3]
+    title = (task.get("title") or "").strip()
+    body = (task.get("body") or "").strip()
+    if not title:
+        refuse("its backlog item has no title")
+    intent = title + ("\n\n" + body if body and body != "-" else "")
+    text = open(brief).read()
+    at_task, at_spec = text.find("{TASK}"), text.find("{FIRSTMATE_SPEC}")
+    if at_task < 0 or at_spec < at_task:
+        refuse("its scaffold has no {TASK} ahead of {FIRSTMATE_SPEC}")
+    text = (text[:at_task] + intent + text[at_task + len("{TASK}"):at_spec] + spec
+            + text[at_spec + len("{FIRSTMATE_SPEC}"):])
+    with open(brief, "w") as handle:
+        handle.write(text)
+PY
+
+spawn_queue_start_refuse() {  # <reason>
+  echo "queue start refused: task $ID: $1" >&2
+  exit 1
+}
+
+# The one read, under this task's spawn lock: the row, the note's decision and
+# its route set mode, yolo and the launch profile.
+spawn_queue_start_read() {
+  local data out decided name resolved status route_source line re prefix
+  data=$(fm_backlog_data_absolute "$DATA") ||
+    spawn_queue_start_refuse "its backlog data directory cannot be resolved: $DATA"
+  fm_backlog_source_present "$data" "$DATA" ||
+    spawn_queue_start_refuse "its backlog cannot be read: ${FM_BACKLOG_TRANSITION_ERROR:-no reason given}"
+  out=$(fm_backlog_row_show "$data" "$ID" --full) ||
+    spawn_queue_start_refuse "its backlog item cannot be read: $(printf '%s\n' "$out" | sed -n 1p)"
+  decided=$(printf '%s\n' "$out" | python3 -I -c "$QUEUE_START_PY" decide) ||
+    spawn_queue_start_refuse "${decided:-its backlog item cannot be read}"
+  if [ -e "$DATA/$ID/brief.md" ] || [ -L "$DATA/$ID/brief.md" ]; then
+    spawn_queue_start_refuse "data/$ID/brief.md exists, so a hand start owns it; left to the captain"
+  fi
+  QUEUE_START_TASK=$out
+  name=$(basename "${POS[1]}")
+  resolved=$(fm_run_timed 60 env FM_HOME="$FM_HOME" FM_CONFIG_OVERRIDE="$CONFIG" \
+    "$SCRIPT_DIR/fm-dispatch-resolve.sh" --labels "$decided" --project "$name" 2>/dev/null) ||
+    spawn_queue_start_refuse "bin/fm-dispatch-resolve.sh --labels '$decided' gave no answer"
+  status=$(printf '%s\n' "$resolved" | sed -n 's/^ *status: //p' | head -1)
+  route_source=$(printf '%s\n' "$resolved" | sed -n 's/^ *source: //p' | head -1)
+  [ "$status" = clear ] ||
+    spawn_queue_start_refuse "its route resolves ${status:-unread}, not clear; left to the captain"
+  case "$route_source" in
+  default*) ;;
+  *) spawn_queue_start_refuse "its labels ($decided) take a label route, not the default route its note records; left to the captain" ;;
+  esac
+  line=$(printf '%s\n' "$resolved" | sed -n 's/^ *profile: //p' | head -1)
+  re="^[[:space:]]*--(harness|model|effort)[[:space:]]+'([^']*)'(.*)$"
+  while [[ $line =~ $re ]]; do
+    case "${BASH_REMATCH[1]}" in
+    harness) HARNESS_ARG=${BASH_REMATCH[2]} HARNESS_SET=1 ;;
+    model) MODEL=${BASH_REMATCH[2]} MODEL_SET=1 ;;
+    effort) EFFORT=${BASH_REMATCH[2]} EFFORT_SET=1 ;;
+    esac
+    line=${BASH_REMATCH[3]}
+  done
+  [ "$HARNESS_SET" -eq 1 ] && [ -n "$HARNESS_ARG" ] && [ -z "${line//[[:space:]]/}" ] ||
+    spawn_queue_start_refuse "its route's profile line cannot be read"
+  MODE=no-mistakes MODE_SET=1 YOLO=off YOLO_SET=1
+  if [ "$BRANCH_PREFIX_SET" -eq 0 ]; then
+    prefix=$("$FM_ROOT/bin/fm-project-mode.sh" --branch-prefix "$name" 2>/dev/null) ||
+      spawn_queue_start_refuse "the registered branch prefix of $name cannot be read"
+    BRANCH_PREFIX=$prefix
+    BRANCH="$BRANCH_PREFIX$ID"
+    git check-ref-format --branch "$BRANCH" >/dev/null 2>&1 ||
+      spawn_queue_start_refuse "its registered branch prefix gives an invalid branch '$BRANCH'"
+  fi
+}
+
+# The claim, after the capacity check: the brief bin/fm-brief.sh creates
+# exclusively, filled from the same read.
+spawn_queue_start_brief() {
+  local out spec base proj_real
+  if [ -e "$BRIEF" ] || [ -L "$BRIEF" ]; then
+    spawn_queue_start_refuse "a hand start created data/$ID/brief.md during this start; left to the captain"
+  fi
+  set -- --mode no-mistakes --project "$PROJ_ABS" --branch-prefix "$BRANCH_PREFIX"
+  [ "$BASE_BRANCH_SET" -eq 0 ] || set -- "$@" --base-branch "$BASE_BRANCH"
+  if ! out=$(FM_HOME="$FM_HOME" FM_DATA_OVERRIDE="$DATA" FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" \
+    "$SCRIPT_DIR/fm-brief.sh" "$ID" "$(basename "$PROJ_ABS")" "$@" 2>&1); then
+    case "$out" in
+    *"$BRIEF already exists"*)
+      spawn_queue_start_refuse "a hand start created data/$ID/brief.md during this start; left to the captain" ;;
+    esac
+    spawn_queue_start_refuse "bin/fm-brief.sh could not scaffold its brief: $(printf '%s\n' "$out" | tail -1)"
+  fi
+  QUEUE_START_BRIEF_CLAIMED=1
+  QUEUE_START_BRIEF_DIGEST=$(cksum <"$BRIEF")
+  base="the project's default branch"
+  [ "$BASE_BRANCH_SET" -eq 0 ] || base=$BASE_BRANCH
+  spec="- The record the ask names (its bead, request or PR, with every comment) holds the done: read it whole first and follow it where it is newer than this brief.
+- If that done is already met, or a later comment supersedes this ask, change nothing and report that evidence instead of a PR.
+- Build exactly the ask; a generalisation or extra hardening you notice is a follow-up to name in the PR body, not scope.
+- Firstmate's queue start filled this brief from the backlog item as filed, with no Firstmate review: if the ask is unclear, append blocked: with the one question rather than guessing.
+- This task starts from and targets $base. The queue start cannot read a base branch from the record the ask names: if that record gives another, append blocked: naming it and stop before you change anything."
+  proj_real=$(cd "$PROJ_ABS" && pwd -P)
+  if [ "$proj_real" = "$(cd "$FM_ROOT" && pwd -P)" ] || [ "$proj_real" = "$(cd "$FM_HOME" && pwd -P)" ]; then
+    spec="- Load the firstmate-coding-guidelines skill before editing.
+$spec"
+  fi
+  out=$(printf '%s\n' "$QUEUE_START_TASK" | python3 -I -c "$QUEUE_START_PY" fill "$BRIEF" "$spec") ||
+    spawn_queue_start_refuse "its brief cannot be filled: ${out:-no reason given}"
+  QUEUE_START_BRIEF_DIGEST=$(cksum <"$BRIEF")
+}
+
+[ "$QUEUE_START" -eq 0 ] || spawn_queue_start_read
 PROJ=
 ARG3=
 FIRSTMATE_HOME=
@@ -2476,9 +2737,8 @@ case "$ARG3" in
   ;;
 esac
 
-# bin/fm-cursor-guard.sh owns quota-file fallback selection, including credit
-# room at the usage threshold. Substituted launches use the selected CLI's
-# default model at xhigh.
+# Apply the quota-file fallback owned by bin/fm-cursor-guard.sh; its header
+# defines freshness, credit-room eligibility, and fallback selection.
 if [ "$HARNESS" = cursor ] && [ "$RAW_LAUNCH" = 0 ] && [ "$KIND" != secondmate ]; then
   CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
   case "$CURSOR_FALLBACK" in
@@ -3305,15 +3565,61 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     if [ "$SPAWN_PROJECT_CAPACITY" = 0 ]; then
       FM_PROJECT_CAPACITY_OVERSHARE=off
     else
-      fm_project_capacity_overshare "$SPAWN_CAPACITY_CONFIG" "$SPAWN_TREEHOUSE_PROJECT_LOCK" ||
+      fm_project_capacity_overshare_prepare "$SPAWN_CAPACITY_CONFIG" "$SPAWN_TREEHOUSE_PROJECT_LOCK" ||
         FM_PROJECT_CAPACITY_OVERSHARE=no
+      if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" = open ]; then
+        if ! fm_lock_set_role "$SPAWN_TASK_SET_LOCK" task-spawn-reading; then
+          echo "error: could not record task-set lock holder for headroom reading of $ID" >&2
+          exit 1
+        fi
+        if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
+          # A slow reading must not hold up project allocation or return.
+          # Its verdict stays provisional until the retake and recount below.
+          SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
+          fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
+          fm_project_capacity_headroom_read
+          if ! fm_lock_try_acquire "$SPAWN_TREEHOUSE_PROJECT_LOCK"; then
+            FM_PROJECT_CAPACITY_OVERSHARE=retake
+          else
+            SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
+            if ! fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"; then
+              echo "error: spawn refused: project $(basename "$PROJ_ABS") declares a capacity of $SPAWN_PROJECT_CAPACITY, but this machine's task records cannot all be read to count it ($FM_PROJECT_CAPACITY_ERROR)" >&2
+              exit 1
+            fi
+            if [ "$FM_PROJECT_CAPACITY_OCCUPANTS" -lt "$SPAWN_PROJECT_CAPACITY" ]; then
+              # The recount found a free place, so this start needs no extra
+              # start and consumes no window, whatever the reading reported.
+              FM_PROJECT_CAPACITY_OVERSHARE=within
+            else
+              fm_project_capacity_overshare_admit
+            fi
+          fi
+        else
+          fm_project_capacity_overshare "$SPAWN_CAPACITY_CONFIG" "$SPAWN_TREEHOUSE_PROJECT_LOCK" ||
+            FM_PROJECT_CAPACITY_OVERSHARE=no
+        fi
+        if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" = admit ]; then
+          SPAWN_OVERSHARE_DIR=$FM_PROJECT_CAPACITY_OVERSHARE_DIR
+          SPAWN_OVERSHARE_IDENTITY=$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY
+          SPAWN_OVERSHARE_AT=$FM_PROJECT_CAPACITY_OVERSHARE_AT
+          SPAWN_OVERSHARE_PENDING=1
+        fi
+        if ! fm_lock_set_role "$SPAWN_TASK_SET_LOCK" task-spawn; then
+          echo "error: could not record task-set lock holder for spawn of $ID" >&2
+          exit 1
+        fi
+      fi
     fi
-    if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != admit ]; then
+    if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != admit ] &&
+      [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != within ]; then
       SPAWN_CAPACITY_DEFER="deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up"
       case "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" in
         off) ;;
         spent)
           SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. This project already started one worker past that count in the current window."
+          ;;
+        retake)
+          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. The project lock was taken while the headroom reading ran, so this spawn deferred rather than racing it."
           ;;
         *)
           SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. The headroom reading reported no room."
@@ -3322,12 +3628,9 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
       echo "$SPAWN_CAPACITY_DEFER" >&2
       exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
     fi
-    SPAWN_OVERSHARE_DIR=$FM_PROJECT_CAPACITY_OVERSHARE_DIR
-    SPAWN_OVERSHARE_IDENTITY=$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY
-    SPAWN_OVERSHARE_AT=$FM_PROJECT_CAPACITY_OVERSHARE_AT
-    SPAWN_OVERSHARE_PENDING=1
   fi
 fi
+[ "$QUEUE_START" -eq 0 ] || spawn_queue_start_brief
 [ -f "$BRIEF" ] || {
   echo "error: task $ID has no brief at inaccessible data path $BRIEF" >&2
   exit 1
@@ -4479,16 +4782,22 @@ kimi_spawn_fail() { # <detail>
   echo "error: $1; inspect window $T" >&2
 }
 
+spawn_gate_capture() {
+  fm_backend_capture "$BACKEND" "$T" 120 "$W" 2>/dev/null || true
+}
+
+spawn_gate_fail() { # <detail>
+  printf '%s\n' "$(status_stamp_line "failed: $1")" >>"$STATE/$ID.status"
+  echo "error: $1; inspect window $T" >&2
+  spawn_gate_endpoint_cleanup
+}
+
 # rovo mirrors kimi's launch-then-send shape exactly: a positional brief is
 # dead-on-arrival, so rovo launches bare and takes its brief pointer only after a
 # readiness gate, then a delivery-confirmation gate. Both route their
 # composer-emptiness half through the shared classifier (fm_backend_composer_state)
 # like kimi. The banner and context-usage greps are launch-progress signals, not
 # composer shapes.
-rovo_capture() {
-  fm_backend_capture "$BACKEND" "$T" 120 "$W" 2>/dev/null || true
-}
-
 rovo_composer_is_empty() {
   [ "$(fm_backend_composer_state "$BACKEND" "$T" "$W" 2>/dev/null)" = empty ]
 }
@@ -4496,7 +4805,7 @@ rovo_composer_is_empty() {
 rovo_wait_for_ready() {
   local pane i=0 max=${FM_ROVO_READY_POLLS:-60} interval=${FM_ROVO_POLL_INTERVAL:-0.5}
   while [ "$i" -lt "$max" ]; do
-    pane=$(rovo_capture)
+    pane=$(spawn_gate_capture)
     # Lead with rovo's fresh-launch ASCII welcome banner (confirmed live), the
     # same primary evidence kimi's own 'Welcome to Kimi Code!' match uses. The
     # composer-empty fallback is WEAKER for rovo than for kimi: rovo's idle
@@ -4534,7 +4843,7 @@ rovo_delivery_is_confirmed() { # <plain-pane-capture>
 rovo_wait_for_delivery() {
   local pane i=0 max=${FM_ROVO_DELIVERY_POLLS:-40} interval=${FM_ROVO_POLL_INTERVAL:-0.5}
   while [ "$i" -lt "$max" ]; do
-    pane=$(rovo_capture)
+    pane=$(spawn_gate_capture)
     rovo_delivery_is_confirmed "$pane" && return 0
     i=$((i + 1))
     [ "$i" -ge "$max" ] || sleep "$interval"
@@ -4542,27 +4851,34 @@ rovo_wait_for_delivery() {
   return 1
 }
 
-rovo_spawn_fail() { # <detail>
-  printf '%s\n' "$(status_stamp_line "failed: $1")" >>"$STATE/$ID.status"
-  echo "error: $1; inspect window $T" >&2
-  rovo_endpoint_cleanup
-}
-
 # The launch-then-confirm gates run after the task record is published, when
 # ORCA_ABORT_CLEANUP is already cleared and neither the abort trap nor a
 # teardown owns this endpoint yet, so a gate failure must close the launched
 # process here or it keeps running as an orphaned autonomous agent outside
-# task control. Mirrors fm-teardown.sh's own generic kill call. On orca only
-# the exact terminal is closed: that stops the CLI while its worktree stays
-# for the record's own teardown, which owns worktree deletion.
-rovo_endpoint_cleanup() {
+# task control. Closing the endpoint alone is not enough: a launched codex
+# can survive its pane's hangup. Mirrors fm-teardown.sh's generic kill call;
+# on orca only the exact terminal is closed, leaving worktree deletion to
+# the record's own teardown.
+spawn_gate_endpoint_cleanup() {
+  # Only an available lsof and a successful worktree reap verify shutdown.
+  # Otherwise still close the endpoint, but leave SPAWN_ENDPOINT_CLOSED at 0
+  # so abort cleanup preserves the git-hooks strip for a possible survivor.
+  local worker_stopped=0
+  if [ "$KIND" != secondmate ] && [ -n "$WT" ] &&
+    command -v lsof >/dev/null 2>&1 &&
+    reap_task_worktree_processes worktree "$WT"; then
+    worker_stopped=1
+  fi
+  if [ "$worker_stopped" = 0 ]; then
+    echo "warning: could not verify worker shutdown for task $ID in worktree $WT; preserving its git-hooks strip" >&2
+  fi
   if [ "$BACKEND" = orca ]; then
-    fm_backend_kill orca "$T" 2>/dev/null && SPAWN_ENDPOINT_CLOSED=1 || true
+    fm_backend_kill orca "$T" 2>/dev/null && [ "$worker_stopped" = 1 ] && SPAWN_ENDPOINT_CLOSED=1 || true
     return 0
   fi
   local tab_id=
   [ "$BACKEND" = zellij ] && tab_id=$ZELLIJ_TAB_ID
-  fm_backend_kill "$BACKEND" "$T" "$tab_id" "fm-$ID" 2>/dev/null && SPAWN_ENDPOINT_CLOSED=1 || true
+  fm_backend_kill "$BACKEND" "$T" "$tab_id" "fm-$ID" 2>/dev/null && [ "$worker_stopped" = 1 ] && SPAWN_ENDPOINT_CLOSED=1 || true
 }
 
 # agy carries its brief on the launch command, so it needs no delivery gate,
@@ -4582,10 +4898,6 @@ rovo_endpoint_cleanup() {
 AGY_TRUST_DIALOG='Do you trust the contents of this project?'
 AGY_TRUST_ANSWERED=0
 
-agy_capture() {
-  fm_backend_capture "$BACKEND" "$T" 120 "$W" 2>/dev/null || true
-}
-
 agy_pane_shows_trust_dialog() {  # <plain-pane-capture>
   printf '%s\n' "$1" | grep -Fq "$AGY_TRUST_DIALOG"
 }
@@ -4600,7 +4912,7 @@ agy_pane_is_working() {  # <plain-pane-capture>
 agy_wait_for_working() {
   local pane i=0 max=${FM_AGY_READY_POLLS:-60} interval=${FM_AGY_POLL_INTERVAL:-0.5}
   while [ "$i" -lt "$max" ]; do
-    pane=$(agy_capture)
+    pane=$(spawn_gate_capture)
     if agy_pane_shows_trust_dialog "$pane"; then
       if [ "$AGY_TRUST_ANSWERED" -eq 0 ]; then
         spawn_send_key "$T" Enter
@@ -4615,10 +4927,30 @@ agy_wait_for_working() {
   return 1
 }
 
-agy_spawn_fail() {  # <detail>
-  printf '%s\n' "$(status_stamp_line "failed: $1")" >>"$STATE/$ID.status"
-  echo "error: $1; inspect window $T" >&2
-  rovo_endpoint_cleanup
+# Codex draws its ordinary welcome screen for about a second before the
+# folder-access prompt replaces it (docs/verification/codex.md), so the welcome
+# screen proves nothing; only a started turn counts, read from the in-turn
+# footer or a finished turn's summary line. The prompt is never answered here:
+# its cursor starts on "Trust and continue", so Enter would trust whatever root
+# it names without bin/fm-codex-trust.sh's scope test or decline check.
+CODEX_TURN_STARTED='esc to interrupt|Worked for [0-9]'
+
+codex_wait_for_turn() {  # 0 turn started, 1 folder-access prompt, 2 neither
+  local pane i=0 max=${FM_CODEX_READY_POLLS:-120} interval=${FM_CODEX_POLL_INTERVAL:-0.5}
+  while [ "$i" -lt "$max" ]; do
+    pane=$(spawn_gate_capture | python3 -I -c '
+import re, sys
+pane = sys.stdin.read()
+pattern = "\n?".join(re.escape(ch) for ch in sys.argv[1])
+matches = list(re.finditer(pattern, pane))
+sys.stdout.write(pane[matches[-1].end():].partition("\n")[2] if matches else pane)
+' "launch.$SPAWN_GEN.sh")
+    printf '%s' "$pane" | fm_busy_launch_prompt_parked codex && return 1
+    printf '%s\n' "$pane" | grep -Eq "$CODEX_TURN_STARTED" && return 0
+    i=$((i + 1))
+    [ "$i" -ge "$max" ] || sleep "$interval"
+  done
+  return 2
 }
 
 if [ "$RELAUNCH" -eq 1 ] && [ "$BACKEND" = orca ]; then
@@ -4776,6 +5108,10 @@ spawn_assert_agent_worktree
 # path that was not pre-registered, refuses to count a busy turn as ready until
 # it has done so. agy is crewmate/scout only (refused above for secondmate), so
 # only the worktree shape applies.
+# codex gates an unregistered repository root behind its folder-access prompt,
+# and its launch gate fails on that prompt rather than answering it, so a
+# failed bin/fm-codex-trust.sh registration is fatal here. A codex secondmate is
+# a primary in its own home and is left to its operator.
 AGY_TRUST_PREREGISTERED=0
 case "$HARNESS" in
 claude*)
@@ -4796,6 +5132,19 @@ agy)
     else
       echo "warning: could not pre-register agy workspace trust for $WT; the launch will answer the folder-trust dialog in window $T instead" >&2
     fi
+  fi
+  ;;
+codex)
+  if [ "$KIND" != secondmate ]; then
+    CODEX_STORE_DIR=${CODEX_HOME:-${HOME:-}/.codex}
+    if ! "$FM_ROOT/bin/fm-codex-trust.sh" "$WT" "$PROJ_ABS" >/dev/null; then
+      echo "error: could not pre-register Codex folder trust for $WT; refusing to launch a codex worker that would park on the trust prompt; inspect window $T" >&2
+      exit 1
+    fi
+    CODEX_STORE_DIR=$(cd -P -- "$CODEX_STORE_DIR" && pwd -P) || {
+      echo "error: could not resolve the registered Codex store for $WT; refusing to launch a codex worker with a different store" >&2
+      exit 1
+    }
   fi
   ;;
 esac
@@ -5684,6 +6033,11 @@ if [ -n "$WORKER_ACCOUNT" ]; then
 elif [ "$HARNESS" = claude ] && [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
   LAUNCH="CLAUDE_CONFIG_DIR=$(shell_quote "$CLAUDE_CONFIG_DIR") $LAUNCH"
 fi
+# The same holds for codex wherever bin/fm-codex-trust.sh registered the
+# worktree's root: the worker must read the CODEX_HOME that registration wrote.
+if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
+  LAUNCH="CODEX_HOME=$(shell_quote "$CODEX_STORE_DIR") $LAUNCH"
+fi
 if [ "$KIND" = secondmate ]; then
   sq_home=$(shell_quote "$PROJ_ABS")
   sq_primary_home=$(shell_quote "$FM_HOME")
@@ -5882,6 +6236,17 @@ if ! (umask 077 && mkdir "$LAUNCH_DIR") 2>/dev/null; then
     exit 1
   fi
 fi
+# From the moment the launch file can exist, a worker may be about to run, so
+# a HUP, INT or TERM no longer kills the spawn mid-delivery with its item still
+# queued: it is deferred to the commit point below, which moves the item In
+# flight first (header above). Before this point no worker can exist, and a
+# signal stops the spawn with nothing launched.
+SPAWN_DEFERRED_SIGNAL=
+if [ "$BACKLOG_TRANSITION" = 1 ]; then
+  trap 'SPAWN_DEFERRED_SIGNAL=HUP' HUP
+  trap 'SPAWN_DEFERRED_SIGNAL=INT' INT
+  trap 'SPAWN_DEFERRED_SIGNAL=TERM' TERM
+fi
 LAUNCH_FILE="$LAUNCH_DIR/launch.$SPAWN_GEN.sh"
 LAUNCH_STAGE="$LAUNCH_DIR/.launch.$SPAWN_GEN.tmp"
 if [ -e "$LAUNCH_FILE" ] || [ -L "$LAUNCH_FILE" ]; then
@@ -5929,7 +6294,7 @@ if [ "$HARNESS" = kimi ]; then
 fi
 if [ "$HARNESS" = rovo ]; then
   if ! rovo_wait_for_ready; then
-    rovo_spawn_fail "rovo did not show a verified ready signal before brief delivery in window $T"
+    spawn_gate_fail "rovo did not show a verified ready signal before brief delivery in window $T"
     exit 1
   fi
   ROVO_POINTER="Read the brief at $BRIEF_REAL and follow it exactly."
@@ -5939,29 +6304,43 @@ if [ "$HARNESS" = rovo ]; then
   if ! ROVO_SUBMIT_VERDICT=$(fm_backend_send_text_submit \
     "$BACKEND" "$T" "$ROVO_POINTER" "$ROVO_SUBMIT_RETRIES" \
     "$ROVO_SUBMIT_SLEEP" "$ROVO_SUBMIT_SETTLE" "$W"); then
-    rovo_spawn_fail "rovo brief pointer could not be submitted into window $T"
+    spawn_gate_fail "rovo brief pointer could not be submitted into window $T"
     exit 1
   fi
   if [ "$ROVO_SUBMIT_VERDICT" = send-failed ]; then
-    rovo_spawn_fail "rovo brief pointer could not be submitted into window $T"
+    spawn_gate_fail "rovo brief pointer could not be submitted into window $T"
     exit 1
   fi
   if ! rovo_wait_for_delivery; then
-    rovo_spawn_fail "rovo brief pointer delivery was not confirmed in window $T"
+    spawn_gate_fail "rovo brief pointer delivery was not confirmed in window $T"
     exit 1
   fi
 fi
 if [ "$HARNESS" = agy ]; then
   if ! agy_wait_for_working; then
     if [ "$AGY_TRUST_ANSWERED" -eq 1 ]; then
-      agy_spawn_fail "agy did not start processing its brief after the folder-trust dialog was answered in window $T"
+      spawn_gate_fail "agy did not start processing its brief after the folder-trust dialog was answered in window $T"
     elif [ "$AGY_TRUST_PREREGISTERED" -eq 1 ]; then
-      agy_spawn_fail "agy did not start processing its brief in the pre-trusted worktree in window $T"
+      spawn_gate_fail "agy did not start processing its brief in the pre-trusted worktree in window $T"
     else
-      agy_spawn_fail "agy never showed its folder-trust dialog on an unregistered worktree in window $T, so the brief could not be confirmed to run there"
+      spawn_gate_fail "agy never showed its folder-trust dialog on an unregistered worktree in window $T, so the brief could not be confirmed to run there"
     fi
     exit 1
   fi
+fi
+if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
+  codex_gate=0
+  codex_wait_for_turn || codex_gate=$?
+  case "$codex_gate" in
+  1)
+    spawn_gate_fail "codex parked on its folder-access prompt in window $T despite the pre-registered trust, so the worker could not reach its brief"
+    exit 1
+    ;;
+  2)
+    spawn_gate_fail "$(codex --version 2>/dev/null || echo codex) showed neither its folder-access prompt nor a started turn on the brief in window $T"
+    exit 1
+    ;;
+  esac
 fi
 
 if [ "$KIND" = secondmate ] && [ "${FM_SKIP_SECONDMATE_INHERIT:-0}" != 1 ]; then
@@ -5981,12 +6360,6 @@ if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
   SPAWN_META_LOCK=$(fm_meta_lock_path "$STATE/$ID.meta") || exit 1
   fm_lock_acquire_wait "$SPAWN_META_LOCK"
   SPAWN_META_LOCK_HELD=1
-fi
-SPAWN_DEFERRED_SIGNAL=
-if [ "$BACKLOG_TRANSITION" = 1 ]; then
-  trap 'SPAWN_DEFERRED_SIGNAL=HUP' HUP
-  trap 'SPAWN_DEFERRED_SIGNAL=INT' INT
-  trap 'SPAWN_DEFERRED_SIGNAL=TERM' TERM
 fi
 SPAWN_BACKLOG_COMMIT_STATUS=0
 # Both the commit and its preservation read-back run under this task's meta
