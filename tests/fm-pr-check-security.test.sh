@@ -5070,6 +5070,28 @@ test_slow_registered_polls_survive_rearm() {
   pass "completed registered polls keep the watcher alive through rearm and deliver the final removal"
 }
 
+delay_poll_authentication() {
+  cat > "$1/fakebin/shasum" <<'SH'
+#!/usr/bin/env bash
+for path in "$@"; do
+  case "$path" in
+    *.pr-poll)
+      [ -z "${FM_TEST_POLL_AUTH_ONLY:-}" ] || [ "$path" = "$FM_TEST_POLL_AUTH_ONLY" ] || continue
+      if [ ! -e "$path.delayed" ]; then
+        : > "$path.delayed"
+        : > "$FM_TEST_WATCH_BOUND_PAUSE"
+        trap 'rm -f -- "${FM_TEST_WATCH_BOUND_PAUSE:?}"' EXIT
+        sleep "$FM_TEST_POLL_AUTH_DELAY"
+        rm -f -- "${FM_TEST_WATCH_BOUND_PAUSE:?}"
+      fi
+      ;;
+  esac
+done
+exec "$FM_TEST_REAL_SHASUM" "$@"
+SH
+  chmod +x "$1/fakebin/shasum"
+}
+
 test_github_poll_sweep_is_one_graphql_call() {
   local dir state batch_lines number
   dir=$(make_case github-poll-sweep-one-call)
@@ -5131,6 +5153,65 @@ JSON
   fm_pr_poll_artifacts_valid "$state" task-dequeued "$POLL" \
     || fail "the removed poll did not stay armed"
   pass "one GitHub poll sweep reads every pull request in one GraphQL call and keeps each result"
+}
+
+test_github_poll_batch_authentication_budget() {
+  local dir state number real_shasum
+  real_shasum=$(command -v shasum) || fail "slow authentication fixture needs shasum"
+  dir=$(make_case github-poll-batch-authentication-budget)
+  state="$dir/home/state"
+  for number in 1 2; do
+    write_poll_meta "$state" "task-$number" "https://github.com/o/r/pull/$number"
+    seed_canonical_poll "$dir" "task-$number" "https://github.com/o/r/pull/$number"
+  done
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  delay_poll_authentication "$dir"
+  # Authentication takes longer than a single check's ten-second deadline.
+  FM_TEST_REAL_SHASUM="$real_shasum" FM_TEST_POLL_AUTH_DELAY=6 FM_TEST_CHECK_TIMEOUT=10 \
+    FM_TEST_WATCH_BOUND_PAUSE="$dir/slow-authentication" FM_TEST_GH_LOG="$dir/gh.log" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "slow batch stopped later checks: $(cat "$dir/watch.err")"
+  for number in 1 2; do
+    [ -e "$state/task-$number.pr-poll.delayed" ] || fail "authentication delay was not exercised"
+  done
+  [ "$(grep -Fc FmPollBatch "$dir/gh.log" || true)" -eq 1 ] \
+    || fail "slow authentication prevented the batch query"
+  [ "$(grep -Fc -- '-F number=' "$dir/gh.log" || true)" -eq 0 ] \
+    || fail "slow authentication fell back to individual GraphQL queries"
+  expect_stop_cycle "$dir/watch.out" "an open poll reported an outcome"
+  pass "batch authentication has time for every candidate before one GraphQL query"
+}
+
+test_github_poll_batch_timeout_stays_silent() {
+  local dir state number real_shasum
+  real_shasum=$(command -v shasum) || fail "slow authentication fixture needs shasum"
+  dir=$(make_case github-poll-batch-timeout)
+  state="$dir/home/state"
+  for number in 1 2; do
+    write_poll_meta "$state" "task-$number" "https://github.com/o/r/pull/$number"
+    seed_canonical_poll "$dir" "task-$number" "https://github.com/o/r/pull/$number"
+  done
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  delay_poll_authentication "$dir"
+  FM_TEST_REAL_SHASUM="$real_shasum" FM_TEST_POLL_AUTH_DELAY=60 \
+    FM_TEST_WATCH_BOUND_PAUSE="$dir/slow-authentication" \
+    FM_TEST_POLL_AUTH_ONLY="$state/task-1.pr-poll" FM_TEST_CHECK_TIMEOUT=10 \
+    FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_STATE=MERGED \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "timed-out batch stopped later checks: $(cat "$dir/watch.err")"
+  [ -e "$state/task-1.pr-poll.delayed" ] || fail "authentication delay was not exercised"
+  [ "$(grep -Fc FmPollBatch "$dir/gh.log" || true)" -eq 0 ] \
+    || fail "the batch did not time out during authentication"
+  [ "$(grep -Fc -- '-F number=' "$dir/gh.log" || true)" -eq 0 ] \
+    || fail "a timed-out batch fell back to individual GraphQL queries"
+  expect_stop_cycle "$dir/watch.out" "a timed-out batch reported a PR outcome"
+  for number in 1 2; do
+    fm_pr_poll_artifacts_valid "$state" "task-$number" "$POLL" \
+      || fail "a timed-out batch lost a registered poll"
+  done
+  pass "a batch authentication timeout stays silent without individual PR retries"
 }
 
 test_merged_only_watch_still_sweeps_its_repo() {
@@ -5988,6 +6069,8 @@ test_sweep_page_deadline_reports_every_removal
 test_progressing_sweep_survives_rearm_past_stall_bound
 test_slow_registered_polls_survive_rearm
 test_github_poll_sweep_is_one_graphql_call
+test_github_poll_batch_authentication_budget
+test_github_poll_batch_timeout_stays_silent
 test_merged_only_watch_still_sweeps_its_repo
 test_recovered_merged_watch_still_sweeps_its_repo
 test_failed_sweep_keeps_the_repository_for_the_next_cycle

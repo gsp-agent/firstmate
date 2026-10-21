@@ -2969,8 +2969,12 @@ EOF
     # bin/fm-pr-poll.sh reads every authenticated GitHub poll in this sweep in one query.
     FM_PR_POLL_BATCH_CACHE=$(mktemp "$STATE/.fm-pr-poll-batch.XXXXXX") || exit 1
     chmod 0600 "$FM_PR_POLL_BATCH_CACHE" || exit 1
-    FM_PR_POLL_STATE="$STATE" \
+    # Authentication visits every candidate before querying GitHub, so allow
+    # one check budget per candidate plus one for the query.
+    pr_poll_batch_checks=("$STATE"/*.check.sh)
+    FM_PR_POLL_STATE="$STATE" CHECK_TIMEOUT=$((CHECK_TIMEOUT * (${#pr_poll_batch_checks[@]} + 1))) \
       run_check_capture "$SCRIPT_DIR/fm-pr-poll.sh" --batch-prefetch "$STATE" || exit 1
+    pr_poll_batch_status=$FM_CHECK_STATUS
     for c in "$STATE"/*.check.sh; do
       [ -e "$c" ] || continue
       is_pr_poll=0
@@ -2998,6 +3002,11 @@ EOF
           host=$FM_PR_POLL_SNAPSHOT_HOST
           path=$FM_PR_POLL_SNAPSHOT_PATH
           number=$FM_PR_POLL_SNAPSHOT_NUMBER
+          # An interrupted prefetch can leave uncovered cache keys. Keep that
+          # failed sweep silent rather than issuing an individual query.
+          if [ "$provider" = github ] && [ "$pr_poll_batch_status" -ne 0 ]; then
+            continue
+          fi
           PR_POLL_CONTROL_LOCK="$STATE/.control-$id.lock"
           fm_lock_acquire_wait "$PR_POLL_CONTROL_LOCK" || exit 1
           if ! fm_pr_poll_snapshot_matches "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; then
