@@ -1299,7 +1299,10 @@ FM_STATE_OVERRIDE="$WATCH_STATE" FM_SECONDMATE_LIVENESS_SECS=1 FM_POLL=1 \
   > "$TMP_ROOT/watch-liveness.out" 2> "$TMP_ROOT/watch-liveness.err" &
 watch_pid=$!
 watch_wait=0
-while kill -0 "$watch_pid" 2>/dev/null && [ "$watch_wait" -lt 1500 ]; do
+# Recovery can spend 120 seconds acquiring the relaunch lock and another 120
+# spawning. Outlast both budgets plus probing; this case asserts recovery,
+# not its duration, and returns immediately when the watcher exits.
+while kill -0 "$watch_pid" 2>/dev/null && [ "$watch_wait" -lt 15000 ]; do
   sleep 0.02
   watch_wait=$((watch_wait + 1))
 done
