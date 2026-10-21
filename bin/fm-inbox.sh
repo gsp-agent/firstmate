@@ -503,6 +503,16 @@ cmd_note() {
     body="$*"
   fi
   queue_note text "$body" "" "$request_id" "$json"
+  # Dale 10-21 (.agent-config-ydbn7): a saved, woken note still waits hours
+  # when no wake consumer can receive (notes sat ~2h on 10-21). Say so at
+  # once instead of letting the sender believe it landed.
+  local ready_json
+  ready_json=$(cmd_ready 2>/dev/null || true)
+  case "$ready_json" in
+    *'"can_receive":false'*)
+      printf 'fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)\n' >&2
+      ;;
+  esac
 }
 
 cmd_announce() {
