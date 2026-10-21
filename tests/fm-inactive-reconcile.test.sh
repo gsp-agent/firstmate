@@ -38,9 +38,11 @@ printf 'state: %s · source: fake\n' "${FM_FAKE_CREW_STATE:-unknown}"
 SH
   cat > "$fake/tmux" <<'SH'
 #!/usr/bin/env bash
+printf '%s\n' "$*" >> "${FM_TMUX_LOG:-/dev/null}"
 case "${1:-}" in
   display-message) printf '%%1\n' ;;
   capture-pane) printf 'idle\n> \n' ;;
+  kill-window) exit 0 ;;
 esac
 SH
   local tool
@@ -109,7 +111,15 @@ run_reconcile() { # <home> [--startup]
   PATH="$WORLD/fakebin:$PATH" FM_ROOT_OVERRIDE="$WORLD/root" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" FM_CONFIG_OVERRIDE="$home/config" \
     FM_INACTIVE_RECONCILE_SECS=60 FM_INACTIVE_CREW_STATE_BIN="$WORLD/fakebin/fm-crew-state.sh" \
-    FM_FORGE_LOG="$WORLD/forge.log" "$RECON" scan ${option:+"$option"}
+    FM_TMUX_LOG="$WORLD/tmux.log" FM_FORGE_LOG="$WORLD/forge.log" "$RECON" scan ${option:+"$option"}
+}
+
+tmux_kill_count() { # <world>
+  if [ -f "$1/tmux.log" ]; then
+    grep -c '^kill-window ' "$1/tmux.log" || true
+  else
+    printf '0\n'
+  fi
 }
 
 # The teardown-side entry point: deliver one child's terminal ledger line for a
@@ -854,6 +864,36 @@ test_nonterminal_and_captain_held_states_do_not_report() {
   pass "nonterminal and captain-held workers remain outside inactive terminal reporting"
 }
 
+# A terminal crewmate's pane closes with its outcome; its records stay.
+test_terminal_child_pane_closes_and_records_stay() {
+  make_world pane-close; write_child "$MAIN" child 'done: PR https://example.test/owner/repo/pull/1 checks green'
+  FM_FAKE_CREW_STATE='done' run_reconcile "$MAIN" --startup
+  grep -Fxq 'kill-window -t =firstmate:=fm-child' "$WORLD/tmux.log" \
+    || fail "terminal child pane was not closed"
+  [ -f "$MAIN/state/child.meta" ] && [ -f "$MAIN/state/child.status" ] \
+    || fail "terminal child records were removed with its pane"
+  [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "terminal outcome was not retained"
+  pass "terminal child pane closes and its records stay"
+}
+
+test_failed_child_pane_closes() {
+  make_world pane-close-failed; write_child "$MAIN" child 'failed: boom'
+  FM_FAKE_CREW_STATE='failed' run_reconcile "$MAIN" --startup
+  grep -Fxq 'kill-window -t =firstmate:=fm-child' "$WORLD/tmux.log" \
+    || fail "failed child pane was not closed"
+  pass "failed child pane closes"
+}
+
+test_pane_close_opt_out_and_nonterminal_safety() {
+  make_world pane-close-off; write_child "$MAIN" child 'done: PR https://example.test/owner/repo/pull/1 checks green'
+  FM_FAKE_CREW_STATE='done' FM_INACTIVE_CLOSE_PANE=0 run_reconcile "$MAIN" --startup
+  [ "$(tmux_kill_count "$WORLD")" = 0 ] || fail "FM_INACTIVE_CLOSE_PANE=0 still closed a pane"
+  make_world pane-close-working; write_child "$MAIN" child 'working: still active'
+  FM_FAKE_CREW_STATE='working' run_reconcile "$MAIN" --startup
+  [ "$(tmux_kill_count "$WORLD")" = 0 ] || fail "working child pane was closed"
+  pass "pane close honors its opt-out and never touches a working child"
+}
+
 # The actual watcher poll invokes the helper, while an idle secondmate remains
 # exempt from wedge escalation and emits no false wake.
 test_watcher_hook_and_idle_secondmate_exemption() {
@@ -1067,6 +1107,9 @@ test_relaunch_cannot_replace_metadata_during_state_snapshot
 test_heartbeat_cap_does_not_delay_reconciliation
 test_scan_marker_replaces_symlink_safely
 test_nonterminal_and_captain_held_states_do_not_report
+test_terminal_child_pane_closes_and_records_stay
+test_failed_child_pane_closes
+test_pane_close_opt_out_and_nonterminal_safety
 test_watcher_hook_and_idle_secondmate_exemption
 test_watcher_poll_delivers_child_ledger_line_to_parent
 test_stalled_state_read_is_bounded_and_scan_progresses

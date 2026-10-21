@@ -58,6 +58,15 @@
 # Working, paused, parked, blocked, unknown, persistent secondmates, and
 # captain-held work retain their existing supervision semantics.
 #
+# A done or failed crewmate's turn is over, so its session pane no longer needs
+# to stay resident: the scan also closes the task's backend pane through
+# fm_backend_kill (FM_INACTIVE_CLOSE_PANE=0 disables). Only the pane closes.
+# The meta, worktree, status, and transcript stay on disk for teardown, and a
+# later follow-up wakes the task through fm-control's relaunch, which is the
+# documented wake for an exited agent. Endpoint identity is proven with the
+# same fm_backend_validate_task_endpoint gate teardown uses; any ambiguity, or
+# a close that cannot do its job, warns and leaves the pane alone.
+#
 # A terminal-outcomes/<fingerprint>.pending record remains until its upstream
 # receipt is durable.
 # In a secondmate home, that receipt is an idempotent parent-channel append
@@ -106,6 +115,17 @@ CREW_STATE_BIN="${FM_INACTIVE_CREW_STATE_BIN:-$SCRIPT_DIR/fm-crew-state.sh}"
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
 # shellcheck source=bin/fm-dod-lib.sh
 . "$SCRIPT_DIR/fm-dod-lib.sh"
+# shellcheck source=bin/fm-backend.sh
+. "$SCRIPT_DIR/fm-backend.sh"
+
+FM_INACTIVE_CLOSE_PANE=${FM_INACTIVE_CLOSE_PANE:-1}
+case "$FM_INACTIVE_CLOSE_PANE" in
+  0|1) ;;
+  *)
+    printf 'fm-inactive-reconcile: FM_INACTIVE_CLOSE_PANE must be 0 or 1\n' >&2
+    exit 2
+    ;;
+esac
 
 FM_INACTIVE_RECONCILE_SECS=${FM_INACTIVE_RECONCILE_SECS:-900}
 case "$FM_INACTIVE_RECONCILE_SECS" in
@@ -495,6 +515,24 @@ report_child() { # <id>
   report_child_ledger_locked "$id" "$meta"
 }
 
+# Close a terminal crewmate's backend pane, keeping every durable record.
+# Best-effort by design: teardown stays the authoritative cleanup, and a
+# follow-up wakes the task through fm-control's relaunch. Any doubt about the
+# endpoint's identity, or a close that cannot do its job, warns and leaves the
+# pane exactly as it was.
+close_terminal_child_pane() { # <id> <meta>
+  local id=$1 meta=$2
+  [ "$FM_INACTIVE_CLOSE_PANE" = 1 ] || return 0
+  if ! fm_backend_validate_task_endpoint "$meta" "$id" 2>/dev/null; then
+    printf 'fm-inactive-reconcile: %s terminal pane left open: endpoint identity not proven\n' "$id" >&2
+    return 0
+  fi
+  fm_backend_kill "$FM_BACKEND_VALIDATED_BACKEND" "$FM_BACKEND_VALIDATED_TARGET" \
+    "$(meta_field "$meta" zellij_tab_id)" "fm-$id" \
+    || printf 'fm-inactive-reconcile: %s terminal pane close did not complete; pane left open\n' "$id" >&2
+  return 0
+}
+
 reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeout>
   local id=$1 meta=$2 self=${3:-} timeout=$4 status turn last age state_line state pr incarnation fingerprint outcome_key payload kind state_rc=0
   [ -f "$meta" ] && [ ! -L "$meta" ] || return 0
@@ -524,6 +562,7 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
     'state: failed '*) state='failed' ;;
     *) return 0 ;;
   esac
+  close_terminal_child_pane "$id" "$meta"
   pr=$(pr_for_task "$meta")
   incarnation=$(meta_incarnation "$meta")
   # The receipt identity binds structured fields only: a persistent child that
