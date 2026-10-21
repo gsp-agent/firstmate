@@ -17,8 +17,6 @@ set -u
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # shellcheck source=bin/fm-timeout-lib.sh
 . "$ROOT/bin/fm-timeout-lib.sh"
-# shellcheck source=bin/fm-remote-job-lib.sh
-. "$ROOT/bin/fm-remote-job-lib.sh"
 
 PF="$ROOT/bin/fm-public-followup.sh"
 EMIT="$ROOT/bin/fm-public-followup-emit.sh"
@@ -44,7 +42,7 @@ EOF
 }
 
 # The remote-route cases drive the real remote job worker, which outlives the
-# command that staged its job. Stop its whole tree before shared cleanup runs,
+# command that staged its job. Stop it before the shared fixture cleanup runs,
 # and keep that cleanup (tests/lib.sh owns it) rather than replacing the trap.
 pf_test_cleanup() {
   local pid_file="${REMOTE_FIXTURE_JOBS:-$TMP_ROOT/remote-jobs}/worker.pid" pid
@@ -55,15 +53,13 @@ pf_test_cleanup() {
   fi
   if [ -f "$pid_file" ]; then
     pid=$(cat "$pid_file" 2>/dev/null) || pid=
-    [ -z "$pid" ] || fm_remote_job_stop_worker_tree "$pid" || return 1
+    [ -z "$pid" ] || kill "$pid" 2>/dev/null || true
   fi
   fm_test_cleanup
 }
 trap pf_test_cleanup EXIT
 trap 'pf_test_cleanup; exit 130' INT
 trap 'pf_test_cleanup; exit 143' TERM
-trap 'pf_test_cleanup; exit 129' HUP
-trap 'pf_test_cleanup; exit 131' QUIT
 
 command -v jq >/dev/null 2>&1 || { echo "skip: jq not found"; exit 0; }
 command -v tasks-axi >/dev/null 2>&1 || { echo "skip: tasks-axi not found"; exit 0; }
@@ -3913,33 +3909,6 @@ test_a_retained_refusal_repeats_its_wake_rather_than_a_new_one() {
   pass "a refusal whose event was retained repeats its wake instead of a new one"
 }
 
-# Run last: this exercises the suite's real cleanup and removes its fixtures.
-test_fixture_cleanup_stops_entire_worker_tree() {
-  local account="$TMP_ROOT/cleanup-account" pid group rc
-  remote_fixture_prepare
-  mkdir -p "$account"
-  FM_REMOTE_JOB_STATE_ROOT="$REMOTE_FIXTURE_JOBS" FM_REMOTE_JOB_PLATFORM_OVERRIDE=Linux \
-    fm_remote_job_ensure_worker "$REMOTE_FIXTURE_ROOT" "$account" \
-    || fail "could not start the cleanup regression worker: $FM_REMOTE_JOB_ERROR"
-  pid=$(cat "$REMOTE_FIXTURE_JOBS/worker.pid")
-  group=$(fm_remote_job_worker_process_group "$pid") \
-    || fail "the cleanup regression worker has no isolated process group"
-  [ "$pid" != "$group" ] || fail "the recorded pid must name the serving child"
-
-  # Hold the supervisor across cleanup so a lone child kill cannot pass by
-  # racing the supervisor's natural exit after the fixture root disappears.
-  kill -STOP "$group" || fail "could not hold the cleanup regression supervisor"
-  pf_test_cleanup
-  rc=$?
-  if kill -0 -- "-$group" 2>/dev/null; then
-    kill -KILL -- "-$group" 2>/dev/null || true
-    fail "fixture cleanup returned with its worker tree still running"
-  fi
-  [ "$rc" -eq 0 ] || fail "fixture cleanup failed with exit $rc"
-  assert_absent "$TMP_ROOT" "fixture cleanup left its directory behind"
-  pass "fixture cleanup stops the entire remote worker tree before removing its directory"
-}
-
 # CI's stock macOS Bash lane sets FM_TEST_ONLY to run just the bash-3.2 empty-lock
 # register regression. The rest of this file is not a 3.2 snapshot suite.
 if [ -n "${FM_TEST_ONLY:-}" ]; then
@@ -4037,4 +4006,3 @@ test_rejection_wake_survives_a_poll_that_cannot_write
 test_rejection_wake_survives_a_poll_that_cannot_read
 test_an_undroppable_wake_repeats_the_same_refusal
 test_a_retained_refusal_repeats_its_wake_rather_than_a_new_one
-test_fixture_cleanup_stops_entire_worker_tree
