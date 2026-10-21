@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Behavior tests for live-session admission: a worker is never launched
 # into a project while the machine's live-session detector reads live or cannot
-# decide (bin/fm-live-session-lib.sh owns the contract; bin/fm-spawn.sh runs
+# decide (bin/fm-live-session-lib.sh owns the contract; its callers run
 # the check).
 #
-# Every case drives the real bin/fm-spawn.sh against a real project clone with
+# Cases drive the real bin/fm-spawn.sh or bin/fm-control.sh against a project clone with
 # fake tmux and treehouse binaries that log every call, a stub detector that
 # records the folder name it was asked about and answers with a chosen exit
 # status, and a real markdown backlog when tasks-axi is installed. A deferred
@@ -67,14 +67,31 @@ make_case() {  # <name> <task-id> [project-folder]
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FM_FAKE_CALL_LOG"
 case "$*" in
+  *"#{cursor_y}"*) printf '0\n'; exit 0 ;;
   *"#{pane_current_path}"*) printf '%s\n' "${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
-  *"#{pane_current_command}"*) printf '%s\n' zsh; exit 0 ;;
+  *"#{pane_current_command}"*)
+    if [ -f "${FM_FAKE_COMMAND_FILE:-}" ]; then cat "$FM_FAKE_COMMAND_FILE"; else printf '%s\n' zsh; fi
+    exit 0 ;;
   *"#{pane_tty}"*) exit 0 ;;
 esac
 case "${1:-}" in
   display-message) printf 'firstmate\n' ;;
   list-windows) [ ! -f "$FM_FAKE_WINDOWS" ] || cat "$FM_FAKE_WINDOWS" ;;
   new-window) printf 'fm-%s\n' "$FM_FAKE_TASK_ID" > "$FM_FAKE_WINDOWS" ;;
+  capture-pane) printf '›\n' ;;
+  send-keys)
+    if [ -f "${FM_FAKE_COMMAND_FILE:-}" ]; then
+      for payload in "$@"; do
+        case "$payload" in
+          ". '"*"'") staged=${payload#". '"}; staged=${staged%"'"}; [ ! -f "$staged" ] || payload=$(cat "$staged") ;;
+        esac
+        case "$payload" in
+          /quit) printf '%s\n' zsh > "$FM_FAKE_COMMAND_FILE" ;;
+          *'encode launch-brief'*|*'Firstmate operational input waiting: read'*) printf '%s\n' codex > "$FM_FAKE_COMMAND_FILE" ;;
+        esac
+      done
+    fi
+    ;;
 esac
 exit 0
 SH
@@ -118,11 +135,28 @@ run_spawn() {  # <case-dir> <pane-path> <exit> <line> <spawn-args...>
     FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" FM_BACKEND=tmux \
     FM_FAKE_PANE_PATH="$pane" FM_FAKE_CALL_LOG="$case_dir/calls.log" \
     FM_FAKE_TASK_ID="$1" FM_FAKE_WINDOWS="$case_dir/windows" \
+    FM_FAKE_COMMAND_FILE="$case_dir/command" \
     FM_LIVE_SESSION_CHECK="${DETECTOR-$case_dir/detector.py}" \
     FM_FAKE_DETECTOR_LOG="$case_dir/detector.log" \
     FM_FAKE_DETECTOR_EXIT="$code" FM_FAKE_DETECTOR_LINE="$line" \
     PATH="$case_dir/fakebin:$PATH" \
     "$SPAWN" "$@" 2>&1
+}
+
+run_control() {
+  local case_dir=$1 code=$2 line=$3
+  shift 3
+  FM_ROOT_OVERRIDE='' FM_HOME="$case_dir/home" \
+    FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_PROJECTS_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
+    FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" FM_BACKEND=tmux \
+    FM_FAKE_PANE_PATH="$case_dir/wt-$1" FM_FAKE_CALL_LOG="$case_dir/calls.log" \
+    FM_FAKE_TASK_ID="$1" FM_FAKE_WINDOWS="$case_dir/windows" \
+    FM_FAKE_COMMAND_FILE="$case_dir/command" \
+    FM_LIVE_SESSION_CHECK="$case_dir/detector.py" \
+    FM_FAKE_DETECTOR_LOG="$case_dir/detector.log" \
+    FM_FAKE_DETECTOR_EXIT="$code" FM_FAKE_DETECTOR_LINE="$line" \
+    PATH="$case_dir/fakebin:$PATH" \
+    "$ROOT/bin/fm-control.sh" "$@" 2>&1
 }
 
 row_state() {  # <home> <id>
@@ -223,6 +257,70 @@ test_relaunch_checks_admission_and_preserves_prior_work() {
       "an admitted $kind relaunch lost prior work"
   done
   pass "ship and scout relaunches preserve prior state and work on non-clear reads and launch on clear"
+}
+
+test_control_relaunch_checks_before_stopping_the_worker() {
+  local case_dir id kind wt out rc code line replacement calls worktrees
+  local -a args
+  for kind in ship scout; do
+    id="task-control-$$-$kind"
+    case_dir=$(make_case "control-$kind" "$id" .agent-config)
+    ln -s "$case_dir/.agent-config" "$case_dir/agent-config"
+    wt=$(new_worktree "$case_dir" "$case_dir/.agent-config" "$id")
+    args=("$id" "$case_dir/agent-config")
+    if [ "$kind" = ship ]; then
+      args+=(--mode no-mistakes --yolo off)
+    else
+      args+=(--scout)
+    fi
+    rc=0
+    out=$(run_spawn "$case_dir" "$wt" 0 '' "${args[@]}") || rc=$?
+    expect_code 0 "$rc" "could not dispatch the $kind before control relaunch: $out"
+    printf '%s\n' codex > "$case_dir/command"
+    printf '%s\n' 'uncommitted work to preserve' > "$wt/in-progress.txt"
+    cp -R "$wt" "$case_dir/worktree-before"
+    cp -R "$case_dir/home/state" "$case_dir/state-before"
+    cp -R "$case_dir/home/data" "$case_dir/data-before"
+    worktrees=$(git -C "$case_dir/.agent-config" worktree list --porcelain)
+    for replacement in same claude; do
+      args=("$id" relaunch --note 'continue the existing work')
+      [ "$replacement" = same ] || args+=(--harness "$replacement")
+      for code in 75 2; do
+        if [ "$code" -eq 75 ]; then
+          line='live signal=machine-line-reservation source=machine-line/reserve:ep-project'
+        else
+          line='unknown signal=calendar source=calendar reason=source read failed'
+        fi
+        : > "$case_dir/calls.log"
+        : > "$case_dir/detector.log"
+        rc=0
+        out=$(run_control "$case_dir" "$code" "$line" "${args[@]}") || rc=$?
+        expect_code "$DEFER_EXIT" "$rc" "a $kind control relaunch must defer before stopping: $out"
+        assert_equals .agent-config "$(cat "$case_dir/detector.log")" "the $kind pre-stop check did not use the resolved project folder once"
+        assert_contains "$out" "$line" "the $kind pre-stop refusal omitted the detector's verdict"
+        assert_contains "$out" "agent, instructions, and task record are unchanged" "the $kind refusal omitted its preserved running agent"
+        assert_equals 1 "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" "the $kind control relaunch did not emit one refusal line"
+        assert_equals codex "$(cat "$case_dir/command")" "a refused $kind control relaunch stopped the running agent"
+        calls=$(cat "$case_dir/calls.log")
+        assert_not_contains "$calls" send-keys "a refused $kind control relaunch sent a stop or interrupt"
+        diff -r "$case_dir/state-before" "$case_dir/home/state" || fail "a refused $kind control relaunch changed task state"
+        diff -r "$case_dir/data-before" "$case_dir/home/data" || fail "a refused $kind control relaunch changed instructions or backlog"
+        diff -r "$case_dir/worktree-before" "$wt" || fail "a refused $kind control relaunch changed prior work"
+      done
+    done
+    : > "$case_dir/detector.log"
+    : > "$case_dir/calls.log"
+    rc=0
+    out=$(run_control "$case_dir" 0 '' "$id" relaunch --note 'continue the existing work') || rc=$?
+    expect_code 0 "$rc" "a clear detector refused the $kind control relaunch: $out"
+    assert_contains "$out" "relaunched $id" "a clear read did not replace the $kind agent"
+    assert_equals $'.agent-config\n.agent-config' "$(cat "$case_dir/detector.log")" "the $kind control relaunch did not check both before stopping and before spawning"
+    assert_contains "$(cat "$case_dir/calls.log")" /quit "an admitted $kind control relaunch did not stop the prior agent"
+    assert_equals codex "$(cat "$case_dir/command")" "an admitted $kind control relaunch did not start the replacement"
+    assert_equals "$worktrees" "$(git -C "$case_dir/.agent-config" worktree list --porcelain)" "the $kind control relaunch allocated another worktree"
+    assert_equals 'uncommitted work to preserve' "$(cat "$wt/in-progress.txt")" "the $kind control relaunch lost prior work"
+  done
+  pass "control relaunches check live-session admission before stopping ships or scouts and still replace on clear"
 }
 
 test_live_read_defers_without_leaving_anything_behind() {
@@ -331,6 +429,7 @@ test_batch_reports_a_live_deferral() {
 
 test_clear_read_launches_the_worker
 test_relaunch_checks_admission_and_preserves_prior_work
+test_control_relaunch_checks_before_stopping_the_worker
 test_live_read_defers_without_leaving_anything_behind
 test_unknown_read_defers
 test_out_of_contract_status_defers_as_unknown

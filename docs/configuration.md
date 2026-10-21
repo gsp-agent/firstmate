@@ -1164,7 +1164,8 @@ When the machine has a live-session detector at `~/.agent-config/scripts/live-se
 Firstmate does not ship the detector; its own header documents what it observes and what it misses.
 The detector is asked about the project's checkout folder name, with symlinks resolved, rather than Firstmate's registered project name, because it matches the name against the folders a person's work happens in.
 When it reports a live session, or cannot decide, `bin/fm-spawn.sh` launches nothing, leaves the task's record, worktree, and backlog state unchanged, prints one `deferred:` line carrying the detector's verdict, and exits 75, so Firstmate tries again once the check reads clear.
-A secondmate spawn is not checked.
+`bin/fm-control.sh` checks a ship or scout's recorded project before checkpointing, changing instructions, or stopping its agent; a refusal exits 75 and leaves the running agent, instructions, and task record unchanged.
+A secondmate spawn or relaunch is not checked.
 Typing in a focused terminal pane that works inside the project's checkout reads as live for two minutes, so typing to a project's own agent seat, or to Firstmate itself when the project is this Firstmate repository, defers that project's spawns until a later dispatch.
 Without a detector, or with `FM_LIVE_SESSION_CHECK` set to an empty value, dispatch is unchanged.
 [`bin/fm-live-session-lib.sh`](../bin/fm-live-session-lib.sh) owns how the detector is found and called and what each of its answers does.

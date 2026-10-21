@@ -5,13 +5,13 @@
 # A live session - a tester, a client, or the captain at a headset, present or
 # waiting at a set time - is run by the project's own agent, never by
 # Firstmate. When the machine has a live-session detector installed,
-# bin/fm-spawn.sh asks it about the project immediately before a ship or scout
-# launch and defers the spawn unless the detector reads clear. Without a
+# bin/fm-control.sh and bin/fm-spawn.sh ask it about the project before stopping
+# or launching a ship or scout and defer unless the detector reads clear. Without a
 # detector nothing changes.
 #
 # This file is the single owner of how the detector is found and called and of
 # the admission verdict. docs/configuration.md "Live-session check" is the
-# operator reference, and bin/fm-spawn.sh owns where the check runs.
+# operator reference, and the callers own where the check runs.
 #
 # Detector: FM_LIVE_SESSION_CHECK when that variable is set, otherwise
 # ~/.agent-config/scripts/live-session.py. A missing file, including an empty

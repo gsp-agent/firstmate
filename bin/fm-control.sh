@@ -181,6 +181,8 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 . "$SCRIPT_DIR/fm-worker-account-lib.sh"
 # shellcheck source=bin/fm-exclude-tools-lib.sh
 . "$SCRIPT_DIR/fm-exclude-tools-lib.sh"
+# shellcheck source=bin/fm-live-session-lib.sh
+. "$SCRIPT_DIR/fm-live-session-lib.sh"
 
 POLL=${FM_CONTROL_POLL:-0.5}
 SETTLE_WAIT=${FM_CONTROL_SETTLE_WAIT:-5}
@@ -1069,7 +1071,7 @@ record_note() {
 }
 
 do_relaunch() {
-  local exit_result state note_line
+  local exit_result state note_line project live_session_deferral
   local -a spawn_args
 
   require_state_verified_backend relaunch
@@ -1082,6 +1084,11 @@ do_relaunch() {
         || die "task $ID has no instructions at $RELAUNCH_BRIEF; refusing to relaunch a worker with nothing to work from"
       [ "$NOTE_SET" = 1 ] && [ -n "$NOTE" ] \
         || die "relaunch of a $KIND task requires --note (or --note-file): the replacement worker inherits the local copy but none of the conversation, so it must be told what happened"
+      project=$(fm_meta_get "$META" project)
+      if ! live_session_deferral=$(fm_live_session_admit "$project" "$(basename "$project")"); then
+        echo "deferred: $live_session_deferral; task $ID was not relaunched and its agent, instructions, and task record are unchanged - relaunch it again once the check reads clear" >&2
+        exit 75
+      fi
       ;;
     secondmate)
       # The charter in the secondmate's own home is its instruction source and
