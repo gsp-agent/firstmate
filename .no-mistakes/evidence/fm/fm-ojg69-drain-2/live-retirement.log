@@ -1,0 +1,475 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse
+
+$ tmux -S sock new-session -d -s fm-lab-recovery
+
+$ tasks-axi add prior-p1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md
+ok: added prior-p1 (ship) -> Queued
+task:
+  id: prior-p1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start prior-p1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block prior-p1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md` to record a dependency
+
+$ tasks-axi start prior-p1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md
+ok: start prior-p1 -> In flight
+help[1]:
+  - Run `tasks-axi done prior-p1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-prior-p1
+
+$ bin/fm-teardown.sh prior-p1
+task data prior-p1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/prior-p1/.cleanup-hold until the next completed task
+teardown prior-p1 complete (window fm-lab-recovery:fm-prior-p1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/missing-prior-p1)
+Backlog: prior-p1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Persisted result: latest completion=prior-p1; newest scratch recovery intact; linked evidence and review retained; task and pending-close records removed.
+$ python3 bin/fm-task-data.py mark /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data prior-p1 too-large
+
+$ tasks-axi add alpha-a1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md
+ok: added alpha-a1 (ship) -> Queued
+task:
+  id: alpha-a1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start alpha-a1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block alpha-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md` to record a dependency
+
+$ tasks-axi start alpha-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md
+ok: start alpha-a1 -> In flight
+help[1]:
+  - Run `tasks-axi done alpha-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-alpha-a1
+
+$ tasks-axi add beta-b1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md
+ok: added beta-b1 (ship) -> Queued
+task:
+  id: beta-b1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start beta-b1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block beta-b1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md` to record a dependency
+
+$ tasks-axi start beta-b1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md
+ok: start beta-b1 -> In flight
+help[1]:
+  - Run `tasks-axi done beta-b1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-beta-b1
+
+Paused real retirement process for alpha-a1; existing metadata still protects it.
+Paused real retirement process for beta-b1; existing metadata still protects it.
+$ bin/fm-teardown.sh beta-b1
+task data beta-b1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/beta-b1/.cleanup-hold until the next completed task
+teardown beta-b1 complete (window fm-lab-recovery:fm-beta-b1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/missing-beta-b1)
+Backlog: beta-b1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: prior-p1
+
+After beta-b1 finishes: older recovery expired; unfinished alpha-a1 remains protected.
+$ bin/fm-teardown.sh alpha-a1
+task data alpha-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/alpha-a1/.cleanup-hold until the next completed task
+teardown alpha-a1 complete (window fm-lab-recovery:fm-alpha-a1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/missing-alpha-a1)
+Backlog: alpha-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-reverse
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+
+Persisted result: latest completion=alpha-a1; newest scratch recovery intact; linked evidence and review retained; task and pending-close records removed.
+PASS: overlapping completions in reverse order
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward
+
+$ tmux -S sock new-session -d -s fm-lab-recovery
+
+$ tasks-axi add prior-p1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md
+ok: added prior-p1 (ship) -> Queued
+task:
+  id: prior-p1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start prior-p1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block prior-p1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md` to record a dependency
+
+$ tasks-axi start prior-p1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md
+ok: start prior-p1 -> In flight
+help[1]:
+  - Run `tasks-axi done prior-p1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-prior-p1
+
+$ bin/fm-teardown.sh prior-p1
+task data prior-p1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/prior-p1/.cleanup-hold until the next completed task
+teardown prior-p1 complete (window fm-lab-recovery:fm-prior-p1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/missing-prior-p1)
+Backlog: prior-p1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Persisted result: latest completion=prior-p1; newest scratch recovery intact; linked evidence and review retained; task and pending-close records removed.
+$ python3 bin/fm-task-data.py mark /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data prior-p1 too-large
+
+$ tasks-axi add alpha-a1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md
+ok: added alpha-a1 (ship) -> Queued
+task:
+  id: alpha-a1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start alpha-a1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block alpha-a1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md` to record a dependency
+
+$ tasks-axi start alpha-a1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md
+ok: start alpha-a1 -> In flight
+help[1]:
+  - Run `tasks-axi done alpha-a1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-alpha-a1
+
+$ tasks-axi add beta-b1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md
+ok: added beta-b1 (ship) -> Queued
+task:
+  id: beta-b1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start beta-b1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block beta-b1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md` to record a dependency
+
+$ tasks-axi start beta-b1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md
+ok: start beta-b1 -> In flight
+help[1]:
+  - Run `tasks-axi done beta-b1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-beta-b1
+
+Paused real retirement process for alpha-a1; existing metadata still protects it.
+Paused real retirement process for beta-b1; existing metadata still protects it.
+$ bin/fm-teardown.sh alpha-a1
+task data alpha-a1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/alpha-a1/.cleanup-hold until the next completed task
+teardown alpha-a1 complete (window fm-lab-recovery:fm-alpha-a1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/missing-alpha-a1)
+Backlog: alpha-a1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: prior-p1
+
+After alpha-a1 finishes: older recovery expired; unfinished beta-b1 remains protected.
+$ bin/fm-teardown.sh beta-b1
+task data beta-b1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/beta-b1/.cleanup-hold until the next completed task
+teardown beta-b1 complete (window fm-lab-recovery:fm-beta-b1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/missing-beta-b1)
+Backlog: beta-b1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-forward
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+
+Persisted result: latest completion=beta-b1; newest scratch recovery intact; linked evidence and review retained; task and pending-close records removed.
+PASS: overlapping completions in forward order
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure
+
+$ tmux -S sock new-session -d -s fm-lab-recovery
+
+$ tasks-axi add prior-p1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md
+ok: added prior-p1 (ship) -> Queued
+task:
+  id: prior-p1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start prior-p1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block prior-p1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md` to record a dependency
+
+$ tasks-axi start prior-p1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md
+ok: start prior-p1 -> In flight
+help[1]:
+  - Run `tasks-axi done prior-p1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-prior-p1
+
+$ bin/fm-teardown.sh prior-p1
+task data prior-p1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/prior-p1/.cleanup-hold until the next completed task
+teardown prior-p1 complete (window fm-lab-recovery:fm-prior-p1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/missing-prior-p1)
+Backlog: prior-p1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+$ tasks-axi add fresh-f1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md
+ok: added fresh-f1 (ship) -> Queued
+task:
+  id: fresh-f1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start fresh-f1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block fresh-f1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md` to record a dependency
+
+$ tasks-axi start fresh-f1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md
+ok: start fresh-f1 -> In flight
+help[1]:
+  - Run `tasks-axi done fresh-f1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-fresh-f1
+
+Paused real retirement process for fresh-f1; existing metadata still protects it.
+$ bin/fm-teardown.sh fresh-f1
+task data fresh-f1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/fresh-f1/.cleanup-hold until the next completed task
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+mktemp: mkstemp failed on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/state/.task-data-sweep.rerun.Rt1kzn: Permission denied
+error: fresh-f1's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (task-data completion could not be published for fresh-f1; retaining its task protection and data); the pending close is recorded and the next session start retries it
+
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/state
+error: task fresh-f1 is live; nothing was expired
+
+$ bash bin/fm-task-data-lib.sh expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/state fresh-f1
+error: task fresh-f1 is live; nothing was expired
+
+$ python3 bin/fm-task-data.py expire /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/state fresh-f1
+warning: task data retained for recovery: task is still live: fresh-f1
+
+$ bin/fm-teardown.sh fresh-f1
+task data fresh-f1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/fresh-f1/.cleanup-hold until the next completed task
+teardown fresh-f1 complete (window fm-lab-recovery:fm-fresh-f1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/missing-fresh-f1)
+Backlog: fresh-f1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-publication-failure
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+
+Persisted result: latest completion=fresh-f1; newest scratch recovery intact; linked evidence and review retained; task and pending-close records removed.
+PASS: failed publication retains protection; retry publishes before releasing it
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay
+
+$ tmux -S sock new-session -d -s fm-lab-recovery
+
+$ tasks-axi add prior-p1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md
+ok: added prior-p1 (ship) -> Queued
+task:
+  id: prior-p1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start prior-p1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block prior-p1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md` to record a dependency
+
+$ tasks-axi start prior-p1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md
+ok: start prior-p1 -> In flight
+help[1]:
+  - Run `tasks-axi done prior-p1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-prior-p1
+
+$ bin/fm-teardown.sh prior-p1
+task data prior-p1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/prior-p1/.cleanup-hold until the next completed task
+teardown prior-p1 complete (window fm-lab-recovery:fm-prior-p1, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/missing-prior-p1)
+Backlog: prior-p1 is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+$ tasks-axi add replay-r1 Disposable recovery check --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md
+ok: added replay-r1 (ship) -> Queued
+task:
+  id: replay-r1
+  title: Disposable recovery check
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start replay-r1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block replay-r1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md` to record a dependency
+
+$ tasks-axi start replay-r1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md
+ok: start replay-r1 -> In flight
+help[1]:
+  - Run `tasks-axi done replay-r1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/backlog.md` when it ships
+
+$ tmux -S sock new-window -d -t fm-lab-recovery: -n fm-replay-r1
+
+Paused real retirement process for replay-r1; existing metadata still protects it.
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/state
+error: task replay-r1 is live; nothing was expired
+
+Interrupted actual retirement; pending-close record and metadata survive, sweep leaves the recovery untouched.
+$ bin/fm-bootstrap.sh
+task data replay-r1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data/replay-r1/.cleanup-hold until the next completed task
+BOOTSTRAP_INFO: closed the backlog item for replay-r1 after interrupted cleanup; its endpoint or local copy may remain and should be reconciled
+
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-v2-interrupted-replay/state
+
+Persisted result: latest completion=replay-r1; newest scratch recovery intact; linked evidence and review retained; task and pending-close records removed.
+PASS: session-start replays an interrupted retirement and preserves newest recovery
+$ tmux -S sock kill-server
+
+$ tmux -S sock kill-server
+
+$ tmux -S sock kill-server
+
+$ tmux -S sock kill-server
+

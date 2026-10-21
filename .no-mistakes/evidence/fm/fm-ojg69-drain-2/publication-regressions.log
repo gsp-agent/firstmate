@@ -1,0 +1,11 @@
+ok - fm-teardown: failed publication keeps task protection against existing sweeps, foreground and direct expiry
+ok - fm-teardown: a later completion hands the active teardown sweep A's hold and preserves B's recovery
+ok - fm-teardown: either overlapping completion order keeps the newest recovery and expires its predecessor
+ok - fm-teardown: interrupted close and retention replay protect recovery until publication, including absent metadata
+ok - fm-teardown: failed receipt writes preserve metadata and close/retain replay records retryable cleanup
+task data task-x1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/fm-teardown-tests.1nqUpo/task-data-discovered-direct/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: discovered PR references survive interrupted close, retain, replay and direct retirement
+ok - fm-teardown: an explicit sweep during teardown keeps the retiring hold and the slot
+ok - fm-teardown: an empty sweep seed preserves a concurrently published requester and its fresh hold
+ok - fm-teardown: a stage past its limit moves nothing, keeps the folder whole, stays within memory on accented text, closes the backlog item and is retried
+ok - fm-teardown: the stage limit also bounds slow reference reads before matching

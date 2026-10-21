@@ -1,0 +1,5 @@
+ok - fm-teardown: a still-unreadable reference keeps its folder and is named once, not on every pass
+ok - fm-teardown: failed unread-status appends retry before suppression through the background sweep
+ok - fm-teardown: the sweep expires newly promoted and saved too-large holds, staged or unstaged
+ok - fm-teardown: an explicit sweep leaves the slot unchanged and keeps a hold added while it runs
+ok - fm-teardown: a later completion hands the active teardown sweep A's hold and preserves B's recovery

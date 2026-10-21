@@ -1,0 +1,10 @@
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-sweep
+Paused the real expiry process with its per-task lock and sweep lock held.
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-sweep/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-sweep/state
+task-data sweep already running; requested another pass
+task data bb-unstaged: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-sweep/data/bb-unstaged/.cleanup-hold until the next completed task
+task data bb-unstaged expired; nothing of it stays held
+aa-drain: expired=true, expiry mark cleared, all scratch removed.
+bb-unstaged: expired=true, expiry mark cleared, all scratch removed.
+latest-l1: newest recovery unchanged. Both locks released.
+PASS: one real sweep drains staged and unstaged too-large holds; a concurrent explicit request starts no second sweep.

@@ -1,0 +1,18 @@
+[
+  {
+    "name": "overlapping completions in reverse order",
+    "result": "pass"
+  },
+  {
+    "name": "overlapping completions in forward order",
+    "result": "pass"
+  },
+  {
+    "name": "failed publication retains protection; retry publishes before releasing it",
+    "result": "pass"
+  },
+  {
+    "name": "session-start replays an interrupted retirement and preserves newest recovery",
+    "result": "pass"
+  }
+]

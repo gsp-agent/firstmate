@@ -1,0 +1,174 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent
+$ tasks-axi add replay-r1 Interrupted recovery fixture --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/data/backlog.md
+ok: added replay-r1 (ship) -> Queued
+task:
+  id: replay-r1
+  title: Interrupted recovery fixture
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start replay-r1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block replay-r1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/data/backlog.md` to record a dependency
+$ tasks-axi start replay-r1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/data/backlog.md
+ok: start replay-r1 -> In flight
+help[1]:
+  - Run `tasks-axi done replay-r1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/data/backlog.md` when it ships
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/prepare-interrupted.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent close 1
+$ rm -f -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/state/replay-r1.meta
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/state
+error: task replay-r1 is live; nothing was expired
+close-absent: pending-close protection keeps scratch before session-start recovery.
+$ bin/fm-bootstrap.sh
+task data replay-r1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/data/replay-r1/.cleanup-hold until the next completed task
+BOOTSTRAP_INFO: closed the backlog item for replay-r1 that an interrupted cleanup left open
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/state
+$ tasks-axi show replay-r1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-close-absent/data/backlog.md
+task:
+  id: replay-r1
+  title: Interrupted recovery fixture
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-21
+  deps: none
+  links: none
+  body: local main
+PASS: close-absent replay publishes the latest completion, removes pending protection and preserves fresh recovery.
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata
+$ tasks-axi add replay-r1 Interrupted recovery fixture --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/data/backlog.md
+ok: added replay-r1 (ship) -> Queued
+task:
+  id: replay-r1
+  title: Interrupted recovery fixture
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start replay-r1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block replay-r1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/data/backlog.md` to record a dependency
+$ tasks-axi start replay-r1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/data/backlog.md
+ok: start replay-r1 -> In flight
+help[1]:
+  - Run `tasks-axi done replay-r1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/data/backlog.md` when it ships
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/prepare-interrupted.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata retain 0
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/state
+error: task replay-r1 is live; nothing was expired
+retain-metadata: pending-close protection keeps scratch before session-start recovery.
+$ bin/fm-bootstrap.sh
+task data replay-r1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/data/replay-r1/.cleanup-hold until the next completed task
+BOOTSTRAP_INFO: kept the captain call for replay-r1 open with its deliverable recorded after interrupted cleanup; its endpoint or local copy may remain and should be reconciled
+warning: task data replay-r1 retained whole for retry: unread references: replay-r1
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/state
+$ tasks-axi show replay-r1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-metadata/data/backlog.md
+task:
+  id: replay-r1
+  title: Interrupted recovery fixture
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: "Deliverable of the finished work: local main"
+PASS: retain-metadata replay publishes the latest completion, removes pending protection and preserves fresh recovery.
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent
+$ tasks-axi add replay-r1 Interrupted recovery fixture --kind ship --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/data/backlog.md
+ok: added replay-r1 (ship) -> Queued
+task:
+  id: replay-r1
+  title: Interrupted recovery fixture
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start replay-r1 --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block replay-r1 --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/data/backlog.md` to record a dependency
+$ tasks-axi start replay-r1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/data/backlog.md
+ok: start replay-r1 -> In flight
+help[1]:
+  - Run `tasks-axi done replay-r1 --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/data/backlog.md` when it ships
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/prepare-interrupted.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent retain 1
+$ rm -f -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/state/replay-r1.meta
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/state
+error: task replay-r1 is live; nothing was expired
+retain-absent: pending-close protection keeps scratch before session-start recovery.
+$ bin/fm-bootstrap.sh
+task data replay-r1: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/data/replay-r1/.cleanup-hold until the next completed task
+BOOTSTRAP_INFO: kept the captain call for replay-r1 open with its deliverable recorded after an interrupted cleanup
+$ bash bin/fm-task-data-lib.sh sweep /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/data /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/state
+$ tasks-axi show replay-r1 --file /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F5ZBADZ07E6NXTYMA3FNF2/.test-phase-tmp/live-replay-retain-absent/data/backlog.md
+task:
+  id: replay-r1
+  title: Interrupted recovery fixture
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-21
+  closed: "-"
+  deps: none
+  links: none
+  body: "Deliverable of the finished work: local main"
+PASS: retain-absent replay publishes the latest completion, removes pending protection and preserves fresh recovery.
