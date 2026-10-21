@@ -1,0 +1,6 @@
+ok - fm-teardown: a slow expiry of another task's data neither blocks fm-send, outlasts its budget, nor starves other holds
+ok - a reused pid with a different start time is never force-killed
+ok - an exec change preserves birth identity and the process is reaped
+ok - a process spawned during grace is reaped on a later pass
+ok - persistent leaked processes refuse teardown after bounded retries
+ok - a process exiting during identity lookup does not block teardown

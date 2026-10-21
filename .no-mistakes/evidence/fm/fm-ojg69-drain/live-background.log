@@ -1,0 +1,77 @@
+Isolation: only the account-wide orphan enumeration is restricted to lab processes; all point probes and product executables are real.
+live-missing-owner-before: {"missing-owner": ["proof.png", "record/data-cleanup.json", "scratch.bin"]}
+$ bash <worktree>/bin/fm-task-data-lib.sh expire <worktree>/.nm-gate-test/live-home/data <worktree>/.nm-gate-test/live-home/state missing-owner
+stderr: warning: task data missing-owner retained whole for retry: unread references: missing-owner
+error: task data missing-owner is not expired; what remains of it stays held
+exit=1; elapsed=1.957s
+live-missing-owner-after: {"missing-owner": ["proof.png", "record/data-cleanup.json", "scratch.bin"]}
+$ br create Background proof --description [proof](proof.png) --silent
+proof-c55
+exit=0; elapsed=0.354s
+$ tasks-axi add background-done Local completed task --kind ship --file <worktree>/.nm-gate-test/live-home/data/backlog.md
+ok: added background-done (ship) -> Queued
+task:
+  id: background-done
+  title: Local completed task
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: 2026-10-20
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start background-done --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data/backlog.md` to move it to in flight
+  - Run `tasks-axi block background-done --by <other> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data/backlog.md` to record a dependency
+exit=0; elapsed=0.241s
+$ tasks-axi start background-done --file <worktree>/.nm-gate-test/live-home/data/backlog.md
+ok: start background-done -> In flight
+help[1]:
+  - Run `tasks-axi done background-done --pr <url> --file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data/backlog.md` when it ships
+exit=0; elapsed=0.196s
+live-background-before: {"zz-background": ["clone/scratch.bin", "proof.png", "record/data-cleanup.json"], "background-done": ["brief.md", "scratch.bin"]}
+Locks present while automatic expiry runs: [".meta-zz-background.lock", ".task-data-sweep.lock"]
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+task data background-done: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data/background-done/.cleanup-hold until the next completed task
+teardown background-done complete (window none, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/missing-worktree, legacy record accepted without spawn_gen: endpoint missing, incarnation legacy-20261021T035003Z-52519)
+Backlog: background-done is closed in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: zz-background
+warning: background-done teardown completed, but expiring other tasks' held data needs a retry
+
+live-background-after: {"zz-background": ["proof.png", "record/data-cleanup.json"], "background-done": [".cleanup-hold/scratch.bin", "brief.md", "record/data-cleanup.json"]}
+$ tasks-axi show background-done --full
+task:
+  id: background-done
+  title: Local completed task
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: ship
+  repo: "-"
+  priority: "-"
+  created: "-"
+  closed: 2026-10-20
+  deps: none
+  links: none
+  body: local main
+exit=0; elapsed=0.229s
+Automatic drain finished an unstaged too-large hold after completion locks were released; the completing task kept its recovery.

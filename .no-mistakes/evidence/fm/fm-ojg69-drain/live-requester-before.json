@@ -1,0 +1,60 @@
+{
+  "late-old": {
+    "files": {
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 53248,
+        "sha256": "cc461097e68ac44d108786e1baa8d23d88af3389bb243e809266bcb18c387313"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 390,
+        "sha256": "d8bd08ddff027b5a2987bf6ec6f3a27efc0839b0eaae1db390fe5375247ed3fc"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "late-old",
+      "complete": true,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          }
+        }
+      ]
+    }
+  },
+  "late-new": {
+    "files": {
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 53248,
+        "sha256": "cc461097e68ac44d108786e1baa8d23d88af3389bb243e809266bcb18c387313"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 390,
+        "sha256": "8dc82e04e70e2e2a7f18cf9441cdad5eff261c23a5f051858016d315cdb7d1c6"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "late-new",
+      "complete": true,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          }
+        }
+      ]
+    }
+  }
+}

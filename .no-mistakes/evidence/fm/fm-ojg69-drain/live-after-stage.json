@@ -1,0 +1,46 @@
+{
+  "aa-bulk": {
+    "files": {
+      ".cleanup-hold/clone/objects.bin": {
+        "bytes": 4194304,
+        "sha256": "baa7a6d36ffa957552df230235c2d51d735f28d49c58a5f3438a3a973a25a37d"
+      },
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 7168,
+        "sha256": "739668ad67f4b47e7ae4163ee4f081298cecd078cf922deaa79606bad1679bab"
+      },
+      "brief.md": {
+        "bytes": 43,
+        "sha256": "9cf45f6808c75bd097341b3e0c2f050cc6002e1d018ba91be6fadf01e958acf9"
+      },
+      "proof.png": {
+        "bytes": 18,
+        "sha256": "b42915476db951127c7673ee3a6becdf1b35e7a0dc87e46d37a2176467e7b93e"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 419,
+        "sha256": "eaa0f34b29544d398316d46de7999c4e62a9ae70498258f1fc50dfd9e61a97a5"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "aa-bulk",
+      "complete": true,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-m1r"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": "aa-bulk"
+          },
+          "unread": []
+        }
+      ]
+    }
+  }
+}

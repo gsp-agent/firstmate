@@ -1,0 +1,474 @@
+{
+  "aa-bulk": {
+    "files": {
+      "brief.md": {
+        "bytes": 43,
+        "sha256": "9cf45f6808c75bd097341b3e0c2f050cc6002e1d018ba91be6fadf01e958acf9"
+      },
+      "proof.png": {
+        "bytes": 18,
+        "sha256": "b42915476db951127c7673ee3a6becdf1b35e7a0dc87e46d37a2176467e7b93e"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 418,
+        "sha256": "388ad16a594353bf1a36e5b4ec70bb2aea78a8cfb1e3ff6f0d146a65f642adf5"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "aa-bulk",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-m1r"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": "aa-bulk"
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "fresh-done": {
+    "files": {
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 53248,
+        "sha256": "cc461097e68ac44d108786e1baa8d23d88af3389bb243e809266bcb18c387313"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 392,
+        "sha256": "6087eed88b9f5c321497966b33ea33a5739b5a9f9c259fd0569b5c44a29c85ad"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "fresh-done",
+      "complete": true,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          }
+        }
+      ]
+    }
+  },
+  "live-task": {
+    "files": {
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 53248,
+        "sha256": "cc461097e68ac44d108786e1baa8d23d88af3389bb243e809266bcb18c387313"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 391,
+        "sha256": "0a657cbf6a0b9e5e26260ebf15f38190fcd357af72b902f0b35c27fe594fc243"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "live-task",
+      "complete": true,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          }
+        }
+      ]
+    }
+  },
+  "locked-done": {
+    "files": {
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 53248,
+        "sha256": "cc461097e68ac44d108786e1baa8d23d88af3389bb243e809266bcb18c387313"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 393,
+        "sha256": "933635a24a5990b5e036c2e088b6adb3a52b2f797b7b8008cd37356ab79ad469"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "locked-done",
+      "complete": true,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          }
+        }
+      ]
+    }
+  },
+  "unread-done": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 476,
+        "sha256": "7adcb34bd215d2a4e2a45bf9b55976c6a752e5a68911e502b652a9618e5babfd"
+      },
+      "scratch.bin": {
+        "bytes": 22,
+        "sha256": "23dbde26f6617aa278047fedad63e8902fdf968b296ed7bc8aaaf421ac5154ce"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "unread-done",
+      "complete": false,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-missing1"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": [
+            "proof-missing1"
+          ]
+        }
+      ],
+      "unread_named": [
+        "proof-missing1"
+      ]
+    }
+  },
+  "pending-00": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "398c9fb27e3493e3cb41ae35921b6e641a1e654a0d8a87059102a61ed795380b"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-00",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-01": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "6edc73f52263cf0065a72006826bd8e1cdf0646fa1b34127690be5f5f67154aa"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-01",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-02": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "59e66ffb920b275af21ffbb4bcf44fc0ed3e94ecf0f238c1511a6b26186a785e"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-02",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-03": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "9f57c2e7a4e9a542baf1ebee64d1c8d0b424a2d4ef3a91e8ea858b7fa55e8354"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-03",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-04": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "78db57b618787bd2461cf6885bcaf2e5122f774a511ba23344a61c87354e3515"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-04",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-05": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "48b6a0dca854ebbd51defeee6f45300722eb3322624e48cda842b757dc642f74"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-05",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-06": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "6cc4e2a909f667f50fc81a6f2eeb6f7535a587140b1ef49abf1e387e9f471cd8"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-06",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-07": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "55c4635b72c230aa6d64b69009bbd5ca0026ac99f3e6acf0b8fb249f59961ed2"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-07",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-08": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "b9f5834e0c26a8f05fc3209518dadfc49349ae77934550eca89738c0b11ec307"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-08",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-09": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "e45197e08428a9781c0db0ad374b4df1c81d0f289fcd81a9e9ca1f395028415f"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-09",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-10": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "53dd054883089bf12df5fbd2c7905bcd0c9bdde278a39c27672ce5b438fa78e3"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-10",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "pending-11": {
+    "files": {
+      "record/data-cleanup.json": {
+        "bytes": 405,
+        "sha256": "be9c257f0234e8f99ce3c37a1aab958b0c5a714838c6a4e1812fc1f6f8a559cb"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "pending-11",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  }
+}

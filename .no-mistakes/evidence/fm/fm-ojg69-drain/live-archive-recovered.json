@@ -1,0 +1,34 @@
+{
+  "archived-done": {
+    "files": {
+      "proof.png": {
+        "bytes": 24,
+        "sha256": "c7ebc1653b94c2b99d0aa927ffa5e486fef500aceee8e6e871de2f085590fbad"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 430,
+        "sha256": "f43f3191bced134da85eedc03fb9400b5d553d6eca861c726ddc675cca70487c"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "archived-done",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-m1r"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": "archived-done"
+          },
+          "unread": []
+        }
+      ]
+    }
+  }
+}

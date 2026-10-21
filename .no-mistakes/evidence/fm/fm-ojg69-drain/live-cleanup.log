@@ -1,0 +1,55 @@
+$ <worktree>/bin/fm-lab-home.sh create <worktree>/.nm-gate-test/live-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home
+exit=0; elapsed=0.084s
+$ git init -q <worktree>/.nm-gate-test/live-home/projects/demo
+exit=0; elapsed=0.013s
+$ br init --prefix proof --db <worktree>/.nm-gate-test/live-home/projects/demo/.beads/beads.db
+Prefix set to: proof
+Initialized beads workspace in ./.beads
+exit=0; elapsed=0.222s
+$ br create Local evidence only --description [proof](proof.png) --silent
+proof-m1r
+exit=0; elapsed=0.134s
+live-before-stage: {"aa-bulk": ["brief.md", "clone/objects.bin", "proof.png", "record/data-cleanup.json", "scratch.bin"]}
+$ bash <worktree>/.nm-gate-test/with-lock.sh <worktree> <worktree>/.nm-gate-test/live-home aa-bulk stage
+task data aa-bulk: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data/aa-bulk/.cleanup-hold until the next completed task
+exit=0; elapsed=1.572s
+live-after-stage: {"aa-bulk": [".cleanup-hold/clone/objects.bin", ".cleanup-hold/scratch.bin", "brief.md", "proof.png", "record/data-cleanup.json"]}
+$ python3 <worktree>/bin/fm-task-data.py mark <worktree>/.nm-gate-test/live-home/data aa-bulk too-large
+exit=0; elapsed=0.126s
+live-before-sweep: {"aa-bulk": [".cleanup-hold/clone/objects.bin", ".cleanup-hold/scratch.bin", "brief.md", "proof.png", "record/data-cleanup.json"], "fresh-done": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "live-task": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "locked-done": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "unread-done": ["record/data-cleanup.json", "scratch.bin"], "pending-00": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-01": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-02": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-03": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-04": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-05": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-06": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-07": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-08": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-09": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-10": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "pending-11": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"]}
+$ du -sk <worktree>/.nm-gate-test/live-home/data
+4968	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data
+exit=0; elapsed=0.008s
+$ bash <worktree>/bin/fm-task-data-lib.sh sweep <worktree>/.nm-gate-test/live-home/data <worktree>/.nm-gate-test/live-home/state fresh-done
+stderr: task-data sweep already running; requested another pass
+exit=0; elapsed=0.075s
+first sweep output:
+error: task live-task is live; nothing was expired
+error: task locked-done is locked by another process; nothing was expired, retry later
+warning: task data unread-done retained whole for retry: unread references: proof-missing1
+error: task data unread-done is not expired; what remains of it stays held
+error: task live-task is live; nothing was expired
+error: task locked-done is locked by another process; nothing was expired, retry later
+error: task data unread-done is not expired; what remains of it stays held
+
+live-after-sweep: {"aa-bulk": ["brief.md", "proof.png", "record/data-cleanup.json"], "fresh-done": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "live-task": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "locked-done": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "unread-done": ["record/data-cleanup.json", "scratch.bin"], "pending-00": ["record/data-cleanup.json"], "pending-01": ["record/data-cleanup.json"], "pending-02": ["record/data-cleanup.json"], "pending-03": ["record/data-cleanup.json"], "pending-04": ["record/data-cleanup.json"], "pending-05": ["record/data-cleanup.json"], "pending-06": ["record/data-cleanup.json"], "pending-07": ["record/data-cleanup.json"], "pending-08": ["record/data-cleanup.json"], "pending-09": ["record/data-cleanup.json"], "pending-10": ["record/data-cleanup.json"], "pending-11": ["record/data-cleanup.json"]}
+$ bash <worktree>/bin/fm-task-data-lib.sh sweep <worktree>/.nm-gate-test/live-home/data <worktree>/.nm-gate-test/live-home/state fresh-done
+stderr: error: task live-task is live; nothing was expired
+error: task locked-done is locked by another process; nothing was expired, retry later
+error: task data unread-done is not expired; what remains of it stays held
+exit=0; elapsed=2.424s
+Unread reference retained whole; status is unchanged after repeated sweep:
+note [at=1792554463]: task data unread-done retained whole for retry: unread references: proof-missing1
+
+$ du -sk <worktree>/.nm-gate-test/live-home/data
+240	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data
+exit=0; elapsed=0.013s
+$ bash <worktree>/bin/fm-task-data-lib.sh expire <worktree>/.nm-gate-test/live-home/data <worktree>/.nm-gate-test/live-home/state locked-done
+exit=0; elapsed=1.425s
+$ bash <worktree>/bin/fm-task-data-lib.sh expire <worktree>/.nm-gate-test/live-home/data <worktree>/.nm-gate-test/live-home/state archived-done
+task data archived-done: scratch recoverable in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data/archived-done/.cleanup-hold until the next completed task
+task data archived-done expired; nothing of it stays held
+exit=0; elapsed=2.926s
+live-archive-recovered: {"archived-done": ["proof.png", "record/data-cleanup.json"]}
+All live cleanup assertions passed using real tasks-axi, br, filesystem locks, and dcg.

@@ -1,0 +1,68 @@
+{
+  "zz-background": {
+    "files": {
+      "proof.png": {
+        "bytes": 22,
+        "sha256": "59271b38e758e001142da5c2f2c8a04c46dc17db3c0be0ee56006dc11ef7d098"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 419,
+        "sha256": "c52b29e8d4195769306e8b7e69724ea7d6ea810fbb2dca2fc6568a0a37b4966a"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "zz-background",
+      "complete": true,
+      "expired": true,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [
+            "proof-c55"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": null
+          },
+          "unread": []
+        }
+      ]
+    }
+  },
+  "background-done": {
+    "files": {
+      ".cleanup-hold/scratch.bin": {
+        "bytes": 15,
+        "sha256": "5ad3aa159ce51c000113b453524460456ba3cdd3ab7861fb4d1e7fb66f3219d7"
+      },
+      "brief.md": {
+        "bytes": 27,
+        "sha256": "54caf638d8d0a25a5272fd58ee8e32957ba48a0eba63256d162ed7807ddf1f53"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 424,
+        "sha256": "9076207f65539331fa8b82612ea4a6ef3cc0dbfd92a2adde16a5e3560a10e633"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "background-done",
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": "background-done"
+          },
+          "unread": []
+        }
+      ],
+      "complete": true,
+      "expired": false
+    }
+  }
+}

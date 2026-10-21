@@ -1,0 +1,46 @@
+{
+  "aa-bulk": {
+    "files": {
+      "brief.md": {
+        "bytes": 43,
+        "sha256": "9cf45f6808c75bd097341b3e0c2f050cc6002e1d018ba91be6fadf01e958acf9"
+      },
+      "clone/objects.bin": {
+        "bytes": 4194304,
+        "sha256": "baa7a6d36ffa957552df230235c2d51d735f28d49c58a5f3438a3a973a25a37d"
+      },
+      "proof.png": {
+        "bytes": 18,
+        "sha256": "b42915476db951127c7673ee3a6becdf1b35e7a0dc87e46d37a2176467e7b93e"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 419,
+        "sha256": "39240a531619643777bd819146100484229e0ff53e972f237e74b4f6022b18df"
+      },
+      "scratch.bin": {
+        "bytes": 7168,
+        "sha256": "739668ad67f4b47e7ae4163ee4f081298cecd078cf922deaa79606bad1679bab"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "aa-bulk",
+      "complete": false,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [
+            "09-30",
+            "2026-09-29T21"
+          ],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": "aa-bulk"
+          }
+        }
+      ]
+    }
+  }
+}

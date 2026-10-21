@@ -1,0 +1,11 @@
+FM_TEST_BEGIN 2026-10-21T03:51:38Z tests/fm-teardown.test.sh family=pr-forge expected_gate_skip=none
+ok - fm-teardown: a still-unreadable reference keeps its folder and is named once, not on every pass
+ok - fm-teardown: failed unread-status appends retry before suppression through both background launch forms
+ok - fm-teardown: the sweep expires newly promoted and saved too-large holds, staged or unstaged
+ok - fm-teardown: overlapping sweep requests preserve a new hold for another single-instance pass
+ok - fm-teardown: B's overlapping completion expires A while preserving B's fresh recovery
+FM_TEST_END 2026-10-21T03:52:49Z tests/fm-teardown.test.sh exit=0 duration_ms=70285 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=70441
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=70285 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-teardown.test.sh duration_ms=70285
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M5E80HW42Z5D6J8153AJJNM6/sweep-timing.json

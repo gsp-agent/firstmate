@@ -1,0 +1,14 @@
+live-requester-before: {"late-old": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"], "late-new": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"]}
+$ bash <worktree>/bin/fm-task-data-lib.sh sweep <worktree>/.nm-gate-test/live-home/data <worktree>/.nm-gate-test/live-home/state late-new
+stderr: task-data sweep already running; requested another pass
+exit=0; elapsed=0.083s
+First sweep output:
+error: task live-task is live; nothing was expired
+error: task data unread-done is not expired; what remains of it stays held
+error: task data missing-owner is not expired; what remains of it stays held
+error: task live-task is live; nothing was expired
+error: task data unread-done is not expired; what remains of it stays held
+error: task data missing-owner is not expired; what remains of it stays held
+
+live-requester-after: {"late-old": ["record/data-cleanup.json"], "late-new": [".cleanup-hold/scratch.bin", "record/data-cleanup.json"]}
+The changed requester was preserved even though its hold occurred in the running sweep snapshot; the previous requester expired on the rerun.

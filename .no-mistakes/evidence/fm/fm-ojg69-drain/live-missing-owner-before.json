@@ -1,0 +1,35 @@
+{
+  "missing-owner": {
+    "files": {
+      "proof.png": {
+        "bytes": 23,
+        "sha256": "d646aa91f968d3dfee57d79d596caa076fbcbc4312823c34c4b27e6a8726afc6"
+      },
+      "record/data-cleanup.json": {
+        "bytes": 407,
+        "sha256": "46c64ae057448fcb90ab298cf672663dfc58c786975295cd288c688056a317a2"
+      },
+      "scratch.bin": {
+        "bytes": 22,
+        "sha256": "75684fd2c4dae14e3958695be59279df9de4cee786d50aa9fcdfc471cdeeec53"
+      }
+    },
+    "cleanup": {
+      "version": 1,
+      "task": "missing-owner",
+      "complete": false,
+      "expired": false,
+      "sources": [
+        {
+          "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/projects/demo",
+          "pr": "",
+          "beads": [],
+          "backlog": {
+            "data": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5E80HW42Z5D6J8153AJJNM6/.nm-gate-test/live-home/data",
+            "task": "missing-owner"
+          }
+        }
+      ]
+    }
+  }
+}
