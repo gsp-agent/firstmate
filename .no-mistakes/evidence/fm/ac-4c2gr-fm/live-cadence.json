@@ -1,0 +1,10 @@
+{
+  "scenario": "real watcher retains its default 300-second PR cadence",
+  "query_times_unix": [
+    1792587233.325771,
+    1792587540.17457
+  ],
+  "seconds_between_batch_reads": 306.84879899024963,
+  "FM_CHECK_INTERVAL": "unset",
+  "status": "pass"
+}

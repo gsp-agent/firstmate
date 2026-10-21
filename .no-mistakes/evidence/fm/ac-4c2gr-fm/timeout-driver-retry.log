@@ -1,0 +1,13 @@
+{
+  "scenario": "real GitHub request stalls beyond the batch timeout",
+  "exit": 0,
+  "stdout": "check: rearm-resurface\n",
+  "stderr": "",
+  "proxy_connection_accepted": false,
+  "attempted_commands": []
+}
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F6DBZ4BWZT50JTY1CDEKMR/.gate-validation/timeout.py", line 54, in <module>
+    assert accepted.is_set()
+           ~~~~~~~~~~~~~~~^^
+AssertionError

@@ -1,0 +1,8 @@
+ok - one GitHub poll sweep reads every pull request in one GraphQL call and keeps each result
+ok - batch authentication has time for every candidate before one GraphQL query
+ok - a batch authentication timeout stays silent without individual PR retries
+ok - a watch armed on the previous template keeps polling after the template changes
+ok - a tampered check copy stays rejected
+ok - a registration whose template hash was never shipped stays refused
+ok - an interrupted template upgrade keeps polling with unchanged or renumbered devices
+ok - a renumbered watch on the previous template keeps polling, and a tampered copy stays refused

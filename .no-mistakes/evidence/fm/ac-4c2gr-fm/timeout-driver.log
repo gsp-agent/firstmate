@@ -1,0 +1,46 @@
+{
+  "scenario": "real GitHub request stalls beyond the batch timeout",
+  "exit": 0,
+  "stdout": "check: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F6DBZ4BWZT50JTY1CDEKMR/.gate-validation/timeout-home/state/z-stop.check.sh: stop-cycle\n",
+  "stderr": "",
+  "proxy_connection_accepted": true,
+  "attempted_commands": [
+    [
+      "api",
+      "graphql",
+      "--hostname",
+      "github.com",
+      "-f",
+      "query=query FmPollBatch($o0:String!,$r0:String!,$n0:Int!){p0:repository(owner:$o0,name:$r0){pullRequest(number:$n0){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}",
+      "-f",
+      "o0=cli",
+      "-f",
+      "r0=cli",
+      "-F",
+      "n0=14781",
+      "--jq",
+      "def reading: if . == null then \"missing=1\", \"\" else ((.timelineItems.nodes // []) | last // {}) as $event | \"state=\" + (.state // \"\"), \"merged=\" + (.merged | tostring), \"queued=\" + (.isInMergeQueue | tostring), \"reason=\" + (($event.reason // \"\") | tojson | .[1:-1]), \"event=\" + (($event.id // \"\") | if test(\"^[A-Za-z0-9_+/=-]{0,256}$\") then . else \"\" end), \"\" end; (.data // {}) | to_entries[] | select(.key | test(\"^p[0-9]+$\")) | \"alias=\" + .key, ((.value.pullRequest // null) | reading)"
+    ],
+    [
+      "api",
+      "graphql",
+      "--hostname",
+      "github.com",
+      "-f",
+      "query=query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,name:$repo){pullRequests(states:[OPEN],first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT,ADDED_TO_MERGE_QUEUE_EVENT]){nodes{__typename ... on RemovedFromMergeQueueEvent{id reason} ... on AddedToMergeQueueEvent{id}}}}}}}",
+      "-f",
+      "owner=cli",
+      "-f",
+      "repo=cli",
+      "-F",
+      "cursor=null",
+      "--jq",
+      "(.data.repository.pullRequests) as $p | if $p == null or ($p.pageInfo | type) != \"object\" then error(\"no page\") else (($p.nodes // [])[] | . as $pr | (($pr.timelineItems.nodes // []) | last // {}) as $e | ([\"pr\", ($pr.number | tostring), ($pr.state // \"\"), ($pr.merged | tostring), ($pr.isInMergeQueue | tostring), (if $e.__typename == \"RemovedFromMergeQueueEvent\" then \"removed\" elif $e.__typename == \"AddedToMergeQueueEvent\" then \"added\" else \"\" end), (if (($e.id // \"\") | test(\"^[A-Za-z0-9_+/=-]{0,256}$\")) then ($e.id // \"\") else \"\" end)] | @tsv) + \"\\t\" + (($e.reason // \"\") | tojson | .[1:-1])), ([\"page\", (if $p.pageInfo.hasNextPage == true then \"true\" else \"false\" end), ($p.pageInfo.endCursor // \"\")] | @tsv) end"
+    ]
+  ]
+}
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F6DBZ4BWZT50JTY1CDEKMR/.gate-validation/timeout.py", line 55, in <module>
+    assert len(starts)==1 and any('FmPollBatch' in a for a in starts[0]['args'])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

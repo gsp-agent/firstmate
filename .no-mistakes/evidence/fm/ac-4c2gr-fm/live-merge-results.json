@@ -1,0 +1,93 @@
+[
+  {
+    "scenario": "draft",
+    "url": "https://github.com/cli/cli/pull/14781",
+    "exit": 1,
+    "stdout": "armed: state/draft.check.sh\n",
+    "stderr": "\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u25cf  WATCHER DOWN - SUPERVISION IS OFF\n\u25cf  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).\n\u25cf  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.\n\u25cf  This is a supervision warning only; the guarded operation WILL still run.\n\u25cf  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.\n\u25cf\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nerror: refusing to merge https://github.com/cli/cli/pull/14781\n  - the pull request is a draft\n",
+    "commands": [
+      [
+        "pr",
+        "view",
+        "https://github.com/cli/cli/pull/14781",
+        "--json",
+        "headRefOid",
+        "-q",
+        ".headRefOid"
+      ],
+      [
+        "pr",
+        "view",
+        "https://github.com/cli/cli/pull/14781",
+        "--json",
+        "state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName"
+      ]
+    ]
+  },
+  {
+    "scenario": "closed",
+    "url": "https://github.com/cli/cli/pull/14765",
+    "exit": 1,
+    "stdout": "armed: state/closed.check.sh\n",
+    "stderr": "WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\nerror: refusing to merge https://github.com/cli/cli/pull/14765\n  - state is \"CLOSED\", not open\n",
+    "commands": [
+      [
+        "pr",
+        "view",
+        "https://github.com/cli/cli/pull/14765",
+        "--json",
+        "headRefOid",
+        "-q",
+        ".headRefOid"
+      ],
+      [
+        "pr",
+        "view",
+        "https://github.com/cli/cli/pull/14765",
+        "--json",
+        "state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName"
+      ]
+    ]
+  },
+  {
+    "scenario": "open",
+    "url": "https://github.com/cli/cli/pull/14727",
+    "exit": 1,
+    "stdout": "armed: state/open.check.sh\n",
+    "stderr": "WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.\nerror: refusing to merge https://github.com/cli/cli/pull/14727\n  - required check 'build (macos-latest)' has not reported at head 1156f977ff6d12d592bc152987b9d9b378f6718d\n  - required check 'build (ubuntu-latest)' has not reported at head 1156f977ff6d12d592bc152987b9d9b378f6718d\n  - required check 'build (windows-latest)' has not reported at head 1156f977ff6d12d592bc152987b9d9b378f6718d\nerror: these required checks have not reported: build (macos-latest), build (ubuntu-latest), build (windows-latest)\n",
+    "commands": [
+      [
+        "pr",
+        "view",
+        "https://github.com/cli/cli/pull/14727",
+        "--json",
+        "headRefOid",
+        "-q",
+        ".headRefOid"
+      ],
+      [
+        "pr",
+        "view",
+        "https://github.com/cli/cli/pull/14727",
+        "--json",
+        "state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName"
+      ],
+      [
+        "pr",
+        "view",
+        "https://github.com/cli/cli/pull/14727",
+        "--json",
+        "headRefOid,statusCheckRollup"
+      ],
+      [
+        "api",
+        "repos/cli/cli/branches/trunk"
+      ],
+      [
+        "api",
+        "--paginate",
+        "repos/cli/cli/rules/branches/trunk"
+      ]
+    ]
+  }
+]

@@ -1,0 +1,237 @@
+[
+  {
+    "scenario": "predecessor baseline: three public PRs",
+    "graphql_calls": 3,
+    "outputs": [
+      {
+        "url": "https://github.com/cli/cli/pull/14781",
+        "result": ""
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14770",
+        "result": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14765",
+        "result": "closed"
+      }
+    ]
+  },
+  {
+    "scenario": "51 registered public PRs share one real GraphQL request",
+    "graphql_calls": 1,
+    "outputs": [
+      {
+        "url": "https://github.com/cli/cli/pull/14781",
+        "output": ""
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14770",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14768",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14767",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14766",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14765",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14763",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14752",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14751",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14750",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14745",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14727",
+        "output": ""
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14722",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14720",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14719",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14717",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14716",
+        "output": ""
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14714",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14713",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14710",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14709",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14707",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14706",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14705",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14700",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14697",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14696",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14689",
+        "output": ""
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14682",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14679",
+        "output": ""
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14678",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14676",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14673",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14672",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14665",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14664",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14663",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14660",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14659",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14658",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14657",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14656",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14655",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14654",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14651",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14650",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14648",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14646",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14640",
+        "output": "merged"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14636",
+        "output": "closed"
+      },
+      {
+        "url": "https://github.com/cli/cli/pull/14634",
+        "output": "merged"
+      }
+    ]
+  },
+  {
+    "scenario": "real network failure stays silent for all 51 PRs without individual retries",
+    "graphql_calls": 1,
+    "gh_exit": 1,
+    "poll_stdout": "",
+    "poll_stderr": ""
+  }
+]
