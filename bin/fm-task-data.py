@@ -60,12 +60,12 @@ resolve before evidence is classified, the same way completed-row beads do.
 Unread task or bead ids appear in each source's unread list in
 record/data-cleanup.json. Expiry appends a warning to the task's status before
 marking that unread set reported, so later expiry passes do not repeat it.
-Prepare and stage still print their own warnings; prepare permits the backlog close.
-Stage and expiry retain all data without moving or deleting it while any
+Prepare, retire and stage still print their own warnings; prepare permits the backlog close.
+Staging and expiry retain all data without moving or deleting it while any
 reference is unreadable; the next successful teardown of a different task retries.
-Stage runs under the task's locks, so its evidence and reference reads and its
-reference matching stop FM_TEARDOWN_DATA_STAGE_TIMEOUT seconds (default 10)
-after stage starts, before anything moves; a reference read still running is
+Retire and stage run under the task's locks, so their evidence and reference
+reads and reference matching stop FM_TEARDOWN_DATA_STAGE_TIMEOUT seconds (default 10)
+after the action starts, before anything moves; a reference read still running is
 killed: the folder stays whole, the warning and the record's retained field name
 the limit, and the next teardown of a different task retries it.
 Paths mentioned in these sources or retained evidence override the size/type limit.
@@ -104,8 +104,8 @@ After releasing its locks, teardown also starts one single-instance
 background sweep that uses by-hand expiry for pending holds with no foreground
 expiry budget, including holds marked too-large.
 fm-task-data-lib.sh owns sweep invocation, locking, and requester handling.
-Prepare, stage and expire clear a cut-off mark at their first record write; a
-too-large mark stays until expiry finishes.
+Prepare, retire, stage and expire clear a cut-off mark at their first record
+write; a too-large mark stays until expiry finishes.
 The holds the budget never reached are named in one warning.
 Recovery before then: move the desired .cleanup-hold/<relative-path> back to
 DATA/ID/<relative-path>. Never overwrite a new file at that path.

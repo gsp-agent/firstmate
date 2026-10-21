@@ -119,7 +119,7 @@
 # session-start sweep could still close, while a journal bound to any other pane
 # - or a version 1 attempt whose workspace is still present or unreadable - may
 # name a live quarantined space and is retained for that sweep.
-# After successful task retirement, bin/fm-task-data.py owns pruning data/<id>/
+# At ship or scout retirement, bin/fm-task-data.py owns pruning data/<id>/
 # and one-cycle scratch recovery; brief.md remains available to successor spawns.
 # Worktree-slot ownership (teardown-slot-collision): a treehouse pool slot is
 # reused across tasks, so a stale, duplicated, or drifted worktree= record can

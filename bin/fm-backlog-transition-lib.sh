@@ -38,10 +38,10 @@
 # with no `.tasks.toml` gets tasks-axi's built-in defaults.
 # bin/fm-tasks-axi-lib.sh owns backend precedence and configuration failures.
 #
-# CRASH RECOVERY. Only teardown needs a durable record: it removes the meta and
-# with it the completion links, so a process killed between the two halves would
-# leave nothing to reconstruct the close from. It writes
-# `state/<id>.backlog-close` first, and removes it once the close lands.
+# CRASH RECOVERY. Teardown writes `state/<id>.backlog-close` before destructive
+# cleanup to preserve completion links across interruption, and removes it only
+# once retirement succeeds. fm_backlog_retire_task_record owns the protected
+# completion ordering for both teardown and replay.
 # The writer and replay share one complete-record validator, and teardown stages
 # that record before destructive cleanup, so it never publishes or acts on a close
 # replay would reject. The validator pins the data path to this home's configured
@@ -862,6 +862,10 @@ fm_backlog_retain_transition() {
   fm_backlog_record_remove "$marker" "pending-close record" "$state"
 }
 
+# Existing metadata or a pending close protects recovery through preparation,
+# the backlog transition, and staging under the caller's meta lock. Publish
+# completion only after those steps, before removing metadata; publication
+# failure leaves that protection in place so an older sweep cannot expire it.
 # FM_BACKLOG_RETIRE_LABEL names the record in a removal error; it defaults to "task record".
 fm_backlog_retire_task_record() {
   local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0 transition=retire
