@@ -43,6 +43,8 @@ This touches only the firstmate repo and its own worktrees, never anything under
    bin/fm-update.sh
    ```
    It fast-forwards this firstmate repo's default branch from origin, then updates every registered local or remote secondmate home through its placement-specific guarded path.
+   A home checked out on `upstream-lean` follows `origin/upstream-lean` instead, and only a tracked-file edit makes it dirty.
+   `bin/fm-update.sh --primary-only` is the form a scheduled job runs: it moves just this repo and names no secondmate.
    It prints one status line per target (`updated <old>..<new>` / `reconciled redundant divergence <old>..<new>` / `already current` / `skipped: <reason>`), followed by three action lines that tell you exactly what to do next:
    - `reread-firstmate: yes|no`
    - `restart-secondmates: fm-<id>...|none`
