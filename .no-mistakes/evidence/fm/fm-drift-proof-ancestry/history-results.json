@@ -1,0 +1,53 @@
+[
+  {
+    "scenario": "historical-sha-keyed-failure",
+    "fork": "97a45e032a3f1f75226cf29d133995654e7013bf",
+    "upstream": "3847411b9a73f6553e172a6aefe5dff05e7aa178",
+    "exit": 2,
+    "counts": {
+      "path-ok": 0,
+      "path-drift": 0,
+      "keep": 0,
+      "pending": 0,
+      "unproven": 0,
+      "unmatched": 0,
+      "error": 0
+    },
+    "behind": null,
+    "ahead": null
+  },
+  {
+    "scenario": "captured-upstream-lean",
+    "fork": "97a45e032a3f1f75226cf29d133995654e7013bf",
+    "upstream": "3847411b9a73f6553e172a6aefe5dff05e7aa178",
+    "exit": 0,
+    "counts": {
+      "path-ok": 147,
+      "path-drift": 0,
+      "keep": 26,
+      "pending": 77,
+      "unproven": 0,
+      "unmatched": 1,
+      "error": 0
+    },
+    "behind": "behind: 59",
+    "ahead": "ahead: 103"
+  },
+  {
+    "scenario": "repair-squashed-as-pr-53",
+    "fork": "b426af8f8dd983302d0d3a1ce30c062530f9c618",
+    "upstream": "3847411b9a73f6553e172a6aefe5dff05e7aa178",
+    "exit": 0,
+    "counts": {
+      "path-ok": 148,
+      "path-drift": 0,
+      "keep": 27,
+      "pending": 77,
+      "unproven": 0,
+      "unmatched": 0,
+      "error": 0
+    },
+    "behind": "behind: 59",
+    "ahead": "ahead: 104"
+  }
+]

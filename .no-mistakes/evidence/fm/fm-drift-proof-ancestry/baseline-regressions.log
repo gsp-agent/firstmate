@@ -1,0 +1,10 @@
+BASELINE sha-keyed.sh: test_squash_merged_branch_carries_its_own_manifest_line
+Squash commit -- not updating HEAD
+not ok - a squash carrying its own manifest line exits 0: error: proof line is not a full sha: pr: 7: expected exit 0, got 2
+Baseline regression test exit: 1 (expected failure)
+
+BASELINE pre-coverage.sh: test_reverted_numbered_pr_without_manifest_stays_red
+Squash commit -- not updating HEAD
+not ok - a forgotten squash PR stays red after a listed PR reverts it: : expected exit 1, got 0
+Baseline regression test exit: 1 (expected failure)
+

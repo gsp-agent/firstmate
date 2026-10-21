@@ -1,0 +1,520 @@
+
+SCENARIO: test_squash_merged_branch_carries_its_own_manifest_line
+Squash commit -- not updating HEAD
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-squash-proof.OqXilH --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: 2a9ebf8fcce060e2f6be1c4394825a9659c6a0b1 add notes (#7)
+observed exit: 0
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-squash-proof.OqXilH --fork HEAD --upstream upstream 
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-drift: notes.txt
+unproven: 1e4bcfa527179ad0d468055b3b772e8036de24e7 later unproven edits
+keep: 2a9ebf8fcce060e2f6be1c4394825a9659c6a0b1 add notes (#7)
+observed exit: 1
+ok - a squash-merged branch carries its own manifest line and later edits fail
+
+SCENARIO: test_merge_merged_branch_carries_its_own_pending_line
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-merge-pending.oRz7C1 --fork HEAD --upstream upstream 
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-ok: notes.txt
+pending: 43429efe5cf531115789e03d6ae1458a5f42b4b8 .agent-config-dtjsb Merge pull request #8 from gsp-agent/fm/feature
+pending: 26f6a3b2f39f65d3bd07a27f42763b79b9c5a4f7 .agent-config-dtjsb add notes
+observed exit: 0
+ok - a merge-merged branch carries its own pending line and its carried commits inherit it
+
+SCENARIO: test_pending_commit_is_accepted_and_printed_with_its_bead
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-pending.E79f7N --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-pending.E79f7N/proof.txt 
+behind: 0
+ahead: 1
+path-ok: notes.txt
+pending: 8df3a514228821e3f209235183a421711b2e5eec bead-7 add notes (#7)
+observed exit: 0
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-pending.E79f7N --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-pending.E79f7N/proof.txt 
+
+stderr: error: pending-pr line is not '<number> <bead>': pending-pr: 7
+observed exit: 2
+ok - a pending commit is accepted, printed with its bead on every run, and must name its bead
+
+SCENARIO: test_proven_patches_are_replayed_in_ancestry_order
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-ordered-proof.LXroUq --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-ordered-proof.LXroUq/proof.txt 
+behind: 0
+ahead: 2
+path-ok: notes.txt
+keep: 0d41b96d7dedcc4eb44045f6264925e54c8913e3 second patch (#2)
+keep: e6eb247759982bd8b27fdc68118112797c387553 first patch (#1)
+observed exit: 0
+ok - dependent proven patches are accepted regardless of proof-file order
+
+SCENARIO: test_default_proof_comes_from_the_committed_fork_tree
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-worktree-proof.NbNHZV --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 22efdf34eb57e27a82f2d9c755af446a0f8f1f42 add notes (#7)
+error: missing manifest entry for PR 7
+observed exit: 1
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-worktree-proof.NbNHZV --fork HEAD --upstream upstream 
+behind: 0
+ahead: 2
+path-drift: drift-proof.txt
+path-drift: notes.txt
+unproven: a147162831fbb8dfab0eb99ab72ef1d380245471 add empty proof (#8)
+unproven: 22efdf34eb57e27a82f2d9c755af446a0f8f1f42 add notes (#7)
+error: missing manifest entry for PR 7
+error: missing manifest entry for PR 8
+observed exit: 1
+ok - the default proof is drift-proof.txt in the committed fork tree, never the working tree
+
+SCENARIO: test_guard_files_have_no_exemptions
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-guard.DoYzY8 --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-drift: bin/fm-drift-nightly.sh
+path-drift: docs/scripts.md
+path-drift: drift-proof.txt
+path-drift: tests/fm-drift-nightly.test.sh
+unproven: 8981b80a4646befd005d87bd75e88936446a83c4 add guard files (#7)
+error: missing manifest entry for PR 7
+observed exit: 1
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-guard.DoYzY8 --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-guard.DoYzY8/proof.txt 
+behind: 0
+ahead: 1
+path-ok: bin/fm-drift-nightly.sh
+path-ok: docs/scripts.md
+path-ok: drift-proof.txt
+path-ok: tests/fm-drift-nightly.test.sh
+keep: 8981b80a4646befd005d87bd75e88936446a83c4 add guard files (#7)
+observed exit: 0
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-guard.DoYzY8 --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-guard.DoYzY8/proof.txt 
+behind: 0
+ahead: 2
+path-drift: bin/fm-drift-nightly.sh
+path-drift: docs/scripts.md
+path-drift: drift-proof.txt
+path-drift: tests/fm-drift-nightly.test.sh
+unproven: 3ea854400c68eef913b673416a7e17c7a01411e6 edit proven guard files
+keep: 8981b80a4646befd005d87bd75e88936446a83c4 add guard files (#7)
+observed exit: 1
+ok - guard files require exact proven patches and later edits fail
+
+SCENARIO: test_unproven_edit_to_proven_file_exits_1
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-proven-edit.fcuXWp --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-proven-edit.fcuXWp/proof.txt 
+behind: 0
+ahead: 2
+path-drift: notes.txt
+unproven: 59fe0f552fa8f88f70063c49cf95246035275f60 unproven edit
+keep: f979149d8e8709a6d36efa8e86465797659671fe proven notes (#7)
+observed exit: 1
+ok - an unproven edit to an already-proven file fails
+
+SCENARIO: test_unproven_deletion_cannot_rename_into_proven_file
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-rename.YG6HhW --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-rename.YG6HhW/proof.txt 
+behind: 0
+ahead: 2
+path-ok: copy.txt
+path-drift: original.txt
+unproven: 34c5232fde4dd2e9b6913b8656a57f7f9bd793f9 unproven deletion
+keep: 5dd5ef65923ddd9f02232a95fefcb4609c9dd79e proven copy (#7)
+observed exit: 1
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+
+SCENARIO: test_proven_commit_does_not_accept_earlier_unproven_content
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-inherited-content.wew2VL --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-inherited-content.wew2VL/proof.txt 
+behind: 0
+ahead: 2
+path-drift: notes.txt
+keep: 5ee359bc047bf94ac616ead596a3ad67611c3cbf proven last line (#7)
+unproven: 78dc59449bcbb2e3b4fcfd8c1a1f0400afda22da unproven first line
+observed exit: 1
+ok - proof approves a patch rather than the commit's entire file snapshot
+
+SCENARIO: test_cut_unproven_changes_do_not_fail_after_restoration
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-cut.GFiBW5 --fork HEAD --upstream upstream 
+behind: 0
+ahead: 2
+unproven: c6764c54b4d6c369082828af1233ebaadaec4eac cut unproven notes
+unproven: 55c718c3ccc6eb8302cf57baf4f85aa7aab57175 unproven notes
+observed exit: 0
+ok - cut unproven changes pass once their effective changes are gone
+
+SCENARIO: test_proven_change_can_also_cut_unproven_changes
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-proof-and-cut.r3lWi3 --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-proof-and-cut.r3lWi3/proof.txt 
+behind: 0
+ahead: 2
+path-ok: kept.txt
+keep: 29a268f184b4ede73f82a198132237ad2954dd06 cut unproven changes and add proven patch (#7)
+unproven: 26716a784324715b04b6c5ec31e69bb94184c087 unproven changes
+observed exit: 0
+ok - a proven change can cut unrelated unproven changes in the same commit
+
+SCENARIO: test_missing_proven_patch_is_drift
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-missing-proof.TMybNL --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-missing-proof.TMybNL/proof.txt 
+behind: 0
+ahead: 2
+path-drift: notes.txt
+unproven: ec16fee6545c2c1636ae111d078ab94117408fc1 remove proven notes
+keep: 9006c21c2cca68ebf98ce2dd4df51bedb070f1ea proven notes (#7)
+observed exit: 1
+ok - missing accepted patches are reported as drift
+
+SCENARIO: test_unproven_mode_change_is_drift
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-mode.CfjoUa --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-mode.CfjoUa/proof.txt 
+behind: 0
+ahead: 2
+path-drift: notes.txt
+unproven: 94939fadcfc5f2524c1db5ccb0046ae0ebd3ae19 unproven executable mode
+keep: 48a018d1774ceceb64efef05b910d5e34038b2df proven notes (#7)
+observed exit: 1
+ok - unproven file modes cannot borrow content proof
+
+SCENARIO: test_forgotten_manifest_line_is_path_drift_and_unproven
+Squash commit -- not updating HEAD
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-forgotten-line.h5wfBn --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-drift: drift-proof.txt
+path-drift: notes.txt
+unproven: 7fbb3bf9a5e899df72a16c8858afe61433e06af8 add notes (#7)
+error: missing manifest entry for PR 7
+observed exit: 1
+ok - a forgotten manifest line is path-drift and unproven
+
+SCENARIO: test_wrong_proof_pr_number_stays_red_and_is_named
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-wrongnum-proof.VeThKN --fork HEAD --upstream upstream --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-wrongnum-proof.VeThKN/proof.txt 
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 9e03184333d9bdbe914fc0c63f17bca387242fcc add notes (#7)
+error: missing manifest entry for PR 7
+unmatched: 99
+observed exit: 1
+ok - a wrong proof PR number authorizes nothing, stays red, and is named unmatched
+
+SCENARIO: test_reverted_numbered_pr_without_manifest_stays_red
+Squash commit -- not updating HEAD
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/repo --upstream kunchenguid/main 
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+keep: 34e2a470782ddda45b389be4a1166dbadd4f09a1 cut notes (#8)
+unproven: bb9ac30dab16633ec107a50483702b3c9e97bc4b add notes (#7)
+error: missing manifest entry for PR 7
+observed exit: 1
+
+$ fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/repo --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/drift.log
+run: 2026-10-21T18:07:40-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+keep: 34e2a470782ddda45b389be4a1166dbadd4f09a1 cut notes (#8)
+unproven: bb9ac30dab16633ec107a50483702b3c9e97bc4b add notes (#7)
+error: missing manifest entry for PR 7
+exit: 1
+queued 1792624061-js5p1T
+  Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+observed nightly exit: 1
+Persisted notification:
+id=1792624061-js5p1T
+at=2026-10-21T23:07:41Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-21
+--
+Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/repo.
+error: missing manifest entry for PR 7
+Log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/drift.log
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/repo --upstream kunchenguid/main --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/repo/proof.txt 
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+keep: 34e2a470782ddda45b389be4a1166dbadd4f09a1 cut notes (#8)
+keep: bb9ac30dab16633ec107a50483702b3c9e97bc4b add notes (#7)
+observed exit: 0
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/repo --upstream kunchenguid/main --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-squash.hGDwHS/repo/proof.txt 
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+keep: 34e2a470782ddda45b389be4a1166dbadd4f09a1 cut notes (#8)
+pending: bb9ac30dab16633ec107a50483702b3c9e97bc4b bead-7 add notes (#7)
+observed exit: 0
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/repo --upstream kunchenguid/main 
+behind: 0
+ahead: 3
+path-ok: drift-proof.txt
+keep: 8921a8a1d186bbebb8f23b665197f78867a66640 cut notes (#8)
+merge: bd9d29cefa96d72fbc43bd3c87e03382d0b88761 Merge pull request #7 from gsp-agent/fm/feature
+unproven: 07875ec5d2ada0805671f0014bf8d33569113807 add notes (#17)
+error: missing manifest entry for PR 7
+observed exit: 1
+
+$ fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/repo --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/drift.log
+run: 2026-10-21T18:07:44-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 3
+path-ok: drift-proof.txt
+keep: 8921a8a1d186bbebb8f23b665197f78867a66640 cut notes (#8)
+merge: bd9d29cefa96d72fbc43bd3c87e03382d0b88761 Merge pull request #7 from gsp-agent/fm/feature
+unproven: 07875ec5d2ada0805671f0014bf8d33569113807 add notes (#17)
+error: missing manifest entry for PR 7
+exit: 1
+queued 1792624065-754csz
+  Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+observed nightly exit: 1
+Persisted notification:
+id=1792624065-754csz
+at=2026-10-21T23:07:45Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-21
+--
+Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/repo.
+error: missing manifest entry for PR 7
+Log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/drift.log
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/repo --upstream kunchenguid/main --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/repo/proof.txt 
+behind: 0
+ahead: 3
+path-ok: drift-proof.txt
+keep: 8921a8a1d186bbebb8f23b665197f78867a66640 cut notes (#8)
+keep: bd9d29cefa96d72fbc43bd3c87e03382d0b88761 Merge pull request #7 from gsp-agent/fm/feature
+keep: 07875ec5d2ada0805671f0014bf8d33569113807 add notes (#17)
+observed exit: 0
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/repo --upstream kunchenguid/main --proof /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-reverted-merge.uwFxTp/repo/proof.txt 
+behind: 0
+ahead: 3
+path-ok: drift-proof.txt
+keep: 8921a8a1d186bbebb8f23b665197f78867a66640 cut notes (#8)
+pending: bd9d29cefa96d72fbc43bd3c87e03382d0b88761 bead-7 Merge pull request #7 from gsp-agent/fm/feature
+pending: 07875ec5d2ada0805671f0014bf8d33569113807 bead-7 add notes (#17)
+observed exit: 0
+ok - reverted numbered squash and merge PRs require manifest entries and send nightly notes
+
+SCENARIO: test_open_pr_own_line_is_unmatched_until_its_squash_lands
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-open-pr.we2223 --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-drift: drift-proof.txt
+path-drift: notes.txt
+unproven: a93c3600288bcf870d8dd1eb80161955c39b8e19 add notes
+unmatched: 7
+observed exit: 1
+Squash commit -- not updating HEAD
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-open-pr.we2223 --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: c2c515a7c8b487cb513603f0757686c054e38319 add notes (#7)
+observed exit: 0
+ok - an open PR's own line is reported unmatched without failing the check, and matches once its squash lands
+
+SCENARIO: test_snapshot_includes_fetched_upstream
+ok - the captured upstream includes updates from the completed fetch
+
+SCENARIO: test_behind_count_is_reported_and_does_not_fail_alone
+
+$ fm-drift-nightly.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-behind.7RjNha --fork fork --upstream main 
+behind: 1
+ahead: 0
+observed exit: 0
+ok - behind is reported and does not fail the check by itself
+
+SCENARIO: test_nightly_red_sends_one_note_a_day_and_green_sends_none
+
+$ fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/repo --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/drift.log
+run: 2026-10-21T18:07:49-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 0
+exit: 0
+observed nightly exit: 0
+
+$ fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/repo --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/drift.log
+run: 2026-10-21T18:07:49-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 0
+exit: 0
+run: 2026-10-21T18:07:49-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: c56c9a5f518c7ea776b518b00fd42052c75e82a9 add notes
+exit: 1
+queued 1792624070-PHjTZN
+  Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+observed nightly exit: 1
+Persisted notification:
+id=1792624070-PHjTZN
+at=2026-10-21T23:07:50Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-21
+--
+Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/repo.
+path-drift: notes.txt
+Log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/drift.log
+
+$ fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/repo --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/drift.log
+run: 2026-10-21T18:07:49-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 0
+exit: 0
+run: 2026-10-21T18:07:49-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: c56c9a5f518c7ea776b518b00fd42052c75e82a9 add notes
+exit: 1
+queued 1792624070-PHjTZN
+  Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+run: 2026-10-21T18:07:50-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: c56c9a5f518c7ea776b518b00fd42052c75e82a9 add notes
+exit: 1
+replay 1792624070-PHjTZN
+  Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+observed nightly exit: 1
+Persisted notification:
+id=1792624070-PHjTZN
+at=2026-10-21T23:07:50Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-21
+--
+Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/repo.
+path-drift: notes.txt
+Log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-note.fo8j24/drift.log
+ok - a red nightly sends one note a day naming its red lines and log, and a green one sends none
+
+SCENARIO: test_nightly_check_error_is_red
+
+$ fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-error.ZeTjBp/repo --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-error.ZeTjBp/drift.log
+run: 2026-10-21T18:07:51-0500
+error: kunchenguid remote is missing
+exit: 2
+queued 1792624071-UnFUKA
+  Nightly drift check red on 2026-10-21: exit 2 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+observed nightly exit: 2
+Persisted notification:
+id=1792624071-UnFUKA
+at=2026-10-21T23:07:51Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-21
+--
+Nightly drift check red on 2026-10-21: exit 2 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-error.ZeTjBp/repo.
+error: kunchenguid remote is missing
+Log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-error.ZeTjBp/drift.log
+ok - a nightly whose check exits 2 sends one note naming the error
+
+SCENARIO: test_nightly_note_names_at_most_ten_red_lines
+
+$ fm-drift-nightly.sh nightly --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-cap.UsKkTv/repo --log /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-cap.UsKkTv/drift.log
+run: 2026-10-21T18:07:52-0500
+From /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-cap.UsKkTv/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes-01.txt
+path-drift: notes-02.txt
+path-drift: notes-03.txt
+path-drift: notes-04.txt
+path-drift: notes-05.txt
+path-drift: notes-06.txt
+path-drift: notes-07.txt
+path-drift: notes-08.txt
+path-drift: notes-09.txt
+path-drift: notes-10.txt
+path-drift: notes-11.txt
+path-drift: notes-12.txt
+unproven: 96d4cef417f8646c0a4843e7868002444cf4b2b3 add twelve notes
+exit: 1
+queued 1792624072-Gvyp5a
+  Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea
+  firstmate will pick this up at its next check.
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+observed nightly exit: 1
+Persisted notification:
+id=1792624072-Gvyp5a
+at=2026-10-21T23:07:52Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-21
+--
+Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-cap.UsKkTv/repo.
+path-drift: notes-01.txt
+path-drift: notes-02.txt
+path-drift: notes-03.txt
+path-drift: notes-04.txt
+path-drift: notes-05.txt
+path-drift: notes-06.txt
+path-drift: notes-07.txt
+path-drift: notes-08.txt
+path-drift: notes-09.txt
+path-drift: notes-10.txt
+2 more red lines in the log.
+Log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/tmp/drift-nightly-cap.UsKkTv/drift.log
+ok - a nightly note names at most ten red lines and counts the rest in the log

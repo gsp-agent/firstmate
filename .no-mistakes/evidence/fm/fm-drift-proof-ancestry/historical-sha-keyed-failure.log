@@ -1,0 +1,21 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/sha-keyed.sh check --no-fetch --repo /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GAAXKM1WQPVVMRZQBTBDQ3/.drift-validation/history --upstream captured-upstream --fork 97a45e032a3f1f75226cf29d133995654e7013bf
+error: proof commit not found: ec259ec5895012a507c4abd2d7f10de967249e9e
+
+Observed exit: 2
+{
+  "scenario": "historical-sha-keyed-failure",
+  "fork": "97a45e032a3f1f75226cf29d133995654e7013bf",
+  "upstream": "3847411b9a73f6553e172a6aefe5dff05e7aa178",
+  "exit": 2,
+  "counts": {
+    "path-ok": 0,
+    "path-drift": 0,
+    "keep": 0,
+    "pending": 0,
+    "unproven": 0,
+    "unmatched": 0,
+    "error": 0
+  },
+  "behind": null,
+  "ahead": null
+}
