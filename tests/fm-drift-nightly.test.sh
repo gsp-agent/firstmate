@@ -557,19 +557,57 @@ test_forgotten_manifest_line_is_path_drift_and_unproven() {
   pass "a forgotten manifest line is path-drift and unproven"
 }
 
-test_proof_pr_without_first_parent_commit_is_an_error() {
-  local repo
+test_wrong_proof_pr_number_stays_red_and_is_named() {
+  local repo sha
   repo=$(fm_test_tmproot drift-wrongnum-proof)
   fm_git_init_commit "$repo"
   git -C "$repo" branch upstream
   printf 'custom\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
   fixture_commit "$repo" "add notes (#7)"
+  sha=$(git -C "$repo" rev-parse HEAD)
   printf 'pr: 99\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
-  expect_code 2 "$CHECK_RC" "a proof PR with no first-parent commit exits 2"
-  assert_contains "$CHECK_ERR" 'proof PR has no first-parent commit: 99' "a wrong PR number is an actionable error"
-  pass "a proof PR without a first-parent commit cannot silently authorize changes"
+  expect_code 1 "$CHECK_RC" "a wrong PR number exits 1: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: $sha add notes (#7)
+unmatched: 99" "$CHECK_OUT" "the wrong number authorizes nothing and is named unmatched"
+  pass "a wrong proof PR number authorizes nothing, stays red, and is named unmatched"
+}
+
+test_open_pr_own_line_is_unmatched_until_its_squash_lands() {
+  local repo branch squash
+  repo=$(fm_test_tmproot drift-open-pr)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  git -C "$repo" switch -q -c fm/feature
+  printf 'custom\n' > "$repo/notes.txt"
+  printf 'pr: 7\n' > "$repo/drift-proof.txt"
+  git -C "$repo" add notes.txt drift-proof.txt
+  fixture_commit "$repo" "add notes"
+  branch=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 1 "$CHECK_RC" "an open PR carrying its own line exits 1, not 2: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 1
+path-drift: drift-proof.txt
+path-drift: notes.txt
+unproven: $branch add notes
+unmatched: 7" "$CHECK_OUT" "the open branch reports its own unsquashed changes and its own line"
+  git -C "$repo" switch -q main
+  git -C "$repo" merge -q --squash fm/feature
+  fixture_commit "$repo" "add notes (#7)"
+  squash=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 0 "$CHECK_RC" "the same line passes once its squash lands: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 1
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: $squash add notes (#7)" "$CHECK_OUT" "the landed squash matches its line"
+  pass "an open PR's own line is reported unmatched without failing the check, and matches once its squash lands"
 }
 
 test_behind_count_is_reported_and_does_not_fail_alone() {
@@ -882,7 +920,8 @@ test_unproven_mode_change_is_drift
 test_pending_commit_is_accepted_and_printed_with_its_bead
 test_merge_merged_branch_carries_its_own_pending_line
 test_forgotten_manifest_line_is_path_drift_and_unproven
-test_proof_pr_without_first_parent_commit_is_an_error
+test_wrong_proof_pr_number_stays_red_and_is_named
+test_open_pr_own_line_is_unmatched_until_its_squash_lands
 test_behind_count_is_reported_and_does_not_fail_alone
 test_merge_commit_is_labeled_merge
 test_nightly_red_sends_one_note_a_day_and_green_sends_none

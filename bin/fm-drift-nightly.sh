@@ -13,8 +13,9 @@
 # report; later ref changes belong to the next run. Only committed trees are
 # compared, not working-tree or staged changes.
 # check prints behind and ahead counts, path-ok for changed paths that match
-# the accepted tree, path-drift for every mismatch with that tree, then one
-# line per commit reachable from the captured fork and not captured upstream.
+# the accepted tree, path-drift for every mismatch with that tree, one line
+# per commit reachable from the captured fork and not captured upstream, then
+# one unmatched line per proof entry whose PR has no first-parent commit.
 # Accepted patches are replayed from the merge-base in first-parent order
 # using git merge-tree with each accepted first-parent commit's parent as
 # its patch base. Only first-parent commits are replayed. An accepted
@@ -41,7 +42,10 @@
 # "pending-pr" accepts that PR with its proof still owed on <bead>; it is
 # accepted like a proven PR but never reported as keep. Duplicate entries
 # are errors. An entry whose PR has no first-parent commit in the captured
-# range is an error. Blank lines and lines whose first character is # are
+# range proves nothing and prints "unmatched: <number>" without changing the
+# exit code: an open PR's own line stays unmatched until its squash or merge
+# commit lands, and a wrong number leaves the real PR unproven, so its paths
+# are path-drift. Blank lines and lines whose first character is # are
 # ignored.
 # When --proof is omitted, the proof file is drift-proof.txt in the captured
 # fork commit's tree; a working-tree, staged, or untracked copy is never read.
@@ -158,29 +162,22 @@ load_proof() {
       KEEP_PRS="${KEEP_PRS}${pr}|"
     fi
   done < "$PROOF"
-  # Every entry must name a first-parent commit in the captured range.
-  local subject seen='|' entry
-  while IFS= read -r subject; do
-    pr=$(pr_number "$subject") || continue
-    case $seen in *"|$pr|"*) ;; *) seen="${seen}${pr}|" ;; esac
-  done < <(git -C "$REPO" log --first-parent --format=%s "$base..$fork" || die "cannot list first-parent subjects")
-  for entry in $(printf '%s' "$KEEP_PRS$PENDING_PRS" | tr '|' ' '); do
-    [ -n "$entry" ] || continue
-    case $seen in *"|$entry|"*) ;; *) die "proof PR has no first-parent commit: $entry" ;; esac
-  done
 }
 
 classify_commits() {
   # Build KEEP_SHAS / PENDING_SHA_BEADS for every commit in base..fork from
   # its first-parent PR; carried commits inherit the carrying PR's class.
+  # SEEN_PRS collects every first-parent PR number, for the unmatched lines.
   KEEP_SHAS='|'
   PENDING_SHA_BEADS='|'
+  SEEN_PRS='|'
   git -C "$REPO" log --first-parent --reverse --format='%H %s' "$base..$fork" > "$CHECK_TMP/fp" || die "cannot list first-parent commits"
   local sha subject pr cls parent carried merged bead line
   while read -r line; do
     sha=${line%% *}
     subject=${line#* }
     pr=$(pr_number "$subject") || continue
+    SEEN_PRS="${SEEN_PRS}${pr}|"
     cls=$(class_of_pr "$pr") || continue
     if [ "$cls" = pending ]; then
       bead=${PENDING_PR_BEADS#*"|$pr="}; bead=${bead%%|*}
@@ -337,7 +334,7 @@ cmd_check() {
     git -C "$REPO" cat-file blob "$fork:drift-proof.txt" > "$CHECK_TMP/proof" || die "cannot read drift-proof.txt from $fork"
     PROOF=$CHECK_TMP/proof
   fi
-  local base behind ahead path sha subject parents bead drift=0
+  local base behind ahead path sha subject parents bead pr drift=0
   base=$(git -C "$REPO" merge-base "$fork" "$upstream") || die "no merge-base for $fork and $upstream"
   behind=$(git -C "$REPO" rev-list --count "$fork..$upstream") || die "behind count failed"
   ahead=$(git -C "$REPO" rev-list --count "$upstream..$fork") || die "ahead count failed"
@@ -372,6 +369,9 @@ cmd_check() {
       printf 'unproven: %s %s\n' "$sha" "$subject"
     fi
   done < <(git -C "$REPO" rev-list "$upstream..$fork")
+  for pr in $(printf '%s' "$KEEP_PRS$PENDING_PRS" | tr '|' ' '); do
+    case $SEEN_PRS in *"|$pr|"*) ;; *) printf 'unmatched: %s\n' "$pr" ;; esac
+  done
   [ "$drift" -eq 0 ]
 }
 
