@@ -381,11 +381,10 @@ welcome() {
   printf '  >_ OpenAI Codex (v0.163.0)\n     %s\n\n› Ask Codex to do anything\n  ? for shortcuts\n' "$FM_FAKE_PANE_PATH"
 }
 fake_screen() {
-  if [ "${visible:-0}" = 0 ] && [ -n "${FM_FAKE_CODEX_HISTORY:-}" ]; then
+  if [ -n "${FM_FAKE_CODEX_HISTORY:-}" ]; then
     cat "$FM_FAKE_CODEX_HISTORY"
   fi
-  if [ -f "$FM_FAKE_CODEX_STATE.command" ] && [ "${FM_FAKE_CODEX_HIDE_ECHO:-0}" != 1 ] \
-    && { [ "${FM_FAKE_CODEX_ALTERNATE:-0}" != 1 ] || [ "$state" = launched ]; }; then
+  if [ "${FM_FAKE_CODEX_ECHO_LAUNCH:-0}" = 1 ] && [ -f "$FM_FAKE_CODEX_STATE.command" ]; then
     if [ "${FM_FAKE_CODEX_WRAP_ECHO:-0}" = 1 ]; then
       python3 -I -c '
 import sys
@@ -452,7 +451,7 @@ case "${1:-}" in
     if [ -n "$literal" ]; then
       case "$literal" in
         ". '"*"'")
-          printf '%s\n' "$literal" > "$FM_FAKE_CODEX_STATE.command"
+          [ "${FM_FAKE_CODEX_ECHO_LAUNCH:-0}" != 1 ] || printf '%s\n' "$literal" > "$FM_FAKE_CODEX_STATE.command"
           staged=${literal#". '"}
           staged=${staged%"'"}
           printf '%s\n' "$staged" > "$FM_FAKE_CODEX_STATE.script"
@@ -477,12 +476,7 @@ case "${1:-}" in
     esac
     exit 0
     ;;
-  capture-pane)
-    visible=0
-    case " $* " in *' -S -0 '*) visible=1 ;; esac
-    fake_screen
-    exit 0
-    ;;
+  capture-pane) fake_screen; exit 0 ;;
 esac
 exit 0
 SH
@@ -572,7 +566,7 @@ run_codex_spawn() {
 }
 
 gate_captures() {  # <tmux-call-log>: pane captures taken after the launch was typed
-  awk '/^send-keys .* -l \. /{typed=1} typed && /^send-keys .* Enter$/{launched=1} launched && /^capture-pane/{n++} END{print n+0}' "$1"
+  awk '/^send-keys .* -l \. /{launched=1} launched && /^capture-pane/{n++} END{print n+0}' "$1"
 }
 
 status_text() {  # <id>: the task's status lines without their time stamps
@@ -643,9 +637,7 @@ test_spawn_accepts_turns_quoting_both_folder_access_dialogs() {
   for screen in quoted-turn quoted-finished; do
     id="codex-$screen-$$"
     read_codex_spawn_case "$(make_codex_spawn_case "$screen" "$id")"
-    printf '• Worked for 1s\n• Working (1s • esc to interrupt)\n' > "$CASE_DIR/history"
-    out=$(FM_FAKE_CODEX_HISTORY="$CASE_DIR/history" FM_FAKE_CODEX_ALTERNATE=1 \
-      FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id")
+    out=$(FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id")
     expect_code 0 $? "a codex turn quoting the dialogs must pass the spawn gate: $out"
     assert_contains "$out" "spawned $id harness=codex" "the quoted $screen did not report success"
     assert_not_contains "$(cat "$CASE_DIR/tmux-calls.log")" "kill-window" \
@@ -676,36 +668,34 @@ test_prompt_despite_registration_fails_the_spawn_at_once() {
 }
 
 test_reused_pane_history_never_confirms_a_replacement_launch() {
-  local id out rc alternate screen
-  for alternate in 0 1; do
+  local id out rc wrapped screen
+  for wrapped in 0 1; do
     for screen in welcome-then-prompt restricted-prompt; do
-      id="codex-old-$alternate-$screen-$$"
-      read_codex_spawn_case "$(make_codex_spawn_case "old-$alternate-$screen" "$id")"
+      id="codex-old-$wrapped-$screen-$$"
+      read_codex_spawn_case "$(make_codex_spawn_case "old-$wrapped-$screen" "$id")"
       printf '$ . /tmp/launch.previous.sh\n• Worked for 1s\n• Working (1s • esc to interrupt)\n' > "$CASE_DIR/history"
       rc=0
-      out=$(FM_FAKE_CODEX_HISTORY="$CASE_DIR/history" FM_FAKE_CODEX_ALTERNATE=$alternate \
-        FM_FAKE_CODEX_WRAP_ECHO=1 FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id") || rc=$?
+      out=$(FM_FAKE_CODEX_HISTORY="$CASE_DIR/history" FM_FAKE_CODEX_ECHO_LAUNCH=1 \
+        FM_FAKE_CODEX_WRAP_ECHO=$wrapped FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id") || rc=$?
       [ "$rc" -ne 0 ] || fail "a previous worker's turn confirmed a replacement on its folder-access prompt"
       assert_contains "$out" "parked on its folder-access prompt" "the reused pane did not report its live dialog"
       assert_not_contains "$out" "spawned $id" "the reused pane reported success before the replacement started"
       assert_contains "$(cat "$CASE_DIR/tmux-calls.log")" "kill-window" "a parked replacement left its endpoint running"
     done
   done
-  pass "fm-spawn: previous turns cannot confirm a replacement in inline or alternate screens with either dialog"
+  pass "fm-spawn: inline history above a plain or wrapped launch echo cannot hide either live dialog"
 }
 
-test_history_without_the_current_launch_echo_never_counts_as_ready() {
-  local id out rc
+test_running_turn_without_a_launch_echo_passes() {
+  local id out
   id="codex-no-echo-$$"
   read_codex_spawn_case "$(make_codex_spawn_case no-echo "$id")"
-  printf '• Worked for 1s\n• Working (1s • esc to interrupt)\n' > "$CASE_DIR/history"
-  rc=0
-  out=$(FM_FAKE_CODEX_HISTORY="$CASE_DIR/history" FM_FAKE_CODEX_HIDE_ECHO=1 \
-    FM_FAKE_CODEX_SCREEN=welcome run_codex_spawn "$id") || rc=$?
-  [ "$rc" -ne 0 ] || fail "history without the current launch's echo must not confirm readiness"
-  assert_contains "$out" "showed neither its folder-access prompt nor a started turn" \
-    "a launch without current evidence did not fail at the readiness bound"
-  pass "fm-spawn: unbound history never substitutes for evidence of the current launch"
+  out=$(FM_FAKE_CODEX_ECHO_LAUNCH=0 FM_FAKE_CODEX_SCREEN=turn run_codex_spawn "$id")
+  expect_code 0 $? "a running codex turn without a launch echo must pass: $out"
+  assert_contains "$out" "spawned $id harness=codex" "the turn without an echo did not report success"
+  assert_not_contains "$(cat "$CASE_DIR/tmux-calls.log")" "kill-window" \
+    "a healthy worker without a launch echo had its endpoint closed"
+  pass "fm-spawn: a running turn passes without a launch echo"
 }
 
 test_launch_that_never_starts_a_turn_fails_the_spawn() {
@@ -763,6 +753,6 @@ test_spawn_overrides_the_destination_store_and_home
 test_spawn_accepts_turns_quoting_both_folder_access_dialogs
 test_prompt_despite_registration_fails_the_spawn_at_once
 test_reused_pane_history_never_confirms_a_replacement_launch
-test_history_without_the_current_launch_echo_never_counts_as_ready
+test_running_turn_without_a_launch_echo_passes
 test_launch_that_never_starts_a_turn_fails_the_spawn
 test_unregistrable_root_refuses_before_launch
