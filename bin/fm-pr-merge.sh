@@ -1146,14 +1146,16 @@ EOF
   fi
 
   # Dale 10-21 (.agent-config-ydbn7): no merge without chip's approval at the
-  # exact head on any path through here (agent-config #312 merged unreviewed).
+  # exact head on any path through here (agent-config #312 merged unreviewed),
+  # and any chip CHANGES_REQUESTED at that head vetoes it even when an
+  # approval follows at the same head (change 11; a new head clears it).
   # An attended override is the operator's explicit word and still binds head.
   if [ "$ATTENDED_OVERRIDE" != true ]; then
     if ! gh api "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/reviews?per_page=100" 2>/dev/null \
         | jq -e --arg head "$live_head" --arg reviewer "${FM_MERGE_REVIEWER:-carmanchip23-dev}" '
-          [.[] | select(.user.login == $reviewer and .commit_id == $head
-             and (.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "COMMENTED"))]
-          | last | .state == "APPROVED"' >/dev/null 2>&1; then
+          ([.[] | select(.user.login == $reviewer and .commit_id == $head)] as $at
+           | (([$at[] | select(.state == "CHANGES_REQUESTED")] | length) == 0)
+             and (([$at[] | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "COMMENTED")] | last | .state) == "APPROVED"))' >/dev/null 2>&1; then
       refusals="$refusals  - no approval by ${FM_MERGE_REVIEWER:-carmanchip23-dev} at head $live_head
 "
     fi
