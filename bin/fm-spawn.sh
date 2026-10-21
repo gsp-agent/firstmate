@@ -305,8 +305,12 @@
 #   that never reaches an isolated worktree refuses at the end of that wait,
 #   naming the last path seen and why it was rejected. A `treehouse get` that
 #   exits without entering a worktree, such as on a full pool, refuses as soon
-#   as the pane shows it returned, quoting treehouse's own output, and closes
-#   the task window so a retry is not refused for a leftover one.
+#   as the pane shows it returned, quoting treehouse's own output and attempting
+#   to close the task endpoint. Herdr reports closure only after proving the
+#   endpoint is gone; otherwise the refusal warns that closure is unconfirmed
+#   and names the endpoint to inspect. Every other backend always prints that
+#   warning, even if cleanup succeeded. The refusal exits nonzero without
+#   launching a worker.
 #   That placement is proven only at launch. Every ship or scout pane therefore
 #   also receives `export FM_TASK_ID=<task-id>` before the launch command, on
 #   the same channel as GOTMPDIR, and bin/fm-test-run.sh refuses to execute the
@@ -4774,8 +4778,9 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # read of the project itself or of the repository primary checkout is treated
   # as the transient it is and the wait continues, instead of being adopted and
   # then refused by the guard.
-  # A candidate the screen rejects is never adopted, so a host where the pane
-  # never reaches an isolated worktree spends the whole window before refusing.
+  # A candidate the screen rejects is never adopted. Without a confirmed
+  # treehouse return, a pane that never reaches an isolated worktree spends the
+  # whole window before refusing.
   # That wait is deliberate - telling a transient apart from a terminal
   # misconfiguration would need machinery this path does not want - so the
   # refusal has to be self-explaining instead: carry the last path seen and the
