@@ -263,6 +263,7 @@ PY
   chmod +x "$FAKEBIN_DIR/herdr"
 }
 
+# shellcheck disable=SC2030 # This test intentionally isolates its environment in a subshell.
 test_pool_full_herdr_cleanup_is_confirmed() (
   local layout=$1 close_mode=$2 rec id out status lock_path
   id="settle-herdr-$layout-$close_mode"
@@ -450,6 +451,7 @@ test_pool_full_treehouse_get_refuses_at_once() {
   pass "a treehouse get that exits on a full pool refuses at once with treehouse's reason and leaves no window"
 }
 
+# shellcheck disable=SC2031 # Independent test subshells do not share their environment or lookup state.
 test_pool_full_surviving_window_is_reported() {
   local presence rec id out status lookup_status
   for presence in present unreadable; do
