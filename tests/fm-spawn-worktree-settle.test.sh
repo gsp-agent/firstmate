@@ -69,7 +69,7 @@ windows=${FM_FAKE_WINDOWS:?FM_FAKE_WINDOWS unset}
 case "${1:-}" in
   display-message)
     if [ "${5:-}" = '#{pane_id}' ]; then
-      [ "${FM_FAKE_TMUX_PRESENCE:-}" != unreadable ] || exit 2
+      [ "${FM_FAKE_TMUX_PRESENCE:-}" != unreadable ] || exit 1
       grep -qxF -- "${4#*:}" "$windows" || exit 1
       printf '%%1\n'
     else
@@ -435,7 +435,9 @@ test_pool_full_treehouse_get_refuses_at_once() {
   assert_contains "$out" "all 16 worktrees are in use or dirty (max_trees = 16)" \
     "the refusal did not quote treehouse's own reason"
   assert_contains "$out" "$PROJ_DIR" "the refusal did not name the project whose pool is full"
-  assert_contains "$out" "was closed" "the refusal did not confirm its removed window"
+  assert_not_contains "$out" "was closed" "a non-Herdr refusal claimed a proven close"
+  assert_contains "$out" "could not confirm closure" "the refusal omitted the unconfirmed-window warning"
+  assert_contains "$out" "inspect window firstmate:fm-$id" "the refusal did not name its unconfirmed window"
   reads=$(cat "$COUNTFILE")
   [ "$reads" -eq 1 ] || fail "spawn read the pane $reads times after treehouse get had already exited - expected to refuse on the first read"$'\n'"$out"
   assert_no_grep "fm-$id" "$CASE_DIR/windows" "the refused spawn left its window behind"
@@ -449,7 +451,7 @@ test_pool_full_treehouse_get_refuses_at_once() {
 }
 
 test_pool_full_surviving_window_is_reported() {
-  local presence rec id out status
+  local presence rec id out status lookup_status
   for presence in present unreadable; do
     id="settle-pool-full-close-$presence"
     rec=$(make_settle_case "$id" "$id" 100000)
@@ -462,6 +464,17 @@ test_pool_full_surviving_window_is_reported() {
     status=$?
     [ "$status" -ne 0 ] || fail "spawn launched after treehouse returned on a full pool"$'\n'"$out"
     grep -qxF -- "fm-$id" "$CASE_DIR/windows" || fail "the fake close did not leave its window in place"
+    lookup_status=0
+    (
+      . "$ROOT/bin/fm-backend.sh"
+      FM_FAKE_WINDOWS="$CASE_DIR/windows" FM_FAKE_TMUX_PRESENCE="$presence" \
+        PATH="$FAKEBIN_DIR:$PATH" fm_backend_target_exists tmux "firstmate:fm-$id"
+    ) || lookup_status=$?
+    if [ "$presence" = unreadable ]; then
+      expect_code 1 "$lookup_status" "the unreadable backend lookup must reproduce status 1"
+    else
+      expect_code 0 "$lookup_status" "the surviving window must still be queryable"
+    fi
     assert_not_contains "$out" "was closed" "a pool-full spawn reported its surviving window closed"$'\n'"$out"
     assert_contains "$out" "could not confirm closure" "the refusal omitted the leftover warning"$'\n'"$out"
     assert_contains "$out" "inspect window firstmate:fm-$id" "the refusal did not name its surviving window"$'\n'"$out"
