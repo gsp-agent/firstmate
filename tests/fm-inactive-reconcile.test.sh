@@ -328,6 +328,12 @@ test_context_paused_herdr_pane_closes_without_outcome() {
       'session context limit reached' \
       'context limit reached with a fresh session needed' \
       'context limit reached; awaiting a fresh session to resume' \
+      'context limit reached; awaiting a fresh session to continue' \
+      'context limit reached; awaiting a new session to restart' \
+      'context limit reached; waiting for a replacement session to take over' \
+      'context limit reached; until a new session takes over' \
+      'context limit reached; awaiting a fresh session to review the work and continue' \
+      'context limit reached; awaiting a fresh session, then pick up the remaining commits' \
       'context limit reached; waiting for a replacement session to resume' \
       'context limit reached; until a fresh session resumes' \
       'context limit reached; waiting until a fresh session resumes; work committed' \
@@ -360,6 +366,14 @@ test_event_paused_herdr_pane_stays_open() {
     'waiting for the PM call on the context limit question, until 2026-10-22T15:00Z' \
     'awaiting a decision about the 300K context line' \
     'context limit reached; awaiting the PM call' \
+    'context limit reached; awaiting Firstmate' \
+    'context limit reached; waiting for Dale' \
+    'context limit reached; waiting for a call' \
+    'context limit reached; waiting for a review' \
+    'context limit reached; awaiting approval' \
+    'context limit reached; until 2026-10-22T15:00Z' \
+    'context limit reached; awaiting a fresh session to continue until tomorrow' \
+    'context limit reached; awaiting a new session to restart while waiting for the PM call' \
     'context limit reached; awaiting a fresh session to resume; waiting for the PM call' \
     'context limit reached; awaiting a fresh session and PM approval' \
     'session reached the context limit; waiting for the PM call, until 2026-10-22T15:00Z'; do
@@ -387,7 +401,7 @@ test_pause_during_state_read_supersedes_terminal_closure() {
           task_home="$MATE"
         fi
         write_herdr_child "$task_home" child 'working: finishing the turn'
-        note='context limit reached, fresh session needed'
+        note='context limit reached; awaiting a fresh session to continue'
         expected_closes=1
         if [ "$pause_kind" = event ]; then
           note='waiting for the PM call on the context limit question, until 2026-10-22T15:00Z'

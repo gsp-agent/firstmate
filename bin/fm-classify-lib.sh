@@ -331,15 +331,16 @@ status_is_paused() {  # <status-line>
 }
 
 status_is_context_paused() {
-  local note limit wait_reason
+  local note limit
   status_is_paused "$1" || return 1
   note=$(status_line_note "$1" | tr '[:upper:]' '[:lower:]')
   limit='(context[[:space:]]+limit|300[[:space:]]*k[[:space:]]+context[[:space:]]+(line|limit))'
   [[ "$note" =~ ^((this|the)[[:space:]]+)?(session[[:space:]]+)?((has[[:space:]]+)?(reached|passed|hit|exhausted)[[:space:]]+(the[[:space:]]+)?${limit}|${limit}[[:space:]]+(reached|passed|hit|exhausted))([[:space:][:punct:]]|$) ]] || return 1
-  while [[ "$note" =~ (^|[[:space:][:punct:]])(waiting|awaiting|until)[[:space:]]+([^.;]*) ]]; do
-    wait_reason=${BASH_REMATCH[3]}
+  while [[ "$note" =~ (^|[[:space:][:punct:]])(waiting|awaiting|until)[[:space:]]+ ]]; do
     note=${note#*"${BASH_REMATCH[0]}"}
-    [[ "$wait_reason" =~ ^((for|on|until)[[:space:]]+)?((a|the)[[:space:]]+)?(fresh|replacement)[[:space:]]+session([[:space:]]+(to[[:space:]]+resume|resumes))?[[:space:]]*$ ]] || return 1
+    [[ "$note" =~ ^(((for|on|until)[[:space:]]+)?((a|the)[[:space:]]+)?(fresh|new|replacement)[[:space:]]+session)($|[[:space:][:punct:]]) ]] || return 1
+    note=${note#"${BASH_REMATCH[1]}"}
+    [[ ! "$note" =~ ^[[:space:]]*,?[[:space:]]*(and|or)[[:space:]]+ ]] || return 1
   done
   return 0
 }
