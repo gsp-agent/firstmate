@@ -6715,6 +6715,65 @@ SH
   pass "fm-teardown: an explicit sweep during teardown keeps the retiring hold and the slot"
 }
 
+test_task_data_empty_sweep_seed_keeps_retiring_hold() {
+  local case_dir real_mktemp sweep_pid i
+  case_dir=$(make_case task-data-empty-sweep-seed)
+  real_mktemp=$(command -v mktemp)
+  write_expiry_tools "$case_dir"
+  write_pending_hold "$case_dir" cc-old
+  mkdir -p "$case_dir/data/task-x1"
+  printf 'A fresh recovery\n' > "$case_dir/data/task-x1/fresh.bin"
+  mkfifo "$case_dir/empty-create-gate"
+  cat > "$case_dir/fakebin/mktemp" <<SH
+#!/usr/bin/env bash
+if [ -n "\${EMPTY_SWEEP_CREATE_GATE:-}" ]; then
+  for arg in "\$@"; do
+    case "\$arg" in
+      */.task-data-sweep.rerun.XXXXXX)
+        touch "$case_dir/empty-create-ready"
+        IFS= read -r _ < "\$EMPTY_SWEEP_CREATE_GATE"
+        ;;
+    esac
+  done
+fi
+exec "$real_mktemp" "\$@"
+SH
+  chmod +x "$case_dir/fakebin/mktemp"
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  assert_absent "$case_dir/state/.task-data-sweep.rerun" "the empty-seed race started with a slot"
+  EMPTY_SWEEP_CREATE_GATE="$case_dir/empty-create-gate" PATH="$case_dir/fakebin:$PATH" \
+    bash "$ROOT/bin/fm-task-data-lib.sh" sweep "$case_dir/data" "$case_dir/state" \
+    > "$case_dir/sweep.out" 2> "$case_dir/sweep.err" &
+  sweep_pid=$!
+  for ((i = 0; i < 200; i++)); do
+    [ -e "$case_dir/empty-create-ready" ] && break
+    kill -0 "$sweep_pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  if [ ! -e "$case_dir/empty-create-ready" ]; then
+    kill "$sweep_pid" 2>/dev/null || true
+    fail "the explicit sweep never reached its empty create: $(cat "$case_dir/sweep.err")"
+  fi
+  FM_TASK_DATA_SWEEP=off run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "teardown during an empty sweep create failed: $(cat "$case_dir/err")"
+  [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = task-x1 ] \
+    || fail "teardown did not publish the retiring requester"
+  assert_present "$case_dir/data/task-x1/.cleanup-hold/fresh.bin" \
+    "teardown did not stage the retiring hold before the empty create"
+  printf 'release\n' > "$case_dir/empty-create-gate"
+  wait "$sweep_pid" || fail "the explicit sweep failed after its empty create: $(cat "$case_dir/sweep.err")"
+  [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = task-x1 ] \
+    || fail "the empty create replaced the retiring requester"
+  assert_present "$case_dir/data/task-x1/.cleanup-hold/fresh.bin" \
+    "the empty create let an explicit sweep delete the retiring hold"
+  jq -e '.expired != true' "$case_dir/data/task-x1/record/data-cleanup.json" >/dev/null \
+    || fail "the empty create let an explicit sweep mark the retiring hold expired"
+  assert_absent "$case_dir/data/cc-old/.cleanup-hold" "the empty-seed race stopped expiring older holds"
+  assert_absent "$case_dir/state/.task-data-sweep.lock" "the explicit sweep retained its lock"
+  pass "fm-teardown: an empty sweep seed preserves a concurrently published requester and its fresh hold"
+}
+
 test_task_data_overlapping_teardown_keeps_retiring_hold() {
   local case_dir real_python saved_sweep a_pid b_pid i
   case_dir=$(make_case task-data-overlapping-teardown)
@@ -8644,6 +8703,7 @@ fi
 
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-retiring ]; then
   test_task_data_explicit_sweep_keeps_retiring_hold
+  test_task_data_empty_sweep_seed_keeps_retiring_hold
   test_task_data_overlapping_teardown_keeps_retiring_hold
   test_task_data_failed_slot_write_keeps_retiring_hold
   exit 0
@@ -8709,6 +8769,7 @@ test_task_data_sweep_expires_big_hold
 test_task_data_sweep_single_instance
 test_task_data_sweep_requester_recovery
 test_task_data_explicit_sweep_keeps_retiring_hold
+test_task_data_empty_sweep_seed_keeps_retiring_hold
 test_task_data_overlapping_teardown_keeps_retiring_hold
 test_task_data_failed_slot_write_keeps_retiring_hold
 test_task_data_full_attempt_uses_its_own_limit

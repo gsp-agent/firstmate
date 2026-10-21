@@ -34,8 +34,13 @@ fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
 fm_task_data_sweep_request() {
   local state=$1 id=$2 request
   request=$(umask 077; mktemp "$state/.task-data-sweep.rerun.XXXXXX") || return 1
-  if printf '%s\n' "$id" > "$request" && mv -f -- "$request" "$state/.task-data-sweep.rerun"; then
-    return 0
+  if printf '%s\n' "$id" > "$request"; then
+    if [ -n "$id" ]; then
+      mv -f -- "$request" "$state/.task-data-sweep.rerun" && return 0
+    elif ln -- "$request" "$state/.task-data-sweep.rerun" 2>/dev/null || [ -e "$state/.task-data-sweep.rerun" ]; then
+      rm -f -- "${request:?}"
+      return 0
+    fi
   fi
   rm -f -- "$request"
   return 1
