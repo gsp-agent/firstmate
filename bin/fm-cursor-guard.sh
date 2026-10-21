@@ -40,7 +40,11 @@ op=${1:-}; id=${2:-}; harness=${3:-}; recorded=${4:-}
 if [ "$recorded" = cursor ] && [ "$harness" != cursor ]; then
   printf '%s\n' "explicit --harness $harness override of a recorded cursor task" > "$STATE/$id.cursor-fallback"
 fi
-case "$harness" in cursor | codex) ;; *) echo "$harness"; exit 0 ;; esac
+retiring_codex=0
+if [ "$recorded" = codex ] || [ "$(sed -n 's/^harness=//p' "$STATE/$id.meta" 2>/dev/null | tail -1)" = codex ]; then
+  retiring_codex=1
+fi
+case "$harness:$retiring_codex" in cursor:* | codex:* | *:1) ;; *) echo "$harness"; exit 0 ;; esac
 command -v jq >/dev/null 2>&1 || { echo "cursor guard: jq required" >&2; exit 1; }
 mtime() {
   if [ "$(uname)" = Darwin ]; then
@@ -88,6 +92,10 @@ codex_route() {
   fi
 }
 
+if [ "$retiring_codex" = 1 ]; then
+  [ -s "$STATE/$id.codex-limit" ] || codex_limit_scan
+fi
+case "$harness" in cursor | codex) ;; *) echo "$harness"; exit 0 ;; esac
 [ "$harness" = cursor ] || { codex_route; exit 0; }
 # pool <reason>: the shared Cursor/Grok pool cannot carry this launch.
 pool() {

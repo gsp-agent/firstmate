@@ -121,6 +121,33 @@ touch -t 200001010000 "$f"
   || fail "an unmatched, cleared, or older session must not write the marker"
 pass "only the task's own newest codex session, ended on a usage limit since its launch, writes the marker"
 
+for replacement in claude cursor; do
+  for recorded in codex ''; do
+    task_id="c5-$replacement-${recorded:-meta}"
+    wt="$TMP_ROOT/wt-$task_id"
+    task_meta "$task_id" "$wt"
+    f=$(codex_session "$wt" "$task_id" usage_limit_exceeded)
+    python3 - "$f" <<'PY'
+import os
+import sys
+import time
+
+stamp = time.time() - 300
+os.utime(sys.argv[1], (stamp, stamp))
+PY
+    out=$("$TOOL" route "$task_id" "$replacement" "$recorded")
+    [ "$out" = "$replacement" ] || fail "a manual Codex-to-$replacement override must keep the requested harness: $out"
+    [ "$(cat "$FM_STATE_OVERRIDE/$task_id.codex-limit" 2>/dev/null)" = "codex run for $task_id hit its usage limit: $limit_msg" ] \
+      || fail "a manual Codex-to-$replacement override must preserve the retiring Codex usage limit"
+    [ ! -e "$FM_STATE_OVERRIDE/$task_id.cursor-fallback" ] || fail "a manual Codex-to-$replacement override must not record a Cursor fallback"
+    printf 'worktree=%s\nharness=%s\nspawn_gen=s%s.1.1\n' "$wt" "$replacement" "$(date +%s)" > "$FM_STATE_OVERRIDE/$task_id.meta"
+    out=$("$TOOL" route "$task_id" codex "$replacement")
+    [ "$out" = "claude codex run for $task_id hit its usage limit: $limit_msg" ] \
+      || fail "a later Codex relaunch after a manual $replacement override must still route to Claude: $out"
+  done
+done
+pass "manual Codex overrides preserve usage limits across replacement generations, including healthy Cursor and meta-only records"
+
 [ "$("$TOOL" route o1 grok cursor)" = grok ] || fail "an explicit harness for a recorded cursor task must be kept"
 [ "$(cat "$FM_STATE_OVERRIDE/o1.cursor-fallback")" = "explicit --harness grok override of a recorded cursor task" ] \
   || fail "an explicit override of a recorded cursor task must record it: $(cat "$FM_STATE_OVERRIDE/o1.cursor-fallback" 2>&1)"
