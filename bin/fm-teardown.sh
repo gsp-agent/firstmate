@@ -4010,9 +4010,9 @@ else
   fi
 fi
 if [ "$KIND" != secondmate ]; then
-  fm_task_data_sweep_request "$STATE" "$ID" || true
   fm_task_data_cleanup "$DATA" "$STATE" "$ID" "$PROJ" "$PR_URL" \
     || echo "warning: $ID teardown completed, but task-data cleanup needs a retry" >&2
+  fm_task_data_sweep_request "$STATE" "$ID" || FM_TASK_DATA_SWEEP=off
 fi
 fm_lock_release "$META_LOCK"
 META_LOCK_HELD=0
@@ -4042,7 +4042,6 @@ if [ "$KIND" != secondmate ]; then
     || echo "warning: $ID teardown completed, but expiring other tasks' held data needs a retry" >&2
   # Holds the budget left behind drain in the background with no budget, so a
   # hold bigger than the budget is not stuck until another teardown.
-  # The id is a lifetime exclusion for this sweep. It does not rewrite the slot.
-  fm_task_data_sweep_start "$DATA" "$STATE" "$ID" || true
+  fm_task_data_sweep_start "$DATA" "$STATE" || true
 fi
 [ "$TEARDOWN_POOL_SLOT_LOST" = 0 ] || exit "$TEARDOWN_LOST_SLOT_EXIT"

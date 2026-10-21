@@ -13,8 +13,7 @@
 # An active sweep takes another pass when that slot changes.
 # An explicit sweep omits REQUESTING_ID and never replaces an existing slot.
 # It creates an empty slot only when none exists.
-# Each pass excludes the slot's snapshotted requester and the retiring id given to that pass.
-# A new slot value never replaces that retiring id.
+# Each pass excludes the slot's snapshotted requester.
 # Each locked expiry rechecks the latest requester before touching a hold.
 # That recheck protects the requester's fresh recovery.
 # A later, different completion may still expire an earlier hold.
@@ -161,8 +160,8 @@ fm_task_data_expire_by_hand() { # <data> <state> <id> [request]
 # budget, including holds marked too large. A held meta lock or a live task
 # refuses inside the by-hand expiry and stays held. Requester exclusions are
 # owned by this file's header.
-fm_task_data_sweep() { # <data> <state> [exclude-id]
-  local data=$1 state=$2 keep=${3:-} exclude helper lock rerun snapshot listed other _expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
+fm_task_data_sweep() { # <data> <state>
+  local data=$1 state=$2 exclude helper lock rerun snapshot listed other _expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   case "$stage_timeout" in ''|0*|*[!0-9]*) stage_timeout=3600 ;; esac
   command -v python3 >/dev/null 2>&1 || return 1
@@ -186,7 +185,6 @@ fm_task_data_sweep() { # <data> <state> [exclude-id]
     fi
     while IFS=$'\t' read -r other _expiry; do
       [ -n "$other" ] || continue
-      [ -n "$keep" ] && [ "$other" = "$keep" ] && continue
       [ "$other" = "$exclude" ] && continue
       fm_task_id_path_safe "$other" || continue
       fm_task_data_expire_by_hand "$data" "$state" "$other" "$rerun" || true
@@ -199,11 +197,9 @@ fm_task_data_sweep() { # <data> <state> [exclude-id]
   return 0
 }
 
-# Start one sweep in the background. The id is excluded for this sweep's
-# lifetime and is not written into the slot. A second start while one runs
-# reports that the sweep is already running.
-fm_task_data_sweep_start() { # <data> <state> [exclude-id]
-  local lib exclude=${3:-}
+# Start one sweep in the background.
+fm_task_data_sweep_start() { # <data> <state>
+  local lib
   if [ ! -e "$2/.task-data-sweep.rerun" ]; then
     fm_task_data_sweep_request "$2" '' || return 1
   fi
@@ -215,7 +211,7 @@ fm_task_data_sweep_start() { # <data> <state> [exclude-id]
     . "${lib%/*}/fm-wake-lib.sh" || exit 1
     # shellcheck source=bin/fm-pr-lib.sh
     . "${lib%/*}/fm-pr-lib.sh" || exit 1
-    fm_task_data_sweep "$1" "$2" "$exclude"
+    fm_task_data_sweep "$1" "$2"
   ) >/dev/null 2>&1 </dev/null &
 }
 

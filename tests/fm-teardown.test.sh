@@ -6432,7 +6432,7 @@ SH
 }
 
 test_task_data_unread_status_failure_retries() {
-  local case_dir record variant sweep_pid reference args=()
+  local case_dir record variant sweep_pid reference
   . "$ROOT/bin/fm-task-data-lib.sh"
   for variant in bead pr; do
     case_dir=$(make_case "task-data-unread-status-$variant")
@@ -6441,11 +6441,9 @@ test_task_data_unread_status_failure_retries() {
     if [ "$variant" = bead ]; then
       reference=tst-unread1
       jq '.sources[0].beads = ["tst-unread1"]' "$record" > "$record.next" && mv "$record.next" "$record"
-      args=(fresh-task)
     else
       reference=https://github.com/example/demo/pull/1
       jq --arg pr "$reference" '.sources[0].pr = $pr' "$record" > "$record.next" && mv "$record.next" "$record"
-      args=()
     fi
     fm_test_tasks_toml "$case_dir/.tasks.toml"
     printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
@@ -6466,7 +6464,7 @@ SH
       "the failed $variant status append lost held data"
     mv "$case_dir/state/aa-unread.status" "$case_dir/blocked-status"
     FM_TASK_DATA_SWEEP=on PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
-      "$case_dir/data" "$case_dir/state" ${args[@]+"${args[@]}"}
+      "$case_dir/data" "$case_dir/state"
     sweep_pid=$!
     wait "$sweep_pid" || fail "the $variant background sweep failed"
     assert_contains "$(cat "$case_dir/state/aa-unread.status")" "$reference" \
@@ -6474,7 +6472,7 @@ SH
     jq -e --arg reference "$reference" '.unread_named == [$reference]' "$record" >/dev/null \
       || fail "the delivered $variant reference was not marked reported: $(cat "$record")"
     FM_TASK_DATA_SWEEP=on PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
-      "$case_dir/data" "$case_dir/state" ${args[@]+"${args[@]}"}
+      "$case_dir/data" "$case_dir/state"
     sweep_pid=$!
     wait "$sweep_pid" || fail "the repeated $variant background sweep failed"
     [ "$(wc -l < "$case_dir/state/aa-unread.status" | tr -d ' ')" = 1 ] \
@@ -6482,7 +6480,7 @@ SH
     assert_present "$case_dir/data/aa-unread/.cleanup-hold/scratch.bin" \
       "the unread $variant reference lost held data"
   done
-  pass "fm-teardown: failed unread-status appends retry before suppression through both background launch forms"
+  pass "fm-teardown: failed unread-status appends retry before suppression through the background sweep"
 }
 
 test_task_data_sweep_expires_big_hold() {
@@ -6582,70 +6580,98 @@ SH
 }
 
 test_task_data_sweep_requester_recovery() {
-  local case_dir record first_pid real_python
+  local case_dir record other second_pid real_python kept i
   case_dir=$(make_case task-data-sweep-requester)
-  write_pending_hold "$case_dir" task-a1
-  record="$case_dir/data/task-a1/record/data-cleanup.json"
-  jq '.sources[0].beads = ["tst-slow1"]' "$record" > "$record.next" && mv "$record.next" "$record"
   fm_test_tasks_toml "$case_dir/.tasks.toml"
-  printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+  write_pending_hold "$case_dir" aa-slow
+  record="$case_dir/data/aa-slow/record/data-cleanup.json"
+  jq '.expiry = "too-large"' \
+    "$record" > "$record.next" && mv "$record.next" "$record"
+  write_pending_hold "$case_dir" bb-budget
+  record="$case_dir/data/bb-budget/record/data-cleanup.json"
+  jq '.sources[0].beads = ["tst-budget1"]' \
+    "$record" > "$record.next" && mv "$record.next" "$record"
+  touch -t 202001010000 "$case_dir/data/aa-slow/record/data-cleanup.json" "$record"
+  mkfifo "$case_dir/expiry-gate"
   real_python=$(command -v python3)
   cat > "$case_dir/fakebin/python3" <<SH
 #!/usr/bin/env bash
-if [ -n "\${SWEEP_PENDING_GATE:-}" ] && [ "\${2:-}" = pending ] \
-    && [ ! -e "\$SWEEP_PENDING_READY" ]; then
-  "$real_python" "\$@" > "\$SWEEP_PENDING_READY.snapshot" || exit 1
-  touch "\$SWEEP_PENDING_READY"
-  IFS= read -r release < "\$SWEEP_PENDING_GATE"
-  cat "\$SWEEP_PENDING_READY.snapshot"
-  exit 0
+if [ "\${2:-}" = expire ] && [ "\${5:-}" = aa-slow ]; then
+  touch "\$SWEEP_EXPIRY_READY"
+  IFS= read -r release < "\$SWEEP_EXPIRY_GATE"
 fi
 exec "$real_python" "\$@"
 SH
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-sleep 4
-printf '[{"id":"tst-slow1","description":"no linked files"}]\n'
+case "${2:-}" in
+  tst-budget1) sleep 4 ;;
+  *) exit 1 ;;
+esac
+printf '[{"id":"%s","description":"no linked files"}]\n' "$2"
 SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
 SH
   chmod +x "$case_dir/fakebin/python3" "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
-  mkfifo "$case_dir/pending-gate"
-  SWEEP_PENDING_GATE="$case_dir/pending-gate" SWEEP_PENDING_READY="$case_dir/pending-ready" \
-    PATH="$case_dir/fakebin:$PATH" \
-    bash "$ROOT/bin/fm-task-data-lib.sh" sweep "$case_dir/data" "$case_dir/state" task-a1 \
-    > "$case_dir/sweep1.out" 2> "$case_dir/sweep1.err" &
-  first_pid=$!
-  while [ ! -e "$case_dir/pending-ready" ]; do
-    kill -0 "$first_pid" 2>/dev/null || fail "A's sweep exited before taking its pending snapshot"
-    sleep 0.1
-  done
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
   mkdir -p "$case_dir/data/task-x1"
-  printf 'B fresh recovery\n' > "$case_dir/data/task-x1/fresh.bin"
-  FM_TASK_DATA_SWEEP=on FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=1 run_teardown "$case_dir" \
-    > "$case_dir/teardown.out" 2> "$case_dir/teardown.err" \
-    || fail "B's teardown failed: $(cat "$case_dir/teardown.err")"
-  assert_contains "$(cat "$case_dir/teardown.err")" "task data task-a1 expiry stopped after" \
-    "B did not exhaust its foreground expiry attempt on A"
-  PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" sweep \
-    "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/sweep2.out" 2> "$case_dir/sweep2.err" \
-    || fail "B's overlapping sweep request failed"
-  printf 'release\n' > "$case_dir/pending-gate"
-  wait "$first_pid" || fail "A's sweep failed: $(cat "$case_dir/sweep1.err")"
+  printf 'A fresh recovery\n' > "$case_dir/data/task-x1/fresh.bin"
+  SWEEP_EXPIRY_READY="$case_dir/expiry-ready" SWEEP_EXPIRY_GATE="$case_dir/expiry-gate" \
+    FM_TASK_DATA_SWEEP=on FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=1 run_teardown "$case_dir" \
+    > "$case_dir/a.out" 2> "$case_dir/a.err" \
+    || fail "A's teardown failed: $(cat "$case_dir/a.err")"
+  for ((i = 0; i < 200; i++)); do
+    [ -e "$case_dir/expiry-ready" ] && break
+    sleep 0.1
+  done
+  [ -e "$case_dir/expiry-ready" ] || fail "A's background sweep never started draining the slow hold"
   assert_present "$case_dir/data/task-x1/.cleanup-hold/fresh.bin" \
+    "A's own background sweep deleted its fresh recovery"
+  touch -t 202001010000 "$record"
+  mkdir -p "$case_dir/data/task-b1"
+  printf 'B fresh recovery\n' > "$case_dir/data/task-b1/fresh.bin"
+  if ! FM_TASK_DATA_SWEEP=off FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=1 \
+      FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=1 run_next_teardown "$case_dir" task-b1; then
+    printf 'release\n' > "$case_dir/expiry-gate"
+    fail "B's teardown failed: $(cat "$case_dir/task-b1.err")"
+  fi
+  . "$ROOT/bin/fm-task-data-lib.sh"
+  FM_TASK_DATA_SWEEP=on PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
+    "$case_dir/data" "$case_dir/state"
+  second_pid=$!
+  if ! wait "$second_pid"; then
+    printf 'release\n' > "$case_dir/expiry-gate"
+    fail "B's overlapping background sweep failed"
+  fi
+  kept=0
+  jq -e '.expired != true' "$case_dir/data/task-x1/record/data-cleanup.json" >/dev/null && kept=1
+  printf 'release\n' > "$case_dir/expiry-gate"
+  assert_contains "$(cat "$case_dir/task-b1.err")" "expiry stopped after its one full 1s attempt" \
+    "B did not spend its foreground budget on the older hold"
+  [ "$kept" = 1 ] \
+    || fail "B's foreground pass reached A instead of leaving it for the shared sweep"
+  for ((i = 0; i < 300; i++)); do
+    if [ ! -e "$case_dir/state/.task-data-sweep.lock" ] && jq -se 'all(.[]; .expired == true)' \
+        "$case_dir/data/aa-slow/record/data-cleanup.json" "$record" \
+        "$case_dir/data/task-x1/record/data-cleanup.json" >/dev/null 2>&1; then break; fi
+    sleep 0.1
+  done
+  for other in aa-slow bb-budget task-x1; do
+    jq -e '.expired == true' "$case_dir/data/$other/record/data-cleanup.json" >/dev/null \
+      || fail "B's request left $other stuck after A's sweep: $(cat "$case_dir/data/$other/record/data-cleanup.json")"
+    assert_absent "$case_dir/data/$other/.cleanup-hold" "the shared sweep left $other's hold behind"
+  done
+  assert_present "$case_dir/data/task-b1/.cleanup-hold/fresh.bin" \
     "A's rerun deleted B's fresh recovery before another task completed"
-  jq -e '.expired == true' "$record" >/dev/null \
-    || fail "B's request left A's hold stuck: $(cat "$record")"
-  jq -e '.expired != true' "$case_dir/data/task-x1/record/data-cleanup.json" >/dev/null \
+  jq -e '.expired != true' "$case_dir/data/task-b1/record/data-cleanup.json" >/dev/null \
     || fail "B's fresh hold was marked expired"
-  [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = task-x1 ] \
+  [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = task-b1 ] \
     || fail "the sweep lost B's requester identity"
   assert_absent "$case_dir/state/.task-data-sweep.lock" "the requester sweep retained its lock"
-  pass "fm-teardown: B's overlapping completion expires A while preserving B's fresh recovery"
+  pass "fm-teardown: a later completion hands the active teardown sweep A's hold and preserves B's recovery"
 }
 
 # Stubs so a fixture expiry can delete a hold that has no bead references.
