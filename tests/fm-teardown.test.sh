@@ -7467,7 +7467,7 @@ SH
 
 test_task_data_named_bead_resolution() {
   local case_dir task bead home variant
-  for variant in agent-config gsp other-project missing-project fallback not-found unowned unreadable timeout; do
+  for variant in agent-config gsp other-project missing-project fallback archived not-found unowned unreadable archive-unreadable timeout; do
     [ -z "${FM_TASK_DATA_REF_CASE:-}" ] || [ "$variant" = "$FM_TASK_DATA_REF_CASE" ] || continue
     case_dir=$(make_case "task-data-named-$variant")
     task="$case_dir/data/task-x1"
@@ -7478,6 +7478,7 @@ test_task_data_named_bead_resolution() {
       other-project) bead=heru-add; home=dev/heru-vr-vision-sim ;;
       missing-project|unreadable|timeout) bead=bd-0gpi; home=dev/be-still ;;
       fallback) bead=proof-related ;;
+      archived|archive-unreadable) bead=task-y2 ;;
       not-found) bead=.agent-config-zzzz9 ;;
       unowned) bead=probe-fixture ;;
     esac
@@ -7498,6 +7499,13 @@ test_task_data_named_bead_resolution() {
     if [ "$variant" = fallback ]; then
       tasks-axi add "$bead" 'named evidence' --body '[capture](proof.png)' \
         --file "$case_dir/data/backlog.md" >/dev/null
+    elif [ "$variant" = archived ]; then
+      printf '%s\n' '- [x] task-y2 - named and archived (done 2026-10-11)' '  [capture](proof.png)' \
+        > "$case_dir/data/done-archive.md"
+    elif [ "$variant" = archive-unreadable ]; then
+      printf '%s\n' '- [x] task-y2 - named and archived (done 2026-10-11)' '  [capture](proof.png)' \
+        > "$case_dir/archive.md"
+      ln -s "$case_dir/archive.md" "$case_dir/data/done-archive.md"
     fi
     cat > "$case_dir/fakebin/br" <<'PY'
 #!/usr/bin/env python3
@@ -7549,15 +7557,19 @@ SH
       assert_absent "$case_dir/state/task-x1.backlog-close" "$variant pending close remains"
     fi
     case "$variant" in
-      unreadable|timeout)
+      unreadable|archive-unreadable|timeout)
         [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant bead evidence moved"
         [ "$(cat "$task/discard.bin")" = scratch ] || fail "$variant bead moved scratch"
         assert_absent "$task/.cleanup-hold" "$variant bead staged data"
         assert_grep "$bead" "$case_dir/err" "$variant bead missing from teardown warning"
         jq -e --arg bead "$bead" '.complete == false and .sources[-1].unread == [$bead]' \
           "$task/record/data-cleanup.json" >/dev/null || fail "$variant bead missing from cleanup record"
-        mkdir -p "$case_dir/home/$home/.beads"
-        jq -n --arg id "$bead" '{($id): "[capture](proof.png)"}' > "$case_dir/home/$home/.beads/beads.db"
+        if [ "$variant" = archive-unreadable ]; then
+          mv -f "$case_dir/archive.md" "$case_dir/data/done-archive.md"
+        else
+          mkdir -p "$case_dir/home/$home/.beads"
+          jq -n --arg id "$bead" '{($id): "[capture](proof.png)"}' > "$case_dir/home/$home/.beads/beads.db"
+        fi
         HOME="$case_dir/home" PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
           "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant bead retry failed"
         [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant retry lost bead evidence"
