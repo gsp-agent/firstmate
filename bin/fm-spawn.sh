@@ -4919,12 +4919,30 @@ agy_wait_for_working() {
 # it names without bin/fm-codex-trust.sh's scope test or decline check.
 CODEX_TURN_STARTED='esc to interrupt|Worked for [0-9]'
 
+codex_capture_current_launch() {
+  spawn_gate_capture | python3 -I -c '
+import re, sys
+pane = sys.stdin.read()
+pattern = "\n?".join(re.escape(ch) for ch in sys.argv[1])
+matches = list(re.finditer(pattern, pane))
+if not matches:
+    sys.exit(1)
+sys.stdout.write(pane[matches[-1].end():].partition("\n")[2])
+' "launch.$SPAWN_GEN.sh"
+}
+
 codex_wait_for_turn() {  # 0 turn started, 1 folder-access prompt, 2 neither
-  local pane i=0 max=${FM_CODEX_READY_POLLS:-120} interval=${FM_CODEX_POLL_INTERVAL:-0.5}
+  local pane launch_seen=$CODEX_LAUNCH_ECHOED i=0 max=${FM_CODEX_READY_POLLS:-120} interval=${FM_CODEX_POLL_INTERVAL:-0.5}
   while [ "$i" -lt "$max" ]; do
-    pane=$(spawn_gate_capture)
-    printf '%s\n' "$pane" | grep -Eq "$CODEX_TURN_STARTED" && return 0
+    if pane=$(codex_capture_current_launch); then
+      launch_seen=1
+    elif [ "$launch_seen" = 1 ] && fm_backend_visible_capture_supported "$BACKEND"; then
+      pane=$(fm_backend_visible_capture "$BACKEND" "$T" "$W" 2>/dev/null || true)
+    else
+      pane=
+    fi
     printf '%s' "$pane" | fm_busy_launch_prompt_parked codex && return 1
+    printf '%s\n' "$pane" | grep -Eq "$CODEX_TURN_STARTED" && return 0
     i=$((i + 1))
     [ "$i" -ge "$max" ] || sleep "$interval"
   done
@@ -5113,9 +5131,16 @@ agy)
   fi
   ;;
 codex)
-  if [ "$KIND" != secondmate ] && ! "$FM_ROOT/bin/fm-codex-trust.sh" "$WT" "$PROJ_ABS" >/dev/null; then
-    echo "error: could not pre-register Codex folder trust for $WT; refusing to launch a codex worker that would park on the trust prompt; inspect window $T" >&2
-    exit 1
+  if [ "$KIND" != secondmate ]; then
+    CODEX_STORE_DIR=${CODEX_HOME:-${HOME:-}/.codex}
+    if ! "$FM_ROOT/bin/fm-codex-trust.sh" "$WT" "$PROJ_ABS" >/dev/null; then
+      echo "error: could not pre-register Codex folder trust for $WT; refusing to launch a codex worker that would park on the trust prompt; inspect window $T" >&2
+      exit 1
+    fi
+    CODEX_STORE_DIR=$(cd -P -- "$CODEX_STORE_DIR" && pwd -P) || {
+      echo "error: could not resolve the registered Codex store for $WT; refusing to launch a codex worker with a different store" >&2
+      exit 1
+    }
   fi
   ;;
 esac
@@ -6006,8 +6031,8 @@ elif [ "$HARNESS" = claude ] && [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
 fi
 # The same holds for codex wherever bin/fm-codex-trust.sh registered the
 # worktree's root: the worker must read the CODEX_HOME that registration wrote.
-if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ] && [ -n "${CODEX_HOME:-}" ]; then
-  LAUNCH="CODEX_HOME=$(shell_quote "$CODEX_HOME") $LAUNCH"
+if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
+  LAUNCH="CODEX_HOME=$(shell_quote "$CODEX_STORE_DIR") $LAUNCH"
 fi
 if [ "$KIND" = secondmate ]; then
   sq_home=$(shell_quote "$PROJ_ABS")
@@ -6234,6 +6259,12 @@ sleep 0.3
 SPAWN_LAUNCH_SENT=1
 spawn_send_literal "$T" ". $(shell_quote "$LAUNCH_FILE")"
 sleep 0.3
+CODEX_LAUNCH_ECHOED=0
+if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
+  if codex_capture_current_launch >/dev/null; then
+    CODEX_LAUNCH_ECHOED=1
+  fi
+fi
 if [ "${HERDR_PROJECTED:-0}" -eq 1 ]; then
   HERDR_PROJECTION_ABORT_CLEANUP=0
   spawn_herdr_presentation_order_lock_release

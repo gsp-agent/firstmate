@@ -381,13 +381,33 @@ welcome() {
   printf '  >_ OpenAI Codex (v0.163.0)\n     %s\n\n› Ask Codex to do anything\n  ? for shortcuts\n' "$FM_FAKE_PANE_PATH"
 }
 fake_screen() {
+  if [ "${visible:-0}" = 0 ] && [ -n "${FM_FAKE_CODEX_HISTORY:-}" ]; then
+    cat "$FM_FAKE_CODEX_HISTORY"
+  fi
+  if [ -f "$FM_FAKE_CODEX_STATE.command" ] && [ "${FM_FAKE_CODEX_HIDE_ECHO:-0}" != 1 ] \
+    && { [ "${FM_FAKE_CODEX_ALTERNATE:-0}" != 1 ] || [ "$state" = launched ]; }; then
+    if [ "${FM_FAKE_CODEX_WRAP_ECHO:-0}" = 1 ]; then
+      python3 -I -c '
+import sys
+command = open(sys.argv[1]).read().rstrip("\n")
+print("\n".join(command[i:i+10] for i in range(0, len(command), 10)))
+' "$FM_FAKE_CODEX_STATE.command"
+    else
+      cat "$FM_FAKE_CODEX_STATE.command"
+    fi
+  fi
   case "$state" in
     welcome-then-prompt) welcome; printf 'prompt\n' > "$FM_FAKE_CODEX_STATE" ;;
     welcome) welcome ;;
-    prompt)
+    prompt|restricted-prompt)
       printf '  Folder access\n  %s\n  Note: You are in a subdirectory of a Git project. Trusting will apply to the repository root:\n  %s\n' \
         "$FM_FAKE_PANE_PATH" "$FM_FAKE_CODEX_ROOT"
-      printf '  Trust this folder? Codex can read, edit, and run files here.\n› 1. Trust and continue\n  2. Quit\n  enter continue · esc quit\n'
+      if [ "$state" = prompt ]; then
+        printf '  Trust this folder? Codex can read, edit, and run files here.\n› 1. Trust and continue\n'
+      else
+        printf '  Config, hooks, and exec policies from untrusted folders stay disabled.\n› 1. Open restricted\n'
+      fi
+      printf '  2. Quit\n  enter continue · esc quit\n'
       ;;
     turn) printf '› Read the brief\n• Working (1s • esc to interrupt)\n› Ask Codex to do anything\n  ? for shortcuts\n' ;;
     quoted-turn|quoted-finished)
@@ -414,18 +434,6 @@ EOF
     *) printf 'shell starting\n$ \n' ;;
   esac
 }
-root_trusted() {
-  [ "${FM_FAKE_CODEX_IGNORE_TRUST:-0}" = 1 ] && return 1
-  python3 -I -c '
-import sys, tomllib
-try:
-    with open(sys.argv[1], "rb") as handle:
-        entry = tomllib.load(handle).get("projects", {}).get(sys.argv[2], {})
-except FileNotFoundError:
-    sys.exit(1)
-sys.exit(0 if entry.get("trust_level") == "trusted" else 1)
-' "$FM_FAKE_CODEX_STORE" "$FM_FAKE_CODEX_ROOT"
-}
 case "$*" in
   *"#{pane_current_path}"*) printf '%s\n' "$FM_FAKE_PANE_PATH"; exit 0 ;;
   *"#{cursor_y}"*) printf '1\n'; exit 0 ;;
@@ -443,7 +451,13 @@ case "${1:-}" in
     done
     if [ -n "$literal" ]; then
       case "$literal" in
-        ". '"*"'") staged=${literal#". '"}; staged=${staged%"'"}; [ ! -f "$staged" ] || literal=$(cat "$staged") ;;
+        ". '"*"'")
+          printf '%s\n' "$literal" > "$FM_FAKE_CODEX_STATE.command"
+          staged=${literal#". '"}
+          staged=${staged%"'"}
+          printf '%s\n' "$staged" > "$FM_FAKE_CODEX_STATE.script"
+          [ ! -f "$staged" ] || literal=$(cat "$staged")
+          ;;
       esac
       case "$literal" in
         *"codex "*)
@@ -456,31 +470,47 @@ case "${1:-}" in
     case " $* " in
       *' Enter '*)
         if [ "$state" = launched ]; then
-          if [ -n "${FM_FAKE_CODEX_SCREEN:-}" ]; then
-            printf '%s\n' "$FM_FAKE_CODEX_SCREEN" > "$FM_FAKE_CODEX_STATE"
-          elif root_trusted; then
-            printf 'turn\n' > "$FM_FAKE_CODEX_STATE"
-          else
-            printf 'welcome-then-prompt\n' > "$FM_FAKE_CODEX_STATE"
-          fi
+          HOME="${FM_FAKE_PANE_HOME:-$HOME}" CODEX_HOME="${FM_FAKE_PANE_CODEX_HOME:-}" \
+            bash "$(cat "$FM_FAKE_CODEX_STATE.script")" || exit 1
         fi
         ;;
     esac
     exit 0
     ;;
-  capture-pane) fake_screen; exit 0 ;;
+  capture-pane)
+    visible=0
+    case " $* " in *' -S -0 '*) visible=1 ;; esac
+    fake_screen
+    exit 0
+    ;;
 esac
 exit 0
 SH
   chmod +x "$fakebin/tmux"
   cat > "$fakebin/codex" <<'SH'
 #!/usr/bin/env bash
+set -u
 if [ "${1:-}" = --version ]; then
   printf 'codex-cli 0.163.0\n'
   exit 0
 fi
-echo "fake codex must never execute" >&2
-exit 9
+store="${CODEX_HOME:-$HOME/.codex}/config.toml"
+printf '%s\n' "$store" > "$FM_FAKE_CODEX_STATE.store"
+if [ -n "${FM_FAKE_CODEX_SCREEN:-}" ]; then
+  printf '%s\n' "$FM_FAKE_CODEX_SCREEN" > "$FM_FAKE_CODEX_STATE"
+elif [ "${FM_FAKE_CODEX_IGNORE_TRUST:-0}" != 1 ] && python3 -I -c '
+import sys, tomllib
+try:
+    with open(sys.argv[1], "rb") as handle:
+        entry = tomllib.load(handle).get("projects", {}).get(sys.argv[2], {})
+except FileNotFoundError:
+    sys.exit(1)
+sys.exit(0 if entry.get("trust_level") == "trusted" else 1)
+' "$store" "$FM_FAKE_CODEX_ROOT"; then
+  printf 'turn\n' > "$FM_FAKE_CODEX_STATE"
+else
+  printf 'welcome-then-prompt\n' > "$FM_FAKE_CODEX_STATE"
+fi
 SH
   chmod +x "$fakebin/codex"
   fm_fake_exit0 "$fakebin" treehouse gh-axi gh
@@ -533,7 +563,7 @@ run_codex_spawn() {
     FM_FAKE_LAUNCH_LOG="$CASE_DIR/launch.log" \
     FM_FAKE_TMUX_CALL_LOG="$CASE_DIR/tmux-calls.log" \
     FM_FAKE_CODEX_STATE="$CASE_DIR/codex.state" \
-    FM_FAKE_CODEX_STORE="$STORE" FM_FAKE_CODEX_ROOT="$ROOT_KEY" \
+    FM_FAKE_CODEX_ROOT="$ROOT_KEY" \
     FM_FAKE_CODEX_IGNORE_TRUST="${FM_FAKE_CODEX_IGNORE_TRUST:-0}" \
     FM_FAKE_CODEX_SCREEN="${FM_FAKE_CODEX_SCREEN:-}" \
     FM_CODEX_READY_POLLS=4 FM_CODEX_POLL_INTERVAL=0 \
@@ -542,7 +572,7 @@ run_codex_spawn() {
 }
 
 gate_captures() {  # <tmux-call-log>: pane captures taken after the launch was typed
-  awk '/^send-keys .* -l \. /{launched=1} launched && /^capture-pane/{n++} END{print n+0}' "$1"
+  awk '/^send-keys .* -l \. /{typed=1} typed && /^send-keys .* Enter$/{launched=1} launched && /^capture-pane/{n++} END{print n+0}' "$1"
 }
 
 status_text() {  # <id>: the task's status lines without their time stamps
@@ -562,7 +592,8 @@ test_spawn_pre_trusts_the_root_and_launches_into_a_running_turn() {
     "the spawn reported success before the pane reached a running turn"
   launch=$(cat "$CASE_DIR/launch.log")
   assert_contains "$launch" "--disable hooks" "the crewmate launch stopped disabling codex hooks"
-  assert_not_contains "$launch" "CODEX_HOME=" "an unset CODEX_HOME was forwarded onto the launch"
+  assert_equals "$STORE" "$(cat "$CASE_DIR/codex.state.store")" \
+    "the worker did not read the default store that registration wrote"
   assert_not_contains "$(cat "$CASE_DIR/tmux-calls.log")" "kill-window" \
     "a successful codex spawn tore down the endpoint it launched"
   pass "fm-spawn: codex pre-trusts the worktree's root and launches into a running turn"
@@ -578,6 +609,8 @@ test_spawn_forwards_codex_home_to_the_store_it_wrote() {
   expect_code 0 $? "a codex spawn with CODEX_HOME set should succeed: $out"
   assert_equals trusted "$(codex_trust_level "$codex_home/config.toml" "$ROOT_KEY")" \
     "the spawn did not register trust in the CODEX_HOME store"
+  assert_equals "$codex_home/config.toml" "$(cat "$CASE_DIR/codex.state.store")" \
+    "the worker did not read the explicit CODEX_HOME store that registration wrote"
   [ ! -e "$HOME_DIR/.codex/config.toml" ] || fail "HOME's store was written although CODEX_HOME names another"
   launch=$(cat "$CASE_DIR/launch.log")
   assert_contains "$launch" "CODEX_HOME='$codex_home' " \
@@ -585,12 +618,34 @@ test_spawn_forwards_codex_home_to_the_store_it_wrote() {
   pass "fm-spawn: codex forwards CODEX_HOME so the worker reads the store the spawn wrote"
 }
 
+test_spawn_overrides_the_destination_store_and_home() {
+  local id out pane_home pane_codex inherited
+  for inherited in set unset; do
+    id="codex-pane-$inherited-$$"
+    read_codex_spawn_case "$(make_codex_spawn_case "pane-$inherited" "$id")"
+    pane_home="$CASE_DIR/pane-home"
+    pane_codex="$CASE_DIR/pane-codex"
+    mkdir -p "$pane_home" "$pane_codex"
+    [ "$inherited" = set ] || pane_codex=
+    out=$(FM_FAKE_PANE_HOME=$pane_home FM_FAKE_PANE_CODEX_HOME=$pane_codex run_codex_spawn "$id")
+    expect_code 0 $? "a different destination environment must not change the worker's store: $out"
+    assert_equals "$STORE" "$(cat "$CASE_DIR/codex.state.store")" \
+      "the worker read the destination pane's store instead of the registered store"
+    assert_equals trusted "$(codex_trust_level "$STORE" "$ROOT_KEY")" "the intended store lost the root's trust"
+    [ ! -e "$pane_home/.codex/config.toml" ] || fail "the destination HOME's store was written"
+    [ ! -e "$CASE_DIR/pane-codex/config.toml" ] || fail "the destination CODEX_HOME's store was written"
+  done
+  pass "fm-spawn: a destination pane's CODEX_HOME and HOME cannot redirect the worker's store"
+}
+
 test_spawn_accepts_turns_quoting_both_folder_access_dialogs() {
   local id screen out
   for screen in quoted-turn quoted-finished; do
     id="codex-$screen-$$"
     read_codex_spawn_case "$(make_codex_spawn_case "$screen" "$id")"
-    out=$(FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id")
+    printf '• Worked for 1s\n• Working (1s • esc to interrupt)\n' > "$CASE_DIR/history"
+    out=$(FM_FAKE_CODEX_HISTORY="$CASE_DIR/history" FM_FAKE_CODEX_ALTERNATE=1 \
+      FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id")
     expect_code 0 $? "a codex turn quoting the dialogs must pass the spawn gate: $out"
     assert_contains "$out" "spawned $id harness=codex" "the quoted $screen did not report success"
     assert_not_contains "$(cat "$CASE_DIR/tmux-calls.log")" "kill-window" \
@@ -618,6 +673,39 @@ test_prompt_despite_registration_fails_the_spawn_at_once() {
   assert_equals 1 "$(grep -c '^send-keys -t [^ ]* Enter$' "$CASE_DIR/tmux-calls.log")" \
     "the gate sent a key into the folder-access prompt instead of only the launch Enter"
   pass "fm-spawn: a codex launch showing the folder-access prompt fails at once and closes the endpoint"
+}
+
+test_reused_pane_history_never_confirms_a_replacement_launch() {
+  local id out rc alternate screen
+  for alternate in 0 1; do
+    for screen in welcome-then-prompt restricted-prompt; do
+      id="codex-old-$alternate-$screen-$$"
+      read_codex_spawn_case "$(make_codex_spawn_case "old-$alternate-$screen" "$id")"
+      printf '$ . /tmp/launch.previous.sh\n• Worked for 1s\n• Working (1s • esc to interrupt)\n' > "$CASE_DIR/history"
+      rc=0
+      out=$(FM_FAKE_CODEX_HISTORY="$CASE_DIR/history" FM_FAKE_CODEX_ALTERNATE=$alternate \
+        FM_FAKE_CODEX_WRAP_ECHO=1 FM_FAKE_CODEX_SCREEN=$screen run_codex_spawn "$id") || rc=$?
+      [ "$rc" -ne 0 ] || fail "a previous worker's turn confirmed a replacement on its folder-access prompt"
+      assert_contains "$out" "parked on its folder-access prompt" "the reused pane did not report its live dialog"
+      assert_not_contains "$out" "spawned $id" "the reused pane reported success before the replacement started"
+      assert_contains "$(cat "$CASE_DIR/tmux-calls.log")" "kill-window" "a parked replacement left its endpoint running"
+    done
+  done
+  pass "fm-spawn: previous turns cannot confirm a replacement in inline or alternate screens with either dialog"
+}
+
+test_history_without_the_current_launch_echo_never_counts_as_ready() {
+  local id out rc
+  id="codex-no-echo-$$"
+  read_codex_spawn_case "$(make_codex_spawn_case no-echo "$id")"
+  printf '• Worked for 1s\n• Working (1s • esc to interrupt)\n' > "$CASE_DIR/history"
+  rc=0
+  out=$(FM_FAKE_CODEX_HISTORY="$CASE_DIR/history" FM_FAKE_CODEX_HIDE_ECHO=1 \
+    FM_FAKE_CODEX_SCREEN=welcome run_codex_spawn "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "history without the current launch's echo must not confirm readiness"
+  assert_contains "$out" "showed neither its folder-access prompt nor a started turn" \
+    "a launch without current evidence did not fail at the readiness bound"
+  pass "fm-spawn: unbound history never substitutes for evidence of the current launch"
 }
 
 test_launch_that_never_starts_a_turn_fails_the_spawn() {
@@ -671,7 +759,10 @@ test_symlinked_store_writes_its_target
 test_missing_python_is_refused
 test_spawn_pre_trusts_the_root_and_launches_into_a_running_turn
 test_spawn_forwards_codex_home_to_the_store_it_wrote
+test_spawn_overrides_the_destination_store_and_home
 test_spawn_accepts_turns_quoting_both_folder_access_dialogs
 test_prompt_despite_registration_fails_the_spawn_at_once
+test_reused_pane_history_never_confirms_a_replacement_launch
+test_history_without_the_current_launch_echo_never_counts_as_ready
 test_launch_that_never_starts_a_turn_fails_the_spawn
 test_unregistrable_root_refuses_before_launch
