@@ -1302,6 +1302,9 @@ if ! pane_readable "$BACKEND_TARGET"; then
     tmux:alive|herdr:alive)
       ;;
     herdr:missing)
+      if [ "$KIND" != secondmate ] && status_is_context_paused "$LOG_LINE"; then
+        emit paused status-log "$(status_line_note "$LOG_LINE")"
+      fi
       closed_spawn_gen=$(meta_value spawn_gen)
       if [ -n "$closed_spawn_gen" ] && [ ! -L "$STATE/terminal-outcomes" ]; then
         for closed_record in "$STATE/terminal-outcomes"/*.pending "$STATE/terminal-outcomes"/*.reported "$STATE/terminal-outcomes"/*.presented; do

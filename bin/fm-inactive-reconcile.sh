@@ -527,8 +527,41 @@ report_child() { # <id>
 
 # Called under the task metadata lock; this script's header owns closure
 # eligibility, retained records, and follow-up recovery.
+close_inactive_child_pane() {
+  local id=$1 meta=$2 reason=$3 record=${4:-} busy message last hold_rc=0
+  [ "$(meta_field "$meta" backend)" = herdr ] || return 0
+  last=$(last_status_line "$STATE/$id.status")
+  status_is_captain_held "$last" && return 0
+  if status_is_paused "$last" && ! status_is_context_paused "$last"; then
+    return 0
+  fi
+  FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
+    "$SCRIPT_DIR/fm-captain-hold.sh" open "$id" >/dev/null 2>&1 || hold_rc=$?
+  [ "$hold_rc" -eq 1 ] || return 0
+  [ "$(last_activity_age "$meta" "$STATE/$id.status" "$STATE/$id.turn-ended")" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
+  if ! fm_backend_validate_task_endpoint "$meta" "$id" 2>/dev/null; then
+    printf 'fm-inactive-reconcile: %s %s pane left open: endpoint identity not proven\n' "$id" "$reason" >&2
+    return 0
+  fi
+  for message in "$(fm_task_inbox_dir "$STATE" "$id")"/*.msg; do
+    [ ! -e "$message" ] || return 0
+  done
+  busy=$(fm_busy_classify_meta "$meta" "$id" "$STATE")
+  case "$busy" in
+    'idle grok-regex') return 0 ;;
+    'idle '*) ;;
+    *) return 0 ;;
+  esac
+  if [ -n "$record" ]; then
+    record_field_set "$record" pane_close_target "$FM_BACKEND_VALIDATED_TARGET" || return 0
+  fi
+  fm_backend_kill herdr "$FM_BACKEND_VALIDATED_TARGET" \
+    || printf 'fm-inactive-reconcile: %s %s pane close did not complete; pane left open\n' "$id" "$reason" >&2
+  return 0
+}
+
 close_terminal_child_pane() { # <id> <meta> <fingerprint>
-  local id=$1 meta=$2 fingerprint=$3 record suffix kind mode last state spawn_gen busy message
+  local id=$1 meta=$2 fingerprint=$3 record suffix kind mode last state spawn_gen
   [ "$(meta_field "$meta" backend)" = herdr ] || return 0
   spawn_gen=$(meta_field "$meta" spawn_gen)
   valid_id "$spawn_gen" || return 0
@@ -543,7 +576,6 @@ close_terminal_child_pane() { # <id> <meta> <fingerprint>
   state=$(record_value "$record" state)
   case "$state" in done|failed) ;; *) return 0 ;; esac
   last=$(last_status_line "$STATE/$id.status")
-  [ "$(status_line_verb "$last")" != captain-held ] || return 0
   kind=$(meta_field "$meta" kind)
   mode=$(meta_field "$meta" mode)
   if [ "$state" = "done" ] && [ "${kind:-ship}" = ship ]; then
@@ -556,64 +588,16 @@ close_terminal_child_pane() { # <id> <meta> <fingerprint>
         ;;
     esac
   fi
-  [ "$(last_activity_age "$meta" "$STATE/$id.status" "$STATE/$id.turn-ended")" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
-  if ! fm_backend_validate_task_endpoint "$meta" "$id" 2>/dev/null; then
-    printf 'fm-inactive-reconcile: %s terminal pane left open: endpoint identity not proven\n' "$id" >&2
-    return 0
-  fi
-  for message in "$(fm_task_inbox_dir "$STATE" "$id")"/*.msg; do
-    [ ! -e "$message" ] || return 0
-  done
-  busy=$(fm_busy_classify_meta "$meta" "$id" "$STATE")
-  case "$busy" in
-    'idle grok-regex') return 0 ;;
-    'idle '*) ;;
-    *) return 0 ;;
-  esac
-  record_field_set "$record" pane_close_target "$FM_BACKEND_VALIDATED_TARGET" || return 0
-  fm_backend_kill herdr "$FM_BACKEND_VALIDATED_TARGET" \
-    || printf 'fm-inactive-reconcile: %s terminal pane close did not complete; pane left open\n' "$id" >&2
-  return 0
-}
-
-# A context-limit pause names the limit it hit: the word context together
-# with limit or the 300K line. Anything else a pause names - a person, a
-# date, an event, another task - is a wait with a live session's job to do.
-status_line_is_context_pause() { # <status-line>
-  local note
-  [ "$(status_line_verb "$1")" = "paused" ] || return 1
-  note=$(status_line_note "$1" | tr '[:upper:]' '[:lower:]')
-  case "$note" in *context*) ;; *) return 1 ;; esac
-  case "$note" in
-    *limit*|*300k*|*'300 k'*) return 0 ;;
-    *) return 1 ;;
-  esac
+  close_inactive_child_pane "$id" "$meta" terminal "$record"
 }
 
 # Called under the task metadata lock, like close_terminal_child_pane, with
 # the same guards minus the outcome receipt: no outcome is delivered for a
 # pause, so nothing is recorded and nobody is woken. Only the pane closes.
 close_context_paused_child_pane() { # <id> <meta>
-  local id=$1 meta=$2 busy message
-  [ "$(meta_field "$meta" backend)" = herdr ] || return 0
-  status_line_is_context_pause "$(last_status_line "$STATE/$id.status")" || return 0
-  [ "$(last_activity_age "$meta" "$STATE/$id.status" "$STATE/$id.turn-ended")" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
-  if ! fm_backend_validate_task_endpoint "$meta" "$id" 2>/dev/null; then
-    printf 'fm-inactive-reconcile: %s context-paused pane left open: endpoint identity not proven\n' "$id" >&2
-    return 0
-  fi
-  for message in "$(fm_task_inbox_dir "$STATE" "$id")"/*.msg; do
-    [ ! -e "$message" ] || return 0
-  done
-  busy=$(fm_busy_classify_meta "$meta" "$id" "$STATE")
-  case "$busy" in
-    'idle grok-regex') return 0 ;;
-    'idle '*) ;;
-    *) return 0 ;;
-  esac
-  fm_backend_kill herdr "$FM_BACKEND_VALIDATED_TARGET" \
-    || printf 'fm-inactive-reconcile: %s context-paused pane close did not complete; pane left open\n' "$id" >&2
-  return 0
+  local id=$1 meta=$2
+  status_is_context_paused "$(last_status_line "$STATE/$id.status")" || return 0
+  close_inactive_child_pane "$id" "$meta" context-paused
 }
 
 reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeout>
@@ -637,7 +621,7 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
   [ "$age" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
   # A context-limit pause is not a terminal outcome: no crew-state read, no
   # record, no wake. The pane may still close under the pause's own guards.
-  if status_line_is_context_pause "$last"; then
+  if status_is_paused "$last"; then
     close_context_paused_child_pane "$id" "$meta"
     return 0
   fi
@@ -645,6 +629,10 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
     "$CREW_STATE_BIN" "$id" 2>/dev/null) || state_rc=$?
   [ "$state_rc" -ne 124 ] || return 3
   last=$(last_status_line "$status")
+  if status_is_paused "$last"; then
+    close_context_paused_child_pane "$id" "$meta"
+    return 0
+  fi
   if [ -n "$self" ]; then
     child_terminal_ledger_line "$status" >/dev/null && ledger_rc=0 || ledger_rc=$?
     [ "$ledger_rc" -ne 2 ] || return 0

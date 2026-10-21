@@ -330,6 +330,15 @@ status_is_paused() {  # <status-line>
   [ "$verb" = "${FM_CLASSIFY_PAUSED_VERB:-$FM_CLASSIFY_PAUSED_VERB_DEFAULT}" ]
 }
 
+status_is_context_paused() {
+  local note limit
+  status_is_paused "$1" || return 1
+  note=$(status_line_note "$1" | tr '[:upper:]' '[:lower:]')
+  [[ ! "$note" =~ (^|[[:space:][:punct:]])(waiting|awaiting|until)([[:space:][:punct:]]|$) ]] || return 1
+  limit='(context[[:space:]]+limit|300[[:space:]]*k[[:space:]]+context[[:space:]]+(line|limit))'
+  [[ "$note" =~ ^((this|the)[[:space:]]+)?(session[[:space:]]+)?((has[[:space:]]+)?(reached|passed|hit|exhausted)[[:space:]]+(the[[:space:]]+)?${limit}|${limit}[[:space:]]+(reached|passed|hit|exhausted))([[:space:][:punct:]]|$) ]]
+}
+
 # 0 if a status line's leading verb is the verified captain-held transfer verb.
 # The same pure verb read as status_is_paused, and the discriminator a supervisor
 # needs once a declared wait has already been recognized: the two declarations get
