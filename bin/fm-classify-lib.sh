@@ -331,29 +331,36 @@ status_is_paused() {  # <status-line>
 }
 
 status_is_context_paused() {
-  local note limit clause target
+  local note limit session continuation
   status_is_paused "$1" || return 1
   note=$(status_line_note "$1" | tr '[:upper:]' '[:lower:]')
-  limit='(context[[:space:]]+limit|300[[:space:]]*k[[:space:]]+context[[:space:]]+(line|limit))'
-  [[ "$note" =~ ^((this|the)[[:space:]]+)?(session[[:space:]]+)?((has[[:space:]]+)?(reached|passed|hit|exhausted)[[:space:]]+(the[[:space:]]+)?${limit}|${limit}[[:space:]]+(reached|passed|hit|exhausted))([[:space:][:punct:]]|$) ]] || return 1
-  while IFS= read -r clause; do
-    [[ "$clause" =~ (^|[[:space:][:punct:]])(waiting|awaiting|until)[[:space:]]+ ]] || continue
-    clause=${clause#*"${BASH_REMATCH[0]}"}
-    while :; do
-      [[ "$clause" =~ ^(((for|on|until)[[:space:]]+)?((a|the)[[:space:]]+)?(fresh|new|replacement)[[:space:]]+session)($|[[:space:][:punct:]]) ]] || return 1
-      clause=${clause#"${BASH_REMATCH[1]}"}
-      if [[ "$clause" =~ ^[[:space:]]*,?[[:space:]]*(and|or)[[:space:]]+ ]]; then
-        target=${clause#"${BASH_REMATCH[0]}"}
-        if [[ ! "$target" =~ ^(then|to)[[:space:]]+ ]]; then
-          clause=$target
-          continue
-        fi
-      fi
-      [[ "$clause" =~ (^|[[:space:][:punct:]])((waiting|awaiting|until)[[:space:]]+|(and|or)[[:space:]]+(for|on)[[:space:]]+) ]] || break
-      clause=${clause#*"${BASH_REMATCH[0]}"}
-    done
-  done <<< "$(printf '%s\n' "$note" | tr ';.' '\n')"
-  return 0
+  limit="(context[[:space:]]+limit|([[:alnum:]_-]+'s[[:space:]]+)?300[[:space:]]*k[[:space:]]+context[[:space:]]+(line|limit))"
+  session='((a|an|the)[[:space:]]+)?(fresh|new|replacement)[[:space:]]+session'
+  continuation='(continues?|resumes?|restarts?|takes?[[:space:]]+over|carr(y|ies)[[:space:]]+on)'
+  if ! [[ "$note" =~ ^((this|the)[[:space:]]+)?(session[[:space:]]+)?((has[[:space:]]+)?(reached|passed|hit|exhausted)[[:space:]]+(the[[:space:]]+)?${limit}|${limit}[[:space:]]+(reached|passed|hit|exhausted))([[:space:][:punct:]]|$) ]] \
+    && ! [[ "$note" =~ ^context[[:space:]]+((has[[:space:]]+)?(reached|passed|hit|exhausted)[[:space:]]+300[[:space:]]*k[[:space:]]+tokens|300[[:space:]]*k[[:space:]]+tokens[[:space:]]+(reached|passed|hit|exhausted))([[:space:][:punct:]]|$) ]] \
+    && ! [[ "$note" =~ ^((this|the)[[:space:]]+)?session[[:space:]]+context[[:space:]]+limit[[:space:]]*[,\;:][[:space:]]*${session}[[:space:]]+${continuation}([[:space:][:punct:]]|$) ]]; then
+    return 1
+  fi
+  printf '%s\n' "$note" | tr ';.' '\n' | awk -v session="$session" -v continuation="$continuation" '
+    BEGIN {
+      session = "(^|[[:space:]])" session "([[:space:]]|$)"
+      continuation = "(^|[[:space:]])" continuation "([[:space:]]|$)"
+      bare = "(^|[[:space:]])(for|on|to|and|or|then|waiting|awaiting|until)([[:space:]]|$)"
+    }
+    {
+      while (match($0, /(^|[[:space:][:punct:]])(waiting|awaiting|until)[[:space:]]+/)) {
+        $0 = substr($0, RSTART + RLENGTH)
+        remaining = $0
+        gsub(/[[:punct:]]/, " ", remaining)
+        while (gsub(session, " ", remaining)) {}
+        while (gsub(continuation, " ", remaining)) {}
+        while (gsub(bare, " ", remaining)) {}
+        gsub(/[[:space:]]/, "", remaining)
+        if (remaining != "") exit 1
+      }
+    }
+  '
 }
 
 # 0 if a status line's leading verb is the verified captain-held transfer verb.

@@ -321,6 +321,11 @@ test_context_paused_herdr_pane_closes_without_outcome() {
   local kind note phase index=0 out
   for kind in ship scout; do
     for note in \
+      "session reached Dale's 300K context line; work in progress committed" \
+      'context passed 300k tokens; stowed' \
+      'session context limit reached; fix committed' \
+      'session context limit, a fresh session resumes' \
+      'context limit reached mid-diagnosis, fresh session needed' \
       'session reached the 300K context line; work committed, a fresh session resumes' \
       'reached the context limit; a fresh session resumes' \
       'passed the context limit; a fresh session resumes' \
@@ -335,8 +340,8 @@ test_context_paused_herdr_pane_closes_without_outcome() {
       'context limit reached; awaiting a new session to restart' \
       'context limit reached; waiting for a replacement session to take over' \
       'context limit reached; until a new session takes over' \
-      'context limit reached; awaiting a fresh session to review the work and continue' \
-      'context limit reached; awaiting a fresh session, then pick up the remaining commits' \
+      'context limit reached; awaiting a fresh session to carry on' \
+      'context limit reached; awaiting a fresh session to continue and then resume' \
       'context limit reached; waiting for a replacement session to resume' \
       'context limit reached; until a fresh session resumes' \
       'context limit reached; waiting until a fresh session resumes; work committed' \
@@ -380,6 +385,10 @@ test_event_paused_herdr_pane_stays_open() {
     'context limit reached; awaiting a fresh session to resume; waiting for the PM call' \
     'context limit reached; awaiting a fresh session and PM approval' \
     'context limit reached; waiting for a replacement session to take over and for PM approval' \
+    'context limit reached; waiting for a replacement session to take over and PM approval' \
+    'context limit reached; awaiting a fresh session to continue or release notes' \
+    'context limit reached; awaiting a fresh session to review the work and continue' \
+    'context limit reached; awaiting a fresh session, then pick up the remaining commits' \
     'context limit reached; waiting for a fresh session to resume or for a review' \
     'context limit reached; waiting on a fresh session to continue and on Dale' \
     'context limit reached; awaiting a new session and then continue; awaiting Firstmate' \
@@ -413,7 +422,7 @@ test_pause_during_state_read_supersedes_terminal_closure() {
         note='context limit reached; awaiting a fresh session and then continue'
         expected_closes=1
         if [ "$pause_kind" = event ]; then
-          note='context limit reached; waiting for a replacement session to take over and for PM approval'
+          note='context limit reached; waiting for a replacement session to take over and PM approval'
           expected_closes=0
         fi
         cat > "$WORLD/fakebin/fm-crew-state.sh" <<'SH'
