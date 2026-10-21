@@ -303,7 +303,10 @@
 #   out as a transient rather than adopted and then refused, so a home that is
 #   itself a linked worktree of the project repository still launches. A pane
 #   that never reaches an isolated worktree refuses at the end of that wait,
-#   naming the last path seen and why it was rejected.
+#   naming the last path seen and why it was rejected. A `treehouse get` that
+#   exits without entering a worktree, such as on a full pool, refuses as soon
+#   as the pane shows it returned, quoting treehouse's own output, and closes
+#   the task window so a retry is not refused for a leftover one.
 #   That placement is proven only at launch. Every ship or scout pane therefore
 #   also receives `export FM_TASK_ID=<task-id>` before the launch command, on
 #   the same channel as GOTMPDIR, and bin/fm-test-run.sh refuses to execute the
@@ -4382,6 +4385,37 @@ spawn_assert_agent_worktree() {
   exit 1
 }
 
+# The `treehouse get` line sent to a task pane brackets treehouse between two
+# printed marker rows. A worktree subshell holds the foreground for the worker's
+# whole life, so the end row appears only when treehouse returned without one,
+# and the rows between the markers are treehouse's own account of why. Each
+# marker is matched as a whole row, which the echoed command line, carrying it
+# in two pieces, never is.
+SPAWN_TREEHOUSE_GET_LINE="printf '%s-%s\n' fm-treehouse-get start; treehouse get; printf '%s-%s\n' fm-treehouse-get end"
+
+# Prints treehouse's output rows, indented, once `treehouse get` has returned
+# in the task pane; fails while it is still running or the pane is unreadable.
+spawn_treehouse_get_returned() {
+  local screen row rows=
+  screen=$(fm_backend_capture "$BACKEND" "$WT_TARGET" 200 "$W" 2>/dev/null) || return 1
+  while IFS= read -r row; do
+    row=${row%$'\r'}
+    row=${row%"${row##*[![:space:]]}"}
+    case "$row" in
+    fm-treehouse-get-start) rows= ;;
+    fm-treehouse-get-end)
+      printf '%s' "$rows"
+      return 0
+      ;;
+    '') ;;
+    *) rows="$rows  $row"$'\n' ;;
+    esac
+  done <<EOF
+$screen
+EOF
+  return 1
+}
+
 kimi_capture() {
   fm_backend_capture "$BACKEND" "$T" 120 "$W" 2>/dev/null || true
 }
@@ -4712,7 +4746,7 @@ elif [ "$RELAUNCH" -eq 1 ]; then
   fi
   [ "$KIND" = secondmate ] || validate_spawn_worktree "relaunch" "$T"
 elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
-  spawn_send_text_line "$WT_TARGET" 'treehouse get'
+  spawn_send_text_line "$WT_TARGET" "$SPAWN_TREEHOUSE_GET_LINE"
 
   # Wait for the treehouse subshell: the pane's cwd moves from the project to the worktree.
   # Target the stable window id, not the name: if the name is ever lost (e.g. an
@@ -4745,7 +4779,8 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # That wait is deliberate - telling a transient apart from a terminal
   # misconfiguration would need machinery this path does not want - so the
   # refusal has to be self-explaining instead: carry the last path seen and the
-  # reason it was rejected, and report both at the deadline.
+  # reason it was rejected, and report both at the deadline. The one terminal
+  # case told apart is treehouse itself returning, which no later read can undo.
   candidate=""
   last_seen=""
   last_reason="the pane reported no path"
@@ -4763,6 +4798,13 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     else
       candidate=""
       [ -z "$p" ] || last_reason=$SPAWN_WT_REASON
+      if treehouse_said=$(spawn_treehouse_get_returned); then
+        # The endpoint holds nothing yet. A projected Herdr task is closed by the
+        # abort cleanup on exit; every other endpoint is closed here.
+        [ "$HERDR_PROJECTION_ABORT_CLEANUP" = 1 ] || rovo_endpoint_cleanup
+        echo "error: treehouse get exited without entering a worktree for project '$PROJ_ABS', so no worker was launched and its window $T was closed; treehouse said:"$'\n'"${treehouse_said:-  (no output)}" >&2
+        exit 1
+      fi
     fi
     sleep 1
   done
