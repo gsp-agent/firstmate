@@ -329,6 +329,9 @@ test_context_paused_herdr_pane_closes_without_outcome() {
       'context limit reached with a fresh session needed' \
       'context limit reached; awaiting a fresh session to resume' \
       'context limit reached; awaiting a fresh session to continue' \
+      'context limit reached; awaiting a fresh session and then continue' \
+      'context limit reached; awaiting a fresh session and then restart; waiting for a replacement session to take over' \
+      'context limit reached; waiting for a new session to resume and for a replacement session to take over' \
       'context limit reached; awaiting a new session to restart' \
       'context limit reached; waiting for a replacement session to take over' \
       'context limit reached; until a new session takes over' \
@@ -376,6 +379,12 @@ test_event_paused_herdr_pane_stays_open() {
     'context limit reached; awaiting a new session to restart while waiting for the PM call' \
     'context limit reached; awaiting a fresh session to resume; waiting for the PM call' \
     'context limit reached; awaiting a fresh session and PM approval' \
+    'context limit reached; waiting for a replacement session to take over and for PM approval' \
+    'context limit reached; waiting for a fresh session to resume or for a review' \
+    'context limit reached; waiting on a fresh session to continue and on Dale' \
+    'context limit reached; awaiting a new session and then continue; awaiting Firstmate' \
+    'context limit reached; awaiting a fresh session to resume. Waiting for the PM call' \
+    'context limit reached; awaiting a fresh session and then continue until 2026-10-22T15:00Z' \
     'session reached the context limit; waiting for the PM call, until 2026-10-22T15:00Z'; do
     for state in unknown done failed; do
       index=$((index + 1))
@@ -401,10 +410,10 @@ test_pause_during_state_read_supersedes_terminal_closure() {
           task_home="$MATE"
         fi
         write_herdr_child "$task_home" child 'working: finishing the turn'
-        note='context limit reached; awaiting a fresh session to continue'
+        note='context limit reached; awaiting a fresh session and then continue'
         expected_closes=1
         if [ "$pause_kind" = event ]; then
-          note='waiting for the PM call on the context limit question, until 2026-10-22T15:00Z'
+          note='context limit reached; waiting for a replacement session to take over and for PM approval'
           expected_closes=0
         fi
         cat > "$WORLD/fakebin/fm-crew-state.sh" <<'SH'
