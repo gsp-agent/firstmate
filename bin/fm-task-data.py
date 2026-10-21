@@ -48,9 +48,11 @@ Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
 the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
 Backlog sources retain their home addressing in the cleanup record.
-Named .agent-config-* and gsp-* beads use br from ~/.agent-config and
-~/dev/gsp-beads, respectively; other named beads try br from the task project
-before the owning Firstmate backlog.
+A named bead is read from the one database that owns its prefix, whatever
+project the task recorded; fm-task-data-lib.sh keeps that prefix map, and an
+id whose prefix is not in it is read from the owning Firstmate backlog.
+A bead its owner reports not found links nothing and is not unread; only an
+owner that cannot be read, or a read that times out, leaves it unread.
 These br reads clear BEADS_DIR, BEADS_DB, and BR_DB so inherited addressing
 cannot select a different database.
 Only strings shaped like real bead ids count as bead references, in new
@@ -405,7 +407,7 @@ def backlog_references(source, task_id, limit=None):
             response = json.loads(read_command([
                 "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
                 "backlog-references", backlog["data"], task_id,
-                "1" if required else "0", source["project"], *source["beads"],
+                "1" if required else "0", *source["beads"],
             ], str(Path(backlog["data"]).parent), limit))
             if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
                     or response.get("task") not in (None, task_id)
