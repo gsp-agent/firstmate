@@ -15,6 +15,43 @@ set -u
 TMP_ROOT=$(fm_test_tmproot fm-pi-branch-extension)
 EXT="$ROOT/.pi/extensions/fm-branch-supervision.ts"
 export NODE_NO_WARNINGS=1
+
+# Every node driver in this file runs through this function. The extension
+# starts bin/fm-wake-grant.sh and bin/fm-branch-outcome.sh without waiting for
+# them, so a driver that exits - at its closing process.exit, on a failed
+# assertion, or on a signal - leaves any still running reparented to init,
+# out of reach of this suite's traps. Once fm_test_cleanup deletes their
+# fixture home, fm_lock_acquire_wait can never create its lock there and loops
+# with no bound; FM_TEST_STUB_MAX_BLOCK_SECONDS stops only stubs that read it.
+# So the driver gets a process group of its own, under a perl parent that stays
+# in this suite's group to forward signals into it and to empty it once the
+# driver exits.
+node() {
+  perl -MPOSIX=setpgid -e '
+    my ($pid, $pending) = (0, "");
+    my @forward = grep { ($SIG{$_} // "") ne "IGNORE" } qw(INT TERM HUP QUIT);
+    for my $sig (@forward) {
+      $SIG{$sig} = sub { if ($pid) { kill $sig, -$pid } else { $pending = $sig } };
+    }
+    my $child = fork // exit 125;
+    if (!$child) {
+      $SIG{$_} = "DEFAULT" for @forward;
+      setpgid(0, 0);
+      exec { $ARGV[0] } @ARGV;
+      exit 127;
+    }
+    setpgid($child, $child);
+    $pid = $child;
+    kill $pending, -$pid if $pending;
+    my $done;
+    do { $done = waitpid $pid, 0 } while ($done == -1 && $!{EINTR});
+    my $status = $?;
+    for (1 .. 50) { kill(0, -$pid) or last; select undef, undef, undef, 0.1 }
+    kill "KILL", -$pid;
+    exit(($status & 127) ? 128 + ($status & 127) : $status >> 8);
+  ' node "$@"
+}
+
 # The Pi release whose stock renderer stopped supplying an implicit reset at
 # multiline boundaries, which is the contract this file's renderer cases
 # compare against.
@@ -5074,7 +5111,7 @@ EOF
 # Pi still exports them and still bounds what it renders. Stubs cannot answer
 # that, so this runs against the real package and skips when it is absent.
 test_real_pi_picker_primitives_stay_bounded_and_searchable() {
-  if ! command -v node >/dev/null 2>&1; then
+  if ! type -P node >/dev/null 2>&1; then
     echo "skip: node not found for the Pi picker primitives test"
     return
   fi
@@ -5220,7 +5257,7 @@ JS
 }
 
 test_outcomes_tool_uses_stock_execution_and_export_consumers() {
-  if ! command -v node >/dev/null 2>&1; then
+  if ! type -P node >/dev/null 2>&1; then
     echo "skip: node not found for Pi outcomes rendering test"
     return
   fi
