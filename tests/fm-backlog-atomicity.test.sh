@@ -1894,7 +1894,7 @@ test_completion_preserves_records_when_meta_removal_fails() {
     "teardown did not report task-record removal failure"
   assert_present "$meta" "teardown lost meta after its removal failed"
   assert_present "$marker" "teardown discarded recovery after meta removal failed"
-  [ "$(row_state "$case_dir" "$id")" = done ] \
+  [ "$(row_state "$case_dir" "$id")" = "done" ] \
     || fail "teardown lost the successful backlog close while retaining task protection"
   pass "completion preserves recovery state when task-record removal fails"
 }

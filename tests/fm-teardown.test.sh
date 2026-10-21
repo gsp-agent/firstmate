@@ -6952,7 +6952,7 @@ SH
       "publication failure did not explain the retained task"
     assert_present "$case_dir/state/task-x1.meta" "publication failure removed B's task protection"
     assert_present "$case_dir/state/task-x1.backlog-close" "publication failure lost B's pending retirement"
-    [ "$(backlog_row_state "$case_dir")" = done ] \
+    [ "$(backlog_row_state "$case_dir")" = "done" ] \
       || fail "publication failure lost B's successful backlog close"
     assert_present "$case_dir/data/previous-id/.cleanup-hold/scratch.bin" \
       "the older $expiry worker expired the previous completed recovery"
@@ -6972,7 +6972,7 @@ SH
         || retry_status=$?
       [ "$retry_status" = 0 ] || fail "B's retirement did not recover: $(cat "$case_dir/retry.err")"
       assert_absent "$case_dir/state/task-x1.meta" "successful publication left B's task record"
-      [ "$(backlog_row_state "$case_dir")" = done ] || fail "successful publication did not close B's row"
+      [ "$(backlog_row_state "$case_dir")" = "done" ] || fail "successful publication did not close B's row"
       [ "$(cat "$case_dir/state/.task-data-sweep.rerun")" = task-x1 ] \
         || fail "successful publication lost B's completion"
       assert_present "$case_dir/data/task-x1/.cleanup-hold/fresh.bin" \
