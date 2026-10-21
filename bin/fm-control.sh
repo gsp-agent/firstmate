@@ -1084,11 +1084,6 @@ do_relaunch() {
         || die "task $ID has no instructions at $RELAUNCH_BRIEF; refusing to relaunch a worker with nothing to work from"
       [ "$NOTE_SET" = 1 ] && [ -n "$NOTE" ] \
         || die "relaunch of a $KIND task requires --note (or --note-file): the replacement worker inherits the local copy but none of the conversation, so it must be told what happened"
-      project=$(fm_meta_get "$META" project)
-      if ! live_session_deferral=$(fm_live_session_admit "$project" "$(basename "$project")"); then
-        echo "deferred: $live_session_deferral; task $ID was not relaunched and its agent, instructions, and task record are unchanged - relaunch it again once the check reads clear" >&2
-        exit 75
-      fi
       ;;
     secondmate)
       # The charter in the secondmate's own home is its instruction source and
@@ -1114,6 +1109,13 @@ do_relaunch() {
   journal_write noted "${CHECKPOINT_LINES[@]}" "$note_line"
 
   journal_write stopping "${CHECKPOINT_LINES[@]}" "$note_line"
+  if [ "$KIND" != secondmate ]; then
+    project=$(fm_meta_get "$META" project)
+    if ! live_session_deferral=$(fm_live_session_admit "$project" "$(basename "$project")"); then
+      echo "deferred: $live_session_deferral; task $ID was not relaunched and its agent, instructions, and task record are unchanged - relaunch it again once the check reads clear" >&2
+      exit 75
+    fi
+  fi
   exit_result=$(do_exit)
   journal_write exited "${CHECKPOINT_LINES[@]}" "$note_line" "exit_result=$exit_result"
 

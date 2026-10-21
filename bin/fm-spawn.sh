@@ -262,10 +262,9 @@
 #   Live sessions: when this machine has a live-session detector
 #   (bin/fm-live-session-lib.sh owns which detector, the folder name it is
 #   asked about, and the verdict), every ship or scout launch asks it about the
-#   project before taking the project lock. A read that is live or cannot
-#   decide prints one `deferred:` line naming the detector's verdict and exits
-#   75 before any brief render, endpoint or worktree allocation, task record
-#   publication, or backlog move. A --secondmate spawn is never checked.
+#   project immediately before dispatch. A read that is live or cannot decide
+#   prints a `deferred:` line naming the detector's verdict and exits 75 before
+#   launch or a backlog move. A --secondmate spawn is never checked.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
@@ -3531,20 +3530,6 @@ else
   WT=""
   BRIEF="$DATA/$ID/brief.md"
 fi
-# Live-session admission (bin/fm-live-session-lib.sh owns the detector, the
-# folder name it is asked about, and the verdict). A live session belongs to the
-# project's own agent, so a worker is deferred while the detector reads
-# live or cannot decide, before the project lock and before any brief render,
-# endpoint or worktree allocation, task record publication, or backlog move.
-if [ "$KIND" != secondmate ] &&
-  ! LIVE_SESSION_DEFERRAL=$(fm_live_session_admit "$PROJ_ABS" "$(basename "$PROJ_ABS")"); then
-  if [ "$RELAUNCH" -eq 1 ]; then
-    echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear" >&2
-  else
-    echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not launched and its backlog item stays queued - dispatch it again once the check reads clear" >&2
-  fi
-  exit "$SPAWN_DEFER_EXIT"
-fi
 # Project capacity admission (bin/fm-project-capacity-lib.sh owns the
 # declaration, what holds a place, the optional headroom command, and why this
 # is race-safe). A fresh worker for a project whose declared capacity is
@@ -5901,16 +5886,6 @@ spawn_report_preserved_state() {
   return 1
 }
 
-if [ "$RELAUNCH" -eq 1 ]; then
-  SPAWN_META_PUBLISH_STARTED=1
-  if ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$STATE/$ID.meta" "task record" "$STATE"; then
-    echo "error: replacement task record for $ID could not be published ($FM_BACKLOG_TRANSITION_ERROR)" >&2
-    exit 1
-  fi
-  RELAUNCH_REPLACEMENT_PENDING=0
-  SPAWN_META_PUBLISH_STARTED=0
-  SPAWN_META_TMP=
-fi
 # A dispatch or relaunch keeps the per-task meta lock through launch delivery.
 # The backlog mutation is deliberately the final fallible commit below, so
 # teardown cannot remove a relaunched record while its replacement worker is
@@ -6143,24 +6118,23 @@ if [ -z "$SPAWN_TRACEPARENT" ] && [ "$RELAUNCH" -eq 1 ]; then
 fi
 
 spawn_record_traceparent() {
-  local meta="$STATE/$ID.meta" status=0 acquired=0
+  local meta="${SPAWN_META_TMP:-$STATE/$ID.meta}" status=0 acquired=0 trace_tmp
   # Fresh publication still owns the lock. Relaunch deliberately uses a short
   # independent critical section so other metadata interfaces can serialize.
   if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
-    SPAWN_META_LOCK=$(fm_meta_lock_path "$meta") || return 1
+    SPAWN_META_LOCK=$(fm_meta_lock_path "$STATE/$ID.meta") || return 1
     fm_lock_acquire_wait "$SPAWN_META_LOCK"
     SPAWN_META_LOCK_HELD=1
     acquired=1
   fi
-  SPAWN_META_TMP="$STATE/.$ID.meta.trace.${BASHPID:-$$}"
+  trace_tmp="$STATE/.$ID.meta.trace.${BASHPID:-$$}"
   if [ ! -f "$meta" ] || [ ! -w "$meta" ] ||
-    ! awk -F= '$1 != "traceparent"' "$meta" >"$SPAWN_META_TMP" ||
-    ! printf 'traceparent=%s\n' "$SPAWN_TRACEPARENT" >>"$SPAWN_META_TMP" ||
-    ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$meta" "task record" "$STATE"; then
+    ! awk -F= '$1 != "traceparent"' "$meta" >"$trace_tmp" ||
+    ! printf 'traceparent=%s\n' "$SPAWN_TRACEPARENT" >>"$trace_tmp" ||
+    ! fm_backlog_atomic_transition publish "$trace_tmp" "$meta" "task record" "$STATE"; then
     status=1
-    rm -f "$SPAWN_META_TMP" 2>/dev/null || true
+    rm -f "$trace_tmp" 2>/dev/null || true
   fi
-  SPAWN_META_TMP=
   if [ "$acquired" = 1 ]; then
     fm_lock_release "$SPAWN_META_LOCK" || status=1
     SPAWN_META_LOCK_HELD=0
@@ -6296,6 +6270,25 @@ if ! (umask 077 && printf '%s\n' "$LAUNCH" >"$LAUNCH_STAGE" &&
   exit 1
 fi
 sleep 0.3
+if [ "$KIND" != secondmate ] &&
+  ! LIVE_SESSION_DEFERRAL=$(fm_live_session_admit "$PROJ_ABS" "$(basename "$PROJ_ABS")"); then
+  if [ "$RELAUNCH" -eq 1 ]; then
+    echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear" >&2
+  else
+    echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not launched and its backlog item stays queued - dispatch it again once the check reads clear" >&2
+  fi
+  exit "$SPAWN_DEFER_EXIT"
+fi
+if [ "$RELAUNCH" -eq 1 ]; then
+  SPAWN_META_PUBLISH_STARTED=1
+  if ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$STATE/$ID.meta" "task record" "$STATE"; then
+    echo "error: replacement task record for $ID could not be published ($FM_BACKLOG_TRANSITION_ERROR)" >&2
+    exit 1
+  fi
+  RELAUNCH_REPLACEMENT_PENDING=0
+  SPAWN_META_PUBLISH_STARTED=0
+  SPAWN_META_TMP=
+fi
 SPAWN_LAUNCH_SENT=1
 spawn_send_literal "$T" ". $(shell_quote "$LAUNCH_FILE")"
 sleep 0.3
