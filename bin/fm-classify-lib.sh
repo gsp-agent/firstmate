@@ -331,12 +331,17 @@ status_is_paused() {  # <status-line>
 }
 
 status_is_context_paused() {
-  local note limit
+  local note limit wait_reason
   status_is_paused "$1" || return 1
   note=$(status_line_note "$1" | tr '[:upper:]' '[:lower:]')
-  [[ ! "$note" =~ (^|[[:space:][:punct:]])(waiting|awaiting|until)([[:space:][:punct:]]|$) ]] || return 1
   limit='(context[[:space:]]+limit|300[[:space:]]*k[[:space:]]+context[[:space:]]+(line|limit))'
-  [[ "$note" =~ ^((this|the)[[:space:]]+)?(session[[:space:]]+)?((has[[:space:]]+)?(reached|passed|hit|exhausted)[[:space:]]+(the[[:space:]]+)?${limit}|${limit}[[:space:]]+(reached|passed|hit|exhausted))([[:space:][:punct:]]|$) ]]
+  [[ "$note" =~ ^((this|the)[[:space:]]+)?(session[[:space:]]+)?((has[[:space:]]+)?(reached|passed|hit|exhausted)[[:space:]]+(the[[:space:]]+)?${limit}|${limit}[[:space:]]+(reached|passed|hit|exhausted))([[:space:][:punct:]]|$) ]] || return 1
+  while [[ "$note" =~ (^|[[:space:][:punct:]])(waiting|awaiting|until)[[:space:]]+([^.;]*) ]]; do
+    wait_reason=${BASH_REMATCH[3]}
+    note=${note#*"${BASH_REMATCH[0]}"}
+    [[ "$wait_reason" =~ ^((for|on|until)[[:space:]]+)?((a|the)[[:space:]]+)?(fresh|replacement)[[:space:]]+session([[:space:]]+(to[[:space:]]+resume|resumes))?[[:space:]]*$ ]] || return 1
+  done
+  return 0
 }
 
 # 0 if a status line's leading verb is the verified captain-held transfer verb.

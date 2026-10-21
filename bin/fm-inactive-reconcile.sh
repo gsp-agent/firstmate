@@ -679,11 +679,18 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
 }
 
 reconcile_direct_child() { # <id> <meta> <secondmate-id-or-empty> <timeout>
-  local id=$1 meta=$2 self=${3:-} timeout=$4 lock rc=0
-  lock=$(fm_meta_lock_path "$meta") || return 1
-  fm_lock_acquire_wait "$lock" || return 1
+  local id=$1 meta=$2 self=${3:-} timeout=$4 lock control_lock rc=0
+  control_lock="$STATE/.control-$id.lock"
+  # Lock order: task control, then metadata; release in reverse order.
+  fm_lock_try_acquire "$control_lock" || return 0
+  lock=$(fm_meta_lock_path "$meta") || { fm_lock_release "$control_lock"; return 1; }
+  if ! fm_lock_acquire_wait_max "$lock" "$timeout"; then
+    fm_lock_release "$control_lock"
+    return 0
+  fi
   reconcile_direct_child_locked "$id" "$meta" "$self" "$timeout" || rc=$?
   fm_lock_release "$lock"
+  fm_lock_release "$control_lock"
   return "$rc"
 }
 

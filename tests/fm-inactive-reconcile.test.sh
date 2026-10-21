@@ -81,6 +81,14 @@ case "${1:-} ${2:-}" in
     printf 'all quiet\n> \n' ;;
   'pane close')
     [ ! -e "$FM_HERDR_WORLD/native-started" ] || : > "$FM_HERDR_WORLD/closed-running"
+    if [ "${FM_HOLD_RACE_ORDER:-}" = close-first ]; then
+      control_owner=$(cat "$FM_STATE_OVERRIDE/.control-child.lock/pid" 2>/dev/null || true)
+      meta_owner=$(cat "$FM_STATE_OVERRIDE/.meta-child.lock/pid" 2>/dev/null || true)
+      if [ -z "$control_owner" ] || [ "$control_owner" != "$meta_owner" ]; then
+        : > "$FM_HERDR_WORLD/close-without-control"
+      fi
+      [ ! -e "$FM_HERDR_WORLD/hold-finished" ] || : > "$FM_HERDR_WORLD/closed-held"
+    fi
     for record in "$FM_STATE_OVERRIDE/terminal-outcomes"/*; do
       [ -f "$record" ] || continue
       if grep -Fxq "pane_close_target=default:$3" "$record"; then
@@ -117,6 +125,15 @@ exit 0
 SH
   cat > "$fake/mktemp" <<'SH'
 #!/usr/bin/env bash
+for arg in "$@"; do
+  case "${FM_HOLD_RACE_ACTOR:-}:$arg" in
+    hold:*/.control-child.lock.owner.*) : > "$FM_HERDR_WORLD/hold-lock-attempt" ;;
+    reconcile:*/.meta-child.lock.owner.*)
+      if [ "${FM_HOLD_RACE_CHECK_ORDER:-0}" = 1 ] && [ ! -e "$FM_STATE_OVERRIDE/.control-child.lock/pid" ]; then
+        : > "$FM_HERDR_WORLD/meta-before-control"
+      fi ;;
+  esac
+done
 case "${FM_NATIVE_RACE_ACTOR:-}:${1:-}" in
   send:*/.lock-probe.*) : > "$FM_HERDR_WORLD/native-lock-attempt" ;;
   reconcile:*/.inactive-outcome-reconcile.*) : > "$FM_HERDR_WORLD/reconcile-started" ;;
@@ -310,6 +327,10 @@ test_context_paused_herdr_pane_closes_without_outcome() {
       'passed the 300K context line; a fresh session resumes' \
       'session context limit reached' \
       'context limit reached with a fresh session needed' \
+      'context limit reached; awaiting a fresh session to resume' \
+      'context limit reached; waiting for a replacement session to resume' \
+      'context limit reached; until a fresh session resumes' \
+      'context limit reached; waiting until a fresh session resumes; work committed' \
       'SESSION REACHED THE 300 K CONTEXT LINE; a fresh session resumes'; do
       index=$((index + 1))
       make_world "context-paused-close-$kind-$index"
@@ -338,6 +359,9 @@ test_event_paused_herdr_pane_stays_open() {
     'waiting for the PM call on the context question, until 2026-10-22T15:00Z' \
     'waiting for the PM call on the context limit question, until 2026-10-22T15:00Z' \
     'awaiting a decision about the 300K context line' \
+    'context limit reached; awaiting the PM call' \
+    'context limit reached; awaiting a fresh session to resume; waiting for the PM call' \
+    'context limit reached; awaiting a fresh session and PM approval' \
     'session reached the context limit; waiting for the PM call, until 2026-10-22T15:00Z'; do
     for state in unknown done failed; do
       index=$((index + 1))
@@ -420,6 +444,97 @@ test_captain_holds_keep_inactive_herdr_panes_open() {
     done
   done
   pass "authoritative captain holds and unreadable hold state preserve terminal and context-paused panes in both homes"
+}
+
+test_captain_hold_and_pane_closure_are_serialized() {
+  local route state order task_home note real_tasks_axi control_lock meta_lock
+  local control_owner meta_owner hold_pid reconcile_pid hold_rc reconcile_rc ready check_order expected_closes
+  real_tasks_axi=$(command -v tasks-axi) || fail "tasks-axi is required for captain-hold races"
+  for route in main ledger; do
+    for state in done failed paused; do
+      for order in hold-first close-first; do
+        make_world "captain-hold-race-$route-$state-$order"
+        task_home="$MAIN"
+        check_order=1
+        if [ "$route" = ledger ]; then
+          bind_secondmate local
+          task_home="$MATE"
+          check_order=0
+        fi
+        note='PR https://example.test/owner/repo/pull/1 checks green'
+        [ "$state" != paused ] || note='context limit reached; awaiting a fresh session to resume'
+        write_herdr_child "$task_home" child "$state: $note"
+        cat > "$WORLD/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${FM_HOLD_RACE_ACTOR:-}:${1:-}:${2:-}" = hold:hold:child ]; then
+  : > "$FM_HERDR_WORLD/hold-acquired-control"
+  if [ "$FM_HOLD_RACE_ORDER" = hold-first ]; then
+    deadline=$((SECONDS + 20))
+    while [ ! -e "$FM_HERDR_WORLD/hold-release" ]; do
+      [ "$SECONDS" -lt "$deadline" ] || exit 1
+      sleep 0.02
+    done
+  fi
+fi
+exec "${FM_HOLD_RACE_TASKS_AXI_BIN:?}" "$@"
+SH
+        chmod +x "$WORLD/fakebin/tasks-axi"
+        control_lock="$task_home/state/.control-child.lock"
+        meta_lock=$(fm_meta_lock_path "$task_home/state/child.meta")
+        ready=1
+        reconcile_pid=
+        reconcile_rc=0
+        expected_closes=0
+        if [ "$order" = close-first ]; then
+          expected_closes=1
+          FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" FM_NATIVE_RACE_ACTOR=reconcile \
+            FM_HOLD_RACE_ACTOR=reconcile FM_HOLD_RACE_ORDER="$order" FM_HOLD_RACE_CHECK_ORDER="$check_order" \
+            FM_HOLD_RACE_TASKS_AXI_BIN="$real_tasks_axi" run_reconcile "$task_home" --startup > "$WORLD/reconcile.out" 2>&1 &
+          reconcile_pid=$!
+          wait_native_race_event "$WORLD/close-waiting" || ready=0
+          control_owner=$(cat "$control_lock/pid" 2>/dev/null || true)
+          meta_owner=$(cat "$meta_lock/pid" 2>/dev/null || true)
+          [ -n "$control_owner" ] && [ "$control_owner" = "$meta_owner" ] || ready=0
+        fi
+        (
+          PATH="$WORLD/fakebin:$PATH" FM_HOME="$task_home" FM_STATE_OVERRIDE="$task_home/state" \
+            FM_DATA_OVERRIDE="$task_home/data" FM_HERDR_WORLD="$WORLD" FM_HOLD_RACE_ACTOR=hold \
+            FM_HOLD_RACE_ORDER="$order" FM_HOLD_RACE_TASKS_AXI_BIN="$real_tasks_axi" \
+            "$ROOT/bin/fm-captain-hold.sh" hold child --title 'Review child work' --reason 'Awaiting the captain' \
+            && : > "$WORLD/hold-finished"
+        ) > "$WORLD/hold.out" 2>&1 &
+        hold_pid=$!
+        if [ "$order" = hold-first ]; then
+          wait_native_race_event "$WORLD/hold-acquired-control" || ready=0
+          FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" FM_HOLD_RACE_ACTOR=reconcile \
+            FM_HOLD_RACE_ORDER="$order" FM_HOLD_RACE_CHECK_ORDER="$check_order" \
+            FM_HOLD_RACE_TASKS_AXI_BIN="$real_tasks_axi" run_reconcile "$task_home" --startup > "$WORLD/reconcile.out" 2>&1 \
+            || reconcile_rc=$?
+          [ ! -e "$WORLD/herdr-closed" ] || ready=0
+        else
+          wait_native_race_event "$WORLD/hold-lock-attempt" || ready=0
+          [ ! -e "$WORLD/hold-acquired-control" ] && [ ! -e "$WORLD/hold-finished" ] || ready=0
+        fi
+        : > "$WORLD/hold-release"
+        : > "$WORLD/close-release"
+        if [ -n "$reconcile_pid" ]; then wait "$reconcile_pid" || reconcile_rc=$?; fi
+        hold_rc=0
+        wait "$hold_pid" || hold_rc=$?
+        [ "$ready" = 1 ] && [ "$hold_rc" = 0 ] && [ "$reconcile_rc" = 0 ] \
+          || { cat "$WORLD/reconcile.out" "$WORLD/hold.out"; fail "$route $state $order race did not serialize hold and closure"; }
+        [ ! -e "$WORLD/meta-before-control" ] && [ ! -e "$WORLD/close-without-control" ] \
+          && [ ! -e "$WORLD/closed-held" ] || fail "$route $state $order violated the task-control boundary"
+        [ ! -e "$control_lock" ] && [ ! -L "$control_lock" ] \
+          && [ ! -e "$meta_lock" ] && [ ! -L "$meta_lock" ] || fail "hold/close race left a task lock held"
+        FM_HOME="$task_home" FM_STATE_OVERRIDE="$task_home/state" FM_DATA_OVERRIDE="$task_home/data" \
+          "$ROOT/bin/fm-captain-hold.sh" open child || fail "racing hold did not become authoritative"
+        [ "$(herdr_close_count)" = "$expected_closes" ] || fail "$order closed the pane on the wrong side of the hold"
+        FM_FAKE_CREW_STATE="$state" FM_HOLD_RACE_TASKS_AXI_BIN="$real_tasks_axi" run_reconcile "$task_home" --startup
+        [ "$(herdr_close_count)" = "$expected_closes" ] || fail "a later scan closed over the completed hold"
+      done
+    done
+  done
+  pass "captain holds and terminal/context-paused closure share task-control-before-metadata ordering in both homes"
 }
 
 test_retained_context_pause_requires_current_evidence_and_missing_pane() {
@@ -1716,6 +1831,7 @@ test_event_paused_herdr_pane_stays_open
 test_pause_during_state_read_supersedes_terminal_closure
 test_context_paused_busy_herdr_pane_stays_open
 test_captain_holds_keep_inactive_herdr_panes_open
+test_captain_hold_and_pane_closure_are_serialized
 test_retained_context_pause_requires_current_evidence_and_missing_pane
 
 echo "all inactive reconciliation tests passed"
