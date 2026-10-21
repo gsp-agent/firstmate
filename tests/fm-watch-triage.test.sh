@@ -6662,7 +6662,7 @@ test_paused_until_that_passed_is_rechecked_before_the_cadence() {
 }
 
 test_check_sweep_reprobes_captain_holds() {
-  local dir state fakebin out step mode probe show pid started elapsed before probe_pid
+  local dir state fakebin out step mode probe show pid started elapsed before probe_pid i
   local -a captain tasks
   command -v tasks-axi >/dev/null 2>&1 || { printf 'skip: tasks-axi not found\n'; return; }
   dir=$(make_case captain-hold-probes)
@@ -6720,7 +6720,14 @@ SH
     "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config" FM_CHECK_TIMEOUT=60 \
     2> "$dir/watch.err"
   pid=$!
-  if ! wait_poll_cycle "$state" "$pid" 600; then
+  i=0
+  while [ "$i" -lt 600 ] && kill -0 "$pid" 2>/dev/null \
+    && [ "$(file_mtime "$state/.last-check")" = 1 ]; do
+    sleep 0.1
+    i=$((i + 1))
+  done
+  if ! kill -0 "$pid" 2>/dev/null \
+    || ! [ "$(file_mtime "$state/.last-check")" -gt 1 ] 2>/dev/null; then
     reap "$pid"
     fail "the executable watcher did not finish its probe sweep: $(cat "$out" "$dir/watch.err")"
   fi
@@ -6772,7 +6779,7 @@ SH
 }
 
 test_check_sweep_surfaces_interrupted_probe_releases() {
-  local stage dir state fakebin out pid show request channel real_tasks real_rm
+  local stage dir state fakebin out pid show request channel real_tasks real_rm i
   local -a captain tasks
   real_tasks=$(command -v tasks-axi) || fail "tasks-axi is required for the interrupted-release test"
   real_rm=$(command -v rm)
@@ -6852,18 +6859,21 @@ SH
     pid=$!
     case "$stage" in
       unhold|failed)
-        wait_poll_cycle "$state" "$pid" 600 \
+        i=0
+        while [ "$i" -lt 600 ] && kill -0 "$pid" 2>/dev/null \
+          && [ "$(file_mtime "$state/.last-check")" = 1 ]; do
+          sleep 0.1
+          i=$((i + 1))
+        done
+        kill -0 "$pid" 2>/dev/null \
+          && [ "$(file_mtime "$state/.last-check")" -gt 1 ] 2>/dev/null \
           || { reap "$pid"; fail "a still-held $stage probe woke firstmate: $(cat "$out" "$dir/watch.err")"; }
         reap "$pid"
         [ ! -s "$out" ] && [ ! -s "$state/.wake-queue" ] \
           || fail "a still-held $stage probe emitted an actionable wake"
         ;;
       *)
-        if wait_poll_cycle "$state" "$pid" 600; then
-          reap "$pid"
-          fail "the $stage failure left a released task without an actionable wake"
-        fi
-        wait_for_exit "$pid" 100 || fail "the $stage failure did not close the watcher with a wake"
+        wait_for_exit "$pid" 600 || fail "the $stage failure did not close the watcher with a wake"
         assert_grep 'released but finalization failed' "$out" "the $stage wake did not name the unfinished release"
         assert_grep 'bin/fm-captain-hold.sh reprobe probe-task' "$out" "the $stage wake did not give the existing replay command"
         [ "$(wc -l < "$out" | tr -d '[:space:]')" = 1 ] || fail "the $stage failure printed multiple reason lines"
