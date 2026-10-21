@@ -42,9 +42,11 @@
 # 14400, four hours). It prints
 # `changes-requested <url> head=<sha> round=<n> reviewers=<csv>` for round 1
 # and, when that head is still current at least one stale interval after the
-# dispatched round, round 2. After two dispatched rounds with no new head it prints
+# dispatched round, round 2. At least one stale interval after the second
+# dispatched round with no new head it prints
 # `changes-requested-escalated <url> head=<sha> rounds=2 reviewers=<csv>` once.
 # Escalation does not require green checks or a blocking review decision.
+# A different head starts at round 1 when it meets the initial eligibility rules.
 # Reviewers come from all pages of latest opinionated reviews; an unavailable
 # reviewer list is reported as reviewers=unknown without suppressing the event.
 # This file owns that round record too: a mode-600 file
