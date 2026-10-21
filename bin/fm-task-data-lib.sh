@@ -206,27 +206,27 @@ fm_task_data_sweep_start() { # <data> <state>
   ) >/dev/null 2>&1 </dev/null &
 }
 
-# The bead-prefix map: each prefix and the home, under HOME, whose
-# .beads/beads.db owns it. The longest matching prefix wins.
+# The bead-prefix map: each home, under HOME, whose .beads/beads.db owns
+# the prefix after it. The longest matching prefix wins.
 fm_task_data_bead_database() { # <bead>
   local bead=$1 prefix home best='' owner=''
-  while read -r prefix home; do
+  while read -r home prefix; do
     case "$bead" in
       "$prefix"-*) [ "${#prefix}" -le "${#best}" ] || { best=$prefix; owner=$home; } ;;
     esac
   done <<'MAP'
-.agent-config .agent-config-beads
-bd dev/be-still
-carmanco dev/carman-compound
-clickless dev/pfizer-clickless
-dale dev/dale
-gj dev/gj-tool
-gj-gitlab-config dev/gj-gitlab-config
-gjmm dev/gj-magic-mirror
-gjops dev/groove-jones-ops
-gsp dev/gsp-beads
-heru dev/heru-vr-vision-sim
-obs dev/agent-observer
+.agent-config-beads .agent-config
+dev/be-still bd
+dev/carman-compound carmanco
+dev/pfizer-clickless clickless
+dev/dale dale
+dev/gj-tool gj
+dev/gj-gitlab-config gj-gitlab-config
+dev/gj-magic-mirror gjmm
+dev/groove-jones-ops gjops
+dev/gsp-beads gsp
+dev/heru-vr-vision-sim heru
+dev/agent-observer obs
 MAP
   [ -n "$owner" ] && printf '%s\n' "$HOME/$owner/.beads/beads.db"
 }
