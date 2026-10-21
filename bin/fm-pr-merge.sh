@@ -851,7 +851,17 @@ github_actions_disabled() {
 
 github_checks_not_green() {
   local json=$1
-  if github_actions_disabled; then return 0; fi
+  if github_actions_disabled; then
+    # Decision (c) waives only what Actions produced (chip review on #75):
+    # drop Actions check runs (their detailsUrl is an /actions/runs/ page);
+    # commit statuses and other apps' check runs stay enforced below.
+    json=$(printf '%s' "$json" | jq -c '
+      if (.statusCheckRollup | type) == "array" then
+        .statusCheckRollup |= map(
+          select(.__typename != "CheckRun"
+            or (((.detailsUrl // "") | contains("/actions/runs/")) | not)))
+      else . end') || return 1
+  fi
   printf '%s' "$json" | jq -r '
     def settled_at:
       if type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
@@ -909,7 +919,6 @@ github_read_required_contexts() {
   local base=$1 branch_path branch_json rules_json classic='' ruleset='' api_err api_err_text
   FM_PR_GITHUB_REQUIRED='[]'
   FM_PR_GITHUB_REQUIRED_ERROR=
-  if github_actions_disabled; then return 0; fi
   branch_path=$(github_urlencode_path_segment "$base")
 
   if ! branch_json=$(gh api "repos/$PR_OWNER/$PR_REPO/branches/$branch_path" 2>/dev/null) \
