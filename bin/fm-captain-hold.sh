@@ -21,7 +21,9 @@
 #
 # Usage:
 #   fm-captain-hold.sh hold <task-id> --reason <reason> \
-#     [--title <title>] [--repo <repo>] [--origin <origin-id>] [--until YYYY-MM-DD]
+#     [--title <title>] [--repo <repo>] [--origin <origin-id>] [--until YYYY-MM-DD] \
+#     [--dale-step sign-in|screen --probe <command> [--owner <endpoint>] [--hold-timeout <seconds>]]
+#   fm-captain-hold.sh reprobe <task-id>
 #   fm-captain-hold.sh answer <task-id> --decision-file <path> [--release]
 #   fm-captain-hold.sh answers [<legacy-origin> | --any-origin] --source <provenance>   (keyed answers on stdin)
 #   fm-captain-hold.sh reconcile-requests --source-id <source-id> --source <provenance>   (task ids on stdin)
@@ -50,12 +52,32 @@
 # hold preserves the existing timestamp, while re-holding released work starts
 # a new lifecycle. A task already closed is refused rather than reopened.
 # `--origin` also records the origin on a `Captain hold origin:` body line, which
-# `complete` and `verify` check. The reason may hold parentheses and line breaks:
+# `complete` and `verify` check. An ordinary hold's reason may hold parentheses
+# and line breaks:
 # tasks-axi refuses them, so `hold` escapes them where it writes the reason and
 # readers decode them (bin/fm-hold-reason-lib.sh owns the encoding).
 # `--until` records the captain's own deferral date through `tasks-axi hold
 # --until`, so a "revisit later" answer is stored as a date instead of a live
-# card.
+# card. It cannot be combined with `--dale-step`.
+#
+# A hold waiting on a Dale step (a sign-in or a screen) is created with
+# `--dale-step sign-in|screen --probe <command>`, with a non-empty single-line
+# reason and probe. The owner defaults to dale and the timeout to 3600 seconds.
+# Creation blocks only on the asks rule's answered and duplicate refusals;
+# category-word and form refusals stay nonblocking, and a missing or broken
+# rule lets creation proceed. The hold body carries the owner, timeout, reason
+# and probe fields defined by agent-config's docs/OPERATIONS.md hold-domain
+# section, the canonical format owner. `reprobe <task-id>` runs the recorded
+# command through Bash with a 10-second deadline, no input and its output
+# suppressed: exit 0 passes, while a failed, unknown or timed-out probe keeps
+# the hold and wakes nobody. A passing probe releases the hold under the task
+# control lock only when the hold-set
+# stamp and probe still match those checked, recording `probe-released`
+# evidence rather than the captain's words. It leaves the task open. The
+# `released:` result is printed once unhold succeeds, before body normalization,
+# parent-resolution publication and pending-request retirement finish. A later
+# failure returns nonzero; retry `reprobe` to finish that recorded release
+# without running the probe again. Holds without `--dale-step` are unchanged.
 #
 # `answer` records the captain's exact words and resolves the call in the same
 # act. It requires a non-empty captain decision file of at most 8192 bytes and
@@ -183,8 +205,8 @@
 # bin/fm-teardown.sh asks it before its automatic
 # backlog close and, on 0, returns the row to Queued with its deliverable
 # recorded instead (bin/fm-backlog-transition-lib.sh owns that transition), so
-# holding the very work item a question gates is safe; only `answer` with the
-# captain's words or evidence-backed `reconcile close` closes the call.
+# holding the very work item a question gates is safe; the semantic policy and
+# the command contracts above own the permitted resolution paths.
 # bin/fm-watch.sh asks it when an ordinary
 # crew task reaches a due stale alarm - its open backlog hold need not appear in
 # the task's last status line - and on a 0 bounds repeated alarms from new pane
@@ -194,21 +216,22 @@
 # one captain call. See "record divergence" beside command_diverged below.
 #
 # Resolution records: the block written into the body names this script, the
-# decision digest, and a `Resolution mode:` of answered, released, repaired, or
-# reconciled. Records written by the retired fm-decision-hold.sh (routed,
-# declined, answered, repaired) are recognized everywhere a record is read, so
-# nothing already closed needs rewriting.
+# decision digest, and a `Resolution mode:` of answered, released, repaired,
+# reconciled, or probe-released. Records written by the retired
+# fm-decision-hold.sh (routed, declined, answered, repaired) are recognized
+# everywhere a record is read, so nothing already closed needs rewriting.
 #
 # Parent channel: inside a secondmate home a task held for the captain, and its
 # answer, are captain-facing facts the moment they are recorded, so `hold`
-# publishes `needs-decision [key=captain-hold-<task>-<n>]` and `answer` (and
-# `answers`) the matching `resolved` line on the parent channel through
+# publishes `needs-decision [key=captain-hold-<task>-<n>]` and successful
+# `answer` (including `answers`), `reconcile close`, and `reprobe` paths publish
+# the matching `resolved` line on the parent channel through
 # bin/fm-parent-channel-lib.sh, whether or not the mate model appends anything.
 # <n> is the count of resolution records the body already carries plus one, so
 # a released and re-held task opens and closes a distinct parent decision with
 # no new persisted state, and an exact retry republishes the same line, which
 # the channel deduplicates. A main home has no channel and publishes nothing.
-# The hold or answer is already durable in the backlog, so a channel that
+# The hold or resolution is already durable in the backlog, so a channel that
 # cannot be written is reported as `actionable:` on stderr rather than undoing
 # the record; bin/fm-inactive-reconcile.sh's diagnostics name a broken binding.
 set -eu
@@ -511,18 +534,19 @@ closed_answer_replay_mode_compatible() {  # <mode> <task-body>
   return 1
 }
 
-# The record's label is what keeps an evidence-backed reconciliation from
-# reading as the captain's own words. `reconciled` closes a call that went moot
-# and carries verified evidence; every other mode carries what the captain said.
+# Evidence-only resolutions need their own label so neither reconciliation nor
+# a probe release can read as the captain's own words.
 resolution_block() {  # <mode>
   local label='Captain decision:'
-  [ "$1" != reconciled ] || label='Reconciliation evidence:'
+  case "$1" in
+    reconciled|probe-released) label='Reconciliation evidence:' ;;
+  esac
   printf 'Resolution recorded by fm-captain-hold.\nDecision digest: %s\nResolution mode: %s\n\n%s\n%s\n' \
     "$DECISION_DIGEST" "$1" "$label" "$DECISION_TEXT"
 }
 
 # Durable state of one captain call: an active captain hold (annotations
-# surviving even when a date gate has expired) or a recorded captain answer.
+# surviving even when a date gate has expired) or a recorded resolution.
 verify_hold_durable() {  # <task-id>
   local id=$1 show state hold_kind body
   task_show "$id" || fail "captain-held task $id is absent from this home's configured backlog (data directory $DATA)"
@@ -777,7 +801,7 @@ write_hold_set_stamp() {  # <task-id> <shown-body> <timestamp> <preserve-existin
     || fail "could not decode the existing body for $id"
   existing=$(body_hold_set_timestamp "$body")
   if [ "$preserve" = 1 ] && [ -n "$existing" ]; then
-    return 0
+    hold_set=$existing
   fi
   if [ -n "$existing" ]; then
     body=${body#"Captain hold set: $existing"}
@@ -786,6 +810,7 @@ write_hold_set_stamp() {  # <task-id> <shown-body> <timestamp> <preserve-existin
       $'\n'*) body=${body#$'\n'} ;;
     esac
   fi
+  body=$(printf '%s\n' "$body" | awk '!/^(Decision owner|Hold timeout seconds|Hold reason|Hold probe): /')
   new_body=$(printf 'Captain hold set: %s' "$hold_set")
   if [ -n "$body" ]; then
     new_body=$(printf '%s\n\n%s' "$new_body" "$body")
@@ -850,6 +875,143 @@ write_hold_origin() {  # <task-id> <shown-body> <origin-or-empty>
   rm -f -- "$tmp"
 }
 
+body_hold_probe() {  # <decoded-task-body>
+  [ -n "$(body_hold_set_timestamp "$1")" ] || return 0
+  printf '%s\n' "$1" | sed -n 's/^Hold probe: //p' | head -1
+}
+
+body_probe_release_recorded() {
+  local body=$1 stamp
+  stamp=$(body_hold_set_timestamp "$body")
+  if [ -n "$stamp" ]; then
+    [ -n "$(body_hold_probe "$body")" ] || return 1
+    body=${body#"Captain hold set: $stamp"}
+    body=$(printf '%s\n' "$body" | awk 'NF || started { started = 1; print }')
+  fi
+  case "$body" in
+    "Resolution recorded by fm-captain-hold."$'\n'*)
+      body_has_resolution_record "$body" \
+        && [ "$(recorded_resolution_mode "$body" || true)" = probe-released ]
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+# Keep the stamp first and preserve the existing body after the hold-domain
+# fields; the header names their format owner.
+write_dale_hold_fields() {  # <task-id> <shown-body> <owner> <timeout> <reason> <probe>
+  local id=$1 body=$2 owner=$3 timeout_s=$4 reason=$5 probe=$6 stamp rest new_body tmp
+  body=$(decode_shown_value "$body") \
+    || fail "could not decode the existing body for $id"
+  stamp=$(printf '%s\n' "$body" | sed -n 1p)
+  [ -n "$(body_hold_set_timestamp "$body")" ] \
+    || fail "task $id lost its hold-set stamp before its Dale-step fields were recorded"
+  rest=$(printf '%s\n' "$body" | sed 1d \
+    | awk 'NF || started { started = 1; print }')
+  new_body=$(printf '%s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\nHold probe: %s' \
+    "$stamp" "$owner" "$timeout_s" "$reason" "$probe")
+  if [ -n "$rest" ]; then
+    new_body=$(printf '%s\n\n%s' "$new_body" "$rest")
+  fi
+  tmp=$(umask 077; mktemp "${TMPDIR:-/tmp}/fm-captain-hold-dale.XXXXXX") \
+    || fail "cannot stage the Dale-step hold fields"
+  if ! printf '%s\n' "$new_body" > "$tmp"; then
+    rm -f -- "$tmp"
+    fail "cannot stage the Dale-step hold fields for $id"
+  fi
+  if ! tasks_axi update "$id" --body-file "$tmp" >/dev/null; then
+    rm -f -- "$tmp"
+    fail "could not record the Dale-step hold fields on $id"
+  fi
+  rm -f -- "$tmp"
+}
+
+# The asks CLI emits action text rather than verdict headings. Only its
+# exit-3 answered/duplicate actions are creation refusals; other outcomes
+# leave creation unblocked.
+dale_world_check() {  # <reason> <title> <owner>
+  local rule=${FM_DALE_ASKS_RULE:-$HOME/.agent-config/configs/claude/hooks/dale-asks-rule.py}
+  local out rc=0 line
+  [ -f "$rule" ] || return 0
+  command -v python3 >/dev/null 2>&1 || return 0
+  out=$(python3 "$rule" ask --question "$1" --title "$2" \
+    --recommend "$1" --text "$1" --if-no "$1" 2>/dev/null) || rc=$?
+  [ "$rc" = 3 ] || return 0
+  while IFS= read -r line; do
+    case "$line" in
+      "He answered it."*|"He decided it on "*|"review:"*" asks the same decision and came first"*)
+        fail "Dale-step hold refused by the asks rule's world check (owner: $3): $line" ;;
+    esac
+  done <<EOF
+$out
+EOF
+  return 0
+}
+
+command_reprobe() {
+  local id=${1:-} show state hold_kind held body stamp probe occurrence
+  [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+  validate_slug task-id "$id"
+  task_show "$id" || fail "captain-held task $id is absent from this home's configured backlog (data directory $DATA)"
+  show=$TASK_SHOW_OUTPUT
+  state=$(show_field "$show" state)
+  hold_kind=$(show_field_value "$show" hold_kind)
+  held=$(show_field_value "$show" held)
+  body=$(decode_shown_value "$(show_field "$show" body)") \
+    || fail "could not decode the existing body for $id"
+  stamp=$(body_hold_set_timestamp "$body")
+  probe=$(body_hold_probe "$body")
+  if [ "$state" != "done" ] && [ "$hold_kind" = captain ] && [ "$held" = yes ]; then
+    if [ -z "$probe" ]; then
+      printf 'kept: %s no-probe\n' "$id"
+      return 0
+    fi
+    if ! fm_run_timed 10 bash -c "$probe" </dev/null >/dev/null 2>&1; then
+      printf 'kept: %s probe-failed\n' "$id"
+      return 0
+    fi
+  elif [ "$held" = yes ] || ! body_probe_release_recorded "$body"; then
+    printf 'kept: %s not-held\n' "$id"
+    return 0
+  fi
+  acquire_task_control_lock "$id"
+  require_tasks_axi
+  task_show_or_fail "$id" "task $id disappeared before its probe release"
+  state=$(show_field "$show" state)
+  hold_kind=$(show_field_value "$show" hold_kind)
+  held=$(show_field_value "$show" held)
+  body=$(decode_shown_value "$(show_field "$show" body)") \
+    || fail "could not decode the existing body for $id"
+  occurrence=$(resolution_record_count "$(show_field "$show" body)")
+  if [ "$state" != "done" ] && [ "$hold_kind" = captain ] && [ "$held" = yes ]; then
+    if [ -z "$probe" ] || [ "$(body_hold_set_timestamp "$body")" != "$stamp" ] \
+      || [ "$(body_hold_probe "$body")" != "$probe" ]; then
+      printf 'kept: %s stamp-changed\n' "$id"
+      return 0
+    fi
+    DECISION_TEXT=$(printf 'Probe passed for the Dale step this hold waits on: %s' "$probe")
+    DECISION_DIGEST=$(sha256_text "$DECISION_TEXT")
+    if body_probe_release_recorded "$body"; then
+      [ "$(recorded_decision_digest "$body" || true)" = "$DECISION_DIGEST" ] \
+        || fail "task $id records different evidence for its interrupted probe release"
+    else
+      occurrence=$((occurrence + 1))
+      write_resolution_record "$id" probe-released "$(show_field "$show" body)"
+    fi
+    tasks_axi unhold "$id" >/dev/null || fail "could not release probe-passed task $id"
+  elif [ "$held" = yes ] || ! body_probe_release_recorded "$body"; then
+    printf 'kept: %s not-held\n' "$id"
+    return 0
+  fi
+  printf 'released: %s\n' "$id"
+  remove_interrupted_answer_stamp "$id"
+  task_show_or_fail "$id" "task $id disappeared after its probe release"
+  body_has_resolution_record "$(show_field "$show" body)" \
+    || fail "captain-held task $id did not retain its probe release record"
+  publish_parent_resolution_then_retire "$id" "$occurrence" probe-released
+  [ "$PARENT_HOLD_PUBLISHED" = 1 ] || fail "could not publish the probe-released task $id to its parent"
+}
+
 refuse_self_inventory() {
   local origin=$1 entry=$2 meta="$STATE/$1.meta"
   if list_has_key "$(meta_value "$meta" decision_keys)" "$entry"; then
@@ -903,6 +1065,7 @@ verify_entry_durable() {  # <origin-or-empty> <entry>; prints "<id> <how> <origi
 command_hold() {
   local id=${1:-} title='' reason='' repo='' origin='' until='' show state existing_title body='' hold_kind hold_set occurrence
   local existing_hold_kind='' existing_held='' preserve_hold_set=0 stored_reason previous_origin='' hold_status=0
+  local dale_step='' probe='' owner=dale hold_timeout=3600
   [ "$#" -ge 1 ] || { usage >&2; exit 2; }
   shift
   while [ "$#" -gt 0 ]; do
@@ -912,10 +1075,34 @@ command_hold() {
       --repo) shift; repo=${1:-} ;;
       --origin) shift; origin=${1:-} ;;
       --until) shift; until=${1:-} ;;
+      --dale-step) shift; dale_step=${1:-} ;;
+      --probe) shift; probe=${1:-} ;;
+      --owner) shift; owner=${1:-} ;;
+      --hold-timeout) shift; hold_timeout=${1:-} ;;
       *) usage >&2; exit 2 ;;
     esac
     shift
   done
+  if [ -n "$dale_step" ]; then
+    [ -z "$until" ] || fail "--until cannot be combined with --dale-step"
+    case "$dale_step" in
+      sign-in|screen) : ;;
+      *) fail "--dale-step must be sign-in or screen: $dale_step" ;;
+    esac
+    [ -n "$probe" ] || fail "--dale-step requires --probe <command>"
+    validate_one_line probe "$probe"
+    validate_one_line reason "$reason"
+    case "$owner" in
+      [A-Za-z0-9]*[!A-Za-z0-9._-]*|*[!A-Za-z0-9._-]) fail "owner must be an endpoint slug: $owner" ;;
+      '') fail "owner must not be empty" ;;
+    esac
+    case "$hold_timeout" in
+      [1-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*|*[!0-9]*|'') fail "--hold-timeout must be a positive integer of at most 7 digits: $hold_timeout" ;;
+    esac
+    dale_world_check "$reason" "$title" "$owner"
+  elif [ -n "$probe" ] || [ "$owner" != dale ] || [ "$hold_timeout" != 3600 ]; then
+    fail "--probe, --owner and --hold-timeout require --dale-step"
+  fi
   validate_slug task-id "$id"
   [ -n "$reason" ] || fail "reason must not be empty"
   # bin/fm-hold-reason-lib.sh owns the storage constraint and reversible encoding.
@@ -999,6 +1186,10 @@ command_hold() {
       write_hold_origin "$id" "$(show_field "$show" body)" "$previous_origin" || exit $?
     fi
     fail "could not hold task $id for the captain"
+  fi
+  if [ -n "$dale_step" ]; then
+    task_show_or_fail "$id" "task $id disappeared before recording its Dale-step fields"
+    write_dale_hold_fields "$id" "$(show_field "$show" body)" "$owner" "$hold_timeout" "$reason" "$probe"
   fi
   task_show "$id" || fail "task $id disappeared while holding it"
   show=$TASK_SHOW_OUTPUT
@@ -2040,6 +2231,7 @@ command_open() {  # <task-id> [--identity] [--distinguish-absent]
 
 case "${1:-}" in
   hold) shift; command_hold "$@" ;;
+  reprobe) shift; command_reprobe "$@" ;;
   answer) shift; command_answer "$@" ;;
   answers) shift; command_answers "$@" ;;
   reconcile-requests) shift; command_reconcile_requests "$@" ;;

@@ -6619,6 +6619,240 @@ test_paused_until_that_passed_is_rechecked_before_the_cadence() {
   pass "a declared wait whose until time has passed is rechecked at once, then held to the cadence"
 }
 
+test_check_sweep_reprobes_captain_holds() {
+  local dir state fakebin out step mode probe show pid started elapsed before probe_pid
+  local -a captain tasks
+  command -v tasks-axi >/dev/null 2>&1 || { printf 'skip: tasks-axi not found\n'; return; }
+  dir=$(make_case captain-hold-probes)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  out="$dir/watch.out"
+  mkdir -p "$dir/data" "$dir/config" "$dir/projects"
+  fm_test_tasks_toml "$dir/.tasks.toml"
+  printf '## In flight\n\n## Queued\n\n## Done\n' > "$dir/data/backlog.md"
+  captain=(env "PATH=$fakebin:$PATH" "FM_HOME=$dir" "FM_STATE_OVERRIDE=$state"
+    "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config"
+    "FM_DALE_ASKS_RULE=$dir/missing-asks-rule.py" "$ROOT/bin/fm-captain-hold.sh")
+  tasks=(env "FM_HOME=$dir" "FM_DATA_OVERRIDE=$dir/data" "$ROOT/bin/fm-tasks-axi.sh")
+  for step in sign-in screen; do
+    if "${captain[@]}" hold "deferred-$step" --title "Complete the $step" \
+      --reason "complete the Dale step" --dale-step "$step" --probe true \
+      --until 2099-01-01 > "$dir/deferred.out" 2> "$dir/deferred.err"; then
+      fail "a $step Dale-step hold accepted a deferral date"
+    fi
+    assert_grep 'until' "$dir/deferred.err" "the Dale-step deferral refusal did not identify --until: $(cat "$dir/deferred.err")"
+    if "${tasks[@]}" show "deferred-$step" --full >/dev/null 2>&1; then
+      fail "a refused Dale-step deferral still created its task"
+    fi
+  done
+  "${captain[@]}" hold ordinary --title 'Ordinary, "quoted" decision' \
+    --reason "choose the next action" --until 2099-01-01 >/dev/null \
+    || fail "an ordinary hold lost its supported deferral date"
+  cat > "$dir/probe.sh" <<'SH'
+#!/usr/bin/env bash
+mode=$1
+printf '%s\n' "$mode" >> "$FM_HOME/$mode.attempts"
+case "$mode" in
+  failed) exit 1 ;;
+  unknown) exec fm-test-missing-hold-probe ;;
+  hung)
+    printf '%s\n' "$$" > "$FM_HOME/probe.pid"
+    trap '' TERM
+    sleep 120 &
+    printf '%s\n' "$!" > "$FM_HOME/probe-child.pid"
+    wait
+    ;;
+  ready) test -f "$FM_HOME/probe-ready" ;;
+esac
+SH
+  chmod +x "$dir/probe.sh"
+  for mode in failed unknown hung ready; do
+    printf -v probe '%q %q' "$dir/probe.sh" "$mode"
+    "${captain[@]}" hold "probe-$mode" --title "Probe $mode, \"quoted\"" \
+      --reason "complete the Dale step" --dale-step screen --probe "$probe" >/dev/null \
+      || fail "could not create the $mode sweep fixture"
+  done
+  started=$(date +%s)
+  watch_bg "$state" "$fakebin" "$out" env "FM_HOME=$dir" "FM_ROOT_OVERRIDE=$dir" \
+    "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config" FM_CHECK_TIMEOUT=60 \
+    2> "$dir/watch.err"
+  pid=$!
+  if ! wait_poll_cycle "$state" "$pid" 600; then
+    reap "$pid"
+    fail "the executable watcher did not finish its probe sweep: $(cat "$out" "$dir/watch.err")"
+  fi
+  elapsed=$(( $(date +%s) - started ))
+  [ "$elapsed" -lt 50 ] || { reap "$pid"; fail "a hanging probe stalled the watcher for $elapsed seconds"; }
+  for mode in failed unknown hung ready; do
+    [ -s "$dir/$mode.attempts" ] \
+      || { reap "$pid"; fail "the executable sweep never ran the $mode probe"; }
+    show=$("${tasks[@]}" show "probe-$mode" --full)
+    assert_contains "$show" "held: yes" "a kept $mode probe released its hold"
+  done
+  for probe_pid in "$(cat "$dir/probe.pid")" "$(cat "$dir/probe-child.pid")"; do
+    if kill -0 "$probe_pid" 2>/dev/null; then
+      reap "$pid"
+      fail "a timed-out probe left process $probe_pid running"
+    fi
+  done
+  [ ! -s "$out" ] || { reap "$pid"; fail "kept probes printed a wake reason: $(cat "$out")"; }
+  [ ! -s "$state/.wake-queue" ] || { reap "$pid"; fail "kept probes queued a wake"; }
+  before=$(cat "$dir/ready.attempts")
+  : > "$dir/probe-ready"
+  if ! wait_poll_cycle "$state" "$pid"; then
+    reap "$pid"
+    fail "the watcher woke before the next check interval"
+  fi
+  [ "$(cat "$dir/ready.attempts")" = "$before" ] \
+    || { reap "$pid"; fail "probes ran outside the existing check cadence"; }
+  set_mtime 1 "$state/.last-check"
+  if ! wait_for_exit "$pid" 600; then
+    reap "$pid"
+    fail "the due sweep did not wake after a passing probe: $(cat "$out" "$dir/watch.err")"
+  fi
+  assert_grep 'check: captain hold probe-ready released after a passing probe' "$out" \
+    "the passing probe did not print its release reason"
+  [ "$(wc -l < "$out" | tr -d '[:space:]')" = 1 ] \
+    || fail "the passing probe printed more than one reason line: $(cat "$out")"
+  assert_grep 'captain-hold-probe-probe-ready' "$state/.wake-queue" \
+    "the sweep did not queue the released task for firstmate"
+  show=$("${tasks[@]}" show probe-ready --full)
+  assert_contains "$show" "held: no" "the passing sweep probe did not release its task"
+  assert_contains "$show" "Resolution mode: probe-released" "the sweep bypassed the captain-hold release owner"
+  for mode in failed unknown hung; do
+    show=$("${tasks[@]}" show "probe-$mode" --full)
+    assert_contains "$show" "held: yes" "the passing sibling released the $mode probe's hold"
+  done
+  show=$("${tasks[@]}" show ordinary --full)
+  assert_contains "$show" "held: yes" "the sweep released an ordinary deferred hold"
+  pass "the executable check sweep bounds probes, keeps failures quiet, and wakes once after release"
+}
+
+test_check_sweep_surfaces_interrupted_probe_releases() {
+  local stage dir state fakebin out pid show request channel real_tasks real_rm
+  local -a captain tasks
+  real_tasks=$(command -v tasks-axi) || fail "tasks-axi is required for the interrupted-release test"
+  real_rm=$(command -v rm)
+  for stage in normalize verify publish publish-no-request retire unhold failed; do
+    dir=$(make_case "probe-finalization-$stage")
+    state="$dir/state"
+    fakebin="$dir/fakebin"
+    out="$dir/watch.out"
+    mkdir -p "$dir/data" "$dir/config" "$dir/projects" "$dir/parent/state"
+    fm_test_tasks_toml "$dir/.tasks.toml"
+    printf '## In flight\n\n## Queued\n\n## Done\n' > "$dir/data/backlog.md"
+    printf 'probe-mate\n' > "$dir/.fm-secondmate-home"
+    printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$dir/parent" \
+      > "$dir/.fm-secondmate-parent"
+    channel="$dir/parent/state/probe-mate.status"
+    request="$state/reconcile-requests/probe-task.request"
+    captain=(env "PATH=$fakebin:$PATH" "REAL_TASKS_AXI=$real_tasks" "REAL_RM=$real_rm" "FM_HOME=$dir"
+      "FM_STATE_OVERRIDE=$state" "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config"
+      "FM_DALE_ASKS_RULE=$dir/missing-asks-rule.py" "$ROOT/bin/fm-captain-hold.sh")
+    tasks=(env "FM_HOME=$dir" "FM_DATA_OVERRIDE=$dir/data" "$ROOT/bin/fm-tasks-axi.sh")
+    # shellcheck disable=SC2016
+    "${captain[@]}" hold probe-task --title 'Complete the sign-in' --reason 'sign in to the service' \
+      --dale-step sign-in --probe 'test -f "$FM_HOME/probe-ready"' >/dev/null \
+      || fail "could not create the $stage probe hold"
+    if [ "$stage" != publish-no-request ]; then
+      "${captain[@]}" bind probe-board >/dev/null || fail "could not bind the $stage board"
+      printf 'probe-task\n' | "${captain[@]}" reconcile-requests --source-id probe-board \
+        --source 'captured board result' >/dev/null || fail "could not request $stage reconciliation"
+    fi
+    if [ "$stage" != failed ]; then
+      : > "$dir/probe-ready"
+    fi
+    cat > "$fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+stage=${FM_TEST_PROBE_FAILURE:-}
+if [ "$stage" = unhold ] && [ "${1:-}" = unhold ]; then
+  exit 92
+fi
+if [ "$stage" = normalize ] && [ "${1:-}" = update ]; then
+  case "$("$REAL_TASKS_AXI" show "$2" --full)" in *"held: no"*) exit 93 ;; esac
+fi
+if [ "$stage" = verify ] && [ "${1:-}" = show ]; then
+  shown=$("$REAL_TASKS_AXI" "$@") || exit $?
+  case "$shown" in
+    *"held: no"*)
+      case "$shown" in
+        *"Captain hold set:"*) ;;
+        *"Resolution mode: probe-released"*) exit 94 ;;
+      esac
+      ;;
+  esac
+  printf '%s\n' "$shown"
+  exit 0
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+    cat > "$fakebin/rm" <<'SH'
+#!/usr/bin/env bash
+if [ "${FM_TEST_PROBE_FAILURE:-}" = retire ]; then
+  for arg in "$@"; do
+    [ "$arg" != "$FM_HOME/state/reconcile-requests/probe-task.request" ] || exit 95
+  done
+fi
+exec "$REAL_RM" "$@"
+SH
+    chmod +x "$fakebin/tasks-axi" "$fakebin/rm"
+    case "$stage" in
+      publish|publish-no-request)
+        printf 'schema=fm-secondmate-parent.v1\nroute=invalid\n' > "$dir/.fm-secondmate-parent"
+        ;;
+    esac
+    watch_bg "$state" "$fakebin" "$out" env "FM_HOME=$dir" "FM_ROOT_OVERRIDE=$dir" \
+      "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config" \
+      "REAL_TASKS_AXI=$real_tasks" "REAL_RM=$real_rm" "FM_TEST_PROBE_FAILURE=$stage" \
+      2> "$dir/watch.err"
+    pid=$!
+    case "$stage" in
+      unhold|failed)
+        wait_poll_cycle "$state" "$pid" 600 \
+          || { reap "$pid"; fail "a still-held $stage probe woke firstmate: $(cat "$out" "$dir/watch.err")"; }
+        reap "$pid"
+        [ ! -s "$out" ] && [ ! -s "$state/.wake-queue" ] \
+          || fail "a still-held $stage probe emitted an actionable wake"
+        ;;
+      *)
+        if wait_poll_cycle "$state" "$pid" 600; then
+          reap "$pid"
+          fail "the $stage failure left a released task without an actionable wake"
+        fi
+        wait_for_exit "$pid" 100 || fail "the $stage failure did not close the watcher with a wake"
+        assert_grep 'released but finalization failed' "$out" "the $stage wake did not name the unfinished release"
+        assert_grep 'bin/fm-captain-hold.sh reprobe probe-task' "$out" "the $stage wake did not give the existing replay command"
+        [ "$(wc -l < "$out" | tr -d '[:space:]')" = 1 ] || fail "the $stage failure printed multiple reason lines"
+        assert_grep 'captain-hold-probe-probe-task' "$state/.wake-queue" "the $stage failure did not queue its actionable wake"
+        ;;
+    esac
+    show=$("${tasks[@]}" show probe-task --full)
+    case "$stage" in
+      unhold|failed) assert_contains "$show" 'held: yes' "the $stage failure released the task" ;;
+      *)
+        assert_contains "$show" 'held: no' "the $stage failure did not occur after release"
+        assert_contains "$show" 'Resolution mode: probe-released' "the $stage failure lost its durable evidence"
+        mv "$dir/probe-ready" "$dir/probe-unavailable"
+        ;;
+    esac
+    if [ "$stage" != publish-no-request ]; then
+      assert_present "$request" "the $stage failure lost its pending reconciliation"
+    fi
+    printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$dir/parent" \
+      > "$dir/.fm-secondmate-parent"
+    case "$stage" in unhold|failed) : > "$dir/probe-ready" ;; esac
+    "${captain[@]}" reprobe probe-task > "$dir/retry.out" || fail "the $stage replay could not finish the release"
+    show=$("${tasks[@]}" show probe-task --full)
+    assert_contains "$show" 'held: no' "the $stage replay left the task held"
+    [ "$(printf '%s\n' "$show" | grep -o 'Resolution recorded by fm-captain-hold\.' | wc -l | tr -d ' ')" = 1 ] \
+      || fail "the $stage replay duplicated its resolution record"
+    assert_absent "$request" "the $stage replay left its reconciliation pending"
+    [ "$(grep -c 'resolved \[key=captain-hold-probe-task-1\]' "$channel")" = 1 ] \
+      || fail "the $stage replay did not resolve its parent occurrence exactly once"
+  done
+  pass "the check sweep wakes for interrupted releases, keeps held failures quiet, and supports replay"
+}
+
 # CI's stock macOS Bash lane sets FM_TEST_ONLY to run just the bash-3.2
 # churn-deferral regression. The rest of this file is not a 3.2 snapshot suite.
 if [ -n "${FM_TEST_ONLY:-}" ]; then
@@ -6767,3 +7001,5 @@ test_captain_held_rechecked_under_a_quiet_record
 test_paused_until_near_future_is_quiet_before_the_cadence
 test_paused_until_wrong_year_is_bounded_by_the_cadence
 test_paused_until_that_passed_is_rechecked_before_the_cadence
+test_check_sweep_reprobes_captain_holds
+test_check_sweep_surfaces_interrupted_probe_releases

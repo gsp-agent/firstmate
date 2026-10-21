@@ -34,6 +34,7 @@ It never reads report bodies, review artifacts, terminal output, or chat.
 | Subcommand | What it does | Details |
 | --- | --- | --- |
 | `hold` | Creates or reuses a task and holds it for the captain. | [Creating a hold](#creating-a-hold-hold) |
+| `reprobe` | Checks the recorded probe for a Dale-step hold. | [Dale-step probe holds](#dale-step-probe-holds) |
 | `answer` | Records the captain's exact words and resolves the call. | [Answering a call](#answering-a-call-answer) |
 | `complete` | Records the reviewed captain-held task ids in the originating task's metadata. | [Recording a reviewed inventory](#recording-a-reviewed-inventory-complete) |
 | `verify` | Read-only check that scout teardown runs before removing source state. | [Checking before scout teardown](#checking-before-scout-teardown-verify) |
@@ -65,7 +66,7 @@ Repeat and edge cases:
 - `--until` stores the captain's own deferral date through tasks-axi's date gate.
 - Before the backend hold runs, `--origin` records the origin the call is held for on its own `Captain hold origin:` body line, which `complete` and `verify` check using backend identities rather than alias spellings.
   If that write fails, the backend hold is not attempted.
-- The reason may contain parentheses, semicolons, quotes, and line breaks.
+- An ordinary hold's reason may contain parentheses, semicolons, quotes, and line breaks; the [command reference](../bin/fm-captain-hold.sh) owns Dale-step input restrictions.
   [`bin/fm-hold-reason-lib.sh`](../bin/fm-hold-reason-lib.sh) owns the storage encoding and compatibility rules; [`bin/fm-tasks-axi.sh --help`](../bin/fm-tasks-axi.sh) owns the public read commands and output contract.
 
 ### Answering a call (`answer`)
@@ -184,7 +185,7 @@ The refusal names the record and the validation reason, so the captain can repai
 ### What `--force` does not lift
 
 `--force` does not lift the deferral, because it authorizes discarding unlanded work, never the captain's question.
-Only `answer` with the captain's words or evidence-backed `reconcile close` resolves the call, by either closing the question or releasing the gated work.
+The [captain-hold policy](../.agents/skills/captain-hold-lifecycle/SKILL.md#policy) owns which resolution paths may settle a held task.
 `bin/fm-backlog-transition-lib.sh` owns the transition and its record, and `bin/fm-captain-hold.sh --help` owns the predicate's contract.
 
 ## Answer-time resolution
@@ -308,7 +309,13 @@ A successful normal answer also retires any pending request, because an answered
 
 Every retirement is checked.
 If request removal fails after an answer, close, or note is already durable, the durable outcome stands, but the command fails and leaves the pending request visible for retry.
-No path here closes a captain call without either the captain's words through `answer` or the evidence through `reconcile close`.
+
+### Dale-step probe holds
+
+The [command reference](../bin/fm-captain-hold.sh) owns Dale-step hold creation, world-check filtering, input restrictions, and probe-backed release.
+The [watcher reference](../bin/fm-watch.sh) owns automatic reprobe scheduling and release notifications; the [supervision-need contract](turnend-guard.md#supervision-need) covers idle homes.
+The Dale-step cases in [`tests/fm-captain-hold-lifecycle.test.sh`](../tests/fm-captain-hold-lifecycle.test.sh) cover the serialized fields, asks-rule action output, ordinary re-holds, a hold changed during its probe, and interrupted-release retries.
+The executable sweep cases live in [`tests/fm-watch-triage.test.sh`](../tests/fm-watch-triage.test.sh), and the idle-home auto-arm and final-release notification cases live in [`tests/fm-claude-stop-autoarm.test.sh`](../tests/fm-claude-stop-autoarm.test.sh).
 
 ## Card hygiene: a landed subject is not a live call
 
@@ -419,7 +426,7 @@ The away-posture restriction on queued merges and its residual limits are owned 
 A captain call can have two records, and closing one does not close the other.
 The status-log fold is the open-decision set `bin/fm-classify-lib.sh` reads from a task's status log, where a keyed `needs-decision` or `blocked` line opens a decision.
 A `resolved [key=...]` line closes the status-log fold.
-The structured captain-held task closes only through `answer`.
+The [captain-hold policy](../.agents/skills/captain-hold-lifecycle/SKILL.md#policy) owns the permitted resolution paths for the structured task.
 
 Until this guard existed, closing on the status side alone left no trace of the disagreement.
 The fold went quiet, the durable record kept saying the captain owed an answer, and nothing warned.
