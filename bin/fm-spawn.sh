@@ -256,9 +256,12 @@
 #   reading's configuration, no lock is released for it. An
 #   unreadable declaration refuses with exit 1.
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
-#   else failed. A relaunch and a --secondmate spawn are never counted against
-#   capacity.
-#   Regression coverage: tests/fm-project-capacity.test.sh.
+#   else failed. A relaunch is never refused for capacity: it replaces the
+#   agent of a task whose record already holds its place, with or without a
+#   recorded PR, so it never changes the count. A --secondmate spawn is never
+#   counted.
+#   Regression coverage: tests/fm-project-capacity.test.sh and
+#   tests/fm-control-relaunch.test.sh.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
@@ -3609,7 +3612,7 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     fi
     if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != admit ] &&
       [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != within ]; then
-      SPAWN_CAPACITY_DEFER="deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up"
+      SPAWN_CAPACITY_DEFER="deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them is cleaned up"
       case "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" in
         off) ;;
         spent)

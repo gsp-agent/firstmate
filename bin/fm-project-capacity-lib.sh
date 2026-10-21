@@ -39,18 +39,18 @@
 #
 # Occupancy: a place is held by every task record, in any local Firstmate home on
 # this machine (fm_local_firstmate_state_dirs in bin/fm-wake-lib.sh), that
-#   - is not a secondmate, which is a persistent home rather than a worker,
+#   - is not a secondmate, which is a persistent home rather than a worker, and
 #   - names the same project identity, meaning its project resolves to the same
 #     shared project lock path (fm_treehouse_project_lock_path), which is keyed
 #     by the project's resolved origin, so workers in any clone of that origin
-#     are counted, and
-#   - has no recorded PR handoff: the pr= line bin/fm-pr-check.sh records when a
-#     worker's PR is ready, after which the worker waits on review or merge and
-#     no longer uses local resources.
-# A place therefore frees when a PR-based ship records its ready PR, or when any
-# task is cleaned up and its record removed. A local-only ship and a scout have
-# no recorded handoff and hold their place until cleanup. A worker that is
-# steered back into work after its PR handoff is not counted again.
+#     are counted.
+# A task therefore holds its place for as long as it is in flight, and a place
+# frees only when a task is cleaned up and its record removed. A recorded PR
+# (the pr= line bin/fm-pr-check.sh writes) does not free one: its worker stays
+# live, is steered or relaunched into review fix rounds, and its validation and
+# review keep running, so counting it out let a project run far past its
+# declared number (.agent-config-9ux6u). A relaunch replaces the agent of a
+# record that already holds its place, so it never changes the count.
 # The declaration is matched by the spawning clone's directory name, so clones
 # of one origin share the cap only when they use that same directory name. A
 # clone of that origin under a different directory name finds no declaration
@@ -68,8 +68,8 @@
 # A spawn on an uncapped project can still publish a holder for a capped
 # same-origin clone, so every backend takes that lock whenever the declaration
 # caps any project; Orca, which otherwise never takes it, is included.
-# Removing a record or adding pr= only lowers the count, so admission tolerates
-# those concurrent decreases.
+# Removing a record only lowers the count, so admission tolerates that
+# concurrent decrease.
 #
 # Headroom command: config/project-capacity-headroom in that same config
 # directory. The file is off when it is absent or has no non-whitespace line,
@@ -258,7 +258,6 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
       }
       kind=$(fm_meta_get "$meta" kind)
       [ "$kind" != secondmate ] || continue
-      [ -z "$(fm_meta_get "$meta" pr)" ] || continue
       project=$(fm_meta_get "$meta" project)
       [ -n "$project" ] || continue
       lock=

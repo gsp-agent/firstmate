@@ -490,6 +490,41 @@ test_relaunch_preserves_durable_task_metadata() {
   pass "fm-control relaunch: durable task metadata survives replacement launch publication"
 }
 
+# A relaunch is never refused for project capacity, because it replaces the
+# agent of a task that already holds its place. That holds for a task whose PR
+# is recorded too: the relaunched worker runs its fix round, so the task keeps
+# counting, and a fresh spawn past the declared capacity still defers
+# (.agent-config-9ux6u: relaunched fix-round workers ran uncounted).
+test_relaunched_pr_handoff_task_keeps_its_project_place() {
+  local dir out rc
+  dir=$(new_case cap-place rlcap)
+  add_ship_task "$dir" rlcap claude
+  printf '%s\n' 'pr=https://github.com/example/repo/pull/90' >> "$dir/home/state/rlcap.meta"
+  mkdir -p "$dir/home/config" "$dir/home/data/rlnext"
+  printf '%s\n' 'proj 1' > "$dir/home/config/project-capacity"
+  cat > "$dir/home/data/rlnext/brief.md" <<'EOF'
+# Task
+## Captain's intent
+A second task on the same project.
+
+## Firstmate spec
+Wait for a free place.
+EOF
+
+  out=$(run_control "$dir" rlcap relaunch --note "fix round after review"); rc=$?
+  expect_code 0 "$rc" "a relaunch in a project at its capacity was refused"$'\n'"$out"
+  assert_not_contains "$out" "deferred:" "a relaunch was deferred for capacity"
+  [ "$(meta_field "$dir" rlcap pr)" = "https://github.com/example/repo/pull/90" ] \
+    || fail "the task PR must survive relaunch"
+
+  out=$(TMUX="fake,1,0" FM_BACKEND=tmux run_spawn "$dir" rlnext "$dir/proj" claude --mode no-mistakes --yolo off); rc=$?
+  expect_code 75 "$rc" "a fresh spawn took the place a relaunched PR-handoff task still holds"$'\n'"$out"
+  assert_contains "$out" "1 already hold a place (rlcap)" \
+    "the deferral did not count the relaunched task that recorded its PR"
+  assert_absent "$dir/home/state/rlnext.meta" "the deferred spawn published a task record"
+  pass "fm-control relaunch: a relaunched task keeps its project place, PR recorded or not, and a fresh spawn past the cap defers"
+}
+
 test_relaunch_serializes_concurrent_durable_metadata_publication() {
   local dir control_pid link_pid rc i=0 traceparent prepare launch_release waiting ready release
   dir=$(new_case metadata-race rl28)
@@ -2536,6 +2571,7 @@ test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
 test_relaunch_from_linked_home_preserves_recorded_worktree
 test_relaunch_preserves_durable_task_metadata
+test_relaunched_pr_handoff_task_keeps_its_project_place
 test_relaunch_serializes_concurrent_durable_metadata_publication
 test_disabled_relaunch_clears_prior_trace_context
 test_relaunch_appends_the_progress_note_to_the_instructions

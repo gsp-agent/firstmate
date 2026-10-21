@@ -367,9 +367,11 @@ test_restart_does_not_count_its_own_record() {
   pass "a restart of a task id does not count that task's own record"
 }
 
-# A place frees when a worker records its ready PR and when a task is cleaned
-# up; each release admits exactly one more worker.
-test_release_frees_a_place() {
+# A task holds its place for as long as it is in flight. A recorded PR handoff
+# does not free it: the worker still lives, is steered or relaunched into fix
+# rounds, and its review and merge still run (.agent-config-9ux6u). Only
+# cleanup frees a place, and each cleanup admits exactly one more worker.
+test_pr_handoff_keeps_its_place_until_cleanup() {
   local case_dir home out rc=0
   case_dir=$(make_case release task-c task-d)
   home="$case_dir/home"
@@ -382,12 +384,10 @@ test_release_frees_a_place() {
   # PR handoff: the line bin/fm-pr-check.sh records for a ready PR.
   printf 'pr=%s\n' "https://github.com/o/r/pull/7" >> "$home/state/live-a.meta"
   rc=0
-  out=$(spawn_ship "$case_dir" task-c) || rc=$?
-  expect_code 0 "$rc" "a recorded PR handoff did not free a place: $out"
-  rc=0
-  out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
-  expect_code "$DEFER_EXIT" "$rc" "one freed place admitted two workers: $out"
-  assert_contains "$out" "2 already hold a place (live-b, task-c)" "the new worker did not take the freed place"
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a recorded PR handoff freed a place while its task is still in flight: $out"
+  assert_contains "$out" "2 already hold a place (live-a, live-b)" \
+    "the deferral did not count the task that recorded its PR"
 
   # Cleanup: the real teardown removes the record, which frees its place.
   rc=0
@@ -397,9 +397,13 @@ test_release_frees_a_place() {
   expect_code 0 "$rc" "cleanup of a live worker failed: $out"
   assert_absent "$home/state/live-b.meta" "cleanup left the worker's record"
   rc=0
-  out=$(spawn_ship "$case_dir" task-d) || rc=$?
+  out=$(spawn_ship "$case_dir" task-c) || rc=$?
   expect_code 0 "$rc" "cleanup did not free a place: $out"
-  pass "a recorded PR handoff or a cleanup each frees exactly one place"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "one freed place admitted two workers: $out"
+  assert_contains "$out" "2 already hold a place (live-a, task-c)" "the new worker did not take the freed place"
+  pass "a task keeps its place through its PR handoff, and only its cleanup frees it"
 }
 
 # Only workers on the same project identity hold places: a secondmate record, a
@@ -453,10 +457,11 @@ test_capacity_is_shared_by_every_local_home() {
   assert_contains "$out" "admits 1 worker(s) at once on this machine ($root/config/project-capacity) and 1 already hold a place (live-a in $root)" \
     "the secondmate did not count the root home's worker against the root's declaration"
   assert_absent "$mate/state/task-m.meta" "the deferred secondmate spawn published a record"
-  printf 'pr=%s\n' "https://github.com/o/r/pull/8" >> "$root/state/live-a.meta"
+  # Cleanup of the root home's worker leaves only the remote home's record.
+  rm -f "$root/state/live-a.meta"
   rc=0
   out=$(run_spawn "$case_dir" "$mate" "$case_dir/wt-m" task-m "$mate_project" --mode no-mistakes --yolo off) || rc=$?
-  expect_code 0 "$rc" "the remote home's worker, or a handed-off one, took the machine's place: $out"
+  expect_code 0 "$rc" "the remote home's worker took the machine's place: $out"
   pass "every local home shares one declared capacity per project origin, and remote homes do not count"
 }
 
@@ -1395,7 +1400,7 @@ test_exhausted_capacity_defers_without_leaving_anything_behind
 test_spaced_project_name_is_declared
 test_hash_prefixed_project_name_is_declared
 test_symlinked_home_counts_each_worker_once
-test_release_frees_a_place
+test_pr_handoff_keeps_its_place_until_cleanup
 test_restart_does_not_count_its_own_record
 test_occupancy_counts_only_this_projects_workers
 test_capacity_is_shared_by_every_local_home

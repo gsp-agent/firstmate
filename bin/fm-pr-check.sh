@@ -17,8 +17,8 @@
 # draft state does not refuse, matching how the head read below is optional.
 # bin/fm-pr-merge.sh records through this script with FM_PR_CHECK_MERGE=1 and
 # skips this refusal, because its own merge-time draft refusal is authoritative.
-# The recorded pr= also frees the task's place in a declared project capacity
-# (bin/fm-project-capacity-lib.sh).
+# The recorded pr= does not free the task's place in a declared project
+# capacity; only cleanup does (bin/fm-project-capacity-lib.sh).
 # A registered GitHub pull request is also stamped with the engines that wrote
 # it through bin/fm-pr-made-with.sh, except on the merge-time re-record.
 # Usage: fm-pr-check.sh <task-id> <pr-url>
