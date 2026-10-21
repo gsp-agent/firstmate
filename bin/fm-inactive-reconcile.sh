@@ -123,6 +123,8 @@ CREW_STATE_BIN="${FM_INACTIVE_CREW_STATE_BIN:-$SCRIPT_DIR/fm-crew-state.sh}"
 . "$SCRIPT_DIR/fm-backend.sh"
 # shellcheck source=bin/fm-busy-lib.sh
 . "$SCRIPT_DIR/fm-busy-lib.sh"
+# shellcheck source=bin/fm-task-inbox-lib.sh
+. "$SCRIPT_DIR/fm-task-inbox-lib.sh"
 
 FM_INACTIVE_RECONCILE_SECS=${FM_INACTIVE_RECONCILE_SECS:-900}
 case "$FM_INACTIVE_RECONCILE_SECS" in
@@ -518,7 +520,7 @@ report_child() { # <id>
 # endpoint's identity, or a close that cannot do its job, warns and leaves the
 # pane exactly as it was.
 close_terminal_child_pane() { # <id> <meta> <fingerprint>
-  local id=$1 meta=$2 fingerprint=$3 record suffix kind mode last state spawn_gen busy
+  local id=$1 meta=$2 fingerprint=$3 record suffix kind mode last state spawn_gen busy message
   [ "$(meta_field "$meta" backend)" = herdr ] || return 0
   spawn_gen=$(meta_field "$meta" spawn_gen)
   valid_id "$spawn_gen" || return 0
@@ -551,6 +553,9 @@ close_terminal_child_pane() { # <id> <meta> <fingerprint>
     printf 'fm-inactive-reconcile: %s terminal pane left open: endpoint identity not proven\n' "$id" >&2
     return 0
   fi
+  for message in "$(fm_task_inbox_dir "$STATE" "$id")"/*.msg; do
+    [ ! -e "$message" ] || return 0
+  done
   busy=$(fm_busy_classify_meta "$meta" "$id" "$STATE")
   case "$busy" in
     'idle grok-regex') return 0 ;;

@@ -4,6 +4,8 @@ set -u
 
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=bin/fm-task-inbox-lib.sh
+. "$ROOT/bin/fm-task-inbox-lib.sh"
 
 RECON="$ROOT/bin/fm-inactive-reconcile.sh"
 DRAIN="$ROOT/bin/fm-wake-drain.sh"
@@ -1039,6 +1041,42 @@ test_herdr_close_requires_semantic_idle() {
   pass "only positive semantic idle permits terminal herdr closure"
 }
 
+test_pending_steering_keeps_terminal_herdr_pane_open() {
+  local route state delivery task_home phase lock message
+  for route in main ledger; do
+    for state in done failed; do
+      for delivery in '' fire-and-forget; do
+        make_world "pending-steer-$route-$state-${delivery:-ordinary}"
+        task_home="$MAIN"
+        phase=pending
+        if [ "$route" = ledger ]; then
+          bind_secondmate local
+          task_home="$MATE"
+          phase=reported
+        fi
+        write_herdr_child "$task_home" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
+        lock=$(fm_meta_lock_path "$task_home/state/child.meta")
+        fm_lock_acquire_wait "$lock" || fail "could not lock metadata for steering enqueue"
+        message=$(fm_task_inbox_write "$task_home/state" child 'Please continue with this follow-up.' "$delivery") \
+          || fail "could not enqueue steering message"
+        fm_lock_release "$lock"
+
+        FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" run_reconcile "$task_home" --startup
+        [ "$(outcome_count "$task_home" "$phase")" = 1 ] || fail "terminal scan did not reach closure eligibility"
+        [ "$(herdr_close_count)" = 0 ] && [ ! -e "$WORLD/herdr-closed" ] \
+          || fail "$route $state pane closed with an unhandled ${delivery:-ordinary} message"
+        [ -f "$message" ] || fail "closure check consumed an unhandled message"
+
+        mv "$message" "$(fm_task_inbox_handled_dir "$task_home/state" child)/"
+        FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" run_reconcile "$task_home" --startup
+        [ "$(herdr_close_count)" = 1 ] && [ -e "$WORLD/herdr-closed" ] \
+          || fail "$route $state pane stayed open after its message was acknowledged"
+      done
+    done
+  done
+  pass "unhandled ordinary and fire-and-forget steering prevents both terminal closure paths"
+}
+
 test_herdr_prevalidation_and_unproven_identity_stay_open() {
   local mode evidence meta
   for mode in no-mistakes ''; do
@@ -1362,6 +1400,7 @@ test_nonterminal_and_captain_held_states_do_not_report
 test_terminal_herdr_child_pane_closes_and_records_stay
 test_other_backend_panes_stay_open
 test_herdr_close_requires_semantic_idle
+test_pending_steering_keeps_terminal_herdr_pane_open
 test_herdr_prevalidation_and_unproven_identity_stay_open
 test_secondmate_ledger_children_close_without_duplicate_reports
 test_herdr_close_waits_for_durable_outcome
