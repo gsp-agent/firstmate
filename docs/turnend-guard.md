@@ -34,7 +34,7 @@ The turn-end guard closes the remaining gap at the primary's own turn boundary.
 
 The guard acts at that boundary when both of these hold:
 
-- The shared [supervision-need predicate](#supervision-need) requires supervision.
+- [Supervision is needed](#supervision-need).
 - No identity-matched watcher has a fresh beacon.
 
 The beacon is `state/.last-watcher-beat`, which `bin/fm-watch.sh` touches every cycle, as [Guard grace and the poll cadence](#guard-grace-and-the-poll-cadence) describes.
@@ -79,6 +79,7 @@ These sources also count toward supervision need:
 - Every mode treats `state/x-watch.check.sh` as supervision need, so Relay polling remains guarded without an in-flight task.
 - A custom check registered with `bin/fm-check-register.sh` counts the same way, so an operator's home-level poll keeps running after the last task is torn down.
 - Pending [technical hold routing](captain-hold-lifecycle.md#technical-hold-routing) keeps the guard active even after the last unrelated task retires.
+- A captain-held task whose active hold fields carry a `Hold probe:` line counts even when the home has no in-flight work, event sources, or registered checks.
 
 The default cross-harness mode exits silently with no supervision need.
 
@@ -527,7 +528,7 @@ That warning uses `bin/fm-supervision-instructions.sh --repair-line`, so it alwa
 
 - Child crewmate and scout worktrees are outside scope.
 - A valid secondmate home is in scope.
-  An idle secondmate endpoint with no Relay poll remains healthy because it has no supervision need.
+  An idle secondmate endpoint remains healthy when its home has [no supervision need](#supervision-need).
 - The blocking and bounded-follow-up mechanisms are limited to the primary integrations listed above.
 - OpenCode headless mode and untrusted Grok project hooks remain fail-open at the host boundary.
 - Cursor's `stop` step does not fire in headless `cursor-agent -p`, the same class of limit as OpenCode headless; firstmate primaries run interactive.

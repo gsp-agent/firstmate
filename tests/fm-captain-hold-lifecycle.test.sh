@@ -6148,11 +6148,345 @@ test_domain_reasons_break_where_the_router_breaks() {
   pass 'reasons break where the router breaks them, so a joined money ask stays with Dale'
 }
 
+test_dale_step_hold_probe_and_world_checks() {
+  local home show mode dale_step id refusal
+  home=$(make_home dale-step)
+  cat > "$home/fake-asks-rule.py" <<'PY'
+import argparse, json, os, sys
+parser = argparse.ArgumentParser()
+parser.add_argument("command", choices=["ask"])
+for name in ("title", "question", "recommend", "text", "if_no"):
+    parser.add_argument("--" + name.replace("_", "-"), default="")
+args = parser.parse_args()
+with open(os.path.join(os.environ["FM_HOME"], "asks-rule-calls.jsonl"), "a") as calls:
+    calls.write(json.dumps(vars(args)) + "\n")
+mode = os.environ.get("FAKE_ASKS_MODE", "ok")
+actions = {
+    "answered": 'He answered it. Reply, "already signed in".',
+    "decided": "He decided it on review:sign-in. Reply with that decision.",
+    "duplicate": "review:sign-in asks the same decision and came first. His answer there covers this.",
+    "kind": "Not one of his kinds: names none of his kinds. Decide it yourself.",
+    "form": "Not answerable in one read: state the recommendation and consequence.",
+}
+if mode == "broken":
+    print(actions["answered"])
+    sys.exit(1)
+if mode in actions:
+    print(actions[mode])
+    sys.exit(3)
+sys.exit(0)
+PY
+  FAKE_ASKS_MODE=answered FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+    run_captain "$home" hold plain-task --title "Plain hold" \
+    --reason "captain must decide" --repo sample >/dev/null \
+    || fail "plain hold failed"
+  show=$(tasks_in "$home" show plain-task --full)
+  assert_not_contains "$show" "Hold probe:" "a hold not waiting on a Dale step gained a probe line"
+  assert_contains "$show" "Decision owner: captain" "a hold not waiting on a Dale step lost its default captain owner"
+  FM_CAPTAIN_HOLD_NOW=2026-06-01T12:00:00Z FAKE_ASKS_MODE=ok \
+    FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+    run_captain "$home" hold dale-task --title "Sign in needed" \
+    --reason "sign in to the service" --repo sample \
+    --dale-step sign-in --probe 'true' --hold-timeout 600 >/dev/null \
+    || fail "Dale-step hold failed"
+  show=$(tasks_in "$home" show dale-task --full)
+  assert_contains "$show" "Captain hold set: 2026-06-01T12:00:00Z" "the Dale-step hold lost its hold-set stamp"
+  assert_contains "$show" "Decision owner: dale" "the Dale-step hold did not write the owner line"
+  assert_contains "$show" "Hold timeout seconds: 600" "the Dale-step hold did not write the timeout line"
+  assert_contains "$show" "Hold reason: sign in to the service" "the Dale-step hold did not write the reason line"
+  assert_contains "$show" "Hold probe: true" "the Dale-step hold did not write the probe line"
+  for dale_step in sign-in screen; do
+    for mode in answered decided duplicate; do
+      id="$dale_step-$mode-task"
+      if FAKE_ASKS_MODE="$mode" FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+        run_captain "$home" hold "$id" --title "Complete the $dale_step" \
+        --reason "sign in to the service" --repo sample \
+        --dale-step "$dale_step" --probe 'true' > "$home/$id.out" 2> "$home/$id.err"; then
+        fail "the asks-rule $mode action failed to block a $dale_step hold"
+      fi
+      case "$mode" in
+        answered) refusal='He answered it.' ;;
+        decided) refusal='He decided it on review:sign-in.' ;;
+        duplicate) refusal='review:sign-in asks the same decision and came first.' ;;
+      esac
+      assert_grep "$refusal" "$home/$id.err" "the $mode refusal lost the CLI action text"
+      assert_grep 'owner: dale' "$home/$id.err" "the $mode refusal lost the decision owner"
+      if tasks_in "$home" show "$id" --full >/dev/null 2>&1; then
+        fail "the refused $mode hold still created its task"
+      fi
+      tasks_in "$home" add "$id" "Complete the $dale_step" --repo sample >/dev/null \
+        || fail "could not create the existing-task $mode fixture"
+      if FAKE_ASKS_MODE="$mode" FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+        run_captain "$home" hold "$id" --reason "sign in to the service" \
+        --dale-step "$dale_step" --probe 'true' > "$home/$id.out" 2> "$home/$id.err"; then
+        fail "the asks-rule $mode action failed to block an existing $dale_step task"
+      fi
+      show=$(tasks_in "$home" show "$id" --full)
+      assert_contains "$show" "held: no" "the refused $mode action still held its existing task"
+      assert_not_contains "$show" "Captain hold set:" "the refused $mode action still changed its task body"
+    done
+    for mode in kind form broken missing; do
+      id="$dale_step-$mode-task"
+      if [ "$mode" = missing ]; then
+        FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
+          run_captain "$home" hold "$id" --title "Complete the $dale_step" \
+          --reason "sign in to the service" --repo sample \
+          --dale-step "$dale_step" --probe 'true' >/dev/null \
+          || fail "a missing asks rule blocked a $dale_step hold"
+      else
+        FAKE_ASKS_MODE="$mode" FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+          run_captain "$home" hold "$id" --title "Complete the $dale_step" \
+          --reason "sign in to the service" --repo sample \
+          --dale-step "$dale_step" --probe 'true' >/dev/null \
+          || fail "the nonblocking $mode outcome blocked a $dale_step hold"
+      fi
+      show=$(tasks_in "$home" show "$id" --full)
+      assert_contains "$show" "held: yes" "the nonblocking $mode outcome did not create a hold"
+    done
+  done
+  python3 - "$home/asks-rule-calls.jsonl" <<'PY' \
+    || fail "the requests sent to the asks rule omitted or changed its published-ask matching inputs"
+import json, sys
+with open(sys.argv[1]) as calls:
+    requests = [json.loads(line) for line in calls]
+assert requests
+assert all(request["question"] == "sign in to the service" for request in requests)
+assert all(request[field] == request["question"] for request in requests
+           for field in ("recommend", "text", "if_no"))
+assert requests[0]["title"] == "Sign in needed"
+assert all(request["title"] != "Plain hold" for request in requests)
+PY
+  FAKE_ASKS_MODE=ok FM_DALE_ASKS_RULE="$home/fake-asks-rule.py" \
+    run_captain "$home" hold probe-fail-task --title "Sign in pending" \
+    --reason "sign in to the service" --repo sample \
+    --dale-step sign-in --probe 'false' >/dev/null \
+    || fail "the failing-probe hold was not created"
+  run_captain "$home" reprobe probe-fail-task >"$home/reprobe-fail.out" \
+    || fail "reprobe of a failing probe errored"
+  assert_grep "kept" "$home/reprobe-fail.out" "a failing probe did not keep the hold"
+  show=$(tasks_in "$home" show probe-fail-task --full)
+  assert_contains "$show" "held: yes" "a failing probe released the hold"
+  run_captain "$home" reprobe dale-task >"$home/reprobe-pass.out" \
+    || fail "reprobe of a passing probe errored"
+  assert_grep "released:" "$home/reprobe-pass.out" "a passing probe did not release the hold"
+  show=$(tasks_in "$home" show dale-task --full)
+  assert_contains "$show" "held: no" "a passing probe left the hold in place"
+  assert_contains "$show" "Resolution mode: probe-released" "the probe release left no evidence record"
+  pass "Dale-step holds write owner, timeout and probe lines, refuse answered or duplicate asks at creation, and release only on a passing probe"
+}
+
+test_ordinary_reholds_deactivate_dale_probes() {
+  local home show dale_step previous_state before active
+  for dale_step in sign-in screen; do
+    for previous_state in released held; do
+      home=$(make_home "ordinary-$dale_step-$previous_state")
+      # shellcheck disable=SC2016 # FM_HOME expands when the stored probe runs under bash -c.
+      FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
+        run_captain "$home" hold dale-task --title "Complete the Dale step" \
+        --reason "complete the $dale_step" --repo sample --dale-step "$dale_step" \
+        --probe 'printf passed >> "$FM_HOME/probe-runs"' >/dev/null \
+        || fail "could not create the $dale_step hold before an ordinary re-hold"
+      if [ "$previous_state" = released ]; then
+        run_captain "$home" reprobe dale-task >/dev/null \
+          || fail "could not release the $dale_step hold before an ordinary re-hold"
+        show=$(tasks_in "$home" show dale-task --full)
+        assert_contains "$show" "held: no" "the initial passing probe did not release the Dale step"
+      fi
+      run_captain "$home" hold dale-task --reason "choose the next action" >/dev/null \
+        || fail "could not re-hold the $previous_state $dale_step task without a Dale step"
+      before=$(cat "$home/probe-runs" 2>/dev/null || true)
+      run_captain "$home" reprobe dale-task > "$home/reprobe.out" \
+        || fail "reprobe of the ordinary re-hold failed"
+      show=$(tasks_in "$home" show dale-task --full)
+      assert_contains "$show" "held: yes" "a historical $dale_step probe released an ordinary re-hold"
+      [ "$(cat "$home/probe-runs" 2>/dev/null || true)" = "$before" ] \
+        || fail "reprobe executed a historical $dale_step probe on an ordinary re-hold"
+      active=$(shown_task_body "$show" | awk '$0 == "Previous task body:" { exit } { print }')
+      assert_contains "$active" "Hold reason: choose the next action" "the ordinary re-hold did not record its own reason"
+      assert_not_contains "$active" "Hold reason: complete the $dale_step" "the ordinary re-hold kept its historical Dale-step reason"
+      assert_not_contains "$active" "Hold probe:" "the ordinary re-hold kept its historical probe active"
+    done
+  done
+  pass "ordinary re-holds deactivate released and still-held sign-in and screen probes"
+}
+
+test_reprobe_keeps_a_hold_changed_by_its_probe() {
+  local home show
+  home=$(make_home probe-changes-hold)
+  FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
+    run_captain "$home" hold dale-task --title "Complete the sign-in" \
+    --reason "sign in to the service" --repo sample --dale-step sign-in \
+    --probe "\"$ROOT/bin/fm-captain-hold.sh\" hold dale-task --reason ordinary-choice" >/dev/null \
+    || fail "could not create the hold whose probe changes its lifecycle"
+  run_captain "$home" reprobe dale-task > "$home/reprobe.out" \
+    || fail "reprobe failed after its probe changed the hold"
+  show=$(tasks_in "$home" show dale-task --full)
+  assert_contains "$show" "held: yes" "reprobe released the ordinary hold created while its probe ran"
+  assert_not_contains "$show" "Resolution mode: probe-released" "reprobe recorded evidence for a changed hold"
+  pass "the locked reprobe read rejects a hold changed while its probe ran"
+}
+
+test_reprobe_release_retries_finalize_one_occurrence() {
+  local parent home channel request show stage expected_held body_count
+  for stage in unhold normalize publish retire; do
+    parent=$(make_home "probe-parent-$stage")
+    home=$(make_home "probe-mate-$stage")
+    printf 'probe-mate\n' > "$home/.fm-secondmate-home"
+    printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$parent" \
+      > "$home/.fm-secondmate-parent"
+    channel="$parent/state/probe-mate.status"
+    request="$home/state/reconcile-requests/dale-task.request"
+    : > "$home/probe-ready"
+    # shellcheck disable=SC2016 # FM_HOME expands when the stored probe runs under bash -c.
+    FM_CAPTAIN_HOLD_NOW=2026-06-01T12:00:00Z FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
+      run_captain "$home" hold dale-task --title "Complete the sign-in" \
+      --reason "sign in to the service" --repo sample --dale-step sign-in \
+      --probe 'test -f "$FM_HOME/probe-ready"' >/dev/null \
+      || fail "could not create the $stage retry fixture"
+    request_reconciles "$home" probe-board dale-task \
+      || fail "could not request reconciliation before the $stage failure"
+    cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${FM_TEST_PROBE_FAILURE:-}" = unhold ] && [ "${1:-}" = unhold ]; then
+  exit 92
+fi
+if [ "${FM_TEST_PROBE_FAILURE:-}" = normalize ] && [ "${1:-}" = update ]; then
+  case "$("$REAL_TASKS_AXI" show "$2" --full)" in
+    *"held: no"*) exit 93 ;;
+  esac
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+    chmod +x "$home/fakebin/tasks-axi"
+    case "$stage" in
+      publish)
+        printf 'schema=fm-secondmate-parent.v1\nroute=invalid\n' > "$home/.fm-secondmate-parent"
+        ;;
+      retire) chmod 0500 "$home/state/reconcile-requests" ;;
+    esac
+    if FM_TEST_PROBE_FAILURE="$stage" run_captain "$home" reprobe dale-task \
+      > "$home/reprobe.out" 2> "$home/reprobe.err"; then
+      fail "the forced $stage failure reported a completed probe release"
+    fi
+    chmod 0700 "$home/state/reconcile-requests"
+    printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$parent" \
+      > "$home/.fm-secondmate-parent"
+    show=$(tasks_in "$home" show dale-task --full)
+    expected_held=no
+    [ "$stage" != unhold ] || expected_held=yes
+    assert_contains "$show" "held: $expected_held" "the $stage failure left the wrong hold state"
+    body_count=$(printf '%s\n' "$show" | grep -o 'Resolution recorded by fm-captain-hold\.' | wc -l | tr -d ' ')
+    [ "$body_count" = 1 ] || fail "the $stage failure lost or duplicated its durable resolution"
+    assert_present "$request" "the $stage failure retired its reconciliation retry trigger"
+    if [ "$stage" = retire ]; then
+      [ "$(grep -c 'resolved \[key=captain-hold-dale-task-1\]' "$channel")" = 1 ] \
+        || fail "the parent resolution was not published before retirement failed"
+    fi
+    if [ "$stage" != unhold ]; then
+      mv "$home/probe-ready" "$home/probe-unavailable"
+    fi
+    run_captain "$home" reprobe dale-task > "$home/retry.out" \
+      || fail "reprobe could not finish the $stage retry"
+    show=$(tasks_in "$home" show dale-task --full)
+    assert_contains "$show" "held: no" "the $stage retry left the task held"
+    assert_not_contains "$show" "Captain hold set:" "the $stage retry left the active hold stamp"
+    body_count=$(printf '%s\n' "$show" | grep -o 'Resolution recorded by fm-captain-hold\.' | wc -l | tr -d ' ')
+    [ "$body_count" = 1 ] || fail "the $stage retry prepended another resolution record"
+    assert_absent "$request" "the $stage retry left its reconciliation request pending"
+    [ "$(grep -c 'resolved \[key=captain-hold-dale-task-1\]' "$channel")" = 1 ] \
+      || fail "the $stage retry did not resolve exactly its original parent occurrence"
+    run_captain "$home" reprobe dale-task >/dev/null \
+      || fail "a completed $stage release could not replay"
+    [ "$(grep -c 'resolved \[key=captain-hold-dale-task-1\]' "$channel")" = 1 ] \
+      || fail "a completed $stage release duplicated its parent resolution"
+    if [ "$stage" != unhold ]; then
+      mv "$home/probe-unavailable" "$home/probe-ready"
+    fi
+    # shellcheck disable=SC2016 # FM_HOME expands when the stored probe runs under bash -c.
+    FM_CAPTAIN_HOLD_NOW=2026-06-01T12:00:00Z FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
+      run_captain "$home" hold dale-task --reason "sign in to the service" \
+      --dale-step screen --probe 'test -f "$FM_HOME/probe-ready"' >/dev/null \
+      || fail "could not start a new Dale-step occurrence after the $stage retry"
+    run_captain "$home" reprobe dale-task >/dev/null \
+      || fail "could not release the new occurrence after the $stage retry"
+    show=$(tasks_in "$home" show dale-task --full)
+    body_count=$(printf '%s\n' "$show" | grep -o 'Resolution recorded by fm-captain-hold\.' | wc -l | tr -d ' ')
+    [ "$body_count" = 2 ] || fail "the new occurrence reused historical probe evidence after the $stage retry"
+    [ "$(grep -c 'resolved \[key=captain-hold-dale-task-2\]' "$channel")" = 1 ] \
+      || fail "the new occurrence did not resolve its own parent key after the $stage retry"
+  done
+  pass "probe releases retry unhold, normalization, publication and retirement without duplicating occurrences"
+}
+
+test_failed_and_unknown_probes_do_not_notify_the_parent() {
+  local parent home channel probe id before show
+  parent=$(make_home quiet-probe-parent)
+  home=$(make_home quiet-probe-mate)
+  printf 'probe-mate\n' > "$home/.fm-secondmate-home"
+  printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$parent" \
+    > "$home/.fm-secondmate-parent"
+  channel="$parent/state/probe-mate.status"
+  for probe in false fm-test-missing-hold-probe; do
+    id="probe-$probe"
+    FM_DALE_ASKS_RULE="$home/missing-asks-rule.py" \
+      run_captain "$home" hold "$id" --title "Complete the sign-in" \
+      --reason "sign in to the service" --repo sample --dale-step sign-in \
+      --probe "$probe" >/dev/null || fail "could not create the quiet probe fixture"
+    before=$(cat "$channel")
+    run_captain "$home" reprobe "$id" > "$home/reprobe.out" \
+      || fail "a failed or unknown probe returned an error"
+    show=$(tasks_in "$home" show "$id" --full)
+    assert_contains "$show" "held: yes" "a failed or unknown probe released its hold"
+    assert_not_contains "$show" "Resolution recorded by" "a failed or unknown probe recorded a release"
+    [ "$(cat "$channel")" = "$before" ] || fail "a failed or unknown probe notified the parent"
+  done
+  pass "failed and unknown probes keep their holds without notifying the parent"
+}
+
+test_domain_probe_holds_wait_for_their_probe() (
+  local domain_home show
+  domain_home=$(make_domain_home domain-probe-hold)
+  if FM_DALE_ASKS_RULE="$domain_home/missing-asks-rule.py" run_domain "$domain_home" 2026-10-14T01:00:00Z \
+    hold mixed-task --title 'Mixed owner flags' --dale-step sign-in --probe true \
+    --decision-owner ep-firstmate --reason 'sign in to the service' > "$domain_home/mixed.out" 2>&1; then
+    fail 'a Dale-step hold accepted the ordinary routing owner option'
+  fi
+  assert_grep 'takes --owner and --hold-timeout' "$domain_home/mixed.out" 'the mixed-flag refusal did not name the Dale-step options'
+  FM_DALE_ASKS_RULE="$domain_home/missing-asks-rule.py" run_domain "$domain_home" 2026-10-14T01:00:00Z \
+    hold probe-task --title 'Update branch after sign-in' --dale-step sign-in --probe false \
+    --owner ep-firstmate --hold-timeout 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+    || fail 'could not create the probe hold'
+  run_domain "$domain_home" 2026-10-14T02:00:00Z route-due || fail 'route-due failed over a probe hold'
+  show=$(tasks_in "$domain_home" show probe-task --full)
+  assert_contains "$show" 'held: yes' 'route-due released a hold that waits on its probe'
+  assert_not_contains "$show" 'Resolution mode: agent-routed' 'route-due recorded routing evidence for a probe hold'
+  assert_absent "$domain_home/owner.log" 'route-due prompted the owner of a probe hold'
+  assert_absent "$domain_home/state/hold-domain/pending/probe-task.body" 'a probe hold entered the routing spool'
+  pass 'a Dale-step hold waits for its probe even when its owner and reason are routable'
+)
+
+case "${1:-}" in
+  --dale-world-only) test_dale_step_hold_probe_and_world_checks; exit $? ;;
+  --dale-step-only)
+    test_hold_stamp_precedes_hold_visibility
+    test_release_frees_held_work
+    test_dale_step_hold_probe_and_world_checks
+    test_ordinary_reholds_deactivate_dale_probes
+    test_reprobe_keeps_a_hold_changed_by_its_probe
+    test_reprobe_release_retries_finalize_one_occurrence
+    test_failed_and_unknown_probes_do_not_notify_the_parent
+    test_domain_probe_holds_wait_for_their_probe
+    exit $?
+    ;;
+esac
+
 if [ -z "${FM_CAPTAIN_HOLD_LANE:-}" ]; then
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
   origins) test_hold_origins_precede_backend_holds; exit $? ;;
   stranded-release) test_domain_rehold_waits_for_an_unfinished_routed_release; exit $? ;;
   reason-breaks) test_domain_reasons_break_where_the_router_breaks; exit $? ;;
+  probe-holds) test_domain_probe_holds_wait_for_their_probe; exit $? ;;
   receipt-deferral)
     test_domain_retries_failed_delivery_and_release expired || exit 1
     test_domain_retries_failed_delivery_and_release
@@ -6314,6 +6648,12 @@ captain_hold_lane_b() {
   test_verify_resolves_a_pre_collapse_key_through_its_derived_marker
   test_captain_hold_mutations_address_the_beads_backend
   test_hold_creates_a_captain_row_when_beads_requires_due_without_custom_type
+  test_dale_step_hold_probe_and_world_checks
+  test_ordinary_reholds_deactivate_dale_probes
+  test_reprobe_keeps_a_hold_changed_by_its_probe
+  test_reprobe_release_retries_finalize_one_occurrence
+  test_failed_and_unknown_probes_do_not_notify_the_parent
+  test_domain_probe_holds_wait_for_their_probe
 }
 
 case "${FM_CAPTAIN_HOLD_LANE:-all}" in

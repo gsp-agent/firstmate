@@ -1550,11 +1550,13 @@ pr_number_from_target() {
 
 ensure_commit_object() {
   local target=$1 commit=$2 n
-  git -C "$WT" cat-file -e "$commit^{commit}" 2>/dev/null && return 0
+  # The explicit PR-head fetch below owns object retrieval; probes must not
+  # trigger an additional promisor fetch in a partial clone.
+  GIT_NO_LAZY_FETCH=1 git -C "$WT" cat-file -e "$commit^{commit}" 2>/dev/null && return 0
   n=$(pr_number_from_target "$target") || return 1
   git -C "$WT" remote get-url origin >/dev/null 2>&1 || return 1
   git -C "$WT" fetch --quiet origin "refs/pull/$n/head" >/dev/null 2>&1 || return 1
-  git -C "$WT" cat-file -e "$commit^{commit}" 2>/dev/null
+  GIT_NO_LAZY_FETCH=1 git -C "$WT" cat-file -e "$commit^{commit}" 2>/dev/null
 }
 
 patch_id_for_commit() {

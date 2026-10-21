@@ -1486,6 +1486,36 @@ test_worker_role_scope
 # Rule 2 governs file edits rather than pool administration, so every crewmate
 # scaffold must prohibit the administrative act itself. The rule is emitted from
 # one shared string so the ship and scout copies cannot drift apart.
+# Two scaffolds for one task, or a scaffold and fm-spawn.sh --queue-start, can
+# both pass the existence test before either writes. A rival brief that lands
+# in that window - made deterministic by a mkdir that writes it the moment
+# the scaffold creates the task directory - must survive, and the late
+# scaffold must refuse with nothing written, because the write is the claim.
+test_scaffold_claims_the_brief_at_write_time() {
+  local home fakebin id out rc=0 real_mkdir
+  home="$TMP_ROOT/claim-race-home"
+  fakebin="$TMP_ROOT/claim-race-bin"
+  id='brief-claim-race'
+  mkdir -p "$home/data" "$fakebin"
+  real_mkdir=$(command -v mkdir)
+  cat > "$fakebin/mkdir" <<SH
+#!/usr/bin/env bash
+"$real_mkdir" "\$@" || exit \$?
+case "\$*" in
+  *"/data/$id")
+    [ -e "$home/data/$id/brief.md" ] || printf '%s\n' 'the rival brief' > "$home/data/$id/brief.md"
+    ;;
+esac
+SH
+  chmod +x "$fakebin/mkdir"
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes 2>&1) || rc=$?
+  assert_equals 'the rival brief' "$(cat "$home/data/$id/brief.md")" \
+    "a scaffold overwrote a brief that appeared after its existence test"
+  [ "$rc" -ne 0 ] || fail "a scaffold that lost the brief's claim reported success: $out"
+  assert_contains "$out" "already exists" "a scaffold that lost the claim did not say the brief exists"
+  pass "fm-brief.sh: the brief's exclusive create is the claim; a late scaffold refuses and leaves the winner's brief"
+}
+
 test_crewmate_scaffolds_forbid_pool_administration() {
   local home id brief mode ship_rule scout_rule
   home="$TMP_ROOT/pool-admin-home"
@@ -1603,3 +1633,4 @@ test_branch_prefix_is_refused_where_it_does_not_apply
 test_branch_prefix_value_is_validated
 test_branch_prefix_command_is_shell_safe
 test_crewmate_scaffolds_forbid_pool_administration
+test_scaffold_claims_the_brief_at_write_time

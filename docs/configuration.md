@@ -1125,16 +1125,16 @@ A clone of that origin under a different directory name finds no declaration and
 When every place is held, `bin/fm-spawn.sh` launches nothing, creates no record, leaves the backlog item queued, prints one `deferred:` line naming the holders, and exits 75, so Firstmate dispatches the item again once a place frees.
 That deferral is unchanged when `config/project-capacity-headroom` is absent or contains no non-whitespace line.
 When the file's one line names a reading program and that program prints a line and exits 0, one spawn past the declared count can launch for that project.
+A successful reading is provisional: concurrent activity can change admission, and reading-related lock contention defers a spawn with 75 while leaving its item queued; [`bin/fm-spawn.sh`'s header](../bin/fm-spawn.sh) owns the concurrent admission mechanics.
 When that extra start is admitted, the spawn logs the program's first stdout line; [`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns that log line.
 A second extra spawn for the same project waits until 420 seconds after that start.
 That window belongs to the project's origin, as the count of holders does, so clones of one origin share it and two origins cloned under one directory name each have their own.
-An extra spawn that fails before its worker launches leaves that window open for the next spawn.
+Cleanup attempts to release the window record for an extra spawn that fails before launch; if it cannot, it warns and leaves the record until the window expires.
 A headroom file that cannot be read or holds a second non-empty line counts as no room, and so does a program that is missing or not executable, that exits non-zero, that exits 0 with an empty first stdout line, or that is still running after 30 seconds; the spawn is deferred.
 The line is the program and its arguments, split on whitespace.
 The shell does not evaluate the line, so a program path that contains whitespace cannot be named.
-One reading that fits the line is `node` followed by the absolute path of `machine-headroom.mjs`.
-From the checkout that contains that file the same program is `node machine-headroom.mjs`, and this check does not change directory, so the config line uses the absolute path.
-That program prints one line, `cpu_idle_pct=<n|unread> load1=<n|unread> disk_free_gb=<n|unread>`, and exits 0 only when CPU idle is at least 25%, the 1-minute load is under 80, and free disk is at least 50 GB.
+Firstmate supplies no default reading program or resource thresholds.
+The reading runs in the spawn process's working directory, so use an absolute path for a locally supplied script.
 The file is read from the machine's root home, as `config/project-capacity` is, and a copy in a secondmate home is not consulted.
 Workers that are already running are left running.
 A malformed or unreadable capacity file refuses every fresh ship or scout spawn until it is fixed, rather than guessing the intended limit, and so does a local home's state directory or task record that cannot be read while counting a capped project's holders.
@@ -2431,7 +2431,7 @@ FM_ZELLIJ_SESSION=firstmate  # zellij-only: named session for normal backend ops
 CMUX_SOCKET_PASSWORD=   # cmux-only: socket password fallback when config/cmux-socket-password is absent (docs/cmux-backend.md)
 FM_SESSION_START_STATUS_TAIL=5   # state/*.status lines printed per task in the session-start digest; each line is capped by bin/fm-line-cap-lib.sh
 FM_SESSION_START_QUEUED_LIMIT=20   # plain queued backlog rows in the session-start digest; in-flight, held, and blocked rows are never bounded and done rows are never listed
-FM_SESSION_START_ENDPOINT_TIMEOUT=10   # seconds bounding each per-task endpoint liveness read in the session-start digest (bin/fm-session-start.sh); nonpositive or invalid values fall back to 10; a read that hits the bound or dies becomes that task's own `endpoint: error` line and the digest continues
+FM_SESSION_START_ENDPOINT_TIMEOUT=10   # seconds bounding each per-task endpoint liveness read in the session-start digest (bin/fm-session-start.sh); nonpositive or invalid values fall back to 10; docs/sessionstart-nudge.md "Digest timeout" owns failure reporting
 FM_BACKLOG_ROW_TIMEOUT_SECS=10   # seconds bounding each backlog row read (bin/fm-backlog-transition-lib.sh); nonpositive or invalid values fall back to 10; the first bound hit latches the sweep so later reads return immediately, each still naming its own item
 FM_BOOTSTRAP_DETECT_ONLY=0   # internal/read-only session-start mode: skip bootstrap's mutating sweeps and print advisory TANGLE wording
 FM_BOOTSTRAP_NETWORK=all   # internal session-start phase split: all, skip (local steps only), or only (network steps only); see bin/fm-bootstrap.sh
@@ -2454,7 +2454,7 @@ FM_HEARTBEAT=600        # base seconds between heartbeat scans; no-change heartb
 FM_HEARTBEAT_MAX=7200   # heartbeat backoff cap
 FM_INACTIVE_RECONCILE_SECS=900  # 60..1800-second watcher cadence and inactivity threshold; locked session start also requests an immediate scan in the deferred worker
 FM_INACTIVE_RECONCILE_BUDGET_SECS=10  # 1..30-second scan deadline; wedged-scan kill backstop follows one second later
-FM_CHECK_INTERVAL=300   # seconds between slow checks (authenticated merge polls, custom checks, or Relay dispatch)
+FM_CHECK_INTERVAL=300   # seconds between slow check sweeps; bin/fm-watch.sh owns their scope
 FM_TASK_INBOX_GRACE_SECS=90   # seconds an unhandled steering-inbox message may sit before the watcher attempts doorbell delivery on an idle pane; also the minimum spacing between attempts
 FM_TASK_INBOX_RING_MAX=3      # watcher delivery attempts without an acknowledgement before the task surfaces as a stale wake for recovery
 FM_TASK_INBOX_BUSY_MAX=2      # consecutive busy-deferred due polls before a stuck-busy stale wake; 1..999999999, at most 9 decimal digits, otherwise 2; policy: bin/fm-task-inbox-lib.sh

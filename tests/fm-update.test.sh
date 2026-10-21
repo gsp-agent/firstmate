@@ -135,9 +135,10 @@ bump_origin() {
 
 run_update() {
   local w=$1
+  shift
   PATH="$w/fakebin:$PATH" FM_FAKE_DIR="$w/fake" \
     FM_SSH_BIN="${FM_TEST_SSH_BIN:-ssh}" \
-    FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" "$UPDATE" 2>/dev/null
+    FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" "$UPDATE" "$@" 2>/dev/null
 }
 
 # --- T1: main + secondmate behind, instruction change; FF, not a merge ------
@@ -556,6 +557,148 @@ test_primary_update_rebinds_local_watch() {
   pass "T12 a self-update rebinds a locally armed watch on the primary"
 }
 
+# --- A home that rides upstream-lean ----------------------------------------
+# The live home runs on upstream-lean, where merged PRs land, while the default branch
+# (main) stays frozen. lean_world is the standard world plus an origin upstream-lean one
+# commit past main, with the firstmate repo checked out on it.
+lean_world() {
+  local name=$1 w
+  w=$(new_world "$name")
+  git -C "$w/seed" switch -q -c upstream-lean
+  printf 'lean-1\n' >> "$w/seed/README.md"
+  git -C "$w/seed" commit -qam lean-1
+  git -C "$w/seed" push -q origin upstream-lean
+  git -C "$w/main" fetch -q origin
+  git -C "$w/main" switch -q upstream-lean
+  printf '%s\n' "$w"
+}
+
+# Advance origin's upstream-lean by one commit. mode=instr also changes AGENTS.md.
+bump_lean() {
+  local w=$1 mode=${2:-readme}
+  git -C "$w/seed" switch -q upstream-lean
+  git -C "$w/seed" pull -q --ff-only origin upstream-lean >/dev/null 2>&1 || true
+  printf 'lean-%s\n' "$RANDOM" >> "$w/seed/README.md"
+  [ "$mode" != instr ] || printf 'v-lean\n' > "$w/seed/AGENTS.md"
+  git -C "$w/seed" commit -qam "lean-bump-$mode"
+  git -C "$w/seed" push -q origin upstream-lean
+}
+
+# --- T13: a home on upstream-lean follows origin/upstream-lean ---------------
+test_lean_home_follows_upstream_lean() {
+  local w out main_before
+  w=$(lean_world t13)
+  bump_lean "$w" instr
+  main_before=$(git -C "$w/main" rev-parse main)
+
+  out=$(run_update "$w")
+
+  assert_contains "$out" "firstmate: updated " "the home on upstream-lean fast-forwarded"
+  assert_not_contains "$out" "expected main" "upstream-lean is accepted for a home that is on it"
+  assert_contains "$out" "reread-firstmate: yes" "an instruction change on the lean line is signalled"
+  [ "$(git -C "$w/main" rev-parse HEAD)" = "$(git -C "$w/main" rev-parse origin/upstream-lean)" ] \
+    || fail "home HEAD not at origin/upstream-lean"
+  [ "$(git -C "$w/main" symbolic-ref --short HEAD)" = "upstream-lean" ] \
+    || fail "the home left upstream-lean"
+  [ "$(git -C "$w/main" rev-parse main)" = "$main_before" ] \
+    || fail "the frozen main branch moved"
+  [ "$(git -C "$w/main" rev-list --parents -n1 HEAD | wc -w | tr -d ' ')" -eq 2 ] \
+    || fail "the home tip is not a single-parent fast-forward"
+  pass "T13 a home on upstream-lean fast-forwards to origin/upstream-lean, main untouched"
+}
+
+# --- T14: untracked files do not block a fast-forward -------------------------
+# The live home carries untracked operational directories (.worktrees/, local skills).
+# git itself refuses a fast-forward that would overwrite one (T16).
+test_lean_home_untracked_files_do_not_block() {
+  local w out
+  w=$(lean_world t14)
+  mkdir -p "$w/main/.worktrees/crew" "$w/main/.agents/skills/local-only"
+  printf 'crew\n' > "$w/main/.worktrees/crew/keep.txt"
+  printf 'skill\n' > "$w/main/.agents/skills/local-only/SKILL.md"
+  bump_lean "$w"
+
+  out=$(run_update "$w")
+
+  assert_contains "$out" "firstmate: updated " "untracked operational files did not block the update"
+  assert_grep 'crew' "$w/main/.worktrees/crew/keep.txt" "an untracked file was disturbed"
+  assert_grep 'skill' "$w/main/.agents/skills/local-only/SKILL.md" "an untracked skill was disturbed"
+  pass "T14 untracked files in a lean home do not block the fast-forward and survive it"
+}
+
+# --- T15: a tracked edit refuses, and is kept ---------------------------------
+test_lean_home_dirty_tracked_file_refuses() {
+  local w out before
+  w=$(lean_world t15)
+  printf 'uncommitted local edit\n' >> "$w/main/README.md"
+  bump_lean "$w"
+  before=$(git -C "$w/main" rev-parse HEAD)
+
+  out=$(run_update "$w")
+
+  assert_contains "$out" "firstmate: skipped: dirty working tree" "a tracked edit refuses the update"
+  assert_contains "$out" "reread-firstmate: no" "no reread when the home was skipped"
+  [ "$(git -C "$w/main" rev-parse HEAD)" = "$before" ] || fail "the dirty home moved"
+  assert_grep 'uncommitted local edit' "$w/main/README.md" "the tracked edit was discarded"
+  [ -z "$(git -C "$w/main" stash list)" ] || fail "the update stashed the edit"
+  pass "T15 a tracked edit in a lean home refuses the update and is preserved"
+}
+
+# --- T16: a diverged home refuses, and keeps its commit -----------------------
+test_lean_home_diverged_refuses() {
+  local w out before
+  w=$(lean_world t16)
+  printf 'local work\n' > "$w/main/local-work.txt"
+  git -C "$w/main" add local-work.txt
+  git -C "$w/main" commit -qm local-work
+  before=$(git -C "$w/main" rev-parse HEAD)
+  bump_lean "$w"
+
+  out=$(run_update "$w")
+
+  assert_contains "$out" "firstmate: skipped: diverged from origin/upstream-lean" "a diverged home refuses"
+  [ "$(git -C "$w/main" rev-parse HEAD)" = "$before" ] || fail "the diverged home moved (unlanded work at risk)"
+  pass "T16 a diverged lean home refuses the update and keeps its commit"
+}
+
+# --- T17: an untracked file in the way refuses, and is kept -------------------
+test_lean_home_untracked_collision_refuses() {
+  local w out before
+  w=$(lean_world t17)
+  printf 'local scratch\n' > "$w/main/collide.txt"
+  printf 'upstream file\n' > "$w/seed/collide.txt"
+  git -C "$w/seed" switch -q upstream-lean
+  git -C "$w/seed" add collide.txt
+  git -C "$w/seed" commit -qm add-collide
+  git -C "$w/seed" push -q origin upstream-lean
+  before=$(git -C "$w/main" rev-parse HEAD)
+
+  out=$(run_update "$w")
+
+  assert_contains "$out" "firstmate: skipped: fast-forward failed" "a colliding untracked file refuses the update"
+  [ "$(git -C "$w/main" rev-parse HEAD)" = "$before" ] || fail "the home moved over an untracked file"
+  assert_grep 'local scratch' "$w/main/collide.txt" "the untracked file was overwritten"
+  pass "T17 an untracked file in the way refuses the update and is preserved"
+}
+
+# --- T18: --primary-only moves the primary and leaves secondmates alone ---------
+test_primary_only_leaves_secondmates() {
+  local w out before
+  w=$(new_world t18)
+  add_sm "$w" sm1
+  bump_origin "$w" instr
+  before=$(git -C "$w/sm1" rev-parse HEAD)
+
+  out=$(run_update "$w" --primary-only)
+
+  assert_contains "$out" "firstmate: updated " "the primary advanced"
+  assert_not_contains "$out" "secondmate sm1" "no secondmate was visited"
+  assert_contains "$out" "restart-secondmates: none" "no secondmate is named for restart"
+  assert_contains "$out" "nudge-secondmates: none" "no secondmate is named for a nudge"
+  [ "$(git -C "$w/sm1" rev-parse HEAD)" = "$before" ] || fail "a secondmate moved under --primary-only"
+  pass "T18 --primary-only advances the primary and leaves secondmates to /updatefirstmate"
+}
+
 test_updates_main_and_secondmate
 test_reread_gate_is_instruction_only
 test_bin_only_advance_restarts
@@ -572,5 +715,11 @@ test_firstmate_wrong_branch_skipped
 test_firstmate_detached_head_skipped
 test_unsafe_secondmate_home_skipped_before_git_update
 test_primary_update_rebinds_local_watch
+test_lean_home_follows_upstream_lean
+test_lean_home_untracked_files_do_not_block
+test_lean_home_dirty_tracked_file_refuses
+test_lean_home_diverged_refuses
+test_lean_home_untracked_collision_refuses
+test_primary_only_leaves_secondmates
 
 echo "# all fm-update tests passed"

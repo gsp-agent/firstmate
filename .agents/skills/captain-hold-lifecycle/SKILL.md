@@ -28,6 +28,7 @@ Run the command in the originating work's authoritative `FM_HOME`; secondmate-ow
 Do not close a captain-held task merely because the originating investigation completed, its report was archived, its visual review ended, or its task was torn down.
 Holding the work item the question gates is safe for exactly that reason: cleanup keeps such a row open with the finished work's deliverable recorded and returns it to the queue, so it still reads as the captain's own call.
 Only `answer` with the captain's words or an evidence-backed `reconcile close` may resolve a call that belongs to the captain.
+For work waiting on a Dale step, follow the wrapper's [probe-release contract](../../../bin/fm-captain-hold.sh).
 Declare the responsible agent with the brief's decision-owner option for technical decisions within that agent's authority.
 The optional hold-domain integration can release a measured technical hold to that owner after its timeout; `bin/fm-captain-hold.sh --help` owns the mechanical contract.
 That transfer records routing evidence, not a captain decision or completed work.
@@ -66,7 +67,7 @@ The absence of a routed work item is not a divergence and the guard never requir
 3. Hold that task - or create one captain-held task for the review's open questions - with a concise reason carrying the question and options.
 4. Run `complete` with the full captain-held inventory for that review pass.
 5. Relay the choices to the captain as decisions from Bearings' Captain's Call section under `AGENTS.md` section 9; do not use the word hold in captain chat.
-6. Close each call only through `answer` (or a channel that feeds `answers`), close a board-requested moot call through evidence-backed `reconcile close`, record a still-active reconciliation through `reconcile note`, use `--until` when the captain defers it, or confirm a channel already closed it.
+6. Resolve each call through the policy above, record a still-active reconciliation through `reconcile note`, use `--until` when the captain defers it, or confirm a channel already resolved it.
 7. Confirm Bearings reflects the outcome: answered or reconciled-moot calls leave Captain's Call, released work resumes, active reconciliations remain held, and deferred calls sit in Charted Next with their date.
 
 `bin/fm-captain-hold.sh --help` owns command syntax, close modes, legacy-identity compatibility, completion attestation, retry behavior, and close ordering.

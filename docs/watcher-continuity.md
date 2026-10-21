@@ -85,8 +85,8 @@ It re-arms by parking that awaited hook on `bin/fm-watch-arm.sh` and returning a
 Claude's `.claude/settings.json` Stop `asyncRewake` hook (`bin/fm-claude-stop-autoarm.sh`) owns routine tokenless re-arm.
 Do not run the hook as a manual arm from a tool turn: a short-lived tool process cannot own its park; its header and help own the invocation contract.
 The hook fires on every Stop.
-On each Stop, an eligible primary with supervision need admits one home-scoped owner, which foregrounds `bin/fm-watch-arm.sh` inside the hook-owned process tree.
-While supervision is still needed and away mode remains inactive, an actionable close wakes the idle session through exit 2.
+On each Stop, an eligible primary with [supervision need](turnend-guard.md#supervision-need) admits one home-scoped owner, which foregrounds `bin/fm-watch-arm.sh` inside the hook-owned process tree.
+While away mode remains inactive, an actionable close wakes the idle session through exit 2, including when the event itself ends supervision need.
 
 ### Claude session-lock ownership
 

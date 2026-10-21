@@ -146,6 +146,10 @@
 # regular file, or text carrying its own "Delivery contract: mode=" line (which
 # a later scout promotion could not outrank), stops the scaffold before
 # anything is written. Secondmate charters never take it.
+# The brief is created exclusively (noclobber, so O_EXCL): of two scaffolds
+# racing for one task - or a scaffold and bin/fm-spawn.sh --queue-start, which
+# scaffolds through this script - exactly one creates it and the other exits 1
+# with nothing written, so that creation is the brief's ownership claim.
 # Refuses to overwrite an existing brief.
 set -eu
 
@@ -433,6 +437,19 @@ BRIEF="$DATA/$ID/brief.md"
 [ -e "$BRIEF" ] && { echo "error: $BRIEF already exists" >&2; exit 1; }
 mkdir -p "$DATA/$ID"
 
+# The test above only fails fast. The claim is the write: stdin becomes the
+# brief only if no brief exists when it is opened (header above).
+write_new_brief() {
+  if ! (set -C; cat >"$BRIEF") 2>/dev/null; then
+    if [ -e "$BRIEF" ] || [ -L "$BRIEF" ]; then
+      echo "error: $BRIEF already exists" >&2
+    else
+      echo "error: could not write $BRIEF" >&2
+    fi
+    exit 1
+  fi
+}
+
 ASK_USER_BLOCK=
 if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
   ASK_USER_BLOCK=$(fm_ask_user_escalation_block "$DATA" "$ID")
@@ -517,7 +534,7 @@ else
   PROJECT_CLONES_BODY=$(printf '%s\n' "$SECONDMATE_PROJECTS" | tr ' ' '\n' | sed 's/^/- /')
   PROJECT_CLONES_NOTE="The projects above are local clones for work you supervise; they are not an exclusive ownership claim."
 fi
-cat > "$BRIEF" <<EOF
+write_new_brief <<EOF
 You are a persistent second mate managed by the main firstmate. Work on your own; do not wait for a human.
 
 Decision owner: $DECISION_OWNER
@@ -688,7 +705,7 @@ if "$SCRIPT_DIR/fm-bootstrap.sh" lavish-compatible >/dev/null 2>&1; then
 else
   LAVISH_LINE='Lavish is unavailable (lavish-axi is missing or below its supported version floor), so deliver your findings as a text report without Lavish, even for a visual deliverable.'
 fi
-cat > "$BRIEF" <<EOF
+write_new_brief <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.
 
 $TASK_SECTION
@@ -759,7 +776,7 @@ esac
 RULE1=$(fm_ship_rule_one "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH") || exit 1
 DOD=$(fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$FM_HOME" "$FM_ROOT") || exit 1
 
-cat > "$BRIEF" <<EOF
+write_new_brief <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.
 
 $TASK_SECTION

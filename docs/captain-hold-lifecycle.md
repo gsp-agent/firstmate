@@ -35,6 +35,7 @@ It never reads report bodies, review artifacts, terminal output, or chat.
 | --- | --- | --- |
 | `hold` | Creates or reuses a task and holds it for the captain. | [Creating a hold](#creating-a-hold-hold) |
 | `route-due` | Transfers an expired technical hold to its declared agent owner. | [Technical hold routing](#technical-hold-routing) |
+| `reprobe` | Checks the recorded probe for a Dale-step hold. | [Dale-step probe holds](#dale-step-probe-holds) |
 | `answer` | Records the captain's exact words and resolves the call. | [Answering a call](#answering-a-call-answer) |
 | `complete` | Records the reviewed captain-held task ids in the originating task's metadata. | [Recording a reviewed inventory](#recording-a-reviewed-inventory-complete) |
 | `verify` | Read-only check that scout teardown runs before removing source state. | [Checking before scout teardown](#checking-before-scout-teardown-verify) |
@@ -67,7 +68,7 @@ Repeat and edge cases:
 - `--until` stores the captain's own deferral date through tasks-axi's date gate.
 - Before the backend hold runs, `--origin` records the origin the call is held for on its own `Captain hold origin:` body line, which `complete` and `verify` check using backend identities rather than alias spellings.
   If that write fails, the backend hold is not attempted.
-- The reason may contain parentheses, semicolons, quotes, and line breaks.
+- An ordinary hold's reason may contain parentheses, semicolons, quotes, and line breaks; the [command reference](../bin/fm-captain-hold.sh) owns Dale-step input restrictions.
   [`bin/fm-hold-reason-lib.sh`](../bin/fm-hold-reason-lib.sh) owns the storage encoding and compatibility rules; [`bin/fm-tasks-axi.sh --help`](../bin/fm-tasks-axi.sh) owns the public read commands and output contract.
 
 ### Technical hold routing
@@ -86,6 +87,7 @@ A successful prompt transfers responsibility to the owner and releases the hold 
 The `agent-routed` resolution records the matching receipt under `Agent routing evidence:` and never supplies captain words.
 Retries use that receipt to finish interrupted recording or release without prompting the owner again.
 An absent router preserves ordinary captain-hold behavior.
+A Dale-step hold, whose active fields carry a probe, is never routed; its [probe release](#dale-step-probe-holds) owns it.
 [`bin/fm-captain-hold.sh --help`](../bin/fm-captain-hold.sh) owns the routing fields, defaults, paths, timeout, and retry contract.
 [`bin/fm-brief.sh --help`](../bin/fm-brief.sh) owns decision-owner declaration at dispatch.
 
@@ -329,7 +331,13 @@ A successful normal answer also retires any pending request, because an answered
 
 Every retirement is checked.
 If request removal fails after an answer, close, or note is already durable, the durable outcome stands, but the command fails and leaves the pending request visible for retry.
-No path here closes a captain call without either the captain's words through `answer` or the evidence through `reconcile close`.
+
+### Dale-step probe holds
+
+The [command reference](../bin/fm-captain-hold.sh) owns Dale-step hold creation, world-check filtering, input restrictions, and probe-backed release.
+The [watcher reference](../bin/fm-watch.sh) owns automatic reprobe scheduling and release notifications; the [supervision-need contract](turnend-guard.md#supervision-need) covers idle homes.
+The Dale-step cases in [`tests/fm-captain-hold-lifecycle.test.sh`](../tests/fm-captain-hold-lifecycle.test.sh) cover the serialized fields, asks-rule action output, ordinary re-holds, a hold changed during its probe, and interrupted-release retries.
+The executable sweep cases live in [`tests/fm-watch-triage.test.sh`](../tests/fm-watch-triage.test.sh), and the idle-home auto-arm and final-release notification cases live in [`tests/fm-claude-stop-autoarm.test.sh`](../tests/fm-claude-stop-autoarm.test.sh).
 
 ## Card hygiene: a landed subject is not a live call
 
@@ -369,7 +377,7 @@ For a main-home call, the reconcile option is the recovery path for whatever sti
 ### Fleet snapshot buckets
 
 `bin/fm-fleet-snapshot.sh` parses canonical tasks-axi `(hold: ...)`, `(hold-kind: ...)`, and `(hold-until: ...)` metadata alongside existing backlog fields.
-It resolves every repeated `blocked-by:` edge against structured Done records and keeps missing blockers unresolved.
+It resolves every repeated `blocked-by:` edge against structured Done records, including rows archived to the `done-archive.md` beside the backlog, and keeps missing blockers unresolved.
 It then assigns every captain hold exactly one `hold_bucket`.
 The bucket is decided only from structured fields: `hold_kind`, `state`, `hold_until`, `unresolved_blocker_ids`, and the machine-written hold-set timestamp.
 Hold reason and body prose are never matched, so no wording can hide, reveal, or reclassify a decision.
