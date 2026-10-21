@@ -7466,21 +7466,33 @@ SH
 }
 
 test_task_data_named_bead_resolution() {
-  local case_dir task bead variant expected
-  for variant in agent-config gsp project fallback unread; do
+  local case_dir task bead home variant
+  for variant in agent-config gsp other-project missing-project fallback not-found unowned unreadable timeout; do
     [ -z "${FM_TASK_DATA_REF_CASE:-}" ] || [ "$variant" = "$FM_TASK_DATA_REF_CASE" ] || continue
     case_dir=$(make_case "task-data-named-$variant")
     task="$case_dir/data/task-x1"
-    mkdir -p "$task" "$case_dir/home/.agent-config" "$case_dir/home/dev/gsp-beads"
+    home=
     case "$variant" in
-      agent-config) bead=.agent-config-ojg69; expected="$case_dir/home/.agent-config" ;;
-      gsp) bead=gsp-kstok; expected="$case_dir/home/dev/gsp-beads" ;;
-      *) bead=proof-related; expected="$case_dir/project" ;;
+      agent-config) bead=.agent-config-ojg69; home=.agent-config-beads ;;
+      gsp) bead=gsp-kstok; home=dev/gsp-beads ;;
+      other-project) bead=heru-add; home=dev/heru-vr-vision-sim ;;
+      missing-project|unreadable|timeout) bead=bd-0gpi; home=dev/be-still ;;
+      fallback) bead=proof-related ;;
+      not-found) bead=.agent-config-zzzz9 ;;
+      unowned) bead=probe-fixture ;;
     esac
+    mkdir -p "$task" "$case_dir/project/.beads" "$case_dir/home/.agent-config-beads/.beads"
+    printf '.beads/\n' >> "$case_dir/project/.git/info/exclude"
+    printf '{"proj-a1": "Unrelated project bead"}\n' > "$case_dir/project/.beads/beads.db"
+    printf '{}\n' > "$case_dir/home/.agent-config-beads/.beads/beads.db"
+    if [ -n "$home" ] && [ "$variant" != unreadable ]; then
+      mkdir -p "$case_dir/home/$home/.beads"
+      jq -n --arg id "$bead" '{($id): "[capture](proof.png)"}' > "$case_dir/home/$home/.beads/beads.db"
+    fi
     printf 'Bead %s\n' "$bead" > "$task/brief.md"
+    [ "$variant" != unowned ] || printf 'Bead .probe-external\n' >> "$task/brief.md"
     printf 'linked evidence\n' > "$task/proof.png"
     printf 'scratch\n' > "$task/discard.bin"
-    write_meta "$case_dir" local-only ship
     seed_backlog_in_flight "$case_dir"
     fm_test_tasks_toml "$case_dir/.tasks.toml"
     if [ "$variant" = fallback ]; then
@@ -7493,45 +7505,76 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 
 assert not any(name in os.environ for name in ("BEADS_DIR", "BEADS_DB", "BR_DB"))
-assert sys.argv[1] == "show"
-assert sys.argv[2] == os.environ["REF_BEAD"]
-assert Path.cwd() == Path(os.environ["REF_OWNER"])
-if os.environ["REF_CASE"] in ("fallback", "unread") and not Path("readable").exists():
-    print("not found", file=sys.stderr)
-    sys.exit(1)
-print(json.dumps([{"id": sys.argv[2], "description": "[capture](proof.png)"}]))
+args = sys.argv[1:]
+if args[:1] == ["--db"]:
+    db, args = Path(args[1]), args[2:]
+    if not db.is_file():
+        print(json.dumps({"error": {"code": "CONFIG_ERROR", "message": f"database override '{db}' not found"}}))
+        sys.exit(7)
+else:
+    db = Path.cwd() / ".beads/beads.db"
+    if not db.is_file():
+        print(json.dumps({"error": {"code": "NOT_INITIALIZED", "message": "Beads not initialized"}}))
+        sys.exit(2)
+assert args[0] == "show" and args[2:] == ["--json"]
+rows = json.loads(db.read_text())
+if os.environ.get("REF_SLOW") == "1" or args[1] not in rows:
+    print(json.dumps({"error": {"code": "ISSUE_NOT_FOUND", "message": f"Issue not found: {args[1]}"}}), flush=True)
+    if os.environ.get("REF_SLOW") == "1":
+        time.sleep(30)
+    sys.exit(3)
+print(json.dumps([{"id": args[1], "description": rows[args[1]]}]))
 PY
     cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
 SH
     chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
-    HOME="$case_dir/home" REF_BEAD="$bead" REF_OWNER="$expected" REF_CASE="$variant" \
-      BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong \
-      run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
-      || fail "$variant named-bead teardown failed: $(cat "$case_dir/err")"
-    [ "$(backlog_row_state "$case_dir")" = 'done' ] || fail "$variant backlog close pending"
-    assert_absent "$case_dir/state/task-x1.meta" "$variant metadata not retired"
-    assert_absent "$case_dir/state/task-x1.backlog-close" "$variant pending close remains"
-    [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant bead evidence moved"
-    if [ "$variant" = unread ]; then
-      [ "$(cat "$task/discard.bin")" = scratch ] || fail "unread bead moved scratch"
-      assert_absent "$task/.cleanup-hold" "unread bead staged data"
-      assert_grep "$bead" "$case_dir/err" "unread bead missing from teardown warning"
-      jq -e --arg bead "$bead" '.complete == false and .sources[0].unread == [$bead]' \
-        "$task/record/data-cleanup.json" >/dev/null || fail "unread bead missing from cleanup record"
-      printf 'available\n' > "$case_dir/project/readable"
-      HOME="$case_dir/home" REF_BEAD="$bead" REF_OWNER="$expected" REF_CASE="$variant" \
-        PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
-        "$case_dir/data" "$case_dir/state" task-x1 || fail "unread bead retry failed"
-      jq -e '.sources[0].unread == []' "$task/record/data-cleanup.json" >/dev/null \
-        || fail "readable retry kept stale unread reference"
+    if [ "$variant" = missing-project ]; then
+      HOME="$case_dir/home" BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong PATH="$case_dir/fakebin:$PATH" \
+        python3 "$ROOT/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" task-x1 \
+        "$case_dir/projects/be-still" '' > "$case_dir/out" 2> "$case_dir/err" \
+        || fail "missing-project named-bead stage failed: $(cat "$case_dir/err")"
+    else
+      write_meta "$case_dir" local-only ship
+      HOME="$case_dir/home" REF_SLOW=$([ "$variant" = timeout ] && echo 1) \
+        FM_TEARDOWN_DATA_STAGE_TIMEOUT=60 BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong \
+        run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+        || fail "$variant named-bead teardown failed: $(cat "$case_dir/err")"
+      [ "$(backlog_row_state "$case_dir")" = 'done' ] || fail "$variant backlog close pending"
+      assert_absent "$case_dir/state/task-x1.meta" "$variant metadata not retired"
+      assert_absent "$case_dir/state/task-x1.backlog-close" "$variant pending close remains"
     fi
+    case "$variant" in
+      unreadable|timeout)
+        [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant bead evidence moved"
+        [ "$(cat "$task/discard.bin")" = scratch ] || fail "$variant bead moved scratch"
+        assert_absent "$task/.cleanup-hold" "$variant bead staged data"
+        assert_grep "$bead" "$case_dir/err" "$variant bead missing from teardown warning"
+        jq -e --arg bead "$bead" '.complete == false and .sources[-1].unread == [$bead]' \
+          "$task/record/data-cleanup.json" >/dev/null || fail "$variant bead missing from cleanup record"
+        mkdir -p "$case_dir/home/$home/.beads"
+        jq -n --arg id "$bead" '{($id): "[capture](proof.png)"}' > "$case_dir/home/$home/.beads/beads.db"
+        HOME="$case_dir/home" PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+          "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant bead retry failed"
+        [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant retry lost bead evidence"
+        ;;
+      not-found|unowned)
+        [ "$(cat "$task/.cleanup-hold/proof.png")" = 'linked evidence' ] \
+          || fail "$variant bead that does not exist still protected an unlinked file"
+        assert_absent "$task/proof.png" "$variant bead that does not exist kept an unlinked file in place"
+        ;;
+      *)
+        [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant bead evidence moved"
+        ;;
+    esac
+    jq -e '.complete == true and .sources[-1].unread == []' "$task/record/data-cleanup.json" >/dev/null \
+      || fail "$variant bead left an unread reference: $(jq -c '.sources[-1].unread' "$task/record/data-cleanup.json")"
     assert_present "$task/.cleanup-hold/discard.bin" "$variant scratch missed recovery cycle"
-    assert_present "$task/proof.png" "$variant retry lost evidence"
-    pass "fm-teardown: $variant named bead resolves safely and backlog closes"
+    pass "fm-teardown: $variant named bead is read from the database that owns its prefix"
   done
 }
 
