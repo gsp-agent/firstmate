@@ -51,6 +51,10 @@ pending-pr: 59 .agent-config-dtjsb
 pending-pr: 60 .agent-config-dtjsb
 pending-pr: 51 .agent-config-dtjsb
 pending-pr: 64 .agent-config-dtjsb
+pending-pr: 67 .agent-config-dtjsb
+pending-pr: 69 .agent-config-dtjsb
+pending-pr: 66 .agent-config-dtjsb
+pending-pr: 76 .agent-config-dtjsb
 # Squash, merge, forgotten-line, wrong-number and open-PR regressions in tests/fm-drift-nightly.test.sh, plus "PR 25 squash acceptance on upstream-lean" in drift-measurements.txt.
 pr: 53
 # Cut completely: 745991e8's cap/tee changes and 8193b236's stream classifier.
