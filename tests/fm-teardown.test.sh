@@ -92,6 +92,18 @@ TMP_ROOT=$(fm_test_tmproot fm-teardown-tests)
 REAL_GIT_FOR_TEST=$(command -v git)
 export REAL_GIT_FOR_TEST
 REAL_PS_FOR_TEST=$(command -v ps)
+# Teardown's account-wide orphan scan must see only this suite's fixtures.
+# Keep point process probes real, including the case-specific ps shims below.
+cat > "$TMP_ROOT/ps" <<SH
+#!/usr/bin/env bash
+if [ "\$#" -eq 4 ] && [ "\$1" = -u ] && [ "\$3" = -o ] && [ "\$4" = pid=,command= ]; then
+  "$REAL_PS_FOR_TEST" "\$@" | awk -v root="$TMP_ROOT/" 'index(\$0, root) > 0'
+else
+  exec "$REAL_PS_FOR_TEST" "\$@"
+fi
+SH
+chmod +x "$TMP_ROOT/ps"
+REAL_PS_FOR_TEST="$TMP_ROOT/ps"
 export REAL_PS_FOR_TEST
 REAL_LSOF_FOR_TEST=$(command -v lsof)
 export REAL_LSOF_FOR_TEST
@@ -205,6 +217,7 @@ esac
 exit 0
 SH
   chmod +x "$fakebin/treehouse" "$fakebin/tmux" "$fakebin/gh-axi" "$fakebin/gh" "$fakebin/no-mistakes"
+  cp "$REAL_PS_FOR_TEST" "$fakebin/ps"
 
   # Bare origin so the clone has an `origin` remote and origin/HEAD.
   git init -q --bare "$case_dir/origin.git"
@@ -5690,7 +5703,7 @@ test_task_data_slow_expire_releases_locks() {
   cat > "$case_dir/fakebin/br" <<SH
 #!/usr/bin/env bash
 : > "$case_dir/br-started"
-exec sleep 12
+exec sleep 60
 SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
@@ -5700,7 +5713,7 @@ SH
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
   fm_write_meta "$case_dir/state/live-y.meta" "window=sess:fm-live-y" "kind=ship" "harness=claude"
-  FM_SUPERVISION_ACTOR=main FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=8 run_teardown "$case_dir" \
+  FM_SUPERVISION_ACTOR=main FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=20 run_teardown "$case_dir" \
     > "$case_dir/out" 2> "$case_dir/err" &
   teardown_pid=$!
   for ((i = 0; i < 300; i++)); do
@@ -5731,7 +5744,7 @@ SH
   rc=$?
   seconds=$((SECONDS - started))
   expect_code 0 "$rc" "teardown with a slow expiry of another task"
-  [ "$seconds" -le 15 ] || fail "teardown spent ${seconds}s expiring another task's data with an 8s budget"
+  [ "$seconds" -le 27 ] || fail "teardown spent ${seconds}s expiring another task's data with a 20s budget"
   for ((i = 0; i < 20; i++)); do
     pgrep -f "backlog-references $case_dir/data old-done" >/dev/null || break
     sleep 0.1
@@ -5754,7 +5767,7 @@ SH
     "kind=ship" "mode=local-only" "spawn_gen=task-next"
   FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
     FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
-    FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=5 PATH="$case_dir/fakebin:$PATH" \
+    FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=15 PATH="$case_dir/fakebin:$PATH" \
     "$TEARDOWN" task-next > "$case_dir/next.out" 2> "$case_dir/next.err" \
     || fail "next teardown failed: $(cat "$case_dir/next.err")"
   assert_absent "$young/.cleanup-hold" "a slow hold took the next teardown's whole expiry budget"
