@@ -4820,6 +4820,10 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
               treehouse_unclosed="${treehouse_unclosed:+$treehouse_unclosed }$HERDR_SES:$treehouse_pane"
             fi
           done
+        else
+          treehouse_presence=0
+          fm_backend_target_exists "$BACKEND" "$T" || treehouse_presence=$?
+          [ "$treehouse_presence" -eq 1 ] || SPAWN_ENDPOINT_CLOSED=0
         fi
         if [ "$SPAWN_ENDPOINT_CLOSED" = 1 ]; then
           treehouse_cleanup="its window $T was closed"

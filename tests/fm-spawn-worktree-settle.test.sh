@@ -67,7 +67,15 @@ case "$*" in
 esac
 windows=${FM_FAKE_WINDOWS:?FM_FAKE_WINDOWS unset}
 case "${1:-}" in
-  display-message) printf 'firstmate\n' ;;
+  display-message)
+    if [ "${5:-}" = '#{pane_id}' ]; then
+      [ "${FM_FAKE_TMUX_PRESENCE:-}" != unreadable ] || exit 2
+      grep -qxF -- "${4#*:}" "$windows" || exit 1
+      printf '%%1\n'
+    else
+      printf 'firstmate\n'
+    fi
+    ;;
   list-windows) cat "$windows" 2>/dev/null ;;
   new-window)
     while [ "$#" -gt 0 ]; do
@@ -77,6 +85,7 @@ case "${1:-}" in
     printf '@1\n'
     ;;
   kill-window)
+    [ "${FM_FAKE_TMUX_CLOSE:-}" != noop ] || exit 0
     grep -vxF -- "${3##*:=}" "$windows" >"$windows.next"
     mv "$windows.next" "$windows"
     ;;
@@ -426,6 +435,7 @@ test_pool_full_treehouse_get_refuses_at_once() {
   assert_contains "$out" "all 16 worktrees are in use or dirty (max_trees = 16)" \
     "the refusal did not quote treehouse's own reason"
   assert_contains "$out" "$PROJ_DIR" "the refusal did not name the project whose pool is full"
+  assert_contains "$out" "was closed" "the refusal did not confirm its removed window"
   reads=$(cat "$COUNTFILE")
   [ "$reads" -eq 1 ] || fail "spawn read the pane $reads times after treehouse get had already exited - expected to refuse on the first read"$'\n'"$out"
   assert_no_grep "fm-$id" "$CASE_DIR/windows" "the refused spawn left its window behind"
@@ -436,6 +446,29 @@ test_pool_full_treehouse_get_refuses_at_once() {
   assert_contains "$out" "all 16 worktrees are in use or dirty (max_trees = 16)" \
     "a retry did not reach treehouse get again"
   pass "a treehouse get that exits on a full pool refuses at once with treehouse's reason and leaves no window"
+}
+
+test_pool_full_surviving_window_is_reported() {
+  local presence rec id out status
+  for presence in present unreadable; do
+    id="settle-pool-full-close-$presence"
+    rec=$(make_settle_case "$id" "$id" 100000)
+    read_settle_record "$rec"
+    STALE_DIR=$PROJ_DIR
+    fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+
+    out=$(FM_FAKE_TMUX_CLOSE=noop FM_FAKE_TMUX_PRESENCE="$presence" \
+      FM_FAKE_TREEHOUSE=pool-full run_settle_spawn "$id")
+    status=$?
+    [ "$status" -ne 0 ] || fail "spawn launched after treehouse returned on a full pool"$'\n'"$out"
+    grep -qxF -- "fm-$id" "$CASE_DIR/windows" || fail "the fake close did not leave its window in place"
+    assert_not_contains "$out" "was closed" "a pool-full spawn reported its surviving window closed"$'\n'"$out"
+    assert_contains "$out" "could not confirm closure" "the refusal omitted the leftover warning"$'\n'"$out"
+    assert_contains "$out" "inspect window firstmate:fm-$id" "the refusal did not name its surviving window"$'\n'"$out"
+    assert_contains "$out" "all 16 worktrees are in use or dirty (max_trees = 16)" "the refusal lost treehouse's reason"$'\n'"$out"
+    [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "refused spawn published task metadata"
+    pass "a pool-full spawn reports its $presence window after a silent close failure"
+  done
 }
 
 # A slow but working `treehouse get` prints while it fetches and sets up the
@@ -465,6 +498,7 @@ test_already_settled_pane_costs_one_confirm_read
 test_transient_primary_checkout_is_not_accepted
 test_primary_checkout_that_never_settles_fails_at_the_deadline
 test_pool_full_treehouse_get_refuses_at_once
+test_pool_full_surviving_window_is_reported
 test_slow_treehouse_get_still_launches
 test_pool_full_herdr_cleanup_is_confirmed flat closed || exit 1
 test_pool_full_herdr_cleanup_is_confirmed flat refused || exit 1
