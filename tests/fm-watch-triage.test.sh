@@ -4302,6 +4302,43 @@ test_secondmate_nonpaused_stale_remains_suppressed() {
   pass "a non-paused secondmate retains normal stale suppression"
 }
 
+# The watcher exits on its first wake, so a stale scan that always began at the
+# first .meta never reached a late window while earlier windows kept waking: on
+# 10-21, 80 of 100 live windows went unvisited for 6.5 h (.agent-config-6keoe).
+# The scan now visits the least-recently-visited window first, so with N early
+# windows waking on every run, the late window is visited by run N+1.
+test_stale_scan_reaches_a_late_window_while_early_windows_wake() {
+  local dir state fakebin capture_file t w key old run pid visited=''
+  dir=$(make_case stale-scan-order); state="$dir/state"; fakebin="$dir/fakebin"
+  capture_file="$dir/pane.txt"
+  printf 'idle worker without a declared wait\n' > "$capture_file"
+  old=$(( $(date +%s) - 1000 ))
+  for t in a1 a2 a3 z9; do
+    w="test:fm-$t"; key=$(printf '%s' "$w" | tr ':/.' '___')
+    printf 'window=%s\nkind=scout\nharness=grok\nbackend=tmux\n' "$w" > "$state/$t.meta"
+    printf 'working: implementing\n' > "$state/$t.status"
+    printf '%s' "$(seen_sig "$state/$t.status")" > "$state/.seen-${t}_status"
+    printf '%s' "$(hash_text "$(cat "$capture_file")")" > "$state/.hash-$key"
+    printf '1\n' > "$state/.count-$key"
+    set_mtime "$old" "$state/.count-$key"
+  done
+  for run in 1 2 3 4; do
+    # Each early window has a fresh stale event on every run, as a busy fleet's do.
+    for t in a1 a2 a3; do rm -f "$state/.stale-test_fm-$t" "$state/.stale-since-test_fm-$t"; done
+    PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOWS="$(printf 'fm-a1\nfm-a2\nfm-a3\nfm-z9')" \
+      FM_FAKE_TMUX_CAPTURE="$capture_file" FM_FAKE_TMUX_CURRENT_COMMAND=grok \
+      FM_FAKE_CREW_STATE='state: unknown · source: none · no current-state source available' \
+      watch_bg "$state" "$fakebin" "$dir/run$run.out" env FM_STALE_ESCALATE_SECS=999
+    pid=$!
+    wait_for_exit "$pid" 100 || { reap "$pid"; fail "stale-scan run $run never woke"; }
+    ack_stopped_cycle "$state" || fail "could not acknowledge stale-scan run $run"
+    if [ "$(cat "$state/.count-test_fm-z9")" != 1 ]; then visited=$run; break; fi
+  done
+  [ -n "$visited" ] \
+    || fail "the late window was never visited in 4 runs while 3 earlier windows woke on each: $(cat "$dir"/run*.out | tr '\n' ' ')"
+  pass "the stale scan reaches a late window by run $visited while earlier windows wake on every run"
+}
+
 test_secondmate_unpause_clears_pause_tracking() {
   local dir state fakebin out statusf window key pid
   dir=$(make_case secondmate-unpause-clears); state="$dir/state"; fakebin="$dir/fakebin"
@@ -6968,6 +7005,7 @@ test_secondmate_paused_resurfaces_in_normal_mode
 test_secondmate_captain_held_resurfaces_in_normal_mode
 test_secondmate_nonpaused_stale_remains_suppressed
 test_secondmate_unpause_clears_pause_tracking
+test_stale_scan_reaches_a_late_window_while_early_windows_wake
 test_nonterminal_stale_pause_transitions_reclassify_unchanged_hash
 test_nonterminal_paused_rechecks_authoritative_state
 test_paused_authoritative_working_preserves_wedge_timer
