@@ -1,0 +1,8 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/native/home
+warning: no exact herdr presentation token match for native-pool-projected; leaving any stale space untouched and spawning flat
+error: treehouse get exited without entering a worktree for project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/native/project', so no worker was launched; its window fm-lab-native-pool-35280-21195:w1:p4 was closed; treehouse said:
+  A new version of treehouse is available: v2.3.0 → v3.1.4
+  Run "treehouse update" to update
+  🌳 Setting up worktree...
+  all 1 worktrees are in use or dirty (max_trees = 1). Run 'treehouse status' to see details, or increase max_trees in tre
+  ehouse.toml

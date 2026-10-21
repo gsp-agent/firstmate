@@ -1,0 +1,15 @@
+ok - a single transient stale pane_current_path read is not accepted as the worktree
+ok - an already-settled pane confirms on the next read, not a whole extra cycle
+ok - a transient primary-checkout pane read is not accepted as the worktree
+ok - a pane stuck on the primary checkout fails loudly at the deadline
+ok - a treehouse get that exits on a full pool refuses at once with treehouse's reason and leaves no window
+ok - a pool-full spawn reports its present window after a silent close failure
+ok - a pool-full spawn reports its unreadable window after a silent close failure
+ok - a slow but working treehouse get still launches
+ok - a pool-full flat Herdr refusal confirms closed cleanup
+ok - a pool-full flat Herdr refusal confirms refused cleanup
+ok - a pool-full flat Herdr refusal confirms noop cleanup
+ok - a pool-full flat Herdr refusal confirms unknown cleanup
+ok - a pool-full projected Herdr refusal confirms closed cleanup
+ok - a pool-full projected Herdr refusal confirms noop cleanup
+# all fm-spawn-worktree-settle tests passed

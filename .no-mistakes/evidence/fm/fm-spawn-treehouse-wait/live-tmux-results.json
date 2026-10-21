@@ -1,0 +1,23 @@
+[
+  {
+    "scenario": "normal-close",
+    "attempt": 1,
+    "result": "pass",
+    "elapsed_seconds": 19.02,
+    "returncode": 1
+  },
+  {
+    "scenario": "normal-close",
+    "attempt": 2,
+    "result": "pass",
+    "elapsed_seconds": 12.199,
+    "returncode": 1
+  },
+  {
+    "scenario": "status1-unreadable",
+    "attempt": 1,
+    "result": "pass",
+    "elapsed_seconds": 14.263,
+    "returncode": 1
+  }
+]

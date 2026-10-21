@@ -1,0 +1,36 @@
+[
+  {
+    "scenario": "flat pool-full",
+    "attempt": 1,
+    "result": "pass",
+    "after_treehouse_return_seconds": 5,
+    "total_seconds": 13
+  },
+  {
+    "scenario": "flat pool-full",
+    "attempt": 2,
+    "result": "pass",
+    "after_treehouse_return_seconds": 7,
+    "total_seconds": 15
+  },
+  {
+    "scenario": "projected pool-full",
+    "attempt": 1,
+    "result": "pass",
+    "after_treehouse_return_seconds": 8,
+    "total_seconds": 28
+  },
+  {
+    "scenario": "projected pool-full",
+    "attempt": 2,
+    "result": "pass",
+    "after_treehouse_return_seconds": 14,
+    "total_seconds": 30
+  },
+  {
+    "scenario": "slow successful real setup",
+    "result": "pass",
+    "total_seconds": 83,
+    "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/native/pool/.treehouse/project-c3eac6/1/project"
+  }
+]

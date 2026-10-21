@@ -1,0 +1,144 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/v
+exit=0 elapsed=3.044s
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/v
+
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project
+exit=0 elapsed=0.923s
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project add README.md treehouse.toml
+exit=0 elapsed=1.047s
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project -c 'user.name=Spawn Test' -c user.email=spawn-test@example.invalid commit -qm 'Seed tmux test pool'
+exit=0 elapsed=1.433s
+
+$ treehouse get --lease --json
+exit=0 elapsed=2.189s
+{"path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/pool/.treehouse/project-b3d360/1/project","lease_id":"0e08060196f0cdd5a5381ef65f0ebb13","lease_holder":"","leased_at":"2026-10-21T03:09:24.34325-05:00"}
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/pool/.treehouse/project-b3d360/1/project. Run 'treehouse return ~/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/pool/.treehouse/project-b3d360/1/project' to release it.
+
+$ /opt/homebrew/bin/tmux -L fm-lab -f /dev/null new-session -d -s firstmate -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project /bin/bash --noprofile --norc
+exit=0 elapsed=0.182s
+
+$ /opt/homebrew/bin/tmux -L fm-lab set-option -g default-shell /bin/bash
+exit=0 elapsed=0.028s
+
+$ /opt/homebrew/bin/tmux -L fm-lab set-option -g default-command '/bin/bash --noprofile --norc'
+exit=0 elapsed=0.056s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-brief.sh pool-normal-close tmux-live-fixture --scout
+exit=0 elapsed=13.570s
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/v/data/pool-normal-close/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-spawn.sh pool-normal-close /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project 'bash /dev/null' --scout --backend tmux
+exit=1 elapsed=19.020s
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/v
+error: treehouse get exited without entering a worktree for project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project', so no worker was launched; could not confirm closure of its endpoint; inspect window firstmate:fm-pool-normal-close; treehouse said:
+  A new version of treehouse is available: v2.3.0 → v3.1.4
+  Run "treehouse update" to update
+  🌳 Setting up worktree...
+  all 1 worktrees are in use or dirty (max_trees = 1). Run 'treehouse status' to see details, or increase max_trees in tre
+  ehouse.toml
+
+$ /opt/homebrew/bin/tmux -L fm-lab list-windows -t firstmate -F '#{window_name}'
+exit=0 elapsed=0.017s
+bash
+
+SCENARIO PASS: {"scenario": "normal-close", "attempt": 1, "result": "pass", "elapsed_seconds": 19.02, "returncode": 1}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-spawn.sh pool-normal-close /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project 'bash /dev/null' --scout --backend tmux
+exit=1 elapsed=12.199s
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/v
+error: treehouse get exited without entering a worktree for project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project', so no worker was launched; could not confirm closure of its endpoint; inspect window firstmate:fm-pool-normal-close; treehouse said:
+  A new version of treehouse is available: v2.3.0 → v3.1.4
+  Run "treehouse update" to update
+  🌳 Setting up worktree...
+  all 1 worktrees are in use or dirty (max_trees = 1). Run 'treehouse status' to see details, or increase max_trees in tre
+  ehouse.toml
+
+$ /opt/homebrew/bin/tmux -L fm-lab list-windows -t firstmate -F '#{window_name}'
+exit=0 elapsed=0.093s
+bash
+
+SCENARIO PASS: {"scenario": "normal-close", "attempt": 2, "result": "pass", "elapsed_seconds": 12.199, "returncode": 1}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-brief.sh pool-status1-unreadable tmux-live-fixture --scout
+exit=0 elapsed=4.796s
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/v/data/pool-status1-unreadable/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-spawn.sh pool-status1-unreadable /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project 'bash /dev/null' --scout --backend tmux
+exit=1 elapsed=14.263s
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/v
+error: treehouse get exited without entering a worktree for project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/project', so no worker was launched; could not confirm closure of its endpoint; inspect window firstmate:fm-pool-status1-unreadable; treehouse said:
+  A new version of treehouse is available: v2.3.0 → v3.1.4
+  Run "treehouse update" to update
+  🌳 Setting up worktree...
+  all 1 worktrees are in use or dirty (max_trees = 1). Run 'treehouse status' to see details, or increase max_trees in tre
+  ehouse.toml
+
+$ /opt/homebrew/bin/tmux -L fm-lab list-windows -t firstmate -F '#{window_name}'
+exit=0 elapsed=0.011s
+bash
+fm-pool-status1-unreadable
+
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/lookup.sh
+exit=1 elapsed=0.344s
+
+$ /opt/homebrew/bin/tmux -L fm-lab capture-pane -p -t firstmate:fm-pool-status1-unreadable -S -200
+exit=0 elapsed=0.074s
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ printf '%s-%s\n' fm-treehouse-get start; treehouse get; printf '%s-%s\n' fm-treehouse-get end
+fm-treehouse-get-start
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+all 1 worktrees are in use or dirty (max_trees = 1). Run 'treehouse status' to see details, or increase max_trees in tre
+ehouse.toml
+fm-treehouse-get-end
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$ /opt/homebrew/bin/tmux -L fm-lab kill-window -t firstmate:fm-pool-status1-unreadable
+exit=0 elapsed=0.033s
+
+SCENARIO PASS: {"scenario": "status1-unreadable", "attempt": 1, "result": "pass", "elapsed_seconds": 14.263, "returncode": 1}
+$ treehouse return /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/tmux/pool/.treehouse/project-b3d360/1/project
+exit=0 elapsed=4.627s
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+
+$ /opt/homebrew/bin/tmux -L fm-lab kill-server
+exit=0 elapsed=0.204s
+

@@ -1,0 +1,15 @@
+window=fm-lab-native-pool-35280-21195:w3:p2
+endpoint_task_id=native-slow-success
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/native/pool/.treehouse/project-c3eac6/1/project
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/native/project
+harness=bash
+kind=scout
+tasktmp=/tmp/fm-native-slow-success
+model=default
+effort=default
+spawn_gen=s1792570849.87938.16728
+backend=herdr
+herdr_session=fm-lab-native-pool-35280-21195
+herdr_workspace_id=w3
+herdr_tab_id=w3:t2
+herdr_pane_id=w3:p2

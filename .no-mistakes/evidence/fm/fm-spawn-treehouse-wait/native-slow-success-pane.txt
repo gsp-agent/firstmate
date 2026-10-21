@@ -1,0 +1,22 @@
+dalecarman@Dales-MacBook-Pro-M4-7 project % printf '%s-%s\n' fm-treehouse-get start; treehouse get; printf '%s-%s\n' fm-
+treehouse-get end
+fm-treehouse-get-start
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/native/pool/
+.treehouse/project-c3eac6/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/na
+tive/pool/.treehouse/project-c3eac6/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-native-slow-success/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=native-slow-success
+bash-3.2$ . '/tmp/fm-native-slow-success+75b2f95ff0f176a6f6d2724555cc93b7cdaf390b9d7ffdaa385e3e312883230c/launch.s179257
+0849.87938.16728.sh'
+WORKER_STARTED cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/
+native/pool/.treehouse/project-c3eac6/1/project

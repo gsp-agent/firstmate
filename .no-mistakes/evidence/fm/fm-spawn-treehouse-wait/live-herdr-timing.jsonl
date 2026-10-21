@@ -1,0 +1,42 @@
+{"start": 563219.762421833, "end": 563220.10660025, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563221.041238875, "end": 563221.363832458, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563222.350067083, "end": 563222.704956583, "operation": ["workspace", "list"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563223.526691916, "end": 563223.850402291, "operation": ["tab", "list", "--workspace"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563224.920571375, "end": 563225.270080125, "operation": ["tab", "create", "--workspace"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563226.21783775, "end": 563226.597581708, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563227.385311916, "end": 563227.654660958, "operation": ["pane", "run", "w1:p2"], "returncode": 0, "treehouse_command": true, "end_marker": false}
+{"start": 563228.593080833, "end": 563229.053056666, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563230.107796458, "end": 563230.855742958, "operation": ["pane", "get", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563231.675196083, "end": 563231.959824125, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563232.992069375, "end": 563233.609835666, "operation": ["pane", "read", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563235.448080208, "end": 563235.861453666, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563236.852494458, "end": 563237.295477708, "operation": ["pane", "get", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563238.66382025, "end": 563238.889563916, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563239.731796875, "end": 563240.119787625, "operation": ["pane", "read", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563242.60555225, "end": 563243.130306166, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563244.071448791, "end": 563244.520415416, "operation": ["pane", "get", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563245.912582291, "end": 563246.169215875, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563246.891600125, "end": 563247.171762916, "operation": ["pane", "read", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563250.351828875, "end": 563250.388646583, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563253.868922291, "end": 563256.434025541, "operation": ["pane", "get", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563262.756337, "end": 563262.8592205, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563266.686740625, "end": 563268.166322083, "operation": ["pane", "read", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563274.995740166, "end": 563275.177299208, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563275.601082708, "end": 563275.723818041, "operation": ["pane", "get", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563276.147175416, "end": 563276.211172375, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563276.5087165, "end": 563276.90970175, "operation": ["pane", "read", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563278.743053041, "end": 563279.216602916, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563281.273046375, "end": 563281.471141125, "operation": ["pane", "get", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563282.268988791, "end": 563282.506744416, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563283.227045666, "end": 563283.837681625, "operation": ["pane", "read", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": true}
+{"start": 563284.575448, "end": 563284.855896916, "operation": ["status", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563285.406477416, "end": 563285.679425625, "operation": ["session", "list", "--json"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563287.997540833, "end": 563288.303281458, "operation": ["workspace", "list"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563289.578473125, "end": 563289.848988875, "operation": ["tab", "list", "--workspace"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563290.46783475, "end": 563290.81501475, "operation": ["pane", "get", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563291.916035708, "end": 563292.381146416, "operation": ["tab", "list", "--workspace"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563293.041184041, "end": 563294.205975375, "operation": ["pane", "close", "w1:p2"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563295.208064375, "end": 563295.628834958, "operation": ["pane", "get", "w1:p2"], "returncode": 1, "treehouse_command": false, "end_marker": false}
+{"start": 563296.563849708, "end": 563296.734637875, "operation": ["workspace", "list"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563297.415520166, "end": 563297.623370208, "operation": ["tab", "list", "--workspace"], "returncode": 0, "treehouse_command": false, "end_marker": false}
+{"start": 563299.148693666, "end": 563300.054500958, "operation": ["pane", "get", "w1:p2"], "returncode": 1, "treehouse_command": false, "end_marker": false}

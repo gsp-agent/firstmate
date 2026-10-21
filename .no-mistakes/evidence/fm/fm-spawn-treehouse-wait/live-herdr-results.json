@@ -1,0 +1,16 @@
+[
+  {
+    "scenario": "flat pool-full attempt 1",
+    "result": "pass",
+    "elapsed_seconds": 22.211,
+    "after_treehouse_return_seconds": 9.204,
+    "returncode": 1,
+    "workspace_count": 1,
+    "pane_count": 1,
+    "tab_count": 1
+  },
+  {
+    "result": "error",
+    "detail": "AssertionError(29.428915977478027)"
+  }
+]

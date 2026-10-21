@@ -1,0 +1,91 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/home
+exit=0 elapsed=0.307s
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/home
+
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/project
+exit=0 elapsed=0.079s
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/project add README.md treehouse.toml
+exit=0 elapsed=0.082s
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/project -c 'user.name=Spawn Live Test' -c user.email=spawn-test@example.invalid commit -qm 'Seed disposable pool'
+exit=0 elapsed=0.364s
+
+$ git clone --bare --quiet /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/project-origin.git
+exit=0 elapsed=0.524s
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/project remote add origin file:///Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/project-origin.git
+exit=0 elapsed=0.053s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh name spawn-pool
+exit=0 elapsed=0.100s
+fm-lab-spawn-pool-85442-6558
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh provision fm-lab-spawn-pool-85442-6558
+exit=0 elapsed=1.745s
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh run fm-lab-spawn-pool-85442-6558 workspace create --label firstmate
+exit=0 elapsed=1.572s
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman","focused":true,"foreground_cwd":"/Users/dalecarman","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65e553ef9a6071","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"},"type":"workspace_created","workspace":{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}}}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh run fm-lab-spawn-pool-85442-6558 workspace list
+exit=0 elapsed=0.633s
+{"id":"cli:workspace:list","result":{"type":"workspace_list","workspaces":[{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}]}}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh run fm-lab-spawn-pool-85442-6558 tab list --workspace w1
+exit=0 elapsed=0.614s
+{"id":"cli:tab:list","result":{"tabs":[{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"}],"type":"tab_list"}}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh run fm-lab-spawn-pool-85442-6558 pane list --workspace w1
+exit=0 elapsed=0.594s
+{"id":"cli:pane:list","result":{"panes":[{"agent_status":"unknown","cwd":"/Users/dalecarman","focused":true,"foreground_cwd":"/Users/dalecarman","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65e553ef9a6071","workspace_id":"w1"}],"type":"pane_list"}}
+
+$ treehouse get --lease --json
+exit=0 elapsed=3.471s
+{"path":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/treehouse-root/.treehouse/project-141c03/1/project","lease_id":"0528d2bb4ac6644b65e61c02c2fbf2c9","lease_holder":"","leased_at":"2026-10-21T03:08:07.707256-05:00"}
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/treehouse-root/.treehouse/project-141c03/1/project. Run 'treehouse return ~/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/treehouse-root/.treehouse/project-141c03/1/project' to release it.
+
+Lease response: {"path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/treehouse-root/.treehouse/project-141c03/1/project", "lease_id": "0528d2bb4ac6644b65e61c02c2fbf2c9", "lease_holder": "", "leased_at": "2026-10-21T03:08:07.707256-05:00"}
+$ treehouse status
+exit=0 elapsed=4.127s
+1     leased       ~/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/treehouse-root/.treehouse/project-141c03/1/project
+A new version of treehouse is available: v2.3.0 → v3.1.4
+Run "treehouse update" to update
+
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-brief.sh pool-flat spawn-live-fixture --scout --herdr-lab
+exit=0 elapsed=9.288s
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/home/data/pool-flat/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-spawn.sh pool-flat /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/project 'bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/worker.sh' --scout --backend herdr
+exit=1 elapsed=89.738s
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/home
+error: treehouse get exited without entering a worktree for project '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/.fm-live-validation/measured/project', so no worker was launched; its window fm-lab-spawn-pool-85442-6558:w1:p2 was closed; treehouse said:
+  A new version of treehouse is available: v2.3.0 → v3.1.4
+  Run "treehouse update" to update
+  🌳 Setting up worktree...
+  all 1 worktrees are in use or dirty (max_trees = 1). Run 'treehouse status' to see details, or increase max_trees in tre
+  ehouse.toml
+
+Timing: total spawn 89.738s; after sending Treehouse 75.163s; after observing return marker 18.980s
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh run fm-lab-spawn-pool-85442-6558 workspace list
+exit=0 elapsed=0.241s
+{"id":"cli:workspace:list","result":{"type":"workspace_list","workspaces":[{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"firstmate","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}]}}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh run fm-lab-spawn-pool-85442-6558 tab list --workspace w1
+exit=0 elapsed=0.436s
+{"id":"cli:tab:list","result":{"tabs":[{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"}],"type":"tab_list"}}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh run fm-lab-spawn-pool-85442-6558 pane list --workspace w1
+exit=0 elapsed=0.211s
+{"id":"cli:pane:list","result":{"panes":[{"agent_status":"unknown","cwd":"/Users/dalecarman/dev","focused":true,"foreground_cwd":"/Users/dalecarman/dev","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65e553ef9a6071","workspace_id":"w1"}],"type":"pane_list"}}
+
+DRIVER ERROR: AssertionError((18.979924749932252, 75.1629454169888))
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5ED7CG2SMYGRW9YHV37RPT2/bin/fm-herdr-lab.sh teardown fm-lab-spawn-pool-85442-6558
+exit=0 elapsed=3.149s
+
+Lab teardown and unchanged-default-session tripwire: PASS
