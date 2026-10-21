@@ -4856,12 +4856,13 @@ rovo_wait_for_delivery() {
 # teardown owns this endpoint yet, so a gate failure must close the launched
 # process here or it keeps running as an orphaned autonomous agent outside
 # task control. Closing the endpoint alone is not enough: a launched codex
-# survives its pane's hangup, so every process rooted in the task's own
-# worktree is reaped first, as teardown does. Mirrors fm-teardown.sh's own
-# generic kill call. On orca only the exact terminal is closed: that stops the
-# CLI while its worktree stays for the record's own teardown, which owns
-# worktree deletion.
+# can survive its pane's hangup. Mirrors fm-teardown.sh's generic kill call;
+# on orca only the exact terminal is closed, leaving worktree deletion to
+# the record's own teardown.
 spawn_gate_endpoint_cleanup() {
+  # Only an available lsof and a successful worktree reap verify shutdown.
+  # Otherwise still close the endpoint, but leave SPAWN_ENDPOINT_CLOSED at 0
+  # so abort cleanup preserves the git-hooks strip for a possible survivor.
   local worker_stopped=0
   if [ "$KIND" != secondmate ] && [ -n "$WT" ] &&
     command -v lsof >/dev/null 2>&1 &&

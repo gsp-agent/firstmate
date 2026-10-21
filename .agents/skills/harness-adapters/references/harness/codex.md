@@ -16,8 +16,10 @@ Verified on 2026-06-11 with codex-cli 0.139.0 unless a fact gives a newer versio
 | Model discovery | Open the current interactive session's `/model` picker. |
 | Marker | None; identity comes from ancestry, and `../../../bin/fm-harness.sh` is what keeps a retained foreign `CLAUDECODE` from renaming it. Verified on 2026-09-01 with codex-cli 0.152.0: the pane process is the `node` npm shim and the native `codex` binary runs as its foreground child, so a tool subprocess reaches the native name directly while the shim itself is identified from its script path. |
 
+## Folder trust
+
 A "Folder access" prompt ("Trust this folder?") parks a launch whose repository root has no saved trust decision; trust is keyed by the root, which for a linked worktree is the project's primary checkout.
-Firstmate does not answer it: a crewmate or scout spawn pre-registers the root through `../../../bin/fm-codex-trust.sh` and refuses to launch when it cannot, and the spawn fails, stopping the launched codex and closing the endpoint, if the prompt renders anyway.
+Firstmate does not answer it: a crewmate or scout spawn pre-registers the root through `../../../bin/fm-codex-trust.sh` and refuses to launch when it cannot, and the spawn fails through [`bin/fm-spawn.sh`'s rejected-launch cleanup](../../../../../bin/fm-spawn.sh) if the prompt renders anyway.
 A root saved as untrusted shows "Open restricted" instead and is refused rather than overridden; [docs/verification/codex.md](../../../../../docs/verification/codex.md) owns the evidence.
 
 ## Hook trust

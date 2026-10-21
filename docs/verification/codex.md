@@ -47,7 +47,7 @@ A root saved as `trust_level = "untrusted"` parks on a second shape instead, and
 ```
 
 Without a credential in `CODEX_HOME`, the sign-in screen renders before either prompt.
-`fm_busy_codex_launch_prompt_tail` in `bin/fm-busy-lib.sh` matches each shape by its own heading or question paired with its own option line.
+`fm_busy_codex_launch_prompt_tail` in `bin/fm-busy-lib.sh` matches each shape by its own heading or question paired with its own complete option line and requires `enter continue · esc quit` as the last non-blank line, so a turn quoting a dialog is not mistaken for the live prompt.
 
 ## The welcome screen precedes the prompt
 
@@ -133,7 +133,7 @@ exit=1
 ```
 
 SIGTERM stopped both.
-The gate now reaps every process rooted in the task's worktree through `bin/fm-task-reap-lib.sh` before it closes the window, and the same `/bin/bash` 3.2.57 run leaves nothing behind:
+With `lsof` available and the worktree process reap succeeding, the gate reaps processes through `bin/fm-task-reap-lib.sh` before closing the window; the same `/bin/bash` 3.2.57 run left nothing behind:
 
 ```
 error: codex parked on its folder-access prompt in window firstmate:fm-fhzhp-orphan-p13-after-bash32 despite the pre-registered trust, so the worker could not reach its brief; inspect window firstmate:fm-fhzhp-orphan-p13-after-bash32
@@ -144,9 +144,13 @@ exit=1
 (none)
 ```
 
+[`spawn_gate_endpoint_cleanup` in `bin/fm-spawn.sh`](../../bin/fm-spawn.sh) owns the shutdown-verification requirement and strip-preservation fallback; the failed-scan regression below exercises that fallback.
+
 ## Regression coverage
 
 `tests/fm-codex-trust.test.sh` pins the helper's registration, byte preservation, refusals, and store selection against throwaway stores.
-It also drives `bin/fm-spawn.sh` against a fake pane that draws the screens above: a pre-trusted root reaches a running turn, a set `CODEX_HOME` is forwarded to the launch, the prompt fails the spawn on sight after the welcome screen and closes the endpoint, a launch that never starts a turn fails at the bound naming the version, a rejected launch leaves no SIGHUP-ignoring worker process running in its worktree, and an unregistrable root refuses before launch.
+It also drives `bin/fm-spawn.sh` against a fake pane that draws the screens above: a pre-trusted root reaches a running turn, a set `CODEX_HOME` is forwarded to the launch, the prompt fails the spawn on sight after the welcome screen and closes the endpoint, a launch that never starts a turn fails at the bound naming the version, a rejected launch with a successful process scan leaves no SIGHUP-ignoring worker process running in its worktree, and an unregistrable root refuses before launch.
+The suite checks that a destination pane's environment cannot redirect the worker to another store, turns quoting either dialog pass, and history above the newest plain or wrapped launch echo cannot confirm a replacement still on a live dialog; a running turn without a launch echo also passes.
+For both prompt rejection and readiness timeout, a failing `lsof` stub proves the spawn fails, closes its endpoint, warns once, and retains its git-hooks strip while the test terminates the surviving worker.
 `tests/fm-busy-state.test.sh` pins the classifier's `unknown launch-prompt` verdict for both prompt shapes.
 `FM_LAUNCH_PROMPT_SIGNALS_LIVE=1 bash tests/fm-launch-prompt-signals-live-e2e.test.sh` re-checks the first prompt shape against the installed codex, as recorded in [runtime-backends.md](runtime-backends.md#launch-prompt-backstop-signatures); rerun it after a codex upgrade.
