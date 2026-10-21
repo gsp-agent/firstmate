@@ -1138,7 +1138,25 @@ else
   # block: remote text rides the inbox leg above, and remote --key exits
   # earlier.
   send_rc=0
-  if verdict=$(fm_backend_send_text_submit "$TARGET_BACKEND" "$T" "$MESSAGE" "$retries" "$sleep_s" "$settle" "$EXPECTED_LABEL"); then
+  if verdict=$(
+    if [ -n "$TARGET_META" ]; then
+      native_lock=$(fm_meta_lock_path "$TARGET_META") || exit 1
+      if ! fm_task_inbox_lock_acquire "$native_lock"; then
+        echo "error: task metadata could not be locked for native submission" >&2
+        exit 1
+      fi
+      trap 'fm_lock_release "$native_lock"' EXIT
+      if [ ! -f "$TARGET_META" ] \
+        || [ "$(fm_backend_target_of_meta "$TARGET_META")" != "$T" ] \
+        || [ "$(fm_backend_of_meta "$TARGET_META")" != "$TARGET_BACKEND" ] \
+        || [ -n "$(fm_meta_get "$TARGET_META" remote_host)" ]; then
+        echo "error: task endpoint changed before native submission" >&2
+        exit 1
+      fi
+      touch "$TARGET_META" || exit 1
+    fi
+    fm_backend_send_text_submit "$TARGET_BACKEND" "$T" "$MESSAGE" "$retries" "$sleep_s" "$settle" "$EXPECTED_LABEL"
+  ); then
     :
   else
     send_rc=$?

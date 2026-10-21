@@ -8,6 +8,7 @@ set -u
 . "$ROOT/bin/fm-task-inbox-lib.sh"
 
 RECON="$ROOT/bin/fm-inactive-reconcile.sh"
+SEND="$ROOT/bin/fm-send.sh"
 DRAIN="$ROOT/bin/fm-wake-drain.sh"
 GRANT="$ROOT/bin/fm-wake-grant.sh"
 WATCH="$ROOT/bin/fm-watch.sh"
@@ -38,6 +39,7 @@ make_tools() { # <world>
   mkdir -p "$fake"
   cat > "$fake/fm-crew-state.sh" <<'SH'
 #!/usr/bin/env bash
+[ "${FM_NATIVE_RACE_ACTOR:-}" != reconcile ] || : > "$FM_HERDR_WORLD/state-read"
 printf 'state: %s · source: fake\n' "${FM_FAKE_CREW_STATE:-unknown}"
 SH
   cat > "$fake/tmux" <<'SH'
@@ -56,6 +58,14 @@ case "${1:-} ${2:-}" in
   'status --json')
     printf '{"client":{"version":"0.8.0","protocol":14},"server":{"running":true}}\n' ;;
   'session list')
+    if [ "${FM_NATIVE_RACE_ACTOR:-}" = reconcile ]; then
+      : > "$FM_HERDR_WORLD/close-waiting"
+      race_deadline=$((SECONDS + 20))
+      while [ ! -e "$FM_HERDR_WORLD/close-release" ]; do
+        [ -d "$FM_HERDR_WORLD" ] && [ "$SECONDS" -lt "$race_deadline" ] || exit 1
+        sleep 0.02
+      done
+    fi
     printf '{"sessions":[{"name":"default","running":true,"socket_path":"%s/herdr.sock"}]}\n' "$FM_HERDR_WORLD" ;;
   'workspace list') printf '{"result":{"workspaces":[]}}\n' ;;
   'pane get')
@@ -70,6 +80,7 @@ case "${1:-} ${2:-}" in
     [ ! -e "$FM_HERDR_WORLD/herdr-closed" ] || exit 1
     printf 'all quiet\n> \n' ;;
   'pane close')
+    [ ! -e "$FM_HERDR_WORLD/native-started" ] || : > "$FM_HERDR_WORLD/closed-running"
     for record in "$FM_STATE_OVERRIDE/terminal-outcomes"/*; do
       [ -f "$record" ] || continue
       if grep -Fxq "pane_close_target=default:$3" "$record"; then
@@ -78,7 +89,25 @@ case "${1:-} ${2:-}" in
     done
     [ "${FM_FAKE_HERDR_CLOSE_FAIL:-0}" = 0 ] || exit 1
     : > "$FM_HERDR_WORLD/herdr-closed" ;;
-  'agent get') printf '{"result":{"agent":{"agent_status":"idle"}}}\n' ;;
+  'pane send-text')
+    [ ! -e "$FM_HERDR_WORLD/herdr-closed" ] || exit 1
+    printf '%s\n' "$4" > "$FM_HERDR_WORLD/native-text"
+    : > "$FM_HERDR_WORLD/native-typed"
+    if [ "${FM_NATIVE_RACE_ORDER:-}" = submit-first ]; then
+      race_deadline=$((SECONDS + 20))
+      while [ ! -e "$FM_HERDR_WORLD/send-release" ]; do
+        [ -d "$FM_HERDR_WORLD" ] && [ "$SECONDS" -lt "$race_deadline" ] || exit 1
+        sleep 0.02
+      done
+    fi ;;
+  'pane send-keys')
+    [ "$4" = enter ] || exit 0
+    [ ! -e "$FM_HERDR_WORLD/herdr-closed" ] || exit 1
+    "$FM_NATIVE_BUSY_EVENT_BIN" apply "$FM_STATE_OVERRIDE" child busy --current-gen --source claude-hook --event user-prompt-submit || exit 1
+    : > "$FM_HERDR_WORLD/native-started" ;;
+  'agent get')
+    if [ -e "$FM_HERDR_WORLD/native-started" ]; then agent_status=working; else agent_status=idle; fi
+    printf '{"result":{"agent":{"agent_status":"%s"}}}\n' "$agent_status" ;;
   *) exit 1 ;;
 esac
 SH
@@ -88,6 +117,10 @@ exit 0
 SH
   cat > "$fake/mktemp" <<'SH'
 #!/usr/bin/env bash
+case "${FM_NATIVE_RACE_ACTOR:-}:${1:-}" in
+  send:*/.lock-probe.*) : > "$FM_HERDR_WORLD/native-lock-attempt" ;;
+  reconcile:*/.inactive-outcome-reconcile.*) : > "$FM_HERDR_WORLD/reconcile-started" ;;
+esac
 case "${FM_FAKE_FAIL_RECORD_WRITE:-}:${1:-}" in
   pending:*/terminal-outcomes/.pending.*|record:*/terminal-outcomes/.record.*) exit 1 ;;
 esac
@@ -197,6 +230,23 @@ run_reconcile() { # <home> [--startup]
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" FM_CONFIG_OVERRIDE="$home/config" \
     FM_INACTIVE_RECONCILE_SECS=60 FM_INACTIVE_CREW_STATE_BIN="$WORLD/fakebin/fm-crew-state.sh" \
     FM_TMUX_LOG="$WORLD/tmux.log" FM_FORGE_LOG="$WORLD/forge.log" FM_HERDR_WORLD="$WORLD" "$RECON" scan ${option:+"$option"}
+}
+
+run_native_submit() {
+  local task_home=$1 selector=$2 order=$3
+  PATH="$WORLD/fakebin:$PATH" FM_HOME="$task_home" FM_ROOT_OVERRIDE="$ROOT" \
+    FM_STATE_OVERRIDE="$task_home/state" FM_DATA_OVERRIDE="$task_home/data" FM_CONFIG_OVERRIDE="$task_home/config" \
+    FM_HERDR_WORLD="$WORLD" FM_NATIVE_RACE_ACTOR=send FM_NATIVE_RACE_ORDER="$order" \
+    FM_NATIVE_BUSY_EVENT_BIN="$ROOT/bin/fm-busy-event.sh" FM_SEND_SETTLE=0 FM_SEND_SLEEP=0.01 FM_SEND_RETRIES=1 \
+    "$SEND" "$selector" /no-mistakes
+}
+
+wait_native_race_event() {
+  local first=$1 second=${2:-$1} deadline=$((SECONDS + 15))
+  while [ ! -e "$first" ] && [ ! -e "$second" ]; do
+    [ "$SECONDS" -lt "$deadline" ] || return 1
+    sleep 0.02
+  done
 }
 
 tmux_kill_count() { # <world>
@@ -1077,6 +1127,90 @@ test_pending_steering_keeps_terminal_herdr_pane_open() {
   pass "unhandled ordinary and fire-and-forget steering prevents both terminal closure paths"
 }
 
+test_native_submit_and_terminal_closure_are_serialized() {
+  local route state task_home selector order send_pid reconcile_pid send_rc reconcile_rc ready active_before_close
+  local native_activity receipt_phase meta_lock
+  for route in main ledger; do
+    for state in done failed; do
+      make_world "native-close-$route-$state"
+      task_home="$MAIN"
+      selector=child
+      receipt_phase=pending
+      if [ "$route" = ledger ]; then
+        bind_secondmate local
+        task_home="$MATE"
+        selector=fm-child
+        receipt_phase=reported
+      fi
+      write_herdr_child "$task_home" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
+      "$ROOT/bin/fm-busy-event.sh" apply "$task_home/state" child busy --current-gen --source claude-hook --event test
+      FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" run_reconcile "$task_home" --startup >/dev/null
+      [ "$(outcome_count "$task_home" "$receipt_phase")" = 1 ] || fail "native closure race has no accepted terminal outcome"
+      "$ROOT/bin/fm-busy-event.sh" apply "$task_home/state" child idle --current-gen --source claude-hook --event stop
+      age "$task_home/state/child.meta" "$task_home/state/child.status" "$task_home/state/child.turn-ended"
+      ready=1
+      active_before_close=0
+      native_activity=0
+      if [ "$state" = done ]; then
+        order=submit-first
+        selector=default:w1:p1
+        run_native_submit "$task_home" "$selector" "$order" > "$WORLD/send.out" 2> "$WORLD/send.err" &
+        send_pid=$!
+        wait_native_race_event "$WORLD/native-typed" || ready=0
+        [ ! "$task_home/state/child.meta" -nt "$task_home/state/child.status" ] || native_activity=1
+        age "$task_home/state/child.meta"
+        FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" FM_NATIVE_RACE_ACTOR=reconcile \
+          run_reconcile "$task_home" --startup > "$WORLD/reconcile.out" 2>&1 &
+        reconcile_pid=$!
+        if [ -e "$WORLD/native-lock-attempt" ]; then
+          wait_native_race_event "$WORLD/reconcile-started" || ready=0
+        else
+          wait_native_race_event "$WORLD/close-waiting" || ready=0
+        fi
+        : > "$WORLD/send-release"
+        wait_native_race_event "$WORLD/native-started" || ready=0
+      else
+        order=close-first
+        FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" FM_NATIVE_RACE_ACTOR=reconcile \
+          run_reconcile "$task_home" --startup > "$WORLD/reconcile.out" 2>&1 &
+        reconcile_pid=$!
+        wait_native_race_event "$WORLD/close-waiting" || ready=0
+        run_native_submit "$task_home" "$selector" "$order" > "$WORLD/send.out" 2> "$WORLD/send.err" &
+        send_pid=$!
+        wait_native_race_event "$WORLD/native-lock-attempt" "$WORLD/native-typed" || ready=0
+        if [ ! -e "$WORLD/native-lock-attempt" ]; then
+          wait_native_race_event "$WORLD/native-started" || ready=0
+        fi
+        [ ! -e "$WORLD/native-started" ] || active_before_close=1
+      fi
+      : > "$WORLD/send-release"
+      : > "$WORLD/close-release"
+      send_rc=0
+      reconcile_rc=0
+      wait "$send_pid" || send_rc=$?
+      wait "$reconcile_pid" || reconcile_rc=$?
+      meta_lock=$(fm_meta_lock_path "$task_home/state/child.meta")
+      [ ! -e "$meta_lock" ] && [ ! -L "$meta_lock" ] || fail "native submission left its metadata lock held"
+      [ "$ready" = 1 ] || { cat "$WORLD/send.err" "$WORLD/reconcile.out"; fail "native closure race never reached its synchronization points"; }
+      [ ! -e "$WORLD/closed-running" ] || fail "native submission was killed while closure waited"
+      [ "$reconcile_rc" = 0 ] || fail "reconciliation failed during native submission"
+      if [ "$order" = submit-first ]; then
+        [ "$send_rc" = 0 ] || { cat "$WORLD/send.err"; fail "native submission failed before closure"; }
+        [ "$native_activity" = 1 ] || fail "native submission did not refresh task activity under its lock"
+        [ "$(cat "$WORLD/native-text")" = /no-mistakes ] || fail "native command was changed before submission"
+        [ "$(herdr_close_count)" = 0 ] || fail "closure ignored the new busy state after waiting for the native submission"
+        [ -e "$WORLD/state-read" ] || fail "closure did not re-read state after the native submission released its lock"
+      else
+        [ "$active_before_close" = 0 ] || fail "native submission bypassed the closing task's metadata lock"
+        [ "$send_rc" -ne 0 ] || fail "native submission reported success after its endpoint closed"
+        [ ! -e "$WORLD/native-text" ] || fail "native command was typed after its endpoint closed"
+        [ -e "$WORLD/herdr-closed" ] || fail "idle terminal pane did not close before the waiting native submission"
+      fi
+    done
+  done
+  pass "native task submissions and both terminal closure paths share their metadata/activity boundary"
+}
+
 test_herdr_prevalidation_and_unproven_identity_stay_open() {
   local mode evidence meta
   for mode in no-mistakes ''; do
@@ -1401,6 +1535,7 @@ test_terminal_herdr_child_pane_closes_and_records_stay
 test_other_backend_panes_stay_open
 test_herdr_close_requires_semantic_idle
 test_pending_steering_keeps_terminal_herdr_pane_open
+test_native_submit_and_terminal_closure_are_serialized
 test_herdr_prevalidation_and_unproven_identity_stay_open
 test_secondmate_ledger_children_close_without_duplicate_reports
 test_herdr_close_waits_for_durable_outcome
