@@ -177,9 +177,12 @@
 #   Every single-task invocation holds one task-id-scoped lock across backend
 #   creation through metadata publication, so concurrent same-id spawns serialize
 #   even when they select different backends. A fresh spawn first takes the
-#   per-home task-set lock and refuses rather than waits when another operation
-#   owns it. The refusal names another spawn or forced teardown when the recorded
-#   holder role is known, otherwise another operation. --relaunch is exempt
+#   per-home task-set lock and keeps it through publication, including during a
+#   headroom reading, so forced teardown cannot remove its state mid-spawn.
+#   While the holder records role task-spawn-reading, a competing fresh spawn
+#   prints `deferred:`, exits 75, and leaves its backlog item queued; this also
+#   applies to scouts and batch entries. Other task-set contention refuses with
+#   exit 1, naming the recorded holder role when known. --relaunch is exempt
 #   because the existing task's control lock covers it.
 #   A fresh Treehouse-backed spawn also takes the project-identity lock in the local
 #   root Firstmate home's state directory before slot allocation and holds it through
@@ -209,11 +212,18 @@
 #   render, endpoint, worktree, record, or backlog move exists, so the task stays
 #   exactly as queued as it was, unless the reading named in
 #   config/project-capacity-headroom admits this project's one extra start for
-#   the current window (bin/fm-project-capacity-lib.sh owns that rule). An
+#   the current window (bin/fm-project-capacity-lib.sh owns that rule). That
+#   reading runs after this spawn releases the project lock, and its verdict
+#   applies only after a try-acquire retake, a recount, and a window recheck
+#   under the retaken lock; a failed retake also defers with 75. A place freed
+#   during the reading admits the spawn within the cap without consuming the
+#   extra-start window, even if the reading reported no room. Absent that
+#   reading's configuration, no lock is released for it. An
 #   unreadable declaration refuses with exit 1.
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
+#   Regression coverage: tests/fm-project-capacity.test.sh.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
@@ -1810,6 +1820,10 @@ if [ "$RELAUNCH" -eq 0 ]; then
   }
   if ! fm_lock_try_acquire "$SPAWN_TASK_SET_LOCK"; then
     case "$(fm_lock_role "$SPAWN_TASK_SET_LOCK" 2>/dev/null || true)" in
+      task-spawn-reading)
+        echo "deferred: this home's task set is held by a spawn running a headroom reading; task $ID was not launched and its backlog item stays queued" >&2
+        exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+        ;;
       task-spawn)
         echo "error: this home's task set is locked by another spawn; refusing to create task $ID rather than racing it" >&2
         ;;
@@ -3304,15 +3318,61 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     if [ "$SPAWN_PROJECT_CAPACITY" = 0 ]; then
       FM_PROJECT_CAPACITY_OVERSHARE=off
     else
-      fm_project_capacity_overshare "$SPAWN_CAPACITY_CONFIG" "$SPAWN_TREEHOUSE_PROJECT_LOCK" ||
+      fm_project_capacity_overshare_prepare "$SPAWN_CAPACITY_CONFIG" "$SPAWN_TREEHOUSE_PROJECT_LOCK" ||
         FM_PROJECT_CAPACITY_OVERSHARE=no
+      if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" = open ]; then
+        if ! fm_lock_set_role "$SPAWN_TASK_SET_LOCK" task-spawn-reading; then
+          echo "error: could not record task-set lock holder for headroom reading of $ID" >&2
+          exit 1
+        fi
+        if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
+          # A slow reading must not hold up project allocation or return.
+          # Its verdict stays provisional until the retake and recount below.
+          SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
+          fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
+          fm_project_capacity_headroom_read
+          if ! fm_lock_try_acquire "$SPAWN_TREEHOUSE_PROJECT_LOCK"; then
+            FM_PROJECT_CAPACITY_OVERSHARE=retake
+          else
+            SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
+            if ! fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"; then
+              echo "error: spawn refused: project $(basename "$PROJ_ABS") declares a capacity of $SPAWN_PROJECT_CAPACITY, but this machine's task records cannot all be read to count it ($FM_PROJECT_CAPACITY_ERROR)" >&2
+              exit 1
+            fi
+            if [ "$FM_PROJECT_CAPACITY_OCCUPANTS" -lt "$SPAWN_PROJECT_CAPACITY" ]; then
+              # The recount found a free place, so this start needs no extra
+              # start and consumes no window, whatever the reading reported.
+              FM_PROJECT_CAPACITY_OVERSHARE=within
+            else
+              fm_project_capacity_overshare_admit
+            fi
+          fi
+        else
+          fm_project_capacity_overshare "$SPAWN_CAPACITY_CONFIG" "$SPAWN_TREEHOUSE_PROJECT_LOCK" ||
+            FM_PROJECT_CAPACITY_OVERSHARE=no
+        fi
+        if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" = admit ]; then
+          SPAWN_OVERSHARE_DIR=$FM_PROJECT_CAPACITY_OVERSHARE_DIR
+          SPAWN_OVERSHARE_IDENTITY=$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY
+          SPAWN_OVERSHARE_AT=$FM_PROJECT_CAPACITY_OVERSHARE_AT
+          SPAWN_OVERSHARE_PENDING=1
+        fi
+        if ! fm_lock_set_role "$SPAWN_TASK_SET_LOCK" task-spawn; then
+          echo "error: could not record task-set lock holder for spawn of $ID" >&2
+          exit 1
+        fi
+      fi
     fi
-    if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != admit ]; then
+    if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != admit ] &&
+      [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != within ]; then
       SPAWN_CAPACITY_DEFER="deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR or is cleaned up"
       case "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" in
         off) ;;
         spent)
           SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. This project already started one worker past that count in the current window."
+          ;;
+        retake)
+          SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. The project lock was taken while the headroom reading ran, so this spawn deferred rather than racing it."
           ;;
         *)
           SPAWN_CAPACITY_DEFER="$SPAWN_CAPACITY_DEFER. The headroom reading reported no room."
@@ -3321,10 +3381,6 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
       echo "$SPAWN_CAPACITY_DEFER" >&2
       exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
     fi
-    SPAWN_OVERSHARE_DIR=$FM_PROJECT_CAPACITY_OVERSHARE_DIR
-    SPAWN_OVERSHARE_IDENTITY=$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY
-    SPAWN_OVERSHARE_AT=$FM_PROJECT_CAPACITY_OVERSHARE_AT
-    SPAWN_OVERSHARE_PENDING=1
   fi
 fi
 [ -f "$BRIEF" ] || {
