@@ -153,6 +153,19 @@
 # retains the lock until the accepted merge authority is persisted against the
 # still-matching task metadata.
 #
+# A home may add its own pre-merge gate for GitHub: an executable
+# config/merge-gate. When it exists, every GitHub merge runs it as
+# `config/merge-gate <canonical-url> <verified-head>` after the live checks
+# above pass and before the forge command, and only its exit 0 lets the merge
+# proceed. The head it judges is the one then bound by --match-head-commit, so
+# its verdict cannot outlive a push. A gate that is not an executable file,
+# exits non-zero, or runs past FM_PR_MERGE_GATE_TIMEOUT seconds (default 60)
+# refuses the merge, and its last output line is quoted in the refusal.
+# --attended-override does not skip it. With no config/merge-gate nothing
+# changes. A home uses it, for example, to require an approving review at the
+# exact head from someone other than the author, which GitHub's own settings do
+# not demand of a repository without that branch rule.
+#
 # Extra args must not include --repo or -R in any form, including a bundled
 # short-option cluster such as -yR, because the repository comes only from the
 # URL, nor --sha or --match-head-commit because the head comes only from the
@@ -193,6 +206,8 @@ STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 . "$SCRIPT_DIR/fm-merge-authority-lib.sh"
 # shellcheck source=bin/fm-afk-contract.sh
 . "$SCRIPT_DIR/fm-afk-contract.sh"
+# shellcheck source=bin/fm-timeout-lib.sh
+. "$SCRIPT_DIR/fm-timeout-lib.sh"
 
 if [ "$#" -lt 2 ]; then
   echo "error: invalid PR merge request" >&2
@@ -1339,6 +1354,32 @@ require_released_captain_hold() {
   esac
 }
 
+# config/merge-gate, the home's own pre-merge gate (header). Runs only once
+# the live read has verified FM_PR_MERGE_HEAD.
+github_require_merge_gate() {
+  local gate="$FM_HOME/config/merge-gate" out='' status=0 last
+  local seconds=${FM_PR_MERGE_GATE_TIMEOUT:-60}
+  case "$seconds" in '' | *[!0-9]*) seconds=60 ;; esac
+  if [ ! -e "$gate" ] && [ ! -L "$gate" ]; then
+    return 0
+  fi
+  if [ ! -f "$gate" ] || [ ! -x "$gate" ]; then
+    echo "error: PR merge refused - config/merge-gate exists but is not an executable file; nothing was merged" >&2
+    return 1
+  fi
+  out=$(fm_run_timed "$seconds" "$gate" "$URL" "$FM_PR_MERGE_HEAD" 2>&1 </dev/null) || status=$?
+  [ "$status" -eq 0 ] && return 0
+  last=$(printf '%s\n' "$out" | sed '/^[[:space:]]*$/d' | tail -n 1 | cut -c1-400)
+  if fm_timed_out "$status"; then
+    printf 'error: PR merge refused - config/merge-gate did not answer within %s seconds; nothing was merged\n' \
+      "$seconds" >&2
+  else
+    printf 'error: PR merge refused by config/merge-gate (exit %s) at head %s: %s; nothing was merged\n' \
+      "$status" "$FM_PR_MERGE_HEAD" "${last:-no output}" >&2
+  fi
+  return 1
+}
+
 FM_PR_MERGE_AUTHORITY=
 # The authority read. bin/fm-merge-authority-lib.sh owns what the away-posture
 # record's presence means; this function owns what a merge run may do about it,
@@ -1647,6 +1688,7 @@ case "$PROVIDER" in
       fi
       exit 1
     fi
+    github_require_merge_gate || exit 1
     # The away record is locked first, so this last presence and authority read
     # and the forge command below share one live-owner critical section.
     hold_away_record_for_merge || exit 1

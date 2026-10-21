@@ -718,6 +718,88 @@ write_away_record() {
     "$ROOT/bin/fm-afk-contract.sh" enter "$@" >/dev/null
 }
 
+# config/merge-gate (bin/fm-pr-merge.sh header): a home's own pre-merge gate.
+# The incident it exists for: on 10-18 to 10-20 ten PRs merged through this
+# path and its neighbors with no approving review at their head, because
+# nothing in a repository without a review rule demands one.
+write_merge_gate() {  # case_dir exit-code [message]
+  local case_dir=$1 code=$2 message=${3:-}
+  cat > "$case_dir/home/config/merge-gate" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$case_dir/gate.log"
+[ -z "$message" ] || printf '%s\n' "$message" >&2
+exit $code
+SH
+  chmod +x "$case_dir/home/config/merge-gate"
+}
+
+test_merge_gate_refusal_stops_an_unapproved_merge() {
+  local case_dir rc head=6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a
+  case_dir=$(make_case merge-gate-refuses)
+  add_gh_mocks "$case_dir" "$head"
+  : > "$case_dir/gh-axi.log"
+  write_merge_gate "$case_dir" 1 "no approving review at $head from anyone but the author"
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/71 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "merge-gate-refuses: a refusing gate must stop the merge"
+  assert_grep "https://github.com/example/repo/pull/71 $head" "$case_dir/gate.log" \
+    "merge-gate-refuses: the gate was not given the URL and the verified head"
+  assert_grep "refused by config/merge-gate (exit 1) at head $head: no approving review" "$case_dir/stderr" \
+    "merge-gate-refuses: the refusal does not quote the gate"
+  if grep -q '^pr merge ' "$case_dir/gh.log"; then
+    fail "merge-gate-refuses: gh pr merge ran although the gate refused"
+  fi
+  pass "a refusing config/merge-gate stops a green GitHub merge before the forge call"
+}
+
+test_merge_gate_pass_lets_the_merge_proceed() {
+  local case_dir rc head=7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b
+  case_dir=$(make_case merge-gate-passes)
+  add_gh_mocks "$case_dir" "$head"
+  : > "$case_dir/gh-axi.log"
+  write_merge_gate "$case_dir" 0
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/72 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "merge-gate-passes: a passing gate must not block the merge"
+  assert_grep "https://github.com/example/repo/pull/72 $head" "$case_dir/gate.log" \
+    "merge-gate-passes: the gate was not run with the URL and verified head"
+  assert_logged_gh_merge "$case_dir" 72 example/repo --squash
+  pass "a passing config/merge-gate lets the merge run, bound to the head it judged"
+}
+
+test_merge_gate_that_cannot_run_refuses() {
+  local case_dir rc
+  case_dir=$(make_case merge-gate-not-executable)
+  add_gh_mocks "$case_dir" 8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c
+  : > "$case_dir/gh-axi.log"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$case_dir/home/config/merge-gate"
+  chmod 0644 "$case_dir/home/config/merge-gate"
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/73 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "merge-gate-not-executable: a gate that cannot run must refuse"
+  assert_grep 'config/merge-gate exists but is not an executable file' "$case_dir/stderr" \
+    "merge-gate-not-executable: the refusal does not say why"
+  if grep -q '^pr merge ' "$case_dir/gh.log"; then
+    fail "merge-gate-not-executable: gh pr merge ran past a gate that could not run"
+  fi
+  pass "a config/merge-gate that is not executable refuses rather than being skipped"
+}
+
 test_verified_merge_records_pr_and_head() {
   local case_dir rc
   case_dir=$(make_case records-before-merge)
@@ -2927,6 +3009,9 @@ test_github_closed_unqueued_outcome_omits_retry_flags
 test_github_agreeing_queue_rules_keep_retry_guidance
 test_github_conflicting_queue_rules_report_ambiguity
 test_verified_merge_records_pr_and_head
+test_merge_gate_refusal_stops_an_unapproved_merge
+test_merge_gate_pass_lets_the_merge_proceed
+test_merge_gate_that_cannot_run_refuses
 test_pr_metadata_is_recorded_before_the_forge_call
 test_merge_failure_propagates_after_recording
 test_github_open_unqueued_outcome_refuses
