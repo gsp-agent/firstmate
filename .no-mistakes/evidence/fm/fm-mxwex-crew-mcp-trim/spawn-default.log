@@ -1,0 +1,5 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/data/trim-default/launch-brief.md records no ship branch; defaulting to legacy branch fm/trim-default
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/data/trim-default/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: trim-default ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned trim-default harness=claude kind=ship mode=local-only yolo=off window=primary:fm-trim-default worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/pool/.treehouse/project-ef5302/1/project

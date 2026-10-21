@@ -1,0 +1,13 @@
+Live validation of Claude worker MCP trimming
+
+Actual fm-spawn launches ran on one private, non-default tmux server with a 140 x 45 grid, real Treehouse, real Claude Code 2.1.306, and a marked disposable FM_HOME. Both ship and scout generated state/<task>.mcp-crew.json containing {"mcpServers":{}} and passed --strict-mcp-config plus the absolute config path. FM_CREW_MCP_TRIM=0 and the secondmate launch generated neither trim flag nor empty config.
+
+The secondmate used an unchanged disposable distribution of the target commit inside the authorized worktree. Its separate home was seeded by fm-home-seed.sh. This meets the product's requirement that secondmate homes live outside the code root, without writing a project outside the authorized worktree.
+
+A disposable stdio MCP server supplied the adversarial inherited configuration. Claude native session startup consumed each live launch's actual MCP flags. Ship and scout started no probe process; opt-out and secondmate each started the probe, completed initialize, and requested tools/list. See mcp-consumer-observations.json and each *-mcp-lifecycle.log. These MCP startup checks complete before authentication and do not need model responses. The ordinary machine login was separately verified available; no credential was copied, changed, or fabricated. Isolated print-mode model requests returned the expected login error after MCP startup, so model task execution and CPU usage were not measured.
+
+claude mcp list was explored but is a management command that does not honor session strict-config flags; mcp-strict-consumer.log is not evidence of session MCP exclusion. The native session startup checks supersede that exploration.
+
+The initial regression attempt put TMPDIR inside the worktree, which made existing secondmate fixtures violate the code-root boundary. The run was repeated with the development toolchain's normal ephemeral temp directories. A concurrent lab spawn was safely refused by the task-set lock and then retried sequentially. Neither setup issue required a source change.
+
+Final result: the focused fm-spawn-dispatch-profile regression exited 0. All four live launch/MCP-startup scenarios passed. Supported teardown completed for all lab workers; the private tmux server and helper socket were removed, the disposable source/project/home tree was removed, and git status is clean. No source files were changed.

@@ -1,0 +1,5 @@
+started pid=2921
+server/discover
+initialize
+notifications/initialized
+tools/list

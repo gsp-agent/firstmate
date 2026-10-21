@@ -1,0 +1,50 @@
+[
+  {
+    "task": "trim-default",
+    "consumer": "Claude Code native session startup",
+    "mcp_flags_from_live_launch": [
+      "--strict-mcp-config",
+      "--mcp-config",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/state/trim-default.mcp-crew.json"
+    ],
+    "probe_started": false,
+    "initialize": false,
+    "tools_list": false,
+    "model_request": "not exercised: isolated config deliberately has no credentials",
+    "cli_exit": 1
+  },
+  {
+    "task": "trim-off",
+    "consumer": "Claude Code native session startup",
+    "mcp_flags_from_live_launch": [],
+    "probe_started": true,
+    "initialize": true,
+    "tools_list": true,
+    "model_request": "not exercised: isolated config deliberately has no credentials",
+    "cli_exit": 1
+  },
+  {
+    "task": "trim-scout",
+    "consumer": "Claude Code native session startup",
+    "mcp_flags_from_live_launch": [
+      "--strict-mcp-config",
+      "--mcp-config",
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/state/trim-scout.mcp-crew.json"
+    ],
+    "probe_started": false,
+    "initialize": false,
+    "tools_list": false,
+    "model_request": "not exercised: isolated config deliberately has no credentials",
+    "cli_exit": 1
+  },
+  {
+    "task": "trim-secondmate",
+    "consumer": "Claude Code native session startup",
+    "mcp_flags_from_live_launch": [],
+    "probe_started": true,
+    "initialize": true,
+    "tools_list": true,
+    "model_request": "not exercised: isolated config deliberately has no credentials",
+    "cli_exit": 1
+  }
+]

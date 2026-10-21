@@ -1,0 +1,40 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  4 task(s) in flight, but no watcher has a fresh beacon (last beat: 399s ago, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+teardown: reaping leaked worktree process(es) for trim-default: 75458 81830
+teardown: force-killing leaked worktree process(es) for trim-default: 75458
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown trim-default complete (window primary:fm-trim-default, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/pool/.treehouse/project-ef5302/1/project)
+Backlog: trim-default just finished (config/backlog-backend selects manual editing). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/data/backlog.md - move trim-default to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 441s ago, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for trim-off: 61711 65645
+teardown: force-killing leaked worktree process(es) for trim-off: 61711
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown trim-off complete (window primary:fm-trim-off, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/pool/.treehouse/project-ef5302/2/project)
+Backlog: trim-off just finished (config/backlog-backend selects manual editing). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/data/backlog.md - move trim-off to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 487s ago, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for trim-scout: 25844 28974
+teardown: force-killing leaked worktree process(es) for trim-scout: 25844
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown trim-scout complete (window primary:fm-trim-scout, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/pool/.treehouse/project-ef5302/3/project)
+Backlog: trim-scout just finished (config/backlog-backend selects manual editing). Update /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/data/backlog.md - move trim-scout to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 510s ago, grace 300s) - full banner already printed this episode.
+teardown trim-secondmate complete (window primary:fm-trim-secondmate, worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/secondmate)
+Disposable Claude processes, task temp roots, launch namespaces, and private tmux server cleaned up.

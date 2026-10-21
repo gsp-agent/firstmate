@@ -1,0 +1,8 @@
+scaffolded: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/data/trim-secondmate/brief.md (secondmate charter)
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/secondmate
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 201s ago, grace 300s) - full banner already printed this episode.
+error: this home's task set is locked by another spawn; refusing to create task trim-secondmate rather than racing it
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 244s ago, grace 300s) - full banner already printed this episode.
+spawned trim-secondmate harness=claude kind=secondmate mode=secondmate yolo=off window=primary:fm-trim-secondmate worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/secondmate

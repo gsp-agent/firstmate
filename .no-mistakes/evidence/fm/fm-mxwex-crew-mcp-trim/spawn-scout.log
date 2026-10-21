@@ -1,0 +1,3 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 200s ago, grace 300s) - full banner already printed this episode.
+spawned trim-scout harness=claude kind=scout window=primary:fm-trim-scout worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/pool/.treehouse/project-ef5302/3/project

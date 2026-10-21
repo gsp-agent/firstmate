@@ -1,0 +1,30 @@
+[
+  {
+    "task": "trim-default",
+    "generated_launch": "/Users/dalecarman/.no-mistakes/evidence/01M5FBH34GXXQDAYTMR1QJTR2R/trim-default-generated-launch.sh",
+    "strict": true,
+    "config_path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/state/trim-default.mcp-crew.json",
+    "config": {
+      "mcpServers": {}
+    }
+  },
+  {
+    "task": "trim-off",
+    "generated_launch": "/Users/dalecarman/.no-mistakes/evidence/01M5FBH34GXXQDAYTMR1QJTR2R/trim-off-generated-launch.sh",
+    "strict": false
+  },
+  {
+    "task": "trim-scout",
+    "generated_launch": "/Users/dalecarman/.no-mistakes/evidence/01M5FBH34GXXQDAYTMR1QJTR2R/trim-scout-generated-launch.sh",
+    "strict": true,
+    "config_path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FBH34GXXQDAYTMR1QJTR2R/.mcp-validation/lab/state/trim-scout.mcp-crew.json",
+    "config": {
+      "mcpServers": {}
+    }
+  },
+  {
+    "task": "trim-secondmate",
+    "generated_launch": "/Users/dalecarman/.no-mistakes/evidence/01M5FBH34GXXQDAYTMR1QJTR2R/trim-secondmate-generated-launch.sh",
+    "strict": false
+  }
+]
