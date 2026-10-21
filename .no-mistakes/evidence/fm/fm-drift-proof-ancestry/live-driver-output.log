@@ -1,0 +1,35 @@
+[
+  {
+    "name": "Squash carries its own PR proof; old guard rejects the same manifest",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Later unproven edits cannot borrow accepted proof",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Conflict-resolved merge replays only its first-parent patch and carries pending classification",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Reverted unlisted squash PR stays red; either proof class clears it (before/after reproduced)",
+    "result": "pass",
+    "live": true
+  }
+]
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FPY4GATHC7W512DH546C9M/.drift-live/drive.py", line 122, in <module>
+    git(remote, 'switch', '-q', '--detach', 'upstream')
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FPY4GATHC7W512DH546C9M/.drift-live/drive.py", line 24, in git
+    return run(['git', '-C', repo, *args], **kwargs).strip()
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FPY4GATHC7W512DH546C9M/.drift-live/drive.py", line 20, in run
+    assert p.returncode == expected, f'{args}: expected {expected}, got {p.returncode}\n{p.stdout}'
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ['git', '-C', PosixPath('/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FPY4GATHC7W512DH546C9M/.drift-live/remote-squash'), 'switch', '-q', '--detach', 'upstream']: expected 0, got 128
+fatal: '--detach' cannot be used with '-b/-B/--orphan'
+

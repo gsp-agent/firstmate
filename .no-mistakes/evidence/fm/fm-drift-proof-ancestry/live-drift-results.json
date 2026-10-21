@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Squash carries its own PR proof; old guard rejects the same manifest",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Later unproven edits cannot borrow accepted proof",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Conflict-resolved merge replays only its first-parent patch and carries pending classification",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Reverted unlisted squash PR stays red; either proof class clears it (before/after reproduced)",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Nightly fetch reports forgotten squash PR and queues exactly one named note on repeat",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Reverted unlisted merge PR stays red; either proof class clears it (before/after reproduced)",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Nightly fetch reports forgotten merge PR and queues exactly one named note on repeat",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Cut unnumbered history stays green and a future PR entry is unmatched without usage failure",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Exact target tree squashed as PR 53 on recorded upstream-lean stays green with 67 pending",
+    "result": "pass",
+    "live": true
+  }
+]

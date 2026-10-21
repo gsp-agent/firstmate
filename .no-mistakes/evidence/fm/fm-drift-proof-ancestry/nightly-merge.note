@@ -1,0 +1,9 @@
+id=1792610717-6sA6Y8
+at=2026-10-21T19:25:18Z
+source=text
+announce_marker=1
+request_id=fm-drift-nightly-2026-10-21
+--
+Nightly drift check red on 2026-10-21: exit 1 for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FPY4GATHC7W512DH546C9M/.drift-live/run2/reverted-merge.
+error: missing manifest entry for PR 7
+Log: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FPY4GATHC7W512DH546C9M/.drift-live/run2/home-merge/drift.log
