@@ -862,6 +862,58 @@ SH
   pass "a child a passing config/merge-gate leaves holding its output does not hold the merge"
 }
 
+# The gate answers at once but leaves a child writing to the output it
+# inherited faster than any reader drains it, so a merge that read that output
+# to its end would still be reading long after the gate passed. The child is
+# stopped two seconds after it starts, or once the merge ends, and the merge
+# keeps its temporary files in the case, so a regression costs this case its
+# deadline rather than the disk.
+test_merge_gate_child_writing_its_output_does_not_hold_the_merge() {
+  local case_dir rc merge_pid child='' child_tick=0 tick=0 head=cfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcf
+  case_dir=$(make_case merge-gate-child-writes-output)
+  add_gh_mocks "$case_dir" "$head"
+  : > "$case_dir/gh-axi.log"
+  mkdir -p "$case_dir/tmp"
+  cat > "$case_dir/home/config/merge-gate" <<SH
+#!/usr/bin/env bash
+yes x &
+printf '%s\n' "\$!" > "$case_dir/gate-child.pid"
+exit 0
+SH
+  chmod +x "$case_dir/home/config/merge-gate"
+
+  set -m
+  TMPDIR="$case_dir/tmp" FM_PR_MERGE_GATE_TIMEOUT=1 run_pr_merge "$case_dir" task-x1 \
+    https://github.com/example/repo/pull/77 > "$case_dir/stdout" 2> "$case_dir/stderr" &
+  merge_pid=$!
+  set +m
+  while kill -0 "$merge_pid" 2>/dev/null && [ "$tick" -lt 200 ]; do
+    if [ -z "$child" ] && [ -s "$case_dir/gate-child.pid" ]; then
+      child=$(cat "$case_dir/gate-child.pid")
+      child_tick=$tick
+    fi
+    if [ -n "$child" ] && [ $((tick - child_tick)) -ge 20 ]; then
+      kill -KILL "$child" 2>/dev/null || true
+    fi
+    sleep 0.1
+    tick=$((tick + 1))
+  done
+  [ -z "$child" ] || kill -KILL "$child" 2>/dev/null || true
+  if kill -0 "$merge_pid" 2>/dev/null; then
+    kill -KILL -- "-$merge_pid" 2>/dev/null || true
+    wait "$merge_pid" 2>/dev/null || true
+    fail "merge-gate-child-writes-output: the merge was still running 20s after it started, behind a child the gate left writing its output"
+  fi
+  set +e
+  wait "$merge_pid"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "merge-gate-child-writes-output: a gate that passed must not block the merge"
+  assert_logged_gh_merge "$case_dir" 77 example/repo --squash
+  pass "a child a passing config/merge-gate leaves writing its output does not hold the merge"
+}
+
 test_merge_gate_is_read_from_the_selected_config_dir() {
   local case_dir rc head=bebebebebebebebebebebebebebebebebebebebe
   case_dir=$(make_case merge-gate-config-override)
@@ -3100,6 +3152,7 @@ test_merge_gate_pass_lets_the_merge_proceed
 test_merge_gate_that_cannot_run_refuses
 test_merge_gate_that_hangs_refuses_at_its_bound
 test_merge_gate_child_holding_its_output_does_not_hold_the_merge
+test_merge_gate_child_writing_its_output_does_not_hold_the_merge
 test_merge_gate_is_read_from_the_selected_config_dir
 test_pr_metadata_is_recorded_before_the_forge_call
 test_merge_failure_propagates_after_recording
