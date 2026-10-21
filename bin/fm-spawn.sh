@@ -2734,10 +2734,8 @@ case "$ARG3" in
   ;;
 esac
 
-# Resolve bin/fm-cursor-guard.sh's quota-file fallback before Cursor preflight,
-# so an alternate harness does not depend on a usable Cursor binary or catalog.
-# Its header defines freshness, credit-room eligibility, and fallback selection.
-# Codex and Claude run their CLI's default model.
+# Apply the quota-file fallback owned by bin/fm-cursor-guard.sh; its header
+# defines freshness, credit-room eligibility, and fallback selection.
 if [ "$HARNESS" = cursor ] && [ "$RAW_LAUNCH" = 0 ] && [ "$KIND" != secondmate ]; then
   CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
   case "$CURSOR_FALLBACK" in

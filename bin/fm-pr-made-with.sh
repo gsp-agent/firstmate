@@ -5,9 +5,8 @@
 #
 # Usage: fm-pr-made-with.sh <task-id> <pr-url>
 #
-# By default, Firstmate strips AI co-author trailers and launches Claude
-# workers with attribution off, so a fleet pull request otherwise names no
-# engine at all.
+# Firstmate strips AI co-author trailers and launches Claude workers with
+# attribution off, so a fleet pull request otherwise names no engine at all.
 # The engines are:
 #   - the worker: the task record's harness= and model=, written
 #     `Made-with: <harness> (<model>)`, with the model left out when it is
