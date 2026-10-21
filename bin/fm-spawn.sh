@@ -5884,7 +5884,8 @@ LAUNCH=${LAUNCH//__CLAUDEPERMFLAG__/$CLAUDE_PERM_FLAG}
 # core vs ~2.4% bare. Task workers launch with an empty strict MCP config;
 # secondmates keep the default set. FM_CREW_MCP_TRIM=0 restores today's launch.
 if [ "$HARNESS" = claude ] && [ "$KIND" != secondmate ] && [ "${FM_CREW_MCP_TRIM:-1}" = 1 ]; then
-  mcp_trim_flags="$(shell_quote --strict-mcp-config) $(shell_quote --mcp-config) $(shell_quote "$FM_ROOT/config/mcp-crew.json") "
+  printf '%s\n' '{"mcpServers":{}}' > "$STATE_REAL/$ID.mcp-crew.json"
+  mcp_trim_flags="$(shell_quote --strict-mcp-config) $(shell_quote --mcp-config) $(shell_quote "$STATE_REAL/$ID.mcp-crew.json") "
   LAUNCH=${LAUNCH//__CLAUDEMCP__/$mcp_trim_flags}
 else
   LAUNCH=${LAUNCH//__CLAUDEMCP__/}
