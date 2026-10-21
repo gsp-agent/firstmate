@@ -562,18 +562,12 @@
 # commit-msg strips known AI trailers at the commit object for every launched
 # runtime, Claude included as defense in depth. bin/fm-git-strip-ai-trailers.sh
 # owns the identities, the hook install, and chaining the repository git is
-# actually running in so a project husky hook still runs. Author identity is
-# not rewritten.
-# Every spawn defaults to gsp-agent <dale+gspagent@groovejones.com>, or the
-# "Name <email>" in config/worker-git-identity. It adds user.name and user.email
-# to that same pane-scoped GIT_CONFIG export, so the
-# launched agent commits as that identity from its first commit and
-# `git config user.email` inside the pane reports it. No git config file is
-# written: ~/.gitconfig and the project's shared repository config keep their
-# values. A file that does not hold one well-formed line refuses the spawn
-# before launch. Author and committer environment variables are replaced too;
-# raw launch commands assigning them are refused. docs/configuration.md
-# "Worker git identity" owns the setting.
+# actually running in so a project husky hook still runs. The strip does not
+# rewrite author identity.
+# Worker identity follows docs/configuration.md "Worker git identity".
+# Every launch exports user.name and user.email through GIT_CONFIG_*, plus
+# matching GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME and
+# GIT_COMMITTER_EMAIL, without writing any git config file.
 # Publishing the record and moving this home's backlog item to In flight are one
 # step, not two: bin/fm-backlog-transition-lib.sh owns that invariant, and this
 # script performs the transition under the task's own meta lock before it reports

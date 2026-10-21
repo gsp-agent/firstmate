@@ -1038,7 +1038,7 @@ The text is static and never executed or expanded; secondmate charters never tak
 ## Worker launch environment (config/launch-env-allowlist)
 
 The optional local, gitignored `config/launch-env-allowlist` limits the ambient environment passed to newly launched workers, scouts, and secondmates, including relaunches.
-With no file, ambient inheritance remains unfiltered: selected harness markers are cleared, while the provider, long-lived terminal daemon, and shell initialization determine which other variables reach the worker.
+With no file, ambient inheritance remains unfiltered except for explicit launch assignments, including [worker git identity](#worker-git-identity), and cleared harness markers; the provider, long-lived terminal daemon, and shell initialization determine which other variables reach the worker.
 
 Do not assume every worker inherits the invoking Firstmate process's current environment.
 The file is inherited into secondmate homes through the [primary-authoritative configuration contract](../.agents/skills/secondmate-provisioning/SKILL.md).
@@ -1129,7 +1129,7 @@ Raw launch commands assigning those variables refuse before launch; select the w
 No git config file is written: the captain's `~/.gitconfig` and the project's shared repository config keep their values, so the captain's own commits, and any shell outside a launched agent, keep the captain's identity.
 A file that does not hold one well-formed line refuses the spawn before launch rather than falling back to another identity.
 The setting is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract, so a secondmate's own workers commit as the same identity.
-Commits a no-mistakes pipeline makes in its own worktrees are outside this setting, because its daemon runs outside every launched agent's environment and takes its identity from the repository's own config.
+The setting applies to the launched agent's environment; a separately running no-mistakes daemon manages its own commit identity.
 [`fm-spawn.sh --help`](../bin/fm-spawn.sh) owns the delivery mechanics, with regression coverage in [`tests/fm-spawn-worker-git-identity.test.sh`](../tests/fm-spawn-worker-git-identity.test.sh).
 
 ## Project capacity (config/project-capacity)
