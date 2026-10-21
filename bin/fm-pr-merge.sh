@@ -1047,9 +1047,13 @@ FIELDS
     printf '%s' "$refusals" >&2
     return 1
   fi
-  if ! rollup_json=$(gh pr view "$URL" --json statusCheckRollup 2>/dev/null) \
+  if ! rollup_json=$(gh pr view "$URL" --json headRefOid,statusCheckRollup 2>/dev/null) \
     || [ -z "$rollup_json" ]; then
     echo "error: could not read the GitHub pull request state before merging" >&2
+    return 1
+  fi
+  if ! printf '%s' "$rollup_json" | jq -e --arg head "$live_head" '.headRefOid == $head' >/dev/null 2>&1; then
+    echo "error: could not verify GitHub pull request checks at head $live_head before merging" >&2
     return 1
   fi
   if ! red=$(github_checks_not_green "$rollup_json"); then

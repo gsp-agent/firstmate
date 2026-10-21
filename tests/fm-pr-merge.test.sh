@@ -185,6 +185,12 @@ case "${1:-} ${2:-}" in
   "pr view")
     case " $* " in
       *statusCheckRollup*)
+        if [ -f "$FM_TEST_GH_VIEW_JSON.rollup" ]; then
+          jq -c --arg fields "${!#}" \
+            'with_entries(select(.key as $key | $fields | split(",") | index($key)))' \
+            "$FM_TEST_GH_VIEW_JSON.rollup"
+          exit $?
+        fi
         if [ -n "${FM_TEST_GH_MERGEABLE_SEQUENCE:-}" ]; then
           call_n=$(cat "$FM_TEST_GH_MERGEABLE_CALLS" 2>/dev/null || echo 0)
           call_m=$(sed -n "${call_n}p" "$FM_TEST_GH_MERGEABLE_SEQUENCE")
@@ -974,6 +980,58 @@ test_github_mergeable_unknown_retry_rechecks_checks() {
   assert_no_grep 'pr merge' "$case_dir/gh.log" \
     "github-mergeable-unknown-check-turns-red: gh pr merge ran after a check turned red"
   pass "fm-pr-merge refuses on the UNKNOWN re-check when a check turned red between reads"
+}
+
+test_github_rollup_requires_the_verified_head() {
+  local case_dir rc head rollup_head variant sequence_file
+  head=4646464646464646464646464646464646464646
+  for variant in changed changed-after-unknown missing same; do
+    case_dir=$(make_case "github-rollup-head-$variant")
+    add_gh_mocks "$case_dir" "$head"
+    write_github_red_json "$case_dir" "$head" lint
+    write_github_required "$case_dir" classic:ci
+    rollup_head=$head
+    sequence_file=''
+    case "$variant" in
+      changed|changed-after-unknown) rollup_head=4747474747474747474747474747474747474747 ;;
+      missing) rollup_head='' ;;
+    esac
+    if [ "$variant" = changed-after-unknown ]; then
+      sequence_file="$case_dir/mergeable-sequence"
+      printf '%s\n' UNKNOWN MERGEABLE > "$sequence_file"
+    fi
+    jq -c --arg head "$rollup_head" '
+      .headRefOid = $head
+      | .statusCheckRollup = [{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]
+      | if $head == "" then del(.headRefOid) else . end
+    ' "$case_dir/github-view.json" > "$case_dir/github-view.json.rollup"
+
+    set +e
+    FM_TEST_GH_MERGEABLE_SEQUENCE="$sequence_file" \
+    FM_PR_GITHUB_MERGEABLE_RETRY_DELAY=0 \
+      run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/87 \
+      > "$case_dir/stdout" 2> "$case_dir/stderr"
+    rc=$?
+    set -e
+
+    if [ "$variant" = changed-after-unknown ]; then
+      [ "$(grep -c '^pr view .*mergeable' "$case_dir/gh.log")" -eq 2 ] \
+        || fail "rollup-head-$variant: the UNKNOWN retry did not re-read the pull request"
+    fi
+    if [ "$variant" = same ]; then
+      expect_code 0 "$rc" "rollup-head-$variant: checks at the verified head must merge: $(cat "$case_dir/stderr")"
+      assert_logged_gh_merge "$case_dir" 87 example/repo --squash
+    else
+      expect_code 1 "$rc" "rollup-head-$variant: checks without the verified head must refuse"
+      assert_grep "could not verify GitHub pull request checks at head $head" \
+        "$case_dir/stderr" "rollup-head-$variant: the unverified checks were not reported"
+      assert_no_grep 'pr merge' "$case_dir/gh.log" "rollup-head-$variant: unverified checks reached merge"
+      assert_no_grep '^api .*repos/example/repo/branches/' "$case_dir/gh.log" \
+        "rollup-head-$variant: unverified checks reached required-check evaluation"
+      assert_no_grep 'verified: ' "$case_dir/stderr" "rollup-head-$variant: an unverified head was accepted"
+    fi
+  done
+  pass "fm-pr-merge requires the check rollup to belong to the verified head, including after UNKNOWN"
 }
 
 # A real conflict (mergeable=CONFLICTING) is a different condition from GitHub
@@ -2960,6 +3018,7 @@ test_github_open_unqueued_outcome_refuses
 test_github_mergeable_unknown_retries_then_succeeds
 test_github_mergeable_unknown_exhausts_bound_and_reports_pending
 test_github_mergeable_unknown_retry_rechecks_checks
+test_github_rollup_requires_the_verified_head
 test_github_mergeable_conflicting_is_not_retried
 test_github_unreadable_outcome_keeps_pr_bookkeeping
 test_github_refusal_quotes_the_forge_output
