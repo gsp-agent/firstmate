@@ -484,7 +484,7 @@ fm_lock_clean_known_files() {
 fm_lock_set_role() {
   local lockdir=$1 role=$2 current pid back
   case "$role" in
-    autoarm|terminal-check|task-spawn|forced-teardown) : ;;
+    autoarm|terminal-check|task-spawn|task-spawn-reading|forced-teardown) : ;;
     *) return 1 ;;
   esac
   fm_current_pid current || return 1

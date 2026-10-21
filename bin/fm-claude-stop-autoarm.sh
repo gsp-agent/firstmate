@@ -76,10 +76,11 @@
 #     retried instead of being judged by the healthy-watcher predicate
 #     (docs/supervision-host.md). On a home that opted out nothing below
 #     changes.
-#   - Translation: while supervision is still needed and AFK remains inactive,
-#     an actionable arm close (signal:/stale:/check:/heartbeat) prints one
+#   - Translation: while AFK remains inactive, an actionable arm close
+#     (signal:/stale:/check:/heartbeat) prints one
 #     rewake banner to stderr and exits 2, which wakes Claude even while idle
-#     ("Stop hook feedback"). The irrevocable commit point is the EXIT STATUS:
+#     ("Stop hook feedback"), including when that event ends supervision need.
+#     The irrevocable commit point is the EXIT STATUS:
 #     the harness delivers the collected stderr only on exit 2, so an owned
 #     terminal commit decides the exit. Markerless outcomes commit with the
 #     ledger write; the failure notice additionally requires its marker write.
@@ -469,9 +470,9 @@ while [ "$attempt" -lt "$AUTOARM_ATTEMPTS" ]; do
   OUT=
 done
 
-# The need may have vanished mid-cycle (fleet torn down, X opted out): nothing
-# left to supervise, so close quietly instead of waking the model.
-if ! need_supervision; then
+# If the need vanished mid-cycle, close quietly only when there is no captured
+# event to deliver: releasing the final probe hold can itself end that need.
+if [ "$ACTIONABLE" -eq 0 ] && ! need_supervision; then
   autoarm_record clean
   [ -z "$OUT" ] || rm -f "$OUT" 2>/dev/null || true
   exit 0
