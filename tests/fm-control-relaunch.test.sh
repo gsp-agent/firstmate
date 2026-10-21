@@ -1317,6 +1317,100 @@ test_cursor_session_binding_is_retired_on_a_harness_switch() {
   pass "fm-spawn --relaunch: switching away from cursor retires its session binding"
 }
 
+# codex_limit_session <case-dir> <id>: the task's current launch, ten minutes
+# ago, ran codex in its worktree and the session's last turn ended on the usage
+# limit, in the rollout shape codex-cli 0.163 persists.
+codex_limit_session() {
+  local dir=$1 id=$2 f
+  printf 'spawn_gen=s%s.1.1\n' "$(( $(date +%s) - 600 ))" >> "$dir/home/state/$id.meta"
+  f="$dir/user-home/.codex/sessions/2026/10/21/rollout-2026-10-21T10-00-00-01a0c0de-0000-7000-8000-000000000001.jsonl"
+  mkdir -p "${f%/*}"
+  jq -nc --arg cwd "$dir/wt" '{type:"session_meta",payload:{id:"01a0c0de-0000-7000-8000-000000000001",cwd:$cwd,cli_version:"0.163.0"}}' > "$f"
+  jq -nc '{type:"event_msg",payload:{type:"task_complete",turn_id:"t1",last_agent_message:null,error:{message:"You have hit your usage limit.",codex_error_info:"usage_limit_exceeded"}}}' >> "$f"
+}
+
+test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude() {
+  local dir out rc
+  dir=$(new_case codexlimit rl73)
+  add_ship_task "$dir" rl73 codex
+  codex_limit_session "$dir" rl73
+  printf 'codex' > "$dir/fake/command"
+  out=$(run_control "$dir" rl73 relaunch --note "codex hit its usage limit"); rc=$?
+  expect_code 0 "$rc" "relaunching a usage-limited codex task should succeed"$'\n'"$out"
+  assert_contains "$out" "relaunched rl73 harness=claude from=codex" "the outcome should name the claude replacement"
+  [ "$(meta_field "$dir" rl73 harness)" = claude ] || fail "the record should name claude, got '$(meta_field "$dir" rl73 harness)'"
+  [ "$(meta_field "$dir" rl73 effort)" = xhigh ] || fail "the claude replacement should run at xhigh, got '$(meta_field "$dir" rl73 effort)'"
+  [ "$(journal_field "$dir" rl73 to_harness)" = claude ] || fail "the journal should name claude as the target"
+  [ "$(cat "$dir/home/state/rl73.codex-limit" 2>/dev/null)" = "codex run for rl73 hit its usage limit: You have hit your usage limit." ] \
+    || fail "the usage-limit stop must be recorded in state/<id>.codex-limit: $(cat "$dir/home/state/rl73.codex-limit" 2>&1)"
+  pass "fm-control relaunch: a codex task whose session ended on its usage limit is relaunched on claude and marked"
+}
+
+test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude() {
+  local dir out
+  dir=$(new_case codexmarked rl74)
+  add_ship_task "$dir" rl74 codex
+  printf 'codex run for rl74 hit its usage limit\n' > "$dir/home/state/rl74.codex-limit"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl74 --relaunch)
+  assert_contains "$out" "spawned rl74 harness=claude" "a marked codex task must relaunch on claude"$'\n'"$out"
+  [ "$(meta_field "$dir" rl74 harness)" = claude ] || fail "the record should name claude, got '$(meta_field "$dir" rl74 harness)'"
+  [ "$(meta_field "$dir" rl74 effort)" = xhigh ] || fail "the claude replacement should run at xhigh"
+  pass "fm-spawn --relaunch: a task marked by a codex usage limit relaunches on claude"
+}
+
+test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched() {
+  local dir out rc
+  dir=$(new_case cursorroute rl75)
+  add_ship_task "$dir" rl75 cursor
+  printf 'cursor-agent' > "$dir/fake/command"
+  printf 'codex' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl75 relaunch --note "cursor pool unknown"); rc=$?
+  expect_code 0 "$rc" "relaunching a cursor task with no usage evidence should succeed"$'\n'"$out"
+  assert_contains "$out" "relaunched rl75 harness=codex from=cursor" "the outcome should name the harness actually launched"
+  [ "$(meta_field "$dir" rl75 harness)" = codex ] || fail "the record should name codex, got '$(meta_field "$dir" rl75 harness)'"
+  [ "$(journal_field "$dir" rl75 to_harness)" = codex ] || fail "the journal should name the harness actually launched, got '$(journal_field "$dir" rl75 to_harness)'"
+  assert_contains "$(cat "$dir/home/state/rl75.cursor-fallback" 2>/dev/null)" "no Cursor spending file" "the fallback reason should be recorded"
+  pass "fm-control relaunch: a cursor task routed off cursor records the same harness in its record, journal, and outcome"
+}
+
+test_explicit_override_of_a_cursor_task_is_recorded() {
+  local dir out rc
+  dir=$(new_case cursoroverride rl76)
+  add_ship_task "$dir" rl76 cursor
+  printf 'cursor-agent' > "$dir/fake/command"
+  printf 'grok' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl76 relaunch --harness grok --note "operator moved it"); rc=$?
+  expect_code 0 "$rc" "an explicit override relaunch should succeed"$'\n'"$out"
+  [ "$(meta_field "$dir" rl76 harness)" = grok ] || fail "the explicit harness must be kept"
+  [ "$(cat "$dir/home/state/rl76.cursor-fallback" 2>/dev/null)" = "explicit --harness grok override of a recorded cursor task" ] \
+    || fail "fm-control relaunch must record an explicit override of a cursor task: $(cat "$dir/home/state/rl76.cursor-fallback" 2>&1)"
+
+  dir=$(new_case cursoroverridespawn rl77)
+  add_ship_task "$dir" rl77 cursor
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl77 --relaunch --harness grok)
+  assert_contains "$out" "spawned rl77 harness=grok" "the explicit harness must be kept"$'\n'"$out"
+  [ "$(cat "$dir/home/state/rl77.cursor-fallback" 2>/dev/null)" = "explicit --harness grok override of a recorded cursor task" ] \
+    || fail "fm-spawn --relaunch must record an explicit override of a cursor task: $(cat "$dir/home/state/rl77.cursor-fallback" 2>&1)"
+  pass "an explicit --harness relaunch of a cursor task is kept and recorded in state/<id>.cursor-fallback"
+}
+
+test_spawn_relaunch_keeps_the_recorded_profile_axes() {
+  local dir out
+  dir=$(new_case spawnprofile rl78)
+  add_ship_task "$dir" rl78 claude
+  sed 's/^model=default$/model=opus/; s/^effort=default$/effort=high/' \
+    "$dir/home/state/rl78.meta" > "$dir/home/state/rl78.meta.tmp"
+  mv "$dir/home/state/rl78.meta.tmp" "$dir/home/state/rl78.meta"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl78 --relaunch)
+  assert_contains "$out" "spawned rl78 harness=claude" "the relaunch should keep the recorded harness"$'\n'"$out"
+  [ "$(meta_field "$dir" rl78 model)" = opus ] || fail "an omitted --model must keep the recorded model, got '$(meta_field "$dir" rl78 model)'"
+  [ "$(meta_field "$dir" rl78 effort)" = high ] || fail "an omitted --effort must keep the recorded effort, got '$(meta_field "$dir" rl78 effort)'"
+  pass "fm-spawn --relaunch: omitted --model and --effort keep the recorded axes"
+}
+
 # --- 3 and 4. refusals before the agent is touched ---------------------------
 
 test_missing_worktree_refuses_before_stopping_anything() {
@@ -2571,6 +2665,11 @@ test_promoted_scout_relaunch_receives_the_current_delivery_contract
 test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_session_binding_is_retired_on_a_harness_switch
+test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude
+test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude
+test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched
+test_explicit_override_of_a_cursor_task_is_recorded
+test_spawn_relaunch_keeps_the_recorded_profile_axes
 test_missing_worktree_refuses_before_stopping_anything
 test_missing_instructions_refuse_before_stopping_anything
 test_checkpoint_refusal_leaves_the_record_byte_identical
