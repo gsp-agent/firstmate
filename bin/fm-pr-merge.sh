@@ -159,8 +159,9 @@
 # above pass and before the forge command, and only its exit 0 lets the merge
 # proceed. The head it judges is the one then bound by --match-head-commit, so
 # its verdict cannot outlive a push. A gate that is not an executable file,
-# exits non-zero, or runs past FM_PR_MERGE_GATE_TIMEOUT seconds (default 60)
-# refuses the merge, and its last output line is quoted in the refusal.
+# exits non-zero, or runs past FM_PR_MERGE_GATE_TIMEOUT seconds (default 60,
+# also used for any value that is not a positive whole number) refuses the
+# merge, and its last output line is quoted in the refusal.
 # --attended-override does not skip it. With no config/merge-gate nothing
 # changes. A home uses it, for example, to require an approving review at the
 # exact head from someone other than the author, which GitHub's own settings do
@@ -1358,8 +1359,9 @@ require_released_captain_hold() {
 # the live read has verified FM_PR_MERGE_HEAD.
 github_require_merge_gate() {
   local gate="$FM_HOME/config/merge-gate" out='' status=0 last
-  local seconds=${FM_PR_MERGE_GATE_TIMEOUT:-60}
-  case "$seconds" in '' | *[!0-9]*) seconds=60 ;; esac
+  local seconds=${FM_PR_MERGE_GATE_TIMEOUT:-}
+  # fm_run_timed reads a bound of 0 as no deadline at all.
+  case "$seconds" in '' | 0* | *[!0-9]*) seconds=60 ;; esac
   if [ ! -e "$gate" ] && [ ! -L "$gate" ]; then
     return 0
   fi

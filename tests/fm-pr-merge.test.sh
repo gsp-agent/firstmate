@@ -800,6 +800,37 @@ test_merge_gate_that_cannot_run_refuses() {
   pass "a config/merge-gate that is not executable refuses rather than being skipped"
 }
 
+# The gate would pass if it were waited out, so only the bound refuses this merge.
+test_merge_gate_that_hangs_refuses_at_its_bound() {
+  local case_dir rc head=9e9e9e9e9e9e9e9e9e9e9e9e9e9e9e9e9e9e9e9e
+  case_dir=$(make_case merge-gate-hangs)
+  add_gh_mocks "$case_dir" "$head"
+  : > "$case_dir/gh-axi.log"
+  cat > "$case_dir/home/config/merge-gate" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$case_dir/gate.log"
+sleep 10
+exit 0
+SH
+  chmod +x "$case_dir/home/config/merge-gate"
+
+  set +e
+  FM_PR_MERGE_GATE_TIMEOUT=1 run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/74 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "merge-gate-hangs: a gate still running at its bound must refuse"
+  assert_grep "https://github.com/example/repo/pull/74 $head" "$case_dir/gate.log" \
+    "merge-gate-hangs: the gate was never started"
+  assert_grep 'config/merge-gate did not answer within 1 seconds; nothing was merged' "$case_dir/stderr" \
+    "merge-gate-hangs: the refusal does not name the bound"
+  if grep -q '^pr merge ' "$case_dir/gh.log"; then
+    fail "merge-gate-hangs: gh pr merge ran although the gate never answered"
+  fi
+  pass "a config/merge-gate that hangs past FM_PR_MERGE_GATE_TIMEOUT refuses the merge"
+}
+
 test_verified_merge_records_pr_and_head() {
   local case_dir rc
   case_dir=$(make_case records-before-merge)
@@ -3012,6 +3043,7 @@ test_verified_merge_records_pr_and_head
 test_merge_gate_refusal_stops_an_unapproved_merge
 test_merge_gate_pass_lets_the_merge_proceed
 test_merge_gate_that_cannot_run_refuses
+test_merge_gate_that_hangs_refuses_at_its_bound
 test_pr_metadata_is_recorded_before_the_forge_call
 test_merge_failure_propagates_after_recording
 test_github_open_unqueued_outcome_refuses
