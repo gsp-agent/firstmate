@@ -61,6 +61,10 @@
 # An aged done or failed herdr crewmate with positive semantic idle evidence
 # may have its pane closed through fm_backend_kill. A no-mistakes ship's
 # pre-validation done handoff stays open, as do all other runtime backends.
+# The task metadata lock covers the final activity check, the idle sample,
+# and the close, serializing them with fm-send's metadata-bound typed submit.
+# Before sampling idle, any unhandled steering inbox message, including a
+# fire-and-forget message, prevents closure without consuming the message.
 # Only the pane closes, after the accepted terminal outcome and close target
 # are durable in the incarnation-bound receipt.
 # The meta, worktree, status, and transcript stay on disk for teardown, and a
@@ -96,7 +100,7 @@
 # main-home acknowledgement. The atomic epoch/cursor marker's mtime gates scans,
 # and its cursor records the last child visited within the aggregate budget.
 #
-# The scan reads only durable local state and fm-crew-state.sh; it never invokes
+# The scan uses local state and runtime-backend probes; it never invokes
 # gh, gh-axi, curl, fm-pr-check.sh, fm-pr-poll.sh, or a state *.check.sh.
 set -u
 export LC_ALL=C
@@ -514,11 +518,8 @@ report_child() { # <id>
   report_child_ledger_locked "$id" "$meta"
 }
 
-# Close a terminal herdr crewmate's pane, keeping every durable record.
-# Best-effort by design: teardown stays the authoritative cleanup, and a
-# follow-up wakes the task through fm-control's relaunch. Any doubt about the
-# endpoint's identity, or a close that cannot do its job, warns and leaves the
-# pane exactly as it was.
+# Called under the task metadata lock; this script's header owns closure
+# eligibility, retained records, and follow-up recovery.
 close_terminal_child_pane() { # <id> <meta> <fingerprint>
   local id=$1 meta=$2 fingerprint=$3 record suffix kind mode last state spawn_gen busy message
   [ "$(meta_field "$meta" backend)" = herdr ] || return 0

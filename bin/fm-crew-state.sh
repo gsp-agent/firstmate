@@ -153,8 +153,9 @@
 #      than trusting a stale status log. On tmux and herdr, which own a
 #      recovery-grade classifier, only its positive death evidence reads as gone
 #      (the endpoint is authoritatively absent, or its pane holds no agent).
-#      An intentionally closed herdr pane retains its accepted terminal outcome
-#      when the receipt matches its exact endpoint and spawn_gen incarnation.
+#      An intentionally closed, authoritatively missing herdr pane retains its
+#      accepted done/failed outcome only when the receipt matches its task id,
+#      exact endpoint, spawn_gen incarnation, and latest status verb.
 #      An endpoint that merely failed to answer reports unknown · none as
 #      unreachable, and an alive endpoint whose scrollback read failed is still
 #      classified by step 4. Backends with no classifier keep reading a failed
@@ -1263,12 +1264,8 @@ fi
 
 # --- fallback: no run attributed to this crew ------------------------------
 # The run-step path above already handled any crew with a run, regardless of pane
-# liveness, so a finished-but-pane-closed crew never reaches here. Down here there
-# is no run to consult, so only positive evidence that the target is gone may
-# read as death - a backend that failed to answer is unknown, never death, for
-# both classifier-backed backends (tmux and herdr) - and every death-class
-# verdict reports unknown rather than trusting a possibly-stale status log as
-# the current state.
+# liveness. With no attributed run, step 5 of this script's header owns
+# missing-endpoint handling and the intentional-close receipt exception.
 [ -n "$BACKEND_TARGET" ] || emit unknown none "no backend target recorded"
 if ! pane_readable "$BACKEND_TARGET"; then
   # A failed probe is not itself evidence the pane is gone: the herdr CLI can

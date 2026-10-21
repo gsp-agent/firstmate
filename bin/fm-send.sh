@@ -75,6 +75,10 @@
 # default to 20 for agy's late busy render) / FM_SEND_SLEEP (0.4). Slash
 # commands, and codex `$...` skill invocations resolved through harness meta,
 # get a longer pre-Enter settle so completion popups do not swallow Enter.
+# When local metadata resolves the target, typed submission holds that task's
+# metadata lock, revalidates its endpoint, and refreshes metadata activity
+# before submitting, including for explicit targets matched to metadata.
+# bin/fm-inactive-reconcile.sh owns terminal closure's use of that same lock.
 # A remote secondmate target has no typed text plane at all:
 # every remote text steer rides the inbox (a marked secondmate request already
 # reaches the harness as marker-prefixed chat rather than a parser command, so
