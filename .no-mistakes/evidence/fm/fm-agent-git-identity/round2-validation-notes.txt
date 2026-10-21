@@ -1,0 +1,9 @@
+Validated commit 2aec92b7a4f9dbf2ac6ab97a2b182a63661872d4.
+Focused regression: bash .identity-validation-r2/runtime/tests/fm-spawn-worker-git-identity.test.sh, unchanged git-archive source, passed.
+Live product: unchanged HEAD source export; real fm-spawn, real treehouse pooled copies, real tmux at 120x40 on a private lab socket, supported raw-command launches executing actual git commits. No harness was impersonated.
+Live cases: default first commit, relaunch, configured identity, keep-ai-trailers, inherited author/committer variables, four explicit author/committer assignment refusals, malformed config refusal, scout, launch-env allowlist, secondmate, secondmate crew. All passed.
+Synthetic captain global and shared repository configuration remained byte-identical. Outside-worker git config continued to report Dale in all successful copies.
+Initial driver attempts corrected raw relaunch argument selection and output-file tracking; these were driver setup errors. The final complete driver passed.
+Both preliminary lab servers and the final lab server were stopped; each private socket teardown succeeded. Read-only generated hook directories were made writable for cleanup. All three disposable worktree fixture roots were removed.
+Fleet PR audit untested: ls -ld data state config confirmed no local inventory. Earlier evidence likewise contained no authorized fleet inventory. This gate forbids reading operator live data or shared services. Disposable repositories cannot reveal which actual fleet PRs remain open. Provide a sanitized fleet repository/owner inventory in this worktree and authority to query their GitHub PR commits to run that audit. No existing PR was rewritten.
+No rendered UI was changed; product evidence is CLI launch/refusal transcripts and actual git commit authors.

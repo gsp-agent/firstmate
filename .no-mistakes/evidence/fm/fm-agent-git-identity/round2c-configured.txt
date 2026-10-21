@@ -1,0 +1,6 @@
+cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/2/project
+config_name=Fleet Agent
+config_email=fleet-agent@example.invalid
+hooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-configured/state/ident-r2-configured.git-hooks
+author=Fleet Agent <fleet-agent@example.invalid>
+committer=Fleet Agent <fleet-agent@example.invalid>

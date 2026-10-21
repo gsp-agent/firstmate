@@ -1,0 +1,8 @@
+[
+  {
+    "case": "default",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2/pool/.treehouse/project-186b47/1/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nhooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2/home-default/state/ident-r2-default.git-hooks\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  }
+]

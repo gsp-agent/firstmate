@@ -1,0 +1,86 @@
+[
+  {
+    "case": "default",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/1/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nhooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-default/state/ident-r2-default.git-hooks\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "default-relaunch",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/1/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nhooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-default/state/ident-r2-default.git-hooks\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "configured",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/2/project\nconfig_name=Fleet Agent\nconfig_email=fleet-agent@example.invalid\nhooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-configured/state/ident-r2-configured.git-hooks\nauthor=Fleet Agent <fleet-agent@example.invalid>\ncommitter=Fleet Agent <fleet-agent@example.invalid>\n"
+  },
+  {
+    "case": "keep-trailers",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/3/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nhooks=\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "inherited-author",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/4/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nhooks=\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "explicit-0",
+    "result": "pass",
+    "spawn_exit": 1,
+    "observable": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-explicit-0\nerror: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments\n"
+  },
+  {
+    "case": "explicit-1",
+    "result": "pass",
+    "spawn_exit": 1,
+    "observable": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-explicit-1\nerror: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments\n"
+  },
+  {
+    "case": "explicit-2",
+    "result": "pass",
+    "spawn_exit": 1,
+    "observable": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-explicit-2\nerror: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments\n"
+  },
+  {
+    "case": "explicit-3",
+    "result": "pass",
+    "spawn_exit": 1,
+    "observable": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-explicit-3\nerror: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments\n"
+  },
+  {
+    "case": "malformed",
+    "result": "pass",
+    "spawn_exit": 1,
+    "observable": "error: config/worker-git-identity must be a readable file holding one line in git's 'Name <email>' form, such as: fleet-agent <fleet-agent@example.com>\n"
+  },
+  {
+    "case": "scout",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/5/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nhooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-scout/state/ident-r2-scout.git-hooks\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "allowlist",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/6/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nhooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-allowlist/state/ident-r2-allowlist.git-hooks\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "secondmate",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-mate\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nhooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-mate-primary/state/ident-r2-secondmate.git-hooks\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "secondmate-crew",
+    "result": "pass",
+    "spawn_exit": 0,
+    "observable": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/7/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nhooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-mate/state/ident-r2-secondmate-crew.git-hooks\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  }
+]

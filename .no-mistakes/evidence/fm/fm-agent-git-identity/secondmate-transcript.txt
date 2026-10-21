@@ -1,0 +1,44 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/runtime/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-primary
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-primary
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/runtime/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-home
+[exit 0]
+
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-home
+[exit 0]
+
+$ git commit -q --allow-empty -m 'mate baseline'
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/runtime/bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-primary
+/tmp/fml.WxEfe6
+[exit 0]
+
+$ tmux -L fm-lab new-session -d -s primary -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69 '/bin/bash --noprofile --norc'
+[exit 0]
+
+$ tmux -L fm-lab display-message -p -t primary '#{socket_path},#{pid},0'
+/private/tmp/fml.WxEfe6/tmux-501/fm-lab,73957,0
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/runtime/bin/fm-spawn.sh ident-live-mate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-home '/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/live/probe.sh /Users/dalecarman/.no-mistakes/evidence/01M5FWNE5V6ESXE85390HX5H69/secondmate.txt' --secondmate
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-primary
+warning: secondmate ident-live-mate sync skipped before launch: primary default-branch commit cannot be resolved
+spawned ident-live-mate harness=bash kind=secondmate mode=secondmate yolo=off window=primary:fm-ident-live-mate worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-home
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/runtime/bin/fm-spawn.sh ident-live-mate-crew /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/live/project '/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/live/probe.sh /Users/dalecarman/.no-mistakes/evidence/01M5FWNE5V6ESXE85390HX5H69/secondmate-crew.txt' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-home/data/ident-live-mate-crew/launch-brief.md records no ship branch; defaulting to legacy branch fm/ident-live-mate-crew
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-home/data/ident-live-mate-crew/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: ident-live-mate-crew ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned ident-live-mate-crew harness=bash kind=ship mode=local-only yolo=off window=primary:fm-ident-live-mate-crew worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-pool/.treehouse/project-4d7232/1/project
+[exit 0]
+
+$ tmux -L fm-lab kill-server
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/runtime/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-primary
+[exit 0]

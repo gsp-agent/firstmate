@@ -1,0 +1,6 @@
+Live product: unchanged bin/fm-spawn.sh with real tmux and treehouse, supported raw-command launch; no harness CLI was impersonated.
+Configured identity, absent identity, keep-ai-trailers, conflicting explicit author values, malformed configuration, secondmate inheritance and secondmate crew were exercised.
+The disposable shell session had a 120x40 grid on a private lab socket. Both lab servers were stopped and helper socket teardown returned zero.
+The initial targeted test run completed its ship, trailer, absent and malformed cases, then refused its secondmate fixture because it was inside the firstmate code root. Running the same focused test from an unchanged git-archive source export with sibling homes within the worktree completed all cases successfully.
+The fleet PR audit could not be driven: no fleet inventory was provided in this isolated worktree and the prompt forbids reading the operator live fleet data. An authorized fleet repository/PR-owner inventory is required. No PR histories were rewritten.
+No UI surface was changed; command transcripts and real git commit authors are the product evidence.

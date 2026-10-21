@@ -1,0 +1,9 @@
+$ bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2/runtime/tests/fm-spawn-worker-git-identity.test.sh
+ok - a ship worker's first commit carries the configured identity; no git config file changes
+ok - the identity applies on its own when the home keeps AI trailers
+ok - an unconfigured worker's first commit carries the gsp-agent identity
+ok - raw author and committer overrides refuse the spawn before launch
+ok - an unconfigured raw worker replaces inherited author and committer identity with trailers kept
+ok - a malformed config/worker-git-identity refuses the spawn before any launch
+ok - a secondmate and its own crew inherit the worker git identity
+[exit 0]

@@ -1,0 +1,27 @@
+[
+  {
+    "case": "configured",
+    "spawn_exit": 0,
+    "output": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/live/pool/.treehouse/project-4d7232/1/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "absent",
+    "spawn_exit": 0,
+    "output": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/live/pool/.treehouse/project-4d7232/2/project\nconfig_name=Dale Carman\nconfig_email=dale.carman@gmail.com\nauthor=Dale Carman <dale.carman@gmail.com>\ncommitter=Dale Carman <dale.carman@gmail.com>\n"
+  },
+  {
+    "case": "keep-trailers",
+    "spawn_exit": 0,
+    "output": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/live/pool/.treehouse/project-4d7232/3/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "inherited-author",
+    "spawn_exit": 0,
+    "output": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/live/pool/.treehouse/project-4d7232/4/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nauthor=Dale Carman <dale.carman@gmail.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+  },
+  {
+    "case": "malformed",
+    "spawn_exit": 1,
+    "output": ""
+  }
+]

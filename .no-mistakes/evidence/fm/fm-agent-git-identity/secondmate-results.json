@@ -1,0 +1,7 @@
+{
+  "spawn_exit": 0,
+  "identity_inherited": "gsp-agent <dale+gspagent@groovejones.com>\n",
+  "commit": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-home\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n",
+  "crew_spawn_exit": 0,
+  "crew_commit": "cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-pool/.treehouse/project-4d7232/1/project\nconfig_name=gsp-agent\nconfig_email=dale+gspagent@groovejones.com\nauthor=gsp-agent <dale+gspagent@groovejones.com>\ncommitter=gsp-agent <dale+gspagent@groovejones.com>\n"
+}

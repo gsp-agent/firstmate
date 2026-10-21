@@ -1,0 +1,6 @@
+cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/pool/.treehouse/project-ae8277/1/project
+config_name=gsp-agent
+config_email=dale+gspagent@groovejones.com
+hooks=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation-r2c/home-default/state/ident-r2-default.git-hooks
+author=gsp-agent <dale+gspagent@groovejones.com>
+committer=gsp-agent <dale+gspagent@groovejones.com>

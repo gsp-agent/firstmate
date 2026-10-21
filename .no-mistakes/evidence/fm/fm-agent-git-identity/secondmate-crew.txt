@@ -1,0 +1,5 @@
+cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/secondmate-pool/.treehouse/project-4d7232/1/project
+config_name=gsp-agent
+config_email=dale+gspagent@groovejones.com
+author=gsp-agent <dale+gspagent@groovejones.com>
+committer=gsp-agent <dale+gspagent@groovejones.com>

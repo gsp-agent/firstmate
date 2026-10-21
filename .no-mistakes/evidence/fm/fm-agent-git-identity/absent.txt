@@ -1,0 +1,5 @@
+cwd=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FWNE5V6ESXE85390HX5H69/.identity-validation/live/pool/.treehouse/project-4d7232/2/project
+config_name=Dale Carman
+config_email=dale.carman@gmail.com
+author=Dale Carman <dale.carman@gmail.com>
+committer=Dale Carman <dale.carman@gmail.com>
