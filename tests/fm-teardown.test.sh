@@ -6189,6 +6189,84 @@ SH
   pass "fm-teardown: a finished task whose row moved to the archive still resolves its references"
 }
 
+test_task_data_completed_row_identity() {
+  local case_dir task record kind variant checkout origin record_pr row_pr row_name changed rc
+  for kind in archived legacy; do
+    for variant in path-text other-checkout other-checkout-no-pr review changed-repo changed-pr; do
+      case_dir=$(make_case "task-data-row-identity-$kind-$variant")
+      task="$case_dir/data/task-x1"
+      record="$task/record/data-cleanup.json"
+      origin=https://github.com/carmandale/agent-config.git
+      record_pr=https://github.com/carmandale/agent-config/pull/185
+      row_pr=$record_pr
+      row_name=agent-config
+      changed=false
+      case "$variant" in
+        path-text) checkout="$case_dir/dev/agent-config" ;;
+        other-checkout) checkout="$case_dir/home/.agent-config" ;;
+        other-checkout-no-pr)
+          checkout="$case_dir/dev/firstmate-upstream" origin=https://github.com/gsp-agent/firstmate.git
+          record_pr='' row_pr='' row_name=firstmate
+          ;;
+        review)
+          checkout="$case_dir/projects/agent-config" record_pr=''
+          row_pr=https://github.com/carmandale/agent-config/pull/304
+          ;;
+        changed-repo)
+          checkout="$case_dir/dev/agent-config" record_pr='' row_pr='' row_name=agent-observer changed=true
+          ;;
+        changed-pr)
+          checkout="$case_dir/projects/agent-config" row_pr=https://github.com/carmandale/agent-config/pull/186 changed=true
+          ;;
+      esac
+      mkdir -p "$task/record" "$case_dir/history"
+      git init -q "$checkout"
+      git -C "$checkout" remote add origin "$origin"
+      printf 'row evidence\n' > "$task/row.png"
+      printf 'scratch\n' > "$task/discard.bin"
+      cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+      printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+      printf '## Archived 2026-10-20\n- [x] task-x1 - finished %s (repo: %s) (merged 2026-10-20)\n  [capture](row.png)\n' \
+        "$row_pr" "$row_name" > "$case_dir/history/completed.md"
+      jq -n --arg project "$checkout" --arg pr "$record_pr" --arg data "$case_dir/data" --arg kind "$kind" \
+        --arg text "$(sed -n 2,3p "$case_dir/history/completed.md")" \
+        '{version: 1, task: "task-x1", complete: false, expired: false,
+          sources: [{project: $project, pr: $pr, beads: [],
+            backlog: ({data: $data, task: "task-x1"} + (if $kind == "legacy" then {legacy: true, text: $text} else {} end))}]}' \
+        > "$record"
+      cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2 $3" = 'pr view 185' ] || exit 2
+printf 'body: the recorded pull request\n'
+SH
+      printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
+      chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+      rc=0
+      PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire \
+        "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err" || rc=$?
+      if [ "$changed" = true ]; then
+        expect_code 1 "$rc" "$kind $variant expired a row that changed its owner"
+        assert_grep 'completed row task-x1 changed project or PR' "$case_dir/err" \
+          "$kind $variant did not name the changed owner"
+        assert_present "$task/discard.bin" "$kind $variant moved scratch for a row that changed its owner"
+        assert_absent "$task/.cleanup-hold" "$kind $variant staged data for a row that changed its owner"
+      else
+        expect_code 0 "$rc" "$kind $variant kept a row with the same owner whole: $(cat "$case_dir/err")"
+        assert_present "$task/row.png" "$kind $variant lost the completed row's evidence"
+        assert_absent "$task/discard.bin" "$kind $variant kept scratch for a row with the same owner"
+        jq -e --arg pr "$record_pr" '.expired == true and .sources[0].pr == $pr' "$record" >/dev/null \
+          || fail "$kind $variant did not expire under the recorded owner: $(cat "$record")"
+      fi
+    done
+  done
+  pass "fm-teardown: a completed row changes its task's owner only for another repository or another non-empty PR"
+}
+
 test_task_data_archived_unread_bead() {
   local case_dir task record action args=()
   case_dir=$(make_case task-data-archived-unread-bead)
@@ -8421,7 +8499,7 @@ SH
 }
 
 test_task_data_legacy_rows() {
-  local case_dir task variant helper project pr row_file note refresh original
+  local case_dir task variant helper project pr row_file note refresh original changed_repo
   helper="$ROOT/bin/fm-task-data.py"
   for variant in archive current no-pr missing active gitlab-note gerrit-note ambiguous-note ambiguous-notes repeated-note; do
     case_dir=$(make_case "task-data-legacy-$variant")
@@ -8548,7 +8626,10 @@ SH
     for refresh in changed ambiguous; do
       [ "$refresh" != ambiguous ] || [ -n "$pr" ] || continue
       cp "$case_dir/saved-backlog.md" "$case_dir/data/backlog.md"
-      printf '%s\n' '- [x] task-x1 - changed (repo: demo) (done 2026-10-13)' \
+      # A PR the row adds to a PR-less record is a reference, so that record changes owner only by repository.
+      changed_repo=demo
+      [ -n "$pr" ] || changed_repo=elsewhere
+      printf '%s\n' "- [x] task-x1 - changed (repo: $changed_repo) (done 2026-10-13)" \
         '  Completed https://github.com/groovejones/groove-sight-platform/pull/4366' \
         >> "$case_dir/data/backlog.md"
       if [ "$refresh" = ambiguous ]; then
@@ -9025,6 +9106,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
   test_task_data_archived_bead_id_collision
   test_task_data_bead_id_filter
   test_task_data_archived_row_reference
+  test_task_data_completed_row_identity
   test_task_data_row_named_beads
   test_task_data_row_reread_archiving
   test_task_data_archived_unread_bead
@@ -9136,6 +9218,7 @@ test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
 test_task_data_expire_over_total_cap_reads_nothing
 test_task_data_bead_id_filter
 test_task_data_archived_row_reference
+test_task_data_completed_row_identity
 test_task_data_row_named_beads
 test_task_data_row_reread_archiving
 test_task_data_archived_unread_bead
