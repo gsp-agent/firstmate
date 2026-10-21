@@ -1,0 +1,42 @@
+
+  Folder access
+  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/prompt-restricted/wt
+
+  Config, hooks, and exec policies from untrusted folders stay disabled. Trusted project folders can still contribute settings. Skills still load,
+  and tools follow your permission settings. Opening will not change saved trust.
+
+› 1. Open restricted
+  2. Quit
+
+  enter continue · esc quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ lab$
+
+
+

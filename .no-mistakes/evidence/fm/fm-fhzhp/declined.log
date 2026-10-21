@@ -1,0 +1,201 @@
+COMMAND: bash bin/fm-spawn.sh cxl-declined-67783 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/project --harness codex --mode no-mistakes --yolo off
+Elapsed: 8.19s
+Exit: 1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/home/data/cxl-declined-67783/launch-brief.md records no ship branch; defaulting to legacy branch fm/cxl-declined-67783
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/home/data/cxl-declined-67783/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/codex/config.toml records trust_level = 'untrusted' for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/project, an explicit decision this will not override
+error: refusing to pre-register codex trust: could not record trust for '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/project' in '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/codex/config.toml'
+error: could not pre-register Codex folder trust for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/wt; refusing to launch a codex worker that would park on the trust prompt; inspect window firstmate:fm-cxl-declined-67783
+
+STORE BEFORE:
+model = "gpt-6.1-sol"
+model_reasoning_effort = "low"
+
+[projects."/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/project"]
+trust_level="untrusted"
+
+STORE AFTER:
+model = "gpt-6.1-sol"
+model_reasoning_effort = "low"
+
+[projects."/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/project"]
+trust_level="untrusted"
+
+PANE FRAMES:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- frame ---
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+treehouse get
+lab$ treehouse get
+lab$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- frame ---
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+treehouse get
+lab$ treehouse get
+lab$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/wt'
+lab$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- frame ---
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+treehouse get
+lab$ treehouse get
+lab$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/declined/wt'
+lab$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+POSTCONDITIONS: verified; endpoint open

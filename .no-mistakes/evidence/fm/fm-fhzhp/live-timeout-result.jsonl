@@ -1,0 +1,9 @@
+{"scenario": "timeout", "result": "fail", "error": "spawn exceeded 180 seconds"}
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/live.py", line 156, in <module>
+    assert not pids_under(wt), 'Lab process cleanup failed'
+     ^^^^^^^^^^^^^^^^^^^
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/live.py", line 95, in scenario
+    if 'Folder access' in fr.stdout and 'Trust and continue' in fr.stdout:
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: spawn exceeded 180 seconds

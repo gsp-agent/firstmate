@@ -1,0 +1,25 @@
+ok - fm-codex-trust.sh: a fresh worktree trusts the primary checkout root in a created store
+ok - fm-codex-trust.sh: appends one entry and leaves every existing byte and the file mode intact
+ok - fm-codex-trust.sh: a repeat registration leaves the store byte-identical
+ok - fm-codex-trust.sh: concurrent registrations wait for the store directory lock and preserve every root
+ok - fm-codex-trust.sh: an already-trusted root in inline-table form is left untouched
+ok - fm-codex-trust.sh: an explicit untrusted decision is refused, never flipped
+ok - fm-codex-trust.sh: entries that would need an in-place edit are refused and left untouched
+ok - fm-codex-trust.sh: an unparseable store is refused and left untouched
+ok - fm-codex-trust.sh: a root path needing TOML escapes round-trips exactly
+ok - fm-codex-trust.sh: primary checkouts, plain dirs, subdirectories, foreign worktrees, and HOME are refused
+ok - fm-codex-trust.sh: a worktree whose resolved root is not a primary checkout is refused
+ok - fm-codex-trust.sh: an absolute CODEX_HOME selects the store, a relative or missing one is refused
+ok - fm-codex-trust.sh: a symlinked store keeps its link and writes the target
+ok - fm-codex-trust.sh: a missing python3 is refused rather than degraded
+ok - fm-spawn: codex pre-trusts the worktree's root and launches into a running turn
+ok - fm-spawn: codex forwards CODEX_HOME so the worker reads the store the spawn wrote
+ok - fm-spawn: a destination pane's CODEX_HOME and HOME cannot redirect the worker's store
+ok - fm-spawn: running and finished turns quoting both folder-access dialogs pass the launch gate
+ok - fm-spawn: a codex launch showing the folder-access prompt fails at once and closes the endpoint
+ok - fm-spawn: inline history above a plain or wrapped launch echo cannot hide either live dialog
+ok - fm-spawn: a running turn passes without a launch echo
+ok - fm-spawn: a codex launch that never starts a turn fails after the bound, naming the version
+ok - fm-spawn: a rejected codex launch stops the worker it started, not only its endpoint
+ok - fm-spawn: a rejected launch with a failed process scan closes its endpoint and keeps its strip
+ok - fm-spawn: a codex root whose trust cannot be registered refuses before launch

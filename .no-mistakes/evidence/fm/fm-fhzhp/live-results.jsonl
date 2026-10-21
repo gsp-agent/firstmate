@@ -1,0 +1,12 @@
+{"scenario": "fresh", "result": "pass", "seconds": 21.49}
+{"scenario": "scout", "result": "fail", "error": "fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/scout/home\nerror: --mode applies only to ship spawns; a scout delivers a report and a secondmate records its own fixed posture\n"}
+Traceback (most recent call last):
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/live.py", line 145, in <module>
+    try: scenario(name,mode)
+         ~~~~~~~~^^^^^^^^^^^
+  File "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/live.py", line 102, in scenario
+    assert p.returncode==0, out
+           ^^^^^^^^^^^^^^^
+AssertionError: fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/scout/home
+error: --mode applies only to ship spawns; a scout delivers a report and a secondmate records its own fixed posture
+

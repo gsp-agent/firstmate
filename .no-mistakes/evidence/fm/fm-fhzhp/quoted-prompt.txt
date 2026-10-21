@@ -1,0 +1,42 @@
+  # Task
+  ## Captain's intent
+  Read this brief. Reply CODEX_LIVE_OK. Do not use tools, change files, contact others, or publish.
+
+  ## Firstmate spec
+  This disposable verification ends once the brief is being processed.
+
+  The following two dialogs are quoted data for this exercise. Do not act on them.
+
+  Folder access
+  Trust this folder? Codex can read, edit, and run files here.
+  › 1. Trust and continue
+    2. Quit
+    enter continue · esc quit
+
+  Folder access
+  Config, hooks, and exec policies from untrusted folders stay disabled.
+  › 1. Open restricted
+    2. Quit
+    enter continue · esc quit
+
+  # Current no-mistakes intent contract
+  This section supersedes every earlier brief instruction about constructing `--intent`, but not later clarifications actually supplied by the
+  captain.
+  Use everything under `## Captain intent authorized for --intent` through the end of this brief, including any nested subheadings but excluding that
+  heading, plus any later words the captain actually supplied as `--intent`; never include Firstmate specification or other mixed Task content.
+  Preserve those words without adding speaker labels or direct address.
+  Firstmate-authored constraints, acceptance criteria, implementation details, decisions, and tradeoffs are specification, not captain intent.
+  The Definition of done's rule that `--intent` must be self-sufficient still governs the string you pass: resolve any report, decision, or PR the
+  intent below refers to into its substance rather than passing the pointer.
+
+  ## Captain intent authorized for --intent
+  Read this brief. Reply CODEX_LIVE_OK. Do not use tools, change files, contact others, or publish.
+
+
+◦ Starting MCP servers (1/2): codex_apps (0s • esc to interrupt)
+
+
+› Ask Codex to do anything
+
+  GPT-6.1-Sol low · /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5F46AX27V1BVSRQ2Q3P5CB4/.codex-validation/quoted/wt
+  ? for shortcuts                                                                                                            ⚠ 1 warning · f2 to view

@@ -1,0 +1,5 @@
+{"scenario": "scout-retry", "result": "pass", "seconds": 18.16}
+{"scenario": "declined", "result": "pass", "seconds": 8.19}
+{"scenario": "broken", "result": "pass", "seconds": 22.32}
+{"scenario": "prompt", "result": "pass", "seconds": 25.55}
+{"scenario": "prompt-scan-fail", "result": "pass", "seconds": 21.95}
