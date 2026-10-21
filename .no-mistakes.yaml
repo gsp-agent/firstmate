@@ -9,6 +9,12 @@
 # HEAD-continuity guard; see docs/architecture.md "No-mistakes gate authority boundary."
 disable_project_settings: true
 
+# Trusted pin because disable_project_settings needs every listed agent to
+# neutralize AGENTS.md, and grok cannot. Codex matches the global pipeline
+# list since 2026-10-20, after claude-george's sign-in expired. Return to
+# [claude, codex] once that account is signed in again.
+agent: [codex]
+
 # Trusted documentation placement policy for the Document step.
 # The audience inventory and coding guideline own the detail; keep this as a
 # pointer so gate instructions cannot become a second prose policy.
