@@ -855,6 +855,21 @@ recorded_windows() {
   done
 }
 
+# The pane-stale loop's order: the least-recently-visited window first. wake()
+# exits the watcher, so a scan that always began at the first .meta never
+# reached a late window while earlier ones kept waking; on 10-21, 80 of 100 live
+# windows went unvisited for 6.5 h (.agent-config-6keoe). Every visit writes
+# .count-<key>, so its mtime is the last visit. A window never visited sorts
+# first, and ties keep the recorded order.
+stale_scan_windows() {
+  local w m i=0
+  while IFS= read -r w; do
+    m=$(stat_mtime "$STATE/.count-$(window_key "$w")") || m=0
+    printf '%s\t%s\t%s\n' "${m:-0}" "$i" "$w"
+    i=$((i + 1))
+  done < <(recorded_windows) | sort -t $'\t' -k1,1n -k2,2n | cut -f3-
+}
+
 # Print the oldest structurally valid ACTIONABLE row in a local secondmate's
 # foreign queue. A stale recheck that explicitly identifies itself as a declared
 # external-wait pause is not evidence that the mate's wake loop is stuck: the
@@ -3526,7 +3541,7 @@ EOF
         clear_pause_tracking "$key"
       fi
     fi
-  done < <(recorded_windows)
+  done < <(stale_scan_windows)
 
   # Heartbeat: the watcher runs a cheap fleet-scan at a regular cadence no matter
   # what. Time-based via .last-heartbeat mtime; interval doubles per consecutive
