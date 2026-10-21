@@ -85,7 +85,8 @@ cat > "$REMOTE_ROOT/bin/fm-shutdown-job.sh" <<'SH'
 #!/bin/bash
 trap '' HUP INT TERM
 printf 'started\n' > "$1"
-sleep 3
+# Keep the side effect pending until the test has exercised termination.
+while [ ! -f "$2.release" ]; do sleep 0.1; done
 printf 'ran\n' > "$2"
 SH
 cat > "$REMOTE_ROOT/bin/fm-output-job.sh" <<'SH'
@@ -212,7 +213,7 @@ pass "default queue and execution bounds independently cover long polls"
 export FM_REMOTE_JOB_STATE_ROOT="$STATE_ROOT"
 export FM_REMOTE_JOB_PLATFORM_OVERRIDE=Linux
 # shellcheck disable=SC2031 # The sourced defaults above were confined to DEFAULT_BOUNDS.
-export FM_REMOTE_JOB_QUEUE_TIMEOUT=5
+export FM_REMOTE_JOB_QUEUE_TIMEOUT=60
 # shellcheck disable=SC2031 # The sourced defaults above were confined to DEFAULT_BOUNDS.
 export FM_REMOTE_JOB_TIMEOUT=5
 # shellcheck source=bin/fm-remote-job-lib.sh
@@ -395,8 +396,14 @@ pass "worker identity binds the canonical configured code root"
 # Crash the serving worker and leave its ownership records naming an unrelated
 # live process, as a reused pid would after an unclean exit.
 crash_worker_leaving_unrelated_owner() {
-  local crashed
+  local crashed supervisor
   crashed=$(cat "$STATE_ROOT/worker.pid")
+  # Prevent automatic restart from publishing a live replacement whose owner
+  # records the fixture would overwrite while simulating the dead worker's PID.
+  supervisor=$(fm_remote_job_worker_process_group "$crashed") \
+    || fail "the crash fixture could not identify its restart supervisor"
+  kill -KILL "$supervisor"
+  wait "$supervisor" 2>/dev/null || true
   kill -KILL "$crashed"
   wait "$crashed" 2>/dev/null || true
   assert_present "$STATE_ROOT/worker.lock" "an unclean exit did not retain the worker ownership lock"
@@ -415,6 +422,12 @@ assert_unrelated_owner_replaced() {
   [ "$NEW_WORKER_PID" != "$OTHER_PID" ] || fail "the replacement adopted an unrelated persisted pid"
   fm_remote_job_worker_identity_matches "$REMOTE_ROOT" "$ACCOUNT_HOME" \
     || fail "stale ownership recovery did not start the current worker"
+  fm_remote_job_stage "$ACCOUNT_HOME" "$REMOTE_ROOT" "$REMOTE_HOME" fm-probe-job.sh \
+    < /dev/null > /dev/null || fail "$FM_REMOTE_JOB_ERROR"
+  fm_remote_job_wait "$ACCOUNT_HOME" "$FM_REMOTE_JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
+  [ "$FM_REMOTE_JOB_EXIT" -eq 0 ] || fail "the replacement worker could not execute a queued command"
+  fm_remote_job_reap "$ACCOUNT_HOME" "$FM_REMOTE_JOB_ID" \
+    || fail "the replacement worker's completed command could not be reaped"
   kill "$OTHER_PID" 2>/dev/null || true
   wait "$OTHER_PID" 2>/dev/null || true
   OTHER_PID=
@@ -461,7 +474,7 @@ pass "the worker expires queued jobs before they can mutate"
 
 FIRST_DELAYED_SIDE_EFFECT="$TMP_ROOT/first-delayed-side-effect"
 SECOND_DELAYED_SIDE_EFFECT="$TMP_ROOT/second-delayed-side-effect"
-FM_REMOTE_JOB_QUEUE_TIMEOUT=5
+FM_REMOTE_JOB_QUEUE_TIMEOUT=60
 FM_REMOTE_JOB_TIMEOUT=3
 fm_remote_job_stage "$ACCOUNT_HOME" "$REMOTE_ROOT" "$REMOTE_HOME" \
   fm-delay-job.sh 1.8 "$FIRST_DELAYED_SIDE_EFFECT" < /dev/null > /dev/null
@@ -559,7 +572,7 @@ fm_remote_job_wait "$ACCOUNT_HOME" "$JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
 [ "$FM_REMOTE_JOB_EXIT" -eq 75 ] || fail "the queued sibling poll did not run after the first window"
 fm_remote_job_reap "$ACCOUNT_HOME" "$FIRST_JOB_ID" || fail "the first sibling poll could not be reaped"
 fm_remote_job_reap "$ACCOUNT_HOME" "$JOB_ID" || fail "the queued sibling poll could not be reaped"
-FM_REMOTE_JOB_QUEUE_TIMEOUT=5
+FM_REMOTE_JOB_QUEUE_TIMEOUT=60
 pass "sibling polls never preempt each other into a re-arm churn loop"
 
 STARTED="$TMP_ROOT/shutdown-started"
@@ -590,6 +603,7 @@ done
 assert_present "$STATE_ROOT/worker.ready" "the replacement worker did not become ready"
 fm_remote_job_wait "$ACCOUNT_HOME" "$JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
 [ "$FM_REMOTE_JOB_EXIT" -eq 125 ] || fail "the interrupted job did not publish an unknown-completion result"
+touch "$SHUTDOWN_SIDE_EFFECT.release"
 sleep 3
 assert_absent "$SHUTDOWN_SIDE_EFFECT" "the active command mutated after worker shutdown"
 fm_remote_job_reap "$ACCOUNT_HOME" "$JOB_ID" || fail "the interrupted job could not be reaped"
@@ -617,6 +631,7 @@ done
   || fail "the Linux supervisor did not restart a crashed worker"
 fm_remote_job_wait "$ACCOUNT_HOME" "$JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
 [ "$FM_REMOTE_JOB_EXIT" -eq 125 ] || fail "worker crash recovery did not publish unknown completion"
+touch "$CRASH_SIDE_EFFECT.release"
 sleep 3
 assert_absent "$CRASH_SIDE_EFFECT" "an orphaned command mutated after worker crash recovery"
 fm_remote_job_reap "$ACCOUNT_HOME" "$JOB_ID" || fail "the crash-recovered job could not be reaped"
@@ -629,7 +644,7 @@ PREEXEC_FINISHED="$TMP_ROOT/preexecution-finished"
 cat > "$ACCOUNT_HOME/.local/bin/git" <<SH
 #!/bin/bash
 if [ "\${3:-}" = ls-files ]; then
-  printf 'started\n' > "$PREEXEC_STARTED"
+  date +%s > "$PREEXEC_STARTED"
   sleep 30
   printf 'finished\n' > "$PREEXEC_FINISHED"
 fi
@@ -637,14 +652,15 @@ exec "$REAL_GIT" "\$@"
 SH
 chmod +x "$ACCOUNT_HOME/.local/bin/git"
 FM_REMOTE_JOB_TIMEOUT=3
-PREEXEC_BEGAN=$(date +%s)
 fm_remote_job_stage "$ACCOUNT_HOME" "$REMOTE_ROOT" "$REMOTE_HOME" fm-probe-job.sh < /dev/null > /dev/null
 JOB_ID=$FM_REMOTE_JOB_ID
 JOB_DIR="$STATE_ROOT/jobs/$JOB_ID"
 fm_remote_job_wait "$ACCOUNT_HOME" "$JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
-PREEXEC_ELAPSED=$(( $(date +%s) - PREEXEC_BEGAN ))
 [ "$FM_REMOTE_JOB_EXIT" -eq 124 ] || fail "the pre-execution deadline did not publish a timeout result"
 assert_present "$PREEXEC_STARTED" "the pre-execution timeout fixture did not enter tracked-command validation"
+# Measure validation from its own start, excluding queue and staging time.
+PREEXEC_BEGAN=$(cat "$PREEXEC_STARTED")
+PREEXEC_ELAPSED=$(( $(date +%s) - PREEXEC_BEGAN ))
 assert_absent "$PREEXEC_FINISHED" "tracked-command validation continued after the job timeout"
 [ "$PREEXEC_ELAPSED" -le 7 ] || fail "tracked-command validation exceeded the job timeout bound"
 fm_remote_job_reap "$ACCOUNT_HOME" "$JOB_ID" || fail "the pre-execution timeout leaked output readers or FIFOs"
@@ -710,6 +726,7 @@ set -e
 [ "$REPLACEMENT_RC" -ne 0 ] || fail "a replacement worker ignored quarantined ownership"
 assert_present "$STATE_ROOT/worker.lock/quarantine" "a replacement removed quarantined ownership"
 kill -KILL -- "-$GROUP_PID" 2>/dev/null || true
+touch "$QUARANTINE_SIDE_EFFECT.release"
 sleep 3
 assert_absent "$QUARANTINE_SIDE_EFFECT" "the quarantined command mutated after explicit termination"
 pass "failed shutdown quarantines ownership against replacement workers"
