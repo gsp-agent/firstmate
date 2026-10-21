@@ -1078,7 +1078,7 @@ test_turn_ended_churn_resets_wedge_state_before_stale_poll() {
 # deferral window), the marker-creation loop expands an empty missing_keys and
 # the cleanup expands an empty created_keys. Under `set -u`, bash 3.2 aborts the
 # whole watcher on an empty "${arr[@]}" where newer bash no-ops, so the absorb
-# must land without re-marking the window. The macos-stock-bash CI lane runs
+# must land without re-marking the window. bin/fm-stock-bash-check.sh runs
 # this case under real /bin/bash 3.2 via FM_TEST_ONLY.
 test_turn_ended_churn_existing_marker_absorbed() {
   local dir state fakebin out capture_file window key marker_since pid
@@ -6890,7 +6890,7 @@ SH
   pass "the check sweep wakes for interrupted releases, keeps held failures quiet, and supports replay"
 }
 
-# CI's stock macOS Bash lane sets FM_TEST_ONLY to run just the bash-3.2
+# bin/fm-stock-bash-check.sh sets FM_TEST_ONLY to run just the bash-3.2
 # churn-deferral regression. The rest of this file is not a 3.2 snapshot suite.
 if [ -n "${FM_TEST_ONLY:-}" ]; then
   "$FM_TEST_ONLY"

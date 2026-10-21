@@ -117,6 +117,7 @@ Run `bin/fm-doc-audience-check.sh`; it enforces classification, README setup rou
 Never configure a deterministic suite-walk `commands.test` in any repository's no-mistakes config, whether it selects the full suite, changed tests, a family, or a fixed script list.
 Targeted validation belongs to the no-mistakes evidence path, while CI owns broad deterministic regression coverage.
 Firstmate PR #3644 demonstrated the cost: pinning a 75-162-script walk took 32.7 minutes per validation, while removing it restored the 3.6-minute targeted-validation posture.
+The trusted `stock-macos-bash` gate is not such a walk: it is the fixed stock Bash 3.2 check this fork's CI cannot run, and [`docs/configuration.md`](../../../docs/configuration.md#gate-defaults-no-mistakesyaml) owns it.
 
 ## Repo style rules
 
