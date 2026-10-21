@@ -1,0 +1,18 @@
+task:
+  id: cr-review-hold
+  title: Decide unchanged PR after two fix rounds
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "https://github.com/fm-lab/cr-validation/pull/7 has no new head after two fix rounds; requesting reviewer carmanchip23-dev. Synthetic hold fixture, not an automatic sweep result."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: lab-project
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T13:50:22Z"

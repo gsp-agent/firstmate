@@ -1,0 +1,4 @@
+$ git branch --show-current
+fm/cr-owner
+$ git rev-parse HEAD
+a8cd68dce52a6860003685e3a79140a973f3c986

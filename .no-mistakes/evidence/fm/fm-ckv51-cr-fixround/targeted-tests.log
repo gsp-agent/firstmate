@@ -1,0 +1,23 @@
+FM_TEST_BEGIN 2026-10-19T13:30:26Z tests/fm-pr-queue-sweep-cr.test.sh family=pr-forge expected_gate_skip=none
+ok - pending PR failures preserve discovery and isolate healthy repository dispatches
+ok - exhausted same-head rounds escalate after failed, pending, errored, or missing checks
+ok - closed, merged, and superseded rounds retain no repository while current siblings do
+ok - pending rounds retain discovery across poll retirement and restarts until escalation
+ok - every reviewer lookup refreshes progress after success, failure, or timeout
+ok - a later comment preserves the reviewer's blocking verdict
+ok - blocking reviewers beyond the first 100 are named
+ok - unavailable reviewer names never suppress rounds or escalation
+ok - concurrent dispatch and escalation preserve both pull-request records
+ok - concurrent duplicate wakes dispatch their round only once
+ok - a durable wake, capacity deferral, and failed launch consume no round
+ok - draft and ready stale green changes-requested pull requests report round 1
+ok - fresh, ungreen, and non-changes-requested pull requests stay silent
+ok - rounds advance on stale intervals, escalate after two, and survive restarts
+ok - a new head restarts the round count
+ok - queue removals preserve their reason alongside review-state reporting
+ok - record refusals are loud and a malformed record fails the scan
+FM_TEST_END 2026-10-19T13:35:14Z tests/fm-pr-queue-sweep-cr.test.sh exit=0 duration_ms=286803 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=287673
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=286803 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-pr-queue-sweep-cr.test.sh duration_ms=286803
+fm-test-run: wrote timing artifact: /Users/dalecarman/.no-mistakes/evidence/01M59W5QF0C6XV6MR8DY1CQDZR/targeted-test-timing.json

@@ -1,0 +1,27 @@
+source /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-validation
+-6/pane-env.sh
+
+╭─worktree on 🌱 fm/cr-owner
+╰─❯ source /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-valida
+tion-6/pane-env.sh
+
+╭─worktree on 🌱 fm/cr-owner
+╰─❯ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-valida
+tion-6/worktree'
+
+╭─worktree on 🌱 fm/cr-owner
+╰─❯ export GOTMPDIR=/tmp/fm-cr-owner/gotmp
+
+╭─worktree on 🌱 fm/cr-owner
+╰─❯ export COMPACT_ADVISER_DISABLE=1
+
+╭─worktree on 🌱 fm/cr-owner
+╰─❯ export FM_TASK_ID=cr-owner
+
+╭─worktree on 🌱 fm/cr-owner
+╰─❯ . '/tmp/fm-cr-owner+c0067b14cf2cd9e5f953d60a46e049d8842113f63fdf52008e43ae05df2dcc40/launch.s1792417839.74512.21024
+.sh'
+zsh: killed     env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI  opencode --prompt
+
+╭─worktree on 🌱 fm/cr-owner
+╰─✗

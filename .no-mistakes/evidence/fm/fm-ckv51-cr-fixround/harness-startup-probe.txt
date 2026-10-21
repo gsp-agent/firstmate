@@ -1,0 +1,3 @@
+$ env OPENCODE_DISABLE_AUTOUPDATE=true opencode --version
+exit=137; stdout and stderr were empty.
+Codex folder-trust output is preserved in live-codex-attempt.log.

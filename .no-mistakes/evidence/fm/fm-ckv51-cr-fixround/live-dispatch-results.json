@@ -1,0 +1,5 @@
+{
+  "failed_launch_retains_round": "pass",
+  "blocker": "Command '['/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-pr-queue-sweep.sh', '--cr-dispatch', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-validation-6/home/state', 'https://github.com/fm-lab/cr-validation/pull/7', 'a8cd68dce52a6860003685e3a79140a973f3c986', 'round1', '--', '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-control.sh', 'cr-owner', 'relaunch', '--note', 'Review fix round for https://github.com/fm-lab/cr-validation/pull/7. Reviewer carmanchip23-dev requests: read the disposable branch README and write CR_LIVE_BRANCH_READY followed by a newline to $FM_HOME/data/cr-owner/live-result.txt. Preserve branch fm/cr-owner; no publishing.']' timed out after 120 seconds",
+  "lab_teardown": "pass"
+}

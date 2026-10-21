@@ -1,0 +1,36 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-pr-queue-sweep.sh --cr-dispatch /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-validation-5/home/state https://github.com/fm-lab/cr-validation/pull/7 6ca4e9e15fbbe6224fd64343886aca9e1a3ca473 round1 -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-control.sh missing-task relaunch --note 'Disposable duplicate guard validation.'
+exit=0
+Duplicate round 1 skipped the real failing callback and preserved the record.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-pr-queue-sweep.sh --cr-dispatch /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-validation-5/home/state https://github.com/fm-lab/cr-validation/pull/7 6ca4e9e15fbbe6224fd64343886aca9e1a3ca473 round2 -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-control.sh missing-task relaunch --note 'Disposable duplicate guard validation.'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-validation-5/home
+error: no task 'missing-task' in /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-validation-5/home/state (fm-control resolves an exact task id only)
+exit=1
+The real failed second-round launch did not consume round 2.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-pr-queue-sweep.sh --cr-dispatch /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-validation-5/home/state https://github.com/fm-lab/cr-validation/pull/7 6ca4e9e15fbbe6224fd64343886aca9e1a3ca473 round3 -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-control.sh missing-task relaunch --note 'Disposable duplicate guard validation.'
+exit=1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-pr-queue-sweep.sh --cr-record /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/.agent-state/live-cr-validation-5/home/state https://github.com/fm-lab/cr-validation/pull/7 6ca4e9e15fbbe6224fd64343886aca9e1a3ca473 escalated
+exit=1
+Round 3 and premature escalation were refused with no state change.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-captain-hold.sh hold cr-review-hold --title 'Decide unchanged PR after two fix rounds' --repo lab-project --reason 'https://github.com/fm-lab/cr-validation/pull/7 has no new head after two fix rounds; requesting reviewer carmanchip23-dev. Synthetic hold fixture, not an automatic sweep result.'
+cr-review-hold
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M59W5QF0C6XV6MR8DY1CQDZR/bin/fm-tasks-axi.sh show cr-review-hold
+task:
+  id: cr-review-hold
+  title: Decide unchanged PR after two fix rounds
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "https://github.com/fm-lab/cr-validation/pull/7 has no new head after two fix rounds; requesting reviewer carmanchip23-dev. Synthetic hold fixture, not an automatic sweep result."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: lab-project
+  priority: "-"
+  created: 2026-10-19
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-19T13:50:22Z"
+exit=0
