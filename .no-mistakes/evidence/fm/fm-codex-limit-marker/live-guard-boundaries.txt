@@ -1,0 +1,46 @@
+Input: rollout persisted by real codex-cli 0.163.0 in the live private tmux lab, ending in usage_limit_exceeded.
+$ fm-cursor-guard.sh route guard-claude-True claude codex
+claude
+guard-claude-True.codex-limit: codex run for guard-claude-True hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+$ fm-cursor-guard.sh route guard-claude-True codex claude
+claude codex run for guard-claude-True hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+guard-claude-True.codex-limit: codex run for guard-claude-True hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+Observed: retiring limit survived the requested override and a replacement generation.
+$ fm-cursor-guard.sh route guard-claude-False claude 
+claude
+guard-claude-False.codex-limit: codex run for guard-claude-False hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+$ fm-cursor-guard.sh route guard-claude-False codex claude
+claude codex run for guard-claude-False hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+guard-claude-False.codex-limit: codex run for guard-claude-False hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+Observed: retiring limit survived the requested override and a replacement generation.
+$ fm-cursor-guard.sh route guard-cursor-True cursor codex
+cursor
+guard-cursor-True.codex-limit: codex run for guard-cursor-True hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+$ fm-cursor-guard.sh route guard-cursor-True codex cursor
+claude codex run for guard-cursor-True hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+guard-cursor-True.codex-limit: codex run for guard-cursor-True hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+guard-cursor-True.cursor-fallback: explicit --harness codex override of a recorded cursor task
+Observed: retiring limit survived the requested override and a replacement generation.
+$ fm-cursor-guard.sh route guard-cursor-False cursor 
+cursor
+guard-cursor-False.codex-limit: codex run for guard-cursor-False hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+$ fm-cursor-guard.sh route guard-cursor-False codex cursor
+claude codex run for guard-cursor-False hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+guard-cursor-False.codex-limit: codex run for guard-cursor-False hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+guard-cursor-False.cursor-fallback: explicit --harness codex override of a recorded cursor task
+Observed: retiring limit survived the requested override and a replacement generation.
+$ fm-cursor-guard.sh route guard-other-worktree codex 
+codex
+$ fm-cursor-guard.sh route guard-old-generation codex 
+codex
+Observed: another worktree and a rollout older than the current generation cannot poison the route.
+$ fm-cursor-guard.sh route guard-explicit-cursor claude cursor
+claude
+guard-explicit-cursor.cursor-fallback: explicit --harness claude override of a recorded cursor task
+$ fm-cursor-guard.sh route guard-pool cursor codex
+claude Cursor Models at 89% (limit 85%) and no prepaid/on-demand credit room in current-spending.txt; codex run for guard-pool hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+guard-pool.codex-limit: codex run for guard-pool hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+guard-pool.cursor-fallback: Cursor Models at 89% (limit 85%) and no prepaid/on-demand credit room in current-spending.txt
+$ fm-cursor-guard.sh route guard-healthy cursor cursor
+cursor
+Observed: explicit Cursor override records its requested target; exhausted pool falls through to Claude for the limited task; a healthy unrelated Cursor task stays on Cursor.

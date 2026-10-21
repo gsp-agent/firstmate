@@ -1,0 +1,2 @@
+{"revision": "before R1 fix (1701bf70)", "manual_override_route": "claude", "retiring_limit_marker_written": false, "later_codex_route": "codex"}
+{"revision": "after R1 fix (19257f28)", "manual_override_route": "claude", "retiring_limit_marker_written": true, "later_codex_route": "claude codex run for override-proof hit its usage limit: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM."}

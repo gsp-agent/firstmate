@@ -1,0 +1,283 @@
+Continuation after fixing the driver to require the current print-mode process to finish before accepting a receipt left in terminal history. Same marked lab, task, worktree, and real CLI; the previous private server was stopped.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/bin/fm-control.sh lab-limit relaunch --model sonnet --effort high --note 'Pin the lab profile. Reply LAB_READY and stop.'
+relaunched lab-limit harness=claude from=claude model=sonnet effort=high backend=tmux endpoint=primary:fm-lab-limit worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/data/lab-limit/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-limit
+notice: lab-limit ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+
+exit=0
+
+=== real Claude completed the pinned sonnet/high profile ===
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lab-limit/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lab-limit
+bash-3.2$ . '/tmp/fm-lab-limit+2c011dd1a8d8c9dac38336ee1a18ed0fc09f67f811a433b9c5bd0227020171ab/launch.s1792604074.28368
+.14616.sh'
+The inbox has no pending messages.
+
+LAB_READY
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- lab-limit.meta
+window=primary:fm-lab-limit
+endpoint_task_id=lab-limit
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/project
+harness=claude
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-limit
+tasktmp=/tmp/fm-lab-limit
+model=sonnet
+effort=high
+busy_gen=g1792604074.30505.17649
+spawn_gen=s1792604074.28368.14616
+control_relaunch_tx=27553.20261021T173433Z.24898
+
+--- lab-limit.codex-limit
+codex run for lab-limit hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+
+--- lab-limit.control-relaunch
+v1
+task=lab-limit
+phase=complete
+ts=2026-10-21T17:34:36Z
+backend=tmux
+endpoint=primary:fm-lab-limit
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+kind=ship
+from_harness=claude
+from_model=default
+from_effort=xhigh
+to_harness=claude
+to_model=sonnet
+to_effort=high
+worktree_head=a1b880e6ff170b3c8205549929d121c79c44ab66
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/state/lab-limit.control-relaunch.note
+exit_result=already-stopped
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/bin/fm-control.sh lab-limit exit
+already-stopped lab-limit harness=claude backend=tmux endpoint=primary:fm-lab-limit worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/bin/fm-spawn.sh lab-limit --relaunch
+spawned lab-limit harness=claude kind=ship mode=local-only yolo=off window=primary:fm-lab-limit worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/data/lab-limit/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-limit
+notice: lab-limit ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+
+exit=0
+
+=== direct spawn relaunch preserved recorded sonnet and high axes ===
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lab-limit/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lab-limit
+bash-3.2$ . '/tmp/fm-lab-limit+2c011dd1a8d8c9dac38336ee1a18ed0fc09f67f811a433b9c5bd0227020171ab/launch.s1792604074.28368
+.14616.sh'
+The inbox has no pending messages.
+
+LAB_READY
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lab-limit/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lab-limit
+bash-3.2$ . '/tmp/fm-lab-limit+2c011dd1a8d8c9dac38336ee1a18ed0fc09f67f811a433b9c5bd0227020171ab/launch.s1792604088.49608
+.27335.sh'
+bash: child setpgid (56511 to 56511): Operation not permitted
+LAB_READY
+
+The steering inbox had no pending `.msg` files. I changed no files and ran no project commands.
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- lab-limit.meta
+window=primary:fm-lab-limit
+endpoint_task_id=lab-limit
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/project
+harness=claude
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-limit
+tasktmp=/tmp/fm-lab-limit
+model=sonnet
+effort=high
+busy_gen=g1792604087.51886.12566
+spawn_gen=s1792604088.49608.27335
+
+--- lab-limit.codex-limit
+codex run for lab-limit hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+
+--- lab-limit.control-relaunch
+v1
+task=lab-limit
+phase=complete
+ts=2026-10-21T17:34:36Z
+backend=tmux
+endpoint=primary:fm-lab-limit
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+kind=ship
+from_harness=claude
+from_model=default
+from_effort=xhigh
+to_harness=claude
+to_model=sonnet
+to_effort=high
+worktree_head=a1b880e6ff170b3c8205549929d121c79c44ab66
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/state/lab-limit.control-relaunch.note
+exit_result=already-stopped
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/bin/fm-control.sh lab-limit exit
+already-stopped lab-limit harness=claude backend=tmux endpoint=primary:fm-lab-limit worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l
+
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/bin/fm-spawn.sh lab-limit --relaunch --harness codex
+spawned lab-limit harness=claude kind=ship mode=local-only yolo=off window=primary:fm-lab-limit worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l
+codex fallback: launching lab-limit on the claude harness (default model xhigh): codex run for lab-limit hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/data/lab-limit/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-limit
+notice: lab-limit ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+
+exit=0
+
+=== direct spawn Codex relaunch honored persistent usage-limit marker ===
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lab-limit/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lab-limit
+bash-3.2$ . '/tmp/fm-lab-limit+2c011dd1a8d8c9dac38336ee1a18ed0fc09f67f811a433b9c5bd0227020171ab/launch.s1792604074.28368
+.14616.sh'
+The inbox has no pending messages.
+
+LAB_READY
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lab-limit/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lab-limit
+bash-3.2$ . '/tmp/fm-lab-limit+2c011dd1a8d8c9dac38336ee1a18ed0fc09f67f811a433b9c5bd0227020171ab/launch.s1792604088.49608
+.27335.sh'
+bash: child setpgid (56511 to 56511): Operation not permitted
+LAB_READY
+
+The steering inbox had no pending `.msg` files. I changed no files and ran no project commands.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lab-limit/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lab-limit
+bash-3.2$ . '/tmp/fm-lab-limit+2c011dd1a8d8c9dac38336ee1a18ed0fc09f67f811a433b9c5bd0227020171ab/launch.s1792604100.71455
+.14932.sh'
+LAB_READY
+
+The steering inbox has no pending `.msg` files, so there was nothing to handle or move. I made no edits and ran no proje
+ct commands.
+bash-3.2$
+
+
+
+
+
+
+
+--- lab-limit.meta
+window=primary:fm-lab-limit
+endpoint_task_id=lab-limit
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/project
+harness=claude
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/lab-limit
+tasktmp=/tmp/fm-lab-limit
+model=default
+effort=xhigh
+busy_gen=g1792604100.73391.5778
+spawn_gen=s1792604100.71455.14932
+
+--- lab-limit.codex-limit
+codex run for lab-limit hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 12:33 PM.
+
+--- lab-limit.control-relaunch
+v1
+task=lab-limit
+phase=complete
+ts=2026-10-21T17:34:36Z
+backend=tmux
+endpoint=primary:fm-lab-limit
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/wt
+kind=ship
+from_harness=claude
+from_model=default
+from_effort=xhigh
+to_harness=claude
+to_model=sonnet
+to_effort=high
+worktree_head=a1b880e6ff170b3c8205549929d121c79c44ab66
+worktree_dirty=no
+note_file=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5FKR9WR57VVAC7EVS76R99C/.l/state/lab-limit.control-relaunch.note
+exit_result=already-stopped
+
+LIVE_SCENARIOS_COMPLETED
+Private tmux server stopped.
