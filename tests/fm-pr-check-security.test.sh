@@ -264,6 +264,112 @@ case "${1:-} ${2:-}" in
         [ "${FM_TEST_GH_FAIL:-0}" = 0 ] || exit 1
         [ -z "${FM_TEST_GH_STATE_STARTED:-}" ] || : > "$FM_TEST_GH_STATE_STARTED"
         [ "${FM_TEST_GH_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GH_SLEEP"
+        if case " $* " in *FmPollBatch*) true ;; *) false ;; esac; then
+          request_host=${GH_HOST:-github.com}
+          jq_filter=
+          batch_max=-1
+          while [ "$#" -gt 0 ]; do
+            case "$1" in
+              --jq) shift; jq_filter=${1-} ;;
+              --hostname) shift; request_host=${1-} ;;
+              -f|-F)
+                field_mode=$1
+                shift
+                field=${1-}
+                field_key=${field%%=*}
+                field_value=${field#*=}
+                case "$field_key" in
+                  o[0-9]|o[0-9][0-9]|o[0-9][0-9][0-9])
+                    test_api_string_field "$field_mode" "$field_value" || exit 1
+                    batch_owner[${field_key#o}]=$field_value
+                    ;;
+                  r[0-9]|r[0-9][0-9]|r[0-9][0-9][0-9])
+                    test_api_string_field "$field_mode" "$field_value" || exit 1
+                    batch_repo[${field_key#r}]=$field_value
+                    ;;
+                  n[0-9]|n[0-9][0-9]|n[0-9][0-9][0-9])
+                    batch_number[${field_key#n}]=$field_value
+                    ;;
+                esac
+                case "$field_key" in
+                  [orn][0-9]|[orn][0-9][0-9]|[orn][0-9][0-9][0-9])
+                    field_index=${field_key#?}
+                    if [ "$field_index" -gt "$batch_max" ]; then
+                      batch_max=$field_index
+                    fi
+                    ;;
+                esac
+                ;;
+            esac
+            shift
+          done
+          [ -n "$jq_filter" ] || exit 1
+          [ "$batch_max" -ge 0 ] || exit 1
+          batch_contains_rearm=0
+          i=0
+          while [ "$i" -le "$batch_max" ]; do
+            [ -n "${batch_owner[$i]:-}" ] && [ -n "${batch_repo[$i]:-}" ] \
+              && [ -n "${batch_number[$i]:-}" ] || exit 1
+            if [ "${batch_number[$i]}" = "${FM_TEST_GH_POLL_REARM_NUMBER:-}" ] \
+              && [ -n "${FM_TEST_GH_POLL_REARM_NUMBER:-}" ]; then
+              batch_contains_rearm=1
+            fi
+            i=$((i + 1))
+          done
+          if [ "${FM_TEST_GH_POLL_EXPIRE_BEAT:-0}" = 1 ]; then
+            test_beacon_fresh "$FM_PR_POLL_STATE/.last-watcher-beat" \
+              || printf 'stale-beacon poll\n' >> "$FM_TEST_GH_LOG"
+            if [ "$batch_contains_rearm" -eq 0 ]; then
+              touch -t 200001010000 "$FM_PR_POLL_STATE/.last-watcher-beat" || exit 1
+              printf 'expired-beacon poll\n' >> "$FM_TEST_GH_LOG"
+            fi
+          fi
+          if [ "$batch_contains_rearm" -eq 1 ] && [ -n "${FM_TEST_GH_POLL_REARM:-}" ]; then
+            "$FM_TEST_GH_POLL_REARM" > "$FM_TEST_GH_LOG.rearm.out" \
+              2> "$FM_TEST_GH_LOG.rearm.err" || exit 1
+          fi
+          spec='{}'
+          i=0
+          while [ "$i" -le "$batch_max" ]; do
+            spec=$("$FM_TEST_REAL_JQ" -c --arg a "p$i" --arg n "${batch_number[$i]}" \
+              '. + {($a): ($n | tonumber)}' <<<"$spec") || exit 1
+            i=$((i + 1))
+          done
+          if [ -n "${FM_TEST_GH_POLL_RESPONSES:-}" ]; then
+            recorded=$(cat "$FM_TEST_GH_POLL_RESPONSES") || exit 1
+          else
+            recorded='{}'
+          fi
+          state=${FM_TEST_GH_STATE-OPEN}
+          if [ "$request_host" != github.com ]; then
+            state=MERGED
+            merged=true
+          elif [ -n "${FM_TEST_GH_POLL_MERGED+x}" ]; then
+            merged=$FM_TEST_GH_POLL_MERGED
+          elif [ "$state" = MERGED ]; then
+            merged=true
+          else
+            merged=false
+          fi
+          "$FM_TEST_REAL_JQ" -n --argjson spec "$spec" --argjson recorded "$recorded" \
+            --arg state "$state" --argjson merged "$merged" \
+            --argjson queued "${FM_TEST_GH_POLL_QUEUED:-false}" \
+            --arg reason "${FM_TEST_GH_POLL_REASON-}" \
+            --arg event "${FM_TEST_GH_POLL_EVENT-}" \
+            --arg host "$request_host" \
+            'def one($num):
+               ($recorded[$num].data.repository.pullRequest) as $pr
+               | if $pr != null then $pr
+                 elif $host != "github.com" then
+                   {state:"MERGED", merged:true, isInMergeQueue:false, timelineItems:{nodes:[]}}
+                 else
+                   {state:$state, merged:$merged, isInMergeQueue:$queued,
+                    timelineItems:{nodes:(if $event == "" then [] else [{id:$event, reason:$reason}] end)}}
+                 end;
+             {data: (reduce ($spec | to_entries[]) as $e ({}; .[$e.key] = {pullRequest: one($e.value | tostring)}))}' \
+            | "$FM_TEST_REAL_JQ" -r "$jq_filter"
+          exit $?
+        fi
         request_host=${GH_HOST:-github.com}
         poll_number=
         jq_filter=
@@ -340,7 +446,7 @@ case "${1:-} ${2:-}" in
     ;;
   "pr view")
     case " $* " in
-      *statusCheckRollup*)
+      *statusCheckRollup*|*mergeable*|*mergeStateStatus*)
         printf '%s\n' "{\"state\":\"OPEN\",\"isDraft\":false,\"mergeable\":\"MERGEABLE\",\"mergeStateStatus\":\"CLEAN\",\"headRefOid\":\"${FM_TEST_GH_HEAD:-0123456789abcdef0123456789abcdef01234567}\",\"baseRefName\":\"main\",\"statusCheckRollup\":[{\"__typename\":\"CheckRun\",\"name\":\"ci\",\"status\":\"COMPLETED\",\"conclusion\":\"SUCCESS\"}]}"
         exit 0
         ;;
@@ -4540,7 +4646,10 @@ JSON
         FM_TEST_GLAB_LOG="$dir/glab-$round.log" FM_TEST_GLAB_STATE=opened \
         run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch-$round.out" 2> "$dir/watch-$round.err" \
         || fail "$fault seen record blocked later watches in round $round: $(cat "$dir/watch-$round.err")"
-      [ "$(grep -Fc 'number=3' "$dir/gh-$round.log")" -eq 1 ] \
+      batch_lines=$(grep -F 'FmPollBatch' "$dir/gh-$round.log" || true)
+      [ "$(printf '%s\n' "$batch_lines" | grep -c . || true)" -eq 1 ] \
+        || fail "$fault seen record starved the later GitHub watch in round $round"
+      [ "$(printf '%s\n' "$batch_lines" | grep -Eo 'n[0-9]+=[0-9]+' | grep -cx 'n[0-9][0-9]*=3' || true)" -eq 1 ] \
         || fail "$fault seen record starved the later GitHub watch in round $round"
       [ "$(grep -Fxc 'mr view 17 -R https://gitlab.example/group/subgroup/project' "$dir/glab-$round.log")" -eq 1 ] \
         || fail "$fault seen record starved the later GitLab watch in round $round"
@@ -4929,22 +5038,27 @@ test_slow_registered_polls_survive_rearm() {
   write_slow_sweep_page "$dir" page1 9 false ""
   retire_contributions_observer "$dir"
   add_stop_custom_check "$dir"
-  # Each poll leading to rearm completes after its beacon has expired.
-  # Every next poll must see completion progress at the production stall bound.
+  # One sweep reads every registered poll. Rearm during that read sees the
+  # watcher still running.
   FM_WATCHER_STALE_GRACE=900 FM_WATCHER_STALL_BOUND=900 FM_TEST_GH_POLL_EXPIRE_BEAT=1 FM_TEST_CHECK_TIMEOUT=20 \
     FM_TEST_GH_SLEEP=1 FM_TEST_GH_POLL_REARM="$WATCH" FM_TEST_GH_POLL_REARM_NUMBER=8 \
     FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
     FM_TEST_GH_SWEEP_DIR="$dir/sweep" \
     run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
     || fail "slow registered polls were interrupted: $(cat "$dir/watch.err")"
-  [ "$(grep -Fxc 'expired-beacon poll' "$dir/gh.log")" -eq 7 ] \
-    || fail "completed registered polls did not renew every expired beacon"
+  [ "$(grep -Fxc 'expired-beacon poll' "$dir/gh.log" || true)" -eq 0 ] \
+    || fail "the sweep query expired the watcher beacon"
   ! grep -Fx 'stale-beacon poll' "$dir/gh.log" >/dev/null \
-    || fail "a completed poll left the next poll's beacon expired"
+    || fail "the sweep query found the watcher beacon already stale"
   grep -F 'watcher: already running pid ' "$dir/gh.log.rearm.out" >/dev/null \
     || fail "rearm evicted the progressing registered polls: $(cat "$dir/gh.log.rearm.out" "$dir/gh.log.rearm.err")"
+  batch_lines=$(grep -F 'FmPollBatch' "$dir/gh.log" || true)
+  [ "$(printf '%s\n' "$batch_lines" | grep -c . || true)" -eq 1 ] \
+    || fail "registered polls were not read in one sweep query"
+  [ "$(grep -Fc -- '-F number=' "$dir/gh.log" || true)" -eq 0 ] \
+    || fail "a registered poll fell back to its own GraphQL query"
   for number in 1 2 3 4 5 6 7 8; do
-    [ "$(grep -Fc "number=$number " "$dir/gh.log")" -eq 1 ] \
+    [ "$(printf '%s\n' "$batch_lines" | grep -Eo 'n[0-9]+=[0-9]+' | grep -cx "n[0-9][0-9]*=${number}" || true)" -eq 1 ] \
       || fail "the collected checks skipped or repeated pull $number"
   done
   FM_HOME="$dir/home" FM_ROOT_OVERRIDE="$ROOT" "$ROOT/bin/fm-wake-drain.sh" \
@@ -4954,6 +5068,69 @@ test_slow_registered_polls_survive_rearm() {
       || fail "the long registered-check sweep lost pull $number: $(cat "$dir/drain.out")"
   done
   pass "completed registered polls keep the watcher alive through rearm and deliver the final removal"
+}
+
+test_github_poll_sweep_is_one_graphql_call() {
+  local dir state batch_lines number
+  dir=$(make_case github-poll-sweep-one-call)
+  state="$dir/home/state"
+  write_poll_meta "$state" task-merged https://github.com/o/r/pull/11
+  seed_canonical_poll "$dir" task-merged https://github.com/o/r/pull/11
+  write_poll_meta "$state" task-closed https://github.com/o/r/pull/12
+  seed_canonical_poll "$dir" task-closed https://github.com/o/r/pull/12
+  write_poll_meta "$state" task-open https://github.com/o/r/pull/13
+  seed_canonical_poll "$dir" task-open https://github.com/o/r/pull/13
+  write_poll_meta "$state" task-dequeued https://github.com/o/r/pull/14
+  seed_canonical_poll "$dir" task-dequeued https://github.com/o/r/pull/14
+  cat > "$dir/poll-responses.json" <<'JSON'
+{
+  "11": {"data": {"repository": {"pullRequest": {
+    "state": "MERGED", "merged": true, "isInMergeQueue": false,
+    "timelineItems": {"nodes": []}
+  }}}},
+  "12": {"data": {"repository": {"pullRequest": {
+    "state": "CLOSED", "merged": false, "isInMergeQueue": false,
+    "timelineItems": {"nodes": []}
+  }}}},
+  "13": {"data": {"repository": {"pullRequest": {
+    "state": "OPEN", "merged": false, "isInMergeQueue": false,
+    "timelineItems": {"nodes": []}
+  }}}},
+  "14": {"data": {"repository": {"pullRequest": {
+    "state": "OPEN", "merged": false, "isInMergeQueue": false,
+    "timelineItems": {"nodes": [{"id": "drop-14", "reason": "failed_checks"}]}
+  }}}}
+}
+JSON
+  retire_contributions_observer "$dir"
+  add_stop_custom_check "$dir"
+  FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GH_POLL_RESPONSES="$dir/poll-responses.json" \
+    run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err" \
+    || fail "one-call poll sweep failed: $(cat "$dir/watch.err")"
+  batch_lines=$(grep -F 'FmPollBatch' "$dir/gh.log" || true)
+  [ "$(printf '%s\n' "$batch_lines" | grep -c . || true)" -eq 1 ] \
+    || fail "the sweep did not read every poll in one GraphQL call: $(grep -c graphql "$dir/gh.log" || true) graphql lines"
+  [ "$(grep -Fc -- '-F number=' "$dir/gh.log" || true)" -eq 0 ] \
+    || fail "a poll in the sweep fell back to its own GraphQL query"
+  for number in 11 12 13 14; do
+    [ "$(printf '%s\n' "$batch_lines" | grep -Eo 'n[0-9]+=[0-9]+' | grep -cx "n[0-9][0-9]*=${number}" || true)" -eq 1 ] \
+      || fail "the sweep skipped or repeated pull $number"
+  done
+  [ "$(grep -cxF "check: $state/task-merged.check.sh: merged" "$dir/watch.out")" -eq 1 ] \
+    || fail "the merged poll did not wake once: $(cat "$dir/watch.out")"
+  [ "$(grep -cxF "check: $state/task-dequeued.check.sh: dequeued https://github.com/o/r/pull/14 reason=failed_checks" "$dir/watch.out")" -eq 1 ] \
+    || fail "the removed poll did not wake once: $(cat "$dir/watch.out")"
+  ! grep -F 'task-closed.check.sh:' "$dir/watch.out" >/dev/null \
+    || fail "a closed poll woke: $(cat "$dir/watch.out")"
+  ! grep -F 'task-open.check.sh:' "$dir/watch.out" >/dev/null \
+    || fail "an open poll woke: $(cat "$dir/watch.out")"
+  assert_poll_absent "$state" task-merged
+  assert_poll_absent "$state" task-closed
+  fm_pr_poll_artifacts_valid "$state" task-open "$POLL" \
+    || fail "the open poll did not stay armed"
+  fm_pr_poll_artifacts_valid "$state" task-dequeued "$POLL" \
+    || fail "the removed poll did not stay armed"
+  pass "one GitHub poll sweep reads every pull request in one GraphQL call and keeps each result"
 }
 
 test_merged_only_watch_still_sweeps_its_repo() {
@@ -5810,6 +5987,7 @@ test_old_template_and_renumber_are_both_recovered
 test_sweep_page_deadline_reports_every_removal
 test_progressing_sweep_survives_rearm_past_stall_bound
 test_slow_registered_polls_survive_rearm
+test_github_poll_sweep_is_one_graphql_call
 test_merged_only_watch_still_sweeps_its_repo
 test_recovered_merged_watch_still_sweeps_its_repo
 test_failed_sweep_keeps_the_repository_for_the_next_cycle

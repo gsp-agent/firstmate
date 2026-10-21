@@ -25,6 +25,10 @@
 # re-checks every condition after a short bounded wait instead of refusing;
 # once that bound is spent it reports mergeability still pending rather than
 # unmergeable, with the same nonzero exit as any other refusal.
+# The check rollup is a second read, and only after the cheap fields show the
+# pull request is open, not a draft, and otherwise mergeable. A closed, draft,
+# conflicting, or still-UNKNOWN pull request never requests that rollup.
+# UNKNOWN remains the bounded retry the caller already owns.
 # A required check that never reported is absent from the checks
 # list rather than red, so github_read_required_contexts below reads the
 # required set from classic branch protection and active rulesets. Check-run
@@ -972,8 +976,9 @@ github_verify_mergeable() {
   local json fields line red name covered missing unreported producers runs
   local total=0 named=0 refusals='' mergeable_refusal=''
   local state='' draft='' mergeable='' merge_state='' live_head='' base=''
+  local rollup_json=''
 
-  if ! json=$(gh pr view "$URL" --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup 2>/dev/null) \
+  if ! json=$(gh pr view "$URL" --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName 2>/dev/null) \
     || [ -z "$json" ]; then
     echo "error: could not read the GitHub pull request state before merging" >&2
     return 1
@@ -1015,10 +1020,6 @@ FIELDS
     echo "error: could not read the GitHub pull request head commit before merging" >&2
     return 1
   fi
-  if ! red=$(github_checks_not_green "$json"); then
-    echo "error: could not read the GitHub pull request state before merging" >&2
-    return 1
-  fi
 
   case "$state" in
     [oO][pP][eE][nN]) ;;
@@ -1036,6 +1037,25 @@ FIELDS
   [ "$merge_state" != DIRTY ] \
     || refusals="$refusals  - mergeStateStatus is DIRTY (conflicts)
 "
+
+  if [ -n "$mergeable_refusal" ] && [ -z "$refusals" ] && [ "$mergeable" = UNKNOWN ]; then
+    return 3
+  fi
+  if [ -n "$refusals" ] || [ -n "$mergeable_refusal" ]; then
+    refusals="$refusals$mergeable_refusal"
+    printf 'error: refusing to merge %s\n' "$URL" >&2
+    printf '%s' "$refusals" >&2
+    return 1
+  fi
+  if ! rollup_json=$(gh pr view "$URL" --json statusCheckRollup 2>/dev/null) \
+    || [ -z "$rollup_json" ]; then
+    echo "error: could not read the GitHub pull request state before merging" >&2
+    return 1
+  fi
+  if ! red=$(github_checks_not_green "$rollup_json"); then
+    echo "error: could not read the GitHub pull request state before merging" >&2
+    return 1
+  fi
 
   uncovered=''
   while IFS= read -r name; do
@@ -1077,7 +1097,7 @@ EOF
 "
     fi
   fi
-  if ! missing=$(github_required_checks_missing "$json" "$FM_PR_GITHUB_REQUIRED" "$producers"); then
+  if ! missing=$(github_required_checks_missing "$rollup_json" "$FM_PR_GITHUB_REQUIRED" "$producers"); then
     refusals="$refusals  - the GitHub pull request check rollup could not be read
 "
   else
@@ -1090,13 +1110,6 @@ EOF
     done <<EOF
 $missing
 EOF
-  fi
-
-  if [ -n "$mergeable_refusal" ]; then
-    if [ -z "$refusals" ] && [ "$mergeable" = UNKNOWN ]; then
-      return 3
-    fi
-    refusals="$refusals$mergeable_refusal"
   fi
 
   if [ -n "$refusals" ]; then

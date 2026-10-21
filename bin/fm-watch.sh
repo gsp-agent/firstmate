@@ -2618,6 +2618,15 @@ reconcile_requests_detached() {
 
 PR_POLL_CONTROL_LOCK=
 PR_POLL_PUBLISH_LOCK=
+FM_PR_POLL_BATCH_CACHE=
+export FM_PR_POLL_BATCH_CACHE
+
+poll_batch_cache_clear() {
+  if [ -n "${FM_PR_POLL_BATCH_CACHE:-}" ]; then
+    rm -f -- "$FM_PR_POLL_BATCH_CACHE" || true
+  fi
+  FM_PR_POLL_BATCH_CACHE=
+}
 
 pr_poll_control_release() {
   [ -z "$PR_POLL_CONTROL_LOCK" ] || fm_lock_release "$PR_POLL_CONTROL_LOCK" || return 1
@@ -2653,6 +2662,7 @@ watcher_cleanup() {
   if [ "$exit_status" -ne 0 ] && watcher_world_gone; then
     echo "watcher: exiting - $WATCHER_GONE" >&2
   fi
+  poll_batch_cache_clear
   pr_poll_publish_release || cleanup_status=1
   pr_poll_control_release || cleanup_status=1
   if [ "$(cat "$WATCH_LOCK/pid" 2>/dev/null || true)" = "${WATCHER_PID:-}" ]; then
@@ -2956,6 +2966,11 @@ $sweep_listed
 EOF
       fi
     fi
+    # bin/fm-pr-poll.sh reads every authenticated GitHub poll in this sweep in one query.
+    FM_PR_POLL_BATCH_CACHE=$(mktemp "$STATE/.fm-pr-poll-batch.XXXXXX") || exit 1
+    chmod 0600 "$FM_PR_POLL_BATCH_CACHE" || exit 1
+    FM_PR_POLL_STATE="$STATE" \
+      run_check_capture "$SCRIPT_DIR/fm-pr-poll.sh" --batch-prefetch "$STATE" || exit 1
     for c in "$STATE"/*.check.sh; do
       [ -e "$c" ] || continue
       is_pr_poll=0
@@ -3109,6 +3124,7 @@ EOF
       fi
       pr_poll_control_release || exit 1
     done
+    poll_batch_cache_clear
     # Open pull requests in a watched merge-queue repository. The sweep header
     # owns the line and the seen record.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
