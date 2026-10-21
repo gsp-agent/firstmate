@@ -683,8 +683,8 @@ function dispatch(message, projects, heartbeat, eligible) {
   bus.emit("fm-branch-supervision:dispatch", offer);
   return offer;
 }
-async function settle(predicate, label) {
-  for (let i = 0; i < 250; i += 1) {
+async function settle(predicate, label, attempts = 250) {
+  for (let i = 0; i < attempts; i += 1) {
     if (predicate()) return;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -1822,7 +1822,9 @@ const prelude = process.env.DRIVER_PRELUDE;
 await eval(`(async () => { ${prelude}; globalThis.__t = { dispatch, settle }; })()`);
 const { dispatch, settle } = globalThis.__t;
 dispatch("signal: cache probe");
-await settle(() => (globalThis.__fmPrompts ?? []).length === 1, "branch wake prompt");
+// Activation and wake grants run real subprocesses; cache-key identity does
+// not depend on their startup latency.
+await settle(() => (globalThis.__fmPrompts ?? []).length === 1, "branch wake prompt", 2500);
 const loader = globalThis.__fmLoaders[0];
 const entry = loader.options.extensionFactories[0];
 let handler = null;
