@@ -298,6 +298,36 @@ prime_seen() { # <state> <status>
 
 reap() { kill "$1" 2>/dev/null || true; wait "$1" 2>/dev/null || true; }
 
+test_context_paused_herdr_pane_closes_without_outcome() {
+  make_world context-paused-close
+  write_herdr_child "$MAIN" child 'paused: session reached the 300K context line; work committed, a fresh session resumes'
+  run_reconcile "$MAIN" --startup
+  [ "$(herdr_close_count)" = 1 ] || fail "context-paused herdr pane was not closed"
+  [ "$(outcome_count "$MAIN" pending)" = 0 ] || fail "context pause produced a terminal outcome"
+  [ -f "$MAIN/state/child.meta" ] && [ -f "$MAIN/state/child.status" ] \
+    && [ -d "$MAIN/projects/child" ] || fail "context-paused child records or worktree were removed"
+  assert_contains "$(cat "$MAIN/state/child.status")" 'paused:' "context-paused child lost its pause state"
+  pass "context-paused herdr pane closes with no outcome and records stay"
+}
+
+test_event_paused_herdr_pane_stays_open() {
+  make_world event-paused-keep
+  write_herdr_child "$MAIN" child 'paused: waiting for the PM call on the context question, until 2026-10-22T15:00Z'
+  run_reconcile "$MAIN" --startup
+  [ "$(herdr_close_count)" = 0 ] || fail "event-paused herdr pane was closed"
+  [ "$(outcome_count "$MAIN" pending)" = 0 ] || fail "event pause produced a terminal outcome"
+  pass "a pause for any other reason never closes"
+}
+
+test_context_paused_busy_herdr_pane_stays_open() {
+  make_world context-paused-busy
+  write_herdr_child "$MAIN" child 'paused: context limit reached, fresh session needed'
+  "$ROOT/bin/fm-busy-event.sh" apply "$MAIN/state" child busy --current-gen --source claude-hook --event user-prompt-submit
+  run_reconcile "$MAIN" --startup
+  [ "$(herdr_close_count)" = 0 ] || fail "busy context-paused herdr pane was closed"
+  pass "busy evidence keeps a context-paused herdr pane open"
+}
+
 # The main retains a terminal presentation receipt until the corresponding wake
 # is handled and acknowledged.
 test_main_direct_terminal_presentation_receipt() {
@@ -1548,5 +1578,8 @@ test_notice_recovery_does_not_duplicate_wake
 test_missing_parent_binding_names_itself
 test_reconciliation_never_calls_forge
 test_reconciliation_sets_no_forge_mode_for_state_read
+test_context_paused_herdr_pane_closes_without_outcome
+test_event_paused_herdr_pane_stays_open
+test_context_paused_busy_herdr_pane_stays_open
 
 echo "all inactive reconciliation tests passed"

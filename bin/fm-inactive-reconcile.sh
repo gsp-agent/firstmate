@@ -56,7 +56,14 @@
 # Only a done or failed state is suspicious enough to create a durable terminal
 # outcome record or wake the supervisor.
 # Working, paused, parked, blocked, unknown, persistent secondmates, and
-# captain-held work retain their existing supervision semantics.
+# captain-held work retain their existing supervision semantics. One pause is
+# the exception: a crewmate whose last status line pauses because it reached
+# the context limit has no turn left to run in that session, and its own note
+# says a fresh session resumes it. That paused pane may close under the same
+# guards as a terminal pane (below), without an outcome record or a supervisor
+# wake; the pause stays the task's state, and fm-control's relaunch is the
+# wake when work resumes. A pause for any other reason - a person, a date, an
+# event - never closes.
 #
 # An aged done or failed herdr crewmate with positive semantic idle evidence
 # may have its pane closed through fm_backend_kill. A no-mistakes ship's
@@ -569,6 +576,46 @@ close_terminal_child_pane() { # <id> <meta> <fingerprint>
   return 0
 }
 
+# A context-limit pause names the limit it hit: the word context together
+# with limit or the 300K line. Anything else a pause names - a person, a
+# date, an event, another task - is a wait with a live session's job to do.
+status_line_is_context_pause() { # <status-line>
+  local note
+  [ "$(status_line_verb "$1")" = "paused" ] || return 1
+  note=$(status_line_note "$1" | tr '[:upper:]' '[:lower:]')
+  case "$note" in *context*) ;; *) return 1 ;; esac
+  case "$note" in
+    *limit*|*300k*|*'300 k'*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Called under the task metadata lock, like close_terminal_child_pane, with
+# the same guards minus the outcome receipt: no outcome is delivered for a
+# pause, so nothing is recorded and nobody is woken. Only the pane closes.
+close_context_paused_child_pane() { # <id> <meta>
+  local id=$1 meta=$2 busy message
+  [ "$(meta_field "$meta" backend)" = herdr ] || return 0
+  status_line_is_context_pause "$(last_status_line "$STATE/$id.status")" || return 0
+  [ "$(last_activity_age "$meta" "$STATE/$id.status" "$STATE/$id.turn-ended")" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
+  if ! fm_backend_validate_task_endpoint "$meta" "$id" 2>/dev/null; then
+    printf 'fm-inactive-reconcile: %s context-paused pane left open: endpoint identity not proven\n' "$id" >&2
+    return 0
+  fi
+  for message in "$(fm_task_inbox_dir "$STATE" "$id")"/*.msg; do
+    [ ! -e "$message" ] || return 0
+  done
+  busy=$(fm_busy_classify_meta "$meta" "$id" "$STATE")
+  case "$busy" in
+    'idle grok-regex') return 0 ;;
+    'idle '*) ;;
+    *) return 0 ;;
+  esac
+  fm_backend_kill herdr "$FM_BACKEND_VALIDATED_TARGET" \
+    || printf 'fm-inactive-reconcile: %s context-paused pane close did not complete; pane left open\n' "$id" >&2
+  return 0
+}
+
 reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeout>
   local id=$1 meta=$2 self=${3:-} timeout=$4 status turn last age state_line state pr incarnation fingerprint outcome_key payload kind ledger_rc=1 state_rc=0
   [ -f "$meta" ] && [ ! -L "$meta" ] || return 0
@@ -588,6 +635,12 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
   fi
   age=$(last_activity_age "$meta" "$status" "$turn")
   [ "$age" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
+  # A context-limit pause is not a terminal outcome: no crew-state read, no
+  # record, no wake. The pane may still close under the pause's own guards.
+  if status_line_is_context_pause "$last"; then
+    close_context_paused_child_pane "$id" "$meta"
+    return 0
+  fi
   state_line=$(fm_run_timed "$timeout" env FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CREW_STATE_NO_FORGE=1 \
     "$CREW_STATE_BIN" "$id" 2>/dev/null) || state_rc=$?
   [ "$state_rc" -ne 124 ] || return 3

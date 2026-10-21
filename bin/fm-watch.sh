@@ -2906,6 +2906,8 @@ while :; do
   # was created, so quiet cycles never wake firstmate or consume model tokens.
   inactive_out=
   if inactive_out=$(FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
+    FM_INACTIVE_RECONCILE_SECS="${FM_INACTIVE_RECONCILE_SECS:-300}" \
+    FM_INACTIVE_RECONCILE_BUDGET_SECS="${FM_INACTIVE_RECONCILE_BUDGET_SECS:-30}" \
     "$SCRIPT_DIR/fm-inactive-reconcile.sh" scan 2>/dev/null); then
     if [ -n "$inactive_out" ]; then
       wake "check: inactive-outcome"
