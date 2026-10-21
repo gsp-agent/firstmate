@@ -564,6 +564,13 @@
 # owns the identities, the hook install, and chaining the repository git is
 # actually running in so a project husky hook still runs. Author identity is
 # not rewritten.
+# When config/worker-git-identity holds a "Name <email>" line, every spawn adds
+# user.name and user.email to that same pane-scoped GIT_CONFIG export, so the
+# launched agent commits as that identity from its first commit and
+# `git config user.email` inside the pane reports it. No git config file is
+# written: ~/.gitconfig and the project's shared repository config keep their
+# values. A file that does not hold one well-formed line refuses the spawn
+# before launch. docs/configuration.md "Worker git identity" owns the setting.
 # Publishing the record and moving this home's backlog item to In flight are one
 # step, not two: bin/fm-backlog-transition-lib.sh owns that invariant, and this
 # script performs the transition under the task's own meta lock before it reports
@@ -722,6 +729,26 @@ if [ "$LAVISH_AXI_HOST_CONFIG_PRESENT" = 1 ]; then
 fi
 if ! KEEP_AI_TRAILERS=$(fm_config_source_present "$CONFIG/keep-ai-trailers"); then
   exit 1
+fi
+# config/worker-git-identity: one "Name <email>" line (see the header above).
+WORKER_GIT_NAME=
+WORKER_GIT_EMAIL=
+if ! WORKER_GIT_IDENTITY_PRESENT=$(fm_config_source_present "$CONFIG/worker-git-identity"); then
+  exit 1
+fi
+if [ "$WORKER_GIT_IDENTITY_PRESENT" = 1 ]; then
+  worker_git_ident=
+  if [ -f "$CONFIG/worker-git-identity" ] && [ -r "$CONFIG/worker-git-identity" ]; then
+    worker_git_ident=$(cat "$CONFIG/worker-git-identity") || exit 1
+  fi
+  worker_git_ident_re='^([^<>[:space:][:cntrl:]]([^<>[:cntrl:]]*[^<>[:space:][:cntrl:]])?) <([^<>[:space:][:cntrl:]]+)>$'
+  if [[ $worker_git_ident =~ $worker_git_ident_re ]]; then
+    WORKER_GIT_NAME=${BASH_REMATCH[1]}
+    WORKER_GIT_EMAIL=${BASH_REMATCH[3]}
+  else
+    echo "error: config/worker-git-identity must be a readable file holding one line in git's 'Name <email>' form, such as: fleet-agent <fleet-agent@example.com>" >&2
+    exit 1
+  fi
 fi
 SUB_HOME_MARKER=".fm-secondmate-home"
 if [ -e "$STATE" ] || [ -L "$STATE" ]; then
@@ -6070,14 +6097,29 @@ if [ "$KIND" = secondmate ]; then
   # injected carrier and this on/off snapshot are guaranteed to agree.
   LAUNCH="FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME=$sq_primary_home FM_HOME=$sq_home FM_TRACE_CONTEXT=$SPAWN_TRACE_EFFECTIVE FM_SUPERVISION_MODEL=$supervision_model $LAUNCH"
 fi
-# Pane-scoped override: git in this worker reads our commit-msg strip without
-# rewriting the project's core.hooksPath. GIT_CONFIG_* takes precedence over
-# config files and is inherited by child git processes. When the home opts in
-# to keeping trailers, leave core.hooksPath alone so the repository's hooks run
-# directly. An export statement inside the pane command carries the override
-# across every step of a compound raw launch while firstmate's own git is unchanged.
+# Pane-scoped overrides: git in this worker reads our commit-msg strip without
+# rewriting the project's core.hooksPath, and commits as the home's configured
+# worker identity without writing ~/.gitconfig or the shared repository config.
+# GIT_CONFIG_* takes precedence over config files and is inherited by child git
+# processes. When the home opts in to keeping trailers, leave core.hooksPath
+# alone so the repository's hooks run directly. An export statement inside the
+# pane command carries the overrides across every step of a compound raw launch
+# while firstmate's own git is unchanged.
+GIT_CONFIG_EXPORT=
+GIT_CONFIG_EXPORT_COUNT=0
+spawn_git_config_add() {  # <key> <value>
+  GIT_CONFIG_EXPORT="$GIT_CONFIG_EXPORT GIT_CONFIG_KEY_$GIT_CONFIG_EXPORT_COUNT=$1 GIT_CONFIG_VALUE_$GIT_CONFIG_EXPORT_COUNT=$(shell_quote "$2")"
+  GIT_CONFIG_EXPORT_COUNT=$((GIT_CONFIG_EXPORT_COUNT + 1))
+}
 if [ "$KEEP_AI_TRAILERS" = 0 ]; then
-  LAUNCH="export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=$(shell_quote "$GIT_HOOKS_DIR"); $LAUNCH"
+  spawn_git_config_add core.hooksPath "$GIT_HOOKS_DIR"
+fi
+if [ -n "$WORKER_GIT_EMAIL" ]; then
+  spawn_git_config_add user.name "$WORKER_GIT_NAME"
+  spawn_git_config_add user.email "$WORKER_GIT_EMAIL"
+fi
+if [ "$GIT_CONFIG_EXPORT_COUNT" -gt 0 ]; then
+  LAUNCH="export GIT_CONFIG_COUNT=$GIT_CONFIG_EXPORT_COUNT$GIT_CONFIG_EXPORT; $LAUNCH"
 fi
 # Every agent this fleet launches - crewmate, scout, and secondmate, on a fresh
 # spawn and on a relaunch alike - runs with the compact-adviser kill switch on.

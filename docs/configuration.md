@@ -1119,6 +1119,18 @@ The flag is a home-wide attribution choice, so it is inherited into secondmate h
 Per-machine Cursor `cli-config.json` attribution-off is not this contract: it does not travel with Firstmate, defaults back to on when unset, and only feeds the CLI's request to the server, so it suppresses the trailer rather than preventing it.
 The flag does not govern the `Made-with:` lines Firstmate adds to a task's GitHub pull request body, one per engine that wrote its commits, so a reviewer that routes by model family can see who wrote it; [`bin/fm-pr-made-with.sh`](../bin/fm-pr-made-with.sh) owns that stamp.
 
+### Worker git identity
+
+The optional local, gitignored `config/worker-git-identity` holds one line in git's `Name <email>` form, such as `fleet-agent <fleet-agent@example.com>`.
+With it present, every crewmate, scout, and secondmate this home launches commits as that identity from its first commit, on a fresh spawn and on a relaunch alike.
+The launch carries it in the same pane-scoped `GIT_CONFIG` export as the AI-trailer `core.hooksPath`, as `user.name` and `user.email`, so `git config user.email` inside the launched agent reports it and it takes precedence over any repository or global identity there.
+No git config file is written: the captain's `~/.gitconfig` and the project's shared repository config keep their values, so the captain's own commits, and any shell outside a launched agent, keep the captain's identity.
+With the file absent, launched agents resolve their identity from git's config files as before.
+A file that does not hold one well-formed line refuses the spawn before launch rather than falling back to another identity.
+The setting is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract, so a secondmate's own workers commit as the same identity.
+Commits a no-mistakes pipeline makes in its own worktrees are outside this setting, because its daemon runs outside every launched agent's environment and takes its identity from the repository's own config.
+[`fm-spawn.sh --help`](../bin/fm-spawn.sh) owns the delivery mechanics, with regression coverage in [`tests/fm-spawn-worker-git-identity.test.sh`](../tests/fm-spawn-worker-git-identity.test.sh).
+
 ## Project capacity (config/project-capacity)
 
 The optional local, gitignored `config/project-capacity` tells Firstmate how many workers a project can run at once on this machine, for a project whose machine-local resource - a heavy test suite, a local editor stack, a device - only serves a few workers at a time.
