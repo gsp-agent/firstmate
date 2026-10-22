@@ -918,12 +918,12 @@ The [Claude adapter reference](../.agents/skills/harness-adapters/references/har
 
 ## Claude worker MCP servers (FM_CREW_MCP_TRIM)
 
-Ship and scout workers launched through the Claude adapter load no MCP servers by default, avoiding idle MCP child processes for task workers.
-Each spawn or relaunch writes an empty `mcpServers` configuration to the launching home's `state/<id>.mcp-crew.json` and selects it with Claude's strict MCP configuration flags.
+Ship and scout workers launched with the generated Claude command load no MCP servers by default, avoiding idle MCP child processes for task workers.
+Each such spawn or relaunch writes an empty `mcpServers` configuration to the launching home's `state/<id>.mcp-crew.json` and selects it with Claude's strict MCP configuration flags.
 Claude secondmates retain their normal MCP configuration, and other harnesses are unaffected.
 Set `FM_CREW_MCP_TRIM=0` in the environment running `fm-spawn.sh` to restore normal MCP loading for the next Claude worker launch.
 Unset or empty values default to `1`; only `1` enables trimming.
-This launch policy does not edit user or project MCP configuration.
+Raw launch commands retain their supplied MCP flags; the policy does not edit user or project MCP configuration.
 [`bin/fm-spawn.sh`](../bin/fm-spawn.sh) owns the launch mechanics; [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) covers the default Claude launch line.
 
 ## Worker tool exclusions (config/crew-exclude-tools)
@@ -1202,6 +1202,10 @@ Firstmate resolves the rule's profile object or array under `AGENTS.md` section 
 - A harness the file never names and a secondmate spawn are exempt from the pair check, including raw launch commands.
 - A relaunch keeps its requested or recorded pair when that pair matches a profile for its harness.
 - Otherwise, the relaunch adopts and records the file's only distinct pair for that harness, or refuses and prints the alternatives when multiple distinct pairs exist, because choosing among profile candidates stays with firstmate intake.
+- `fm-control.sh relaunch` resolves that pair before stopping the old agent and journals the resolved pair; an adopted pair must pass native-effort and worker-account pin checks before the old agent stops too.
+- An unreadable dispatch file refuses; malformed JSON includes jq's parse diagnostic followed by the dispatch read error, while missing jq prints only the jq-required error.
+  On a control relaunch these dispatch-file failures also occur before the old agent stops.
+- [`fm-spawn.sh`'s header](../bin/fm-spawn.sh) owns relaunch flag inheritance and explicit default resets.
 - Batch spawns satisfy the same requirement with a shared `--harness`.
 - Secondmate spawns are exempt and still resolve through `config/secondmate-harness` and its optional model and effort tokens.
 

@@ -313,14 +313,7 @@ The intake and authority contract in `AGENTS.md` owns when separate scout resear
 
 ## Dispatch profiles
 
-Crewmate and scout dispatch can stay on the static crewmate harness resolved by `config/crew-harness`, or it can use local dispatch profiles in `config/crew-dispatch.json`.
-The dispatch file is intentionally judgment-based: firstmate reads the natural-language rules at intake, chooses the best matching rule, resolves profile arrays itself from current quota output under the `AGENTS.md` section 4 intake boundary and the `quota-array-dispatch` selection procedure, and passes only concrete `--harness`, `--model`, and `--effort` axes to `fm-spawn.sh`.
-The shell scripts validate the JSON shape and verified harness/effort combinations, but they do not parse task intent, match natural-language rules, or own array selection.
-The session-start bootstrap step keeps valid dispatch configuration silent unless verbose facts are enabled and surfaces a concise invalid-config line when validation fails.
-When the file exists, `fm-spawn.sh` refuses crewmate and scout launches without an explicit harness, so `config/crew-harness` is only automatic when no dispatch profile file is active.
-Secondmate launches are exempt because they resolve the secondmate harness and any optional secondmate model or effort tokens instead.
-Unsupported effort values are still recorded in task meta when passed to `fm-spawn.sh`, but the launch template omits any effort flag that the selected harness does not accept.
-That keeps spawn launch compatible across claude, codex, opencode, pi, pi-signed, grok, kimi, cursor, gemini, muse, rovo, omp, agy, and devin while preserving the requested profile for later audit.
+[Crew dispatch profiles](configuration.md#crew-dispatch-profiles-configcrew-dispatchjson) owns the schema, natural-language and deterministic label-routing paths, spawn and relaunch pair requirements, exemptions, bootstrap diagnostics, and unsupported-effort behavior.
 
 ## Optional secondmates
 
@@ -389,8 +382,8 @@ This repo uses that setting, and its own `.no-mistakes/` directory remains local
 PR-based task merges go through `bin/fm-pr-merge.sh`, which records `pr=` and any available `pr_head=` through `bin/fm-pr-check.sh` before calling the forge CLI.
 The helper requires a full canonical URL and rejects malformed URLs or repo override flags before recording merge state.
 A `https://github.com/<owner>/<repo>/pull/<n>` URL requires `gh` and `jq`, is merged only after live reads confirm the pull request is open, not a draft, mergeable, conflict-free, every applicable unwaived check is green at the current head, and every unwaived check the base branch requires has reported at that head, then `gh pr merge` binds that verified head with `--match-head-commit`.
-A required check that never reported is absent from the checks list rather than red; [`bin/fm-pr-merge.sh`](../bin/fm-pr-merge.sh)'s header owns required-context sources, producer identity, the disabled-Actions exception, reviewer approval, partial-read refusals, and attended waivers.
-A check run is green when its current run is green, because GitHub leaves a cancelled run in the rollup beside the passing re-run it triggered when the base branch advanced; `bin/fm-pr-merge.sh`'s `github_checks_not_green` owns the rule, which uses `startedAt` to clear only an older completed check run that a passing run with the same name provably replaced, while unfinished check runs and non-green status contexts stay red.
+A required check that never reported is absent from the checks list rather than red; [`bin/fm-pr-merge.sh`](../bin/fm-pr-merge.sh)'s header owns required-context sources, producer identity, the disabled-Actions exception, partial-read refusals, and attended check waivers, while `github_verify_mergeable` owns current-head reviewer approval.
+`github_checks_not_green` in that script owns check-run supersession and filtering when Actions is disabled; among enforced checks, unfinished check runs and non-green status contexts stay red.
 `--auto`, `--admin`, and branch-deletion flags are refused unless `--attended-override` is passed for an explicit captain instruction; that override never skips the live green check, the away-record read, or a captain hold.
 Because away merge authority is read from that record and then acted on by the forge, the authority read and synchronous forge command share the record's cross-subsystem lock, closing the common live-owner TOCTOU.
 A lock that cannot be taken refuses the merge.
