@@ -100,7 +100,11 @@ fm_merge_outcome_report() {  # <home> <state> <task-id> <pr-url> <origin> [autho
   if [ -n "$destination" ]; then
     fm_parent_channel_append_once "$destination" "$(status_stamp_line "$line")" || status=1
   fi
-  if [ "$status" -eq 0 ] && { [ "$origin" = poll ] || [ -z "$destination" ]; }; then
+  if [ "$status" -eq 0 ] && { [ "$origin" = poll ] || [ -z "$destination" ]; } \
+    && ! fm_pm_live_task "$state" "$id"; then
+    # A task with a live PM lands through that PM (its waiter reports the
+    # merge from the same records), so no main queue row is written; the
+    # notified marker and ledger below still record the outcome here.
     fm_wake_append check "merged-$id-$FM_PR_URL" \
       "check: merge landed: $id $FM_PR_URL$suffix" || status=1
   fi

@@ -132,10 +132,17 @@
 #                          payload names what to check. These three kinds are
 #                          joined with `;` when more than one surfaces in a cycle
 #   check: rejected unauthenticated state checks: <paths>
-#                          unsafe state checks were refused without execution
+#                          unsafe state checks were refused without execution.
+#                          Announced once per check id and fingerprint
+#                          (state/.rejected-check-<id>, bin/fm-check-lib.sh):
+#                          the wake names the owning task id, and the same
+#                          rejection stays silent until the check or its
+#                          trust record changes, authenticates, or disappears
 #   check: rejected unauthenticated PR poll retirement receipts: <paths>
 #                          invalid pending retirements were preserved without
-#                          running a check or removing poll artifacts
+#                          running a check or removing poll artifacts; the
+#                          same once-per-fingerprint rule applies, keyed by
+#                          state/.rejected-retirement-receipts
 #   heartbeat              fleet-scan backstop found an unsurfaced captain-relevant
 #                          status, unless afk is active
 #   check: inactive-outcome bounded poll-loop reconciliation found a suspicious
@@ -452,6 +459,44 @@ away_record_present() { fm_afk_contract_away_present "$STATE"; }
 # silently instead of rechecking it.
 captain_held_silenced() {  # <status-line>
   status_is_captain_held "$1" && away_record_present
+}
+
+# Collect one rejected check for this sweep's announcement, unless the same
+# rejection was already announced once: a rejected check wakes main once,
+# naming its owning task id, then stays silent until its fingerprint
+# changes (bin/fm-check-lib.sh owns the marker and the fingerprint).
+# Appends to the caller's rejected_checks and rejected_marks globals.
+note_rejected_check() {  # <id> <path>
+  local rid=$1 rpath=$2 rfp
+  rfp=$(fm_rejected_check_fingerprint "$STATE" "$rid")
+  if fm_rejected_check_announced "$STATE" "$rid" "$rfp"; then
+    triage_log "absorbed rejected check (announced once, owner $rid): $rpath"
+    return 0
+  fi
+  rejected_checks="$rejected_checks $rpath"
+  rejected_marks="${rejected_marks}${rid}"$'\t'"${rfp}"$'\n'
+}
+
+# The PR-poll retirement-receipt rejection gets the same once-only rule,
+# keyed by the rejected set itself in state/.rejected-retirement-receipts.
+retirement_rejection_announced() {
+  local marker="$STATE/.rejected-retirement-receipts"
+  [ -f "$marker" ] && [ ! -L "$marker" ] \
+    && [ "$(cat "$marker" 2>/dev/null || true)" = "$FM_PR_POLL_RETIREMENT_REJECTED" ]
+}
+
+retirement_rejection_mark() {
+  local marker="$STATE/.rejected-retirement-receipts" tmp
+  tmp=$(umask 077; mktemp "$STATE/.rejected-retirement.XXXXXX") || return 1
+  if ! printf '%s' "$FM_PR_POLL_RETIREMENT_REJECTED" > "$tmp" \
+    || ! mv -f -- "$tmp" "$marker"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+}
+
+retirement_rejection_clear() {
+  rm -f -- "$STATE/.rejected-retirement-receipts"
 }
 
 hash_pane() {
@@ -2377,6 +2422,7 @@ heartbeat_scan_finds_actionable() {
     [ -e "$f" ] || [ -L "$f" ] || continue
     [ "$f" = "$exclude" ] && continue
     task=$(basename "$f"); task="${task%.status}"
+    fm_pm_live_task "$STATE" "$task" && continue
     record=$(status_span_first_actionable_record "$f" "$(hb_surfaced_offset "$task")")
     rc=$?
     [ "$rc" -eq 1 ] && [ -z "$record" ] && continue
@@ -2726,10 +2772,15 @@ fi
 # Disable recovered runnable polls now; fm_pr_poll_retirement_ready in
 # bin/fm-pr-lib.sh owns retention of repository discovery evidence.
 if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; then
-  reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
-  fm_wake_append check pr-poll-retirement "$reason" || exit 1
-  touch "$STATE/.last-check"
-  wake "$reason"
+  if ! retirement_rejection_announced; then
+    reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
+    fm_wake_append check pr-poll-retirement "$reason" || exit 1
+    retirement_rejection_mark || true
+    touch "$STATE/.last-check"
+    wake "$reason"
+  fi
+else
+  retirement_rejection_clear
 fi
 
 # Shared by the terminal-result paths below so
@@ -2816,6 +2867,61 @@ rerecord_template_device_pr_poll() {  # <id>
   return 0
 }
 
+# A queued row only main can do: a check-kind row, a needs-decision signal,
+# a signal or stale row whose task still holds an open decision or a
+# captain-held declaration, or a row this reader cannot classify (fail
+# safe: main looks). Heartbeat rows and ordinary signal/stale rows are the
+# supervision branch's or a live PM's, never a reason to wake main.
+resurface_row_main_only() {  # <kind> <key> <payload>
+  local kind=$1 key=$2 payload=$3 task status_file
+  case "$kind" in
+    check)
+      case "$payload" in
+        'check: merge landed: '*)
+          task=${payload#'check: merge landed: '}; task=${task%% *}
+          fm_pm_live_task "$STATE" "$task" && return 1
+          ;;
+      esac
+      return 0 ;;
+    heartbeat) return 1 ;;
+    signal)
+      task=${key%.status}; task=${task%.turn-ended}
+      ;;
+    stale)
+      task=$(window_to_task "$key" "$STATE")
+      [ -n "$task" ] || return 0
+      ;;
+    *) return 0 ;;
+  esac
+  case "$task" in ''|*[!A-Za-z0-9._-]*) return 0 ;; esac
+  fm_pm_live_task "$STATE" "$task" && return 1
+  if [ "$kind" = signal ]; then
+    case "$payload" in needs-decision:*) return 0 ;; esac
+  fi
+  status_file="$STATE/$task.status"
+  [ -f "$status_file" ] || return 1
+  status_has_open_needs_decision "$status_file" && return 0
+  status_is_captain_held "$(status_declared_wait_line "$status_file")" && return 0
+  return 1
+}
+
+# 0 when the durable wake queue holds at least one row only main can do.
+# Read under the queue lock so a concurrent append is never half-seen.
+resurface_queue_has_main_only() {
+  local epoch seq kind key payload rest
+  [ -s "$FM_WAKE_QUEUE" ] || return 1
+  fm_lock_acquire_wait "$FM_WAKE_QUEUE_LOCK" || return 0
+  while IFS="$(printf '\t')" read -r epoch seq kind key payload rest; do
+    [ -n "$kind" ] || continue
+    if resurface_row_main_only "$kind" "$key" "$payload"; then
+      fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+      return 0
+    fi
+  done < "$FM_WAKE_QUEUE"
+  fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+  return 1
+}
+
 resurface_after_downtime() {
   # Handling successors already have a predecessor-delivered wake on the way.
   # Re-announcing from this cycle is what turned a lost handshake into an
@@ -2829,6 +2935,16 @@ resurface_after_downtime() {
       exit 1
     fi
     [ "$FM_RECOVERY_MARKER_ACTION" = recover ] || return 0
+  fi
+  # The recovery marker alone is not a wake: a covering watcher kept watch
+  # through the handling turn this downtime followed, so the queued rows
+  # were already seen by a live watcher. Resurface to main only when those
+  # rows hold something only main can do; otherwise stay in this poll loop,
+  # where the same rows surface by their own reasons to their own owners.
+  if ! resurface_queue_has_main_only; then
+    WATCHER_RECOVERY_PENDING=0
+    triage_log "absorbed rearm-resurface (queue holds nothing only main can do)"
+    return 0
   fi
   wake "check: rearm-resurface"
 }
@@ -2940,8 +3056,17 @@ while :; do
   # CHECK_INTERVAL, so most cycles skip this block and fall straight through.
   if [ "$(age_of "$STATE/.last-check")" -ge "$CHECK_INTERVAL" ]; then
     rejected_checks=
+    rejected_marks=
     contribution_check_output=
     check_sweep_output=
+    # A rejected check that disappeared takes its once-only marker with it,
+    # so the same bytes returning later announce again.
+    for rejected_marker in "$STATE"/.rejected-check-*; do
+      [ -e "$rejected_marker" ] || continue
+      rejected_marker_id=${rejected_marker##*/.rejected-check-}
+      [ -e "$STATE/$rejected_marker_id.check.sh" ] \
+        || fm_rejected_check_clear "$STATE" "$rejected_marker_id"
+    done
     FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
       run_check_capture "$SCRIPT_DIR/fm-tasks-axi.sh" list --state held --fields hold_kind,body || exit 1
     if [ "$FM_CHECK_STATUS" -eq 0 ]; then
@@ -3000,8 +3125,9 @@ EOF
           && [ -f "$FM_ROOT/bin/fm-x-poll.sh" ] && [ ! -L "$FM_ROOT/bin/fm-x-poll.sh" ]; then
           FM_HOME="$FM_HOME" run_check_capture "$FM_ROOT/bin/fm-x-poll.sh" || exit 1
           out=$FM_CHECK_RESULT
+          fm_rejected_check_clear "$STATE" x-watch
         else
-          rejected_checks="$rejected_checks $c"
+          note_rejected_check x-watch "$c"
           continue
         fi
       else
@@ -3013,6 +3139,7 @@ EOF
             && fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; } \
           || { rerecord_template_device_pr_poll "$id" \
             && fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; }; then
+          fm_rejected_check_clear "$STATE" "$id"
           is_pr_poll=1
           provider=$FM_PR_POLL_SNAPSHOT_PROVIDER
           url=$FM_PR_POLL_SNAPSHOT_URL
@@ -3038,13 +3165,14 @@ EOF
             "$provider" "$url" "$host" "$path" "$number" || exit 1
           out=$FM_CHECK_RESULT
         elif fm_custom_check_snapshot_prepare "$STATE" "$id"; then
+          fm_rejected_check_clear "$STATE" "$id"
           custom_snapshot=$FM_CUSTOM_CHECK_SNAPSHOT
           run_check_capture "$custom_snapshot" || exit 1
           out=$FM_CHECK_RESULT
           fm_custom_check_snapshot_cleanup
         else
           fm_custom_check_snapshot_cleanup
-          rejected_checks="$rejected_checks $c"
+          note_rejected_check "$id" "$c"
           continue
         fi
       fi
@@ -3113,6 +3241,10 @@ EOF
           pr_poll_control_release || exit 1
           if [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = true ]; then
             triage_log "absorbed duplicate merged PR poll result for $id"
+            continue
+          fi
+          if fm_pm_live_task "$STATE" "$id"; then
+            triage_log "absorbed merged check (live PM owns $id): $reason"
             continue
           fi
           check_sweep_output="${check_sweep_output}${reason}"$'\n'
@@ -3203,9 +3335,14 @@ $sweep_raw
 EOF
       if [ "${FM_CHECK_STATUS:-1}" -eq 0 ]; then
         if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh" "$sweep_queue_empty"; then
-          reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
-          fm_wake_append check pr-poll-retirement "$reason" || exit 1
-          check_sweep_output="${check_sweep_output}${reason}"$'\n'
+          if ! retirement_rejection_announced; then
+            reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
+            fm_wake_append check pr-poll-retirement "$reason" || exit 1
+            retirement_rejection_mark || true
+            check_sweep_output="${check_sweep_output}${reason}"$'\n'
+          fi
+        else
+          retirement_rejection_clear
         fi
         sweep_kept=
         while IFS= read -r sweep_repo || [ -n "$sweep_repo" ]; do
@@ -3228,6 +3365,13 @@ EOF
     if [ -n "$rejected_checks" ]; then
       reason="check: rejected unauthenticated state checks:$rejected_checks"
       fm_wake_append check unauthenticated-state-checks "$reason" || exit 1
+      while IFS=$(printf '\t') read -r rejected_id rejected_fp; do
+        [ -n "$rejected_id" ] || continue
+        fm_rejected_check_mark "$STATE" "$rejected_id" "$rejected_fp" \
+          || triage_log "rejected-check announcement marker could not be written for $rejected_id"
+      done <<EOF
+$rejected_marks
+EOF
       check_sweep_output="${check_sweep_output}${reason}"$'\n'
     fi
     touch "$STATE/.last-check"
@@ -3246,6 +3390,28 @@ EOF
   if [ -n "$pending" ]; then
     sleep "$SIGNAL_GRACE"
     pending=$(printf '%s\n%s' "$pending" "$(scan_signals)")
+    # A task with a live PM reports to that PM alone: its PM's waiter reads
+    # the same status file, so advance this watcher's markers past the
+    # change and keep it out of main's wake. Other files in the batch are
+    # unaffected and surface below exactly as before.
+    pm_kept_pending=""
+    while IFS=$(printf '\t') read -r sf sig f; do
+      [ -n "$sf" ] || continue
+      pm_task=$(basename "$f"); pm_task=${pm_task%.status}; pm_task=${pm_task%.turn-ended}
+      if fm_pm_live_task "$STATE" "$pm_task"; then
+        case "$f" in
+          *.status) fm_wake_status_mark_current "$STATE" "$f" || true ;;
+          *) printf '%s' "$sig" > "$sf" ;;
+        esac
+        triage_log "absorbed signal (live PM owns $pm_task): $f"
+      else
+        pm_kept_pending="${pm_kept_pending}${sf}"$'\t'"${sig}"$'\t'"${f}"$'\n'
+      fi
+    done <<EOF
+$pending
+EOF
+    pending=${pm_kept_pending%$'\n'}
+    if [ -n "$pending" ]; then
     # The final coalesced signal set is the watcher-carried status-change
     # trigger for this home's published summary. Start it before either
     # surfacing or absorbing the signal, keeping the poll detached: see
@@ -3360,6 +3526,7 @@ EOF
       fi
       triage_log "absorbed benign $reason"
     fi
+    fi
   fi
 
   # Layer 1 backbone: pane staleness. Two consecutive identical hashes with no busy
@@ -3398,6 +3565,19 @@ EOF
     ewf="$STATE/.wedge-escalations-$key"
     pf="$STATE/.paused-$key"   # flag: this key's stale is using the bounded pause cadence
     prev=$(cat "$hf" 2>/dev/null || true)
+    # A task with a live PM reports its stale pane to that PM alone (the PM's
+    # waiter sees the same status file): record this hash as seen, once per
+    # distinct hash, and never surface it to main.
+    if [ -n "$task" ] && fm_pm_live_task "$STATE" "$task"; then
+      if [ "$(cat "$sf" 2>/dev/null || true)" != "$h" ]; then
+        printf '%s' "$h" > "$sf"
+        triage_log "absorbed stale (live PM owns $task): $w"
+      fi
+      printf '%s' "$h" > "$hf"
+      echo 0 > "$cf"
+      rm -f "$ssf" "$ewf"
+      continue
+    fi
     # Busy match: a backend's native semantic state when available (herdr), else
     # the last 6 non-blank lines only (the TUI footer area, where every verified
     # harness renders its busy indicator) so busy-looking strings in displayed
