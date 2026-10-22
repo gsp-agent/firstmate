@@ -834,7 +834,8 @@ fi
 # The time cap leaves room over CI's slowest root, about 150 s.
 ROOT_SECONDS=${FM_LINT_ROOT_SECONDS:-300}
 ROOT_GRACE=${FM_LINT_ROOT_GRACE:-5}
-# 4 GiB of memory per root, so the two default workers hold at most 8 GiB.
+# 4 GiB of memory per root gives the two default workers a combined configured
+# cap of 8 GiB; usage can overshoot between the watchdog's memory samples.
 # Source-following analysis of the heaviest roots needs more: on CI's x86_64
 # runner they peak at 6-8 GiB. CI runs one root at a time on a 16 GiB runner
 # and sets 8 GiB in its workflow env.
