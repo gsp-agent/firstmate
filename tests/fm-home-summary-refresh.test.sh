@@ -1154,8 +1154,11 @@ fi
 kill -KILL "$LOCK_HOLDER_PID" >/dev/null 2>&1 || true
 wait "$LOCK_HOLDER_PID" >/dev/null 2>&1 || true
 LOCK_HOLDER_PID=
+# A replacement watcher may still be cancelling its detached refresh here.
+# This required publication must wait for that lock; an idle-only attempt can
+# legitimately skip it and leave no publisher after the watcher exits.
 PATH="$FAKEBIN:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$RESTART_HOME" \
-  FM_HOME_SUMMARY_IF_IDLE=1 "$WRITER" --best-effort \
+  "$WRITER" --best-effort \
   || fail "stale-lock recovery changed the best-effort caller result"
 i=0
 while [ ! -e "$RESTART_HOME/state/home-summary.json" ] && [ "$i" -lt 1200 ]; do
