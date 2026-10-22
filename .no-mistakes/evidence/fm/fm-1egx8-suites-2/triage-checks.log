@@ -1,0 +1,6 @@
+SCENARIO test_provably_working_signal_absorbed
+ok - a no-verb signal whose crew is provably working is absorbed (no exit, no queue, suppressor advanced, beacon present)
+SCENARIO test_actionable_signal_surfaced
+ok - captain-relevant signal is surfaced (queue + exit) and marked surfaced
+SCENARIO test_check_sweep_reprobes_captain_holds
+ok - the executable check sweep bounds probes, keeps failures quiet, and wakes once after release

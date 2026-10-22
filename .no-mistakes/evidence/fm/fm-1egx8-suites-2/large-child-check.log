@@ -1,0 +1,2 @@
+{"provenance":{"selected":"unknown","structured_home":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r5/tmp/fm-home-summary-refresh.izjWJ9/large-child-home","parent_event_role":"fallback-only-not-current"},"current":{"state":"unknown","reason":"invalid home: secondmate home cannot be inside the firstmate repo"},"invalidity":null}
+not ok - parent fleet snapshot did not preserve the large child invalidity

@@ -1,0 +1,3 @@
+wait_for_exit: owned pid 75291 exceeded 600 polls; sending TERM
+75291 90178 S    bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/bin/fm-watch.sh
+not ok - the due sweep did not wake after a passing probe: 

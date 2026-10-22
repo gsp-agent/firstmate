@@ -1,0 +1,26 @@
+{
+  "target": {
+    "producer_dependency_delay_seconds": 2,
+    "watcher_output": "signal: /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/test-work/tmp/fm-home-summary-refresh.3D1RtA/mate-home/state/ledger-task.status",
+    "ledger_generated": "2026-08-28T10:00:00Z",
+    "decisions_open": [],
+    "test_result": "not ok - a status append did not refresh the ledger within the watcher cadence"
+  },
+  "diagnostic_counterfactual": {
+    "change": "Removed only HOME_SUMMARY_PID cancellation from watcher_cleanup in a disposable code copy; not a proposed fix",
+    "producer_dependency_delay_seconds": 2,
+    "ledger_generated": "2026-08-28T10:01:00Z",
+    "decisions_open": [
+      {
+        "id": "ledger-task",
+        "key": "fixture-dependency",
+        "verb": "blocked",
+        "summary": "waiting for the fixture dependency",
+        "reason": null,
+        "source": "status"
+      }
+    ],
+    "test_result": "ok - watcher-carried status append publishes the real home summary"
+  },
+  "conclusion": "Cancelling the pending signal-triggered refresh at watcher exit can prevent publication indefinitely until another trigger; retain producer reaping and restore the asserted publication behavior."
+}

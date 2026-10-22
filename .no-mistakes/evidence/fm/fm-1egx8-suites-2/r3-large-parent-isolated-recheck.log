@@ -1,0 +1,7 @@
+{
+  "exit": 0,
+  "registry_available": true,
+  "summary_source": "local-ledger",
+  "invalidity_kind": "orphan_in_flight",
+  "invalidity_ids": 600
+}

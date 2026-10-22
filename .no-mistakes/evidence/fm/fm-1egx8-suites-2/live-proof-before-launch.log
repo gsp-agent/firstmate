@@ -1,0 +1,7 @@
+FM_ISOLATION_BEGIN 2026-10-22T07:28:14Z concurrency=1 candidates=44
+
+Observed real process tree before owner SIGKILL: {"37508": [37478, 37478, "S", "bash bin/fm-test-isolation-proof.sh --pool pure-contract-unit --jobs 1"], "39863": [37508, 37478, "S", "bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase/machine-gate.sh run --cap 180 -- /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/bin/fm-t"], "39871": [39863, 37478, "S", "/usr/bin/lockf -k -s -t 0 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase/proof-before-launch/line/slot.lock /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01"], "39872": [39871, 37478, "S", "/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase/machine-gate.sh __holding /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phas"], "39888": [39872, 37478, "S", "/bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase/proof-before-launch/before-admit.sh"], "39979": [39888, 37478, "S", "sleep 0.1"]}
+Machine-line lifecycle:
+2026-10-22T07:28:18Z	start	fm-test-isolation-proof	pid 39872 cap 180m
+2026-10-22T07:28:21Z	end	fm-test-isolation-proof	rc 143
+Owner killed; candidates before=0 after=0; owned survivors=[]; machine holder empty.

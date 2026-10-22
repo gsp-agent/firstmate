@@ -1,0 +1,81 @@
+{
+  "schema": "fm-secondmate-home-summary.v1",
+  "hold_classifier_schema": "fm-captain-hold-buckets.v1",
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": true,
+    "proven_clear": true,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 0,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "generated": "2026-08-28T10:01:00Z",
+  "generated_epoch": 1787911260,
+  "home": "/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/test-work/tmp/fm-home-summary-refresh.M6mcQl/mate-home",
+  "valid": true,
+  "reason": null,
+  "invalidity": {
+    "kind": null,
+    "ids": []
+  },
+  "state": "externally_held",
+  "active_children": [],
+  "decisions_open": [
+    {
+      "id": "ledger-task",
+      "key": "fixture-dependency",
+      "verb": "blocked",
+      "summary": "waiting for the fixture dependency",
+      "reason": null,
+      "source": "status"
+    }
+  ],
+  "holds": [
+    {
+      "id": "ledger-task",
+      "title": "ledger-task",
+      "blocked_by": null,
+      "blocked_by_ids": [],
+      "unresolved_blocker_ids": [],
+      "reason": "waiting for the fixture dependency",
+      "source": "child-state"
+    }
+  ],
+  "queued": [],
+  "landed": [],
+  "endpoints": [
+    {
+      "id": "ledger-task",
+      "state": "blocked",
+      "source": "status-log",
+      "endpoint": {
+        "target": "fmtest:fm-ledger-task",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2026-08-28T10:01:00Z",
+        "freshness": "fresh"
+      }
+    }
+  ],
+  "counts": {
+    "active_children": 0,
+    "decisions_open": 1,
+    "holds": 1,
+    "queued": 0,
+    "landed": 0,
+    "endpoints": 1
+  },
+  "omitted": []
+}

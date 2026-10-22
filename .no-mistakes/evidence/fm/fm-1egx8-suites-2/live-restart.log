@@ -1,0 +1,10 @@
+Watcher 1 pid=6198 rc=0 output=signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase/live-lock-restart/state/task.status
+Watcher 2 pid=17482 rc=0 output=check: rearm-resurface
+Watcher 3 pid=22474 rc=None output=
+After holder killed: direct best-effort refresh rc=0; ledger_exists=False; stderr=
+.wake-queue: 1792654486	1	signal	task.status	signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase/live-lock-restart/state/task.status
+1792654488	2	signal	task.status	signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase/live-lock-restart/state/task.status
+
+.watcher-down: announced:downtime:22474.1792654505.PsxkOT
+
+Publication lock symlink=False owner_pid=absent

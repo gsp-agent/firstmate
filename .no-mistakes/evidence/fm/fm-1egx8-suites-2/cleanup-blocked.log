@@ -1,0 +1,1 @@
+DCG denied recursive deletion of the inspected 1.7 MB .test-phase disposable fixture directory (core.filesystem:rm-rf-general), and denied bounded find -exec rm cleanup (core.find:find-exec-delete-outside-temp). No deletion bypass was used. Tracked source remains unchanged; .test-phase is untracked and must not be staged.

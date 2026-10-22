@@ -1,0 +1,7 @@
+window=fmtest:fm-ledger-task
+worktree=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-home-summary-refresh.oSKawM/mate-home/projects/task
+project=firstmate
+harness=claude
+kind=ship
+mode=no-mistakes
+spawn_gen=fm.ledger123456

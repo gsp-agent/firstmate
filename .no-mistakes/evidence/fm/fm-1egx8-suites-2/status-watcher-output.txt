@@ -1,0 +1,1 @@
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r5/tmp/fm-home-summary-refresh.wMB0Cw/mate-home/state/ledger-task.status

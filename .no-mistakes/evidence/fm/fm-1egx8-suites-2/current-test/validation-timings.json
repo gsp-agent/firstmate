@@ -1,0 +1,22 @@
+[
+  {
+    "mechanism": "native",
+    "elapsed": 1.3883186250459403,
+    "returncode": 0,
+    "events": [
+      {
+        "validation_seen_seconds": 0.3981927080312744
+      }
+    ]
+  },
+  {
+    "mechanism": "bash",
+    "elapsed": 1.7829798330785707,
+    "returncode": 0,
+    "events": [
+      {
+        "validation_seen_seconds": 0.39471695804968476
+      }
+    ]
+  }
+]

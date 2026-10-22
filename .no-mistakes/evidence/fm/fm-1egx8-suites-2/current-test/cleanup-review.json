@@ -1,0 +1,23 @@
+{
+  "targets": {
+    "validation-lab": {
+      "files": 7,
+      "bytes": 1706
+    },
+    "idle-lab": {
+      "files": 6,
+      "bytes": 83
+    },
+    "tmp": {
+      "files": 16,
+      "bytes": 407
+    },
+    "home": {
+      "files": 0,
+      "bytes": 0
+    }
+  },
+  "dcg_exit": 0,
+  "dcg_stdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"BLOCKED by dcg\\n\\nTip: dcg explain \\\"rm -rf -- '/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab' '/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/idle-lab' '/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp' '/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/home'\\\"\\n\\nReason: rm -rf is destructive and requires human approval. Explain what you want to delete and why, then ask the user to run the command manually.\\n\\nExplanation: Matched destructive pattern core.filesystem:rm-rf-general. No additional explanation is available yet. See pack documentation for details.\\n\\nRule: core.filesystem:rm-rf-general\\n\\nIf this is a false positive: dcg allow-once 69149\\n\\nIf this operation is truly needed, ask the user for explicit permission and have them run the command manually.\",\"allowOnceCode\":\"69149\",\"allowOnceFullHash\":\"590ab6b7ef1ae2ffd687f848410414e8b398dbad295edfaa1a21a76aa7dfe89d\",\"ruleId\":\"core.filesystem:rm-rf-general\",\"packId\":\"core.filesystem\",\"severity\":\"high\",\"remediation\":{\"safeAlternative\":\"Verify the path carefully before running rm -rf manually.\",\"explanation\":\"Matched destructive pattern core.filesystem:rm-rf-general. No additional explanation is available yet. See pack documentation for details.\",\"allowOnceCommand\":\"dcg allow-once 69149\"}}}\n",
+  "dcg_stderr": "+----------------------------------------------------------------------------+\n| !  BLOCKED: Destructive Command Detected                                   |\n+----------------------------------------------------------------------------+\n|  rm -rf -- '/Users/dalecarman/.no-mista...                                 |\n|     ^^^                                                                    |\n|                                                                            |\n|                                                                            |\n|  Pattern: rm-rf-general                                                    |\n|  Pack: core.filesystem (severity: HIGH)                                    |\n+----------------------------------------------------------------------------+\n\nLearn more:\n  $ dcg explain \"rm -rf -- '/Users/dalecarman/.no-mistakes/...\"\n  $ dcg allowlist add core.filesystem:rm-rf-general --project\n\nFalse positive? File an issue:\nhttps://github.com/Dicklesworthstone/destructive_command_guard/issues/new?template=false_positive.yml\n\n"
+}

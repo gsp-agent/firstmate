@@ -1,0 +1,8 @@
+#!/bin/sh
+for arg in "$@"; do
+  case "$arg" in */.home-summary.json.*)
+    printf '%s\n' "$$" > "$FM_TEST_VALIDATION_MARKER"
+    sleep 30;;
+  esac
+done
+exec "$FM_TEST_REAL_JQ" "$@"

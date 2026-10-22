@@ -1,0 +1,38 @@
+{
+  "case": ".test-phase-r3/tmp/fm-watch-triage-tests.fRpdVt/captain-hold-probes",
+  "watch.out": {
+    "mtime": 1792658380.1571872,
+    "age": 110.53273797035217,
+    "content": ""
+  },
+  "watch.err": {
+    "mtime": 1792658380.1476736,
+    "age": 110.54915428161621,
+    "content": ""
+  },
+  "state/.last-check": {
+    "mtime": 1.0,
+    "age": 1792658489.697163,
+    "content": ""
+  },
+  "state/.last-watcher-beat": {
+    "mtime": 1792658451.533907,
+    "age": 39.16334319114685,
+    "content": ""
+  },
+  "ready.attempts": {
+    "mtime": 1792658472.8029087,
+    "age": 17.894402265548706,
+    "content": "ready\nready\n"
+  },
+  "data/backlog.md": {
+    "mtime": 1792658487.4118624,
+    "age": 3.2878875732421875,
+    "content": "## In flight\n\n## Queued\n- [ ] ordinary - Ordinary, \"quoted\" decision (repo: firstmate) (kind: captain) (since 2026-10-22) (hold: fm-hold-v1:Y2hvb3NlIHRoZSBuZXh0IGFjdGlvbg==) (hold-kind: captain) (hold-until: 2099-01-01)\n  Captain hold set: 2026-10-22T08:36:41Z\n- [ ] probe-failed - Probe failed, \"quoted\" (repo: firstmate) (kind: captain) (since 2026-10-22) (hold: fm-hold-v1:Y29tcGxldGUgdGhlIERhbGUgc3RlcA==) (hold-kind: captain)\n  Captain hold set: 2026-10-22T08:37:29Z\n  Decision owner: dale\n  Hold timeout seconds: 3600\n  Hold reason: complete the Dale step\n  Hold probe: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r3/tmp/fm-watch-triage-tests.fRpdVt/captain-hold-probes/probe.sh failed\n\n- [ ] probe-unknown - Probe unknown, \"quoted\" (repo: firstmate) (kind: captain) (since 2026-10-22) (hold: fm-hold-v1:Y29tcGxldGUgdGhlIERhbGUgc3RlcA==) (hold-kind: captain)\n  Captain hold set: 2026-10-22T08:38:09Z\n  Decision owner: dale\n  Hold timeout seconds: 3600\n  Hold reason: complete the Dale step\n  Hold probe: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r3/tmp/fm-watch-triage-tests.fRpdVt/captain-hold-probes/probe.sh unknown\n\n- [ ] probe-hung - Probe hung, \"quoted\" (repo: firstmate) (kind: captain) (since 2026-10-22) (hold: fm-hold-v1:Y29tcGxldGUgdGhlIERhbGUgc3RlcA==) (hold-kind: captain)\n  Captain hold set: 2026-10-22T08:38:43Z\n  Decision owner: dale\n  Hold timeout seconds: 3600\n  Hold reason: complete the Dale step\n  Hold probe: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r3/tmp/fm-watch-triage-tests.fRpdVt/captain-hold-probes/probe.sh hung\n\n- [ ] probe-ready - Probe ready, \"quoted\" (repo: firstmate) (kind: captain) (since 2026-10-22)\n  Captain hold set: 2026-10-22T08:39:18Z\n\n  Resolution recorded by fm-captain-hold.\n  Decision digest: 9fdda5e9cbc564ca84cf85e0188b57a2090a6eb8b4c21cc3bd5f0c3875ef21f7\n  Resolution mode: probe-released\n\n  Reconciliation evidence:\n  Probe passed for the Dale step this hold waits on: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r3/tmp/fm-watch-triage-tests.fRpdVt/captain-hold-probes/probe.sh ready\n\n  Decision owner: dale\n  Hold timeout seconds: 3600\n  Hold reason: complete the Dale step\n  Hold probe: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r3/tmp/fm-watch-triage-tests.fRpdVt/captain-hold-probes/probe.sh ready\n## Done\n"
+  },
+  "probe-ready": {
+    "mtime": 1792658415.1174846,
+    "age": 75.58237838745117,
+    "content": ""
+  }
+}

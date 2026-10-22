@@ -1,0 +1,83 @@
+[
+  {
+    "id": "ledger-task",
+    "kind": "ship",
+    "harness": "claude",
+    "mode": "no-mistakes",
+    "yolo": "",
+    "branch": null,
+    "project": "firstmate",
+    "spawn_gen": "fm.ledger123456",
+    "backend": "tmux",
+    "remote": null,
+    "paths": {
+      "meta": {
+        "path": "/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/test-work/tmp/fm-home-summary-refresh.bYCqfW/mate-home/state/ledger-task.meta",
+        "present": true
+      },
+      "status_log": {
+        "path": "/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/test-work/tmp/fm-home-summary-refresh.bYCqfW/mate-home/state/ledger-task.status",
+        "present": true,
+        "kind": "event_history",
+        "last_event": {
+          "state": "blocked",
+          "note": "waiting for the fixture dependency",
+          "raw": "blocked [key=fixture-dependency]: waiting for the fixture dependency",
+          "age_seconds": null
+        }
+      },
+      "worktree": {
+        "path": "/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/test-work/tmp/fm-home-summary-refresh.bYCqfW/mate-home/projects/task",
+        "present": true
+      },
+      "home": {
+        "path": null,
+        "present": false
+      },
+      "report": {
+        "path": "/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/test-work/tmp/fm-home-summary-refresh.bYCqfW/mate-home/data/ledger-task/report.md",
+        "present": false
+      }
+    },
+    "secondmate_projects": [],
+    "current_state": {
+      "state": "blocked",
+      "source": "status-log",
+      "detail": "waiting for the fixture dependency",
+      "raw": "state: blocked · source: status-log · waiting for the fixture dependency",
+      "observed_at": "2026-08-28T10:01:00Z",
+      "freshness": "fresh"
+    },
+    "endpoint": {
+      "target": "fmtest:fm-ledger-task",
+      "exists": true,
+      "agent_alive": "not_checked",
+      "status": "unknown",
+      "observed_at": "2026-08-28T10:01:00Z",
+      "freshness": "fresh"
+    },
+    "pr": {
+      "url": null,
+      "source": "absent",
+      "head": null
+    },
+    "hints": {
+      "pending_decision": false,
+      "blocked_event": true,
+      "open_decisions": [
+        {
+          "key": "fixture-dependency",
+          "verb": "blocked",
+          "summary": "waiting for the fixture dependency"
+        }
+      ],
+      "scout_report_present": false,
+      "last_event_text": "blocked [key=fixture-dependency]: waiting for the fixture dependency"
+    },
+    "actions": {
+      "watch": "bin/fm-peek.sh fm-ledger-task",
+      "steer": "bin/fm-send.sh fm-ledger-task '<instruction>'",
+      "return_channel_note": null
+    }
+  }
+]

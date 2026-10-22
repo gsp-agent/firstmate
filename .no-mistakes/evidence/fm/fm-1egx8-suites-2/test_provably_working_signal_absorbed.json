@@ -1,0 +1,5 @@
+{
+  "provably-working-signal/watch.out": "",
+  "provably-working-signal/state/.seen-task_status": "v2\tr1:3236007374726f6e673a31363737373233343a333237373233373732333a313739323636343932312e34323739363136323700526567756c61722046696c653a313030363434002d007265616461626c65007265616461626c65\t26@strong:16777234:3277237723:1792664921.427961627",
+  "provably-working-signal/state/.watch-triage.log": "[2026-10-22T05:28:43-0500] absorbed benign signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r5/tmp/fm-watch-triage-tests.zf17ma/provably-working-signal/state/task.status\n"
+}

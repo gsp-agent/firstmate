@@ -1,0 +1,21 @@
+live-product-driver.log
+live-direct-private-cancel parent_rc=-15 cancellation_seconds=0.770 survivors={}
+live-watcher-private-cancel parent_rc=-15 cancellation_seconds=1.237 survivors={}
+live-watcher-bash-private-cancel parent_rc=-15 cancellation_seconds=1.166 survivors={}
+
+live-more.log
+live-real-gtimeout parent_rc=-15 cancellation_seconds=1.107 survivors={}
+live-real-gtimeout owned_process_groups=[85466, 85806] group_survivors={}
+live-real-perl parent_rc=-15 cancellation_seconds=0.691 survivors={}
+live-real-perl owned_process_groups=[87541] group_survivors={}
+Signal-batch rc=0 producer_observed=True survivors={} group_survivors={}
+
+live-proof-before-launch.log
+Owner killed; candidates before=0 after=0; owned survivors=[]; machine holder empty.
+
+live-proof-serial-slot.log
+Owner killed; candidates before=1 after=1; owned survivors=[]; machine holder empty.
+
+live-restart.log
+After holder killed: direct best-effort refresh rc=0; ledger_exists=False; stderr=
+Publication lock symlink=False owner_pid=absent

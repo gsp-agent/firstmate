@@ -1,0 +1,19 @@
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r3/publication-lab
+Idle-only refresh while lock held: rc=0, no ledger, correctly skips busy publisher
+Required refresh while lock held: running, ledger absent; waiting for publication lock
+Killed publication-lock holder: required refresh rc=0; real snapshot published valid mode-0600 ledger
+{
+  "schema": "fm-secondmate-home-summary.v1",
+  "home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r3/publication-lab",
+  "generated": "2026-10-22T08:33:30Z",
+  "valid": true,
+  "state": "no_active_work",
+  "counts": {
+    "active_children": 0,
+    "decisions_open": 0,
+    "holds": 0,
+    "queued": 0,
+    "landed": 0,
+    "endpoints": 0
+  }
+}

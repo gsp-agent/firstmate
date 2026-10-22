@@ -1,0 +1,427 @@
++1792663132.380582 66036 set -u
++++1792663132.382053 66060 dirname /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh
+++1792663132.384261 66058 cd /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
+++1792663132.384388 66058 pwd
++1792663132.384777 66036 SCRIPT_DIR=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
++1792663132.384870 66036 FM_ROOT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ
++1792663132.384923 66036 FM_HOME=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home
++1792663132.385019 66036 STATE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
++1792663132.385045 66036 DATA=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/data
++1792663132.385121 66036 CONFIG=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/config
++1792663132.385150 66036 PROJECTS=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/projects
++1792663132.385168 66036 LEDGER=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/home-summary.json
++1792663132.385185 66036 ERROR_LOG=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.log
++1792663132.385198 66036 REFRESH_LOCK=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663132.385211 66036 ERROR_LOG_MAX_BYTES=65536
++1792663132.385220 66036 HOME_SUMMARY_TIMEOUT=1
++1792663132.385234 66036 HOME_SUMMARY_IF_IDLE=0
++1792663132.385246 66036 BEST_EFFORT=0
++1792663132.385256 66036 HOME_SUMMARY_MODE=parent
++1792663132.385262 66036 HOME_SUMMARY_ERROR=
++1792663132.385268 66036 HOME_SUMMARY_FAILURE_STAMP=
++1792663132.385274 66036 HOME_SUMMARY_TMP=
++1792663132.385278 66036 HOME_SUMMARY_ERR_TMP=
++1792663132.385283 66036 HOME_SUMMARY_LOCK_HELD=0
++1792663132.385294 66036 . /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-timeout-lib.sh
+++1792663132.385404 66036 set -u
++1792663132.385753 66036 case "${1:-}" in
++1792663132.385773 66036 BEST_EFFORT=1
++1792663132.385786 66036 case "$ERROR_LOG_MAX_BYTES" in
++1792663132.385799 66036 case "$HOME_SUMMARY_TIMEOUT" in
++1792663132.385809 66036 case "$HOME_SUMMARY_IF_IDLE" in
++1792663132.385826 66036 '[' parent '!=' parent ']'
++1792663132.385953 66036 '[' parent = log-failure ']'
++1792663132.385985 66036 '[' parent = parent ']'
+++1792663132.386964 66067 date -u +%Y-%m-%dT%H:%M:%SZ
++1792663132.389739 66036 attempt_stamp=2026-10-22T09:58:52Z
++1792663132.389777 66036 fm_run_timed 1 env FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 FM_HOME_SUMMARY_IF_IDLE=0 /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh --_worker
++1792663132.389802 66036 local seconds=1 mechanism fm_timed_signal= fm_timed_traps fm_timed_rc=0 runner_pid
++1792663132.389815 66036 shift
+++1792663132.390707 66074 fm_timeout_mechanism
+++1792663132.390754 66074 '[' '' = bash ']'
+++1792663132.390768 66074 command -v timeout
+++1792663132.390854 66074 printf 'timeout\n'
++1792663132.391152 66036 mechanism=timeout
+++1792663132.392056 66077 trap -p HUP INT TERM
++1792663132.392387 66036 fm_timed_traps=
++1792663132.392413 66036 trap fm_timed_signal=129 HUP
++1792663132.392427 66036 trap fm_timed_signal=130 INT
++1792663132.392436 66036 trap fm_timed_signal=143 TERM
++1792663132.392445 66036 case "$mechanism" in
++1792663132.392476 66036 fm_run_external_timeout timeout 1 env FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 FM_HOME_SUMMARY_IF_IDLE=0 /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh --_worker
++1792663132.392516 66036 local runner=timeout seconds=1 status_file runner_pid runner_rc command_rc
++1792663132.392529 66036 shift 2
+++1792663132.393556 66079 mktemp /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.XXXXXX
++1792663132.396469 66036 status_file=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.2WhQFo
++1792663132.397538 66087 timeout -k 1 1 bash -c $'\n    status_file=$1\n    shift\n    "$@"\n    command_rc=$?\n    printf "%s\\n" "$command_rc" > "$status_file"\n    exit "$command_rc"\n  ' _ /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.2WhQFo env FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 FM_HOME_SUMMARY_IF_IDLE=0 /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh --_worker
++1792663132.397623 66036 runner_pid=66087
++1792663132.397677 66036 fm_wait_timed 66087 66087
++1792663132.397702 66036 local runner_pid=66087 runner_rc=0 group
++1792663132.397714 66036 shift
++1792663132.397722 66036 '[' -z '' ']'
++1792663132.397731 66036 wait 66087
++1792663132.405980 66092 status_file=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.2WhQFo
++1792663132.406475 66092 shift
++1792663132.406492 66092 env FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 FM_HOME_SUMMARY_IF_IDLE=0 /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh --_worker
++1792663132.420082 66102 set -u
++++1792663132.421458 66122 dirname /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh
+++1792663132.423884 66120 cd /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
+++1792663132.423958 66120 pwd
++1792663132.424267 66102 SCRIPT_DIR=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
++1792663132.424309 66102 FM_ROOT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ
++1792663132.424323 66102 FM_HOME=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home
++1792663132.424335 66102 STATE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
++1792663132.424344 66102 DATA=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/data
++1792663132.424352 66102 CONFIG=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/config
++1792663132.424360 66102 PROJECTS=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/projects
++1792663132.424368 66102 LEDGER=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/home-summary.json
++1792663132.424380 66102 ERROR_LOG=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.log
++1792663132.424390 66102 REFRESH_LOCK=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663132.424400 66102 ERROR_LOG_MAX_BYTES=65536
++1792663132.424407 66102 HOME_SUMMARY_TIMEOUT=1
++1792663132.424414 66102 HOME_SUMMARY_IF_IDLE=0
++1792663132.424419 66102 BEST_EFFORT=0
++1792663132.424425 66102 HOME_SUMMARY_MODE=parent
++1792663132.424430 66102 HOME_SUMMARY_ERROR=
++1792663132.424434 66102 HOME_SUMMARY_FAILURE_STAMP=
++1792663132.424438 66102 HOME_SUMMARY_TMP=
++1792663132.424443 66102 HOME_SUMMARY_ERR_TMP=
++1792663132.424447 66102 HOME_SUMMARY_LOCK_HELD=0
++1792663132.424458 66102 . /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-timeout-lib.sh
+++1792663132.424550 66102 set -u
++1792663132.424833 66102 case "${1:-}" in
++1792663132.424845 66102 HOME_SUMMARY_MODE=worker
++1792663132.424864 66102 BEST_EFFORT=1
++1792663132.424872 66102 case "$ERROR_LOG_MAX_BYTES" in
++1792663132.424880 66102 case "$HOME_SUMMARY_TIMEOUT" in
++1792663132.424887 66102 case "$HOME_SUMMARY_IF_IDLE" in
++1792663132.424897 66102 '[' worker '!=' parent ']'
++1792663132.424905 66102 . /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-wake-lib.sh
++++1792663132.426136 66128 d=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
++++1792663132.426170 66128 '[' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin '!=' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-wake-lib.sh ']'
++++1792663132.426183 66128 cd /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
++++1792663132.426226 66128 pwd
+++1792663132.426506 66102 FM_WAKE_LIB_DIR=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
++++1792663132.427335 66131 cd /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/..
++++1792663132.427375 66131 pwd
+++1792663132.427674 66102 FM_WAKE_DEFAULT_ROOT=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab
+++1792663132.427697 66102 FM_ROOT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ
+++1792663132.427710 66102 FM_HOME=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home
+++1792663132.427722 66102 STATE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
+++1792663132.427735 66102 FM_WAKE_QUEUE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.wake-queue
+++1792663132.427745 66102 FM_WAKE_QUEUE_LOCK=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.wake-queue.lock
+++1792663132.427754 66102 FM_LOCK_STALE_AFTER=2
+++1792663132.427764 66102 . /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-path-lib.sh
++++1792663132.429487 66134 uname
+++1792663132.432771 66102 _FM_UNAME=Darwin
+++1792663132.432803 66102 mkdir -p /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
+++1792663132.436581 66102 '[' 5 -gt 4 ']'
+++1792663132.436711 66102 FM_WATCHER_MATCHED_IDENTITY=
+++1792663132.436746 66102 FM_WATCHER_HEALTHY_PID=
+++1792663132.436755 66102 FM_WATCHER_HEALTHY_IDENTITY=
+++1792663132.436954 66102 FM_WATCHER_VERDICT_OK=false
+++1792663132.436964 66102 FM_WATCHER_VERDICT_REASON=stale-beacon
+++1792663132.437172 66102 FM_RECOVERY_MARKER_TOKEN=
+++1792663132.437180 66102 FM_RECOVERY_MARKER_ACTION=none
+++1792663132.437187 66102 FM_RECOVERY_MARKER_WRITTEN_TOKEN=
+++1792663132.437195 66102 FM_WAKE_APPEND_RECOVERY_PREVIOUS_TOKEN=
+++1792663132.437202 66102 FM_WAKE_APPEND_RECOVERY_PUBLISHED_TOKEN=
+++1792663132.437486 66102 FM_RECOVERY_HANDOVER_TOKEN=
+++1792663132.437493 66102 FM_RECOVERY_HANDOVER_SEQ=
+++1792663132.438960 66102 FM_WAKE_STATUS_KEY=
+++1792663132.438969 66102 FM_WAKE_STATUS_HISTORICAL=false
+++1792663132.438999 66102 FM_WAKE_EVENT_LINE=
+++1792663132.439006 66102 FM_WAKE_UNREAD_LINES=
++1792663132.439256 66102 '[' worker = log-failure ']'
++1792663132.439287 66102 '[' worker = parent ']'
++1792663132.439297 66102 home_summary_refresh_once
++1792663132.439313 66102 local producer_rc producer_error
++1792663132.439324 66102 mkdir -p /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
++1792663132.442005 66102 trap home_summary_cleanup EXIT
++1792663132.442021 66102 trap 'exit 129' HUP
++1792663132.442029 66102 trap 'exit 130' INT
++1792663132.442035 66102 trap 'exit 143' TERM
++1792663132.442044 66102 '[' 0 -eq 1 ']'
++1792663132.442055 66102 fm_lock_acquire_wait /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663132.442086 66102 local lockdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663132.442096 66102 fm_lock_try_acquire /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663132.442121 66102 local lockdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock pid steal cur rc steal_owner primary_owner current
++1792663132.442132 66102 FM_LOCK_HELD_PID=
++1792663132.442139 66102 FM_LOCK_OWNER_DIR=
++1792663132.442145 66102 FM_LOCK_RECOVERED_PID=
++1792663132.442152 66102 fm_lock_try_create /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663132.442172 66102 local lockdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock allowed_steal_owner= ownerdir
++1792663132.442180 66102 FM_LOCK_OWNER_DIR=
+++1792663132.443049 66154 fm_lock_owner_dir /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
+++1792663132.443091 66154 local lockdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock lock_abs
++++1792663132.443546 66156 fm_lock_abs_path /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++++1792663132.443590 66156 local path=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock dir base
++++1792663132.443605 66156 fm_dirname_to dir /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++++1792663132.443619 66156 local fm_path=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++++1792663132.443628 66156 case "$fm_path" in
++++1792663132.443649 66156 fm_path=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++++1792663132.443656 66156 case "$fm_path" in
++++1792663132.443666 66156 fm_path=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
++++1792663132.443676 66156 fm_path=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
++++1792663132.443684 66156 '[' -n /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state ']'
++++1792663132.443699 66156 '[' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state '!=' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state ']'
++++1792663132.443708 66156 printf -v dir %s /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
++++1792663132.443723 66156 fm_basename_to base /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++++1792663132.443734 66156 local fm_path=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++++1792663132.443741 66156 case "$fm_path" in
++++1792663132.443753 66156 fm_path=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++++1792663132.443767 66156 fm_path=.home-summary-refresh.lock
++++1792663132.443776 66156 '[' .home-summary-refresh.lock '!=' .home-summary-refresh.lock ']'
++++1792663132.443793 66156 printf -v base %s .home-summary-refresh.lock
+++++1792663132.444247 66158 cd /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
+++++1792663132.444320 66158 pwd -P
++++1792663132.444686 66156 dir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
++++1792663132.444716 66156 printf '%s/%s\n' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state .home-summary-refresh.lock
+++1792663132.445048 66154 lock_abs=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
+++1792663132.445078 66154 mktemp -d /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.XXXXXX
++1792663132.447622 66102 ownerdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9
++1792663132.447654 66102 '[' -e /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock ']'
++1792663132.447673 66102 '[' -L /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock ']'
++1792663132.447685 66102 fm_lock_prepare_owner /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9
++1792663132.447702 66102 local ownerdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 mypid back
++1792663132.447713 66102 fm_current_pid mypid
++1792663132.447723 66102 local fm_pid
++1792663132.447736 66102 fm_pid=66102
++1792663132.447743 66102 case "$fm_pid" in
++1792663132.447752 66102 '[' 1 -gt 0 ']'
++1792663132.447761 66102 printf -v mypid %s 66102
++1792663132.447772 66102 printf '%s\n' 66102
+++1792663132.448838 66166 cat /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9/pid
++1792663132.451690 66102 back=66102
++1792663132.451718 66102 '[' 66102 = 66102 ']'
++1792663132.451744 66102 ln -s /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663132.454854 66102 fm_lock_points_to_owner /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9
++1792663132.454896 66102 local lockdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock ownerdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 actual
+++1792663132.455804 66179 readlink /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663132.458376 66102 actual=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9
++1792663132.458407 66102 '[' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 = /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 ']'
++1792663132.458428 66102 fm_lock_claim /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 ''
++1792663132.458457 66102 local lockdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock ownerdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 allowed_steal_owner= mypid back
++1792663132.458469 66102 fm_current_pid mypid
++1792663132.458479 66102 local fm_pid
++1792663132.458495 66102 fm_pid=66102
++1792663132.458501 66102 case "$fm_pid" in
++1792663132.458509 66102 '[' 1 -gt 0 ']'
++1792663132.458517 66102 printf -v mypid %s 66102
+++1792663132.459667 66186 cat /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9/pid
++1792663132.462343 66102 back=66102
++1792663132.462366 66102 '[' 66102 '!=' 66102 ']'
++1792663132.462386 66102 fm_lock_points_to_owner /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9
++1792663132.462410 66102 local lockdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock ownerdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 actual
+++1792663132.463348 66193 readlink /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663132.466247 66102 actual=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9
++1792663132.466291 66102 '[' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 = /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9 ']'
++1792663132.466320 66102 fm_lock_claim_blocked_by_steal /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock ''
++1792663132.466337 66102 local lockdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock allowed_steal_owner= steal
++1792663132.466350 66102 steal=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.steal
++1792663132.466359 66102 '[' -e /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.steal ']'
++1792663132.466373 66102 '[' -L /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.steal ']'
++1792663132.466382 66102 return 1
++1792663132.466390 66102 return 0
++1792663132.466400 66102 FM_LOCK_OWNER_DIR=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock.owner.1RDmp9
++1792663132.466406 66102 return 0
++1792663132.466422 66102 return 0
++1792663132.466449 66102 HOME_SUMMARY_LOCK_HELD=1
+++1792663132.466990 66200 umask 077
+++1792663132.467028 66200 mktemp /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary.json.XXXXXX
++1792663132.469244 66102 HOME_SUMMARY_TMP=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary.json.LgThrr
+++1792663132.470156 66205 umask 077
+++1792663132.470189 66205 mktemp /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-error.XXXXXX
++1792663132.472012 66102 HOME_SUMMARY_ERR_TMP=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-error.niydHj
++1792663132.472061 66102 env FM_ROOT_OVERRIDE=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ FM_HOME=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home FM_STATE_OVERRIDE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state FM_DATA_OVERRIDE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/data FM_CONFIG_OVERRIDE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/config FM_PROJECTS_OVERRIDE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/projects /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-fleet-snapshot.sh --secondmate-home-summary
++1792663132.575163 66102 producer_rc=0
++1792663132.575193 66102 '[' 0 -ne 0 ']'
++1792663132.575221 66102 rm -f -- /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-error.niydHj
++1792663132.577987 66102 HOME_SUMMARY_ERR_TMP=
++1792663132.578027 66102 jq -e --arg home /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home $'\n    .schema == "fm-secondmate-home-summary.v1"\n    and .hold_classifier_schema == "fm-captain-hold-buckets.v1"\n    and .home == $home\n    and (.generated | type) == "string"\n    and (.generated | length) > 0\n    and (.generated_epoch | type) == "number"\n    and .generated_epoch >= 0\n    and (.generated_epoch | floor) == .generated_epoch\n    and (.valid | type) == "boolean"\n    and (.state | type) == "string"\n    and (.invalidity | type) == "object"\n    and (.active_children | type) == "array"\n    and (.decisions_open | type) == "array"\n    and (.holds | type) == "array"\n    and (.queued | type) == "array"\n    and (.landed | type) == "array"\n    and (.endpoints | type) == "array"\n    and (.counts | type) == "object"\n    and (.omitted | type) == "array"\n  ' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary.json.LgThrr
+Terminated: 15             jq -e --arg home "$FM_HOME" '
+    .schema == "fm-secondmate-home-summary.v1"
+    and .hold_classifier_schema == "fm-captain-hold-buckets.v1"
+    and .home == $home
+    and (.generated | type) == "string"
+    and (.generated | length) > 0
+    and (.generated_epoch | type) == "number"
+    and .generated_epoch >= 0
+    and (.generated_epoch | floor) == .generated_epoch
+    and (.valid | type) == "boolean"
+    and (.state | type) == "string"
+    and (.invalidity | type) == "object"
+    and (.active_children | type) == "array"
+    and (.decisions_open | type) == "array"
+    and (.holds | type) == "array"
+    and (.queued | type) == "array"
+    and (.landed | type) == "array"
+    and (.endpoints | type) == "array"
+    and (.counts | type) == "object"
+    and (.omitted | type) == "array"
+  ' "$HOME_SUMMARY_TMP" > /dev/null 2>&1
+++1792663133.550335 66102 exit 143
++1792663133.550374 66102 home_summary_cleanup
++1792663133.550413 66102 '[' -z /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary.json.LgThrr ']'
++1792663133.550436 66102 rm -f -- /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary.json.LgThrr
++1792663133.550903 66036 runner_rc=124
++1792663133.551046 66036 '[' -n '' ']'
++1792663133.551068 66036 return 124
++1792663133.551121 66036 runner_rc=124
+++1792663133.555526 68007 cat /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.2WhQFo
++1792663133.559945 66102 '[' -z '' ']'
++1792663133.559999 66102 '[' 1 -eq 1 ']'
++1792663133.560026 66102 fm_lock_release /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663133.560075 66102 local lockdir=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock pid current ownerdir
++1792663133.560097 66102 fm_current_pid current
++1792663133.560122 66102 local fm_pid
++1792663133.560153 66102 fm_pid=66102
++1792663133.560166 66102 case "$fm_pid" in
++1792663133.560183 66102 '[' 1 -gt 0 ']'
++1792663133.560199 66102 printf -v current %s 66102
++1792663133.560223 66102 '[' -L /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock ']'
+++1792663133.563236 68026 fm_lock_link_owner /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663133.563171 66036 command_rc=
++1792663133.563380 66036 rm -f /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.2WhQFo
++1792663133.570427 66036 case "$command_rc" in
++1792663133.570538 66036 case "$runner_rc" in
++1792663133.570959 66036 kill -KILL -- -66087
++1792663133.574755 66036 return 124
++1792663133.574959 66036 fm_timed_rc=124
++1792663133.574988 66036 trap - HUP INT TERM
++1792663133.575163 66036 eval ''
++1792663133.575304 66036 '[' -n '' ']'
++1792663133.575323 66036 return 124
++1792663133.575432 66036 refresh_rc=124
++1792663133.575505 66036 '[' 1 -eq 1 ']'
++1792663133.575601 66036 '[' 124 -eq 124 ']'
++1792663133.575695 66036 parent_error='refresh exceeded its 1-second deadline'
++1792663133.575843 66036 fm_run_timed 2 env 'FM_HOME_SUMMARY_PARENT_ERROR=refresh exceeded its 1-second deadline' FM_HOME_SUMMARY_PARENT_STAMP=2026-10-22T09:58:52Z /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh --_log-failure
++1792663133.575976 66036 local seconds=2 mechanism fm_timed_signal= fm_timed_traps fm_timed_rc=0 runner_pid
++1792663133.576003 66036 shift
+++1792663133.579356 68075 fm_timeout_mechanism
+++1792663133.579589 68075 '[' '' = bash ']'
+++1792663133.579634 68075 command -v timeout
+++1792663133.579817 68075 printf 'timeout\n'
++1792663133.580812 66036 mechanism=timeout
+++1792663133.582224 68086 trap -p HUP INT TERM
++1792663133.582667 66036 fm_timed_traps=
++1792663133.582691 66036 trap fm_timed_signal=129 HUP
++1792663133.582702 66036 trap fm_timed_signal=130 INT
++1792663133.582713 66036 trap fm_timed_signal=143 TERM
++1792663133.582720 66036 case "$mechanism" in
++1792663133.582746 66036 fm_run_external_timeout timeout 2 env 'FM_HOME_SUMMARY_PARENT_ERROR=refresh exceeded its 1-second deadline' FM_HOME_SUMMARY_PARENT_STAMP=2026-10-22T09:58:52Z /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh --_log-failure
++1792663133.582767 66036 local runner=timeout seconds=2 status_file runner_pid runner_rc command_rc
++1792663133.582778 66036 shift 2
+++1792663133.583842 68092 mktemp /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.XXXXXX
++1792663133.586333 66036 status_file=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.jEOV9N
++1792663133.586845 66036 runner_pid=68100
++1792663133.586965 66036 fm_wait_timed 68100 68100
++1792663133.586993 66036 local runner_pid=68100 runner_rc=0 group
++1792663133.587012 66036 shift
++1792663133.587021 66036 '[' -z '' ']'
++1792663133.587029 66036 wait 68100
++1792663133.587046 68100 timeout -k 1 2 bash -c $'\n    status_file=$1\n    shift\n    "$@"\n    command_rc=$?\n    printf "%s\\n" "$command_rc" > "$status_file"\n    exit "$command_rc"\n  ' _ /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.jEOV9N env 'FM_HOME_SUMMARY_PARENT_ERROR=refresh exceeded its 1-second deadline' FM_HOME_SUMMARY_PARENT_STAMP=2026-10-22T09:58:52Z /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh --_log-failure
++1792663133.597146 68111 status_file=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.jEOV9N
++1792663133.597170 68111 shift
++1792663133.597188 68111 env 'FM_HOME_SUMMARY_PARENT_ERROR=refresh exceeded its 1-second deadline' FM_HOME_SUMMARY_PARENT_STAMP=2026-10-22T09:58:52Z /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh --_log-failure
++1792663133.609167 68132 set -u
++++1792663133.610399 68164 dirname /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-home-summary-refresh.sh
+++1792663133.612641 68163 cd /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
+++1792663133.612710 68163 pwd
++1792663133.613105 68132 SCRIPT_DIR=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
++1792663133.613163 68132 FM_ROOT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ
++1792663133.613179 68132 FM_HOME=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home
++1792663133.613191 68132 STATE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
++1792663133.613201 68132 DATA=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/data
++1792663133.613210 68132 CONFIG=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/config
++1792663133.613218 68132 PROJECTS=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/projects
++1792663133.613228 68132 LEDGER=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/home-summary.json
++1792663133.613240 68132 ERROR_LOG=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.log
++1792663133.613249 68132 REFRESH_LOCK=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.home-summary-refresh.lock
++1792663133.613259 68132 ERROR_LOG_MAX_BYTES=65536
++1792663133.613267 68132 HOME_SUMMARY_TIMEOUT=1
++1792663133.613274 68132 HOME_SUMMARY_IF_IDLE=0
++1792663133.613280 68132 BEST_EFFORT=0
++1792663133.613286 68132 HOME_SUMMARY_MODE=parent
++1792663133.613291 68132 HOME_SUMMARY_ERROR=
++1792663133.613296 68132 HOME_SUMMARY_FAILURE_STAMP=
++1792663133.613301 68132 HOME_SUMMARY_TMP=
++1792663133.613306 68132 HOME_SUMMARY_ERR_TMP=
++1792663133.613311 68132 HOME_SUMMARY_LOCK_HELD=0
++1792663133.613321 68132 . /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-timeout-lib.sh
+++1792663133.613408 68132 set -u
++1792663133.613680 68132 case "${1:-}" in
++1792663133.613691 68132 HOME_SUMMARY_MODE=log-failure
++1792663133.613699 68132 case "$ERROR_LOG_MAX_BYTES" in
++1792663133.613708 68132 case "$HOME_SUMMARY_TIMEOUT" in
++1792663133.613715 68132 case "$HOME_SUMMARY_IF_IDLE" in
++1792663133.613725 68132 '[' log-failure '!=' parent ']'
++1792663133.613734 68132 . /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-wake-lib.sh
++++1792663133.615630 68170 d=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
++++1792663133.615661 68170 '[' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin '!=' /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-wake-lib.sh ']'
++++1792663133.615712 68170 cd /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
++++1792663133.615770 68170 pwd
+++1792663133.616147 68132 FM_WAKE_LIB_DIR=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin
++++1792663133.616877 68174 cd /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/..
++++1792663133.616933 68174 pwd
+++1792663133.617238 68132 FM_WAKE_DEFAULT_ROOT=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab
+++1792663133.617296 68132 FM_ROOT=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ
+++1792663133.617338 68132 FM_HOME=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home
+++1792663133.617377 68132 STATE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
+++1792663133.617406 68132 FM_WAKE_QUEUE=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.wake-queue
+++1792663133.617426 68132 FM_WAKE_QUEUE_LOCK=/Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state/.wake-queue.lock
+++1792663133.617437 68132 FM_LOCK_STALE_AFTER=2
+++1792663133.617448 68132 . /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/bin/fm-path-lib.sh
++++1792663133.618356 68179 uname
+++1792663133.621089 68132 _FM_UNAME=Darwin
+++1792663133.621159 68132 mkdir -p /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/validation-lab/home/state
+++1792663133.623996 68132 '[' 5 -gt 4 ']'
+++1792663133.624191 68132 FM_WATCHER_MATCHED_IDENTITY=
+++1792663133.624227 68132 FM_WATCHER_HEALTHY_PID=
+++1792663133.624235 68132 FM_WATCHER_HEALTHY_IDENTITY=
+++1792663133.624509 68132 FM_WATCHER_VERDICT_OK=false
+++1792663133.624518 68132 FM_WATCHER_VERDICT_REASON=stale-beacon
+++1792663133.624733 68132 FM_RECOVERY_MARKER_TOKEN=
+++1792663133.624741 68132 FM_RECOVERY_MARKER_ACTION=none
+++1792663133.624746 68132 FM_RECOVERY_MARKER_WRITTEN_TOKEN=
+++1792663133.624752 68132 FM_WAKE_APPEND_RECOVERY_PREVIOUS_TOKEN=
+++1792663133.624758 68132 FM_WAKE_APPEND_RECOVERY_PUBLISHED_TOKEN=
+++1792663133.625041 68132 FM_RECOVERY_HANDOVER_TOKEN=
+++1792663133.625049 68132 FM_RECOVERY_HANDOVER_SEQ=
+++1792663133.626635 68132 FM_WAKE_STATUS_KEY=
+++1792663133.626651 68132 FM_WAKE_STATUS_HISTORICAL=false
+++1792663133.626708 68132 FM_WAKE_EVENT_LINE=
+++1792663133.626722 68132 FM_WAKE_UNREAD_LINES=
++1792663133.627208 68132 '[' log-failure = log-failure ']'
++1792663133.627224 68132 HOME_SUMMARY_ERROR='refresh exceeded its 1-second deadline'
++1792663133.627233 68132 HOME_SUMMARY_FAILURE_STAMP=2026-10-22T09:58:52Z
++1792663133.627239 68132 home_summary_log_failure
++1792663133.627253 68132 local size stamp tmp
++1792663133.627264 68132 stamp=2026-10-22T09:58:52Z
++1792663133.627272 68132 '[' -n 2026-10-22T09:58:52Z ']'
++1792663133.627280 68132 printf '[%s] %s\n' 2026-10-22T09:58:52Z 'refresh exceeded its 1-second deadline'
+++1792663133.629242 68201 wc -c
+++1792663133.629718 68202 tr -d '[:space:]'
++1792663133.632812 68132 size=62
++1792663133.632833 68132 case "$size" in
++1792663133.632845 68132 '[' 62 -ge 65536 ']'
++1792663133.632933 68132 exit 0
++1792663133.633609 68111 command_rc=0
++1792663133.633697 68111 printf '%s\n' 0
++1792663133.633888 68111 exit 0
++1792663133.635181 66036 '[' -n '' ']'
++1792663133.635379 66036 return 0
++1792663133.635459 66036 runner_rc=0
+++1792663133.636979 68217 cat /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.jEOV9N
++1792663133.640104 66036 command_rc=0
++1792663133.640140 66036 rm -f /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-timeout-status.jEOV9N
++1792663133.643876 66036 case "$command_rc" in
++1792663133.643919 66036 '[' 0 -le 255 ']'
++1792663133.643944 66036 case "$runner_rc" in
++1792663133.643952 66036 return 0
++1792663133.643980 66036 trap - HUP INT TERM
++1792663133.643990 66036 eval ''
++1792663133.643999 66036 '[' -n '' ']'
++1792663133.644006 66036 return 0
++1792663133.644024 66036 exit 0

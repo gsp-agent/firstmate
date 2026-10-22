@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r5/tmp/fm-home-summary-refresh.bRtzHH/validation-code/fm-home-summary-refresh.sh",
+    "--best-effort"
+  ],
+  "returncode": 0,
+  "start_epoch": 1792664831.634828,
+  "marker_epoch": 1792664831.9450562,
+  "end_epoch": 1792664832.8469849,
+  "before_marker_seconds": 0.3102281093597412,
+  "after_marker_seconds": 0.9019286632537842,
+  "total_seconds": 1.2121567726135254
+}

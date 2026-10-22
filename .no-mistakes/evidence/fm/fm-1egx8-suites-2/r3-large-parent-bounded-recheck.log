@@ -1,0 +1,34 @@
+{
+  "exit": 0,
+  "registry": {
+    "present": true,
+    "available": true,
+    "reason": null,
+    "provenance": "registered-table",
+    "path": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r3/tmp/fm-home-summary-refresh.SXfbQo/large-parent-home/data/secondmates.md",
+    "freshness": {
+      "status": "fresh",
+      "observed_at": "2026-08-28T10:00:00Z"
+    },
+    "records": [
+      {
+        "id": "large-child",
+        "home": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r3/tmp/fm-home-summary-refresh.SXfbQo/large-child-home",
+        "host": null,
+        "root": null,
+        "remote": false,
+        "registered": true,
+        "registry_error": null
+      }
+    ],
+    "input_truncated": false,
+    "records_truncated": false,
+    "complete": true,
+    "reasons": [],
+    "lines_in_window": 1,
+    "records_in_window": 1
+  },
+  "summary_source": null,
+  "invalidity_kind": null,
+  "invalidity_ids": 0
+}

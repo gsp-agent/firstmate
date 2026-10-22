@@ -1,0 +1,10 @@
+{
+  "observed_utc": "2026-10-22T08:44:47.574277+00:00",
+  "load_average": [
+    113.49609375,
+    99.63525390625,
+    79.36962890625
+  ],
+  "swap_usage": "vm.swapusage: total = 12288.00M  used = 10982.75M  free = 1305.25M  (encrypted)",
+  "scope": "Shared-host context only; not an alone-run load or swap comparison."
+}

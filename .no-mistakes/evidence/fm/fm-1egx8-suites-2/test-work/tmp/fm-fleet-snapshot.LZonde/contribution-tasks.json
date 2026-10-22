@@ -1,0 +1,11 @@
+[
+  {
+    "id": "ledger-task",
+    "kind": "ship",
+    "pr": {
+      "url": "",
+      "head": ""
+    },
+    "merge_authority": "attended"
+  }
+]

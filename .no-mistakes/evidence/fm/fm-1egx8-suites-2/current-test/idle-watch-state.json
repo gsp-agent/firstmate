@@ -1,0 +1,28 @@
+{
+  "command": "bash bin/fm-watch.sh",
+  "interval": 9999999,
+  "refresh_timeout": 1,
+  "poll_seconds": 1,
+  "heartbeat_observations": [
+    {
+      "elapsed": 0.6088989590061828,
+      "mtime_ns": 1792663313489296975
+    },
+    {
+      "elapsed": 2.2403874590527266,
+      "mtime_ns": 1792663315107055000
+    },
+    {
+      "elapsed": 3.8467487919842824,
+      "mtime_ns": 1792663316668759000
+    },
+    {
+      "elapsed": 5.430155834066682,
+      "mtime_ns": 1792663318254203000
+    }
+  ],
+  "max_descendants_observed": 5,
+  "summary_process_seen": false,
+  "summary_file_exists": false,
+  "exit": -15
+}

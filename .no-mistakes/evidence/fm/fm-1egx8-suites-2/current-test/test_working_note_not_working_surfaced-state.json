@@ -1,0 +1,5 @@
+{
+  "working-note-stopped/watch.out": "signal: /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-watch-triage-tests.i6SVMw/working-note-stopped/state/task.status\n",
+  "working-note-stopped/state/.seen-task_status": "v2\tr1:3236007374726f6e673a31363737373233343a333237373035353239373a313739323636333036372e38383236373130383200526567756c61722046696c653a313030363434002d007265616461626c65007265616461626c65\t26@strong:16777234:3277055297:1792663067.882671082",
+  "working-note-stopped/state/.wake-queue": "1792663070\t1\tsignal\ttask.status\tsignal: /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-watch-triage-tests.i6SVMw/working-note-stopped/state/task.status\n1792663070\t2\tsignal\ttask.status\tsignal: /Users/dalecarman/.no-mistakes/evidence/01M5H6NCKQJM2YC31BBNGTSVQQ/current-test/tmp/fm-watch-triage-tests.i6SVMw/working-note-stopped/state/task.status\n"
+}

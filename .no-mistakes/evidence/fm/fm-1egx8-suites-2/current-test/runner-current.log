@@ -1,0 +1,2 @@
+ok - a killed runner takes its running scripts down and starts no other, through the machine gate too
+ok - an interrupted script stops the run as interrupted, also when the runner inherited INT as ignored

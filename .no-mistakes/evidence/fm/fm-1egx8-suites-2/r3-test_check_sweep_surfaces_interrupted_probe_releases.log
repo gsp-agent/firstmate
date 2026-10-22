@@ -1,0 +1,1 @@
+ok - the check sweep wakes for interrupted releases, keeps held failures quiet, and supports replay

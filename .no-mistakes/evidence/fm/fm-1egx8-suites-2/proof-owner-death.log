@@ -1,0 +1,31 @@
+CASE before-launch
+FM_ISOLATION_BEGIN 2026-10-22T10:28:02Z concurrency=1 candidates=3
+fm-test-isolation-proof: the runner the caller launched (pid 39630) is gone; starting no further candidates
+
+OBSERVED before-launch: started=[]; candidate survivors=0; released=143
+CASE serial-slot
+FM_ISOLATION_BEGIN 2026-10-22T10:28:02Z concurrency=1 candidates=3
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-22T10:28:02Z tests/candidate-1.test.sh worker=1
+fm-test-isolation-proof: the runner the caller launched (pid 40078) is gone; starting no further candidates
+
+OBSERVED serial-slot: started=['1.pids']; candidate survivors=0; released=143
+CASE parallel-slot
+FM_ISOLATION_BEGIN 2026-10-22T10:28:03Z concurrency=2 candidates=3
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-22T10:28:04Z tests/candidate-1.test.sh worker=1
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-22T10:28:04Z tests/candidate-2.test.sh worker=2
+fm-test-isolation-proof: the runner the caller launched (pid 40505) is gone; starting no further candidates
+
+OBSERVED parallel-slot: started=['1.pids', '2.pids']; candidate survivors=0; released=143
+CASE final-drain
+FM_ISOLATION_BEGIN 2026-10-22T10:28:05Z concurrency=2 candidates=1
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-22T10:28:05Z tests/candidate-1.test.sh worker=1
+fm-test-isolation-proof: the runner the caller launched (pid 41590) is gone; starting no further candidates
+
+OBSERVED final-drain: started=['1.pids']; candidate survivors=0; released=143
+CASE direct
+FM_ISOLATION_BEGIN 2026-10-22T10:28:06Z concurrency=2 candidates=3
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-22T10:28:06Z tests/candidate-1.test.sh worker=1
+FM_ISOLATION_CANDIDATE_BEGIN 2026-10-22T10:28:06Z tests/candidate-2.test.sh worker=2
+
+OBSERVED direct: started=['1.pids', '2.pids']; candidate survivors=0; released=direct
+ok - owner death stops proof admission, active candidates, and the final drain

@@ -1,0 +1,45 @@
+test_provably_working_signal_absorbed rc=0
+ok - a no-verb signal whose crew is provably working is absorbed (no exit, no queue, suppressor advanced, beacon present)
+test_turn_ended_not_working_surfaced rc=0
+ok - a bare turn-end whose crew is not provably working is surfaced (the swallowed-finish fix)
+test_actionable_signal_surfaced rc=0
+ok - captain-relevant signal is surfaced (queue + exit) and marked surfaced
+test_check_sweep_reprobes_captain_holds rc=1
+wait_for_exit: owned pid 75291 exceeded 600 polls; sending TERM
+75291 90178 S    bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/bin/fm-watch.sh
+not ok - the due sweep did not wake after a passing probe: 
+test_check_sweep_surfaces_interrupted_probe_releases rc=0
+ok - the check sweep wakes for interrupted releases, keeps held failures quiet, and supports replay
+summary-evidence rc=1
+ok - real refresh producer reaped after watcher poll
+ok - real refresh producer reaped after watcher signal
+ok - real refresh producer reaped after watcher actionable
+ok - watcher cleanup reaps real refresh workers and producers across timeout mechanisms
+ok - watcher-carried status append publishes the real home summary
+ok - many-task summary preserves bounded output, duplicate metadata, and keyed status text
+ok - large backlog snapshots and home-summary publication stay within exec limits
+ok - fleet snapshot transport does not require or mutate operational state
+not ok - parent fleet snapshot did not preserve the large child invalidity
+.test-phase-r3/summary-evidence.sh: line 38: RESTART_HOME: unbound variable
+fm-timeout-lib rc=0
+ok - fm_exec_timed ends the command at its TERM when its named owner is already gone
+ok - fm_exec_timed ends the command when its owner dies during watchdog startup
+ok - fm_exec_timed preserves a top-level shell's parent across exec startup
+ok - fm_exec_timed ends the command at its TERM when the caller's whole group is KILLed
+ok - fm_exec_timed prefers its perl watchdog over timeout
+ok - fm_exec_timed refuses instead of running unbounded when no mechanism exists
+ok - fm_exec_timed rejects a zero, padded, non-numeric, or missing bound and a missing command
+tests/fm-timeout-lib.test.sh: line 28: 58007 Killed: 9                  ( . "$ROOT/bin/fm-timeout-lib.sh"; PATH=$path fm_exec_timed "$@" )
+ok - fm_exec_timed's GNU timeout fallback kills a TERM-ignoring command once the grace has passed
+ok - fm_timed_out accepts 124 and 137 and nothing else
+fm-test-isolation-proof rc=0
+ok - owner death stops proof admission, active candidates, and the final drain
+ok - unknown candidate pools are refused
+ok - family pool JSON scopes jobs admission to proven concurrency
+ok - candidate --list is non-empty, sorted, unique, and real
+ok - serial classes remain excluded from the parallel candidate set
+ok - audited fake-backend and stub-network extras are candidates
+ok - exclusion list documents serial reasons
+ok - isolation-proof contract test is family-mapped
+ok - parallel shards consume the proven-isolated set only
+ok - fixture repositories pin their initial branch to main

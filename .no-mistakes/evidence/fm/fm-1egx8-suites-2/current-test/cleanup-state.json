@@ -1,0 +1,14 @@
+{
+  "validation_producer_processes": [],
+  "validation_markers": {
+    "marker-native": {
+      "pid": 66383,
+      "ps": ""
+    },
+    "marker-bash": {
+      "pid": 68837,
+      "ps": ""
+    }
+  },
+  "retained_evidence_fixture_bytes": 2196
+}
