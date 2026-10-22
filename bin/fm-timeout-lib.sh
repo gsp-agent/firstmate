@@ -74,7 +74,9 @@
 #
 # All four fm_run_timed mechanisms terminate the bounded command's process
 # group, including descendants that remain in it; a descendant that creates
-# another process group is outside this cleanup. GNU/BSD
+# another process group is outside this cleanup. HUP, INT, or TERM delivered
+# to the waiting caller also stops that group and reaps the owned runner before
+# the signal is redelivered under the caller's restored traps. GNU/BSD
 # `timeout` does this by default because it does not run the command in the
 # foreground process group; the perl fallback does it explicitly with setpgrp
 # plus a negative pid, and the bash fallback uses monitor mode to give the
