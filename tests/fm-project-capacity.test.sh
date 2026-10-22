@@ -1416,6 +1416,52 @@ EOF
   pass "same-home ships, scouts, and batch entries defer during a reading and retain publication protection"
 }
 
+# A crew-state reader that cannot answer - exits non-zero, is missing, or
+# runs past FM_PROJECT_CAPACITY_CREW_TIMEOUT - fails the count closed: the
+# spawn refuses rather than silently counting the holder as not working.
+test_unreadable_crew_state_refuses_admission() {
+  local case_dir home out rc=0 start elapsed
+  case_dir=$(make_case crew-fail task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 2"
+  write_live "$home" live-a "$case_dir/project"
+
+  cat > "$case_dir/fakebin/fm-crew-state-stub" <<'SH'
+#!/usr/bin/env bash
+echo "state: working - source: fixture"
+exit 1
+SH
+  chmod +x "$case_dir/fakebin/fm-crew-state-stub"
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code 1 "$rc" "a crew-state reader exiting non-zero did not refuse admission: $out"
+  assert_contains "$out" "crew state for task record $home/state/live-a.meta cannot be read" \
+    "the refusal did not name the unreadable crew state"
+  assert_absent "$home/state/task-c.meta" "a spawn published past an unreadable crew state"
+
+  rm "$case_dir/fakebin/fm-crew-state-stub"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code 1 "$rc" "a missing crew-state reader did not refuse admission: $out"
+  assert_absent "$home/state/task-c.meta" "a spawn published past a missing crew-state reader"
+
+  cat > "$case_dir/fakebin/fm-crew-state-stub" <<'SH'
+#!/usr/bin/env bash
+sleep 60
+SH
+  chmod +x "$case_dir/fakebin/fm-crew-state-stub"
+  rc=0
+  start=$SECONDS
+  export FM_PROJECT_CAPACITY_CREW_TIMEOUT=1
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  unset FM_PROJECT_CAPACITY_CREW_TIMEOUT
+  elapsed=$((SECONDS - start))
+  expect_code 1 "$rc" "a hung crew-state reader did not refuse admission: $out"
+  [ "$elapsed" -lt 30 ] || fail "a hung crew-state reader held the count for ${elapsed}s"
+  assert_absent "$home/state/task-c.meta" "a spawn published past a hung crew-state reader"
+  pass "a crew-state reader that fails, is missing, or hangs refuses admission instead of undercounting"
+}
+
+test_unreadable_crew_state_refuses_admission
 test_undeclared_capacity_keeps_dispatch_uncapped
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind

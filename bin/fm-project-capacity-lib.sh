@@ -46,10 +46,14 @@
 #     are counted, and
 #   - has no recorded PR handoff: the pr= line bin/fm-pr-check.sh records when a
 #     worker's PR is ready, after which the worker waits on review or merge and
-#     no longer uses local resources.
-# A place therefore frees when a PR-based ship records its ready PR, or when any
-# task is cleaned up and its record removed. A local-only ship and a scout have
-# no recorded handoff and hold their place until cleanup. A worker that is
+#     no longer uses local resources, and
+#   - is working: bin/fm-crew-state.sh reads the task as working
+#     (fm_project_capacity_is_working). A resident record read as parked,
+#     paused, done, blocked, failed or unknown holds no place.
+# A place therefore frees when a PR-based ship records its ready PR, when the
+# holder stops working, or when any task is cleaned up and its record removed.
+# A local-only ship and a scout have no recorded handoff and hold their place
+# while they work, until they stop or are cleaned up. A worker that is
 # steered back into work after its PR handoff is not counted again.
 # The declaration is matched by the spawning clone's directory name, so clones
 # of one origin share the cap only when they use that same directory name. A
@@ -133,6 +137,12 @@ FM_PROJECT_CAPACITY_RELEASE_WAIT=10
 
 # A reading that has not exited by this many seconds is no room.
 FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT=30
+
+# How long one crew-state reading for the occupancy count may run. The count
+# runs under the shared project lock, so an unbounded reader would hold every
+# spawn for that project hostage; a reading that cannot answer in this bound
+# fails the count (and the spawn) rather than guessing.
+FM_PROJECT_CAPACITY_CREW_TIMEOUT=${FM_PROJECT_CAPACITY_CREW_TIMEOUT:-10}
 
 # The config directory holding this machine's declaration: the spawning home's
 # own <config-dir> when that home is the local root (so an override of it
@@ -232,13 +242,23 @@ fm_project_capacity_lookup() {  # <config-dir> <project-name>
 # FM_PROJECT_CAPACITY_ERROR when the local homes cannot be enumerated, or when
 # a state directory or task record in them cannot be read, since skipping it
 # could undercount the holders.
-# 0 when bin/fm-crew-state.sh reads the task in <state-dir> as working.
-# Local evidence only (no forge read): a state the helper cannot read
-# working - parked, paused, done, blocked, failed, unknown - holds no slot.
+# 0 when bin/fm-crew-state.sh reads the task in <state-dir> as working;
+# 1 when the reader answered and the state is anything else - parked,
+# paused, done, blocked, failed, unknown - which holds no slot;
+# 2 when the reader could not answer at all (missing, not executable,
+# non-zero exit, or past FM_PROJECT_CAPACITY_CREW_TIMEOUT), which the
+# caller must not mistake for "not working": undercounting the holders
+# would silently turn the cap into no cap. Local evidence only (no forge
+# read). The read is bounded because the count runs under the shared
+# project lock, the same bound bin/fm-inactive-reconcile.sh already puts
+# on this identical invocation.
 fm_project_capacity_is_working() {  # <state-dir> <id>
   local out crew_state=${FM_PROJECT_CAPACITY_CREW_STATE:-$(dirname "${BASH_SOURCE[0]}")/fm-crew-state.sh}
-  out=$(FM_HOME="$(dirname "$1")" FM_STATE_OVERRIDE="$1" FM_CREW_STATE_NO_FORGE=1 \
-    "$crew_state" "$2" 2>/dev/null) || return 1
+  _fm_project_capacity_require_timeout || return 2
+  [ -x "$crew_state" ] || return 2
+  out=$(fm_run_timed "$FM_PROJECT_CAPACITY_CREW_TIMEOUT" env \
+    FM_HOME="$(dirname "$1")" FM_STATE_OVERRIDE="$1" FM_CREW_STATE_NO_FORGE=1 \
+    "$crew_state" "$2" 2>/dev/null) || return 2
   case "$out" in
     "state: working"*) return 0 ;;
     *) return 1 ;;
@@ -246,7 +266,7 @@ fm_project_capacity_is_working() {  # <state-dir> <id>
 }
 
 fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> <own-id>
-  local want=$1 own=$2 first=$3 self=$4 state meta kind project lock id label i
+  local want=$1 own=$2 first=$3 self=$4 state meta kind project lock id label i rc
   local -a cache_dirs cache_locks
   FM_PROJECT_CAPACITY_OCCUPANTS=0
   FM_PROJECT_CAPACITY_OCCUPANT_IDS=
@@ -291,10 +311,18 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
       [ -n "$lock" ] && [ "$lock" = "$want" ] || continue
       id=$(basename "$meta" .meta)
       # Dale 10-21 (.agent-config-ydbn7): the capacity knob counts WORKING
-      # tasks (docs/laptop-capacity.md). A resident record that fm-crew-state
-      # reads as parked, paused, done, blocked, failed or unknown holds no
-      # slot; idle records once filled the cap while one task worked.
-      fm_project_capacity_is_working "$state" "$id" || continue
+      # tasks. A resident record that fm-crew-state reads as parked, paused,
+      # done, blocked, failed or unknown holds no slot; idle records once
+      # filled the cap while one task worked. A record whose crew state
+      # cannot be read at all fails the count, like any unreadable record
+      # above: skipping it could undercount the holders.
+      fm_project_capacity_is_working "$state" "$id"
+      rc=$?
+      if [ "$rc" -eq 2 ]; then
+        FM_PROJECT_CAPACITY_ERROR="crew state for task record $meta cannot be read"
+        return 1
+      fi
+      [ "$rc" -eq 0 ] || continue
       label=$id
       [ "$state" = "$first" ] || label="$id in $(dirname "$state")"
       FM_PROJECT_CAPACITY_OCCUPANTS=$((FM_PROJECT_CAPACITY_OCCUPANTS + 1))
