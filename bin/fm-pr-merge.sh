@@ -16,7 +16,7 @@
 # default_merge_style, read live, and a merge is refused when it cannot be read.
 # A GitHub merge is refused unless every pre-merge condition holds, each read
 # live at merge time rather than taken from recorded metadata: the pull request
-# is open, not a draft, mergeable, free of conflicts, every unwaived check
+# is open, not a draft, mergeable, free of conflicts, every applicable unwaived check
 # is green at the exact current head commit, where github_checks_not_green below
 # owns what makes a check green and judges each one by its current run, and
 # every unwaived check the forge requires for the base branch has reported at
@@ -25,6 +25,14 @@
 # re-checks every condition after a short bounded wait instead of refusing;
 # once that bound is spent it reports mergeability still pending rather than
 # unmergeable, with the same nonzero exit as any other refusal.
+# When the repository's Actions permissions read confirms Actions is disabled,
+# github_checks_not_green ignores CheckRun entries whose detailsUrl contains
+# /actions/runs/. Commit statuses, other check runs, and required-context
+# presence checks remain enforced; an unreadable permissions read exempts none.
+# Without --attended-override, GitHub also requires approval at the verified
+# head from FM_MERGE_REVIEWER (default carmanchip23-dev). Among that reviewer's
+# APPROVED, CHANGES_REQUESTED and COMMENTED reviews at that head in the response,
+# the last must be APPROVED; an unreadable review response refuses the merge.
 # The check rollup is a second read, and only after the cheap fields show the
 # pull request is open, not a draft, and otherwise mergeable. A closed, draft,
 # conflicting, or still-UNKNOWN pull request never requests that rollup.
