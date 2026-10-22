@@ -1478,6 +1478,88 @@ test_handed_over_successor_chains_and_can_be_taken_over_while_owner_lives() {
   pass "watch-arm: explicit handover permits chaining and takeover while the original owner still lives"
 }
 
+test_covering_arm_attaches_after_its_child_stands_down() {
+  local dir state fakebin armout out real_cat race i watchers closed status
+  real_cat=$(command -v cat)
+  for race in 0 1; do
+    dir=$(make_case "covering-stand-down-$race")
+    state="$dir/state"
+    fakebin="$dir/fakebin"
+    armout="$dir/arm.out"
+    out="$dir/watch.out"
+    FM_HOME="$dir" start_seed_watcher "$state" "$fakebin" "$out" 1
+    consumer_tick "$dir" "$state" || fail "fixture: the existing watcher is not healthy"
+    if [ "$race" -eq 1 ]; then
+      cat > "$fakebin/cat" <<SH
+#!/usr/bin/env bash
+if [ "\${FM_TEST_COVER_STANDDOWN:-0}" = 1 ] \\
+  && [ "\${FM_WATCH_HANDLING_SUCCESSOR:-0}" != 1 ] \\
+  && [ "\$#" -eq 1 ] && [ "\$1" = "\$FM_STATE_OVERRIDE/.watch.lock/pid" ] \\
+  && [ ! -e "\$FM_HOME/skipped-first-health" ]; then
+  : > "\$FM_HOME/skipped-first-health"
+  exit 1
+fi
+exec "$real_cat" "\$@"
+SH
+      chmod +x "$fakebin/cat"
+    fi
+    PATH="$fakebin:$PATH" FM_HOME="$dir" FM_STATE_OVERRIDE="$state" \
+      FM_ARM_CONFIRM_TIMEOUT="$REARM_CONFIRM_SECONDS" FM_ARM_ATTACH_POLL=0.1 \
+      FM_WATCH_COVER=1 FM_WATCH_PREDECESSOR_ARM_PID=$$ \
+      FM_WATCH_HANDLING_SUCCESSOR=0 FM_TEST_COVER_STANDDOWN=1 \
+      "$WATCH_ARM" > "$armout" 2>&1 &
+    ARM_PID=$!
+    i=0
+    while [ "$i" -lt "$REARM_REPORT_POLLS" ]; do
+      grep -q '^watcher: attached ' "$armout" && break
+      is_live_non_zombie "$ARM_PID" || break
+      sleep 0.05
+      i=$((i + 1))
+    done
+    assert_grep "watcher: attached pid=$SEED_PID " "$armout" \
+      "the covering arm did not attach to the existing healthy watcher: $(cat "$armout")"
+    [ "$(grep -c '^watcher: attached ' "$armout")" -eq 1 ] \
+      || fail "the covering arm reported more than one attachment"
+    ! grep -Eq '^watcher: (started|FAILED)' "$armout" \
+      || fail "the covering arm replaced or rejected the healthy watcher"
+    consumer_tick "$dir" "$state" || fail "the existing watcher lost its health after attachment"
+    [ "$(cat "$state/.watch.lock/pid")" = "$SEED_PID" ] || fail "the existing watcher lost its lock"
+    watchers=$(ps -eo pid=,ppid=,args= | awk -v owner="$$" -v arm="$ARM_PID" '
+      $2 == owner || $2 == arm {
+        for (i = 3; i <= NF; i++) {
+          if ($i ~ /(^|\/)fm-watch\.sh$/) { print $1; break }
+        }
+      }')
+    [ "$watchers" = "$SEED_PID" ] || fail "attachment left more than one live watcher: $watchers"
+    if [ "$race" -eq 1 ]; then
+      [ -f "$dir/skipped-first-health" ] || fail "fixture: the initial health check was not skipped"
+      assert_grep "watcher: already running pid $SEED_PID" "$armout" \
+        "fixture: the child did not stand down to the existing watcher"
+      closed=$(awk -F '\t' '$3 == "origin=started" { sub(/^watcher_pid=/, "", $2); print $2 }' \
+        "$state/.watch-cycle-exits.log")
+      case "$closed" in ''|*[!0-9]*) fail "the covering arm did not stop after one stand-down child" ;; esac
+      ! is_live_non_zombie "$closed" || fail "the stand-down child is still running"
+      printf 'done: the attached watcher delivered its wake\n' > "$state/demo.status"
+      wait_for_exit "$SEED_PID" "$REARM_EXIT_POLLS"
+      expect_code 0 "$?" "the existing watcher must deliver the fleet event"
+      wait_for_exit "$ARM_PID" "$REARM_EXIT_POLLS"
+      status=$?
+      expect_code 0 "$status" "the attached covering arm must close after the delivered wake"
+      assert_grep 'signal:' "$armout" "the covering attachment did not surface the delivered wake"
+      assert_grep 'demo.status' "$state/.wake-queue" "the attachment consumed the queued wake"
+      [ ! -e "$state/.watch.lock/pid" ] || fail "the completed attachment started another watcher"
+      ! grep -Eq '^watcher: (started|FAILED)' "$armout" || fail "attachment completion restarted or failed"
+    else
+      kill -TERM "$ARM_PID" 2>/dev/null || true
+      wait_for_exit "$ARM_PID" 100 >/dev/null 2>&1 || true
+      consumer_tick "$dir" "$state" || fail "stopping the attachment stopped its existing watcher"
+      kill -TERM "$SEED_PID" 2>/dev/null || true
+      wait_for_exit "$SEED_PID" 100 >/dev/null 2>&1 || true
+    fi
+  done
+  pass "watch-arm: covering arms attach once to the sole healthy watcher, including after a startup stand-down"
+}
+
 test_covering_successor_rearms_after_a_preconfirmation_clean_close() {
   local dir state fakebin armout real_cat real_sleep cover status first watcher watchers i
   real_cat=$(command -v cat)
@@ -2128,6 +2210,7 @@ test_successor_left_for_main_covers_the_whole_turn
 test_take_over_of_a_covering_successor_leaves_one_watcher
 test_covering_successor_with_a_live_owner_closes_on_its_wake
 test_handed_over_successor_chains_and_can_be_taken_over_while_owner_lives
+test_covering_arm_attaches_after_its_child_stands_down
 test_covering_successor_rearms_after_a_preconfirmation_clean_close
 test_covering_startup_clean_closes_share_one_deadline
 test_chained_cycle_capture_failure_exits_without_retrying
