@@ -40,6 +40,10 @@
 #   - no global git config mutation (snapshot before/after)
 #   - no production sharding and no retry-until-green
 #
+# Machine line:
+#   bin/fm-test-machine-line-lib.sh owns suite admission, gate overrides,
+#   retry behavior, nested runs, and timing across admission waits.
+#
 # Markers (stdout):
 #   FM_ISOLATION_BEGIN <iso8601> concurrency=<n> candidates=<n>
 #   FM_ISOLATION_CANDIDATE_BEGIN <iso8601> <script> worker=<i>
