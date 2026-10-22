@@ -1,0 +1,8 @@
+#!/bin/bash
+set -u
+export TMPDIR="$PWD/.test-phase-tmp"
+. tests/fm-supervision-host.test.sh
+test_covering_attachments_handoff_and_continue_through_both_owners
+test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm
+test_handed_over_successor_covers_the_host_exit_lease_wait
+test_exit_to_main_keeps_a_consumer_through_main_turn

@@ -1,0 +1,28 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment-race 
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment-race
+ exit 0
+$ bin/fm-lock.sh 
+lock acquired: harness pid 49472
+ exit 0
+ATTACHED_READY watcher: already running pid 53488
+watcher: attached pid=53488 (beacon 2s)
+ COVER_RECORD 53592	Thu Oct 22 08:11:39 2026     bash bin/fm-watch-arm.sh	50579	owned
+
+$ bin/fm-watch-arm.sh --cover-handoff 53592 
+ exit 0
+REPLACEMENT_OWNERSHIP {"closed_peer": 53488, "cover_arm": 53592, "replacement_watcher": 67993, "replacement_parent": 53592}
+$ bin/fm-inbox.sh ready 
+{"schema":"fm-primary-ready.v1","home":".test-phase-tmp/attachment-race","observed_at":"2026-10-22T13:11:49Z","lock":{"state":"held","pid":49472,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"can_receive":true}
+ exit 0
+READINESS {"schema":"fm-primary-ready.v1","home":".test-phase-tmp/attachment-race","observed_at":"2026-10-22T13:11:49Z","lock":{"state":"held","pid":49472,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"can_receive":true}
+
+UNCONSUMED_QUEUE 1792674705	1	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment-race/state/demo.status
+1792674706	2	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment-race/state/demo.status
+
+CYCLE_EXITS arm_pid=53592	watcher_pid=54865	origin=started	started_at=1792674700	ended_at=1792674701	exit_code=0	signal=none	reason=unexpected-clean-exit	beacon_age=0	lock_before=pid:none|identity:none	lock_after=pid:53488|identity:Thu Oct 22 08:11:38 2026     bash bin/fm-watch.sh	successor=attached:53488
+arm_pid=53592	watcher_pid=53488	origin=attached	started_at=1792674702	ended_at=1792674708	exit_code=unknown	signal=unknown	reason=attached-delivered-wake	beacon_age=3	lock_before=pid:53488|identity:Thu Oct 22 08:11:38 2026     bash bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:67993
+
+LIVE_ATTACHMENT_RACE_RESULT pass
+$ bin/fm-watch-arm.sh --stop 
+watcher: stopped pid=67993
+ exit 0

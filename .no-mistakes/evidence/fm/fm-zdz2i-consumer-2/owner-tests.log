@@ -1,0 +1,4 @@
+ok - host+hook: startup and stand-down attachments hand over coverage and replace the closed peer without consuming wakes
+ok - host+hook: retirement rejects a racing handover and both owners leave one replacement consumer
+ok - host+hook: a handed-over consumer stays live while its owner waits for a lease in exit cleanup
+ok - host+hook: exit_to_main keeps one consumer through main's turn, queues notifications and hands over at turn end

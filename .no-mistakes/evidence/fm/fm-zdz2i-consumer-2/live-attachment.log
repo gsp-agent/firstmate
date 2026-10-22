@@ -1,0 +1,24 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment 
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment
+ exit 0
+$ bin/fm-lock.sh 
+lock acquired: harness pid 49472
+ exit 0
+ATTACHED_READY watcher: attached pid=76645 (beacon 5s)
+ COVER_RECORD 85853	Thu Oct 22 08:11:03 2026     bash bin/fm-watch-arm.sh	71904	owned
+
+$ bin/fm-watch-arm.sh --cover-handoff 85853 
+ exit 0
+REPLACEMENT_OWNERSHIP {"closed_peer": 76645, "cover_arm": 85853, "replacement_watcher": 4769, "replacement_parent": 85853}
+$ bin/fm-inbox.sh ready 
+{"schema":"fm-primary-ready.v1","home":".test-phase-tmp/attachment","observed_at":"2026-10-22T13:11:14Z","lock":{"state":"held","pid":49472,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":true}
+ exit 0
+READINESS {"schema":"fm-primary-ready.v1","home":".test-phase-tmp/attachment","observed_at":"2026-10-22T13:11:14Z","lock":{"state":"held","pid":49472,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":0},"posture":{"state":"present"},"can_receive":true}
+
+UNCONSUMED_QUEUE 1792674669	1	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment/state/demo.status
+1792674670	2	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment/state/demo.status
+
+LIVE_ATTACHMENT_RESULT pass
+$ bin/fm-watch-arm.sh --stop 
+watcher: stopped pid=4769
+ exit 0

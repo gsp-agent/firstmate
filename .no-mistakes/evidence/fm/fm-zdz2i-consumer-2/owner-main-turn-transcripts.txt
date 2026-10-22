@@ -1,0 +1,58 @@
+CASE hook-exit-to-main-return / hook.err
+Terminated: 15             FM_SUPERVISION_HOST_AUTOARM_GEN=$MY_GEN FM_SUPERVISION_HOST_OWNER_PID=$$ FM_SUPERVISION_HOST_PRIMARY=claude FM_GUARD_GRACE="$GRACE" "$SCRIPT_DIR/fm-supervision-host.sh" park > "${OUT:-/dev/null}" 2>&1
+firstmate watcher auto-arm INTERRUPTED by TERM - the Stop-owned automatic supervision mechanism did not reach a terminal watcher outcome.
+Do not launch a manual background arm from this notice; investigate the automatic Stop hook and watcher startup before ending blind.
+
+CASE hook-exit-to-main-return / main-drain.out
+1792674789	4	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/hook-exit-to-main-return/state/later.status
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 8322.1792674777.Dplaig
+wake annotation: latest wake-EVENT observed at drain, not current state: later.status: needs-decision: second notification during main turn
+OPEN DECISIONS (still open, folded from the durable status logs - not just the latest line):
+later needs-decision: second notification during main turn
+OPEN DECISIONS: close one by answering it: bin/fm-send.sh <task> --resolve-key <key> '<answer>'
+BRANCH OUTCOMES, ROUTINE (handled by the supervision session since your last drain; for your awareness, nothing to acknowledge):
+[seq 1] demo: stub handled demo
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+CASE hook-exit-to-main-return / hook.rc
+2
+
+CASE hook-exit-to-main-fail / hook.err
+Terminated: 15             FM_SUPERVISION_HOST_AUTOARM_GEN=$MY_GEN FM_SUPERVISION_HOST_OWNER_PID=$$ FM_SUPERVISION_HOST_PRIMARY=claude FM_GUARD_GRACE="$GRACE" "$SCRIPT_DIR/fm-supervision-host.sh" park > "${OUT:-/dev/null}" 2>&1
+firstmate watcher auto-arm INTERRUPTED by TERM - the Stop-owned automatic supervision mechanism did not reach a terminal watcher outcome.
+Do not launch a manual background arm from this notice; investigate the automatic Stop hook and watcher startup before ending blind.
+
+CASE hook-exit-to-main-fail / main-drain.out
+1792674689	2	signal	demo.status	signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/hook-exit-to-main-fail/state/demo.status
+1792674711	4	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/hook-exit-to-main-fail/state/later.status
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 30304.1792674689.1PCetk
+wake annotation: latest wake-EVENT observed at drain, not current state: later.status: needs-decision: second notification during main turn
+OPEN DECISIONS (still open, folded from the durable status logs - not just the latest line):
+later needs-decision: second notification during main turn
+OPEN DECISIONS: close one by answering it: bin/fm-send.sh <task> --resolve-key <key> '<answer>'
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+CASE hook-exit-to-main-fail / hook.rc
+2
+
+CASE hook-exit-to-main-captain / hook.err
+Terminated: 15             FM_SUPERVISION_HOST_AUTOARM_GEN=$MY_GEN FM_SUPERVISION_HOST_OWNER_PID=$$ FM_SUPERVISION_HOST_PRIMARY=claude FM_GUARD_GRACE="$GRACE" "$SCRIPT_DIR/fm-supervision-host.sh" park > "${OUT:-/dev/null}" 2>&1
+firstmate watcher auto-arm INTERRUPTED by TERM - the Stop-owned automatic supervision mechanism did not reach a terminal watcher outcome.
+Do not launch a manual background arm from this notice; investigate the automatic Stop hook and watcher startup before ending blind.
+
+CASE hook-exit-to-main-captain / main-drain.out
+1792674673	4	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/hook-exit-to-main-captain/state/later.status
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 21784.1792674661.nokp0r
+wake annotation: latest wake-EVENT observed at drain, not current state: later.status: needs-decision: second notification during main turn
+OPEN DECISIONS (still open, folded from the durable status logs - not just the latest line):
+later needs-decision: second notification during main turn
+OPEN DECISIONS: close one by answering it: bin/fm-send.sh <task> --resolve-key <key> '<answer>'
+BRANCH OUTCOMES (captain outcomes the supervision session recorded for you, one line per task, oldest first; each says what was true when it was recorded, so check the task's current state first, including its still-open decisions listed above under OPEN DECISIONS, and sort them into still open and already settled, such as a decision since answered, a PR since merged, or a task since finished - process the still-open ones as firstmate: tell the captain, land or merge what is ready, answer or escalate a decision, or act on a blocker; your reply to the captain covers only those, as if the settled ones had never been listed, and a settled one needs only the acknowledgement):
+[seq 1, recorded 0m ago] demo: stub escalated: 1792674641 2 signal demo.status signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/hook-exit-to-main-captain/state/demo.status wake annotation: latest wake-EVENT observed at drain, not current state: demo.status: working [at=1792674635]: first actionable wake
+BRANCH OUTCOMES: after processing them run bin/fm-branch-outcome.sh mark-processed --through 1; until then every drain presents them again
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+
+CASE hook-exit-to-main-captain / hook.rc
+2
+
+CASE hook-exit-to-main-noreport / hook.err

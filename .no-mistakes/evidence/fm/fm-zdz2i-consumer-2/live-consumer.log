@@ -1,0 +1,46 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l 
+ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l
+  exit 0
+$ bin/fm-lock.sh 
+ lock acquired: harness pid 49472
+  exit 0
+BASELINE {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:10Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "down", "reason": "no-beacon", "beacon_age_seconds": null}, "posture": {"state": "present"}, "can_receive": false}
+FIRST_READY {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:13Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 0}, "posture": {"state": "present"}, "can_receive": true}
+CHECKPOINT_EXIT 0
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/demo.status
+
+COVERAGE_HANDOFF 25605	Thu Oct 22 08:08:17 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/bin/fm-watch-arm.sh	13047	handed-over
+MAIN_TURN_NOTIFICATION 1 previous_watcher 26181 next_watcher 42363 READY {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:28Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 1}, "posture": {"state": "present"}, "can_receive": true}
+DURABLE_QUEUE 1792674496	1	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/demo.status
+1792674496	2	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/demo.status
+1792674503	3	signal	later1.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later1.status
+1792674503	4	signal	later1.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later1.status
+
+MAIN_TURN_NOTIFICATION 2 previous_watcher 42363 next_watcher 54567 READY {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:37Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 0}, "posture": {"state": "present"}, "can_receive": true}
+DURABLE_QUEUE 1792674496	1	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/demo.status
+1792674496	2	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/demo.status
+1792674503	3	signal	later1.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later1.status
+1792674503	4	signal	later1.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later1.status
+1792674511	5	signal	later2.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later2.status
+1792674512	6	signal	later2.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later2.status
+
+MAIN_TURN_NOTIFICATION 3 previous_watcher 54567 next_watcher 66109 READY {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:46Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 0}, "posture": {"state": "present"}, "can_receive": true}
+DURABLE_QUEUE 1792674496	1	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/demo.status
+1792674496	2	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/demo.status
+1792674503	3	signal	later1.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later1.status
+1792674503	4	signal	later1.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later1.status
+1792674511	5	signal	later2.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later2.status
+1792674512	6	signal	later2.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later2.status
+1792674520	7	signal	later3.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later3.status
+1792674521	8	signal	later3.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/l/state/later3.status
+
+SETTLED_TICK 0 {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:47Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 1}, "posture": {"state": "present"}, "can_receive": true}
+SETTLED_TICK 1 {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:49Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 3}, "posture": {"state": "present"}, "can_receive": true}
+SETTLED_TICK 2 {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:51Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 5}, "posture": {"state": "present"}, "can_receive": true}
+SETTLED_TICK 3 {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:53Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 2}, "posture": {"state": "present"}, "can_receive": true}
+SETTLED_TICK 4 {"schema": "fm-primary-ready.v1", "home": "01M5HMEQP6WJCA325R007SZPY7/l", "observed_at": "2026-10-22T13:08:55Z", "lock": {"state": "held", "pid": 49472, "live_harness": true}, "wake_consumer": {"state": "healthy", "reason": "supervised", "beacon_age_seconds": 4}, "posture": {"state": "present"}, "can_receive": true}
+LIVE_CONSUMER_RESULT pass
+$ bin/fm-watch-arm.sh --stop 
+ watcher: stopped pid=66109
+  exit 0
+CLEANUP stopped isolated consumer; lab files retained for bounded cleanup

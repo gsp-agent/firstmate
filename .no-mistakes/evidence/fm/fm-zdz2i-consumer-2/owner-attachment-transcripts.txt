@@ -1,0 +1,79 @@
+CASE covering-attachment-hook-startup / attachment-ready.out
+watcher: attached pid=29311 (beacon 4s)
+
+CASE covering-attachment-hook-startup / hook.err
+firstmate watcher wake - one supervision event needs a handling turn now.
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-startup/state/demo.status
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+
+CASE covering-attachment-hook-startup / state/.watch-cycle-exits.log
+arm_pid=1452	watcher_pid=1732	origin=started	started_at=1792674403	ended_at=1792674424	exit_code=0	signal=none	reason=actionable-signal	beacon_age=9	lock_before=pid:1732|identity:Thu Oct 22 08:06:43 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-startup/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=attached:29311
+arm_pid=34913	watcher_pid=29311	origin=attached	started_at=1792674434	ended_at=1792674448	exit_code=unknown	signal=unknown	reason=attached-delivered-wake	beacon_age=9	lock_before=pid:29311|identity:Thu Oct 22 08:07:07 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-startup/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=34913	watcher_pid=51390	origin=started	started_at=1792674448	ended_at=1792674451	exit_code=143	signal=TERM	reason=arm-interrupted	beacon_age=1	lock_before=pid:51390|identity:Thu Oct 22 08:07:28 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-startup/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+
+CASE covering-attachment-hook-startup / state/.wake-queue
+1792674418	1	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-startup/state/demo.status
+1792674420	2	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-startup/state/demo.status
+1792674444	3	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-startup/state/later.status
+1792674445	4	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-startup/state/later.status
+
+CASE covering-attachment-host-standdown / attachment-ready.out
+watcher: already running pid 81251
+watcher: attached pid=81251 (beacon 3s)
+
+CASE covering-attachment-host-standdown / hook.err
+firstmate watcher wake - one supervision event needs a handling turn now.
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/state/demo.status
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+
+CASE covering-attachment-host-standdown / state/.watch-cycle-exits.log
+arm_pid=71007	watcher_pid=71851	origin=started	started_at=1792674364	ended_at=1792674375	exit_code=0	signal=none	reason=actionable-signal	beacon_age=3	lock_before=pid:71851|identity:Thu Oct 22 08:06:03 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=attached:81251
+arm_pid=82357	watcher_pid=82860	origin=started	started_at=1792674378	ended_at=1792674379	exit_code=0	signal=none	reason=unexpected-clean-exit	beacon_age=2	lock_before=pid:81251|identity:Thu Oct 22 08:06:16 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/bin/fm-watch.sh	lock_after=pid:81251|identity:Thu Oct 22 08:06:16 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/bin/fm-watch.sh	successor=attached:81251
+arm_pid=82357	watcher_pid=81251	origin=attached	started_at=1792674380	ended_at=1792674392	exit_code=unknown	signal=unknown	reason=attached-delivered-wake	beacon_age=7	lock_before=pid:81251|identity:Thu Oct 22 08:06:16 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=82357	watcher_pid=95478	origin=started	started_at=1792674394	ended_at=1792674399	exit_code=143	signal=TERM	reason=arm-interrupted	beacon_age=2	lock_before=pid:95478|identity:Thu Oct 22 08:06:33 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+
+CASE covering-attachment-host-standdown / state/.wake-queue
+1792674372	1	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/state/demo.status
+1792674373	2	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/state/demo.status
+1792674388	3	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/state/later.status
+1792674388	4	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-standdown/state/later.status
+
+CASE covering-attachment-hook-standdown / attachment-ready.out
+watcher: already running pid 71574
+watcher: attached pid=71574 (beacon 4s)
+
+CASE covering-attachment-hook-standdown / hook.err
+firstmate watcher wake - one supervision event needs a handling turn now.
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/state/demo.status
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+
+CASE covering-attachment-hook-standdown / state/.watch-cycle-exits.log
+arm_pid=58057	watcher_pid=58550	origin=started	started_at=1792674455	ended_at=1792674463	exit_code=0	signal=none	reason=actionable-signal	beacon_age=3	lock_before=pid:58550|identity:Thu Oct 22 08:07:35 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=attached:71574
+arm_pid=74502	watcher_pid=75674	origin=started	started_at=1792674466	ended_at=1792674467	exit_code=0	signal=none	reason=unexpected-clean-exit	beacon_age=2	lock_before=pid:71574|identity:Thu Oct 22 08:07:44 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/bin/fm-watch.sh	lock_after=pid:71574|identity:Thu Oct 22 08:07:44 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/bin/fm-watch.sh	successor=attached:71574
+arm_pid=74502	watcher_pid=71574	origin=attached	started_at=1792674468	ended_at=1792674477	exit_code=unknown	signal=unknown	reason=attached-delivered-wake	beacon_age=5	lock_before=pid:71574|identity:Thu Oct 22 08:07:44 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=74502	watcher_pid=97962	origin=started	started_at=1792674478	ended_at=1792674480	exit_code=143	signal=TERM	reason=arm-interrupted	beacon_age=2	lock_before=pid:97962|identity:Thu Oct 22 08:07:58 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+
+CASE covering-attachment-hook-standdown / state/.wake-queue
+1792674461	1	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/state/demo.status
+1792674462	2	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/state/demo.status
+1792674474	3	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/state/later.status
+1792674475	4	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-hook-standdown/state/later.status
+
+CASE covering-attachment-host-startup / attachment-ready.out
+watcher: attached pid=51421 (beacon 2s)
+
+CASE covering-attachment-host-startup / hook.err
+firstmate watcher wake - one supervision event needs a handling turn now.
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-startup/state/demo.status
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+
+CASE covering-attachment-host-startup / state/.watch-cycle-exits.log
+arm_pid=39185	watcher_pid=39670	origin=started	started_at=1792674330	ended_at=1792674338	exit_code=0	signal=none	reason=actionable-signal	beacon_age=3	lock_before=pid:39670|identity:Thu Oct 22 08:05:30 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-startup/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=attached:51421
+arm_pid=52457	watcher_pid=51421	origin=attached	started_at=1792674343	ended_at=1792674353	exit_code=unknown	signal=unknown	reason=attached-delivered-wake	beacon_age=8	lock_before=pid:51421|identity:Thu Oct 22 08:05:40 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-startup/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=52457	watcher_pid=64403	origin=started	started_at=1792674354	ended_at=1792674357	exit_code=143	signal=TERM	reason=arm-interrupted	beacon_age=2	lock_before=pid:64403|identity:Thu Oct 22 08:05:54 2026     bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-startup/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+
+CASE covering-attachment-host-startup / state/.wake-queue
+1792674336	1	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-startup/state/demo.status
+1792674336	2	signal	demo.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-startup/state/demo.status
+1792674349	3	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-startup/state/later.status
+1792674351	4	signal	later.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/fm-supervision-host.YnNJPZ/covering-attachment-host-startup/state/later.status

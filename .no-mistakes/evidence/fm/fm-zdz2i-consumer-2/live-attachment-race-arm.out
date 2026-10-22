@@ -1,0 +1,4 @@
+watcher: already running pid 53488
+watcher: attached pid=53488 (beacon 2s)
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment-race/state/demo.status
+watcher: started pid=67993 (beacon fresh) recovery-generation=53488.1792674706.TTGrek

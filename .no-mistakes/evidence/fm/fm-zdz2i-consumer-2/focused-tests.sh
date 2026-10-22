@@ -1,0 +1,10 @@
+#!/bin/bash
+set -u
+export TMPDIR="$PWD/.test-phase-tmp"
+. tests/fm-watch-arm.test.sh
+test_successor_left_for_main_covers_the_whole_turn
+test_take_over_of_a_covering_successor_leaves_one_watcher
+test_handed_over_successor_chains_and_can_be_taken_over_while_owner_lives
+test_covering_arm_attaches_after_its_child_stands_down
+test_covering_successor_rearms_after_a_preconfirmation_clean_close
+test_covering_startup_clean_closes_share_one_deadline

@@ -1,0 +1,5 @@
+ok - watch-arm: a successor left for main keeps the home covered through the turn and hands over at its end
+ok - watch-arm: taking over a covering successor leaves exactly one watcher, the parking arm's
+ok - watch-arm: explicit handover permits chaining and takeover while the original owner still lives
+ok - watch-arm: both covering attachment paths register, hand over and replace the sole watcher without consuming its wake
+ok - watch-arm: an early clean close leaves one confirmed covering watcher and preserves the queued wake

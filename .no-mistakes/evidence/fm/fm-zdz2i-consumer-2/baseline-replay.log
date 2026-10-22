@@ -1,0 +1,2 @@
+Negative control: the pre-fix arm at 48f35d6b^ under the current long-main-turn replay
+not ok - no watcher holds the home after the left successor's watcher woke during main's turn (lock pid none)

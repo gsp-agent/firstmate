@@ -1,0 +1,3 @@
+watcher: attached pid=76645 (beacon 5s)
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HMEQP6WJCA325R007SZPY7/.test-phase-tmp/attachment/state/demo.status
+watcher: started pid=4769 (beacon fresh) recovery-generation=76645.1792674669.gp9cmF
