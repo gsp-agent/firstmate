@@ -1,0 +1,5 @@
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end .gate-lint-validation/repro-10x7/l7.sh reason=timeout rc=124 duration_ms=121852 rss_kib=unavailable
+fm-lint: .gate-lint-validation/repro-10x7/l7.sh FAILED at the time cap (120s per root); a capped root is a lint failure, not a pass
+exit=124

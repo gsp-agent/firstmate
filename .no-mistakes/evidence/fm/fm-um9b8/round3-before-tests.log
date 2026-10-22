@@ -1,0 +1,7 @@
+Started: 2026-10-22T20:27:22.218990+00:00
+Command: bash tests/fm-lint.test.sh
+ok - fm-lint.sh --help reports the complete executable interface
+ok - fm-lint.sh --list-files reports the complete shell inventory
+Exit: 143
+Finished: 2026-10-22T20:37:44.067355+00:00
+ession; not a baseline failure.

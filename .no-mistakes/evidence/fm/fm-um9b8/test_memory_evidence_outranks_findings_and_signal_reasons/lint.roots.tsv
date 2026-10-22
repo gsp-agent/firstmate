@@ -1,0 +1,25 @@
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	1
+meta	bounds_enforced	1
+meta	root_deadline_seconds	300
+meta	root_kill_grace_seconds	5
+meta	root_memory_limit_kib	8388608
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-exit1.sh	0	full	1792695547015
+end	1	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-exit1.sh	0	full	1792695547015	1792695547927	912	1	memory	6992	1
+begin	3	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-kill.sh	0	full	1792695547948
+end	3	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-kill.sh	0	full	1792695547948	1792695549858	1910	1	memory	6944	1
+begin	2	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-heap.sh	1	full	1792695550509
+end	2	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-heap.sh	1	full	1792695550509	1792695552787	2278	251	memory	6976	1
+begin	4	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-text-findings.sh	1	full	1792695552869
+end	4	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-text-findings.sh	1	full	1792695552869	1792695555367	2498	1	findings	6992	1
+meta	roots_begun	4
+meta	roots_completed	4
+meta	roots_unfinished	0
+meta	result_exit	1

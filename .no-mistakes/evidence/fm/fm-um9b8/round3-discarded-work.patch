@@ -1,0 +1,149 @@
+diff --git a/bin/fm-pending-reply-lib.sh b/bin/fm-pending-reply-lib.sh
+index ce189b4c..bd47d3ef 100755
+--- a/bin/fm-pending-reply-lib.sh
++++ b/bin/fm-pending-reply-lib.sh
+@@ -1372,7 +1372,7 @@ fm_pending_reply_detect_wrong_home() {  # <state-dir> <corr_id> <secondmate-home
+     return 0
+   fi
+   sightings=$(fm_pending_reply_get "$rec" wrong_home_sightings)
+-  # shellcheck source=bin/fm-parent-channel-lib.sh
++  # shellcheck source=/dev/null # Analyzed separately as a canonical lint root.
+   . "$_FM_PENDING_REPLY_LIB_DIR/fm-parent-channel-lib.sh"
+   if fm_parent_channel_destination "$sm_home" "$sm_home/state" >/dev/null 2>&1 \
+     && [ "$FM_PARENT_CHANNEL_ROUTE" = remote ]; then
+diff --git a/bin/fm-spawn.sh b/bin/fm-spawn.sh
+index 957f2cec..5db4151b 100755
+--- a/bin/fm-spawn.sh
++++ b/bin/fm-spawn.sh
+@@ -638,7 +638,7 @@ FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
+ 
+ # shellcheck source=bin/fm-tasks-axi-lib.sh
+ . "$SCRIPT_DIR/fm-tasks-axi-lib.sh"
+-# Keep the backlog, backend, and PR libraries as separate lint roots so
++# Keep large imported modules as separate canonical lint roots so
+ # spawn's full analysis stays within its default per-root memory cap.
+ # shellcheck source=/dev/null
+ . "$SCRIPT_DIR/fm-backlog-transition-lib.sh"
+@@ -812,8 +812,9 @@ fm_backlog_directory_present "$STATE" "state directory" || {
+ . "$SCRIPT_DIR/fm-live-session-lib.sh"
+ # shellcheck source=bin/fm-worker-account-lib.sh
+ . "$SCRIPT_DIR/fm-worker-account-lib.sh"
+-# shellcheck source=bin/fm-task-reap-lib.sh
++# shellcheck source=/dev/null
+ . "$SCRIPT_DIR/fm-task-reap-lib.sh"
++# shellcheck disable=SC2034 # Read by fm-task-reap-lib.sh.
+ TASK_REAP_ACTOR=spawn
+ # Exit status of a deferred spawn (project capacity or a live session): the
+ # sysexits "temporary failure" code, so a caller can tell a deferral from an
+diff --git a/bin/fm-teardown.sh b/bin/fm-teardown.sh
+index 08856cad..dd4c1f95 100755
+--- a/bin/fm-teardown.sh
++++ b/bin/fm-teardown.sh
+@@ -399,11 +399,12 @@ unset _teardown_source
+ . "$SCRIPT_DIR/fm-control-lib.sh"
+ # shellcheck source=bin/fm-lock-lib.sh
+ . "$SCRIPT_DIR/fm-lock-lib.sh"
+-# shellcheck source=bin/fm-classify-lib.sh
++# Large imported modules are analyzed separately as canonical lint roots.
++# shellcheck source=/dev/null
+ . "$SCRIPT_DIR/fm-classify-lib.sh"
+ # shellcheck source=bin/fm-gate-refuse-lib.sh
+ . "$SCRIPT_DIR/fm-gate-refuse-lib.sh"
+-# shellcheck source=bin/fm-pr-lib.sh
++# shellcheck source=/dev/null
+ . "$SCRIPT_DIR/fm-pr-lib.sh"
+ # shellcheck source=/dev/null
+ . "$SCRIPT_DIR/fm-public-followup-lib.sh"
+@@ -417,8 +418,9 @@ unset _teardown_source
+ . "$SCRIPT_DIR/fm-nm-run-lib.sh"
+ # shellcheck source=/dev/null
+ . "$SCRIPT_DIR/fm-task-data-lib.sh"
+-# shellcheck source=bin/fm-task-reap-lib.sh
++# shellcheck source=/dev/null
+ . "$SCRIPT_DIR/fm-task-reap-lib.sh"
++# shellcheck disable=SC2034 # Read by fm-task-reap-lib.sh.
+ TASK_REAP_ACTOR=teardown
+ if [ "$#" -lt 1 ] || ! fm_task_id_path_safe "$1"; then
+   echo "error: invalid teardown request" >&2
+diff --git a/tests/fm-launch-prompt-signals-live-e2e.test.sh b/tests/fm-launch-prompt-signals-live-e2e.test.sh
+index e54e372b..07223414 100644
+--- a/tests/fm-launch-prompt-signals-live-e2e.test.sh
++++ b/tests/fm-launch-prompt-signals-live-e2e.test.sh
+@@ -81,7 +81,7 @@ watcher_gate_not_busy() {  # <lab> <state> <target> <harness> <tail>
+   FM_STATE_OVERRIDE="$state"
+   FM_CONFIG_OVERRIDE="$lab/config"
+   export FM_ROOT_OVERRIDE FM_HOME FM_STATE_OVERRIDE FM_CONFIG_OVERRIDE
+-  # shellcheck source=bin/fm-watch.sh
++  # shellcheck source=/dev/null
+   . "$ROOT/bin/fm-watch.sh"
+   if window_is_busy "$target" "$tail"; then
+     fail "$harness: the watcher still treats the real parked prompt as busy"
+diff --git a/tests/fm-lint.test.sh b/tests/fm-lint.test.sh
+index f638f310..0907a987 100755
+--- a/tests/fm-lint.test.sh
++++ b/tests/fm-lint.test.sh
+@@ -1362,7 +1362,8 @@ test_large_production_roots_fit_default_caps() {
+   out=$(
+     unset FM_LINT_ROOT_SECONDS FM_LINT_ROOT_GRACE FM_LINT_ROOT_MEMORY_KIB FM_LINT_JOBS
+     "$LINT" --telemetry "$tmp/lint.tsv" bin/fm-spawn.sh bin/fm-teardown.sh \
+-      tests/fm-pending-reply.test.sh tests/fm-launch-prompt-signals-live-e2e.test.sh 2>&1
++      tests/fm-pending-reply.test.sh tests/fm-launch-prompt-signals-live-e2e.test.sh \
++      bin/fm-task-data-lib.sh tests/fm-teardown.test.sh bin/fm-pending-reply-lib.sh 2>&1
+   ) || rc=$?
+   [ "$rc" -eq 0 ] || fail "production roots failed at the default caps (exit $rc)"$'\n'"$out"
+   awk -F '\t' '
+@@ -1373,10 +1374,12 @@ test_large_production_roots_fit_default_caps() {
+       if ($5 != "full" || $9 != 0 || $10 != "ok" || $12 != 1) bad = 1
+     }
+     END {
+-      exit (bad || completed != 4 ||
++      exit (bad || completed != 7 ||
+         seen["bin/fm-spawn.sh"] != 1 || seen["bin/fm-teardown.sh"] != 1 ||
+         seen["tests/fm-pending-reply.test.sh"] != 1 ||
+         seen["tests/fm-launch-prompt-signals-live-e2e.test.sh"] != 1 ||
++        seen["bin/fm-task-data-lib.sh"] != 1 || seen["tests/fm-teardown.test.sh"] != 1 ||
++        seen["bin/fm-pending-reply-lib.sh"] != 1 ||
+         meta["bounds_enforced"] != 1 || meta["jobs"] != 2 ||
+         meta["root_deadline_seconds"] != 300 ||
+         meta["root_memory_limit_kib"] != 8388608 || meta["result_exit"] != 0)
+diff --git a/tests/fm-pending-reply.test.sh b/tests/fm-pending-reply.test.sh
+index 7410b2d8..09794574 100755
+--- a/tests/fm-pending-reply.test.sh
++++ b/tests/fm-pending-reply.test.sh
+@@ -1111,7 +1111,7 @@ test_restart_preserves_expectation_and_parent_destination() {
+   parent_status=$(fm_pending_reply_get "$rec" parent_status)
+   parent_home=$(fm_pending_reply_get "$rec" parent_home)
+   # Simulate process restart: re-source library and re-read the same record.
+-  # shellcheck source=bin/fm-pending-reply-lib.sh
++  # shellcheck source=/dev/null
+   . "$ROOT/bin/fm-pending-reply-lib.sh"
+   [ -f "$rec" ] || fail "record must survive restart"
+   [ "$(fm_pending_reply_get "$rec" parent_status)" = "$parent_status" ] \
+diff --git a/tests/fm-teardown.test.sh b/tests/fm-teardown.test.sh
+index 14e6fbd3..22f9b6e8 100755
+--- a/tests/fm-teardown.test.sh
++++ b/tests/fm-teardown.test.sh
+@@ -6473,6 +6473,7 @@ SH
+ 
+ test_task_data_unread_status_failure_retries() {
+   local case_dir record variant sweep_pid reference
++  # shellcheck source=/dev/null
+   . "$ROOT/bin/fm-task-data-lib.sh"
+   for variant in bead pr; do
+     case_dir=$(make_case "task-data-unread-status-$variant")
+@@ -6680,6 +6681,7 @@ SH
+     printf 'release\n' > "$case_dir/expiry-gate"
+     fail "B's teardown failed: $(cat "$case_dir/task-b1.err")"
+   fi
++  # shellcheck source=/dev/null
+   . "$ROOT/bin/fm-task-data-lib.sh"
+   FM_TASK_DATA_SWEEP=on PATH="$case_dir/fakebin:$PATH" fm_task_data_sweep_start \
+     "$case_dir/data" "$case_dir/state"
+@@ -9122,6 +9124,7 @@ test_held_meta_lock_teardown_gives_up_within_bound() {
+   case_dir=$(make_case held-meta-lock)
+   write_meta "$case_dir" local-only ship
+   seed_backlog_in_flight "$case_dir"
++  # shellcheck source=/dev/null
+   . "$ROOT/bin/fm-wake-lib.sh"
+   lock=$(fm_meta_lock_path "$case_dir/state/task-x1.meta")
+   fm_lock_try_acquire "$lock" || fail "test could not take the task record lock"

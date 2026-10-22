@@ -1,0 +1,25 @@
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	1
+meta	root_deadline_seconds	300
+meta	root_kill_grace_seconds	5
+meta	root_memory_limit_kib	8388608
+meta	timing_mechanism	perl
+begin	2	bin/fm-teardown.sh	1	full	1792695513496
+begin	1	bin/fm-spawn.sh	0	full	1792695513498
+end	1	bin/fm-spawn.sh	0	full	1792695513498	1792695747174	233676	0	ok	3713616	1
+end	2	bin/fm-teardown.sh	1	full	1792695513496	1792695815073	301577	124	timeout	unavailable	1
+begin	3	tests/fm-pending-reply.test.sh	1	full	1792695815084
+end	3	tests/fm-pending-reply.test.sh	1	full	1792695815084	1792696125712	310628	124	timeout	unavailable	1
+begin	4	tests/fm-launch-prompt-signals-live-e2e.test.sh	1	full	1792696126134
+end	4	tests/fm-launch-prompt-signals-live-e2e.test.sh	1	full	1792696126134	1792696429795	303661	124	timeout	unavailable	1
+meta	roots_begun	4
+meta	roots_completed	4
+meta	roots_unfinished	0
+meta	result_exit	124

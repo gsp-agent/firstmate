@@ -1,0 +1,10 @@
+ok - ShellCheck's version probe obeys the memory cap before file analysis
+ok - ShellCheck's version probe obeys the time cap before file analysis
+ok - jobs=1 and jobs=2 stop complete worker trees with and without telemetry
+ok - a root pinned at the wall deadline fails by name, reaps its tree, and leaves the sentinel alive
+ok - a root stopped at its memory cap fails by name, naming the cap and FM_LINT_ROOT_MEMORY_KIB
+ok - watchdog and heap memory failures retain their status without retrying in both worker modes
+ok - explicit memory evidence outranks findings and signal reasons
+ok - OOM words in a source excerpt or a root path never classify a root as memory
+ok - fm-lint refuses to run ShellCheck without its watchdog and lints once it has one
+not ok - the memory cap took 62s to stop a 64 MiB root

@@ -1,0 +1,101 @@
+
+Scenario test_version_probe_memory_is_capped
+fm_exec_timed: shellcheck used 266112 KiB of memory, past its 65536 KiB cap; killed
+fm-lint.sh: ShellCheck --version FAILED at the memory cap (65536 KiB).
+
+Scenario test_version_probe_time_is_capped
+fm-lint.sh: ShellCheck --version FAILED at the time cap (1s).
+
+Scenario test_root_deadline_names_the_root_and_reaps_the_tree
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-bound-deadline.tFU2mz/blocker.sh reason=timeout rc=124 duration_ms=1962 rss_kib=unavailable
+fm-lint: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-bound-deadline.tFU2mz/blocker.sh FAILED at the time cap (1s per root); a capped root is a lint failure, not a pass
+
+Scenario test_root_memory_cap_fails_by_name
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-bound-memory.QGffd5/hoarder.sh reason=memory rc=123 duration_ms=1672 rss_kib=1060784
+fm_exec_timed: bash used 1060784 KiB of memory, past its 262144 KiB cap; killed
+fm-lint: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-bound-memory.QGffd5/hoarder.sh FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=262144); a capped root is a lint failure, not a pass
+
+Scenario test_memory_failures_remain_failures_without_retry
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-failure.F3GtM3/teardown.sh reason=memory rc=251 duration_ms=1125 rss_kib=7040
+shellcheck: Heap exhausted;
+fm-lint: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-failure.F3GtM3/teardown.sh FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=8388608); a capped root is a lint failure, not a pass
+
+Scenario test_memory_evidence_outranks_findings_and_signal_reasons
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-exit1.sh reason=memory rc=1 duration_ms=912 rss_kib=6992
+fm-lint: end /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-kill.sh reason=memory rc=1 duration_ms=1910 rss_kib=6944
+fm-lint: end /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-heap.sh reason=memory rc=251 duration_ms=2278 rss_kib=6976
+shellcheck: malloc: resource exhausted (out of memory)
+fm-lint: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-exit1.sh FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=8388608); a capped root is a lint failure, not a pass
+shellcheck: out of memory (requested 1048576 bytes)
+time: command terminated abnormally
+time: signal: Invalid argument
+fm-lint: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-kill.sh FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=8388608); a capped root is a lint failure, not a pass
+shellcheck: Heap exhausted;
+fm-lint: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-heap.sh FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=8388608); a capped root is a lint failure, not a pass
+
+In /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-evidence.pj7Mhw/oom-text-findings.sh line 2:
+shellcheck: out of memory $x
+                          ^-- SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Scenario test_source_excerpt_with_oom_text_stays_findings
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-oom-text-excerpt.4emv1H/out of memory.sh reason=error:2 rc=2 duration_ms=837 rss_kib=19760
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-oom-text-excerpt.4emv1H/out of memory.sh: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-oom-text-excerpt.4emv1H/out of memory.sh: openBinaryFile: does not exist (No such file or directory)
+
+Scenario test_refuses_to_lint_without_its_watchdog
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+
+Scenario test_pinned_shellcheck_stops_at_the_memory_cap
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-pinned-memory.4771Ax/heavy.sh reason=memory rc=123 duration_ms=12559 rss_kib=69328
+fm_exec_timed: bash used 69328 KiB of memory, past its 65536 KiB cap; killed
+fm-lint: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-pinned-memory.4771Ax/heavy.sh FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=65536); a capped root is a lint failure, not a pass
+
+Scenario test_seeded_module_boundary_parity
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+
+In /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-parity.rMOw1o/adapter.sh line 3:
+  rm $1
+     ^-- SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean:
+  rm "$1"
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2086 -- Double quote to prevent globbing ...
+
+In /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-parity.rMOw1o/owner.sh line 6:
+  cd "$1"
+  ^-----^ SC2164 (warning): Use 'cd ... || exit' or 'cd ... || return' in case cd fails.
+
+Did you mean:
+  cd "$1" || exit
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2164 -- Use 'cd ... || exit' or 'cd ... |...
+
+In /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-parity.rMOw1o/dispatcher.sh line 5:
+  local a= b=
+          ^-- SC1007 (warning): Remove space after = if trying to assign a value (for empty string, use var='' ... ).
+
+For more information:
+  https://www.shellcheck.net/wiki/SC1007 -- Remove space after = if trying to...
+
+In /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-parity.rMOw1o/test-local.sh line 5:
+  local output=$(printf ok)
+        ^----^ SC2155 (warning): Declare and assign separately to avoid masking return values.
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2155 -- Declare and assign separately to ...

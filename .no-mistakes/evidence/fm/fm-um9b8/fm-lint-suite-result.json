@@ -1,0 +1,5 @@
+{
+  "command": "bash tests/fm-lint.test.sh",
+  "exit_code": 0,
+  "wall_seconds": 2522.79
+}

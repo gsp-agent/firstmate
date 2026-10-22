@@ -1,0 +1,10 @@
+not ok - production roots failed at the default caps (exit 124)
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end bin/fm-teardown.sh reason=timeout rc=124 duration_ms=301577 rss_kib=unavailable
+fm-lint: end tests/fm-pending-reply.test.sh reason=timeout rc=124 duration_ms=310628 rss_kib=unavailable
+fm-lint: end tests/fm-launch-prompt-signals-live-e2e.test.sh reason=timeout rc=124 duration_ms=303661 rss_kib=unavailable
+fm-lint: bin/fm-teardown.sh FAILED at the time cap (300s per root); a capped root is a lint failure, not a pass
+fm-lint: tests/fm-pending-reply.test.sh FAILED at the time cap (300s per root); a capped root is a lint failure, not a pass
+fm-lint: tests/fm-launch-prompt-signals-live-e2e.test.sh FAILED at the time cap (300s per root); a capped root is a lint failure, not a pass
+heavy_test_exit=1

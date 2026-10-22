@@ -1,0 +1,19 @@
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	fast
+meta	partition	all
+meta	jobs	1
+meta	bounds_enforced	1
+meta	root_deadline_seconds	120
+meta	root_kill_grace_seconds	1
+meta	root_memory_limit_kib	2097152
+meta	timing_mechanism	perl
+begin	1	.gate-lint-validation/repro-10x7/l7.sh	0	fast	1792695862356
+end	1	.gate-lint-validation/repro-10x7/l7.sh	0	fast	1792695862356	1792695987316	124960	124	timeout	unavailable	1
+meta	roots_begun	1
+meta	roots_completed	1
+meta	roots_unfinished	0
+meta	result_exit	124

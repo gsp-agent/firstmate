@@ -1,0 +1,3 @@
+ok - pinned ShellCheck lints under the default caps and a file past its memory cap fails by name
+ok - jobs=1 and jobs=2 preserve deterministic diagnostics, failures, cleanup bounds, and quiet telemetry
+ok - seeded dispatcher, adapter, production-owner, and test-local diagnostics preserve parity

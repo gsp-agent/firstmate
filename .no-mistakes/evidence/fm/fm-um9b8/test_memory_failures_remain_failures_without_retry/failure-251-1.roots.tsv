@@ -1,0 +1,21 @@
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	1
+meta	bounds_enforced	1
+meta	root_deadline_seconds	300
+meta	root_kill_grace_seconds	5
+meta	root_memory_limit_kib	8388608
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-failure.F3GtM3/teardown.sh	0	full	1792695537066
+end	1	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-failure.F3GtM3/teardown.sh	0	full	1792695537066	1792695537546	480	251	memory	7040	1
+begin	2	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-failure.F3GtM3/ok.sh	1	full	1792695537708
+end	2	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-memory-failure.F3GtM3/ok.sh	1	full	1792695537708	1792695538223	515	0	ok	7024	1
+meta	roots_begun	2
+meta	roots_completed	2
+meta	roots_unfinished	0
+meta	result_exit	251

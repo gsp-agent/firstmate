@@ -1,0 +1,2 @@
+fm-lint.sh: bin/fm-timeout-lib.sh is missing beside fm-lint.sh, so no watchdog can cap ShellCheck; refusing to lint uncapped.
+exit=2

@@ -1,0 +1,14 @@
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	1
+meta	root_deadline_seconds	300
+meta	root_kill_grace_seconds	5
+meta	root_memory_limit_kib	8388608
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JE8ZBBW8CTJJHBYEAVZSNQ/.gate-lint-validation/tmp/fm-lint-signal.doTqbd/good.sh	0	full	1792695501184

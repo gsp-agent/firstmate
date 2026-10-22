@@ -1,0 +1,9 @@
+vm.swapusage: total = 7168.00M  used = 6267.38M  free = 900.62M  (encrypted)
+vm.loadavg: { 95.93 138.38 191.01 }
+Started: 2026-10-22T20:38:23.042911+00:00
+Executing unchanged test_large_production_roots_fit_default_caps from tests/fm-lint.test.sh
+ok - the heaviest clean roots complete full analysis under the default caps with two workers
+vm.swapusage: total = 7168.00M  used = 6267.38M  free = 900.62M  (encrypted)
+vm.loadavg: { 43.01 71.63 137.86 }
+Exit: 0
+Finished: 2026-10-22T20:44:54.737237+00:00
