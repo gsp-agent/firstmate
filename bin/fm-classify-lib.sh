@@ -330,6 +330,11 @@ status_is_paused() {  # <status-line>
   [ "$verb" = "${FM_CLASSIFY_PAUSED_VERB:-$FM_CLASSIFY_PAUSED_VERB_DEFAULT}" ]
 }
 
+# Context exhaustion permits ending a spent session, never an external wait.
+# Require affirmative exhaustion evidence, then inspect every wait clause:
+# after removing session targets and bare continuation wording, any remaining
+# content keeps the pane open. The reconciler and current-state reader share
+# this predicate so an eligible pause remains paused after its pane closes.
 status_is_context_paused() {
   local note limit session continuation
   status_is_paused "$1" || return 1

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fm-inactive-reconcile.sh - bounded reconciliation of suspicious inactive terminal outcomes.
+# fm-inactive-reconcile.sh - bounded inactive outcome reconciliation and pane closure.
 #
 # Usage:
 #   fm-inactive-reconcile.sh scan [--startup]
@@ -38,6 +38,9 @@
 # start's deferred worker. Each scan uses an aggregate
 # FM_INACTIVE_RECONCILE_BUDGET_SECS deadline (default 10, valid 1..30) and
 # resumes after its last visited child on the next scan.
+# Those defaults apply to standalone and deferred startup scans; the watcher
+# supplies the defaults documented in docs/configuration.md unless an operator
+# environment value is set.
 # The scan enforces that budget itself through a whole-second deadline, and the
 # first due child of every scan is always visited with at least a one-second
 # state-read bound: whole-second arithmetic can otherwise round a small budget
@@ -51,15 +54,16 @@
 # turn-ended mtime is older than that interval and whose last status is not
 # captain-held. In a secondmate home a child whose ledger already ends in a
 # terminal done or failed line belongs to the ledger-first delivery path above,
-# but remains eligible for pane closure. It uses fm-crew-state.sh as the sole
-# current-state source.
+# but remains eligible for pane closure. Terminal outcomes use fm-crew-state.sh
+# as the sole current-state source; context-limit pauses use the shared
+# status_is_context_paused predicate in bin/fm-classify-lib.sh directly.
 # Only a done or failed state is suspicious enough to create a durable terminal
 # outcome record or wake the supervisor.
 # Working, paused, parked, blocked, unknown, persistent secondmates, and
 # captain-held work retain their existing supervision semantics. One pause is
-# the exception: a crewmate whose last status line pauses because it reached
-# the context limit has no turn left to run in that session, and its own note
-# says a fresh session resumes it. That paused pane may close under the same
+# the exception: a crewmate whose last status line confirms context exhaustion
+# under that shared predicate has no turn left to run in that session.
+# That paused pane may close under the same
 # guards as a terminal pane (below), without an outcome record or a supervisor
 # wake; the pause stays the task's state, and fm-control's relaunch is the
 # wake when work resumes. A pause for any other reason - a person, a date, an
@@ -68,17 +72,22 @@
 # An aged done or failed herdr crewmate with positive semantic idle evidence
 # may have its pane closed through fm_backend_kill. A no-mistakes ship's
 # pre-validation done handoff stays open, as do all other runtime backends.
-# The task metadata lock covers the final activity check, the idle sample,
-# and the close, serializing them with fm-send's metadata-bound typed submit.
+# The task control lock, then the metadata lock, cover the final activity check,
+# the idle sample, and the close, serializing them with captain-hold changes,
+# lifecycle control, and fm-send's metadata-bound typed submit.
+# A structured open captain hold also prevents closure; an unreadable hold
+# check leaves the pane open.
 # Before sampling idle, any unhandled steering inbox message, including a
 # fire-and-forget message, prevents closure without consuming the message.
-# Only the pane closes, after the accepted terminal outcome and close target
-# are durable in the incarnation-bound receipt.
-# The meta, worktree, status, and transcript stay on disk for teardown, and a
+# Only the pane closes; for terminal states, the accepted outcome and close
+# target must first be durable in the incarnation-bound receipt.
+# The meta, worktree, branch, status, and transcript stay for teardown, and a
 # later follow-up wakes the task through fm-control's relaunch, which is the
 # documented wake for an exited agent. Endpoint identity is proven with the
 # same fm_backend_validate_task_endpoint gate teardown uses; any ambiguity, or
 # a close that cannot do its job, warns and leaves the pane alone.
+# tests/fm-inactive-reconcile.test.sh covers context-pause closure, external
+# waits, busy panes, captain holds, and retained state after closure.
 #
 # A terminal-outcomes/<fingerprint>.pending record remains until its upstream
 # receipt is durable.

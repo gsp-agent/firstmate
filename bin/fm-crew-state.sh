@@ -7,7 +7,7 @@
 # last EVENT, not the current STATE. After firstmate resolves a needs-decision
 # or blocked and the crew resumes (responds to the gate, the pipeline fixes, it
 # re-validates), the log's last line stays stale. This helper never infers the
-# current state from a tail of the log: it reads the authoritative source (a
+# current state from a tail of the log alone: it reads the authoritative source (a
 # no-mistakes run-step attributed under bin/fm-nm-run-lib.sh's contract, else
 # the pane busy-signature) and reconciles the possibly-stale log against it.
 # A ship `done:` is current-state done only when bin/fm-dod-lib.sh accepts the
@@ -156,6 +156,10 @@
 #      An intentionally closed, authoritatively missing herdr pane retains its
 #      accepted done/failed outcome only when the receipt matches its task id,
 #      exact endpoint, spawn_gen incarnation, and latest status verb.
+#      An ordinary crew with an authoritatively missing herdr pane retains a
+#      context-limit pause when the shared status_is_context_paused predicate
+#      accepts its resolved status declaration; no terminal receipt is needed
+#      (closure and recovery contract: bin/fm-inactive-reconcile.sh's header).
 #      An endpoint that merely failed to answer reports unknown · none as
 #      unreachable, and an alive endpoint whose scrollback read failed is still
 #      classified by step 4. Backends with no classifier keep reading a failed
