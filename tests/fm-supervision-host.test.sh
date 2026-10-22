@@ -325,6 +325,305 @@ teardown_still_holds_the_lease_lock() {  # <home>
   [ "$(cat "$1/state/.fm-lease-command.lock/pid" 2>/dev/null)" = "$(cat "$1/teardown.held")" ]
 }
 
+cover_handover_barriers() {
+  local home=$1 real_cat real_rm real_mktemp real_grep tool
+  real_cat=$(command -v cat)
+  real_rm=$(command -v rm)
+  real_mktemp=$(command -v mktemp)
+  real_grep=$(command -v grep)
+  cat > "$home/fakebin/cover-handover-barrier" <<SH
+#!/usr/bin/env bash
+pause_owner() {
+  [ ! -e "\$FM_HOME/handover-owner-paused" ] || return 0
+  printf '%s\\n' "\$\$" >> "\$FM_HOME/orphan-pid"
+  : > "\$FM_HOME/handover-owner-paused"
+  local deadline=\$((SECONDS + 60))
+  while [ ! -e "\$FM_HOME/handover-owner-go" ]; do
+    [ "\$SECONDS" -lt "\$deadline" ] || exit 1
+    sleep 0.05
+  done
+}
+case "\${0##*/}" in
+  rm)
+    for arg in "\$@"; do
+      if [ "\$arg" = "\$FM_HOME/state/.watch-cover" ] \
+        && [ -e "\$FM_HOME/handover-owner-paused" ] \
+        && [ ! -e "\$FM_HOME/handover-retire-paused" ]; then
+        printf '%s\\n' "\$\$" >> "\$FM_HOME/orphan-pid"
+        : > "\$FM_HOME/handover-retire-paused"
+        deadline=\$((SECONDS + 60))
+        while [ ! -e "\$FM_HOME/handover-retire-go" ]; do
+          [ "\$SECONDS" -lt "\$deadline" ] || exit 1
+          sleep 0.05
+        done
+      fi
+    done
+    exec "$real_rm" "\$@"
+    ;;
+  cat)
+    case "\$*" in
+      *'/state/.watch-cover.lock/pid'*)
+        if [ -e "\$FM_HOME/handover-retire-paused" ] \
+          && [ ! -e "\$FM_HOME/handover-retire-go" ]; then
+          : > "\$FM_HOME/handover-contended"
+          : > "\$FM_HOME/handover-retire-go"
+        fi
+        ;;
+    esac
+    exec "$real_cat" "\$@"
+    ;;
+  mktemp)
+    case "\$*" in
+      *'/.supervision-host-left.tmp.'*) pause_owner ;;
+      *'/.watch-cover.tmp.'*)
+        if [ -e "\$FM_HOME/handover-retire-paused" ] \
+          && [ ! -e "\$FM_HOME/handover-retire-go" ]; then
+          : > "\$FM_HOME/handover-unlocked"
+          : > "\$FM_HOME/handover-retire-go"
+        fi
+        ;;
+    esac
+    exec "$real_mktemp" "\$@"
+    ;;
+  grep)
+    case "\$*" in
+      *'/.claude-autoarm-successor.'*)
+        "$real_grep" "\$@" || exit \$?
+        pause_owner
+        exit 0
+        ;;
+    esac
+    exec "$real_grep" "\$@"
+    ;;
+esac
+SH
+  chmod +x "$home/fakebin/cover-handover-barrier"
+  for tool in cat rm mktemp grep; do
+    ln -s cover-handover-barrier "$home/fakebin/$tool"
+  done
+}
+
+test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm() {
+  local mode home cover watcher replacement
+  for mode in host hook; do
+    home=$(make_primary_home "hook-handover-retirement-$mode")
+    ln -s "$ROOT/.agents" "$home/.agents"
+    echo captain > "$home/stub-mode"
+    [ "$mode" != hook ] || : > "$home/config/supervision-host-off"
+    : > "$home/hook.own-group"
+    cover_handover_barriers "$home"
+    start_hook_session "$home"
+    turn_end "$home"
+    wait_until 200 watcher_live "$home" || fail "$mode handover: the first watcher did not start"
+    append_status "$home" 'first actionable wake'
+    wait_until 400 test -e "$home/handover-owner-paused" || fail "$mode handover: the owner did not reach transfer"
+    cover=$(cut -f1 "$home/state/.watch-cover")
+    watcher=$(cat "$home/state/.watch.lock/pid")
+    [ "$(parent_of "$watcher")" = "$cover" ] || fail "fixture: the covering arm does not own the watcher"
+    printf 'project=demo\nwindow=fm-later\nharness=claude\n' > "$home/state/later.meta"
+    printf 'needs-decision: notification racing coverage transfer\n' > "$home/state/later.status"
+    wait_until 300 test -e "$home/handover-retire-paused" || fail "$mode handover: the arm did not decide to retire"
+    kill -0 "$cover" 2>/dev/null || fail "fixture: the arm exited before transfer raced retirement"
+    : > "$home/handover-owner-go"
+    wait_until 400 hook_exited "$home" || fail "$mode handover: transfer did not finish the hook"
+    assert_rewoke_main "$home" "$mode handover"
+    if ! wait_until 150 home_has_one_consumer "$home"; then
+      : > "$home/session.stop"
+      stop_home_processes "$home"
+      fail "$mode handover reported success for a retiring arm and left main without a consumer"
+    fi
+    [ -e "$home/handover-contended" ] || fail "fixture: transfer did not contend with retirement"
+    replacement=$(cut -f1 "$home/state/.watch-cover")
+    [ "$replacement" != "$cover" ] || fail "$mode handover did not replace the rejected covering arm"
+    [ "$(cut -f4 "$home/state/.watch-cover")" = handed-over ] || fail "$mode handover did not transfer the replacement"
+    [ "$(parent_of "$(cat "$home/state/.watch.lock/pid")")" = "$replacement" ] \
+      || fail "$mode handover left a watcher outside the replacement arm"
+    assert_grep 'later.status' "$home/state/.wake-queue" "$mode handover lost the notification racing transfer"
+    : > "$home/session.stop"
+    stop_home_processes "$home"
+  done
+  pass "host+hook: retirement rejects a racing handover and both owners leave one replacement consumer"
+}
+
+cover_attachment_fixture() {
+  local home=$1 real_mktemp real_cat real_grep tool
+  real_mktemp=$(command -v mktemp)
+  real_cat=$(command -v cat)
+  real_grep=$(command -v grep)
+  cat > "$home/fakebin/cover-attachment" <<SH
+#!/usr/bin/env bash
+case "\${0##*/}" in
+  mktemp)
+    start_peer=0
+    case "\$*" in
+      *'/.supervision-host-arm.'*) [ "\${FM_WATCH_COVER:-0}" != 1 ] || start_peer=1 ;;
+      *'/.claude-autoarm-successor.'*) start_peer=1 ;;
+    esac
+    if [ "\$start_peer" -eq 1 ] && mkdir "\$FM_HOME/attachment-peer-once" 2>/dev/null; then
+      set -m
+      FM_WATCH_HANDLING_SUCCESSOR=1 nohup "\$FM_HOME/bin/fm-watch.sh" \\
+        > "\$FM_HOME/attachment-peer.out" 2>&1 < /dev/null &
+      peer=\$!
+      set +m
+      printf '%s\\n' "\$peer" > "\$FM_HOME/attachment-peer.pid"
+      printf '%s\\n' "\$peer" >> "\$FM_HOME/orphan-pid"
+      . "\$FM_HOME/bin/fm-wake-lib.sh"
+      i=0
+      until fm_watcher_healthy "\$STATE" "\$FM_HOME/bin/fm-watch.sh" 300 "\$FM_HOME"; do
+        [ "\$i" -lt 600 ] || exit 1
+        sleep 0.05
+        i=\$((i + 1))
+      done
+      : > "\$FM_HOME/attachment-peer-ready"
+    fi
+    exec "$real_mktemp" "\$@"
+    ;;
+  cat)
+    if [ "\${FM_TEST_COVER_ATTACH_PATH:-}" = standdown ] \\
+      && [ -n "\${FM_WATCH_PREDECESSOR_ARM_PID:-}" ] \\
+      && [ "\${FM_WATCH_HANDLING_SUCCESSOR:-0}" != 1 ] \\
+      && [ "\$#" -eq 1 ] && [ "\$1" = "\$FM_HOME/state/.watch.lock/pid" ] \\
+      && [ -e "\$FM_HOME/attachment-peer-ready" ] \\
+      && [ ! -e "\$FM_HOME/attachment-skipped-health" ]; then
+      : > "\$FM_HOME/attachment-skipped-health"
+      exit 1
+    fi
+    exec "$real_cat" "\$@"
+    ;;
+  grep)
+    for arg in "\$@"; do
+      case "\$arg" in
+        "\$FM_HOME/state"/.supervision-host-arm.*|"\$FM_HOME/state"/.claude-autoarm-successor.*)
+          if "$real_grep" -q '^watcher: attached pid=' "\$arg"; then
+            [ -f "\$FM_HOME/state/.watch-cover" ] || : > "\$FM_HOME/attachment-unregistered"
+            cp "\$arg" "\$FM_HOME/attachment-ready.out"
+          fi
+          ;;
+      esac
+    done
+    exec "$real_grep" "\$@"
+    ;;
+esac
+SH
+  chmod +x "$home/fakebin/cover-attachment"
+  for tool in mktemp cat grep; do
+    ln -s cover-attachment "$home/fakebin/$tool"
+  done
+}
+
+attachment_process_exited() { ! is_live_non_zombie "$1"; }
+
+test_covering_attachments_handoff_and_continue_through_both_owners() {
+  local mode attach_path home peer cover replacement
+  for mode in host hook; do
+    for attach_path in startup standdown; do
+      home=$(make_primary_home "covering-attachment-$mode-$attach_path")
+      ln -s "$ROOT/.agents" "$home/.agents"
+      [ "$mode" != hook ] || : > "$home/config/supervision-host-off"
+      : > "$home/hook.own-group"
+      cover_attachment_fixture "$home"
+      FM_TEST_COVER_ATTACH_PATH="$attach_path" start_hook_session "$home"
+      turn_end "$home"
+      wait_until 200 watcher_live "$home" || fail "$mode $attach_path: the first watcher did not start"
+      append_status "$home" 'first notification for main' needs-decision
+      wait_until 400 test -s "$home/attachment-ready.out" \
+        || fail "$mode $attach_path: the covering successor did not report attachment"
+      [ ! -e "$home/attachment-unregistered" ] \
+        || fail "$mode $attach_path: attached covering readiness preceded coverage registration"
+      wait_until 400 hook_exited "$home" || fail "$mode $attach_path: the owner did not finish handoff"
+      assert_rewoke_main "$home" "$mode $attach_path attachment"
+      peer=$(cat "$home/attachment-peer.pid")
+      cover=$(cut -f1 "$home/state/.watch-cover")
+      printf '%s\n' "$cover" >> "$home/orphan-pid"
+      [ "$(cut -f4 "$home/state/.watch-cover")" = handed-over ] \
+        || fail "$mode $attach_path: the owner did not hand over its attached covering arm"
+      assert_grep "watcher: attached pid=$peer " "$home/attachment-ready.out" \
+        "$mode $attach_path: the covering successor did not attach to the peer"
+      [ "$(cat "$home/state/.watch.lock/pid")" = "$peer" ] \
+        || fail "$mode $attach_path: attachment replaced the healthy peer"
+      [ "$attach_path" != standdown ] || [ -f "$home/attachment-skipped-health" ] \
+        || fail "fixture: the stand-down attachment did not skip the first health sample"
+      printf 'project=demo\nwindow=fm-later\nharness=claude\n' > "$home/state/later.meta"
+      printf 'needs-decision: notification during the attached covering turn\n' > "$home/state/later.status"
+      wait_until 300 attachment_process_exited "$peer" || fail "$mode $attach_path: the attached peer did not close"
+      wait_until 200 home_has_one_consumer "$home" \
+        || fail "$mode $attach_path: the attached covering arm left no sole replacement consumer"
+      replacement=$(cat "$home/state/.watch.lock/pid")
+      [ "$replacement" != "$peer" ] && [ "$(parent_of "$replacement")" = "$cover" ] \
+        || fail "$mode $attach_path: the original covering arm does not own the replacement"
+      assert_grep 'demo.status' "$home/state/.wake-queue" "$mode $attach_path: handoff consumed the first wake"
+      assert_grep 'later.status' "$home/state/.wake-queue" "$mode $attach_path: continuation consumed the next wake"
+      : > "$home/session.stop"
+      kill -TERM "$cover" 2>/dev/null || true
+      wait_until 100 attachment_process_exited "$cover" || fail "$mode $attach_path: the covering arm did not stop"
+      stop_home_processes "$home"
+    done
+  done
+  pass "host+hook: startup and stand-down attachments hand over coverage and replace the closed peer without consuming wakes"
+}
+
+host_waiting_on_lease_release() {
+  ps -A -o ppid= -o command= 2>/dev/null \
+    | awk -v host="$1" '$1 == host && /fm-lease.sh --wait 120 release-actor/ { found = 1 } END { exit !found }'
+}
+
+test_handed_over_successor_covers_the_host_exit_lease_wait() {
+  local home real_mktemp host cover watcher
+  home=$(make_primary_home hook-handover-lease-wait)
+  ln -s "$ROOT/.agents" "$home/.agents"
+  echo captain > "$home/stub-mode"
+  : > "$home/hook.own-group"
+  real_mktemp=$(command -v mktemp)
+  cat > "$home/fakebin/mktemp" <<SH
+#!/usr/bin/env bash
+case "\$*" in
+  *'/.watcher-down.tmp.'*)
+    if [ -f "\$FM_HOME/state/.supervision-host-left" ] && [ ! -e "\$FM_HOME/handover-paused" ]; then
+      printf '%s\\n' "\$\$" >> "\$FM_HOME/orphan-pid"
+      : > "\$FM_HOME/handover-paused"
+      while [ ! -e "\$FM_HOME/cleanup.go" ]; do sleep 0.1; done
+    fi
+    ;;
+esac
+exec "$real_mktemp" "\$@"
+SH
+  chmod +x "$home/fakebin/mktemp"
+  FM_SUPERVISION_HOST_LEASE_WAIT=120 start_hook_session "$home"
+  turn_end "$home"
+  wait_until 200 watcher_live "$home" || fail "handover: the host did not start its watcher"
+  append_status "$home" 'first actionable wake'
+  wait_until 400 test -e "$home/handover-paused" || fail "handover: the host did not reach its hand-back"
+  host=$(awk -F '\t' '$1 == "host" { print $2; exit }' "$home/state/.supervision-host")
+  cover=$(cut -f1 "$home/state/.supervision-host-left")
+  watcher=$(cat "$home/state/.watch.lock/pid")
+  hold_lease_lock_like_a_teardown "$home"
+  : > "$home/cleanup.go"
+  wait_until 150 host_waiting_on_lease_release "$host" || fail "handover: the host was not in its exit lease wait"
+  [ "$(parent_of "$cover")" = "$host" ] || fail "fixture: the covering arm's owner already exited"
+  printf 'project=demo\nwindow=fm-later\nharness=claude\n' > "$home/state/later.meta"
+  printf 'needs-decision: notification during host exit cleanup\n' > "$home/state/later.status"
+  wait_until 250 bash -c '! kill -0 "$1" 2>/dev/null' _ "$watcher" \
+    || fail "handover: the covering watcher did not close on its notification"
+  if ! wait_until 150 home_has_one_consumer "$home"; then
+    : > "$home/teardown.done"
+    : > "$home/session.stop"
+    kill -TERM -- "-$(cat "$home/hook.pgid")" 2>/dev/null || true
+    stop_home_processes "$home"
+    fail "the handed-over consumer was lost while its owner waited in exit cleanup"
+  fi
+  [ "$(parent_of "$cover")" = "$host" ] || fail "the owner exited before coverage was proven"
+  host_waiting_on_lease_release "$host" || fail "the host's exit lease wait ended before coverage was proven"
+  [ "$(parent_of "$(cat "$home/state/.watch.lock/pid")")" = "$cover" ] \
+    || fail "the handed-over arm does not own the replacement consumer"
+  assert_grep 'later.status' "$home/state/.wake-queue" "the notification was lost during the exit lease wait"
+  : > "$home/teardown.done"
+  wait_until 200 hook_exited "$home" || fail "handover: releasing the lease did not finish the hook"
+  assert_rewoke_main "$home" "exit lease wait"
+  : > "$home/session.stop"
+  stop_home_processes "$home"
+  pass "host+hook: a handed-over consumer stays live while its owner waits for a lease in exit cleanup"
+}
+
 # --- report surface -----------------------------------------------------------
 
 test_report_surface_enforces_actor_turn_and_scope() {
@@ -945,7 +1244,7 @@ test_attended_captain_outcome_reaches_main_through_branch_outcomes() {
   assert_grep 'MAIN processes it from its next drain' "$home/engine-report.log" "an attended captain report must say main processes it"
   assert_no_grep 'demo.status' "$home/state/.wake-queue" "the handled wake must stay acknowledged"
   assert_no_grep 'supervision-host-return' "$home/state/.wake-queue" "an attended captain report must queue no return wake"
-  watcher_live "$home" && fail "the host left its successor cycle running when it woke main"
+  watcher_live "$home" || fail "the handoff left main without a live consumer"
 
   drained=$(FM_HOME="$home" "$FAKE_CLAUDE" -c '"$0" 2>&1' "$ROOT/bin/fm-wake-drain.sh")
   assert_contains "$drained" "BRANCH OUTCOMES (captain outcomes the supervision session recorded for you" "main's drain must present the captain outcome"
@@ -958,6 +1257,7 @@ test_attended_captain_outcome_reaches_main_through_branch_outcomes() {
     || fail "main's acknowledgement of the presented outcome was refused"
   drained=$(FM_HOME="$home" "$FAKE_CLAUDE" -c '"$0" 2>&1' "$ROOT/bin/fm-wake-drain.sh")
   assert_not_contains "$drained" "BRANCH OUTCOMES" "an acknowledged captain outcome must not be presented again"
+  stop_home_processes "$home"
   pass "host: an attended captain outcome wakes main once and stays in its drain until main acknowledges it"
 }
 
@@ -1264,6 +1564,8 @@ test_claude_stop_hook_restores_handoff_when_successor_closed_before_exit_to_main
   expect_code 2 "$(cat "$home/hook.rc")" "the Stop hook must rewake main after the successor closed"
   assert_re '^(pending|announced):downtime:' "$home/state/.watcher-down" \
     "the closed handling successor must leave a deliverable downtime episode"
+  : > "$home/session.stop"
+  stop_home_processes "$home"
   pass "host+hook: a successor closed before exit_to_main does not suppress the branch-outcome rewake"
 }
 
@@ -1308,6 +1610,8 @@ SH
   assert_grep 'firstmate watcher auto-arm FAILED' "$home/hook.err" "the refused rewake must turn into a delivered failure notice"
   assert_re '^epoch=[0-9]+ owner_pid=[0-9]+ outcome=failed ' "$home/state/.claude-autoarm-epoch" \
     "the failed hand-back must be committed"
+  : > "$home/session.stop"
+  stop_home_processes "$home"
 }
 
 test_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails() {
@@ -1348,6 +1652,8 @@ test_claude_stop_hook_restores_handoff_when_successor_closed_mid_engine_turn() {
     "the hand-back must commit the rewake"
   assert_re '^(pending|announced):downtime:' "$home/state/.watcher-down" \
     "the closed handling successor must leave a deliverable downtime episode"
+  : > "$home/session.stop"
+  stop_home_processes "$home"
   pass "host+hook: a successor that closes during a held engine turn does not suppress the branch-outcome rewake"
 }
 
@@ -1415,6 +1721,8 @@ test_claude_stop_hook_runs_the_host_without_the_file_and_off_opts_out() {
   assert_no_re '^supervision-host' "$home/hook.err" "off: the close must reach main exactly as the arm printed it"
   assert_absent "$home/state/.supervision-host.log" "a home opted out by config/supervision-host-off must never run the host"
   assert_absent "$home/state/.host-mirror.jsonl" "a home opted out by config/supervision-host-off must mirror nothing"
+  awk -F '\t' '$4 == "handed-over" { found = 1 } END { exit !found }' "$home/state/.watch-cover" \
+    || fail "off: the Stop hook did not hand over its covering successor before returning"
   [ "$(engine_calls "$home")" -eq 0 ] || fail "a home opted out by config/supervision-host-off ran an engine turn"
   : > "$home/session.stop"
   stop_home_processes "$home"
@@ -1554,6 +1862,80 @@ home_arms() {  # <home>
         END { for (i = 1; i <= n; i++) if (!(ppid[order[i]] in ppid)) print order[i], ppid[order[i]] }'
 }
 parent_of() { ps -o ppid= -p "$1" 2>/dev/null | tr -d ' '; }
+
+home_has_one_consumer() {
+  local home=$1 watcher arms
+  FM_HOME="$home" bash -c '
+    . "$1"
+    fm_watcher_healthy "$2" "$3" 300 "$4"
+  ' _ "$ROOT/bin/fm-wake-lib.sh" "$home/state" "$home/bin/fm-watch.sh" "$home" || return 1
+  watcher=$(cat "$home/state/.watch.lock/pid")
+  arms=$(home_arms "$home")
+  [ "$(printf '%s\n' "$arms" | grep -c .)" -eq 1 ] \
+    && [ "${arms%% *}" = "$(parent_of "$watcher")" ]
+}
+
+test_exit_to_main_keeps_a_consumer_through_main_turn() {
+  local mode home watcher left_arm
+  local -a ack_args
+  for mode in captain fail return noreport no-engine; do
+    home=$(make_primary_home "hook-exit-to-main-$mode")
+    ln -s "$ROOT/.agents" "$home/.agents"
+    echo "$mode" > "$home/stub-mode"
+    case "$mode" in
+      return|no-engine)
+        FM_HOME="$home" "$CONTRACT" enter --words 'watch the fleet' >/dev/null 2>&1 \
+          || fail "fixture: could not enter the away posture"
+        ;;
+    esac
+    [ "$mode" != no-engine ] || echo pi > "$home/config/supervision-host"
+    : > "$home/hook.own-group"
+    start_hook_session "$home"
+    turn_end "$home"
+    wait_until 150 watcher_live "$home" || fail "$mode: the Stop hook never started a watcher"
+    append_status "$home" 'first actionable wake'
+    wait_until 250 hook_exited "$home" || fail "$mode: the host never handed back to main"
+    assert_rewoke_main "$home" "$mode handoff"
+    assert_re '^supervision-host:' "$home/hook.err" "$mode: the close did not pass through exit_to_main"
+    wait_until 150 home_has_one_consumer "$home" \
+      || fail "$mode: exit_to_main left main without exactly one healthy consumer"
+    watcher=$(cat "$home/state/.watch.lock/pid")
+    left_arm=$(parent_of "$watcher")
+    [ "$(cut -f1 "$home/state/.supervision-host-left")" = "$left_arm" ] \
+      || fail "$mode: the covering arm was not recorded for the next park"
+    kill -TERM -- "-$(cat "$home/hook.pgid")" 2>/dev/null || true
+    sleep 2
+    wait_until 150 home_has_one_consumer "$home" || fail "$mode: hook teardown stopped main's consumer"
+    watcher=$(cat "$home/state/.watch.lock/pid")
+    [ "$(parent_of "$watcher")" = "$left_arm" ] \
+      || fail "$mode: the covering arm did not survive hook teardown"
+
+    printf 'project=demo\nwindow=fm-later\nharness=claude\n' > "$home/state/later.meta"
+    printf 'needs-decision: second notification during main turn\n' > "$home/state/later.status"
+    wait_until 250 bash -c '! kill -0 "$1" 2>/dev/null' _ "$watcher" \
+      || fail "$mode: the consumer missed a notification during main's turn"
+    wait_until 150 home_has_one_consumer "$home" \
+      || fail "$mode: no consumer covered the rest of main's turn"
+    [ "$(parent_of "$(cat "$home/state/.watch.lock/pid")")" = "$left_arm" ] \
+      || fail "$mode: the covering arm did not own the next consumer"
+    assert_grep 'later.status' "$home/state/.wake-queue" \
+      "$mode: the notification was not durable while main worked"
+    main_drain "$home" > "$home/main-drain.out"
+    assert_grep 'second notification during main turn' "$home/main-drain.out" \
+      "$mode: main could not read the queued notification"
+    read -r -a ack_args <<< "$MAIN_ACK"
+    FM_HOME="$home" "$FAKE_CLAUDE" -c '"$0" "$@"' "$ROOT/bin/fm-wake-drain.sh" "${ack_args[@]}" >/dev/null 2>&1 \
+      || fail "$mode: main could not acknowledge its notification"
+    turn_end "$home"
+    wait_until 200 host_owns_the_only_cycle "$home" \
+      || fail "$mode: the next park did not take over as the sole consumer"
+    ! kill -0 "$left_arm" 2>/dev/null || fail "$mode: the covering arm outlived the next park's takeover"
+    : > "$home/session.stop"
+    kill -TERM -- "-$(cat "$home/hook.pgid")" 2>/dev/null || true
+    stop_home_processes "$home"
+  done
+  pass "host+hook: exit_to_main keeps one consumer through main's turn, queues notifications and hands over at turn end"
+}
 
 # True once the park's own arm owns the home's only watcher cycle: exactly one
 # arm runs from the home, it is the host's child, and it is the watcher's parent.
@@ -2147,13 +2529,14 @@ test_away_turn_without_a_report_hands_the_wake_to_main() {
   assert_re '^signal: .*demo.status' "$home/host.out" "the handed-back close must carry the reason line"
   assert_re '^supervision-host: .*recorded no outcome for its wake; this wake is yours$' "$home/host.out" "the handback must say why"
   assert_grep 'demo.status' "$home/state/.wake-queue" "the unhandled wake must stay durable for main"
-  watcher_live "$home" && fail "the host left its successor cycle running when it handed the wake to main"
+  watcher_live "$home" || fail "the handoff left main without a live consumer"
   token=$(cat "$home/state/.watcher-down")
   case "$token" in
     pending:downtime:*|announced:downtime:*) ;;
     *) fail "a handback must leave the recovery marker in downtime for the owner's rewake, got: $token" ;;
   esac
   assert_absent "$home/state/.supervision-host-engine" "a turn that did not handle its wake must not keep its conversation"
+  stop_home_processes "$home"
   pass "host: an engine turn that records no outcome hands its durable wake to main"
 }
 
@@ -2174,7 +2557,8 @@ test_return_during_an_engine_turn_hands_its_outcomes_to_main() {
     "the handoff must carry the turn's outcome for main to relay"
   assert_re '	handled	turn=' "$home/state/.supervision-host.log" "the turn itself was handled"
   assert_no_grep 'demo.status' "$home/state/.wake-queue" "the handled wake must stay acknowledged"
-  watcher_live "$home" && fail "the host left its successor cycle running when it handed the outcome to main"
+  watcher_live "$home" || fail "the handoff left main without a live consumer"
+  stop_home_processes "$home"
   pass "host: a captain return during an engine turn hands that turn's outcomes to main"
 }
 
@@ -2322,7 +2706,8 @@ test_report_without_acknowledgement_hands_the_wake_to_main() {
   assert_grep 'demo.status' "$home/state/.wake-queue" "the unacknowledged wake must stay durable for main"
   assert_re '	failed	turn=.*	unacked=[0-9]' "$home/state/.supervision-host.log" "the ledger must record the turn as failed"
   assert_absent "$home/state/.supervision-host-engine" "a turn that did not handle its wake must not keep its conversation"
-  watcher_live "$home" && fail "the host left its successor cycle running when it handed the wake to main"
+  watcher_live "$home" || fail "the handoff left main without a live consumer"
+  stop_home_processes "$home"
   pass "host: a turn that reports but leaves its granted rows queued hands the wake to main"
 }
 
@@ -2341,6 +2726,7 @@ test_return_during_a_failed_turn_still_hands_its_outcomes_to_main() {
   assert_re '^supervision-host: outcome 1 for demo \[routine\]: stub handled demo$' "$home/host.out" \
     "the handback must carry the failed turn's outcome for main to relay"
   assert_re '	failed	turn=' "$home/state/.supervision-host.log" "the turn itself failed"
+  stop_home_processes "$home"
   pass "host: a captain return during a failed engine turn still hands that turn's outcomes to main"
 }
 
@@ -2360,6 +2746,7 @@ test_incomplete_engine_result_hands_the_wake_to_main() {
   assert_re '	failed	turn=.*	error=1 ' "$home/state/.supervision-host.log" "the ledger must record the turn as failed"
   assert_no_re '	handled	turn=' "$home/state/.supervision-host.log" "an incomplete result must never count as handled"
   assert_absent "$home/state/.supervision-host-engine" "a turn that did not handle its wake must not keep its conversation"
+  stop_home_processes "$home"
   pass "host: an engine turn whose result is incomplete hands its wake to main"
 }
 
@@ -2502,12 +2889,13 @@ test_park_boundary_ends_the_park_before_the_hook_timeout() {
   echo 60 > "$home/park-clock"
   wait_until 150 host_exited "$home" || fail "boundary: the host did not end its park"
   assert_re '^supervision-host: cycle boundary - ' "$home/host.out" "the park boundary must reach main as a host line"
-  watcher_live "$home" && fail "the park boundary left the watcher running"
+  watcher_live "$home" || fail "the handoff left main without a live consumer"
   token=$(cat "$home/state/.watcher-down")
   case "$token" in
     pending:downtime:*|announced:downtime:*) ;;
     *) fail "the park boundary must publish downtime for the owner's rewake, got: $token" ;;
   esac
+  stop_home_processes "$home"
   pass "host: the park ends itself with a boundary wake and a stopped watcher"
 }
 
@@ -2550,7 +2938,8 @@ test_park_boundary_holds_under_back_to_back_closes() {
   [ "$(tail -n 1 "$home/host.out")" = "$(grep '^supervision-host: cycle boundary - ' "$home/host.out")" ] \
     || fail "a close read at the boundary must be printed ahead of the boundary line: $(cat "$home/host.out")"
   assert_grep 'demo.status' "$home/state/.wake-queue" "a close waiting at the boundary must stay queued for main"
-  watcher_live "$home" && fail "the park boundary left the watcher running"
+  watcher_live "$home" || fail "the handoff left main without a live consumer"
+  stop_home_processes "$home"
   pass "host: waiting closes cannot carry the park past its boundary"
 }
 
@@ -2598,7 +2987,8 @@ SH
   while IFS= read -r pid; do
     kill -0 "$pid" 2>/dev/null && fail "the boundary left the successor arm $pid running"
   done < <(awk -F '\t' '$1 == "arm" { print $2 }' "$home/host-record-at-render")
-  watcher_live "$home" && fail "the boundary left the watcher running"
+  watcher_live "$home" || fail "the handoff left main without a live consumer"
+  stop_home_processes "$home"
   pass "host: a close whose margin runs out while the successor starts reaches main at the boundary without a turn"
 }
 
@@ -2992,6 +3382,7 @@ test_unverified_engine_hands_every_away_wake_to_main() {
   assert_re "^supervision-host: no supervision engine runs here: config/supervision-host names 'pi', which is not a verified supervision engine" \
     "$home/host.out" "an unverified engine must be named on the wake it hands to main"
   ! ls "$home"/engine-call.* >/dev/null 2>&1 || fail "no engine: an engine ran"
+  stop_home_processes "$home"
   pass "host: a home naming an unverified engine hands every away wake to main with the reason"
 }
 
@@ -3058,6 +3449,10 @@ test_superseded_host_leaves_the_owner_untouched() {
 # half the measured time. A new case joins either list; tests/fm-test-run.test.sh
 # requires every case in exactly one.
 supervision_host_lane_a() {
+  test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm
+  test_covering_attachments_handoff_and_continue_through_both_owners
+  test_handed_over_successor_covers_the_host_exit_lease_wait
+  test_exit_to_main_keeps_a_consumer_through_main_turn
   test_claude_stop_hook_restores_handoff_when_successor_closed_before_exit_to_main
   test_claude_stop_hook_restores_handoff_when_successor_closed_mid_engine_turn
   test_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails
@@ -3140,6 +3535,8 @@ supervision_host_lane_b() {
   test_host_outside_the_lock_owner_stands_down
   test_superseded_host_leaves_the_owner_untouched
 }
+
+[ "${BASH_SOURCE[0]}" = "$0" ] || return 0
 
 case "${FM_SUPERVISION_HOST_LANE:-all}" in
   a) supervision_host_lane_a ;;

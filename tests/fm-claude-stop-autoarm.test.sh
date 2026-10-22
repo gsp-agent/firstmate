@@ -105,6 +105,7 @@ write_arm_fixture() {
   # fails while state/successor-fail exists.
   cat > "$dir/bin/fm-watch-arm.sh" <<'SH'
 #!/usr/bin/env bash
+[ "${1:-}" != --cover-handoff ] || exit 0
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
   printf 'arm=%s predecessor=%s\n' "$$" "$FM_WATCH_PREDECESSOR_ARM_PID" >> "$FM_HOME/state/successor-ran"
   if [ -e "$FM_HOME/state/successor-fail" ]; then
@@ -1793,6 +1794,8 @@ if [ -n "${FM_TEST_ONLY:-}" ]; then
   "$FM_TEST_ONLY"
   exit
 fi
+
+[ "${BASH_SOURCE[0]}" = "$0" ] || return 0
 
 test_inert_in_child_worktree
 test_inert_without_session_lock
