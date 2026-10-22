@@ -21,7 +21,7 @@ Custody recovery settles branch ownership, not content: the worker must replace 
 Apart from that single supported abort, do not hand-edit, commit, restart, or start a second validation run while the obsolete run still owns the branch.
 Once ownership is settled, validate exactly once against that final head so no obsolete or intermediate head is ever treated as authoritative.
 
-An ask-user finding requiring escalation under `ask-user-authority` returns as `needs-decision`; firstmate loads that skill and either decides or escalates per its policy.
+Follow [`ask-user-authority`](../ask-user-authority/SKILL.md) for finding ownership, including its worker-answerable exception; findings routed to firstmate return as `needs-decision` for firstmate to decide or escalate.
 Send the same worker one exact decision naming the decision key, step, action, affected finding IDs, instructions where needed, and exact response command, passing `--resolve-key` so the worker's open decision record closes at answer time.
 Require the matching `resolved` event, forbid `--yes`, and require the worker to process every synchronous return until completion or a genuinely new escalation.
 Resume fleet supervision immediately after the decision lands.

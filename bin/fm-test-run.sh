@@ -75,8 +75,19 @@
 #                   healthy CI measurement with margin; exceeding it becomes a
 #                   bounded failure, not proof of a hang. --max-wall-ms is checked
 #                   after the run and so cannot catch a hang on its own.
-#                   External interruption cleanup is outside this runner's
-#                   guarantee; configured per-script bounds remain authoritative.
+#                   With or without a bound, each script runs in its own
+#                   process group under fm_exec_timed (bin/fm-timeout-lib.sh),
+#                   whose watchdog stays in the runner's group. Killing the
+#                   runner the caller launched, even with KILL, also when the
+#                   machine gate re-executed it, or sending TERM, INT, HUP, or
+#                   KILL to the runner's group, takes the running script's
+#                   group down rather than leaving it behind, and no further
+#                   script starts; an interrupted script ends the run with
+#                   exit 130 even when the runner inherited INT ignored. A
+#                   stop (Ctrl-Z) does not reach the script's group, so it
+#                   leaves the script running. Taking the group down needs
+#                   perl: fm_exec_timed's timeout fallback bounds the script
+#                   only by its deadline.
 #   --max-wall-ms N fail the run when its measured invocation wall clock exceeds
 #                   N milliseconds, including an empty selection. It is
 #                   evaluated after selection and suite execution and cannot
@@ -103,6 +114,10 @@
 #   branches, and the primary is the checkout every linked worktree resolves
 #   against. Inspection modes execute nothing and stay available, and a run with
 #   no FM_TASK_ID set is unchanged.
+#
+# Machine line:
+#   bin/fm-test-machine-line-lib.sh owns suite admission, gate overrides,
+#   retry behavior, nested runs, and timing across admission waits.
 #
 # Exit status is non-zero if any selected script exits non-zero, a configured
 # --fail-on-gate-skip token appears, the measured duration exceeds
@@ -164,6 +179,9 @@ RUN_STARTED_MS=$(now_ms)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
+
+# shellcheck source=bin/fm-test-machine-line-lib.sh
+. "$ROOT/bin/fm-test-machine-line-lib.sh"
 
 MODE=
 LIST_ONLY=0
@@ -1953,6 +1971,10 @@ with open(out, "w", encoding="utf-8") as fh:
 PY
 }
 
+# Saved before parsing consumes them. The admitted child is a re-exec of this
+# script, because the gate holds its lock only around the command it is given.
+ORIGINAL_ARGS=("$@")
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --all)
@@ -2176,6 +2198,7 @@ fi
 case "$PER_SCRIPT_TIMEOUT_SECS" in
   ''|*[!0-9]*) die "--per-script-timeout-secs requires a whole number of seconds (0 disables)" ;;
 esac
+PER_SCRIPT_TIMEOUT_SECS=$((10#$PER_SCRIPT_TIMEOUT_SECS))
 
 # Refuse before any suite is selected or run. The inspection modes execute
 # nothing: --list-families, --list-concurrent-safe-families, --list-lanes,
@@ -2385,11 +2408,12 @@ if [ "$JOBS" -gt 1 ]; then
   rm -f "$SCHEDULE_TMP"
 fi
 
-if [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ]; then
-  [ -r "$ROOT/bin/fm-timeout-lib.sh" ] || die "per-script timeout helper not found: bin/fm-timeout-lib.sh"
-  # shellcheck source=bin/fm-timeout-lib.sh
-  . "$ROOT/bin/fm-timeout-lib.sh"
-fi
+[ -r "$ROOT/bin/fm-timeout-lib.sh" ] || die "script supervision helper not found: bin/fm-timeout-lib.sh"
+# shellcheck source=bin/fm-timeout-lib.sh
+. "$ROOT/bin/fm-timeout-lib.sh"
+
+# Refusals above exit before this, so a refused run does not take the turn.
+enter_machine_line "$ROOT/bin/fm-test-run.sh" ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}
 
 RUN_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run.XXXXXX")
 RECORDS="$RUN_TMP/records.tsv"
@@ -2406,6 +2430,10 @@ cleanup_run() {
 }
 
 trap cleanup_run EXIT
+# Ctrl-C reaches the script's own process group through fm_exec_timed, which
+# ends the script and returns normally, so without this the run would move on
+# to the next script instead of stopping.
+trap 'exit 130' INT
 
 RUN_ID="fm-test-run-${RUN_STARTED_MS}-$$"
 TOTAL=0
@@ -2484,12 +2512,19 @@ record_script_result() {
 }
 
 # Run <script>, capturing output to <out>. <stream> 1 also echoes it live.
-# <id> only has to be unique within this run. When PER_SCRIPT_TIMEOUT_SECS is
-# positive, a script that outruns it is terminated and reported as exit 124: a
-# hung script must become a bounded failure rather than an unbounded suite,
-# because an unbounded suite is what silently outruns its caller's budget.
+# <id> only has to be unique within this run. Every script runs in its own
+# process group under fm_exec_timed, whose perl watchdog ends that group when
+# this runner or the runner the caller launched (RUN_OWNER_PID, across a
+# machine-gate re-execution) dies; the header's --per-script-timeout-secs
+# entry owns which interruptions that covers.
+# When PER_SCRIPT_TIMEOUT_SECS is positive, a script that outruns it is
+# terminated and reported as exit 124: a hung script must become a bounded
+# failure rather than an unbounded suite, because an unbounded suite is what
+# silently outruns its caller's budget. With 0 the deadline is out of reach.
+SCRIPT_GRACE_SECS=10
+UNBOUNDED_SCRIPT_SECS=315360000
 run_script_bounded() {  # <script> <out> <stream> <id>
-  local script=$1 out=$2 stream=$3 id=$4
+  local script=$1 out=$2 stream=$3 id=$4 bound=$PER_SCRIPT_TIMEOUT_SECS
   # Declaring the variables local first keeps the helper's export scoped to this
   # call and its child script, so the runner's own environment is left as the
   # caller had it.
@@ -2498,23 +2533,24 @@ run_script_bounded() {  # <script> <out> <stream> <id>
   . "$ROOT/tests/git-config-helpers.sh" || return
   local rc
   : "$id"
+  [ "$bound" -gt 0 ] || bound=$UNBOUNDED_SCRIPT_SECS
   set +e
   if [ "$stream" -eq 1 ]; then
-    if [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ]; then
-      # Expansion is intentionally deferred to the child bash passed to -c.
-      # shellcheck disable=SC2016
-      fm_run_timed "$PER_SCRIPT_TIMEOUT_SECS" bash -c \
-        'bash "$1" 2>&1 | tee "$2"; exit "${PIPESTATUS[0]}"' _ "$script" "$out"
-      rc=$?
-    else
-      bash "$script" 2>&1 | tee "$out"
-      rc=${PIPESTATUS[0]}
-    fi
-  elif [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ]; then
-    fm_run_timed "$PER_SCRIPT_TIMEOUT_SECS" bash "$script" >"$out" 2>&1
+    # Expansion is intentionally deferred to the child bash passed to -c.
+    # The wrapper catches the signals so it outlives the script's own
+    # handling of them. Its trap action runs no command, because on Bash 3.2
+    # any command it ran would replace PIPESTATUS before the exit reads it.
+    # shellcheck disable=SC2016
+    (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
+      fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash -c '
+        trap " " HUP INT TERM
+        bash "$1" 2>&1 | (trap "" HUP INT TERM; exec tee "$2")
+        exit "${PIPESTATUS[0]}"
+      ' _ "$script" "$out")
     rc=$?
   else
-    bash "$script" >"$out" 2>&1
+    (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
+      fm_exec_timed "$bound" "$SCRIPT_GRACE_SECS" bash "$script") >"$out" 2>&1
     rc=$?
   fi
   if [ "$PER_SCRIPT_TIMEOUT_SECS" -gt 0 ] && [ "$rc" -eq 124 ]; then
@@ -2525,9 +2561,31 @@ run_script_bounded() {  # <script> <out> <stream> <id>
   return "$rc"
 }
 
+# Once the runner the caller launched is gone, every running script's watchdog
+# is already ending its group: wait for those, start nothing further, and
+# leave, so a gated re-execution does not hold the machine line for a run
+# nobody is waiting on. Called before each script starts, on every path.
+stop_when_owner_gone() {
+  kill -0 "$RUN_OWNER_PID" 2>/dev/null && return 0
+  log "the runner the caller launched (pid $RUN_OWNER_PID) is gone; starting no further scripts"
+  wait
+  exit 143
+}
+
+# fm_exec_timed reports 130 once an INT reached the script's watchdog. This
+# runner's INT trap cannot fire when it inherited INT ignored, so that status
+# is the run's interrupt: stop as the trap would, after the running scripts.
+stop_when_interrupted() {  # <rc>
+  [ "$1" -eq 130 ] || return 0
+  log "a script was interrupted; starting no further scripts"
+  wait
+  exit 130
+}
+
 run_one_serial() {
   local script=$1
   local base family expected out begin_iso begin_ms end_ms end_iso duration rc
+  stop_when_owner_gone
   base=$(basename "$script")
   family=$(family_for_basename "$base")
   expected=$(expected_gate_skip_for_family "$family")
@@ -2552,6 +2610,7 @@ run_one_serial() {
     duration=0
   fi
   record_script_result "$script" "$rc" "$duration" "$out" "$end_iso"
+  stop_when_interrupted "$rc"
 }
 
 if [ "$JOBS" -eq 1 ]; then
@@ -2606,6 +2665,7 @@ else
       esac
     fi
     record_script_result "$script" "$rc" "$duration" "$out" "$end_iso"
+    stop_when_interrupted "$rc"
   }
 
   worker_pid_is_running() {
@@ -2644,6 +2704,7 @@ else
     while [ "$active_workers" -ge "$JOBS" ]; do
       wait_one_completed_job_worker
     done
+    stop_when_owner_gone
     worker_n=$((worker_n + 1))
     work="$RUN_TMP/w$worker_n"
     mkdir -p "$work/tmp"

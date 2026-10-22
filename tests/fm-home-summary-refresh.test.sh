@@ -61,6 +61,249 @@ exit 0
 SH
 chmod +x "$FAKEBIN/tmux" "$FAKEBIN/no-mistakes"
 
+python3 - "$ROOT" "$TMP_ROOT" "$FAKEBIN" <<'PYTHON' || fail "watcher refresh cleanup failed"
+import json
+import os
+from pathlib import Path
+import shutil
+import signal
+import subprocess
+import sys
+import time
+
+root, tmp, fakebin = map(Path, sys.argv[1:])
+code = tmp / "refresh-cleanup-code" / "bin"
+code.mkdir(parents=True)
+for helper in (root / "bin").iterdir():
+    if helper.name not in ("fm-fleet-snapshot.sh", "fm-timeout-lib.sh"):
+        (code / helper.name).symlink_to(helper)
+shutil.copy2(root / "bin/fm-timeout-lib.sh", code / "fm-timeout-lib.sh")
+producer = code / "fm-fleet-snapshot.sh"
+producer.write_text(r'''#!/usr/bin/env bash
+if [ "${FM_TEST_SLOW_REFRESH:-0}" = 1 ]; then
+  (trap '' HUP INT TERM; sleep 900) &
+  child=$!
+  printf '%s %s %s\n' "$$" "$PPID" "$child" > "$FM_HOME/state/producer.pids"
+  wait "$child"
+  exit 1
+fi
+jq -n --arg home "$FM_HOME" '{
+  schema:"fm-secondmate-home-summary.v1", hold_classifier_schema:"fm-captain-hold-buckets.v1",
+  home:$home, generated:"2026-10-22T00:00:00Z", generated_epoch:1792627200,
+  valid:true, state:"idle", invalidity:{}, active_children:[], decisions_open:[],
+  holds:[], queued:[], landed:[], endpoints:[], counts:{}, omitted:[]
+}'
+''')
+producer.chmod(0o755)
+
+normal = tmp / "refresh-normal.sh"
+normal.write_text(r'''#!/usr/bin/env bash
+. "$1"
+trap 'printf callback > "$FM_HOME/trap-fired"' TERM
+for wanted in 0 7 137 143; do
+  rc=0
+  fm_run_timed 30 bash "$FM_HOME/status.sh" "$wanted" <<< 'preserved input' || rc=$?
+  [ "$rc" = "$wanted" ] || exit 90
+  [ "$(cat "$FM_HOME/input")" = 'preserved input' ] || exit 91
+done
+rc=0
+fm_run_timed 1 sleep 30 || rc=$?
+[ "$rc" = 124 ] || exit 92
+kill -TERM "$$"
+[ "$(cat "$FM_HOME/trap-fired")" = callback ] || exit 93
+''')
+normal.chmod(0o755)
+
+def wait_for(predicate, message):
+    for _ in range(1200):
+        if predicate():
+            return
+        time.sleep(0.1)
+    raise AssertionError(message)
+
+def running(pids):
+    output = subprocess.run(["ps", "-o", "pid=,stat=", "-p", ",".join(map(str, pids))],
+                            stdout=subprocess.PIPE, text=True, check=False).stdout
+    return {int(row.split()[0]) for row in output.splitlines() if not row.split()[1].startswith("Z")}
+
+gnu = shutil.which("timeout") or shutil.which("gtimeout")
+paths = {}
+for mechanism in ("timeout", "gtimeout", "perl", "bash"):
+    tools = tmp / ("refresh-tools-" + mechanism)
+    tools.mkdir()
+    for name in ("bash", "sleep", "dirname", "basename", "date", "env", "mkdir", "mktemp",
+                 "chmod", "cat", "rm", "rmdir", "mv", "jq", "ps", "awk", "sed", "tr", "tail",
+                 "wc", "head", "cut", "sort", "shasum", "sha256sum", "cksum", "stat", "find",
+                 "uname", "touch", "python3", "git", "readlink", "id", "grep", "mkfifo", "od",
+                 "cp", "ln", "cmp", "xargs", "hostname", "kill", "perl"):
+        source = shutil.which(name)
+        if source:
+            (tools / name).symlink_to(source)
+    if mechanism in ("timeout", "gtimeout"):
+        if not gnu:
+            print("skip: " + mechanism + " refresh cancellation requires GNU timeout", flush=True)
+            continue
+        (tools / mechanism).symlink_to(gnu)
+    elif mechanism == "perl":
+        assert shutil.which("perl"), "perl refresh cancellation requires perl on PATH"
+    paths[mechanism] = str(tools) + os.pathsep + str(fakebin)
+
+def make_home(name, mechanism, secondmate=True):
+    home = tmp / ("refresh-cleanup-" + name)
+    for directory in (home / "state", home / "data", home / "config"):
+        directory.mkdir(parents=True)
+    if secondmate:
+        (home / ".fm-secondmate-home").write_text("mate\n")
+    (home / "data/backlog.md").write_text("## In flight\n\n## Queued\n\n## Done\n")
+    env = dict(os.environ, PATH=paths[mechanism], FM_ROOT_OVERRIDE=str(root), FM_HOME=str(home),
+               FM_STATE_OVERRIDE=str(home / "state"), FM_DATA_OVERRIDE=str(home / "data"),
+               FM_CONFIG_OVERRIDE=str(home / "config"), FM_PROJECTS_OVERRIDE=str(home / "projects"),
+               FM_HOME_SUMMARY_TIMEOUT="900", FM_POLL="1", FM_SIGNAL_GRACE="0",
+               FM_CHECK_INTERVAL="9999999", FM_HEARTBEAT="9999999")
+    env.pop("FM_TIMEOUT_MECHANISM_OVERRIDE", None)
+    if mechanism == "bash":
+        env["FM_TIMEOUT_MECHANISM_OVERRIDE"] = "bash"
+    return home, env
+
+def cancel(name, mechanism, sig, watcher=False):
+    home, env = make_home(name + "-" + mechanism, mechanism)
+    state = home / "state"
+    env["FM_TEST_SLOW_REFRESH"] = "1"
+    signal_trigger = name in ("signal", "actionable")
+    env["FM_HOME_SUMMARY_INTERVAL"] = "9999999" if signal_trigger else "1"
+    if signal_trigger:
+        (state / "task.meta").write_text("kind=scout\nharness=claude\nwindow=fmtest:task\n")
+        (state / "task.status").touch()
+        crew = home / "crew-state.sh"
+        crew.write_text("#!/usr/bin/env bash\nprintf 'state: working · source: pane · fixture busy\\n'\n")
+        crew.chmod(0o755)
+        env["FM_CREW_STATE_BIN"] = str(crew)
+    command = ["bash", str(code / ("fm-watch.sh" if watcher else "fm-home-summary-refresh.sh"))]
+    records = []
+    producer_group = None
+    drain_pid = None
+    with (home / "out").open("w") as out, (home / "err").open("w") as err:
+        parent = subprocess.Popen(command, env=env, stdout=out, stderr=err)
+        try:
+            if signal_trigger:
+                wait_for(lambda: (state / ".last-watcher-beat").exists(), "signal watcher never polled")
+                verb = "blocked" if name == "actionable" else "working"
+                (state / "task.status").write_text(verb + ": fixture busy\n")
+            def started():
+                assert parent.poll() is None, name + " exited before starting its producer"
+                record = state / "producer.pids"
+                return record.exists() and len(record.read_text().split()) == 3
+            wait_for(started, name + " producer never started")
+            records = list(map(int, (state / "producer.pids").read_text().split()))
+            if watcher:
+                drain_pid = int((state / ".home-summary-drain.lock/pid").read_text())
+            producer_group = os.getpgid(records[0])
+            assert producer_group != os.getpgrp(), name + " producer did not own a separate group"
+            assert {records[0], records[2]} <= running(records), name + " producer was not running"
+            if name == "signal":
+                assert not (state / ".home-summary-dirty").exists(), "producer did not consume its request"
+                with (state / "task.status").open("a") as status:
+                    status.write("working: another status during publication\n")
+                wait_for(lambda: (state / ".home-summary-dirty").exists(),
+                         "signal during publication lost its pending request")
+            if name == "actionable":
+                wait_for(lambda: (home / "out").read_text().startswith("signal:"),
+                         "actionable signal was not delivered while publication was pending")
+            parent.send_signal(sig)
+            parent.wait(timeout=120)
+            expected = (0,) if name == "actionable" else (-sig, 128 + sig)
+            assert parent.returncode in expected, name + " cancellation status: " + str(parent.returncode)
+            owned = records + ([drain_pid] if drain_pid else [])
+            survivors = running(owned)
+            assert not survivors, name + " left a drain, producer, or worker running: " + str(sorted(survivors))
+        except Exception as error:
+            raise AssertionError(str(error) + "\n" + (home / "err").read_text() + (home / "out").read_text()) from error
+        finally:
+            if parent.poll() is None:
+                parent.kill()
+            parent.wait()
+            if producer_group is not None:
+                try:
+                    os.killpg(producer_group, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            record = state / "producer.pids"
+            if record.exists():
+                for pid in map(int, record.read_text().split()):
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+            if drain_pid:
+                try:
+                    os.kill(drain_pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+
+for mechanism in paths:
+    home, env = make_home("completed-" + mechanism, mechanism)
+    (home / "status.sh").write_text(r'''IFS= read -r incoming
+printf '%s\n' "$incoming" > "$FM_HOME/input"
+case "$1" in
+  137) kill -KILL "$$" ;;
+  143) kill -TERM "$$" ;;
+  *) exit "$1" ;;
+esac
+''')
+    completed = subprocess.run(["/bin/bash", str(normal), str(code / "fm-timeout-lib.sh")],
+                               env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
+    assert completed.returncode == 0, mechanism + " normal call failed: " + completed.stderr
+    published = subprocess.run(["bash", str(code / "fm-home-summary-refresh.sh")],
+                               env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
+    assert published.returncode == 0, mechanism + " publication failed: " + published.stderr
+    ledger = json.loads((home / "state/home-summary.json").read_text())
+    assert ledger["home"] == str(home) and ledger["valid"], mechanism + " publication changed"
+    owned_home, owned_env = make_home("request-" + mechanism, mechanism)
+    request_command = ["bash", str(code / "fm-home-summary-refresh.sh"), "--request", "--wait"]
+    published = subprocess.run(request_command, env=owned_env, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, text=True, timeout=30)
+    assert published.returncode == 0, mechanism + " waited request failed: " + published.stderr
+    owned_state = owned_home / "state"
+    original = (owned_state / "home-summary.json").read_bytes()
+    assert json.loads(original)["home"] == str(owned_home), mechanism + " waited request did not publish"
+    assert not (owned_state / ".home-summary-drain.lock").exists(), mechanism + " drain lock survived publication"
+    owned_env["FM_TEST_SLOW_REFRESH"] = "1"
+    owned_env["FM_HOME_SUMMARY_INTERVAL"] = "9999999"
+    cooling = subprocess.run(request_command, env=owned_env, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, text=True, timeout=10)
+    assert cooling.returncode == 0, mechanism + " cooling request failed: " + cooling.stderr
+    assert not (owned_state / "producer.pids").exists(), mechanism + " cooldown started a producer"
+    assert (owned_state / "home-summary.json").read_bytes() == original, mechanism + " cooldown changed the ledger"
+    assert (owned_state / ".home-summary-dirty").exists(), mechanism + " cooldown lost the pending request"
+    drain_pid_path = owned_state / ".home-summary-drain.lock/pid"
+    wait_for(drain_pid_path.exists, mechanism + " cooldown did not hand off its pending request")
+    cooling_pid = int(drain_pid_path.read_text())
+    try:
+        assert cooling_pid in running([cooling_pid]), mechanism + " cooldown drain was not running"
+        assert not (owned_state / "producer.pids").exists(), mechanism + " detached drain bypassed the cooldown"
+    finally:
+        try:
+            os.kill(cooling_pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        wait_for(lambda: not running([cooling_pid]), mechanism + " cooldown fixture did not stop its drain")
+    main_home, main_env = make_home("main-" + mechanism, mechanism, secondmate=False)
+    main_request = subprocess.run(request_command, env=main_env, stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True, timeout=10)
+    assert main_request.returncode == 0, mechanism + " main-home request failed"
+    assert not list((main_home / "state").iterdir()), mechanism + " main-home request wrote publication state"
+    cancel("parent", mechanism, signal.SIGTERM)
+    for trigger in ("poll", "signal", "actionable"):
+        cancel(trigger, mechanism, signal.SIGTERM, watcher=True)
+        print("ok - real refresh producer reaped after watcher " + trigger + ": " + mechanism, flush=True)
+    print("ok - real refresh cancellation and normal calls: " + mechanism, flush=True)
+
+mechanism = next(iter(paths))
+for sig in (signal.SIGHUP, signal.SIGINT):
+    cancel("parent-signal-" + str(sig), mechanism, sig)
+PYTHON
+pass "watcher cleanup reaps real refresh workers and producers across timeout mechanisms"
+
 mkdir -p "$HOME_DIR/state" "$HOME_DIR/data" "$HOME_DIR/config" \
   "$HOME_DIR/projects/task" "$HOME_DIR/bin"
 HOME_DIR=$(cd "$HOME_DIR" && pwd -P)
@@ -134,6 +377,7 @@ jq -e --arg home "$HOME_DIR" --arg now "$NOW_ONE" --argjson epoch "$EPOCH_ONE" '
 PATH="$FAKEBIN:$PATH" \
   FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$HOME_DIR" \
   FM_SNAPSHOT_NOW="$NOW_TWO" FM_SNAPSHOT_NOW_EPOCH="$EPOCH_TWO" \
+  FM_TEST_NM_MARKER="$TMP_ROOT/status-refresh-nm.pid" FM_TEST_NM_SLEEP=2 \
   FM_POLL=1 FM_HOME_SUMMARY_INTERVAL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=9999999 FM_HEARTBEAT=9999999 \
   "$WATCH" > "$TMP_ROOT/watch.out" 2> "$TMP_ROOT/watch.err" &
 WATCH_PID=$!
@@ -151,6 +395,11 @@ wait_for_ledger_generation "$NOW_TWO" \
   || fail "a status append did not refresh the ledger within the watcher cadence"
 wait "$WATCH_PID" >/dev/null 2>&1 || true
 WATCH_PID=
+[ -s "$TMP_ROOT/status-refresh-nm.pid" ] \
+  || fail "the status-triggered producer did not reach its delayed dependency"
+jq -e 'any(.decisions_open[]; .id == "ledger-task" and .key == "fixture-dependency")' \
+  "$HOME_DIR/state/home-summary.json" >/dev/null \
+  || fail "the status-triggered ledger lost the actionable decision"
 
 run_producer "$NOW_TWO" "$EPOCH_TWO" > "$TMP_ROOT/fresh-summary.json" \
   || fail "fresh secondmate-home-summary production failed"
@@ -547,23 +796,41 @@ pass "best-effort refresh bounds publication lock acquisition"
 
 HANGBIN="$TMP_ROOT/hangbin"
 REAL_JQ=$(command -v jq)
-mkdir -p "$HANGBIN"
+VALIDATION_CODE="$TMP_ROOT/validation-code"
+VALIDATION_MARKER="$TMP_ROOT/validation-started"
+mkdir -p "$HANGBIN" "$VALIDATION_CODE"
+# Use an already published document to reach validation within the one-second
+# refresh budget, without recomputing the fleet inside this focused check.
+for helper in fm-home-summary-refresh.sh fm-timeout-lib.sh fm-wake-lib.sh fm-path-lib.sh; do
+  ln -s "$ROOT/bin/$helper" "$VALIDATION_CODE/$helper"
+done
+cp "$HOME_DIR/state/home-summary.json" "$VALIDATION_CODE/summary.json"
+cat > "$VALIDATION_CODE/fm-fleet-snapshot.sh" <<'SH'
+#!/bin/sh
+exec cat "$FM_TEST_VALIDATION_DOCUMENT"
+SH
 cat > "$HANGBIN/jq" <<'SH'
-#!/usr/bin/env bash
+#!/bin/sh
 for arg in "$@"; do
   case "$arg" in
-    */.home-summary.json.*) sleep 30 ;;
+    */.home-summary.json.*)
+      printf '%s\n' "$$" > "$FM_TEST_VALIDATION_MARKER"
+      sleep 30
+      ;;
   esac
 done
 exec "$FM_TEST_REAL_JQ" "$@"
 SH
-chmod +x "$HANGBIN/jq"
+chmod +x "$HANGBIN/jq" "$VALIDATION_CODE/fm-fleet-snapshot.sh"
 started=$(date +%s)
 PATH="$HANGBIN:$FAKEBIN:$PATH" FM_TEST_REAL_JQ="$REAL_JQ" \
+  FM_TEST_VALIDATION_DOCUMENT="$VALIDATION_CODE/summary.json" \
+  FM_TEST_VALIDATION_MARKER="$VALIDATION_MARKER" \
   FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$HOME_DIR" FM_HOME_SUMMARY_TIMEOUT=1 \
-  "$WRITER" --best-effort \
+  "$VALIDATION_CODE/fm-home-summary-refresh.sh" --best-effort \
   || fail "validation timeout changed the best-effort caller result"
 elapsed=$(( $(date +%s) - started ))
+[ -s "$VALIDATION_MARKER" ] || fail "the refresh deadline expired before validation ran"
 [ "$elapsed" -lt 4 ] || fail "best-effort refresh waited $elapsed seconds on validation"
 grep -F 'refresh exceeded its 1-second deadline' \
   "$HOME_DIR/state/.home-summary-refresh.log" >/dev/null \
@@ -969,8 +1236,11 @@ fi
 kill -KILL "$LOCK_HOLDER_PID" >/dev/null 2>&1 || true
 wait "$LOCK_HOLDER_PID" >/dev/null 2>&1 || true
 LOCK_HOLDER_PID=
+# A replacement watcher may still be cancelling its detached refresh here.
+# This required publication must wait for that lock; an idle-only attempt can
+# legitimately skip it and leave no publisher after the watcher exits.
 PATH="$FAKEBIN:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$RESTART_HOME" \
-  FM_HOME_SUMMARY_IF_IDLE=1 "$WRITER" --best-effort \
+  "$WRITER" --best-effort \
   || fail "stale-lock recovery changed the best-effort caller result"
 i=0
 while [ ! -e "$RESTART_HOME/state/home-summary.json" ] && [ "$i" -lt 1200 ]; do
@@ -1377,6 +1647,27 @@ wait_request_condition request_is_idle "$REQUEST_HOME" || fail "busy publication
 jq -e '.state == "after"' "$REQUEST_HOME/state/home-summary.json" >/dev/null \
   || fail "the pending event was absent from the ledger"
 pass "a request survives an older synchronous publication and publishes its own event"
+
+REQUEST_HOME=$(request_fixture watcher-teardown)
+printf 'wait\n' > "$REQUEST_HOME/state/hold"
+FM_TEST_REQUEST_TIMEOUT=30 run_request_writer "$REQUEST_HOME" 1 --request --wait &
+SLOW_WRITER_PID=$!
+wait_request_condition test -e "$REQUEST_HOME/state/producer-started" \
+  || fail "the watcher's waited publication did not start"
+printf 'after\n' > "$REQUEST_HOME/state/event"
+run_request_writer "$REQUEST_HOME" 1 --request || fail "the teardown publication request failed"
+[ -e "$REQUEST_HOME/state/.home-summary-dirty" ] \
+  || fail "the teardown publication request was not pending"
+request_walks_equal "$REQUEST_HOME" 1 || fail "the teardown request overlapped the watcher's publication"
+printf 'release\n' > "$REQUEST_HOME/state/hold"
+wait "$SLOW_WRITER_PID" || fail "the watcher's waited publication failed"
+SLOW_WRITER_PID=
+wait_request_condition request_walks_equal "$REQUEST_HOME" 2 \
+  || fail "the teardown request was stranded after the watcher's pass"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "the teardown request's drain did not finish"
+jq -e '.state == "after"' "$REQUEST_HOME/state/home-summary.json" >/dev/null \
+  || fail "the teardown event was absent from the final ledger"
+pass "a teardown publication request survives the watcher's waited drain pass"
 
 REQUEST_HOME=$(request_fixture handoff)
 : > "$REQUEST_HOME/state/handoff-armed"
