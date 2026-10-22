@@ -1,0 +1,129 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-herdr-lab.sh provision fm-lab-holds-cursor-1022
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/cursor-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/cursor-home
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-herdr-lab.sh run fm-lab-holds-cursor-1022 workspace create --cwd /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5 --label hold-routing-test --no-focus --env FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/cursor-home --env DISABLE_AUTOUPDATER=1
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65e741a378b381","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"},"type":"workspace_created","workspace":{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"hold-routing-test","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}}}
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-herdr-lab.sh run fm-lab-holds-cursor-1022 agent start hold-owner --kind cursor --pane w1:p1 --timeout 30000 -- --trust --mode ask --workspace /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5 'You are the owner in an isolated hold-routing test. No real project operation is requested. When a timed-out update-branch or EP-approved capacity hold arrives, acknowledge that you own it and decide proceed without asking Dale. Use no tools.'
+{"id":"cli:agent:start","result":{"agent":{"agent":"cursor","agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5","interactive_ready":true,"name":"hold-owner","pane_id":"w1:p1","revision":0,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term_65e741a378b381","workspace_id":"w1"},"argv":["cursor-agent","--trust","--mode","ask","--workspace","/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5","You are the owner in an isolated hold-routing test. No real project operation is requested. When a timed-out update-branch or EP-approved capacity hold arrives, acknowledge that you own it and decide proceed without asking Dale. Use no tools."],"type":"agent_started"}}
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-herdr-lab.sh run fm-lab-holds-cursor-1022 pane read w1:p1 --source recent --lines 70
+cursor-agent --trust --mode ask --workspace /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5
+N42F5 'You are the owner in an isolated hold-routing test. No real project operation is requested. When a timed-out upd
+ate-branch or EP-approved capacity hold arrives, acknowledge that you own it and decide proceed without asking Dale. Us
+e no tools.'
+
+╭─01M5JEYAVNE847J7HNDV5N42F5 on 🌱 HEAD [!?]
+╰─❯ cursor-agent --trust --mode ask --workspace /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7H
+NDV5N42F5 'You are the owner in an isolated hold-routing test. No real project operation is requested. When a timed-out
+ update-branch or EP-approved capacity hold arrives, acknowledge that you own it and decide proceed without asking Dale
+. Use no tools.'
+
+[exit 0]
+PROTECTED_CALLS_PRESERVED
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh hold update-branch --title update-branch --decision-owner hold-owner --timeout-seconds 60 --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+update-branch
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due update-branch
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-tasks-axi.sh show update-branch --full
+task:
+  id: update-branch
+  title: update-branch
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-22
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 27f96431a129d872c1cf9f764d6112d8f93b33eed0a17157a9ebba5b40314583\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: update-branch\t2026-10-14T02:00:00Z\thold-owner\nRouted hold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.\n\nDecision owner: hold-owner\nHold timeout seconds: 60\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due update-branch
+
+[exit 0]
+LIVE_ROUTED update-branch
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh hold approved-capacity --title approved-capacity --decision-owner hold-owner --timeout-seconds 60 --reason 'ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?'
+approved-capacity
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due approved-capacity
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-tasks-axi.sh show approved-capacity --full
+task:
+  id: approved-capacity
+  title: approved-capacity
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-22
+  closed: "-"
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 3284100e126b69474914bf95819566d52489e378f54c14028ccb41bfca26d24e\nResolution mode: agent-routed\n\nAgent routing evidence:\nHold-domain receipt: approved-capacity\t2026-10-14T02:00:00Z\thold-owner\nRouted hold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?\n\nDecision owner: hold-owner\nHold timeout seconds: 60\nHold reason: ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?"
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due approved-capacity
+
+[exit 0]
+LIVE_ROUTED approved-capacity
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-herdr-lab.sh run fm-lab-holds-cursor-1022 agent list
+{"id":"cli:agent:list","result":{"agents":[{"agent":"cursor","agent_session":{"agent":"cursor","kind":"id","source":"herdr:cursor","value":"8e4dd08f-48c2-4c0b-bc96-7a6f78ad7660"},"agent_status":"idle","cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5","focused":true,"foreground_cwd":"/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5","interactive_ready":true,"name":"hold-owner","pane_id":"w1:p1","revision":1,"state_change_seq":3,"tab_id":"w1:t1","terminal_id":"term_65e741a378b381","terminal_title":"Cursor Agent","terminal_title_stripped":"Cursor Agent","workspace_id":"w1"}],"type":"agent_list"}}
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-herdr-lab.sh run fm-lab-holds-cursor-1022 pane read w1:p1 --source recent --lines 120
+
+  Cursor Agent
+  v2026.10.19-6bbf2c4
+  Tip: Use /skills to give Cursor specialized knowledge for tasks.
+
+
+  You are the owner in an isolated hold-routing test. No real project operation is
+  requested. When a timed-out update-branch or EP-approved capacity hold arrives,
+  acknowledge that you own it and decide proceed without asking Dale. Use no tools.
+
+
+ ⠰⠳ Working
+    Tip: Try Cursor Grok 4.7 via /model, frontier intelligence at a fraction of the cost.
+
+
+  → Hold update-branch timed out. You own this decision. Resolve it without Dale. GSP PRs
+    4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+    Hold approved-capacity timed out. You own this decision. Resolve it without Dale.
+    ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5.
+    Should I apply that?
+
+
+  Ask (shift+tab to cycle)
+  Grok 4.7 256K Extra High
+  ~/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5 · c5066f2
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-herdr-lab.sh teardown fm-lab-holds-cursor-1022
+
+[exit 0]
+LAB_TEARDOWN_OK

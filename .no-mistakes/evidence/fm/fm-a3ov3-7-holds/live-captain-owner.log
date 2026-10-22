@@ -1,0 +1,29 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-owner-validation
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-owner-validation
+
+$ bin/fm-captain-hold.sh hold captain-owned --title Human-owned branch decision --timeout-seconds 1 --reason GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+captain-owned
+
+$ bin/fm-captain-hold.sh route-due captain-owned
+
+$ bin/fm-tasks-axi.sh show captain-owned --full
+task:
+  id: captain-owned
+  title: Human-owned branch decision
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-10-22
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: captain\nHold timeout seconds: 1\nHold reason: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch."
+
+A measured technical reason stays held when its decision owner is the captain.

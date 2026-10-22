@@ -1,0 +1,42 @@
+
+MUTATIONS retained-alias-report-answer
+update	--help
+update	fm-o
+update	fm-o
+done	fm-o
+update	--help
+update	fm-o
+done	fm-o
+update	fm-o
+answered: fm-o
+
+MUTATIONS retained-alias-report-reconcile
+update	--help
+update	--help
+update	fm-o
+update	fm-o
+done	fm-o
+update	--help
+update	fm-o
+done	fm-o
+update	fm-o
+reconciled: fm-o
+
+MUTATIONS retained-alias-gerrit-answer
+update	--help
+update	fm-o
+done	fm-o
+update	--help
+done	fm-o
+update	fm-o
+answered: fm-o
+
+MUTATIONS retained-alias-gerrit-reconcile
+update	--help
+update	--help
+update	fm-o
+done	fm-o
+update	--help
+done	fm-o
+update	fm-o
+reconciled: fm-o

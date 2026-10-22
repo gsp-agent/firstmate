@@ -1,0 +1,15 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/beads-home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/beads-home
+
+[exit 0]
+$ br init --prefix fm --json
+Prefix set to: fm
+Initialized beads workspace in ./.beads
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-tasks-axi.sh list
+error: "Unsupported backend \"beads\" — P1 ships the markdown backend only"
+code: UNSUPPORTED
+help[1]: "Set `backend = \"markdown\"` in .tasks.toml, or omit --backend"
+
+[exit 1]

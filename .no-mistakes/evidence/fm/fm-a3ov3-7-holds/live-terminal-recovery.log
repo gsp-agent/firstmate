@@ -1,0 +1,93 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/live-terminal-done
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/live-terminal-done
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-tasks-axi.sh done work
+ok: done work -> Done
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due work
+actionable: task work is held for the captain in this home but that did not reach the parent channel (rc=4)
+fm-captain-hold: could not publish the resolved captain-held task work to its parent
+
+[exit 1]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due
+actionable: task work is held for the captain in this home but that did not reach the parent channel (rc=4)
+fm-captain-hold: could not publish the resolved captain-held task work to its parent
+fm-captain-hold: routing row work failed (exit 1)
+
+[exit 1]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due work
+
+[exit 0]
+PARENT CHANNEL
+needs-decision [key=captain-hold-work-1]: captain hold work: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+resolved [key=captain-hold-work-1] [at=1792702759]: captain hold work: agent-routed to hold-owner
+LIVE_RECOVERY_PASS done
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/live-terminal-archived
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/live-terminal-archived
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-tasks-axi.sh done work
+ok: done work -> Done; pruned 1
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due work
+actionable: task work is held for the captain in this home but that did not reach the parent channel (rc=4)
+fm-captain-hold: could not publish the resolved captain-held task work to its parent
+
+[exit 1]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due
+actionable: task work is held for the captain in this home but that did not reach the parent channel (rc=4)
+fm-captain-hold: could not publish the resolved captain-held task work to its parent
+fm-captain-hold: routing row work failed (exit 1)
+
+[exit 1]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due work
+
+[exit 0]
+PARENT CHANNEL
+needs-decision [key=captain-hold-work-1]: captain hold work: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+resolved [key=captain-hold-work-1] [at=1792702789]: captain hold work: agent-routed to hold-owner
+LIVE_RECOVERY_PASS archived
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/live-terminal-custom-archive
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/.hold-validation/live-terminal-custom-archive
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-tasks-axi.sh done work
+ok: done work -> Done; pruned 1
+help[1]:
+  - Run `tasks-axi ready` to dispatch work unblocked by this
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due work
+actionable: task work is held for the captain in this home but that did not reach the parent channel (rc=4)
+fm-captain-hold: could not publish the resolved captain-held task work to its parent
+
+[exit 1]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due
+actionable: task work is held for the captain in this home but that did not reach the parent channel (rc=4)
+fm-captain-hold: could not publish the resolved captain-held task work to its parent
+fm-captain-hold: routing row work failed (exit 1)
+
+[exit 1]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due
+
+[exit 0]
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JEYAVNE847J7HNDV5N42F5/bin/fm-captain-hold.sh route-due work
+
+[exit 0]
+PARENT CHANNEL
+needs-decision [key=captain-hold-work-1]: captain hold work: GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.
+resolved [key=captain-hold-work-1] [at=1792702819]: captain hold work: agent-routed to hold-owner
+LIVE_RECOVERY_PASS custom-archive
