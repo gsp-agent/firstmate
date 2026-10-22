@@ -499,6 +499,19 @@ test_firstmate_dod_skips_ci() {
   pass "firstmate gated run skips ci; other repos and direct delivery do not"
 }
 
+# .agent-config-8wnyx: after the PR opens, chip's change request hands the fix
+# to the worker directly; the brief must say so or the worker starts a new run.
+test_post_pr_fix_handoff() {
+  local out_file="$TMP_ROOT/dod-handoff.txt"
+  fm_dod_block no-mistakes fm-handoff fm/fm-handoff none '' '' '' '' carmandale/agent-config >"$out_file"
+  assert_grep 'Post-PR fix handoff' "$out_file" "no-mistakes DoD lacks the post-PR fix handoff"
+  assert_grep "git push origin 'HEAD:fm/fm-handoff'" "$out_file" "handoff lacks the quoted direct push"
+  assert_grep 'start no new no-mistakes run for the fix round' "$out_file" "handoff lacks the no-new-run line"
+  fm_dod_block direct-PR fm-handoff fm/fm-handoff none '' '' '' '' carmandale/agent-config >"$out_file"
+  assert_no_grep 'Post-PR fix handoff' "$out_file" "direct-PR DoD got the no-mistakes handoff"
+  pass "post-PR fix handoff is in the no-mistakes DoD only"
+}
+
 test_repo_slug_reads_origins() {
   local d="$TMP_ROOT/slugproj"
   mkdir -p "$d"
@@ -530,6 +543,7 @@ test_dod_slug_from_meta_honors_state_override() {
 }
 
 test_firstmate_dod_skips_ci
+test_post_pr_fix_handoff
 test_repo_slug_reads_origins
 test_dod_slug_from_meta_honors_state_override
 

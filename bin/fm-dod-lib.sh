@@ -374,7 +374,7 @@ Do not include \`## Firstmate spec\`, later Firstmate build constraints, or your
 The \`--intent\` string you pass must be self-sufficient: that string plus the codebase must let a reader reconstruct roughly the same specification, without depending on a separate report, a PR, or context that lives only in this conversation.
 When the captain's intent refers to a report, decision, or PR ("do items 1, 2, 3, and 7 of the report"), write the substance of the referenced items into \`--intent\` in the captain's terms, not only the pointer; that substance is the captain's ask by reference, while Firstmate's build instructions and your own decisions still stay out.
 This replaces the no-mistakes skill's advice to enrich \`--intent\` with decisions and tradeoffs; that advice does not apply to Firstmate-dispatched work.
-Do not hand-edit, commit, or fix findings yourself while a run is active - the pipeline applies every fix.
+Do not hand-edit, commit, or fix findings yourself while a run is active - the pipeline applies every fix. One exception after the PR is open: the post-PR fix handoff in the Definition of done below.
 
 $drive_block
 A killed or timed-out call is never evidence the daemon died: the daemon accepts your response immediately and runs the round in the background, so the call was only ever waiting for a read while the run kept working.
@@ -578,6 +578,7 @@ After /no-mistakes reports CI green (the CI-ready return point - do not wait for
 ${nm_stamp_why}A draft cannot be merged, so a done report on one leaves the merge unasked.
 Then append \`done [at=<epoch>]: PR {url} checks green\` and stop. You are finished.
 That CI-ready \`done:\` is accepted only when this copy's HEAD - your latest commit - is one the /no-mistakes run pushed, so commit nothing after the run; the check tests that commit, not merely that a branch moved.
+Post-PR fix handoff (.agent-config-8wnyx): once the PR is open and chip (carmanchip23-dev) requests changes, the review router's fix steer supersedes "commit nothing after the run" for that round. The run owns no fix then: fix only what chip's review named, on this branch, run the tests that cover the change, and push straight to the PR branch with \`git push origin 'HEAD:$branch'\`; start no new no-mistakes run for the fix round. The still-running run's ci step watches the PR and judges the new head, and chip's review of the new head is the independent check; answer none of the run's gates with a fix while that steer stands.
 If you deliberately keep the PR a draft, append \`paused [at=<epoch>]: {why the draft is held}\` instead of done.
 EOF
       ;;
