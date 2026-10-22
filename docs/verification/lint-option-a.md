@@ -30,4 +30,3 @@ The historical baseline analyzed all seven roots in one source-aware process, an
 Keep new evidence separate from the historical comparison and treat any cap failure as an incomplete measurement, never a successful sample.
 
 CPU and RSS vary with host load, so percentage claims must compare runs from one measurement window.
-When results must be compared across windows, use the reported `bytes_allocated` totals as the stable work proxy rather than quoting a CPU or RSS ratio.
