@@ -1,0 +1,2 @@
+ok - an idle worker sleeps out a second between passes instead of busy-polling
+not ok - the idle worker heartbeat went 6s stale

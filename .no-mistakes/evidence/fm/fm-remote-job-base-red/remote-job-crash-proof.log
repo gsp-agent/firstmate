@@ -1,0 +1,16 @@
+initial ready owner=17120
+
+scenario=stale-heartbeat
+current ownership check rejects crashed records with unrelated pid=22699
+ensure returned with verified current-code owner=26139; unrelated pid=22699 remains alive
+job=job-Qkl3lt state=done exit=0
+replacement executed: stale-heartbeat
+completed job reaped; persisted result=stale-heartbeat
+
+scenario=refreshed-heartbeat
+pre-fix readiness accepted unrelated pid=47386 while no replacement was serving
+current ownership check rejects crashed records with unrelated pid=47386
+ensure returned with verified current-code owner=54178; unrelated pid=47386 remains alive
+job=job-HgCoqO state=done exit=0
+replacement executed: refreshed-heartbeat
+completed job reaped; persisted result=refreshed-heartbeat

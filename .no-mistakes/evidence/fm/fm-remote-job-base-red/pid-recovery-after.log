@@ -1,0 +1,14 @@
+variant=after
+initial_serving_pid=40704
+initial_supervisor_pid=40290
+persisted_unrelated_pid=43516
+late_heartbeat_ready_record=40704
+ensure_returned_pid=44896
+unrelated_process_survived=yes
+published_owner_verified=yes
+job_id=job-CMfzO4
+job_state=done
+job_exit=0
+job_stdout=replacement executed this queued command
+job_side_effect=executed
+recovered_worker_serves_commands=yes

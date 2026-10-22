@@ -1,0 +1,36 @@
+FM_TEST_BEGIN 2026-10-21T23:10:29Z tests/fm-remote-job.test.sh family=secondmate expected_gate_skip=none
+ok - default: result and command samples use 0.25 seconds; dispatcher uses four 0.05-second waits then one second
+ok - legacy: result and command samples use 0.07 seconds; dispatcher uses four 0.07-second waits then one second
+ok - active: result and command samples use 0.12 seconds; dispatcher uses four 0.07-second waits then one second
+ok - default queue and execution bounds independently cover long polls
+ok - operator PATH excludes a symlinked local bin
+ok - operator PATH honors nvm defaults with a deterministic fallback
+ok - operator PATH resolves the authorized Nix profile bin link
+ok - operator PATH orders discovered tool installs deterministically
+ok - the worker preserves bounded argv and stdin in an empty environment
+ok - active jobs keep the worker ready for concurrent requests
+ok - ensure replaces a live worker after its code changes
+ok - worker identity binds the canonical configured code root
+ok - stale ownership is reclaimed without signaling a reused pid
+ok - a late heartbeat from a crashed worker does not stand in for its replacement
+ok - the worker enforces the job timeout and publishes its result
+ok - the worker expires queued jobs before they can mutate
+ok - queued jobs receive a fresh bounded execution window
+ok - a queued short command preempts a running long poll instead of waiting its window
+ok - a poll re-armed after preemption reads the same cursor with nothing lost
+ok - sibling polls never preempt each other into a re-arm churn loop
+ok - worker shutdown terminates the active command tree before replacement
+ok - Linux supervision recovers crashes and stops orphaned commands
+ok - pre-execution validation obeys the job timeout
+ok - the worker drains bounded output without changing command results
+ok - the worker refuses symlinked job fields before command execution
+ok - failed shutdown quarantines ownership against replacement workers
+ok - quarantine recovery refuses unverifiable supervisors and ignores reused pids
+ok - a repeatedly signalled shutdown still releases ownership for the next worker
+ok - TERM after ownership loss stops the serving worker
+not ok - the held command did not start before ownership loss
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/bin/fm-remote-job-lib.sh: line 1034: 50050 Killed: 9                  HOME="$LOST_HOME" FM_ROOT_OVERRIDE="$REMOTE_ROOT" FM_REMOTE_JOB_STATE_ROOT="$LOST_STATE" FM_REMOTE_JOB_PLATFORM_OVERRIDE=Linux "$REMOTE_ROOT/bin/fm-remote-job-worker.sh" --serve > "$TMP_ROOT/lost-cleanup.out" 2> "$TMP_ROOT/lost-cleanup.err"
+FM_TEST_END 2026-10-21T23:13:55Z tests/fm-remote-job.test.sh exit=1 duration_ms=205827 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=206060
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=205827 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-remote-job.test.sh duration_ms=205827

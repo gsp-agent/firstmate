@@ -1,0 +1,16 @@
+idle_sample: label=an idle worker sleeps=3 external_commands=64
+ok - an idle worker sleeps out a second between passes instead of busy-polling
+heartbeat_sample: label=idle age_seconds=1
+heartbeat_sample: label=idle age_seconds=1
+heartbeat_sample: label=idle age_seconds=1
+heartbeat_sample: label=idle age_seconds=1
+heartbeat_sample: label=idle age_seconds=0
+heartbeat_sample: label=idle age_seconds=0
+heartbeat_sample: label=idle age_seconds=0
+heartbeat_sample: label=idle age_seconds=1
+ok - an idle worker keeps its readiness heartbeat fresh between passes
+staged_job_result: state=done exit=0
+staged_job_side_effect=ran
+ok - an idle worker claims a staged job and publishes its successful result
+restored_queue_directory_modes: jobs=700 claims=700 logs=700
+ok - an idle worker still repairs queue permissions and stops promptly on TERM

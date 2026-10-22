@@ -1,0 +1,12 @@
+INITIAL worker=22500
+HEALTHY worker retained=22500
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.nm-remote-job-tmp/replay.sh: line 38: 18124 Killed: 9               nohup env HOME="$account_home" FM_ROOT_OVERRIDE="$root" FM_REMOTE_JOB_STATE_ROOT="$FM_REMOTE_JOB_STATE" FM_REMOTE_JOB_PLATFORM_OVERRIDE="${FM_REMOTE_JOB_PLATFORM_OVERRIDE:-}" "$worker" >> "$FM_REMOTE_JOB_STATE/logs/$FM_REMOTE_JOB_LABEL.log" 2>&1 < /dev/null
+CRASH freshness=stale crashed=22500 supervisor=18124 unrelated=13295
+ENSURE elapsed=54s published_pid=26229 unrelated=13295
+job=job-AfL0cU state=done exit=124 stdout=FAIL: replacement job did not succeed
+RECOVERED freshness=stale unrelated_alive=yes replacement_owned=yes
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.nm-remote-job-tmp/replay.sh: line 38: 22187 Killed: 9               nohup env HOME="$account_home" FM_ROOT_OVERRIDE="$root" FM_REMOTE_JOB_STATE_ROOT="$FM_REMOTE_JOB_STATE" FM_REMOTE_JOB_PLATFORM_OVERRIDE="${FM_REMOTE_JOB_PLATFORM_OVERRIDE:-}" "$worker" >> "$FM_REMOTE_JOB_STATE/logs/$FM_REMOTE_JOB_LABEL.log" 2>&1 < /dev/null
+CRASH freshness=fresh crashed=26229 supervisor=22187 unrelated=96897
+ENSURE elapsed=67s published_pid=18062 unrelated=96897
+job=job-WoATYf state=done exit=124 stdout=FAIL: replacement job did not succeed
+RECOVERED freshness=fresh unrelated_alive=yes replacement_owned=yes

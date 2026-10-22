@@ -1,0 +1,34 @@
+VERSION after: real portable worker lifecycle, no launchctl or fleet sessions
+
+SCENARIO cold start and immediate job
+ensure returned: worker.pid=31941 lock.pid=31941 ready.pid=31941
+31941 22368 /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/live-after/root/bin/fm-remote-job-worker.sh --serve
+job job-d8B7Ec: state=done exit=0
+job-complete active=1 home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/live-after/home
+
+SCENARIO repeated ensure while a job is active
+ensure returned: worker.pid=31941 lock.pid=31941 ready.pid=31941
+31941 22368 /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/live-after/root/bin/fm-remote-job-worker.sh --serve
+job job-Dmduvd: state=done exit=0
+job-complete active=1 home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/live-after/home
+
+SCENARIO crashed worker with unrelated persisted PID and stale heartbeat
+.test-tmp/remote-job-live-driver.sh: line 131: 22368 Killed: 9               nohup env HOME="$account_home" FM_ROOT_OVERRIDE="$root" FM_REMOTE_JOB_STATE_ROOT="$FM_REMOTE_JOB_STATE" FM_REMOTE_JOB_PLATFORM_OVERRIDE="${FM_REMOTE_JOB_PLATFORM_OVERRIDE:-}" "$worker" >> "$FM_REMOTE_JOB_STATE/logs/$FM_REMOTE_JOB_LABEL.log" 2>&1 < /dev/null
+before ensure: crashed=31941 unrelated=25658 ready.pid=31941 heartbeat=stale
+ensure returned: worker.pid=27416 lock.pid=27416 ready.pid=27416
+unrelated process remains alive: 25658 sleep 120
+27416 26769 /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/live-after/root/bin/fm-remote-job-worker.sh --serve
+job job-QmHHyP: state=done exit=0
+job-complete active=1 home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/live-after/home
+
+SCENARIO crashed worker with unrelated persisted PID and fresh heartbeat
+.test-tmp/remote-job-live-driver.sh: line 131: 26769 Killed: 9               nohup env HOME="$account_home" FM_ROOT_OVERRIDE="$root" FM_REMOTE_JOB_STATE_ROOT="$FM_REMOTE_JOB_STATE" FM_REMOTE_JOB_PLATFORM_OVERRIDE="${FM_REMOTE_JOB_PLATFORM_OVERRIDE:-}" "$worker" >> "$FM_REMOTE_JOB_STATE/logs/$FM_REMOTE_JOB_LABEL.log" 2>&1 < /dev/null
+before ensure: crashed=27416 unrelated=48004 ready.pid=27416 heartbeat=fresh
+ensure returned: worker.pid=50001 lock.pid=50001 ready.pid=50001
+unrelated process remains alive: 48004 sleep 120
+50001 49553 /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/live-after/root/bin/fm-remote-job-worker.sh --serve
+job job-6f63qb: state=done exit=0
+job-complete active=1 home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/live-after/home
+
+ALL LIVE SCENARIOS PASSED
+cleanup: disposable worker groups stopped; driver exit=0

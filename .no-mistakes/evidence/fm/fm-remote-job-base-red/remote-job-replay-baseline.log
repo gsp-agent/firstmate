@@ -1,0 +1,2 @@
+INITIAL worker=90720
+job=job-rJa0Wi state=done exit=124 stdout=FAIL: replacement job did not succeed

@@ -1,0 +1,2 @@
+{"time": 1792624349.9912739, "started": true, "jobs": [{"id": "job-bnXQhf", "argv": "fm-shutdown-job.sh\u0000/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/fm-remote-job.vXjMqZ/shutdown-started\u0000/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.test-tmp/fm-remote-job.vXjMqZ/shutdown-side-effect\u0000", "state": "running", "exit": null, "deadline": "1792624351", "stderr": ""}]}
+Shutdown fixture started successfully.

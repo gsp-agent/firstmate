@@ -1,0 +1,8 @@
+variant=before
+initial_serving_pid=16712
+initial_supervisor_pid=16311
+persisted_unrelated_pid=19192
+late_heartbeat_ready_record=16712
+ensure_returned_pid=19192
+unrelated_process_survived=yes
+observed_regression=ensure reported ready with unrelated persisted pid

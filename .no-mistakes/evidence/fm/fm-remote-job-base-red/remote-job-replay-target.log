@@ -1,0 +1,2 @@
+INITIAL worker=80491
+job=job-cmmxOE state=done exit=124 stdout=FAIL: replacement job did not succeed

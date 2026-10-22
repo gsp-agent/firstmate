@@ -1,0 +1,6 @@
+Read-only host observation during serial isolated testing
+UTC: 2026-10-22T00:31:51.933348+00:00
+Load averages: (50.974609375, 49.322265625, 47.796875)
+Process count: 1756
+An earlier sample during the isolated heartbeat failure showed load averages (81.99, 49.73, 47.64) and 1802 processes.
+Host contention is a possible explanation, not a confirmed root cause.

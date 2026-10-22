@@ -1,0 +1,41 @@
+diff --git a/tests/fm-remote-job.test.sh b/.gate-test-tmp/diagnostic-test.sh
+old mode 100755
+new mode 100644
+index 8a9d5e73..4148d819
+--- a/tests/fm-remote-job.test.sh
++++ b/.gate-test-tmp/diagnostic-test.sh
+@@ -3,9 +3,9 @@
+ set -u
+ 
+ # shellcheck source=tests/lib.sh
+-. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
++. "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/tests/lib.sh"
+ 
+-ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
++ROOT="/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM"
+ TMP_ROOT=$(fm_test_tmproot fm-remote-job)
+ mkdir -p "$TMP_ROOT"
+ TMP_ROOT=$(cd "$TMP_ROOT" && pwd -P)
+@@ -406,6 +406,7 @@ crash_worker_leaving_unrelated_owner() {
+   kill -KILL "$crashed"
+   wait "$crashed" 2>/dev/null || true
+   assert_present "$STATE_ROOT/worker.lock" "an unclean exit did not retain the worker ownership lock"
++  UNRELATED_STARTED=$SECONDS
+   sleep 20 &
+   OTHER_PID=$!
+   printf '%s\n' "$OTHER_PID" > "$STATE_ROOT/worker.pid"
+@@ -416,7 +417,13 @@ crash_worker_leaving_unrelated_owner() {
+ assert_unrelated_owner_replaced() {
+   fm_remote_job_ensure_worker "$REMOTE_ROOT" "$ACCOUNT_HOME" \
+     || fail "$FM_REMOTE_JOB_ERROR"
+-  kill -0 "$OTHER_PID" 2>/dev/null || fail "stale worker state caused an unrelated process to be signaled"
++  if ! kill -0 "$OTHER_PID" 2>/dev/null; then
++    UNRELATED_RC=0
++    wait "$OTHER_PID" || UNRELATED_RC=$?
++    printf 'diagnostic: unrelated process elapsed=%ss wait_exit=%s (0 means natural sleeper completion)\n' "$((SECONDS - UNRELATED_STARTED))" "$UNRELATED_RC" >&2
++    fail "stale worker state caused an unrelated process to be signaled"
++  fi
++  printf 'diagnostic: unrelated process remains alive after %ss\n' "$((SECONDS - UNRELATED_STARTED))"
+   NEW_WORKER_PID=$(cat "$STATE_ROOT/worker.pid")
+   [ "$NEW_WORKER_PID" != "$OTHER_PID" ] || fail "the replacement adopted an unrelated persisted pid"
+   fm_remote_job_worker_identity_matches "$REMOTE_ROOT" "$ACCOUNT_HOME" \
