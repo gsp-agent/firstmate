@@ -1187,6 +1187,9 @@ for QUIET_TOOL in sleep chmod mktemp mv rm date stat uname dirname basename wc t
   cat > "$QUIET_SHIM/$QUIET_TOOL" <<SH
 #!/bin/sh
 printf '%s\n' $QUIET_TOOL >> "\$FM_TEST_EXEC_LOG"
+if [ "$QUIET_TOOL" = sleep ] && [ "\${1:-}" = 1 ]; then
+  : > "\$FM_TEST_EXEC_LOG.idle"
+fi
 exec $QUIET_REAL "\$@"
 SH
   chmod +x "$QUIET_SHIM/$QUIET_TOOL"
@@ -1203,39 +1206,47 @@ quiet_wait_ready() { # <state> <label>
   done
   assert_present "$1/worker.ready" "the $2 worker did not become ready"
 }
-# Startup counts as activity, so wait out its short fast-poll window (slowed by
-# the shims themselves) before measuring the idle steady state.
-quiet_settle() { # <max-sleeps-per-window>
-  local deadline=$((SECONDS + 30))
-  while [ "$SECONDS" -lt "$deadline" ]; do
-    : > "$QUIET_EXEC_LOG"
-    sleep 1.5
-    [ "$(grep -cx sleep "$QUIET_EXEC_LOG" || true)" -gt "$1" ] || break
+# Observe the one-second sleep itself: a slow startup can leave an empty log
+# while the worker has not yet finished its fast-poll burst.
+quiet_settle() {
+  local attempt
+  for ((attempt = 0; attempt < 600; attempt++)); do
+    [ -f "$QUIET_EXEC_LOG.idle" ] && break
+    sleep 0.05
   done
+  assert_present "$QUIET_EXEC_LOG.idle" "the worker did not reach its idle wait"
   : > "$QUIET_EXEC_LOG"
 }
 quiet_measure() { # <label> <max-sleeps>
-  local execs sleeps
+  local sample line execs=0 sleeps=0
   sleep 4
-  execs=$(wc -l < "$QUIET_EXEC_LOG" | tr -d ' ')
-  sleeps=$(grep -cx sleep "$QUIET_EXEC_LOG" || true)
+  # Freeze the sample before counting; the worker keeps appending while the
+  # observer runs, especially when external counting commands are delayed.
+  sample=$(< "$QUIET_EXEC_LOG")
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    execs=$((execs + 1))
+    [ "$line" != sleep ] || sleeps=$((sleeps + 1))
+  done <<< "$sample"
   [ "$sleeps" -le "$2" ] \
     || fail "$1 kept polling with sleep ($sleeps sleeps in 4s)"
   # Allow the independent heartbeat's bounded ownership checks as well as
   # sweeps at either edge of the window; the sleep limit still rejects fast
   # queue polling independently of this external-command budget.
   [ "$execs" -le 120 ] \
-    || fail "$1 ran $execs commands in 4s; expected only heartbeats and sweeps"$'\n'"$(sort "$QUIET_EXEC_LOG" | uniq -c)"
+    || fail "$1 ran $execs commands in 4s; expected only heartbeats and sweeps"$'\n'"$(printf '%s\n' "$sample" | sort | uniq -c)"
 }
 # fm_remote_job_probe must keep reading an idle worker as ready: its heartbeat
 # stays far inside the probe's 10-second bound across several idle waits.
 quiet_heartbeat_stays_fresh() { # <state> <account-home> <label>
-  local deadline=$((SECONDS + 5)) mtime age
+  local deadline=$((SECONDS + 5)) age
   while [ "$SECONDS" -lt "$deadline" ]; do
     ( FM_REMOTE_JOB_STATE_ROOT="$1"; fm_remote_job_probe "$2" ) \
       || fail "the probe read the live $3 worker as unready"
-    mtime=$(fm_remote_job_path_mtime "$1/worker.ready") || fail "the $3 worker heartbeat vanished"
-    age=$(( $(date +%s) - mtime ))
+    # Sample the timestamp and clock together so observer scheduling cannot
+    # age a saved timestamp after the worker has already refreshed the file.
+    age=$(perl -e 'my @s = stat $ARGV[0]; @s or exit 1; print time - $s[9], "\n";' "$1/worker.ready") \
+      || fail "the $3 worker heartbeat vanished"
     [ "$age" -le 3 ] || fail "the $3 worker heartbeat went ${age}s stale"
     sleep 0.5
   done
@@ -1272,7 +1283,7 @@ quiet_stop() { # <pid>
   wait "$1" 2>/dev/null || true
 }
 quiet_wait_ready "$QUIET_STATE" idle-rate
-quiet_settle 3
+quiet_settle
 quiet_measure "an idle worker" 6
 pass "an idle worker sleeps out a second between passes instead of busy-polling"
 
