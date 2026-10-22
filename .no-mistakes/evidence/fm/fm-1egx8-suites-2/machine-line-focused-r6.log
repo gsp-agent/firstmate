@@ -1,0 +1,6 @@
+ok - a missing gate, --list, and an already admitted run do not take the turn
+ok - the suite takes and releases the machine line at the caller's priority
+ok - relative runner paths survive machine-line re-execution
+ok - admission wait counts toward timing and budget only for its invocation
+ok - proof waits until runner releases the machine line
+ok - runner waits until proof releases the machine line

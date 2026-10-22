@@ -1,0 +1,28 @@
+[
+  {
+    "selected_by": "HOME",
+    "stdout": "trusted: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r6/trust/mate",
+    "other_sandbox_store_unchanged": true,
+    "store": {
+      "sentinel": "keep",
+      "projects": {
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r6/trust/mate": {
+          "hasTrustDialogAccepted": true
+        }
+      }
+    }
+  },
+  {
+    "selected_by": "CLAUDE_CONFIG_DIR",
+    "stdout": "trusted: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r6/trust/mate",
+    "other_sandbox_store_unchanged": true,
+    "store": {
+      "sentinel": "keep",
+      "projects": {
+        "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-phase-r6/trust/mate": {
+          "hasTrustDialogAccepted": true
+        }
+      }
+    }
+  }
+]

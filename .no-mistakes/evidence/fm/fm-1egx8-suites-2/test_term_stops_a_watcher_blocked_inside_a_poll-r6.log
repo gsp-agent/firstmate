@@ -1,0 +1,1 @@
+ok - TERM stops a watcher blocked inside a poll and still runs its cleanup

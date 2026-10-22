@@ -1,0 +1,25 @@
+{
+  "setup_diagnosis": "The original summary suite and first reduced reproduction rejected the child because TMPDIR was inside FM_ROOT_OVERRIDE: invalid home: secondmate home cannot be inside the firstmate repo. A disposable sibling code-root within the workspace resolves that fixture geometry without changing production code or bypassing the validator.",
+  "corrected_large_child": {
+    "source": "local-ledger",
+    "kind": "orphan_in_flight",
+    "ids": 600
+  },
+  "corrected_checks": [
+    {
+      "command": "bash .test-phase-r6/large-child.sh",
+      "exit_code": 0
+    },
+    {
+      "command": "bash .test-phase-r6/summary-rest.sh",
+      "exit_code": 0
+    },
+    {
+      "command": "bash .test-phase-r6/runner-focused.sh",
+      "exit_code": 0
+    }
+  ],
+  "resource_comparison": "Not repeated: the captain prohibited a third pre-merge alone comparison; earlier accepted proof remains supplied acceptance context.",
+  "production_code_changed": false,
+  "cleanup": "All disposable files removed with enumerated non-forced rm and empty-directory rmdir after guard approval; .test-phase-r6 is absent and git status is clean."
+}

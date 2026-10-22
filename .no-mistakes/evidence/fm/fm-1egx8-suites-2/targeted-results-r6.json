@@ -1,0 +1,116 @@
+[
+  {
+    "name": "summary",
+    "command": [
+      "bash",
+      "tests/fm-home-summary-refresh.test.sh"
+    ],
+    "env": {},
+    "rc": 1,
+    "elapsed": 90.213
+  },
+  {
+    "name": "proof-owner",
+    "command": [
+      "bash",
+      "tests/fm-test-isolation-proof.test.sh"
+    ],
+    "env": {},
+    "rc": 0,
+    "elapsed": 14.234
+  },
+  {
+    "name": "timeout",
+    "command": [
+      "bash",
+      "tests/fm-timeout-lib.test.sh"
+    ],
+    "env": {},
+    "rc": 0,
+    "elapsed": 42.057
+  },
+  {
+    "name": "test_provably_working_signal_absorbed",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_provably_working_signal_absorbed"
+    },
+    "rc": 0,
+    "elapsed": 4.763
+  },
+  {
+    "name": "test_turn_ended_not_working_surfaced",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_turn_ended_not_working_surfaced"
+    },
+    "rc": 0,
+    "elapsed": 5.907
+  },
+  {
+    "name": "test_actionable_signal_surfaced",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_actionable_signal_surfaced"
+    },
+    "rc": 0,
+    "elapsed": 4.346
+  },
+  {
+    "name": "test_actionable_signal_survives_a_later_routine_append",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_actionable_signal_survives_a_later_routine_append"
+    },
+    "rc": 0,
+    "elapsed": 7.808
+  },
+  {
+    "name": "test_term_stops_a_watcher_blocked_inside_a_poll",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_term_stops_a_watcher_blocked_inside_a_poll"
+    },
+    "rc": 0,
+    "elapsed": 4.013
+  },
+  {
+    "name": "test_term_stops_a_watcher_whose_cleanup_marker_lock_is_held",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_term_stops_a_watcher_whose_cleanup_marker_lock_is_held"
+    },
+    "rc": 0,
+    "elapsed": 6.259
+  },
+  {
+    "name": "test_check_sweep_reprobes_captain_holds",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_check_sweep_reprobes_captain_holds"
+    },
+    "rc": 0,
+    "elapsed": 83.739
+  }
+]

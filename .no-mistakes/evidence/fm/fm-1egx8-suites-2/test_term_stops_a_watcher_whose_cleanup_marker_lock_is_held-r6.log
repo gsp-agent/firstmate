@@ -1,0 +1,2 @@
+watcher: recovery state could not be persisted; retaining stale lock evidence
+ok - TERM stops a watcher whose downtime-marker lock is held, retaining stale evidence
