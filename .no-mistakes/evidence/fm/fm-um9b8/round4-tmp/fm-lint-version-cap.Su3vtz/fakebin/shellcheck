@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+if [ "${1:-}" = --version ]; then
+  printf '%s\n' "$$" > "$FM_TEST_VERSION_PID"
+  printf 'ShellCheck - shell script analysis tool\nversion: 0.11.0\n'
+  case "$FM_TEST_VERSION_WORKLOAD" in
+    memory) exec perl -e 'my $s = "x" x (128 * 1048576); sleep 4' ;;
+    time) exec sleep 4 ;;
+  esac
+fi
+printf '%s\n' "$*" >> "$FM_TEST_ANALYSIS_LOG"

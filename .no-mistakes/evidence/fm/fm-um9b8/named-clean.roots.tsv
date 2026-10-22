@@ -11,8 +11,8 @@ meta	root_deadline_seconds	300
 meta	root_kill_grace_seconds	5
 meta	root_memory_limit_kib	4194304
 meta	timing_mechanism	perl
-begin	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/clean.sh	0	full	1792676495093
-end	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/clean.sh	0	full	1792676495093	1792676500411	5318	0	ok	24256	1
+begin	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round4/clean.sh	0	full	1792688695245
+end	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round4/clean.sh	0	full	1792688695245	1792688695649	404	0	ok	24272	1
 meta	roots_begun	1
 meta	roots_completed	1
 meta	roots_unfinished	0

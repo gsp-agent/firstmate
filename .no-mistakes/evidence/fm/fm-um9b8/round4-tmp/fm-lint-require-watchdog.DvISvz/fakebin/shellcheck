@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+if [ "${1:-}" = --version ]; then
+  printf 'ShellCheck - shell script analysis tool\nversion: 0.11.0\n'
+  exit 0
+fi
+mode=on
+follow=no
+exclude=none
+while [ "$#" -gt 0 ] && [ "$1" != -- ]; do
+  case "$1" in
+    --extended-analysis=false) mode=off ;;
+    --external-sources) follow=yes ;;
+    --exclude=*) exclude=${1#--exclude=} ;;
+    --exclude)
+      shift
+      exclude=${1:-none}
+      ;;
+  esac
+  shift
+done
+if [ -n "${FM_TEST_MODE_LOG:-}" ]; then
+  printf '%s\n' "$mode" >> "$FM_TEST_MODE_LOG"
+fi
+if [ -n "${FM_TEST_FLAG_LOG:-}" ]; then
+  printf 'external-sources=%s\nexclude=%s\n' "$follow" "$exclude" >> "$FM_TEST_FLAG_LOG"
+fi
+[ "$#" -eq 0 ] || shift
+printf '%s\n' "$@" >> "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/round4-tmp/fm-lint-require-watchdog.DvISvz/stub.log"
+exit 0

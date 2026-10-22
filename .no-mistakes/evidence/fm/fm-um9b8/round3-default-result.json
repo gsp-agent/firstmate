@@ -1,0 +1,10 @@
+{
+  "command": [
+    "bash",
+    "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/fm-lint-default-confirmation-round3.sh"
+  ],
+  "test_selector": "test_large_production_roots_fit_default_caps",
+  "exit": 1,
+  "elapsed_seconds": 46.328,
+  "external_cutoff": false
+}

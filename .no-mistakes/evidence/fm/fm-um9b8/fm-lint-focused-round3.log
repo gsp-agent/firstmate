@@ -1,0 +1,35 @@
+
+RUN test_version_probe_memory_is_capped
+ok - ShellCheck's version probe obeys the memory cap before file analysis
+
+RUN test_version_probe_time_is_capped
+ok - ShellCheck's version probe obeys the time cap before file analysis
+
+RUN test_root_deadline_names_the_root_and_reaps_the_tree
+ok - a root pinned at the wall deadline fails by name, reaps its tree, and leaves the sentinel alive
+
+RUN test_root_memory_cap_fails_by_name
+ok - a root stopped at its memory cap fails by name, naming the cap
+
+RUN test_memory_failures_remain_failures_without_retry
+ok - watchdog and heap memory failures retain their status without retrying in both worker modes
+
+RUN test_refuses_to_lint_without_its_watchdog
+ok - fm-lint refuses to run ShellCheck without its watchdog and lints once it has one
+
+RUN test_worker_trees_stop_on_signal
+ok - jobs=1 and jobs=2 stop complete worker trees with and without telemetry
+
+RUN test_pinned_shellcheck_stops_at_the_memory_cap
+ok - pinned ShellCheck lints under the default caps and a file past its memory cap fails by name
+
+RUN test_seeded_module_boundary_parity
+ok - seeded dispatcher, adapter, production-owner, and test-local diagnostics preserve parity
+
+RUN test_large_production_roots_fit_default_caps
+not ok - production roots failed at the default caps (exit 123)
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end bin/fm-spawn.sh reason=memory rc=123 duration_ms=27051 rss_kib=4405043
+fm_exec_timed: bash used 4405043 KiB of memory, past its 4194304 KiB cap; killed
+fm-lint: bin/fm-spawn.sh FAILED at the memory cap (4194304 KiB); a capped root is a lint failure, not a pass

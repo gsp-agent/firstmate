@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+if [ "${1:-}" = "--version" ]; then
+  printf 'ShellCheck - shell script analysis tool\nversion: 0.11.0\n'
+  exit 0
+fi
+printf '%s\n' "$$" > "$FM_TEST_SHELLCHECK_PID"
+trap 'exit 143' HUP INT TERM
+while :; do
+  sleep 1
+done

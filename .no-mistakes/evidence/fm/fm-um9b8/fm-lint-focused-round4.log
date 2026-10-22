@@ -1,0 +1,30 @@
+
+SELECTOR test_large_production_roots_fit_default_caps
+ok - spawn and teardown complete full analysis under the default caps with two workers
+
+SELECTOR test_pinned_shellcheck_stops_at_the_memory_cap
+ok - pinned ShellCheck lints under the default caps and a file past its memory cap fails by name
+
+SELECTOR test_version_probe_memory_is_capped
+ok - ShellCheck's version probe obeys the memory cap before file analysis
+
+SELECTOR test_version_probe_time_is_capped
+ok - ShellCheck's version probe obeys the time cap before file analysis
+
+SELECTOR test_root_deadline_names_the_root_and_reaps_the_tree
+ok - a root pinned at the wall deadline fails by name, reaps its tree, and leaves the sentinel alive
+
+SELECTOR test_root_memory_cap_fails_by_name
+ok - a root stopped at its memory cap fails by name, naming the cap
+
+SELECTOR test_worker_trees_stop_on_signal
+ok - jobs=1 and jobs=2 stop complete worker trees with and without telemetry
+
+SELECTOR test_memory_failures_remain_failures_without_retry
+ok - watchdog and heap memory failures retain their status without retrying in both worker modes
+
+SELECTOR test_refuses_to_lint_without_its_watchdog
+ok - fm-lint refuses to run ShellCheck without its watchdog and lints once it has one
+
+SELECTOR test_seeded_module_boundary_parity
+ok - seeded dispatcher, adapter, production-owner, and test-local diagnostics preserve parity

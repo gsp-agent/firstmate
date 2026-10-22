@@ -1,0 +1,12 @@
+$ git cat-file -t 6cd03b3d
+fatal: Not a valid object name 6cd03b3d
+exit=128
+
+$ git show-ref --verify refs/heads/fm/fm-ojg69-refs-owner
+fatal: 'refs/heads/fm/fm-ojg69-refs-owner' - not a valid ref
+exit=128
+
+$ git show-ref --verify refs/remotes/origin/fm/fm-ojg69-refs-owner
+fatal: 'refs/remotes/origin/fm/fm-ojg69-refs-owner' - not a valid ref
+exit=128
+

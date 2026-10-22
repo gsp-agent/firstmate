@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+if [ "${1:-}" = --version ]; then
+  printf 'ShellCheck - shell script analysis tool\nversion: 0.11.0\n'
+  exit 0
+fi
+follow=no
+exclude=none
+while [ "$#" -gt 0 ] && [ "$1" != -- ]; do
+  case "$1" in
+    --external-sources) follow=yes ;;
+    --exclude=*) exclude=${1#--exclude=} ;;
+  esac
+  shift
+done
+shift
+printf '%s\t%s\t%s\n' "$follow" "$exclude" "$1" >> "$FM_TEST_ATTEMPT_LOG"
+if [ "$1" = "$FM_TEST_FAIL_ROOT" ] && [ "$follow" = yes ]; then
+  printf 'shellcheck: Heap exhausted;\n' >&2
+  exit "$FM_TEST_MEMORY_STATUS"
+fi
+exit 0
