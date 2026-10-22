@@ -833,6 +833,15 @@ cover_chains() {
 owned_child_finished() {
   local rc=$1 signal reason_type status
   signal=$(cycle_signal_name "$rc")
+  if [ "$rc" -eq 0 ] && [ "$COVER" -eq 1 ] && [ "$COVER_RECORDED" -eq 0 ]; then
+    cycle_log_append "$rc" "$signal" covering-unconfirmed none
+    print_watch_output "$child_out"
+    rm -f "$child_out" 2>/dev/null || true
+    child=
+    child_out=
+    echo "watcher: FAILED - covering watcher closed before confirmation"
+    return 1
+  fi
   if [ "$rc" -eq 0 ] && watch_output_has_wake "$child_out"; then
     reason_type=$(watch_output_reason_type "$child_out")
     cycle_log_append "$rc" "$signal" "$reason_type" none
