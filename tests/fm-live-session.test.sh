@@ -343,7 +343,7 @@ test_refusal_regressions() {
 }
 
 test_live_signal_appearing_during_preparation_defers() {
-  local kind action failed= case_dir id wt out rc real_git line
+  local kind action failed='' case_dir id wt out rc real_git line
   local -a args
   real_git=$(command -v git)
   line='live signal=herdr-keyboard source=herdr:person'
