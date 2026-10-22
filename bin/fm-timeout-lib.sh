@@ -219,7 +219,7 @@ fm_run_external_timeout() {
 }
 
 fm_run_timed() {  # <seconds> <command...>
-  local seconds=$1 mechanism fm_timed_signal= fm_timed_traps fm_timed_rc=0 runner_pid
+  local seconds=$1 mechanism fm_timed_signal="" fm_timed_traps fm_timed_rc=0 runner_pid
   shift
   mechanism=$(fm_timeout_mechanism)
   fm_timed_traps=$(trap -p HUP INT TERM)
