@@ -990,6 +990,10 @@ resolve_relaunch_profile() {
     dispatch_effort=${dispatch_effort%%$'\n'*}
     [ -z "$dispatch_model" ] || TARGET_MODEL=$dispatch_model
     [ -z "$dispatch_effort" ] || TARGET_EFFORT=$dispatch_effort
+    case "$TARGET_EFFORT" in
+      ''|default|low|medium|high|xhigh|max|ultra) ;;
+      *) die "dispatch profile for $TARGET_HARNESS has invalid effort '$TARGET_EFFORT'; expected default, low, medium, high, xhigh, max, ultra" ;;
+    esac
     if [ "$TARGET_EFFORT" = ultra ]; then
       "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1
     fi

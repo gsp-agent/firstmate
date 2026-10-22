@@ -2399,6 +2399,11 @@ shell_quote() {
 enforce_dispatch_profile() {
   local pairs pretty model effort eff_model eff_effort resolved resolved_model resolved_effort
   [ "$KIND" != secondmate ] || return 0
+  if [ "$RELAUNCH" -eq 1 ] && [ "$SPAWN_CONTROL_PARENT" = 1 ] \
+      && [ -n "${FM_CONTROL_RELAUNCH_TX:-}" ] \
+      && [ "$MODEL_SET" -eq 1 ] && [ "$EFFORT_SET" -eq 1 ]; then
+    return 0
+  fi
   pairs=$(fm_dispatch_profile_read "$CONFIG" "$HARNESS") || exit 1
   [ -n "$pairs" ] || return 0
   pretty=$(fm_dispatch_profile_pairs_pretty "$pairs")
@@ -2413,6 +2418,13 @@ enforce_dispatch_profile() {
     resolved_model=${resolved%%$'\n'*}
     resolved_effort=${resolved#*$'\n'}
     resolved_effort=${resolved_effort%%$'\n'*}
+    case "$resolved_effort" in
+      ''|default|low|medium|high|xhigh|max|ultra) ;;
+      *)
+        echo "error: dispatch profile for $HARNESS has invalid effort '$resolved_effort'; expected default, low, medium, high, xhigh, max, ultra" >&2
+        exit 1
+        ;;
+    esac
     MODEL=$resolved_model
     EFFORT=$resolved_effort
     return 0

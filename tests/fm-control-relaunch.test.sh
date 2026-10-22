@@ -79,6 +79,9 @@ case "${1:-}" in
       case "$payload" in
         /exit|/quit)
           printf 'zsh' > "$D/command"
+          if [ -f "$D/dispatch-on-exit.json" ]; then
+            cp "$D/dispatch-on-exit.json" "$FM_HOME/config/crew-dispatch.json" || exit 1
+          fi
           [ -z "${FM_FAKE_EXIT_TRANSPORT_FAIL_AFTER_STOP:-}" ] || exit 1
           ;;
         *'encode launch-brief'* | *'Firstmate operational input waiting: read'*)
@@ -1274,6 +1277,92 @@ test_relaunch_journal_records_the_adopted_dispatch_pair() {
   assert_contains "$out" "model=grok-4.7 effort=xhigh" \
     "the operator line must name the pair that launched"
   pass "fm-control relaunch: the journal records the dispatch pair the replacement launched"
+}
+
+test_relaunch_refuses_an_unknown_adopted_effort_before_the_agent_stops() {
+  local dir out rc id=rl-adopt-typo
+  dir=$(new_case dispatch-typo "$id")
+  add_ship_task "$dir" "$id" grok
+  printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"typo"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf grok > "$dir/fake/command"
+  printf grok > "$dir/fake/becomes"
+  cp "$dir/home/state/$id.meta" "$dir/meta-before"
+  out=$(run_control "$dir" "$id" relaunch --note "reject the invalid adopted effort"); rc=$?
+  expect_code 1 "$rc" "an unknown adopted effort must refuse: $out"
+  [ "$(cat "$dir/fake/command")" = grok ] || fail "an unknown adopted effort stopped the worker"
+  [ ! -s "$dir/fake/literal" ] || fail "an unknown adopted effort sent lifecycle input"
+  [ ! -e "$dir/home/state/$id.control-relaunch" ] || fail "an unknown adopted effort wrote a journal"
+  cmp -s "$dir/meta-before" "$dir/home/state/$id.meta" || fail "an unknown adopted effort changed the task record"
+  assert_contains "$out" "invalid effort 'typo'" "the refusal must identify the adopted effort"
+  pass "fm-control relaunch: an unknown adopted effort refuses before stopping the worker"
+}
+
+test_spawn_relaunch_refuses_an_unknown_adopted_effort() {
+  local dir out rc id=rl-spawn-typo
+  dir=$(new_case spawn-dispatch-typo "$id")
+  add_ship_task "$dir" "$id" grok
+  printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"typo"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf zsh > "$dir/fake/command"
+  printf grok > "$dir/fake/becomes"
+  cp "$dir/home/state/$id.meta" "$dir/meta-before"
+  out=$(run_spawn "$dir" "$id" --relaunch); rc=$?
+  expect_code 1 "$rc" "a direct relaunch must refuse an unknown adopted effort: $out"
+  [ "$(cat "$dir/fake/command")" = zsh ] || fail "an unknown adopted effort launched a replacement"
+  [ ! -s "$dir/fake/literal" ] || fail "an unknown adopted effort sent launch input"
+  cmp -s "$dir/meta-before" "$dir/home/state/$id.meta" || fail "an unknown adopted effort was recorded"
+  assert_contains "$out" "invalid effort 'typo'" "the refusal must identify the adopted effort"
+  pass "fm-spawn --relaunch: an unknown adopted effort refuses before launch or publication"
+}
+
+test_relaunch_keeps_the_prestop_pair_when_dispatch_changes() {
+  local dir out rc id=rl-dispatch-change
+  dir=$(new_case dispatch-change "$id")
+  add_ship_task "$dir" "$id" grok
+  printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"high"}}' \
+    > "$dir/fake/dispatch-on-exit.json"
+  printf grok > "$dir/fake/command"
+  printf grok > "$dir/fake/becomes"
+  out=$(run_control "$dir" "$id" relaunch --model grok-4.7 --effort xhigh --note "keep the pre-stop pair"); rc=$?
+  expect_code 0 "$rc" "a changed dispatch file must not replace the control decision: $out"
+  [ "$(jq -r '.default.effort' "$dir/home/config/crew-dispatch.json")" = high ] \
+    || fail "the fixture did not change dispatch at the control handoff"
+  [ "$(meta_field "$dir" "$id" model)" = grok-4.7 ] || fail "the replacement lost the pre-stop model"
+  [ "$(meta_field "$dir" "$id" effort)" = xhigh ] || fail "the replacement lost the pre-stop effort"
+  [ "$(journal_field "$dir" "$id" to_model)" = grok-4.7 ] || fail "the journal lost the pre-stop model"
+  [ "$(journal_field "$dir" "$id" to_effort)" = xhigh ] || fail "the journal lost the pre-stop effort"
+  [ "$(journal_field "$dir" "$id" phase)" = complete ] || fail "the control relaunch did not complete"
+  [ "$(cat "$dir/fake/command")" = grok ] || fail "the replacement is not running"
+  assert_contains "$(cat "$dir/fake/literal")" "--reasoning-effort 'xhigh'" "the launch lost the pre-stop effort"
+  assert_not_contains "$(cat "$dir/fake/literal")" "--reasoning-effort 'high'" "the launch adopted the changed file pair"
+  pass "fm-control relaunch: a dispatch change after stopping preserves the pre-stop launch pair"
+}
+
+test_spawn_relaunch_with_explicit_axes_still_adopts_the_file_pair() {
+  local dir out rc id=rl-direct-axes
+  dir=$(new_case direct-dispatch-axes "$id")
+  add_ship_task "$dir" "$id" grok
+  printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"high"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf zsh > "$dir/fake/command"
+  printf grok > "$dir/fake/becomes"
+  out=$(run_spawn "$dir" "$id" --relaunch --harness grok --model grok-4.7 --effort xhigh); rc=$?
+  expect_code 0 "$rc" "a direct relaunch must still adopt the sole file pair: $out"
+  [ "$(meta_field "$dir" "$id" model)" = grok-4.7 ] || fail "a direct relaunch lost the adopted model"
+  [ "$(meta_field "$dir" "$id" effort)" = high ] || fail "a direct relaunch skipped dispatch adoption"
+  assert_contains "$(cat "$dir/fake/literal")" "--reasoning-effort 'high'" "a direct relaunch did not launch the adopted effort"
+  pass "fm-spawn --relaunch: explicit axes without a control handoff still adopt the sole file pair"
 }
 
 test_relaunch_validates_the_adopted_profile_before_the_agent_stops() {
@@ -2884,6 +2973,10 @@ test_spawn_relaunch_adopts_the_single_dispatch_pair
 test_spawn_relaunch_refuses_when_the_file_offers_two_pairs
 test_relaunch_refuses_an_ambiguous_dispatch_pair_before_the_agent_stops
 test_relaunch_journal_records_the_adopted_dispatch_pair
+test_relaunch_refuses_an_unknown_adopted_effort_before_the_agent_stops
+test_spawn_relaunch_refuses_an_unknown_adopted_effort
+test_relaunch_keeps_the_prestop_pair_when_dispatch_changes
+test_spawn_relaunch_with_explicit_axes_still_adopts_the_file_pair
 test_relaunch_validates_the_adopted_profile_before_the_agent_stops
 test_relaunch_preserves_explicit_default_resets
 test_relaunch_refuses_unmatched_partial_resets_before_stopping
