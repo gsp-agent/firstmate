@@ -18,7 +18,6 @@ Task chronology and delivery evidence stay outside this record.
 ## Environment
 
 Recorded 2026-09-01 on Darwin 25.5.0 (arm64) with GNU bash 5.3.9, tasks-axi 0.2.5, jq 1.8.1, and ShellCheck 0.11.0 (the version `bin/fm-lint.sh` pins).
-The stock macOS compatibility lane additionally runs the focused first-registration regression with `/bin/bash` 3.2.57 and a real `tasks-axi` installation.
 The relay is a fakebin `curl` in every case, so no public post is ever made; `tasks-axi` and `jq` are the real tools, because stubbing the obligation state machine would verify nothing.
 The remote-route cases fake only the SSH binary at the `FM_SSH_BIN` process seam and then run the real tracked `fm-remote-entrypoint.sh` against a local checkout standing in for the remote one, so the work that has to reach the remote home actually runs there; no host and no network are involved.
 The failed-result regression was refreshed separately on 2026-09-22 in the same environment with tasks-axi 0.2.6.

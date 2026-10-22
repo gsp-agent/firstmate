@@ -42,8 +42,8 @@ EOF
 }
 
 # The remote-route cases drive the real remote job worker, which outlives the
-# command that staged its job. Stop it before the shared fixture cleanup runs,
-# and keep that cleanup (tests/lib.sh owns it) rather than replacing the trap.
+# command that staged its job. Stop its whole tree and wait before removing the
+# fixtures; worker.pid names only the serving child, not its restart supervisor.
 pf_test_cleanup() {
   local pid_file="${REMOTE_FIXTURE_JOBS:-$TMP_ROOT/remote-jobs}/worker.pid" pid
   if [ -n "$PF_TEST_LOCK_HOLDER" ]; then
@@ -53,13 +53,19 @@ pf_test_cleanup() {
   fi
   if [ -f "$pid_file" ]; then
     pid=$(cat "$pid_file" 2>/dev/null) || pid=
-    [ -z "$pid" ] || kill "$pid" 2>/dev/null || true
+    if [ -n "$pid" ]; then
+      # shellcheck source=/dev/null
+      . "$ROOT/bin/fm-remote-job-lib.sh"
+      fm_remote_job_stop_worker_tree "$pid" || true
+    fi
   fi
   fm_test_cleanup
 }
 trap pf_test_cleanup EXIT
 trap 'pf_test_cleanup; exit 130' INT
 trap 'pf_test_cleanup; exit 143' TERM
+trap 'pf_test_cleanup; exit 129' HUP
+trap 'pf_test_cleanup; exit 131' QUIT
 
 command -v jq >/dev/null 2>&1 || { echo "skip: jq not found"; exit 0; }
 command -v tasks-axi >/dev/null 2>&1 || { echo "skip: tasks-axi not found"; exit 0; }

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034 # Output globals are read by bin/fm-spawn.sh after sourcing.
 # fm-project-capacity-lib.sh - how many workers a project admits at once on this
 # machine, and whether a fresh worker spawn still fits.
 #
@@ -49,7 +50,11 @@
 #     no longer uses local resources, and
 #   - is working: bin/fm-crew-state.sh reads the task as working
 #     (fm_project_capacity_is_working). A resident record read as parked,
-#     paused, done, blocked, failed or unknown holds no place.
+#     paused, done, blocked, failed or unknown holds no place. A record whose
+#     crew state cannot be read at all, including a read still running after
+#     FM_PROJECT_CAPACITY_CREW_TIMEOUT seconds, holds a place as if working
+#     and is listed as "<id> (state unreadable)", so an unreadable state
+#     neither undercounts the holders nor fails the count.
 # A place therefore frees when a PR-based ship records its ready PR, when the
 # holder stops working, or when any task is cleaned up and its record removed.
 # A local-only ship and a scout have no recorded handoff and hold their place
@@ -120,19 +125,12 @@
 # bin/fm-backend.sh (fm_meta_get) to be sourced first. The headroom reading
 # loads bin/fm-timeout-lib.sh when that reading runs. No side effects on source.
 
-# Exit status of a spawn deferred because the project is at capacity: the
-# sysexits "temporary failure" code, so a caller can tell a deferral that leaves
-# the task queued from an ordinary failure.
-# shellcheck disable=SC2034 # read by bin/fm-spawn.sh after sourcing.
-FM_PROJECT_CAPACITY_DEFER_EXIT=75
-
 # How long one extra start remains that project's extra start. 7 * 60 seconds
 # matches one starter pass of about 7 minutes.
 FM_PROJECT_CAPACITY_OVERSHARE_WINDOW=420
 
 # How long a spawn that already released the project lock waits to retake it
 # and remove the record of an extra start that launched no worker.
-# shellcheck disable=SC2034 # read by bin/fm-spawn.sh after sourcing.
 FM_PROJECT_CAPACITY_RELEASE_WAIT=10
 
 # A reading that has not exited by this many seconds is no room.
@@ -141,7 +139,7 @@ FM_PROJECT_CAPACITY_HEADROOM_TIMEOUT=30
 # How long one crew-state reading for the occupancy count may run. The count
 # runs under the shared project lock, so an unbounded reader would hold every
 # spawn for that project hostage; a reading that cannot answer in this bound
-# fails the count (and the spawn) rather than guessing.
+# counts its record as working, so it holds a place.
 FM_PROJECT_CAPACITY_CREW_TIMEOUT=${FM_PROJECT_CAPACITY_CREW_TIMEOUT:-10}
 
 # The config directory holding this machine's declaration: the spawning home's
@@ -229,27 +227,15 @@ fm_project_capacity_lookup() {  # <config-dir> <project-name>
   return 0
 }
 
-# Count the WORKING task records holding a place in one project's capacity.
-# <project-lock> is fm_treehouse_project_lock_path for the project being
-# admitted, and <project-dir> is that project's own directory, which matches
-# without recomputing its identity. The local homes come from
-# fm_local_firstmate_state_dirs <first-state>. <own-id> is the task being
-# admitted; its own record in <first-state> is the one this spawn replaces, so
-# it is not counted.
-# Sets FM_PROJECT_CAPACITY_OCCUPANTS to the count and
-# FM_PROJECT_CAPACITY_OCCUPANT_IDS to a comma-separated list of the holders,
-# each outside <first-state> qualified with its home. Returns 1 with
-# FM_PROJECT_CAPACITY_ERROR when the local homes cannot be enumerated, or when
-# a state directory or task record in them cannot be read, since skipping it
-# could undercount the holders.
+# Read one task's local crew state for the occupancy count. Returns:
 # 0 when bin/fm-crew-state.sh reads the task in <state-dir> as working;
 # 1 when the reader answered and the state is anything else - parked,
 # paused, done, blocked, failed, unknown - which holds no slot;
 # 2 when the reader could not answer at all (missing, not executable,
 # non-zero exit, or past FM_PROJECT_CAPACITY_CREW_TIMEOUT), which the
-# caller must not mistake for "not working": undercounting the holders
-# would silently turn the cap into no cap. Local evidence only (no forge
-# read). The read is bounded because the count runs under the shared
+# caller counts as working rather than "not working": undercounting the
+# holders would silently turn the cap into no cap. Local evidence only (no
+# forge read). The read is bounded because the count runs under the shared
 # project lock, the same bound bin/fm-inactive-reconcile.sh already puts
 # on this identical invocation.
 fm_project_capacity_is_working() {  # <state-dir> <id>
@@ -265,6 +251,20 @@ fm_project_capacity_is_working() {  # <state-dir> <id>
   esac
 }
 
+# Count the task records holding a place under the occupancy rules above.
+# <project-lock> is fm_treehouse_project_lock_path for the project being
+# admitted, and <project-dir> is that project's own directory, which matches
+# without recomputing its identity. The local homes come from
+# fm_local_firstmate_state_dirs <first-state>. <own-id> is the task being
+# admitted; its own record in <first-state> is the one this spawn replaces, so
+# it is not counted.
+# Sets FM_PROJECT_CAPACITY_OCCUPANTS to the count and
+# FM_PROJECT_CAPACITY_OCCUPANT_IDS to a comma-separated list of the holders,
+# each outside <first-state> qualified with its home and each whose crew state
+# could not be read marked "(state unreadable)". Returns 1 with
+# FM_PROJECT_CAPACITY_ERROR when the local homes cannot be enumerated, or when
+# a state directory or task record in them cannot be read, since skipping it
+# could undercount the holders.
 fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> <own-id>
   local want=$1 own=$2 first=$3 self=$4 state meta kind project lock id label i rc
   local -a cache_dirs cache_locks
@@ -310,21 +310,14 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
       fi
       [ -n "$lock" ] && [ "$lock" = "$want" ] || continue
       id=$(basename "$meta" .meta)
-      # Dale 10-21 (.agent-config-ydbn7): the capacity knob counts WORKING
-      # tasks. A resident record that fm-crew-state reads as parked, paused,
-      # done, blocked, failed or unknown holds no slot; idle records once
-      # filled the cap while one task worked. A record whose crew state
-      # cannot be read at all fails the count, like any unreadable record
-      # above: skipping it could undercount the holders.
+      # An unreadable crew state must retain its slot: skipping it would
+      # undercount, while failing the whole count would refuse other spawns.
       fm_project_capacity_is_working "$state" "$id"
       rc=$?
-      if [ "$rc" -eq 2 ]; then
-        FM_PROJECT_CAPACITY_ERROR="crew state for task record $meta cannot be read"
-        return 1
-      fi
-      [ "$rc" -eq 0 ] || continue
+      [ "$rc" -ne 1 ] || continue
       label=$id
       [ "$state" = "$first" ] || label="$id in $(dirname "$state")"
+      [ "$rc" -eq 0 ] || label="$label (state unreadable)"
       FM_PROJECT_CAPACITY_OCCUPANTS=$((FM_PROJECT_CAPACITY_OCCUPANTS + 1))
       FM_PROJECT_CAPACITY_OCCUPANT_IDS="${FM_PROJECT_CAPACITY_OCCUPANT_IDS:+$FM_PROJECT_CAPACITY_OCCUPANT_IDS, }$label"
     done
@@ -332,7 +325,7 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
   return 0
 }
 
-# Load bin/fm-timeout-lib.sh the first time a headroom reading needs a bound.
+# Load bin/fm-timeout-lib.sh when a crew-state or headroom read needs a bound.
 _fm_project_capacity_require_timeout() {
   command -v fm_run_timed >/dev/null 2>&1 && return 0
   # shellcheck source=bin/fm-timeout-lib.sh

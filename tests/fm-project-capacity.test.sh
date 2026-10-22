@@ -612,7 +612,9 @@ test_batch_reports_a_deferred_pair() {
   write_live "$home" live-a "$case_dir/project"
   out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" "task-c=$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
   expect_code "$DEFER_EXIT" "$rc" "a batch whose only pair was deferred did not exit with the deferral status: $out"
-  assert_contains "$out" "batch: DEFERRED task-c ($case_dir/project) - its project is at capacity, so it stays queued" \
+  assert_contains "$out" "deferred: project project admits 1 worker(s) at once" \
+    "the batch did not show the pair's capacity deferral"
+  assert_contains "$out" "batch: DEFERRED task-c ($case_dir/project) - its deferred: line above says why, and it stays queued" \
     "the batch did not report the deferral"
   assert_not_contains "$out" "batch: FAILED" "the batch reported a deferral as a failure"
   pass "a batch reports a capacity deferral as deferred, not failed"
@@ -1416,52 +1418,75 @@ EOF
   pass "same-home ships, scouts, and batch entries defer during a reading and retain publication protection"
 }
 
-# A crew-state reader that cannot answer - exits non-zero, is missing, or
-# runs past FM_PROJECT_CAPACITY_CREW_TIMEOUT - fails the count closed: the
-# spawn refuses rather than silently counting the holder as not working.
-test_unreadable_crew_state_refuses_admission() {
-  local case_dir home out rc=0 start elapsed
-  case_dir=$(make_case crew-fail task-c)
+# A record whose crew state cannot be read - the reader runs past
+# FM_PROJECT_CAPACITY_CREW_TIMEOUT or exits non-zero for that one record, or
+# the reader is missing for every record - holds a place as if it were
+# working, so the count still succeeds instead of refusing every spawn. A
+# record the reader answers as paused still holds none.
+test_unreadable_crew_state_holds_a_place() {
+  local case_dir home stub out rc=0 start elapsed before worktrees
+  case_dir=$(make_case crew-unreadable task-d task-e)
   home="$case_dir/home"
+  stub="$case_dir/fakebin/fm-crew-state-stub"
   declare_capacity "$home" "project 2"
   write_live "$home" live-a "$case_dir/project"
-
-  cat > "$case_dir/fakebin/fm-crew-state-stub" <<'SH'
+  write_live "$home" live-b "$case_dir/project"
+  printf 'paused [at=1790000001]: fixture wait\n' >> "$home/state/live-b.status"
+  write_live "$home" live-c "$case_dir/project"
+  mv "$stub" "$case_dir/fakebin/fm-crew-state-answer"
+  cat > "$stub" <<'SH'
 #!/usr/bin/env bash
-echo "state: working - source: fixture"
-exit 1
+if [ "$1" = live-c ]; then
+  case $(cat "$(dirname "$0")/live-c.read") in
+    hang) sleep 60 ;;
+    fail) exit 1 ;;
+  esac
+fi
+exec "$(dirname "$0")/fm-crew-state-answer" "$@"
 SH
-  chmod +x "$case_dir/fakebin/fm-crew-state-stub"
-  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
-  expect_code 1 "$rc" "a crew-state reader exiting non-zero did not refuse admission: $out"
-  assert_contains "$out" "crew state for task record $home/state/live-a.meta cannot be read" \
-    "the refusal did not name the unreadable crew state"
-  assert_absent "$home/state/task-c.meta" "a spawn published past an unreadable crew state"
+  chmod +x "$stub"
+  # Use the production bound rather than a load-sensitive one-second test
+  # deadline; live-c's 60-second hang still exceeds this bound.
+  export FM_PROJECT_CAPACITY_CREW_TIMEOUT=10
 
-  rm "$case_dir/fakebin/fm-crew-state-stub"
-  rc=0
-  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
-  expect_code 1 "$rc" "a missing crew-state reader did not refuse admission: $out"
-  assert_absent "$home/state/task-c.meta" "a spawn published past a missing crew-state reader"
-
-  cat > "$case_dir/fakebin/fm-crew-state-stub" <<'SH'
-#!/usr/bin/env bash
-sleep 60
-SH
-  chmod +x "$case_dir/fakebin/fm-crew-state-stub"
-  rc=0
+  printf 'hang\n' > "$case_dir/fakebin/live-c.read"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
   start=$SECONDS
-  export FM_PROJECT_CAPACITY_CREW_TIMEOUT=1
-  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
-  unset FM_PROJECT_CAPACITY_CREW_TIMEOUT
+  out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
   elapsed=$((SECONDS - start))
-  expect_code 1 "$rc" "a hung crew-state reader did not refuse admission: $out"
+  expect_code "$DEFER_EXIT" "$rc" "a hung crew-state read for one record did not defer at capacity: $out"
+  assert_contains "$out" "and 2 already hold a place (live-a, live-c (state unreadable))" \
+    "the hung read's record did not hold a place"
+  assert_nothing_created "$case_dir" "$home" task-d "$before" "$worktrees"
   [ "$elapsed" -lt 30 ] || fail "a hung crew-state reader held the count for ${elapsed}s"
-  assert_absent "$home/state/task-c.meta" "a spawn published past a hung crew-state reader"
-  pass "a crew-state reader that fails, is missing, or hangs refuses admission instead of undercounting"
+
+  printf 'fail\n' > "$case_dir/fakebin/live-c.read"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a crew-state read exiting non-zero for one record did not defer at capacity: $out"
+  assert_contains "$out" "and 2 already hold a place (live-a, live-c (state unreadable))" \
+    "the failed read's record did not hold a place"
+
+  mv "$stub" "$stub.missing"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a missing crew-state reader did not defer at capacity: $out"
+  assert_contains "$out" "and 3 already hold a place (live-a (state unreadable), live-b (state unreadable), live-c (state unreadable))" \
+    "a missing reader did not hold a place for every record"
+
+  mv "$stub.missing" "$stub"
+  printf 'hang\n' > "$case_dir/fakebin/live-c.read"
+  declare_capacity "$home" "project 3"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-e) || rc=$?
+  unset FM_PROJECT_CAPACITY_CREW_TIMEOUT
+  expect_code 0 "$rc" "a hung crew-state read refused a spawn that has a free place: $out"
+  assert_contains "$out" "spawned task-e" "a spawn with a free place beside a hung read did not launch"
+  pass "a record whose crew state cannot be read holds a place and the count still succeeds"
 }
 
-test_unreadable_crew_state_refuses_admission
+test_unreadable_crew_state_holds_a_place
 test_undeclared_capacity_keeps_dispatch_uncapped
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind

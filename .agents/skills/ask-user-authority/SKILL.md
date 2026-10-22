@@ -17,11 +17,11 @@ This skill is the single owner of the decision policy for no-mistakes ask-user f
 Finding authority is determined by the criteria below, not by `yolo`.
 Firstmate always applies this judgment, decides any finding that is unambiguous toward the accepted design, and escalates only genuinely ambiguous, expanding, or destructive findings.
 
-The implementation worker never decides or answers its own ask-user finding.
+Except for the no-surface case below, the implementation worker never decides or answers its own ask-user finding.
 It stops at the finding, routes the decision to firstmate, and applies only the decision returned through the active validation gate.
 One class is not an authority decision at all: a warning-level finding whose only question is whether to proceed without live validation because the change has no executable surface (a docs-only change; no-mistakes calls this a no-surface verdict).
 That is decided here, in advance: proceed, with the scenarios recorded as untested on the PR.
-The worker may answer that one at the gate itself; parking it for the captain once parked a docs-only canary for ten minutes while the captain was mid-turn (.agent-config-ydbn7).
+The worker may answer that one at the gate itself.
 
 ## Decide
 

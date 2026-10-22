@@ -2568,22 +2568,14 @@ elif [ "$FM_RECOVERY_MARKER_ACTION" = recover ]; then
 fi
 # Side-band ledger publication, detached from the poll loop.
 #
-# The poll loop owns the liveness beacon below, and fm-guard.sh reads that
-# beacon's freshness as proof that supervision is alive. Publication is a
-# side-band nicety bounded by FM_HOME_SUMMARY_TIMEOUT, but that bound is far
-# larger than one poll and, in a home whose publication keeps failing, it is
-# paid on every poll - so running it inline puts up to a full publication
-# deadline between two beacon touches and can starve the guard's grace. Nothing
-# in the poll depends on the ledger, so start it and move on: the beacon keeps
-# advancing no matter how slow the publication is.
-#
-# The trade the detachment makes: a reader can briefly see a ledger that
-# predates the event this poll just surfaced, where the inline call published
-# first. Publication is eventually consistent by design and every reader
-# re-derives current state from the owning home anyway, while beacon freshness
-# is what the whole supervision chain rests on.
+# Publication must not delay the liveness beacon that fm-guard.sh reads as
+# supervision health. The ledger can lag an event until the coalesced refresh;
+# bin/fm-home-summary-refresh.sh's header owns request and cooldown semantics.
 HOME_SUMMARY_PID=
 home_summary_refresh_detached() {
+  # Skip the request process entirely when this home has no ledger reader.
+  [ -f "$FM_HOME/.fm-secondmate-home" ] || return 0
+  : >> "$STATE/.home-summary-dirty" 2>/dev/null || return 0
   if [ -n "$HOME_SUMMARY_PID" ]; then
     if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
       return 0
@@ -2591,8 +2583,7 @@ home_summary_refresh_detached() {
     wait "$HOME_SUMMARY_PID" 2>/dev/null || true
     HOME_SUMMARY_PID=
   fi
-  FM_HOME_SUMMARY_IF_IDLE=1 \
-    "$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort </dev/null >/dev/null 2>&1 &
+  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request --wait </dev/null >/dev/null 2>&1 &
   HOME_SUMMARY_PID=$!
 }
 
@@ -2663,7 +2654,7 @@ watcher_world_gone() {
 }
 
 watcher_cleanup() {
-  local exit_status=$? cleanup_status=0 owns_lock=0 transition=release-lock
+  local exit_status=$? cleanup_status=0 owns_lock=0 transition=release-lock fm_timed_signal=""
   # One place logs the world-gone reason, so a step that failed because its
   # world went away mid-poll names it exactly as the next poll's check would.
   if [ "$exit_status" -ne 0 ] && watcher_world_gone; then
@@ -2680,6 +2671,22 @@ watcher_cleanup() {
     fi
   fi
   fm_active_check_stop || cleanup_status=1
+  if [ -n "$HOME_SUMMARY_PID" ]; then
+    if [ "$exit_status" -eq 0 ] && [ -n "${FM_WATCH_DELIVERED_REASON:-}" ]; then
+      # A normal delivered close must let its status-triggered publication
+      # finish. Keep that bounded wait cancellable, including after wake()
+      # temporarily ignored signals while publishing its delivery.
+      trap 'fm_timed_signal=143' HUP INT TERM
+      fm_wait_timed "$HOME_SUMMARY_PID" 2>/dev/null || true
+      trap '' HUP INT TERM
+    else
+      if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
+        kill "$HOME_SUMMARY_PID" 2>/dev/null || true
+      fi
+      wait "$HOME_SUMMARY_PID" 2>/dev/null || true
+    fi
+    HOME_SUMMARY_PID=
+  fi
   fm_check_output_cleanup
   fm_capture_output_cleanup
   fm_custom_check_snapshot_cleanup
@@ -3250,7 +3257,7 @@ EOF
     pending=$(printf '%s\n%s' "$pending" "$(scan_signals)")
     # The final coalesced signal set is the watcher-carried status-change
     # trigger for this home's published summary. Start it before either
-    # surfacing or absorbing the signal, but never wait on it: see
+    # surfacing or absorbing the signal, keeping the poll detached: see
     # home_summary_refresh_detached for why publication stays off the beacon's
     # path. Publication failure stays side-band.
     home_summary_refresh_detached

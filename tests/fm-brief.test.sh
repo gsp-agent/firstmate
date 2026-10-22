@@ -339,7 +339,7 @@ test_ship_mode_is_explicit_not_registry() {
   brief="$home/data/brief-explicit-a5/brief.md"
   grep -qx "Delivery contract: mode=no-mistakes" "$brief" \
     || fail "registered direct-PR posture overrode the explicit --mode"
-  assert_grep "Firstmate will then instruct you to run /no-mistakes" "$brief" \
+  assert_grep "then run /no-mistakes at once to validate and ship a PR; do not wait for an instruction." "$brief" \
     "explicit no-mistakes brief did not render the pipeline definition of done"
   assert_grep "FM_HOME=$home $ROOT/bin/fm-pr-made-with.sh brief-explicit-a5 <PR url>" "$brief" \
     "the brief does not hand the worker the Made-with stamp for its own home"

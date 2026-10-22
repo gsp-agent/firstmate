@@ -129,7 +129,12 @@
 #   --harness <name> is the explicit per-spawn harness/profile adapter. The old
 #   positional harness arg still works for back-compat.
 #   --model <name> and --effort <low|medium|high|xhigh|max|ultra> are concrete profile
-#   axes chosen by firstmate at intake. They are only threaded into harnesses whose
+#   axes chosen by firstmate at intake. Only with --relaunch, either flag also
+#   accepts default to request the harness default for that axis; empty values
+#   remain illegal. On a same-harness relaunch, each omitted axis inherits its
+#   recorded value. Explicit flags are kept through the dispatch pair decision;
+#   a resolved default is recorded as default but omitted from the harness argv.
+#   They are only threaded into harnesses whose
 #   installed CLIs were verified to support that axis; unsupported axes are omitted
 #   from that harness's launch rather than guessed. Ultra is the explicit
 #   exception: bin/fm-harness.sh validate-native-effort owns its model scope;
@@ -259,10 +264,19 @@
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
 #   Regression coverage: tests/fm-project-capacity.test.sh.
+#   Live sessions: when this machine has a live-session detector
+#   (bin/fm-live-session-lib.sh owns which detector, the folder name it is
+#   asked about, and the verdict), every ship or scout launch asks it about the
+#   project immediately before dispatch. A read that is live or cannot decide
+#   prints a `deferred:` line naming the detector's verdict and exits 75 before
+#   launch or a backlog move. A --secondmate spawn is never checked.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
-#   profile consultation. A --secondmate spawn is exempt and resolves the SECONDMATE
+#   profile consultation. docs/configuration.md "Crew dispatch profiles" owns
+#   the accepted model/effort pairs, raw-command restrictions, and relaunch pair
+#   selection.
+#   A --secondmate spawn is exempt and resolves the SECONDMATE
 #   harness (config/secondmate-harness -> config/crew-harness -> own), so the
 #   secondmate-vs-crewmate split is DURABLE across every respawn (recovery,
 #   /updatefirstmate, restart). A bare adapter name (claude|codex|opencode|pi|pi-signed|grok|kimi|cursor|gemini|muse|rovo|omp|agy|devin)
@@ -382,7 +396,7 @@
 #   Spawn refuses an unsafe pre-existing task temp root or launch namespace, and
 #   task teardown removes only the current home's launch namespace.
 # Launch environment (config/launch-env-allowlist):
-#   Absent means unchanged ambient inheritance. A present readable regular file
+#   Absent disables filtering. A present readable regular file
 #   opts every launch (ship, scout, secondmate, raw command, and relaunch) into
 #   /usr/bin/env -i followed by /bin/sh -c of the existing launch command.
 #   Each line is one POSIX environment name, never a value or shell expression;
@@ -562,8 +576,12 @@
 # commit-msg strips known AI trailers at the commit object for every launched
 # runtime, Claude included as defense in depth. bin/fm-git-strip-ai-trailers.sh
 # owns the identities, the hook install, and chaining the repository git is
-# actually running in so a project husky hook still runs. Author identity is
-# not rewritten.
+# actually running in so a project husky hook still runs. The strip does not
+# rewrite author identity.
+# Worker identity follows docs/configuration.md "Worker git identity".
+# Every launch exports user.name and user.email through GIT_CONFIG_*, plus
+# matching GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME and
+# GIT_COMMITTER_EMAIL, without writing any git config file.
 # Publishing the record and moving this home's backlog item to In flight are one
 # step, not two: bin/fm-backlog-transition-lib.sh owns that invariant, and this
 # script performs the transition under the task's own meta lock before it reports
@@ -658,6 +676,8 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 . "$SCRIPT_DIR/fm-config-inherit-lib.sh"
 # shellcheck source=bin/fm-exclude-tools-lib.sh
 . "$SCRIPT_DIR/fm-exclude-tools-lib.sh"
+# shellcheck source=bin/fm-dispatch-profile-lib.sh
+. "$SCRIPT_DIR/fm-dispatch-profile-lib.sh"
 if ! LAUNCH_ENV_ENABLED=$(fm_config_source_present "$CONFIG/launch-env-allowlist"); then
   exit 1
 fi
@@ -723,6 +743,26 @@ fi
 if ! KEEP_AI_TRAILERS=$(fm_config_source_present "$CONFIG/keep-ai-trailers"); then
   exit 1
 fi
+# config/worker-git-identity: one "Name <email>" line (see the header above).
+WORKER_GIT_NAME=gsp-agent
+WORKER_GIT_EMAIL=dale+gspagent@groovejones.com
+if ! WORKER_GIT_IDENTITY_PRESENT=$(fm_config_source_present "$CONFIG/worker-git-identity"); then
+  exit 1
+fi
+if [ "$WORKER_GIT_IDENTITY_PRESENT" = 1 ]; then
+  worker_git_ident=
+  if [ -f "$CONFIG/worker-git-identity" ] && [ -r "$CONFIG/worker-git-identity" ]; then
+    worker_git_ident=$(cat "$CONFIG/worker-git-identity") || exit 1
+  fi
+  worker_git_ident_re='^([^<>[:space:][:cntrl:]]([^<>[:cntrl:]]*[^<>[:space:][:cntrl:]])?) <([^<>[:space:][:cntrl:]]+)>$'
+  if [[ $worker_git_ident =~ $worker_git_ident_re ]]; then
+    WORKER_GIT_NAME=${BASH_REMATCH[1]}
+    WORKER_GIT_EMAIL=${BASH_REMATCH[3]}
+  else
+    echo "error: config/worker-git-identity must be a readable file holding one line in git's 'Name <email>' form, such as: fleet-agent <fleet-agent@example.com>" >&2
+    exit 1
+  fi
+fi
 SUB_HOME_MARKER=".fm-secondmate-home"
 if [ -e "$STATE" ] || [ -L "$STATE" ]; then
   fm_backlog_directory_present "$STATE" "state directory" || {
@@ -766,11 +806,17 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
 # shellcheck source=bin/fm-project-capacity-lib.sh
 . "$SCRIPT_DIR/fm-project-capacity-lib.sh"
+# shellcheck source=bin/fm-live-session-lib.sh
+. "$SCRIPT_DIR/fm-live-session-lib.sh"
 # shellcheck source=bin/fm-worker-account-lib.sh
 . "$SCRIPT_DIR/fm-worker-account-lib.sh"
 # shellcheck source=bin/fm-task-reap-lib.sh
 . "$SCRIPT_DIR/fm-task-reap-lib.sh"
 TASK_REAP_ACTOR=spawn
+# Exit status of a deferred spawn (project capacity or a live session): the
+# sysexits "temporary failure" code, so a caller can tell a deferral from an
+# ordinary failure.
+SPAWN_DEFER_EXIT=75
 # Fail closed before any fleet mutation: a no-mistakes gate agent must never spawn
 # a direct report (see bin/fm-gate-refuse-lib.sh).
 fm_refuse_if_gate_agent
@@ -977,8 +1023,12 @@ if [ "$TRACEPARENT_SET" -eq 1 ]; then
     exit 1
   }
 fi
+if [ "$RELAUNCH" -eq 0 ] && { [ "$MODEL" = default ] || [ "$EFFORT" = default ]; }; then
+  echo "error: default model or effort resets require --relaunch" >&2
+  exit 1
+fi
 case "$EFFORT" in
-'' | low | medium | high | xhigh | max | ultra) ;;
+'' | default | low | medium | high | xhigh | max | ultra) ;;
 *)
   echo "error: --effort must be one of low, medium, high, xhigh, max, ultra" >&2
   exit 1
@@ -1404,7 +1454,7 @@ spawn_remote_secondmate() {
   fm_lock_release "$remote_lock" || true
   fm_lock_release "$registry_lock" || true
   fm_lock_release "$SPAWN_TASK_LOCK" || true
-  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort || true
+  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request || true
   if ! "$SCRIPT_DIR/fm-procevent-remote-reply.sh" arm "$id" >/dev/null; then
     echo "error: remote secondmate $id launched, but its reply source could not be armed; endpoint metadata is preserved" >&2
     return 1
@@ -1452,6 +1502,7 @@ CONFIG_INHERIT_LOCK=
 CONFIG_INHERIT_LOCK_HELD=0
 GIT_HOOKS_DIR=
 SPAWN_LAUNCH_SENT=0
+SPAWN_CREATED_ENDPOINT=
 SPAWN_ENDPOINT_CLOSED=0
 SPAWN_DEFERRED_SIGNAL=
 QUEUE_START_TASK=
@@ -1506,6 +1557,18 @@ spawn_hold_launched_item() {  # <exit-status>
 
 spawn_abort_cleanup() {
   local status=$?
+  if [ "$status" -eq "$SPAWN_DEFER_EXIT" ] &&
+    [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_CREATED_ENDPOINT" ]; then
+    if [ "$BACKEND" = orca ]; then
+      ORCA_ABORT_CLEANUP=1
+    elif [ "$HERDR_PROJECTION_ABORT_CLEANUP" != 1 ]; then
+      if fm_backend_kill "$BACKEND" "$SPAWN_CREATED_ENDPOINT" "${ZELLIJ_TAB_ID:-}" "$W" 2>/dev/null; then
+        SPAWN_ENDPOINT_CLOSED=1
+      else
+        echo "warning: could not close endpoint $SPAWN_CREATED_ENDPOINT after deferring task $ID" >&2
+      fi
+    fi
+  fi
   if [ "$RELAUNCH_REPLACEMENT_PENDING" = 1 ] &&
     [ "$SPAWN_META_PUBLISH_STARTED" = 1 ] &&
     [ -n "$SPAWN_META_TMP" ] &&
@@ -1795,9 +1858,9 @@ if [ "${#POS[@]}" -gt 0 ] && [ "${POS[0]}" != "$idpart" ] && case "$idpart" in *
     [ "$KIND" != scout ] || pair_args+=(--scout)
     pair_rc=0
     FM_SPAWN_NO_GUARD=1 "$FM_ROOT/bin/fm-spawn.sh" "${pair_args[@]}" || pair_rc=$?
-    if [ "$pair_rc" -eq "$FM_PROJECT_CAPACITY_DEFER_EXIT" ]; then
-      echo "batch: DEFERRED ${pair%%=*} (${pair#*=}) - its project is at capacity, so it stays queued" >&2
-      [ "$rc" -ne 0 ] || rc=$FM_PROJECT_CAPACITY_DEFER_EXIT
+    if [ "$pair_rc" -eq "$SPAWN_DEFER_EXIT" ]; then
+      echo "batch: DEFERRED ${pair%%=*} (${pair#*=}) - its deferred: line above says why, and it stays queued" >&2
+      [ "$rc" -ne 0 ] || rc=$SPAWN_DEFER_EXIT
     elif [ "$pair_rc" -ne 0 ]; then
       echo "batch: FAILED to spawn ${pair%%=*} (${pair#*=})" >&2
       rc=1
@@ -1938,7 +2001,7 @@ if [ "$RELAUNCH" -eq 0 ]; then
     case "$(fm_lock_role "$SPAWN_TASK_SET_LOCK" 2>/dev/null || true)" in
       task-spawn-reading)
         echo "deferred: this home's task set is held by a spawn running a headroom reading; task $ID was not launched and its backlog item stays queued" >&2
-        exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+        exit "$SPAWN_DEFER_EXIT"
         ;;
       task-spawn)
         echo "error: this home's task set is locked by another spawn; refusing to create task $ID rather than racing it" >&2
@@ -2165,6 +2228,8 @@ RAW_LAUNCH=0
 # validation teardown uses, so a malformed, ambiguous, or foreign record
 # refuses here exactly as it refuses there.
 RELAUNCH_PRIOR_HARNESS=
+RELAUNCH_RECORDED_MODEL=default
+RELAUNCH_RECORDED_EFFORT=default
 # 1 when the recorded endpoint is authoritatively gone and this relaunch must
 # create a fresh one for the task rather than adopt its recorded address.
 RELAUNCH_REBIND=0
@@ -2313,6 +2378,10 @@ if [ "$RELAUNCH" -eq 1 ]; then
     echo "error: task $ID has no recorded harness; pass --harness to relaunch it" >&2
     exit 1
   }
+  RELAUNCH_RECORDED_MODEL=$(fm_meta_get "$RELAUNCH_META" model)
+  [ -n "$RELAUNCH_RECORDED_MODEL" ] || RELAUNCH_RECORDED_MODEL=default
+  RELAUNCH_RECORDED_EFFORT=$(fm_meta_get "$RELAUNCH_META" effort)
+  [ -n "$RELAUNCH_RECORDED_EFFORT" ] || RELAUNCH_RECORDED_EFFORT=default
 elif [ "$KIND" = secondmate ]; then
   case "${POS[1]:-}" in
   '' | claude | codex | opencode | pi | pi-signed | grok | kimi | cursor | gemini | muse | rovo | omp | agy | devin)
@@ -2341,6 +2410,57 @@ shell_quote() {
   printf "'"
   printf '%s' "$1" | sed "s/'/'\\\\''/g"
   printf "'"
+}
+
+# enforce_dispatch_profile: the pair half of the consultation backstop.
+# docs/configuration.md "Crew dispatch profiles" owns the acceptance rules.
+# bin/fm-dispatch-profile-lib.sh reads the file. Canonical flags cannot prove
+# what a raw command actually launches, so even matching flags cannot make a
+# raw command satisfy the named-harness check.
+enforce_dispatch_profile() {
+  local pairs pretty model effort eff_model eff_effort resolved resolved_model resolved_effort
+  [ "$KIND" != secondmate ] || return 0
+  # Control has already resolved both axes before stopping the worker. A second
+  # read could replace that decision after stop and disagree with its journal.
+  if [ "$RELAUNCH" -eq 1 ] && [ "$SPAWN_CONTROL_PARENT" = 1 ] \
+      && [ -n "${FM_CONTROL_RELAUNCH_TX:-}" ] \
+      && [ "$MODEL_SET" -eq 1 ] && [ "$EFFORT_SET" -eq 1 ]; then
+    return 0
+  fi
+  pairs=$(fm_dispatch_profile_read "$CONFIG" "$HARNESS") || exit 1
+  [ -n "$pairs" ] || return 0
+  pretty=$(fm_dispatch_profile_pairs_pretty "$pairs")
+  if [ "$RAW_LAUNCH" != 0 ]; then
+    echo "error: config/crew-dispatch.json is active - raw launch command for $HARNESS requires the canonical --harness $HARNESS launch with a dispatch profile (file: $pretty); pass the file pair for this harness with --model and --effort" >&2
+    exit 1
+  fi
+  eff_model=${MODEL:-default}
+  eff_effort=${EFFORT:-default}
+  if [ "$RELAUNCH" -eq 1 ]; then
+    resolved=$(fm_dispatch_relaunch_decide "$ID" "$HARNESS" "$eff_model" "$eff_effort" "$pairs") || exit 1
+    resolved_model=${resolved%%$'\n'*}
+    resolved_effort=${resolved#*$'\n'}
+    resolved_effort=${resolved_effort%%$'\n'*}
+    case "$resolved_effort" in
+      ''|default|low|medium|high|xhigh|max|ultra) ;;
+      *)
+        echo "error: dispatch profile for $HARNESS has invalid effort '$resolved_effort'; expected default, low, medium, high, xhigh, max, ultra" >&2
+        exit 1
+        ;;
+    esac
+    MODEL=$resolved_model
+    EFFORT=$resolved_effort
+    return 0
+  fi
+  while IFS="$(printf '\t')" read -r model effort; do
+    if [ "$model" = "$eff_model" ] && [ "$effort" = "$eff_effort" ]; then
+      return 0
+    fi
+  done <<EOF
+$pairs
+EOF
+  echo "error: config/crew-dispatch.json is active - spawn profile $HARNESS $eff_model $eff_effort matches no dispatch profile for $HARNESS (file: $pretty); pass the file pair for this harness" >&2
+  exit 1
 }
 
 resolve_pi_executable() {
@@ -2715,6 +2835,12 @@ case "$ARG3" in
 *' '*) # raw launch command (unverified-adapter escape hatch)
   RAW_LAUNCH=1
   LAUNCH=$ARG3
+  case "$LAUNCH" in
+  *GIT_AUTHOR_NAME=* | *GIT_AUTHOR_EMAIL=* | *GIT_COMMITTER_NAME=* | *GIT_COMMITTER_EMAIL=*)
+    echo "error: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments" >&2
+    exit 1
+    ;;
+  esac
   HARNESS=""
   for word in $LAUNCH; do
     case "$word" in [A-Za-z_]*=*) continue ;; *)
@@ -2757,6 +2883,19 @@ case "$ARG3" in
   }
   ;;
 esac
+
+if [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" = "$RELAUNCH_PRIOR_HARNESS" ]; then
+  [ "$MODEL_SET" -eq 1 ] || MODEL=$RELAUNCH_RECORDED_MODEL
+  [ "$EFFORT_SET" -eq 1 ] || EFFORT=$RELAUNCH_RECORDED_EFFORT
+fi
+
+# Pair half of the consultation backstop, on the fully resolved harness,
+# model, and effort and before any endpoint or worktree provisioning. The
+# deterministic Cursor fallback below is exempt once it fires, because it
+# already prints its own reason and records it.
+enforce_dispatch_profile
+[ "$MODEL" != default ] || MODEL=
+[ "$EFFORT" != default ] || EFFORT=
 
 # Apply the quota-file fallback owned by bin/fm-cursor-guard.sh; its header
 # defines freshness, credit-room eligibility, and fallback selection.
@@ -3647,7 +3786,7 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
           ;;
       esac
       echo "$SPAWN_CAPACITY_DEFER" >&2
-      exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+      exit "$SPAWN_DEFER_EXIT"
     fi
   fi
 fi
@@ -4574,6 +4713,9 @@ EOF
     T="$ORCA_TERMINAL"
     ;;
   esac
+fi
+if [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_REBIND" -eq 1 ]; then
+  SPAWN_CREATED_ENDPOINT=$T
 fi
 if [ "$KIND" = secondmate ]; then
   FM_INHERITABLE_CONFIG=trace-context \
@@ -5899,16 +6041,6 @@ spawn_report_preserved_state() {
   return 1
 }
 
-if [ "$RELAUNCH" -eq 1 ]; then
-  SPAWN_META_PUBLISH_STARTED=1
-  if ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$STATE/$ID.meta" "task record" "$STATE"; then
-    echo "error: replacement task record for $ID could not be published ($FM_BACKLOG_TRANSITION_ERROR)" >&2
-    exit 1
-  fi
-  RELAUNCH_REPLACEMENT_PENDING=0
-  SPAWN_META_PUBLISH_STARTED=0
-  SPAWN_META_TMP=
-fi
 # A dispatch or relaunch keeps the per-task meta lock through launch delivery.
 # The backlog mutation is deliberately the final fallible commit below, so
 # teardown cannot remove a relaunched record while its replacement worker is
@@ -5926,7 +6058,7 @@ if [ "$SPAWN_TASK_SET_LOCK_HELD" = 1 ]; then
   SPAWN_TASK_SET_LOCK_HELD=0
   fm_lock_release "$SPAWN_TASK_SET_LOCK"
 fi
-"$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort || true
+"$SCRIPT_DIR/fm-home-summary-refresh.sh" --request || true
 [ "$BACKEND" = orca ] && ORCA_ABORT_CLEANUP=0
 
 sq_brief=$(shell_quote "$BRIEF")
@@ -6095,15 +6227,28 @@ if [ "$KIND" = secondmate ]; then
   # injected carrier and this on/off snapshot are guaranteed to agree.
   LAUNCH="FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME=$sq_primary_home FM_HOME=$sq_home FM_TRACE_CONTEXT=$SPAWN_TRACE_EFFECTIVE FM_SUPERVISION_MODEL=$supervision_model $LAUNCH"
 fi
-# Pane-scoped override: git in this worker reads our commit-msg strip without
-# rewriting the project's core.hooksPath. GIT_CONFIG_* takes precedence over
-# config files and is inherited by child git processes. When the home opts in
-# to keeping trailers, leave core.hooksPath alone so the repository's hooks run
-# directly. An export statement inside the pane command carries the override
-# across every step of a compound raw launch while firstmate's own git is unchanged.
+# Pane-scoped overrides: git in this worker reads our commit-msg strip without
+# rewriting the project's core.hooksPath, and commits as the home's configured
+# worker identity without writing ~/.gitconfig or the shared repository config.
+# GIT_CONFIG_* takes precedence over config files and is inherited by child git
+# processes. When the home opts in to keeping trailers, leave core.hooksPath
+# alone so the repository's hooks run directly. An export statement inside the
+# pane command carries the overrides across every step of a compound raw launch
+# while firstmate's own git is unchanged.
+GIT_CONFIG_EXPORT=
+GIT_CONFIG_EXPORT_COUNT=0
+spawn_git_config_add() {  # <key> <value>
+  GIT_CONFIG_EXPORT="$GIT_CONFIG_EXPORT GIT_CONFIG_KEY_$GIT_CONFIG_EXPORT_COUNT=$1 GIT_CONFIG_VALUE_$GIT_CONFIG_EXPORT_COUNT=$(shell_quote "$2")"
+  GIT_CONFIG_EXPORT_COUNT=$((GIT_CONFIG_EXPORT_COUNT + 1))
+}
 if [ "$KEEP_AI_TRAILERS" = 0 ]; then
-  LAUNCH="export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=$(shell_quote "$GIT_HOOKS_DIR"); $LAUNCH"
+  spawn_git_config_add core.hooksPath "$GIT_HOOKS_DIR"
 fi
+spawn_git_config_add user.name "$WORKER_GIT_NAME"
+spawn_git_config_add user.email "$WORKER_GIT_EMAIL"
+LAUNCH="export GIT_CONFIG_COUNT=$GIT_CONFIG_EXPORT_COUNT$GIT_CONFIG_EXPORT; $LAUNCH"
+# Git's author/committer environment takes precedence even over command config.
+LAUNCH="export GIT_AUTHOR_NAME=$(shell_quote "$WORKER_GIT_NAME") GIT_AUTHOR_EMAIL=$(shell_quote "$WORKER_GIT_EMAIL") GIT_COMMITTER_NAME=$(shell_quote "$WORKER_GIT_NAME") GIT_COMMITTER_EMAIL=$(shell_quote "$WORKER_GIT_EMAIL"); $LAUNCH"
 # Every agent this fleet launches - crewmate, scout, and secondmate, on a fresh
 # spawn and on a relaunch alike - runs with the compact-adviser kill switch on.
 # This is an export statement rather than a forwarded ambient name or a
@@ -6141,24 +6286,23 @@ if [ -z "$SPAWN_TRACEPARENT" ] && [ "$RELAUNCH" -eq 1 ]; then
 fi
 
 spawn_record_traceparent() {
-  local meta="$STATE/$ID.meta" status=0 acquired=0
+  local meta="${SPAWN_META_TMP:-$STATE/$ID.meta}" status=0 acquired=0 trace_tmp
   # Fresh publication still owns the lock. Relaunch deliberately uses a short
   # independent critical section so other metadata interfaces can serialize.
   if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
-    SPAWN_META_LOCK=$(fm_meta_lock_path "$meta") || return 1
+    SPAWN_META_LOCK=$(fm_meta_lock_path "$STATE/$ID.meta") || return 1
     fm_lock_acquire_wait "$SPAWN_META_LOCK"
     SPAWN_META_LOCK_HELD=1
     acquired=1
   fi
-  SPAWN_META_TMP="$STATE/.$ID.meta.trace.${BASHPID:-$$}"
+  trace_tmp="$STATE/.$ID.meta.trace.${BASHPID:-$$}"
   if [ ! -f "$meta" ] || [ ! -w "$meta" ] ||
-    ! awk -F= '$1 != "traceparent"' "$meta" >"$SPAWN_META_TMP" ||
-    ! printf 'traceparent=%s\n' "$SPAWN_TRACEPARENT" >>"$SPAWN_META_TMP" ||
-    ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$meta" "task record" "$STATE"; then
+    ! awk -F= '$1 != "traceparent"' "$meta" >"$trace_tmp" ||
+    ! printf 'traceparent=%s\n' "$SPAWN_TRACEPARENT" >>"$trace_tmp" ||
+    ! fm_backlog_atomic_transition publish "$trace_tmp" "$meta" "task record" "$STATE"; then
     status=1
-    rm -f "$SPAWN_META_TMP" 2>/dev/null || true
+    rm -f "$trace_tmp" 2>/dev/null || true
   fi
-  SPAWN_META_TMP=
   if [ "$acquired" = 1 ]; then
     fm_lock_release "$SPAWN_META_LOCK" || status=1
     SPAWN_META_LOCK_HELD=0
@@ -6294,6 +6438,25 @@ if ! (umask 077 && printf '%s\n' "$LAUNCH" >"$LAUNCH_STAGE" &&
   exit 1
 fi
 sleep 0.3
+if [ "$KIND" != secondmate ] &&
+  ! LIVE_SESSION_DEFERRAL=$(fm_live_session_admit "$PROJ_ABS" "$(basename "$PROJ_ABS")"); then
+  if [ "$RELAUNCH" -eq 1 ]; then
+    echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear" >&2
+  else
+    echo "deferred: $LIVE_SESSION_DEFERRAL; task $ID was not launched and its backlog item stays queued - dispatch it again once the check reads clear" >&2
+  fi
+  exit "$SPAWN_DEFER_EXIT"
+fi
+if [ "$RELAUNCH" -eq 1 ]; then
+  SPAWN_META_PUBLISH_STARTED=1
+  if ! fm_backlog_atomic_transition publish "$SPAWN_META_TMP" "$STATE/$ID.meta" "task record" "$STATE"; then
+    echo "error: replacement task record for $ID could not be published ($FM_BACKLOG_TRANSITION_ERROR)" >&2
+    exit 1
+  fi
+  RELAUNCH_REPLACEMENT_PENDING=0
+  SPAWN_META_PUBLISH_STARTED=0
+  SPAWN_META_TMP=
+fi
 SPAWN_LAUNCH_SENT=1
 spawn_send_literal "$T" ". $(shell_quote "$LAUNCH_FILE")"
 sleep 0.3

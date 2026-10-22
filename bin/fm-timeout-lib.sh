@@ -32,20 +32,27 @@
 #       for a command that ignores TERM or is mid-way through work it will not
 #       abandon. A TERM, INT, or HUP delivered to the bounding process is
 #       forwarded to the group and starts the same grace. The perl watchdog
-#       also starts that escalation when its own parent dies before it could
-#       be signalled (an owner torn down by an outer group-kill cannot leave
-#       the bounded subtree orphaned behind it). The owner is captured before
+#       also starts that escalation when its owner dies before it could be
+#       signalled. The owner is captured before
 #       the watchdog starts: FM_EXEC_TIMED_OWNER_PID when the caller names it,
 #       else the calling script ($$) when fm_exec_timed runs in a subshell,
 #       else the shell's parent. The escalation starts once that owner is gone
 #       or the watchdog's parent changes, so an owner that dies while the
-#       watchdog is still starting is detected too. The timeout/gtimeout
-#       fallback does not track the owner: it bounds the command only by its
-#       deadline and grace, so owner death alone does not stop the command.
+#       watchdog is still starting is detected too. The watchdog stays in the
+#       caller's process group so that group's signals reach it, so a KILL to
+#       that whole group kills the watchdog too; a sentinel it starts in a
+#       group of its own, before the command, then runs the same escalation
+#       (TERM, then KILL after the grace) in its place. The timeout/gtimeout
+#       fallback does neither: it bounds the command only by its deadline and
+#       grace, so owner death alone does not stop the command.
 #       Exit status is the command's own, except 124 (the bound was hit) or
 #       137 (GNU timeout's status when its KILL had to fire); fm_timed_out
-#       accepts both. The seconds and grace values must be positive integers
-#       (125 otherwise). The perl watchdog is
+#       accepts both. The perl watchdog also reports 130 once an INT has
+#       reached it, whatever the command then did: a caller started in the
+#       background by a non-interactive shell inherits INT ignored, so this
+#       status is the only way it learns of the interrupt. The seconds and
+#       grace values must be positive integers written without a leading
+#       zero (125 otherwise). The perl watchdog is
 #       preferred: once termination has begun it also KILLs whatever the group
 #       left behind, so a descendant that outlives the command and holds its
 #       output cannot keep a capturing caller waiting, and GNU timeout, the
@@ -67,7 +74,9 @@
 #
 # All four fm_run_timed mechanisms terminate the bounded command's process
 # group, including descendants that remain in it; a descendant that creates
-# another process group is outside this cleanup. GNU/BSD
+# another process group is outside this cleanup. HUP, INT, or TERM delivered
+# to the waiting caller also stops that group and reaps the owned runner before
+# the signal is redelivered under the caller's restored traps. GNU/BSD
 # `timeout` does this by default because it does not run the command in the
 # foreground process group; the perl fallback does it explicitly with setpgrp
 # plus a negative pid, and the bash fallback uses monitor mode to give the
@@ -86,6 +95,33 @@ fm_timeout_mechanism() {
   else
     printf 'bash\n'
   fi
+}
+
+fm_wait_timed() {
+  local runner_pid=$1 runner_rc=0 group
+  shift
+  if [ -z "$fm_timed_signal" ]; then
+    wait "$runner_pid" || runner_rc=$?
+  fi
+  if [ -n "$fm_timed_signal" ]; then
+    trap '' HUP INT TERM
+    for group in "$@"; do
+      kill -TERM -- "-$group" 2>/dev/null || true
+    done
+    kill -TERM "$runner_pid" 2>/dev/null || true
+    if [ "$#" -gt 0 ]; then
+      sleep 0.2
+      for group in "$@"; do
+        kill -KILL -- "-$group" 2>/dev/null || true
+      done
+    fi
+    wait "$runner_pid" 2>/dev/null || true
+    for group in "$@"; do
+      [ "$group" = "$runner_pid" ] || wait "$group" 2>/dev/null || true
+    done
+    return "$fm_timed_signal"
+  fi
+  return "$runner_rc"
 }
 
 fm_run_bash_timeout() {
@@ -115,7 +151,7 @@ fm_run_bash_timeout() {
   watchdog_pid=$!
   [ "$monitor_was_on" -eq 1 ] || set +m
 
-  if wait "$child_pid" 2>/dev/null; then
+  if fm_wait_timed "$child_pid" "$child_pid" "$watchdog_pid" 2>/dev/null; then
     command_rc=0
   else
     command_rc=$?
@@ -155,7 +191,7 @@ fm_run_external_timeout() {
     exit "$command_rc"
   ' _ "$status_file" "$@" <&0 &
   runner_pid=$!
-  if wait "$runner_pid"; then
+  if fm_wait_timed "$runner_pid" "$runner_pid"; then
     runner_rc=0
   else
     runner_rc=$?
@@ -183,18 +219,63 @@ fm_run_external_timeout() {
 }
 
 fm_run_timed() {  # <seconds> <command...>
-  local seconds=$1
+  local seconds=$1 mechanism fm_timed_signal="" fm_timed_traps fm_timed_rc=0 runner_pid
   shift
-  case "$(fm_timeout_mechanism)" in
-    timeout) fm_run_external_timeout timeout "$seconds" "$@" ;;
-    gtimeout) fm_run_external_timeout gtimeout "$seconds" "$@" ;;
+  mechanism=$(fm_timeout_mechanism)
+  fm_timed_traps=$(trap -p HUP INT TERM)
+  trap 'fm_timed_signal=129' HUP
+  trap 'fm_timed_signal=130' INT
+  trap 'fm_timed_signal=143' TERM
+  case "$mechanism" in
+    timeout) fm_run_external_timeout timeout "$seconds" "$@" || fm_timed_rc=$? ;;
+    gtimeout) fm_run_external_timeout gtimeout "$seconds" "$@" || fm_timed_rc=$? ;;
     perl)
-      perl -e 'my $t = shift; my $pid = fork; die "fork failed" unless defined $pid; if (!$pid) { setpgrp(0, 0); exec @ARGV } local $SIG{ALRM} = sub { kill "TERM", -$pid; select undef, undef, undef, 0.2; kill "KILL", -$pid; exit 124 }; alarm $t; waitpid $pid, 0; exit(($? & 127) ? 128 + ($? & 127) : $? >> 8)' \
-        "$seconds" "$@"
+      perl -MPOSIX=setpgid,sigprocmask,SIG_BLOCK,SIG_SETMASK,SIGTERM,SIGINT,SIGHUP -e '
+        my $t = shift;
+        my $mask = POSIX::SigSet->new;
+        sigprocmask(SIG_BLOCK, POSIX::SigSet->new(SIGTERM, SIGINT, SIGHUP), $mask);
+        my $pid;
+        my $stop = sub {
+          my $rc = shift;
+          $SIG{$_} = "IGNORE" for qw(ALRM HUP INT TERM);
+          kill "TERM", -$pid;
+          select undef, undef, undef, 0.2;
+          kill "KILL", -$pid;
+          waitpid $pid, 0;
+          exit $rc;
+        };
+        local $SIG{ALRM} = sub { $stop->(124) };
+        local $SIG{HUP} = sub { $stop->(129) };
+        local $SIG{INT} = sub { $stop->(130) };
+        local $SIG{TERM} = sub { $stop->(143) };
+        $pid = fork;
+        die "fork failed" unless defined $pid;
+        if (!$pid) {
+          $SIG{$_} = "DEFAULT" for qw(ALRM HUP INT TERM);
+          setpgid(0, 0);
+          sigprocmask(SIG_SETMASK, $mask);
+          exec @ARGV;
+          exit 127;
+        }
+        setpgid($pid, $pid);
+        sigprocmask(SIG_SETMASK, $mask);
+        alarm $t;
+        waitpid $pid, 0;
+        exit(($? & 127) ? 128 + ($? & 127) : $? >> 8);
+      ' "$seconds" "$@" <&0 &
+      runner_pid=$!
+      fm_wait_timed "$runner_pid" || fm_timed_rc=$?
       ;;
-    bash) fm_run_bash_timeout "$seconds" "$@" ;;
-    *) return 124 ;;
+    bash) fm_run_bash_timeout "$seconds" "$@" || fm_timed_rc=$? ;;
+    *) fm_timed_rc=124 ;;
   esac
+  trap - HUP INT TERM
+  eval "$fm_timed_traps"
+  if [ -n "$fm_timed_signal" ]; then
+    bash -c "kill -$((fm_timed_signal - 128)) \"\$PPID\""
+    return "$fm_timed_signal"
+  fi
+  return "$fm_timed_rc"
 }
 
 fm_timed_out() {  # <status>
@@ -227,35 +308,77 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
   owner=${FM_EXEC_TIMED_OWNER_PID:-$$}
   unset FM_EXEC_TIMED_OWNER_PID
   if command -v perl >/dev/null 2>&1; then
-    exec perl -MPOSIX=WNOHANG,setpgid -MTime::HiRes=time -e '
+    exec perl -MPOSIX=WNOHANG,setpgid,sigprocmask,SIG_BLOCK,SIG_SETMASK,SIGTERM,SIGINT,SIGHUP -MTime::HiRes=time -e '
       my ($bound, $grace, $owner, $shell_parent) = (shift, shift, shift, shift);
       # exec preserves the shell PID, including in Bash 3.2 subshells where
       # BASHPID is unavailable. Keep the pre-exec parent for startup races.
       $owner = $shell_parent if $owner == $$;
       my $parent = getppid();
-      my ($pid, $pending, $kill_at, $timed_out) = (0, "", 0, 0);
+      my ($pid, $pending, $kill_at, $timed_out, $interrupted) = (0, "", 0, 0, 0);
       for my $sig (qw(TERM INT HUP)) {
         $SIG{$sig} = sub {
           if ($pid) { kill $sig, -$pid } else { $pending = $sig }
           $kill_at ||= time + $grace;
+          $interrupted = 1 if $sig eq "INT";
         };
       }
+      # Hold these signals from the fork until the child has reset them: perl
+      # defers one that lands before the reset and dispatches it afterwards
+      # as a call to a sub named DEFAULT, which drops it.
+      my $mask = POSIX::SigSet->new;
+      sigprocmask(SIG_BLOCK, POSIX::SigSet->new(SIGTERM, SIGINT, SIGHUP), $mask);
+      # The sentinel exists before the command does, in a group of its own, so
+      # a KILL to the callers group cannot take it too. The command writes its
+      # pid, which is its group, before exec; EOF with no "done" from this
+      # watchdog means the watchdog was killed, and the sentinel ends that
+      # group in its place.
+      pipe(my $heard, my $tell) or exit 127;
+      my $sentinel = fork;
+      exit 127 unless defined $sentinel;
+      if ($sentinel == 0) {
+        $SIG{$_} = "IGNORE" for qw(TERM INT HUP);
+        setpgid(0, 0);
+        sigprocmask(SIG_SETMASK, $mask);
+        close $tell;
+        open STDIN, "<", "/dev/null";
+        open STDOUT, ">", "/dev/null";
+        open STDERR, ">", "/dev/null";
+        my $said = "";
+        while (sysread $heard, $said, 64, length $said) {
+          exit 0 if $said =~ /done/;
+        }
+        exit 0 unless $said =~ /^(\d+)/;
+        my $group = $1;
+        kill "TERM", -$group;
+        my $kill_group_at = time + $grace;
+        select undef, undef, undef, 0.05 while time < $kill_group_at && kill 0, -$group;
+        kill "KILL", -$group;
+        exit 0;
+      }
+      setpgid($sentinel, $sentinel);
+      close $heard;
       my $child = fork;
       exit 127 unless defined $child;
       if ($child == 0) {
         $SIG{$_} = "DEFAULT" for qw(TERM INT HUP);
+        kill $pending, $$ if $pending;
         setpgid(0, 0);
+        { local $SIG{PIPE} = "IGNORE"; syswrite $tell, "$$\n"; }
+        sigprocmask(SIG_SETMASK, $mask);
         exec @ARGV;
         exit 127;
       }
       setpgid($child, $child);
       $pid = $child;
+      sigprocmask(SIG_SETMASK, $mask);
       kill $pending, -$pid if $pending;
       my $deadline = time + $bound;
       sub finish {
         my $status = shift;
         kill "KILL", -$pid if $kill_at;
+        { local $SIG{PIPE} = "IGNORE"; syswrite $tell, "done"; }
         exit 124 if $timed_out;
+        exit 130 if $interrupted;
         exit(($status & 127) ? 128 + ($status & 127) : $status >> 8);
       }
       while (1) {

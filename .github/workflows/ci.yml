@@ -228,6 +228,9 @@ jobs:
           # leaving a shard of the required lane unrun.
           FM_SERIAL_LANE: portable-serial-${{ matrix.shard }}of${{ strategy.job-total }}
           FM_SERIAL_SHARD: ${{ matrix.shard }}
+          # The real-harness drift guard is opt-in because it writes the real
+          # HOME's harness configuration; the CI runner's HOME is disposable.
+          FM_HARNESS_LIVENESS_DRIFT: "1"
         run: |
           set -eu
           mkdir -p "$RUNNER_TEMP/fm-test"
