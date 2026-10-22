@@ -113,6 +113,19 @@ printf 'treehouse %s\n' "$*" >> "$FM_FAKE_CALL_LOG"
 exit 0
 SH
   chmod +x "$fakebin/tmux" "$fakebin/treehouse"
+  # The capacity count reads crew state through bin/fm-crew-state.sh; the
+  # fixture reader answers from the task's status log (working holds a slot).
+  cat > "$fakebin/fm-crew-state-stub" <<'SH'
+#!/usr/bin/env bash
+line=$(tail -1 "$FM_STATE_OVERRIDE/$1.status" 2>/dev/null) || line=''
+case "$line" in
+  working*) echo "state: working - source: status-log - fixture" ;;
+  paused*) echo "state: paused - source: status-log - fixture" ;;
+  done*) echo "state: done - source: status-log - fixture" ;;
+  *) echo "state: unknown - source: none - fixture" ;;
+esac
+SH
+  chmod +x "$fakebin/fm-crew-state-stub"
   fm_fake_exit0 "$fakebin" gh gh-axi no-mistakes
   fm_git_init_commit "$case_dir/project"
   fm_git_add_origin "$case_dir/project" "$case_dir/project.origin.git"
@@ -174,7 +187,7 @@ write_live() {  # <home> <id> <project-dir> [extra-line...]
   fm_write_meta "$home/state/$id.meta" \
     "window=firstmate:fm-$id" \
     "endpoint_task_id=$id" \
-    "worktree=$home/absent-worktree-$id" \
+    "worktree=$project" \
     "project=$project" \
     "harness=codex" \
     "kind=ship" \
@@ -182,6 +195,7 @@ write_live() {  # <home> <id> <project-dir> [extra-line...]
     "yolo=off" \
     "spawn_gen=s-$id" \
     "$@"
+  printf 'working [at=1790000000]: fixture worker\n' > "$home/state/$id.status"
   if [ "$HAVE_TASKS_AXI" = 1 ]; then
     add_item "$home" "$id"
     tasks-axi start "$id" --file "$home/data/backlog.md" >/dev/null
@@ -205,6 +219,7 @@ run_spawn() {  # <case-dir> <home> <pane-path> <args...>
     FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_PROJECTS_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
     FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" FM_BACKEND=tmux \
     FM_FAKE_PANE_PATH="$pane" FM_FAKE_CALL_LOG="$case_dir/calls.log" \
+    FM_PROJECT_CAPACITY_CREW_STATE="$case_dir/fakebin/fm-crew-state-stub" \
     PATH="$case_dir/fakebin:$PATH" \
     "$SPAWN" "$@" 2>&1
 }
@@ -367,6 +382,7 @@ test_restart_does_not_count_its_own_record() {
   out=$(spawn_ship "$case_dir" task-c) || rc=$?
   assert_not_contains "$out" "deferred:" "a restart was deferred by its own record"
   [ "$rc" -ne "$DEFER_EXIT" ] || fail "a restart exited with the deferral code: $out"
+  printf 'working [at=1790000001]: fixture worker\n' >> "$home/state/task-c.status"
   rc=0
   out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
   expect_code "$DEFER_EXIT" "$rc" "another task ignored the restarted task's place: $out"
@@ -391,6 +407,7 @@ test_release_frees_a_place() {
   rc=0
   out=$(spawn_ship "$case_dir" task-c) || rc=$?
   expect_code 0 "$rc" "a recorded PR handoff did not free a place: $out"
+  printf 'working [at=1790000001]: fixture worker\n' >> "$home/state/task-c.status"
   rc=0
   out=$(spawn_ship "$case_dir" task-d "$case_dir/unused") || rc=$?
   expect_code "$DEFER_EXIT" "$rc" "one freed place admitted two workers: $out"
@@ -399,7 +416,7 @@ test_release_frees_a_place() {
   # Cleanup: the real teardown removes the record, which frees its place.
   rc=0
   out=$(FM_ROOT_OVERRIDE='' FM_HOME="$home" FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
-    FM_FAKE_CALL_LOG="$case_dir/calls.log" PATH="$case_dir/fakebin:$PATH" \
+    FM_FAKE_CALL_LOG="$case_dir/calls.log" FM_PROJECT_CAPACITY_CREW_STATE="$case_dir/fakebin/fm-crew-state-stub" PATH="$case_dir/fakebin:$PATH" \
     "$TEARDOWN" live-b 2>&1) || rc=$?
   expect_code 0 "$rc" "cleanup of a live worker failed: $out"
   assert_absent "$home/state/live-b.meta" "cleanup left the worker's record"
@@ -420,10 +437,12 @@ test_occupancy_counts_only_this_projects_workers() {
   write_live "$home" scout-a "$case_dir/project"
   sed -i.bak 's/^kind=ship$/kind=scout/' "$home/state/scout-a.meta" && rm -f "$home/state/scout-a.meta.bak"
   fm_write_meta "$home/state/legacy-b.meta" "window=firstmate:fm-legacy-b" "project=$case_dir/project"
+  printf 'working [at=1790000000]: fixture worker\n' > "$home/state/legacy-b.status"
   write_live "$home" other-c "$case_dir/other-project"
   fm_write_meta "$home/state/mate-d.meta" "window=remote:mate-d" "project=$case_dir/project" "kind=secondmate"
   out=$(spawn_ship "$case_dir" task-c) || rc=$?
   expect_code 0 "$rc" "records outside this project's workers took a place: $out"
+  printf 'working [at=1790000001]: fixture worker\n' >> "$home/state/task-c.status"
   rc=0
   write_brief "$home" task-e
   add_item "$home" task-e
@@ -530,6 +549,7 @@ test_concurrent_spawns_cannot_both_take_the_last_place() {
   : > "$hold.release"
   wait || true
   assert_contains "$(cat "$case_dir/a.out")" "spawned task-a" "the lock-holding spawn did not finish"
+  printf 'working [at=1790000001]: fixture worker\n' >> "$home/state/task-a.status"
   rc=0
   out=$(spawn_ship "$case_dir" task-b "$case_dir/unused") || rc=$?
   expect_code "$DEFER_EXIT" "$rc" "the retried spawn was not deferred once the place was taken: $out"
@@ -1215,7 +1235,7 @@ EOF
   pid_a=$!
   wait_for_file "$case_dir/reading.started" "the headroom reading never started: $(cat "$case_dir/a.out")"
   out=$(FM_ROOT_OVERRIDE='' FM_HOME="$home" FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
-    FM_FAKE_CALL_LOG="$case_dir/calls.log" PATH="$case_dir/fakebin:$PATH" \
+    FM_FAKE_CALL_LOG="$case_dir/calls.log" FM_PROJECT_CAPACITY_CREW_STATE="$case_dir/fakebin/fm-crew-state-stub" PATH="$case_dir/fakebin:$PATH" \
     "$TEARDOWN" live-a 2>&1) || rc_td=$?
   : > "$case_dir/reading.release"
   wait "$pid_a" || rc_a=$?
@@ -1396,6 +1416,52 @@ EOF
   pass "same-home ships, scouts, and batch entries defer during a reading and retain publication protection"
 }
 
+# A crew-state reader that cannot answer - exits non-zero, is missing, or
+# runs past FM_PROJECT_CAPACITY_CREW_TIMEOUT - fails the count closed: the
+# spawn refuses rather than silently counting the holder as not working.
+test_unreadable_crew_state_refuses_admission() {
+  local case_dir home out rc=0 start elapsed
+  case_dir=$(make_case crew-fail task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 2"
+  write_live "$home" live-a "$case_dir/project"
+
+  cat > "$case_dir/fakebin/fm-crew-state-stub" <<'SH'
+#!/usr/bin/env bash
+echo "state: working - source: fixture"
+exit 1
+SH
+  chmod +x "$case_dir/fakebin/fm-crew-state-stub"
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code 1 "$rc" "a crew-state reader exiting non-zero did not refuse admission: $out"
+  assert_contains "$out" "crew state for task record $home/state/live-a.meta cannot be read" \
+    "the refusal did not name the unreadable crew state"
+  assert_absent "$home/state/task-c.meta" "a spawn published past an unreadable crew state"
+
+  rm "$case_dir/fakebin/fm-crew-state-stub"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code 1 "$rc" "a missing crew-state reader did not refuse admission: $out"
+  assert_absent "$home/state/task-c.meta" "a spawn published past a missing crew-state reader"
+
+  cat > "$case_dir/fakebin/fm-crew-state-stub" <<'SH'
+#!/usr/bin/env bash
+sleep 60
+SH
+  chmod +x "$case_dir/fakebin/fm-crew-state-stub"
+  rc=0
+  start=$SECONDS
+  export FM_PROJECT_CAPACITY_CREW_TIMEOUT=1
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  unset FM_PROJECT_CAPACITY_CREW_TIMEOUT
+  elapsed=$((SECONDS - start))
+  expect_code 1 "$rc" "a hung crew-state reader did not refuse admission: $out"
+  [ "$elapsed" -lt 30 ] || fail "a hung crew-state reader held the count for ${elapsed}s"
+  assert_absent "$home/state/task-c.meta" "a spawn published past a hung crew-state reader"
+  pass "a crew-state reader that fails, is missing, or hangs refuses admission instead of undercounting"
+}
+
+test_unreadable_crew_state_refuses_admission
 test_undeclared_capacity_keeps_dispatch_uncapped
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind
