@@ -1156,6 +1156,10 @@ if [ -e "$FM_HOME/state/hold" ]; then
   : > "$FM_HOME/state/producer-started"
   while [ "$(cat "$FM_HOME/state/hold")" = wait ]; do sleep 0.05; done
 fi
+if [ -e "$FM_HOME/state/signal" ]; then
+  kill -TERM "$PPID"
+  exit 0
+fi
 if [ -e "$FM_HOME/state/delay" ]; then sleep 30; fi
 [ ! -e "$FM_HOME/state/fail" ] || exit 23
 jq -n --arg home "$FM_HOME" --arg event "$event" '{
@@ -1248,6 +1252,41 @@ wait_request_condition request_walks_equal "$REQUEST_HOME" 1 \
 wait_request_condition request_is_idle "$REQUEST_HOME" || fail "future-ledger drain did not finish"
 pass "a strictly future ledger remains immediately due"
 
+for entry in request request-worker; do
+  for future in ledger attempt; do
+    REQUEST_HOME=$(request_fixture "$entry-future-$future")
+    printf '{}\n' > "$REQUEST_HOME/state/home-summary.json"
+    if [ "$future" = ledger ]; then
+      printf '4102444800\n' > "$REQUEST_HOME/state/ledger-time"
+      date +%s > "$REQUEST_HOME/state/.home-summary-attempt"
+    else
+      printf 'now\n' > "$REQUEST_HOME/state/ledger-time"
+      printf '4102444800\n' > "$REQUEST_HOME/state/.home-summary-attempt"
+    fi
+    if [ "$entry" = request ]; then
+      run_request_writer "$REQUEST_HOME" 30 --request || fail "future-$future request failed"
+      wait_request_condition test -e "$REQUEST_HOME/state/.home-summary-drain.lock" \
+        || fail "future-$future request did not start its drain"
+      sleep 1
+    else
+      : > "$REQUEST_HOME/state/.home-summary-dirty"
+      run_request_writer "$REQUEST_HOME" 30 --_request-worker \
+        || fail "future-$future locked worker failed"
+    fi
+    request_walks_equal "$REQUEST_HOME" 0 \
+      || fail "$entry let a future $future bypass the other timestamp's cooldown"
+    [ -e "$REQUEST_HOME/state/.home-summary-dirty" ] \
+      || fail "$entry consumed a mark during a valid cooldown"
+    printf '0\n' > "$REQUEST_HOME/state/ledger-time"
+    printf '0\n' > "$REQUEST_HOME/state/.home-summary-attempt"
+    run_request_writer "$REQUEST_HOME" 30 --request || fail "due $entry request failed"
+    wait_request_condition request_walks_equal "$REQUEST_HOME" 1 \
+      || fail "$entry did not publish after both cooldowns elapsed"
+    wait_request_condition request_is_idle "$REQUEST_HOME" || fail "$entry drain did not finish"
+  done
+done
+pass "future timestamps cannot mask valid cooldowns in the drain or locked worker"
+
 for result in success failure timeout; do
   REQUEST_HOME=$(request_fixture "restart-$result")
   case "$result" in
@@ -1279,8 +1318,36 @@ for result in success failure timeout; do
     || fail "$result successor did not publish when due"
   wait_request_condition request_is_idle "$REQUEST_HOME" \
     || fail "$result successor drain did not finish"
+  if [ "$result" = timeout ]; then
+    timeout_report=$(run_bootstrap_detect "$REQUEST_HOME")
+    assert_contains "$timeout_report" '2 failed attempt(s)' "drain timeouts did not reach the bootstrap diagnostic"
+    assert_contains "$timeout_report" 'refresh exceeded its 1-second deadline' "drain timeout reason was not recorded"
+    python3 - "$REQUEST_HOME/state/.home-summary-refresh.log" \
+      "$REQUEST_HOME/state/.home-summary-attempt" <<'PY' || fail "drain failure lost its attempt ordering"
+from datetime import datetime, timezone
+from pathlib import Path
+import sys
+
+last_failure = Path(sys.argv[1]).read_text().splitlines()[-1]
+stamp = last_failure.split("]", 1)[0][1:]
+failure_epoch = datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
+attempt_epoch = int(Path(sys.argv[2]).read_text())
+if failure_epoch > attempt_epoch:
+    raise SystemExit("timeout was stamped after the publication attempt")
+PY
+  fi
 done
 pass "successful, failed, and timed-out attempts retain cooldown across drain exit"
+
+REQUEST_HOME=$(request_fixture signal)
+: > "$REQUEST_HOME/state/signal"
+run_request_writer "$REQUEST_HOME" 30 --request || fail "signaled request failed"
+wait_request_condition request_walks_equal "$REQUEST_HOME" 1 || fail "signaled producer did not start"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "signaled drain did not finish"
+signal_report=$(run_bootstrap_detect "$REQUEST_HOME" 1)
+assert_contains "$signal_report" '1 failed attempt(s)' "drain signal did not reach the bootstrap diagnostic"
+assert_contains "$signal_report" 'refresh worker failed with exit 143' "drain signal reason was not recorded"
+pass "drain timeout and signal failures reach the bounded bootstrap diagnostic"
 
 REQUEST_HOME=$(request_fixture busy)
 printf 'wait\n' > "$REQUEST_HOME/state/hold"

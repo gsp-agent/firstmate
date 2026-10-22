@@ -121,7 +121,7 @@ home_summary_fail() {
 }
 
 home_summary_wait_to() {
-  local mtime attempt=0 now delay=0
+  local mtime attempt=0 now stamp remaining delay=0
   mtime=$(stat -c %Y "$LEDGER" 2>/dev/null || stat -f %m "$LEDGER" 2>/dev/null || true)
   case "$mtime" in
     ''|*[!0-9]*) mtime=0 ;;
@@ -130,11 +130,13 @@ home_summary_wait_to() {
   case "$attempt" in
     ''|*[!0-9]*) attempt=0 ;;
   esac
-  [ "$attempt" -gt "$mtime" ] && mtime=$attempt
   fm_epoch_seconds_to now
-  if [ "$mtime" -le "$now" ] && [ $((now - mtime)) -lt "$HOME_SUMMARY_INTERVAL" ]; then
-    delay=$((HOME_SUMMARY_INTERVAL - (now - mtime)))
-  fi
+  for stamp in "$mtime" "$attempt"; do
+    if [ "$stamp" -le "$now" ] && [ $((now - stamp)) -lt "$HOME_SUMMARY_INTERVAL" ]; then
+      remaining=$((HOME_SUMMARY_INTERVAL - (now - stamp)))
+      [ "$remaining" -le "$delay" ] || delay=$remaining
+    fi
+  done
   printf -v "$1" '%s' "$delay"
 }
 
@@ -258,6 +260,19 @@ home_summary_log_failure() {
   fi
 }
 
+home_summary_log_worker_failure() {
+  local rc=$1 stamp=$2 error
+  if [ "$rc" -eq 124 ]; then
+    error="refresh exceeded its ${HOME_SUMMARY_TIMEOUT}-second deadline"
+  else
+    error="refresh worker failed with exit $rc"
+  fi
+  fm_run_timed 2 env \
+    FM_HOME_SUMMARY_PARENT_ERROR="$error" \
+    FM_HOME_SUMMARY_PARENT_STAMP="$stamp" \
+    "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_log-failure >/dev/null || true
+}
+
 if [ "$HOME_SUMMARY_MODE" = log-failure ]; then
   HOME_SUMMARY_ERROR=${FM_HOME_SUMMARY_PARENT_ERROR:-"refresh worker failed"}
   HOME_SUMMARY_FAILURE_STAMP=${FM_HOME_SUMMARY_PARENT_STAMP:-}
@@ -306,10 +321,15 @@ if [ "$HOME_SUMMARY_MODE" = drain ]; then
       sleep "$drain_slice"
       continue
     fi
-    fm_run_timed "$HOME_SUMMARY_TIMEOUT" env \
+    attempt_stamp=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || attempt_stamp=
+    if fm_run_timed "$HOME_SUMMARY_TIMEOUT" env \
       FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 \
       FM_HOME_SUMMARY_IF_IDLE=1 \
-      "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_request-worker >/dev/null 2>&1 || true
+      "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_request-worker >/dev/null 2>&1; then
+      :
+    else
+      home_summary_log_worker_failure "$?" "$attempt_stamp"
+    fi
     [ ! -e "$DIRTY_MARK" ] || sleep 1
   done
   exit 0
@@ -326,15 +346,7 @@ if [ "$HOME_SUMMARY_MODE" = parent ]; then
     refresh_rc=$?
   fi
   if [ "$BEST_EFFORT" -eq 1 ]; then
-    if [ "$refresh_rc" -eq 124 ]; then
-      parent_error="refresh exceeded its ${HOME_SUMMARY_TIMEOUT}-second deadline"
-    else
-      parent_error="refresh worker failed with exit $refresh_rc"
-    fi
-    fm_run_timed 2 env \
-      FM_HOME_SUMMARY_PARENT_ERROR="$parent_error" \
-      FM_HOME_SUMMARY_PARENT_STAMP="$attempt_stamp" \
-      "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_log-failure >/dev/null || true
+    home_summary_log_worker_failure "$refresh_rc" "$attempt_stamp"
     exit 0
   fi
   if [ "$refresh_rc" -eq 124 ]; then
