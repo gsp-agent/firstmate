@@ -976,10 +976,9 @@ resolve_relaunch_profile() {
   if [ "$KIND" != secondmate ]; then
     fm_exclude_tools_check "$TARGET_HARNESS" 0 "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" >/dev/null || return 1
   fi
-  # docs/configuration.md "Crew dispatch profiles" owns the pair rules. The
-  # launch owner applies them only after the old agent has stopped, so a ship
-  # or scout resolves the pair here and the journal records the pair that
-  # will launch.
+  # docs/configuration.md "Crew dispatch profiles" owns the pair rules. Resolve
+  # here so the journal and launch share one pre-stop decision; the control
+  # handoff prevents spawn from selecting again against a changed file.
   if [ "$KIND" != secondmate ]; then
     local dispatch_pair dispatch_model dispatch_effort
     dispatch_pair=$(fm_dispatch_relaunch_pair \

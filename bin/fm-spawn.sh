@@ -2399,6 +2399,8 @@ shell_quote() {
 enforce_dispatch_profile() {
   local pairs pretty model effort eff_model eff_effort resolved resolved_model resolved_effort
   [ "$KIND" != secondmate ] || return 0
+  # Control has already resolved both axes before stopping the worker. A second
+  # read could replace that decision after stop and disagree with its journal.
   if [ "$RELAUNCH" -eq 1 ] && [ "$SPAWN_CONTROL_PARENT" = 1 ] \
       && [ -n "${FM_CONTROL_RELAUNCH_TX:-}" ] \
       && [ "$MODEL_SET" -eq 1 ] && [ "$EFFORT_SET" -eq 1 ]; then
