@@ -1361,7 +1361,8 @@ test_large_production_roots_fit_default_caps() {
   tmp=$(fm_test_tmproot fm-lint-default-caps)
   out=$(
     unset FM_LINT_ROOT_SECONDS FM_LINT_ROOT_GRACE FM_LINT_ROOT_MEMORY_KIB FM_LINT_JOBS
-    "$LINT" --telemetry "$tmp/lint.tsv" bin/fm-spawn.sh bin/fm-teardown.sh 2>&1
+    "$LINT" --telemetry "$tmp/lint.tsv" bin/fm-spawn.sh bin/fm-teardown.sh \
+      tests/fm-pending-reply.test.sh tests/fm-launch-prompt-signals-live-e2e.test.sh 2>&1
   ) || rc=$?
   [ "$rc" -eq 0 ] || fail "production roots failed at the default caps (exit $rc)"$'\n'"$out"
   awk -F '\t' '
@@ -1372,14 +1373,16 @@ test_large_production_roots_fit_default_caps() {
       if ($5 != "full" || $9 != 0 || $10 != "ok" || $12 != 1) bad = 1
     }
     END {
-      exit (bad || completed != 2 ||
+      exit (bad || completed != 4 ||
         seen["bin/fm-spawn.sh"] != 1 || seen["bin/fm-teardown.sh"] != 1 ||
+        seen["tests/fm-pending-reply.test.sh"] != 1 ||
+        seen["tests/fm-launch-prompt-signals-live-e2e.test.sh"] != 1 ||
         meta["bounds_enforced"] != 1 || meta["jobs"] != 2 ||
         meta["root_deadline_seconds"] != 300 ||
-        meta["root_memory_limit_kib"] != 4194304 || meta["result_exit"] != 0)
+        meta["root_memory_limit_kib"] != 8388608 || meta["result_exit"] != 0)
     }
   ' "$tmp/lint.roots.tsv" || fail "production roots did not complete full analysis within the default worker caps"
-  pass "spawn and teardown complete full analysis under the default caps with two workers"
+  pass "the heaviest clean roots complete full analysis under the default caps with two workers"
 }
 
 test_jobs_are_deterministic_and_complete() {
@@ -1612,7 +1615,7 @@ test_root_memory_cap_fails_by_name() {
     FM_TEST_STUB_LOG="$stub_log" \
     "$LINT" --telemetry "$tmp/control.tsv" "$ok" "$hoarder" 2>&1) || rc=$?
   [ "$rc" -eq 0 ] || fail "the allocator failed under the default memory cap"$'\n'"$out"
-  grep -q $'^meta\troot_memory_limit_kib\t4194304$' "$tmp/control.roots.tsv" \
+  grep -q $'^meta\troot_memory_limit_kib\t8388608$' "$tmp/control.roots.tsv" \
     || fail "the control run did not record the default memory cap"
   awk -F '\t' '$1 == "end" && $3 ~ /hoarder\.sh$/ && $10 == "ok" { found=1 } END { exit !found }' \
     "$tmp/control.roots.tsv" || fail "the allocator root did not complete ok under the default cap"
@@ -1626,8 +1629,8 @@ test_root_memory_cap_fails_by_name() {
     FM_TEST_STUB_LOG="$stub_log" FM_TEST_HOLD_SECS=30 \
     "$LINT" --telemetry "$telemetry" "$ok" "$hoarder" 2>&1) || rc=$?
   [ "$rc" -ne 0 ] || fail "a root stopped at its memory cap unexpectedly passed"
-  assert_contains "$out" "hoarder.sh FAILED at the memory cap (262144 KiB)" \
-    "the capped root was not reported as a failure naming the file and the cap"$'\n'"$out"
+  assert_contains "$out" "fm-lint: $hoarder FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=262144); a capped root is a lint failure, not a pass" \
+    "the capped root was not reported as a failure naming the file, the cap and its variable"$'\n'"$out"
   assert_contains "$out" "reason=memory" "the memory-cap death was not classified as memory"
   assert_not_contains "$out" "rerun" "a capped root was reported as a rerun"
   kill -0 "$sentinel_pid" 2>/dev/null \
@@ -1638,7 +1641,7 @@ test_root_memory_cap_fails_by_name() {
     "$roots_log" || fail "the sidecar did not record the memory-capped root by name"
   awk -F '\t' '$1 == "end" && $3 ~ /ok\.sh$/ && $10 == "ok" { found=1 } END { exit !found }' \
     "$roots_log" || fail "the sidecar lost the clean root's record"
-  pass "a root stopped at its memory cap fails by name, naming the cap"
+  pass "a root stopped at its memory cap fails by name, naming the cap and FM_LINT_ROOT_MEMORY_KIB"
 }
 
 test_memory_failures_remain_failures_without_retry() {
@@ -1689,7 +1692,7 @@ SH
         "telemetry lost the source-following analysis mode"
       [ "$(awk -F '\t' -v target="$fixture" '$3 == target { print $1 "\t" $2 }' "$log")" = "$(printf 'yes\tnone')" ] \
         || fail "the memory failure triggered a narrower retry"$'\n'"$(cat "$log")"
-      assert_contains "$out" "teardown.sh FAILED at the memory cap (4194304 KiB)" \
+      assert_contains "$out" "teardown.sh FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=8388608)" \
         "the memory failure did not name its file and cap"$'\n'"$out"
       assert_contains "$out" "reason=memory rc=$status" "the original memory failure was not reported"
       assert_contains "$out" "shellcheck: Heap exhausted;" "the memory failure lost its diagnostics"
@@ -1834,8 +1837,8 @@ test_pinned_shellcheck_stops_at_the_memory_cap() {
   rc=0
   out=$("$LINT" --telemetry "$telemetry" "$fixture" 2>&1) || rc=$?
   [ "$rc" -eq 0 ] || fail "pinned ShellCheck did not lint under the default caps"$'\n'"$out"
-  grep -q $'^meta\troot_memory_limit_kib\t4194304$' "$roots_log" \
-    || fail "the sidecar did not record the default 4 GiB memory cap"
+  grep -q $'^meta\troot_memory_limit_kib\t8388608$' "$roots_log" \
+    || fail "the sidecar did not record the default 8 GiB memory cap"
   grep -q $'^meta\troot_deadline_seconds\t300$' "$roots_log" \
     || fail "the sidecar did not record the default 300s time cap"
   awk -F '\t' '$1 == "end" && $3 ~ /small\.sh$/ && $10 == "ok" { found=1 } END { exit !found }' \
@@ -1862,7 +1865,7 @@ test_pinned_shellcheck_stops_at_the_memory_cap() {
   [ "$rc" -ne 0 ] || fail "pinned ShellCheck ran past a 64 MiB memory cap and passed"$'\n'"$out"
   assert_contains "$out" "reason=memory rc=123" \
     "the watchdog's memory-cap exit was not preserved"$'\n'"$out"
-  assert_contains "$out" "heavy.sh FAILED at the memory cap (65536 KiB)" \
+  assert_contains "$out" "heavy.sh FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=65536)" \
     "the capped file was not reported as a failure naming the file and the cap"$'\n'"$out"
   assert_not_contains "$out" "rerun" "a capped file was reported as a rerun"
   awk -F '\t' '$1 == "end" && $3 ~ /heavy\.sh$/ && $10 == "memory" { found=1 } END { exit !found }' \
@@ -1939,7 +1942,7 @@ test_roots_sidecar_records_per_root_lifecycle() {
     || fail "the sidecar did not record the timing mechanism"
   grep -q $'^meta\troot_deadline_seconds\t300$' "$roots_log" \
     || fail "the sidecar did not record the default time cap"
-  grep -q $'^meta\troot_memory_limit_kib\t4194304$' "$roots_log" \
+  grep -q $'^meta\troot_memory_limit_kib\t8388608$' "$roots_log" \
     || fail "the sidecar did not record the default memory cap"
   grep -q $'^meta\troots_completed\t3$' "$roots_log" \
     || fail "the sidecar did not count three completed roots"

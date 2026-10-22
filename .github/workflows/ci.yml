@@ -55,9 +55,8 @@ jobs:
       - name: Lint canonical partition
         env:
           # fm-lint caps every root's memory and time on every host. One root
-          # at a time on a 16 GiB runner leaves room for 8 GiB, which keeps
-          # source-following coverage for the roots that pass at 6-8 GiB.
-          FM_LINT_ROOT_MEMORY_KIB: '8388608'
+          # at a time leaves a 16 GiB runner room for fm-lint's default
+          # per-root memory cap.
           FM_LINT_JOBS: '1'
         run: |
           set -eu

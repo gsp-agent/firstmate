@@ -72,7 +72,7 @@ Coordinate any workflow rollback with its required-check names so a retired chec
   Test scripts and helpers in `tests/` are plain bash too.
   `bin/fm-lint.sh` must pass: it is the single owner of the lint definition (the shellcheck file set, config, pinned shellcheck version, pinned actionlint workflow lint, and the backend-purity check rejecting direct Beads CLI calls in core `bin/` scripts).
   CI uses its full canonical partitions; the no-mistakes pre-push gate uses its context-selected default.
-  For named-file reviews, including chip's review on the mini, use the capped entry point directly: `bin/fm-lint.sh bin/fm-task-data-lib.sh tests/fm-teardown.test.sh`.
+  To lint named files, use the capped entry point directly, for example `bin/fm-lint.sh bin/fm-task-data-lib.sh tests/fm-teardown.test.sh`; `FM_LINT_ROOT_MEMORY_KIB` sets its per-file memory cap.
   Source-following analysis of this repo's libraries can grow ShellCheck past 100 GB, so use that entry point for shell analysis; its header owns the per-file memory and time caps.
   `docs/fm-test-portable-shards.md` owns partition verification and performance evidence.
   Its header and `--help` output own the exact local lint modes, file-set selection, and analysis flags.

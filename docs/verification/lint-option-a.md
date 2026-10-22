@@ -26,7 +26,7 @@ Both variants were measured in the same quiet-host window:
 
 The table records historical measurements from before mandatory ShellCheck caps; it is not a current performance guarantee.
 Use the capped [`bin/fm-lint.sh`](../../bin/fm-lint.sh) entry point for new measurements; its header and `--help` own analysis modes, file selection, caps, and `--telemetry` output, including the per-root lifecycle sidecar.
-The historical single-process source-aware baseline exceeds the current default memory cap, and the current runner analyzes roots separately, so its telemetry does not reproduce that baseline's invocation shape.
+The historical baseline analyzed all seven roots in one source-aware process, and the current runner analyzes roots separately, so its telemetry does not reproduce that baseline's invocation shape.
 Keep new evidence separate from the historical comparison and treat any cap failure as an incomplete measurement, never a successful sample.
 
 CPU and RSS vary with host load, so percentage claims must compare runs from one measurement window.

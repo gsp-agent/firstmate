@@ -59,7 +59,7 @@
 # Every ShellCheck process, including the version probe, runs capped on every
 # host with no opt-in: a time cap (FM_LINT_ROOT_SECONDS, default 300) with a
 # terminate-then-kill grace (FM_LINT_ROOT_GRACE, default 5), and a memory cap
-# (FM_LINT_ROOT_MEMORY_KIB, default 4194304 = 4 GiB) on the root's process
+# (FM_LINT_ROOT_MEMORY_KIB, default 8388608 = 8 GiB) on the root's process
 # group. Both caps belong to fm_exec_timed in bin/fm-timeout-lib.sh, which
 # owns how memory is measured and KILLs the group past the cap, so a cap or
 # an interrupt removes the owned process group. The sizing rationale lives
@@ -250,7 +250,7 @@ fm_lint_run_root() {  # <index> <path> <output-dir> <shard-index>
   cat "$root_out" "$root_err" >> "$output_dir/shard.$shard_index.out"
   case "$reason" in
     memory)
-      printf 'fm-lint: %s FAILED at the memory cap (%s KiB); a capped root is a lint failure, not a pass\n' \
+      printf 'fm-lint: %s FAILED at the memory cap (FM_LINT_ROOT_MEMORY_KIB=%s); a capped root is a lint failure, not a pass\n' \
         "$path" "$FM_LINT_INTERNAL_MEMORY_KIB" >> "$output_dir/shard.$shard_index.out"
       ;;
     timeout)
@@ -834,14 +834,14 @@ fi
 # The time cap leaves room over CI's slowest root, about 150 s.
 ROOT_SECONDS=${FM_LINT_ROOT_SECONDS:-300}
 ROOT_GRACE=${FM_LINT_ROOT_GRACE:-5}
-# 4 GiB of memory per root gives the two default workers a combined configured
-# cap of 8 GiB; usage can overshoot between the watchdog's memory samples.
-# Source-following analysis of the heaviest roots needs more: on CI's x86_64
-# runner they peak at 6-8 GiB. CI runs one root at a time on a 16 GiB runner
-# and sets 8 GiB in its workflow env.
+# 8 GiB of memory per root is sized so clean roots pass: source-following
+# analysis of the heaviest roots peaks at 6-8 GiB on CI's x86_64 runner and
+# 6-7 GiB on arm64. Local and CI runs share this default. The two default
+# workers give a combined configured cap of 16 GiB; usage can overshoot
+# between the watchdog's memory samples.
 # The roots sidecar records each root's peak RSS; roots peaking above about
-# 3 GiB resident are reduction candidates.
-ROOT_MEMORY_KIB=${FM_LINT_ROOT_MEMORY_KIB:-4194304}
+# 6 GiB resident are close to the cap and are reduction candidates.
+ROOT_MEMORY_KIB=${FM_LINT_ROOT_MEMORY_KIB:-8388608}
 for bound_pair in \
   "FM_LINT_ROOT_SECONDS=$ROOT_SECONDS" \
   "FM_LINT_ROOT_GRACE=$ROOT_GRACE" \
