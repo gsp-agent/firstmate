@@ -61,7 +61,8 @@ exit 0
 SH
 chmod +x "$FAKEBIN/tmux" "$FAKEBIN/no-mistakes"
 
-python3 - "$ROOT" "$TMP_ROOT" "$FAKEBIN" <<'PY' || fail "watcher refresh cleanup failed"
+python3 - "$ROOT" "$TMP_ROOT" "$FAKEBIN" <<'PYTHON' || fail "watcher refresh cleanup failed"
+import json
 import os
 from pathlib import Path
 import shutil
@@ -74,76 +75,176 @@ root, tmp, fakebin = map(Path, sys.argv[1:])
 code = tmp / "refresh-cleanup-code" / "bin"
 code.mkdir(parents=True)
 for helper in (root / "bin").iterdir():
-    if helper.name not in ("fm-watch.sh", "fm-home-summary-refresh.sh"):
+    if helper.name not in ("fm-fleet-snapshot.sh", "fm-timeout-lib.sh"):
         (code / helper.name).symlink_to(helper)
-shutil.copy2(root / "bin/fm-watch.sh", code / "fm-watch.sh")
-writer = code / "fm-home-summary-refresh.sh"
-writer.write_text('''#!/usr/bin/env bash
-printf '%s\\n' "$$" > "$FM_HOME/state/refresh.pid"
-[ "${FM_TEST_REFRESH_COMPLETES:-0}" = 0 ] || exit 0
-exec sleep 60
+shutil.copy2(root / "bin/fm-timeout-lib.sh", code / "fm-timeout-lib.sh")
+producer = code / "fm-fleet-snapshot.sh"
+producer.write_text(r'''#!/usr/bin/env bash
+if [ "${FM_TEST_SLOW_REFRESH:-0}" = 1 ]; then
+  (trap '' HUP INT TERM; sleep 900) &
+  child=$!
+  printf '%s %s %s\n' "$$" "$PPID" "$child" > "$FM_HOME/state/producer.pids"
+  wait "$child"
+  exit 1
+fi
+jq -n --arg home "$FM_HOME" '{
+  schema:"fm-secondmate-home-summary.v1", hold_classifier_schema:"fm-captain-hold-buckets.v1",
+  home:$home, generated:"2026-10-22T00:00:00Z", generated_epoch:1792627200,
+  valid:true, state:"idle", invalidity:{}, active_children:[], decisions_open:[],
+  holds:[], queued:[], landed:[], endpoints:[], counts:{}, omitted:[]
+}'
 ''')
-writer.chmod(0o755)
+producer.chmod(0o755)
+
+normal = tmp / "refresh-normal.sh"
+normal.write_text(r'''#!/usr/bin/env bash
+. "$1"
+trap 'printf callback > "$FM_HOME/trap-fired"' TERM
+for wanted in 0 7 137 143; do
+  rc=0
+  fm_run_timed 30 bash "$FM_HOME/status.sh" "$wanted" <<< 'preserved input' || rc=$?
+  [ "$rc" = "$wanted" ] || exit 90
+  [ "$(cat "$FM_HOME/input")" = 'preserved input' ] || exit 91
+done
+rc=0
+fm_run_timed 1 sleep 30 || rc=$?
+[ "$rc" = 124 ] || exit 92
+kill -TERM "$$"
+[ "$(cat "$FM_HOME/trap-fired")" = callback ] || exit 93
+''')
+normal.chmod(0o755)
 
 def wait_for(predicate, message):
-    for _ in range(600):
+    for _ in range(1200):
         if predicate():
             return
         time.sleep(0.1)
     raise AssertionError(message)
 
-def alive(pid):
-    try:
-        os.kill(pid, 0)
-        return True
-    except ProcessLookupError:
-        return False
+def running(pids):
+    output = subprocess.run(["ps", "-o", "pid=,stat=", "-p", ",".join(map(str, pids))],
+                            stdout=subprocess.PIPE, text=True, check=False).stdout
+    return {int(row.split()[0]) for row in output.splitlines() if not row.split()[1].startswith("Z")}
 
-for trigger in ("poll", "signal", "completed"):
-    home = tmp / ("refresh-cleanup-" + trigger)
-    state = home / "state"
-    for directory in (state, home / "data", home / "config"):
+gnu = shutil.which("timeout") or shutil.which("gtimeout")
+paths = {}
+for mechanism in ("timeout", "gtimeout", "perl", "bash"):
+    tools = tmp / ("refresh-tools-" + mechanism)
+    tools.mkdir()
+    for name in ("bash", "sleep", "dirname", "basename", "date", "env", "mkdir", "mktemp",
+                 "chmod", "cat", "rm", "rmdir", "mv", "jq", "ps", "awk", "sed", "tr", "tail",
+                 "wc", "head", "cut", "sort", "shasum", "sha256sum", "cksum", "stat", "find",
+                 "uname", "touch", "python3", "git", "readlink", "id", "grep", "mkfifo", "od",
+                 "cp", "ln", "cmp", "xargs", "hostname", "kill", "perl"):
+        source = shutil.which(name)
+        if source:
+            (tools / name).symlink_to(source)
+    if mechanism in ("timeout", "gtimeout"):
+        if not gnu:
+            print("skip: " + mechanism + " refresh cancellation requires GNU timeout", flush=True)
+            continue
+        (tools / mechanism).symlink_to(gnu)
+    elif mechanism == "perl":
+        assert shutil.which("perl"), "perl refresh cancellation requires perl on PATH"
+    paths[mechanism] = str(tools) + os.pathsep + str(fakebin)
+
+def make_home(name, mechanism):
+    home = tmp / ("refresh-cleanup-" + name)
+    for directory in (home / "state", home / "data", home / "config"):
         directory.mkdir(parents=True)
     (home / "data/backlog.md").write_text("## In flight\n\n## Queued\n\n## Done\n")
-    if trigger == "signal":
+    env = dict(os.environ, PATH=paths[mechanism], FM_ROOT_OVERRIDE=str(root), FM_HOME=str(home),
+               FM_STATE_OVERRIDE=str(home / "state"), FM_DATA_OVERRIDE=str(home / "data"),
+               FM_CONFIG_OVERRIDE=str(home / "config"), FM_PROJECTS_OVERRIDE=str(home / "projects"),
+               FM_HOME_SUMMARY_TIMEOUT="900", FM_POLL="1", FM_SIGNAL_GRACE="0",
+               FM_CHECK_INTERVAL="9999999", FM_HEARTBEAT="9999999")
+    env.pop("FM_TIMEOUT_MECHANISM_OVERRIDE", None)
+    if mechanism == "bash":
+        env["FM_TIMEOUT_MECHANISM_OVERRIDE"] = "bash"
+    return home, env
+
+def cancel(name, mechanism, sig, watcher=False):
+    home, env = make_home(name, mechanism)
+    state = home / "state"
+    env["FM_TEST_SLOW_REFRESH"] = "1"
+    env["FM_HOME_SUMMARY_INTERVAL"] = "9999999" if name == "signal" else "1"
+    if name == "signal":
         (state / "task.meta").write_text("kind=scout\nharness=claude\nwindow=fmtest:task\n")
         (state / "task.status").touch()
-    env = dict(os.environ, PATH=str(fakebin) + os.pathsep + os.environ["PATH"],
-               FM_ROOT_OVERRIDE=str(root), FM_HOME=str(home), FM_POLL="1",
-               FM_HOME_SUMMARY_INTERVAL="9999999" if trigger == "signal" else "1",
-               FM_TEST_REFRESH_COMPLETES="1" if trigger == "completed" else "0",
-               FM_SIGNAL_GRACE="0", FM_CHECK_INTERVAL="9999999", FM_HEARTBEAT="9999999")
-    refresh_pid = None
-    with (home / "watch.out").open("w") as out, (home / "watch.err").open("w") as err:
-        watcher = subprocess.Popen(["bash", str(code / "fm-watch.sh")], env=env,
-                                   stdout=out, stderr=err)
+        crew = home / "crew-state.sh"
+        crew.write_text("#!/usr/bin/env bash\nprintf 'state: working · source: pane · fixture busy\\n'\n")
+        crew.chmod(0o755)
+        env["FM_CREW_STATE_BIN"] = str(crew)
+    command = ["bash", str(code / ("fm-watch.sh" if watcher else "fm-home-summary-refresh.sh"))]
+    records = []
+    producer_group = None
+    with (home / "out").open("w") as out, (home / "err").open("w") as err:
+        parent = subprocess.Popen(command, env=env, stdout=out, stderr=err)
         try:
-            def polled():
-                assert watcher.poll() is None, "watcher exited before polling: " + (home / "watch.err").read_text()
-                return (state / ".last-watcher-beat").exists()
-
-            wait_for(polled, "watcher never polled")
-            if trigger == "signal":
-                (state / "task.status").write_text("blocked [key=fixture]: fixture dependency\n")
-            wait_for(lambda: (state / "refresh.pid").exists() and (state / "refresh.pid").stat().st_size,
-                     trigger + " never started a refresh")
-            refresh_pid = int((state / "refresh.pid").read_text())
-            if trigger == "completed":
-                wait_for(lambda: not alive(refresh_pid), "completed refresh did not exit")
-            if trigger != "signal":
-                watcher.terminate()
-            watcher.wait(timeout=120)
-            assert not alive(refresh_pid), trigger + " refresh outlived its watcher"
+            if name == "signal":
+                wait_for(lambda: (state / ".last-watcher-beat").exists(), "signal watcher never polled")
+                (state / "task.status").write_text("working: fixture busy\n")
+            def started():
+                assert parent.poll() is None, name + " exited before starting its producer"
+                record = state / "producer.pids"
+                return record.exists() and len(record.read_text().split()) == 3
+            wait_for(started, name + " producer never started")
+            records = list(map(int, (state / "producer.pids").read_text().split()))
+            producer_group = os.getpgid(records[0])
+            assert producer_group != os.getpgrp(), name + " producer did not own a separate group"
+            assert {records[0], records[2]} <= running(records), name + " producer was not running"
+            parent.send_signal(sig)
+            parent.wait(timeout=120)
+            assert parent.returncode in (-sig, 128 + sig), name + " cancellation status: " + str(parent.returncode)
+            assert not running(records), name + " left a producer or worker running"
         except Exception as error:
-            raise AssertionError(str(error) + "\n" + (home / "watch.err").read_text()) from error
+            raise AssertionError(str(error) + "\n" + (home / "err").read_text() + (home / "out").read_text()) from error
         finally:
-            if watcher.poll() is None:
-                watcher.kill()
-            watcher.wait()
-            if refresh_pid and alive(refresh_pid):
-                os.kill(refresh_pid, signal.SIGKILL)
-PY
-pass "watcher cleanup reaps polling, signal-batch, and completed refreshes"
+            if parent.poll() is None:
+                parent.kill()
+            parent.wait()
+            if producer_group is not None:
+                try:
+                    os.killpg(producer_group, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            record = state / "producer.pids"
+            if record.exists():
+                for pid in map(int, record.read_text().split()):
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
+for mechanism in paths:
+    home, env = make_home("completed-" + mechanism, mechanism)
+    (home / "status.sh").write_text(r'''IFS= read -r incoming
+printf '%s\n' "$incoming" > "$FM_HOME/input"
+case "$1" in
+  137) kill -KILL "$$" ;;
+  143) kill -TERM "$$" ;;
+  *) exit "$1" ;;
+esac
+''')
+    completed = subprocess.run(["/bin/bash", str(normal), str(code / "fm-timeout-lib.sh")],
+                               env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
+    assert completed.returncode == 0, mechanism + " normal call failed: " + completed.stderr
+    published = subprocess.run(["bash", str(code / "fm-home-summary-refresh.sh")],
+                               env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
+    assert published.returncode == 0, mechanism + " publication failed: " + published.stderr
+    ledger = json.loads((home / "state/home-summary.json").read_text())
+    assert ledger["home"] == str(home) and ledger["valid"], mechanism + " publication changed"
+    cancel("parent-" + mechanism, mechanism, signal.SIGTERM)
+    print("ok - real refresh cancellation and normal calls: " + mechanism, flush=True)
+
+mechanism = next(iter(paths))
+for sig in (signal.SIGHUP, signal.SIGINT):
+    cancel("parent-signal-" + str(sig), mechanism, sig)
+for trigger in ("poll", "signal"):
+    cancel(trigger, mechanism, signal.SIGTERM, watcher=True)
+    print("ok - real refresh producer reaped after watcher " + trigger, flush=True)
+PYTHON
+pass "watcher cleanup reaps real refresh workers and producers across timeout mechanisms"
 
 mkdir -p "$HOME_DIR/state" "$HOME_DIR/data" "$HOME_DIR/config" \
   "$HOME_DIR/projects/task" "$HOME_DIR/bin"

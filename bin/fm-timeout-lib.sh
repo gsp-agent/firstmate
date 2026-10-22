@@ -95,6 +95,33 @@ fm_timeout_mechanism() {
   fi
 }
 
+fm_wait_timed() {
+  local runner_pid=$1 runner_rc=0 group
+  shift
+  if [ -z "$fm_timed_signal" ]; then
+    wait "$runner_pid" || runner_rc=$?
+  fi
+  if [ -n "$fm_timed_signal" ]; then
+    trap '' HUP INT TERM
+    for group in "$@"; do
+      kill -TERM -- "-$group" 2>/dev/null || true
+    done
+    kill -TERM "$runner_pid" 2>/dev/null || true
+    if [ "$#" -gt 0 ]; then
+      sleep 0.2
+      for group in "$@"; do
+        kill -KILL -- "-$group" 2>/dev/null || true
+      done
+    fi
+    wait "$runner_pid" 2>/dev/null || true
+    for group in "$@"; do
+      [ "$group" = "$runner_pid" ] || wait "$group" 2>/dev/null || true
+    done
+    return "$fm_timed_signal"
+  fi
+  return "$runner_rc"
+}
+
 fm_run_bash_timeout() {
   local seconds=$1 command_status deadline_status child_pid watchdog_pid command_rc recorded_rc monitor_was_on=0
   shift
@@ -122,7 +149,7 @@ fm_run_bash_timeout() {
   watchdog_pid=$!
   [ "$monitor_was_on" -eq 1 ] || set +m
 
-  if wait "$child_pid" 2>/dev/null; then
+  if fm_wait_timed "$child_pid" "$child_pid" "$watchdog_pid" 2>/dev/null; then
     command_rc=0
   else
     command_rc=$?
@@ -162,7 +189,7 @@ fm_run_external_timeout() {
     exit "$command_rc"
   ' _ "$status_file" "$@" <&0 &
   runner_pid=$!
-  if wait "$runner_pid"; then
+  if fm_wait_timed "$runner_pid" "$runner_pid"; then
     runner_rc=0
   else
     runner_rc=$?
@@ -190,18 +217,63 @@ fm_run_external_timeout() {
 }
 
 fm_run_timed() {  # <seconds> <command...>
-  local seconds=$1
+  local seconds=$1 mechanism fm_timed_signal= fm_timed_traps fm_timed_rc=0 runner_pid
   shift
-  case "$(fm_timeout_mechanism)" in
-    timeout) fm_run_external_timeout timeout "$seconds" "$@" ;;
-    gtimeout) fm_run_external_timeout gtimeout "$seconds" "$@" ;;
+  mechanism=$(fm_timeout_mechanism)
+  fm_timed_traps=$(trap -p HUP INT TERM)
+  trap 'fm_timed_signal=129' HUP
+  trap 'fm_timed_signal=130' INT
+  trap 'fm_timed_signal=143' TERM
+  case "$mechanism" in
+    timeout) fm_run_external_timeout timeout "$seconds" "$@" || fm_timed_rc=$? ;;
+    gtimeout) fm_run_external_timeout gtimeout "$seconds" "$@" || fm_timed_rc=$? ;;
     perl)
-      perl -e 'my $t = shift; my $pid = fork; die "fork failed" unless defined $pid; if (!$pid) { setpgrp(0, 0); exec @ARGV } local $SIG{ALRM} = sub { kill "TERM", -$pid; select undef, undef, undef, 0.2; kill "KILL", -$pid; exit 124 }; alarm $t; waitpid $pid, 0; exit(($? & 127) ? 128 + ($? & 127) : $? >> 8)' \
-        "$seconds" "$@"
+      perl -MPOSIX=setpgid,sigprocmask,SIG_BLOCK,SIG_SETMASK,SIGTERM,SIGINT,SIGHUP -e '
+        my $t = shift;
+        my $mask = POSIX::SigSet->new;
+        sigprocmask(SIG_BLOCK, POSIX::SigSet->new(SIGTERM, SIGINT, SIGHUP), $mask);
+        my $pid;
+        my $stop = sub {
+          my $rc = shift;
+          $SIG{$_} = "IGNORE" for qw(ALRM HUP INT TERM);
+          kill "TERM", -$pid;
+          select undef, undef, undef, 0.2;
+          kill "KILL", -$pid;
+          waitpid $pid, 0;
+          exit $rc;
+        };
+        local $SIG{ALRM} = sub { $stop->(124) };
+        local $SIG{HUP} = sub { $stop->(129) };
+        local $SIG{INT} = sub { $stop->(130) };
+        local $SIG{TERM} = sub { $stop->(143) };
+        $pid = fork;
+        die "fork failed" unless defined $pid;
+        if (!$pid) {
+          $SIG{$_} = "DEFAULT" for qw(ALRM HUP INT TERM);
+          setpgid(0, 0);
+          sigprocmask(SIG_SETMASK, $mask);
+          exec @ARGV;
+          exit 127;
+        }
+        setpgid($pid, $pid);
+        sigprocmask(SIG_SETMASK, $mask);
+        alarm $t;
+        waitpid $pid, 0;
+        exit(($? & 127) ? 128 + ($? & 127) : $? >> 8);
+      ' "$seconds" "$@" <&0 &
+      runner_pid=$!
+      fm_wait_timed "$runner_pid" || fm_timed_rc=$?
       ;;
-    bash) fm_run_bash_timeout "$seconds" "$@" ;;
-    *) return 124 ;;
+    bash) fm_run_bash_timeout "$seconds" "$@" || fm_timed_rc=$? ;;
+    *) fm_timed_rc=124 ;;
   esac
+  trap - HUP INT TERM
+  eval "$fm_timed_traps"
+  if [ -n "$fm_timed_signal" ]; then
+    bash -c "kill -$((fm_timed_signal - 128)) \"\$PPID\""
+    return "$fm_timed_signal"
+  fi
+  return "$fm_timed_rc"
 }
 
 fm_timed_out() {  # <status>
