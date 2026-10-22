@@ -1219,6 +1219,85 @@ test_spawn_relaunch_refuses_when_the_file_offers_two_pairs() {
   pass "fm-spawn --relaunch: more than one dispatch pair for the harness refuses rather than guessing"
 }
 
+# The two-pair refusal has to happen on the relaunch verb, before exit. Driving
+# fm-spawn --relaunch directly never stops an agent, so it cannot see this.
+test_relaunch_refuses_an_ambiguous_dispatch_pair_before_the_agent_stops() {
+  local dir out rc brief
+  dir=$(new_case dispatchrefuse rl45)
+  add_ship_task "$dir" rl45 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl45.meta"
+  printf 'effort=medium\n' >> "$dir/home/state/rl45.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}],"default":{"harness":"grok","model":"grok-4.7","effort":"high"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/command"
+  printf 'grok' > "$dir/fake/becomes"
+  brief=$(cat "$dir/home/data/rl45/brief.md")
+  out=$(run_control "$dir" rl45 relaunch --note "keep the worker"); rc=$?
+  expect_code 1 "$rc" "an ambiguous dispatch pair must refuse the relaunch"$'\n'"$out"
+  assert_contains "$out" "grok-4.7 high" "the refusal must print the default pair"
+  assert_contains "$out" "grok-4.7 xhigh" "the refusal must print the rule pair"
+  [ "$(cat "$dir/fake/command")" = grok ] \
+    || fail "a refused relaunch stopped the worker, command is $(cat "$dir/fake/command")"
+  [ ! -s "$dir/fake/literal" ] \
+    || fail "a refused relaunch sent lifecycle input: $(cat "$dir/fake/literal")"
+  [ "$(meta_field "$dir" rl45 effort)" = medium ] \
+    || fail "a refused relaunch changed the recorded effort"
+  [ ! -e "$dir/home/state/rl45.control-relaunch" ] \
+    || fail "a refused relaunch wrote a journal"
+  [ "$(cat "$dir/home/data/rl45/brief.md")" = "$brief" ] \
+    || fail "a refused relaunch rewrote the instructions"
+  pass "fm-control relaunch: an ambiguous dispatch pair refuses before the worker is stopped"
+}
+
+test_relaunch_journal_records_the_adopted_dispatch_pair() {
+  local dir out rc
+  dir=$(new_case dispatchjournal rl46)
+  add_ship_task "$dir" rl46 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl46.meta"
+  printf 'effort=medium\n' >> "$dir/home/state/rl46.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/command"
+  printf 'grok' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl46 relaunch --note "adopt the file pair"); rc=$?
+  expect_code 0 "$rc" "a single dispatch pair should relaunch"$'\n'"$out"
+  [ "$(journal_field "$dir" rl46 to_model)" = grok-4.7 ] \
+    || fail "journal recorded to_model=$(journal_field "$dir" rl46 to_model)"
+  [ "$(journal_field "$dir" rl46 to_effort)" = xhigh ] \
+    || fail "journal recorded to_effort=$(journal_field "$dir" rl46 to_effort) instead of the launched pair"
+  [ "$(meta_field "$dir" rl46 model)" = grok-4.7 ] \
+    || fail "the task record kept model $(meta_field "$dir" rl46 model)"
+  [ "$(meta_field "$dir" rl46 effort)" = xhigh ] \
+    || fail "the task record kept effort $(meta_field "$dir" rl46 effort)"
+  assert_contains "$out" "model=grok-4.7 effort=xhigh" \
+    "the operator line must name the pair that launched"
+  pass "fm-control relaunch: the journal records the dispatch pair the replacement launched"
+}
+
+test_relaunch_refuses_an_unreadable_dispatch_file_before_the_agent_stops() {
+  local dir out rc
+  dir=$(new_case dispatchbad rl47)
+  add_ship_task "$dir" rl47 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl47.meta"
+  printf 'effort=xhigh\n' >> "$dir/home/state/rl47.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{' > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/command"
+  printf 'grok' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl47 relaunch --note "bad file"); rc=$?
+  expect_code 1 "$rc" "a malformed dispatch file must refuse the relaunch"$'\n'"$out"
+  assert_contains "$out" "parse error" "the refusal must include jq's parse diagnostic"
+  assert_contains "$out" "line 2" "the refusal must include the line jq names"
+  assert_contains "$out" "could not read its dispatch profiles" "the refusal must name the file"
+  [ "$(cat "$dir/fake/command")" = grok ] \
+    || fail "a malformed dispatch file stopped the worker, command is $(cat "$dir/fake/command")"
+  [ ! -s "$dir/fake/literal" ] \
+    || fail "a malformed dispatch file sent lifecycle input: $(cat "$dir/fake/literal")"
+  pass "fm-control relaunch: a malformed dispatch file refuses before the worker stops and shows where it is broken"
+}
+
 test_spawn_relaunch_of_promoted_scout_uses_the_recorded_branch() {
   local dir out
   dir=$(new_case promotebranch rl42)
@@ -2608,6 +2687,9 @@ test_ship_relaunch_ignores_the_crew_harness_config
 test_spawn_relaunch_without_a_harness_reuses_the_recorded_one
 test_spawn_relaunch_adopts_the_single_dispatch_pair
 test_spawn_relaunch_refuses_when_the_file_offers_two_pairs
+test_relaunch_refuses_an_ambiguous_dispatch_pair_before_the_agent_stops
+test_relaunch_journal_records_the_adopted_dispatch_pair
+test_relaunch_refuses_an_unreadable_dispatch_file_before_the_agent_stops
 test_spawn_relaunch_of_promoted_scout_uses_the_recorded_branch
 test_promoted_scout_relaunch_receives_the_current_delivery_contract
 test_prefixed_prior_harness_wiring_is_still_retired
