@@ -1,0 +1,5 @@
+healthy worker: initial=36129 repeated_ensure=36129
+
+scenario=stale-readiness crashed=36129 unrelated=39785
+ensure returned: worker=40379 lock_owner=40379 unrelated_alive=yes identity=current
+not ok - remote job command is outside the fm-*.sh namespace

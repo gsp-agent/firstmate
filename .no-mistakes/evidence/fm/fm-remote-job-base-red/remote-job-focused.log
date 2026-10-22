@@ -1,8 +1,17 @@
-FM_TEST_BEGIN 2026-10-22T03:48:43Z tests/fm-remote-job.test.sh family=secondmate expected_gate_skip=none
 ok - default: result and command samples use 0.25 seconds; dispatcher uses four 0.05-second waits then one second
-grep: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5G92YJ2Y5TW6J9ZE3C505GM/.nm-remote-job-tmp/fm-remote-job.zP7FLU/poll-legacy/sleeps: No such file or directory
-not ok - legacy consumer never sampled at 0.07 seconds
-FM_TEST_END 2026-10-22T03:49:09Z tests/fm-remote-job.test.sh exit=1 duration_ms=25272 gate_skip=false
-FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=31125
-FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=25272 failed=1
-FM_TEST_SLOWEST rank=1 script=tests/fm-remote-job.test.sh duration_ms=25272
+ok - legacy: result and command samples use 0.07 seconds; dispatcher uses four 0.07-second waits then one second
+ok - active: result and command samples use 0.12 seconds; dispatcher uses four 0.07-second waits then one second
+ok - default queue and execution bounds independently cover long polls
+ok - operator PATH excludes a symlinked local bin
+ok - operator PATH honors nvm defaults with a deterministic fallback
+ok - operator PATH resolves the authorized Nix profile bin link
+ok - operator PATH orders discovered tool installs deterministically
+ok - the worker preserves bounded argv and stdin in an empty environment
+ok - active jobs keep the worker ready for concurrent requests
+ok - ensure replaces a live worker after its code changes
+ok - worker identity binds the canonical configured code root
+ok - stale ownership is reclaimed without signaling a reused pid
+ok - a late heartbeat from a crashed worker does not stand in for its replacement
+ok - the worker enforces the job timeout and publishes its result
+ok - the worker expires queued jobs before they can mutate
+not ok - queue time consumed the second job's execution timeout

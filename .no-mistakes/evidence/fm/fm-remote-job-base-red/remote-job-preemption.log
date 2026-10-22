@@ -1,0 +1,6 @@
+version=preemption healthy reuse: first=21348 second=21348
+short_job=job-myuHEM exit=0 state=done elapsed_seconds=3 required_max_seconds=10
+worker command executed; home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.phase-test-tmp/crash-preemption.0KRfMX/home; argument=preemption
+executed:preemption
+long_poll=job-l1yZx5 exit=76 expected_preempted_exit=76 stdout_bytes=       0 stderr_bytes=       0
+PASS: short command preempted the long poll within ten seconds

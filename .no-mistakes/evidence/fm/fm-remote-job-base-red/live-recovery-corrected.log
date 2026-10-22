@@ -1,0 +1,6 @@
+healthy worker: initial=52578 repeated_ensure=52578
+
+scenario=stale-readiness crashed=52578 unrelated=53736
+ensure returned: worker=54106 lock_owner=54106 unrelated_alive=yes identity=current
+queued command: exit=124 state=done queue_timeout=5 execution_timeout=5
+not ok - replacement command failed

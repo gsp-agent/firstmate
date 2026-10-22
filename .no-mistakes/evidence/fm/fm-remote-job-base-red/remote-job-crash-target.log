@@ -1,0 +1,14 @@
+version=target healthy reuse: first=77966 second=77966
+probe=healthy job=job-7qOC6G exit=0 state=done
+worker command executed; home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.phase-test-tmp/crash-target.pGI4y9/home; argument=healthy
+executed:healthy
+version=target freshness=stale elapsed=19 crashed=77966 unrelated=92108 published=93276 lockpid=93276 unrelated_alive=yes
+probe=stale-recovery job=job-wjgara exit=0 state=done
+worker command executed; home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.phase-test-tmp/crash-target.pGI4y9/home; argument=stale-recovery
+executed:stale-recovery
+PASS: stale recovery rejected unrelated PID and ran queued command
+version=target freshness=fresh elapsed=12 crashed=93276 unrelated=8366 published=8930 lockpid=8930 unrelated_alive=yes
+probe=fresh-recovery job=job-mxLHtK exit=0 state=done
+worker command executed; home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.phase-test-tmp/crash-target.pGI4y9/home; argument=fresh-recovery
+executed:fresh-recovery
+PASS: fresh recovery rejected unrelated PID and ran queued command

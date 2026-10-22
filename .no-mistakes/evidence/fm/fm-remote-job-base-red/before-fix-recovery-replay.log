@@ -1,0 +1,38 @@
+Command: bash .test-remote-job-live/recovery-replay.sh .test-remote-job-live/before-fix before-fix
+Started: 2026-10-22T07:08:53-0500
+=== before-fix initial launch ===
+worker.pid=20378 lock.pid=20378 readiness_age=0s
+20378 20278 /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/before-fix/code/bin/fm-remote-job-worker.sh --serve
+verified_live_owner=yes
+job=job-fLpwwy state=done exit=0
+scenario=initial FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/before-fix/home active=1
+healthy worker reused: 20378
+
+=== crash with stale readiness ===
+crashed_worker=20378 supervisor=20278
+unrelated_pid=22264
+worker.pid=22264 lock.pid=22264 readiness_age=845964537s
+22264 20155 sleep 300
+verified_live_owner=no
+ensure returned in 2s
+worker.pid=22546 lock.pid=22546 readiness_age=1s
+22546 22480 /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/before-fix/code/bin/fm-remote-job-worker.sh --serve
+verified_live_owner=yes
+unrelated process still alive=yes
+job=job-uaSjdy state=done exit=0
+scenario=stale-recovery FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/before-fix/home active=1
+
+=== crash with fresh readiness ===
+crashed_worker=22546 supervisor=22480
+unrelated_pid=25170
+worker.pid=25170 lock.pid=25170 readiness_age=0s
+25170 20155 sleep 300
+verified_live_owner=no
+ensure returned in 1s
+worker.pid=25170 lock.pid=25170 readiness_age=1s
+25170 20155 sleep 300
+verified_live_owner=no
+unrelated process still alive=yes
+FAIL: ensure adopted unrelated persisted PID
+
+Exit: 1

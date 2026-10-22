@@ -1,0 +1,3 @@
+version=base healthy reuse: first=9443 second=9443
+version=base freshness=fresh elapsed=1 crashed=9443 unrelated=13494 published=13494 lockpid=13494 unrelated_alive=yes
+REPRODUCED: ensure returned success with unrelated persisted PID

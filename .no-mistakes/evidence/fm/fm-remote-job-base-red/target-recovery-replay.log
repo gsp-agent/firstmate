@@ -1,0 +1,41 @@
+Command: bash .test-remote-job-live/recovery-replay.sh .test-remote-job-live/target target
+Started: 2026-10-22T07:08:30-0500
+=== target initial launch ===
+worker.pid=94413 lock.pid=94413 readiness_age=0s
+94413 94254 /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/target/code/bin/fm-remote-job-worker.sh --serve
+verified_live_owner=yes
+job=job-5bF4Ae state=done exit=0
+scenario=initial FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/target/home active=1
+healthy worker reused: 94413
+
+=== crash with stale readiness ===
+crashed_worker=94413 supervisor=94254
+unrelated_pid=98282
+worker.pid=98282 lock.pid=98282 readiness_age=845964514s
+98282 94118 sleep 300
+verified_live_owner=no
+ensure returned in 0s
+worker.pid=98796 lock.pid=98796 readiness_age=0s
+98796 98639 /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/target/code/bin/fm-remote-job-worker.sh --serve
+verified_live_owner=yes
+unrelated process still alive=yes
+job=job-1vYnPT state=done exit=0
+scenario=stale-recovery FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/target/home active=1
+
+=== crash with fresh readiness ===
+crashed_worker=98796 supervisor=98639
+unrelated_pid=3236
+worker.pid=3236 lock.pid=3236 readiness_age=0s
+ 3236 94118 sleep 300
+verified_live_owner=no
+ensure returned in 11s
+worker.pid=3818 lock.pid=3818 readiness_age=1s
+ 3818  3696 /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/target/code/bin/fm-remote-job-worker.sh --serve
+verified_live_owner=yes
+unrelated process still alive=yes
+job=job-XTRQPx state=done exit=0
+scenario=fresh-recovery FM_HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HM7A2JQJVTARD9QH7WET3B/.test-remote-job-live/target/home active=1
+
+All recovery replay assertions passed.
+
+Exit: 0
