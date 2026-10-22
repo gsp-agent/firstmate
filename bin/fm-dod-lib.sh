@@ -412,14 +412,24 @@ EOF
 }
 
 # owner/repo for a project directory's origin, or empty when unreadable.
+# Spellings of one remote (https, ssh, scp-like, explicit port, trailing
+# slash) all yield the same slug.
 fm_dod_repo_slug() {  # <dir>
   local url
+  [ -n "$1" ] || return 0
   url=$(git -C "$1" remote get-url origin 2>/dev/null) || return 0
   url=${url%.git}
-  url=${url#https://github.com/}
-  url=${url#http://github.com/}
-  url=${url#git@github.com:}
-  url=${url#ssh://git@github.com/}
+  url=${url%/}
+  case "$url" in
+    ssh://git@github.com:[0-9]*)
+      url=${url#ssh://git@github.com:}
+      url=${url#*/}
+      ;;
+    ssh://git@github.com/*) url=${url#ssh://git@github.com/} ;;
+    git@github.com:*) url=${url#git@github.com:} ;;
+    https://github.com/*) url=${url#https://github.com/} ;;
+    http://github.com/*) url=${url#http://github.com/} ;;
+  esac
   case "$url" in */*) printf '%s\n' "$url" ;; esac
 }
 
@@ -427,8 +437,10 @@ fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<h
   local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-} home=${7:-} root=${8:-} repo_slug=${9:-}
   local branch=${3:-fm/$id} pr_base='' nm_base='' base_q contract_forge='' contract_consent='' forge_cli=gh-axi draft_check
   local stamp_cmd stamp_why direct_stamp='' nm_stamp='' nm_stamp_why='' nm_skip='' meta_project=''
-  if [ -z "$repo_slug" ] && [ -n "$home" ] && [ -f "$home/state/$id.meta" ]; then
-    meta_project=$(grep '^project=' "$home/state/$id.meta" 2>/dev/null | tail -1 | cut -d= -f2-)
+  if [ -z "$repo_slug" ] && [ -n "$home" ]; then
+    # The task record lives in the runtime state dir, which FM_STATE_OVERRIDE
+    # may move off $home/state (bin/fm-promote.sh resolves it the same way).
+    meta_project=$(sed -n 's/^project=//p' "${FM_STATE_OVERRIDE:-$home/state}/$id.meta" 2>/dev/null | head -n 1)
     [ -n "$meta_project" ] && repo_slug=$(fm_dod_repo_slug "$meta_project")
   fi
   # Dale 10-21 (.agent-config-ydbn7, decision c): nothing runs on GitHub CI

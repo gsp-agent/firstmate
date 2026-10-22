@@ -507,10 +507,30 @@ test_repo_slug_reads_origins() {
   [ "$(fm_dod_repo_slug "$d")" = "gsp-agent/firstmate" ] || fail "ssh origin slug wrong: $(fm_dod_repo_slug "$d")"
   git -C "$d" remote set-url origin https://github.com/carmandale/agent-config.git
   [ "$(fm_dod_repo_slug "$d")" = "carmandale/agent-config" ] || fail "https origin slug wrong: $(fm_dod_repo_slug "$d")"
+  git -C "$d" remote set-url origin ssh://git@github.com:22/gsp-agent/firstmate.git
+  [ "$(fm_dod_repo_slug "$d")" = "gsp-agent/firstmate" ] || fail "ssh-port origin slug wrong: $(fm_dod_repo_slug "$d")"
+  git -C "$d" remote set-url origin https://github.com/gsp-agent/firstmate/
+  [ "$(fm_dod_repo_slug "$d")" = "gsp-agent/firstmate" ] || fail "trailing-slash origin slug wrong: $(fm_dod_repo_slug "$d")"
   pass "repo slug read from ssh and https origins"
+}
+
+# With no slug passed, the DoD derives the project from the task record in
+# the runtime state dir - FM_STATE_OVERRIDE moves that dir off $home/state.
+test_dod_slug_from_meta_honors_state_override() {
+  local home="$TMP_ROOT/override-home" state="$TMP_ROOT/override-state" proj="$TMP_ROOT/override-proj" out_file="$TMP_ROOT/dod-override.txt"
+  mkdir -p "$home" "$state"
+  git init -q "$proj"
+  git -C "$proj" remote add origin git@github.com:gsp-agent/firstmate.git
+  printf 'project=%s\n' "$proj" > "$state/fm-override.meta"
+  FM_STATE_OVERRIDE="$state" fm_dod_block no-mistakes fm-override fm/fm-override none '' '' "$home" "$ROOT" >"$out_file"
+  assert_grep '--skip ci' "$out_file" "meta under FM_STATE_OVERRIDE did not yield the skip line"
+  fm_dod_block no-mistakes fm-override fm/fm-override none '' '' "$home" "$ROOT" >"$out_file"
+  assert_no_grep '--skip ci' "$out_file" "meta outside the resolved state dir yielded the skip line"
+  pass "DoD slug fallback reads the task record from the FM_STATE_OVERRIDE state dir"
 }
 
 test_firstmate_dod_skips_ci
 test_repo_slug_reads_origins
+test_dod_slug_from_meta_honors_state_override
 
 echo "all fm-dod-lib tests passed"
