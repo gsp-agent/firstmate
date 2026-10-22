@@ -1251,6 +1251,7 @@ This section is the single owner of the canonical schema and its per-field seman
 
 [`fm-dispatch-resolve.sh --labels`](../bin/fm-dispatch-resolve.sh) uses `label_routes` without a brief or API key; its header owns label precedence, the quota-aware default-array walk, and conflict refusals.
 Crewmate and scout launches and relaunches follow the [launch-route guard](../bin/fm-cursor-guard.sh); [`fm-spawn.sh`](../bin/fm-spawn.sh) owns the substituted launch profile and the secondmate exclusion, and [transactional relaunch](agent-control.md#transactional-relaunch) covers control-plane ordering.
+Raw commands run the same guard and launch unchanged when it keeps their harness; when it selects another harness, the launch refuses before publishing a task record and requests the canonical `--harness` form.
 
 **Fields applied only by brief-mode resolution**
 

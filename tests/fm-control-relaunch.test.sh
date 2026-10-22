@@ -1732,6 +1732,75 @@ codex_limit_session() {
   jq -nc '{type:"event_msg",payload:{type:"task_complete",turn_id:"t1",last_agent_message:null,error:{message:"You have hit your usage limit.",codex_error_info:"usage_limit_exceeded"}}}' >> "$f"
 }
 
+test_raw_relaunch_preserves_retiring_codex_limit_for_later_routes() {
+  local dir out rc gen_before
+  dir=$(new_case rawcodexlimit rl80)
+  add_ship_task "$dir" rl80 codex
+  codex_limit_session "$dir" rl80
+  gen_before=$(meta_field "$dir" rl80 spawn_gen)
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl80 --relaunch --harness 'claude --model sonnet'); rc=$?
+  expect_code 0 "$rc" "a raw Claude override should keep its launch command"$'\n'"$out"
+  assert_contains "$out" "spawned rl80 harness=claude" "the raw override must launch Claude"
+  assert_contains "$(cat "$dir/fake/literal")" "claude --model sonnet" "the raw command must be preserved"
+  [ "$(meta_field "$dir" rl80 harness)" = claude ] || fail "the raw override must record Claude"
+  [ "$(meta_field "$dir" rl80 spawn_gen)" != "$gen_before" ] || fail "the raw relaunch must replace the generation"
+  [ "$(cat "$dir/home/state/rl80.codex-limit" 2>/dev/null)" = "codex run for rl80 hit its usage limit: You have hit your usage limit." ] \
+    || fail "the raw override must preserve the retiring Codex limit before replacing its generation"
+
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl80 --relaunch --harness codex); rc=$?
+  expect_code 0 "$rc" "a later canonical Codex relaunch should follow the preserved limit"$'\n'"$out"
+  assert_contains "$out" "spawned rl80 harness=claude" "the later Codex relaunch must route to Claude"
+  [ "$(meta_field "$dir" rl80 harness)" = claude ] || fail "the later relaunch must record Claude"
+  [ "$(meta_field "$dir" rl80 effort)" = xhigh ] || fail "the later relaunch must use the routed effort"
+  pass "fm-spawn --relaunch: a raw override preserves the retiring Codex limit for later canonical routes"
+}
+
+test_raw_relaunch_refuses_route_changes_without_replacing_generation() {
+  local dir id harness route out rc before
+  for harness in codex cursor; do
+    id="rl81-$harness"
+    dir=$(new_case "rawroute-$harness" "$id")
+    add_ship_task "$dir" "$id" "$harness"
+    printf 'spawn_gen=s%s.1.1\n' "$(( $(date +%s) - 600 ))" >> "$dir/home/state/$id.meta"
+    if [ "$harness" = codex ]; then
+      route=claude
+      printf 'codex run hit its usage limit\n' > "$dir/home/state/$id.codex-limit"
+    else
+      route=codex
+      mkdir -p "$dir/user-home/.agent-state/a3ov3/cursor-usage"
+      printf 'cursor_models_pct=90\n' > "$dir/user-home/.agent-state/a3ov3/cursor-usage/test-spending.txt"
+    fi
+    before=$(cat "$dir/home/state/$id.meta")
+    printf 'zsh' > "$dir/fake/command"
+    out=$(FM_CURSOR_USAGE_DIR="$dir/user-home/.agent-state/a3ov3/cursor-usage" \
+      run_spawn "$dir" "$id" --relaunch --harness "$harness --model custom"); rc=$?
+    expect_code 1 "$rc" "a raw $harness command must refuse a route to $route"$'\n'"$out"
+    assert_contains "$out" "route to $route" "the refusal must name the selected harness"
+    assert_contains "$out" "canonical --harness $harness" "the refusal must request a canonical launch"
+    [ "$(cat "$dir/home/state/$id.meta")" = "$before" ] || fail "a raw route refusal must preserve the record and generation"
+    [ ! -s "$dir/fake/literal" ] || fail "a raw route refusal must not send a launch command"
+    [ ! -s "$dir/fake/keys" ] || fail "a raw route refusal must not prepare the endpoint"
+    [ "$(cat "$dir/fake/command")" = zsh ] || fail "a raw route refusal must not start an agent"
+  done
+  pass "fm-spawn --relaunch: raw Codex and Cursor commands refuse changed routes without replacing the task generation"
+}
+
+test_raw_cursor_override_is_recorded() {
+  local dir out rc
+  dir=$(new_case rawcursoroverride rl82)
+  add_ship_task "$dir" rl82 cursor
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl82 --relaunch --harness 'claude --model sonnet'); rc=$?
+  expect_code 0 "$rc" "a raw override of Cursor should keep its launch command"$'\n'"$out"
+  assert_contains "$(cat "$dir/fake/literal")" "claude --model sonnet" "the raw override must be preserved"
+  [ "$(meta_field "$dir" rl82 harness)" = claude ] || fail "the raw override must record Claude"
+  [ "$(cat "$dir/home/state/rl82.cursor-fallback" 2>/dev/null)" = "explicit --harness claude override of a recorded cursor task" ] \
+    || fail "a raw override must record the Cursor replacement"
+  pass "fm-spawn --relaunch: a raw Cursor override records its replacement harness"
+}
+
 test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude() {
   local dir out rc
   dir=$(new_case codexlimit rl73)
@@ -3147,6 +3216,9 @@ test_promoted_scout_relaunch_receives_the_current_delivery_contract
 test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_session_binding_is_retired_on_a_harness_switch
+test_raw_relaunch_preserves_retiring_codex_limit_for_later_routes
+test_raw_relaunch_refuses_route_changes_without_replacing_generation
+test_raw_cursor_override_is_recorded
 test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude
 test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude
 test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched
