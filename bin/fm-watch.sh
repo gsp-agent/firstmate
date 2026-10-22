@@ -223,6 +223,10 @@ WATCH_HOME_EXISTED=0
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 # shellcheck source=bin/fm-supervision-lib.sh
 . "$SCRIPT_DIR/fm-supervision-lib.sh"
+# Only for the home-gate query (fm_supervision_host_enabled) the resurface
+# gate below asks; the engine turn machinery stays with the host.
+# shellcheck source=bin/fm-supervision-engine-lib.sh
+. "$SCRIPT_DIR/fm-supervision-engine-lib.sh"
 # Only for the arm-time check on FM_PROCEVENT_LAUNCH_CONFIRM_SECONDS below;
 # the per-cycle reconcile itself runs as a separate process.
 # shellcheck source=bin/fm-procevent-lib.sh
@@ -2867,11 +2871,22 @@ rerecord_template_device_pr_poll() {  # <id>
   return 0
 }
 
+# 0 when another supervisor owns this home's ordinary rows: the away-mode
+# daemon, or the supervision host whose branch can claim them. On a plain
+# home main is the only supervisor, so ordinary queued rows stay main's and
+# the legacy resurface presentation is preserved exactly.
+resurface_alternate_owner() {
+  daemon_owns_supervision && return 0
+  fm_supervision_host_enabled "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
+}
+
 # A queued row only main can do: a check-kind row, a needs-decision signal,
 # a signal or stale row whose task still holds an open decision or a
 # captain-held declaration, or a row this reader cannot classify (fail
 # safe: main looks). Heartbeat rows and ordinary signal/stale rows are the
-# supervision branch's or a live PM's, never a reason to wake main.
+# supervision branch's or a live PM's, never a reason to wake main - unless
+# this home has no alternate supervisor (RESURFACE_ALT_OWNER=0), where main
+# owns every row and the resurface presents them as it always has.
 resurface_row_main_only() {  # <kind> <key> <payload>
   local kind=$1 key=$2 payload=$3 task status_file
   case "$kind" in
@@ -2883,7 +2898,7 @@ resurface_row_main_only() {  # <kind> <key> <payload>
           ;;
       esac
       return 0 ;;
-    heartbeat) return 1 ;;
+    heartbeat) if [ "$RESURFACE_ALT_OWNER" -eq 1 ]; then return 1; fi; return 0 ;;
     signal)
       task=${key%.status}; task=${task%.turn-ended}
       ;;
@@ -2895,6 +2910,7 @@ resurface_row_main_only() {  # <kind> <key> <payload>
   esac
   case "$task" in ''|*[!A-Za-z0-9._-]*) return 0 ;; esac
   fm_pm_live_task "$STATE" "$task" && return 1
+  if [ "$RESURFACE_ALT_OWNER" -ne 1 ]; then return 0; fi
   if [ "$kind" = signal ]; then
     case "$payload" in needs-decision:*) return 0 ;; esac
   fi
@@ -2909,6 +2925,8 @@ resurface_row_main_only() {  # <kind> <key> <payload>
 # Read under the queue lock so a concurrent append is never half-seen.
 resurface_queue_has_main_only() {
   local epoch seq kind key payload rest
+  RESURFACE_ALT_OWNER=1
+  resurface_alternate_owner || RESURFACE_ALT_OWNER=0
   [ -s "$FM_WAKE_QUEUE" ] || return 1
   fm_lock_acquire_wait "$FM_WAKE_QUEUE_LOCK" || return 0
   while IFS="$(printf '\t')" read -r epoch seq kind key payload rest; do

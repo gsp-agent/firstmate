@@ -229,6 +229,7 @@ If an announced-but-unacknowledged episode has an empty queue, the arm leaves th
 If a durable row arrived after the announcement, the arm opens a fresh pending downtime generation so buried work still resurfaces once.
 A recovery announcement is presented to main only when the durable queue holds a row only main can do (`resurface_row_main_only` in `bin/fm-watch.sh`: a check row, a needs-decision signal, a decision-owned signal or stale row, or a row that cannot be classified).
 A queue holding only branch-owned or live-PM-owned rows, or nothing at all, is absorbed in the poll loop instead: those rows surface by their own reasons to their own owners, and the episode stays announced.
+That gate applies only where an alternate supervisor exists - the away-mode daemon or a home running the supervision host; on a plain home main owns every row, and the resurface presents them exactly as it always has.
 The marker alone never manufactures a main wake - that is what kept a covering watcher's handling turn from waking main to drain rows it had already watched.
 A Codex foreground checkpoint skips the announced-episode reopen transition, so an already-announced generation stays announced while the checkpoint continues its bounded supervision.
 Its ordinary arm check still announces a never-announced generation, including one made pending by a durable queue append during the checkpoint.

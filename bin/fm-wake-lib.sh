@@ -124,7 +124,7 @@ fm_path_age() {
 
 # fm_pm_live_task <state> <task-id>: 0 when a live PM owns this task, proven
 # by the registration its own waiter keeps in state/.pm-live-<task-id>: a
-# `pid=` line naming a live process and a file refreshed within
+# `pid=` line naming the writer and a file refreshed within
 # FM_PM_LIVE_MAX_AGE seconds (default 180). The writer is whichever captain
 # process watches the task's status file directly (refreshed on every wait
 # slice and removed on exit); this library only reads the proof, and any
@@ -143,12 +143,11 @@ fm_pm_live_task() {  # <state> <task-id>
   case "$pid" in ''|*[!0-9]*) return 1 ;; esac
   age=$(fm_path_age "$marker")
   case "$age" in ''|*[!0-9-]*) return 1 ;; esac
-  # Live means the waiter process still runs, or it returned within the
-  # freshness window and its captain has not re-armed it yet: a captain
-  # acts on a returned waiter before re-arming, and that gap must not hand
-  # the task back to main. Past the window with a dead pid, the
-  # registration is stale and ordinary routing resumes.
-  if kill -0 "$pid" 2>/dev/null; then return 0; fi
+  # Freshness is the proof, for live and returned waiters alike: a waiting
+  # waiter refreshes every slice, so a marker older than the window means
+  # the writer hung, died, or its pid was reused - none of which may
+  # suppress supervision indefinitely. Inside the window a returned waiter
+  # still reads live, covering the captain's act-then-rearm gap.
   [ "$age" -ge 0 ] && [ "$age" -le "$max_age" ]
 }
 

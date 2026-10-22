@@ -33,6 +33,9 @@ test_pm_live_proof_reading() {
   fm_pm_live_task "$state" demo || fail "a fresh registration inside the re-arm grace did not read as a live PM"
   touch -t 202001010000 "$state/.pm-live-demo"
   fm_pm_live_task "$state" demo && fail "a stale registration with a dead pid read as a live PM"
+  printf 'bead=b1\npid=%s\ntask=demo\n' "$$" > "$state/.pm-live-demo"
+  touch -t 202001010000 "$state/.pm-live-demo"
+  fm_pm_live_task "$state" demo && fail "a stale registration with a live pid (hung writer or reused pid) read as a live PM"
 
   printf 'bead=b1\npid=not-a-pid\ntask=demo\n' > "$state/.pm-live-demo"
   fm_pm_live_task "$state" demo && fail "a malformed registration read as a live PM"

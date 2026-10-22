@@ -161,7 +161,8 @@ test_pending_recovery_with_only_branch_rows_stays_quiet() {
 
   status=0
   FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=999999 \
-    "$CHECKPOINT" --seconds 3 >"$out" 2>"$err" || status=$?
+    FM_DAEMON_OWNS_SUPERVISION=1 \
+    "$CHECKPOINT" --seconds 10 >"$out" 2>"$err" || status=$?
   expect_code 124 "$status" "branch-only recovery checkpoint exit"
   assert_not_contains "$(cat "$out")" "check: rearm-resurface" \
     "a resurface whose queue holds nothing only main can do reached the checkpoint"
@@ -186,6 +187,24 @@ test_pending_recovery_with_a_needs_decision_row_resurfaces() {
   assert_contains "$(cat "$out")" "check: rearm-resurface" \
     "a resurface holding a needs-decision row did not reach main"
   pass "a pending recovery holding a needs-decision row resurfaces to main"
+}
+
+test_pending_recovery_on_a_plain_home_still_resurfaces() {
+  local home out err status
+  home=$(make_home pending-plain-home)
+  out="$home/out.txt"
+  err="$home/err.txt"
+  printf 'pending:downtime:unreported.4.ddd\n' > "$home/state/.watcher-down"
+  append_wake "$home/state" signal demo.status "signal: $home/state/demo.status" \
+    || fail "could not append the plain-home durable wake"
+
+  status=0
+  FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=999999 \
+    FM_TEST_HARNESS=codex "$CHECKPOINT" --seconds 30 >"$out" 2>"$err" || status=$?
+  expect_code 0 "$status" "plain-home recovery checkpoint exit"
+  assert_contains "$(cat "$out")" "check: rearm-resurface" \
+    "a plain home's resurface did not present its queued rows to main"
+  pass "a pending recovery on a plain home still resurfaces to main"
 }
 
 test_queue_append_during_checkpoint_still_resurfaces() {
@@ -465,6 +484,7 @@ test_announced_recovery_is_not_reannounced_by_next_checkpoint
 test_never_announced_recovery_is_announced_once
 test_pending_recovery_with_only_branch_rows_stays_quiet
 test_pending_recovery_with_a_needs_decision_row_resurfaces
+test_pending_recovery_on_a_plain_home_still_resurfaces
 test_queue_append_during_checkpoint_still_resurfaces
 test_rejected_check_wakes_once_then_stays_silent
 test_live_pm_signal_is_absorbed_and_plain_signal_still_wakes
