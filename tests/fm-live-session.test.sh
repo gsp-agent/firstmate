@@ -80,7 +80,22 @@ esac
 case "${1:-}" in
   display-message) printf 'firstmate\n' ;;
   list-windows) [ ! -f "$FM_FAKE_WINDOWS" ] || cat "$FM_FAKE_WINDOWS" ;;
-  new-window) printf 'fm-%s\n' "$FM_FAKE_TASK_ID" > "$FM_FAKE_WINDOWS" ;;
+  new-window)
+    name=
+    previous=
+    for arg in "$@"; do
+      [ "$previous" != -n ] || name=$arg
+      previous=$arg
+    done
+    printf '%s\n' "$name" >> "$FM_FAKE_WINDOWS"
+    printf '@1\n'
+    ;;
+  kill-window)
+    target=${3:-}
+    window=${target##*:=}
+    awk -v window="$window" '$0 != window' "$FM_FAKE_WINDOWS" > "$FM_FAKE_WINDOWS.next"
+    mv "$FM_FAKE_WINDOWS.next" "$FM_FAKE_WINDOWS"
+    ;;
   capture-pane) printf '›\n' ;;
   send-keys)
     if [ -f "${FM_FAKE_COMMAND_FILE:-}" ]; then
@@ -124,6 +139,12 @@ state = os.environ.get("FM_FAKE_DETECTOR_STATE")
 if state and os.path.isfile(state):
     with open(state) as source:
         code = int(source.read())
+if os.environ.get("FM_FAKE_DETECTOR_AFTER_ENDPOINT"):
+    windows = os.environ["FM_FAKE_WINDOWS"]
+    if os.path.isfile(windows):
+        with open(windows) as source:
+            if "fm-" + os.environ["FM_FAKE_TASK_ID"] in source.read().splitlines():
+                code = int(os.environ["FM_FAKE_DETECTOR_AFTER_ENDPOINT"])
 if code and os.environ.get("FM_FAKE_DETECTOR_LINE"):
     print(os.environ["FM_FAKE_DETECTOR_LINE"])
 sys.exit(code)
@@ -197,6 +218,129 @@ assert_not_launched() {  # <case-dir> <project-dir> <id> <worktrees-before>
 }
 
 # --- cases ------------------------------------------------------------------
+
+test_headroom_reading_defers_with_the_shared_exit_status() {
+  local case_dir id=headroom-contender lock kind out rc STATE FM_HOME
+  local -a args
+  case_dir=$(make_case headroom-exit "$id")
+  STATE="$case_dir/home/state"
+  FM_HOME="$case_dir/home"
+  . "$ROOT/bin/fm-wake-lib.sh"
+  lock=$(fm_task_set_lock_path "$STATE") || fail "could not resolve the task-set lock"
+  fm_lock_try_acquire "$lock" || fail "could not hold the task set for the headroom fixture"
+  fm_lock_set_role "$lock" task-spawn-reading || fail "could not mark the headroom reading"
+  for kind in ship scout batch-ship batch-scout; do
+    args=("$id" "$case_dir/project")
+    case "$kind" in batch-*) args=("$id=$case_dir/project") ;; esac
+    case "$kind" in
+      *scout) args+=(--scout) ;;
+      *) args+=(--mode no-mistakes --yolo off) ;;
+    esac
+    rc=0
+    out=$(run_spawn "$case_dir" "$case_dir/unused" 0 '' "${args[@]}") || rc=$?
+    expect_code "$DEFER_EXIT" "$rc" "a $kind contending with a headroom reading did not defer: $out"
+    assert_contains "$out" 'headroom reading' "the $kind deferral omitted its cause"
+    assert_absent "$STATE/$id.meta" "a headroom-reading deferral published a task record"
+  done
+  fm_lock_release "$lock"
+  pass "headroom-reading contention exits 75 for ships, scouts, and batch entries"
+}
+
+test_late_refusal_closes_new_endpoints_and_allows_retry() {
+  local case_dir id kind code wt out rc line
+  local -a args
+  for kind in ship scout; do
+    for code in 75 2; do
+      id="owned-$$-$kind-$code"
+      case_dir=$(make_case "$id" "$id")
+      wt=$(new_worktree "$case_dir" "$case_dir/project" "$id")
+      printf 'unrelated-worker\n' > "$case_dir/windows"
+      if [ "$code" = 75 ]; then
+        line='live signal=person source=desktop'
+      else
+        line='unknown signal=calendar source=calendar reason=unavailable'
+      fi
+      out=$(FM_FAKE_DETECTOR_AFTER_ENDPOINT="$code" FM_FAKE_WINDOWS="$case_dir/windows" \
+        FM_FAKE_TASK_ID="$id" FM_FAKE_DETECTOR_LOG="$case_dir/detector.log" \
+        python3 "$case_dir/detector.py" project) || fail "the detector was not clear before allocation"
+      assert_equals '' "$out" "a clear pre-allocation check printed a verdict"
+      : > "$case_dir/detector.log"
+      args=("$id" "$case_dir/project")
+      if [ "$kind" = ship ]; then
+        args+=(--mode no-mistakes --yolo off)
+      else
+        args+=(--scout)
+      fi
+      rc=0
+      out=$(FM_FAKE_DETECTOR_AFTER_ENDPOINT="$code" run_spawn "$case_dir" "$wt" 0 "$line" \
+        "${args[@]}") || rc=$?
+      expect_code "$DEFER_EXIT" "$rc" "the late $kind refusal did not defer: $out"
+      assert_contains "$out" "$line" "the late $kind refusal omitted the detector verdict"
+      assert_equals project "$(cat "$case_dir/detector.log")" "the $kind was not checked at the launch boundary"
+      assert_equals unrelated-worker "$(cat "$case_dir/windows")" "the refused $kind left its endpoint or closed another worker"
+      assert_equals '' "$(cat "$case_dir/actions.log")" "the refused $kind launched a worker"
+      assert_absent "$case_dir/home/state/$id.meta" "the refused $kind left a provisional task record"
+      rc=0
+      out=$(run_spawn "$case_dir" "$wt" 0 '' "${args[@]}") || rc=$?
+      expect_code 0 "$rc" "the $kind could not retry after the live signal cleared: $out"
+      assert_equals $'unrelated-worker\n'"fm-$id" "$(cat "$case_dir/windows")" "the $kind retry lost an endpoint"
+      assert_equals launch "$(cat "$case_dir/actions.log")" "the $kind retry did not launch exactly one worker"
+    done
+  done
+  pass "late live and unknown refusals close only newly created endpoints and permit retry"
+}
+
+test_already_stopped_control_refusal_restores_instructions() {
+  local case_dir id kind wt out rc code attempt line
+  local -a args
+  for kind in ship scout; do
+    id="stopped-$$-$kind"
+    case_dir=$(make_case "$id" "$id")
+    wt=$(new_worktree "$case_dir" "$case_dir/project" "$id")
+    args=("$id" "$case_dir/project")
+    if [ "$kind" = ship ]; then
+      args+=(--mode no-mistakes --yolo off)
+    else
+      args+=(--scout)
+    fi
+    rc=0
+    out=$(run_spawn "$case_dir" "$wt" 0 '' "${args[@]}") || rc=$?
+    expect_code 0 "$rc" "could not prepare the stopped $kind: $out"
+    printf 'zsh\n' > "$case_dir/command"
+    cp "$case_dir/home/data/$id/brief.md" "$case_dir/prior-brief"
+    cp "$case_dir/home/state/$id.meta" "$case_dir/prior-meta"
+    : > "$case_dir/actions.log"
+    for code in 75 2; do
+      if [ "$code" = 75 ]; then
+        line='live signal=person source=desktop'
+      else
+        line='unknown signal=calendar source=calendar reason=unavailable'
+      fi
+      for attempt in 1 2; do
+        rc=0
+        out=$(run_control "$case_dir" "$code" "$line" "$id" relaunch --note 'continue only after relaunch') || rc=$?
+        expect_code "$DEFER_EXIT" "$rc" "the stopped $kind was not deferred: $out"
+        cmp "$case_dir/prior-brief" "$case_dir/home/data/$id/brief.md" || fail "a refused stopped $kind accumulated a relaunch note"
+        cmp "$case_dir/prior-meta" "$case_dir/home/state/$id.meta" || fail "a refused stopped $kind changed its task record"
+        assert_equals 'failed:noted' "$(sed -n 's/^phase=//p' "$case_dir/home/state/$id.control-relaunch")" \
+          "the stopped $kind refusal used the stop rollback"
+        assert_equals "fm-$id" "$(cat "$case_dir/windows")" "a refused relaunch closed its previous endpoint"
+        assert_equals '' "$(cat "$case_dir/actions.log")" "the stopped $kind was launched or stopped during refusal"
+      done
+    done
+  done
+  pass "repeated refusals restore an already-stopped ship or scout's original instructions"
+}
+
+test_refusal_regressions() {
+  local test failed=
+  for test in test_headroom_reading_defers_with_the_shared_exit_status \
+    test_late_refusal_closes_new_endpoints_and_allows_retry \
+    test_already_stopped_control_refusal_restores_instructions; do
+    ("$test") || failed="$failed $test"
+  done
+  [ -z "$failed" ] || fail "refusal regressions failed:$failed"
+}
 
 test_live_signal_appearing_during_preparation_defers() {
   local kind action failed= case_dir id wt out rc real_git line
@@ -335,6 +479,7 @@ test_relaunch_checks_admission_and_preserves_prior_work() {
       assert_equals '' "$(cat "$case_dir/actions.log")" "a refused $kind relaunch launched a worker"
       assert_not_contains "$calls" new-window "a refused $kind relaunch allocated an endpoint"
       assert_not_contains "$calls" treehouse "a refused $kind relaunch touched the worktree pool"
+      assert_equals "fm-$id" "$(cat "$case_dir/windows")" "a refused $kind relaunch closed its reused endpoint"
     done
     : > "$case_dir/detector.log"
     rc=0
@@ -528,6 +673,7 @@ test_batch_reports_a_live_deferral() {
   pass "a batch reports a live-session deferral as deferred, not failed"
 }
 
+test_refusal_regressions
 test_live_signal_appearing_during_preparation_defers
 test_clear_read_launches_the_worker
 test_relaunch_checks_admission_and_preserves_prior_work

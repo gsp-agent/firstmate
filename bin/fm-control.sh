@@ -1108,7 +1108,6 @@ do_relaunch() {
   record_note
   journal_write noted "${CHECKPOINT_LINES[@]}" "$note_line"
 
-  journal_write stopping "${CHECKPOINT_LINES[@]}" "$note_line"
   if [ "$KIND" != secondmate ]; then
     project=$(fm_meta_get "$META" project)
     if ! live_session_deferral=$(fm_live_session_admit "$project" "$(basename "$project")"); then
@@ -1116,6 +1115,7 @@ do_relaunch() {
       exit 75
     fi
   fi
+  journal_write stopping "${CHECKPOINT_LINES[@]}" "$note_line"
   exit_result=$(do_exit)
   journal_write exited "${CHECKPOINT_LINES[@]}" "$note_line" "exit_result=$exit_result"
 

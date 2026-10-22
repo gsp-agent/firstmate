@@ -1443,6 +1443,7 @@ CONFIG_INHERIT_LOCK=
 CONFIG_INHERIT_LOCK_HELD=0
 GIT_HOOKS_DIR=
 SPAWN_LAUNCH_SENT=0
+SPAWN_CREATED_ENDPOINT=
 SPAWN_ENDPOINT_CLOSED=0
 SPAWN_DEFERRED_SIGNAL=
 QUEUE_START_TASK=
@@ -1497,6 +1498,18 @@ spawn_hold_launched_item() {  # <exit-status>
 
 spawn_abort_cleanup() {
   local status=$?
+  if [ "$status" -eq "$SPAWN_DEFER_EXIT" ] &&
+    [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_CREATED_ENDPOINT" ]; then
+    if [ "$BACKEND" = orca ]; then
+      ORCA_ABORT_CLEANUP=1
+    elif [ "$HERDR_PROJECTION_ABORT_CLEANUP" != 1 ]; then
+      if fm_backend_kill "$BACKEND" "$SPAWN_CREATED_ENDPOINT" "${ZELLIJ_TAB_ID:-}" "$W" 2>/dev/null; then
+        SPAWN_ENDPOINT_CLOSED=1
+      else
+        echo "warning: could not close endpoint $SPAWN_CREATED_ENDPOINT after deferring task $ID" >&2
+      fi
+    fi
+  fi
   if [ "$RELAUNCH_REPLACEMENT_PENDING" = 1 ] &&
     [ "$SPAWN_META_PUBLISH_STARTED" = 1 ] &&
     [ -n "$SPAWN_META_TMP" ] &&
@@ -1929,7 +1942,7 @@ if [ "$RELAUNCH" -eq 0 ]; then
     case "$(fm_lock_role "$SPAWN_TASK_SET_LOCK" 2>/dev/null || true)" in
       task-spawn-reading)
         echo "deferred: this home's task set is held by a spawn running a headroom reading; task $ID was not launched and its backlog item stays queued" >&2
-        exit "$FM_PROJECT_CAPACITY_DEFER_EXIT"
+        exit "$SPAWN_DEFER_EXIT"
         ;;
       task-spawn)
         echo "error: this home's task set is locked by another spawn; refusing to create task $ID rather than racing it" >&2
@@ -4562,6 +4575,9 @@ EOF
     T="$ORCA_TERMINAL"
     ;;
   esac
+fi
+if [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_REBIND" -eq 1 ]; then
+  SPAWN_CREATED_ENDPOINT=$T
 fi
 if [ "$KIND" = secondmate ]; then
   FM_INHERITABLE_CONFIG=trace-context \
