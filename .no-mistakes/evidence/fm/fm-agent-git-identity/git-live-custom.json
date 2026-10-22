@@ -1,0 +1,10 @@
+{
+  "name": "Fleet O'Agent",
+  "email": "fleet-agent@example.invalid",
+  "hooks": "",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool/.treehouse/project-e5ebac/3/project",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project",
+  "author": "Fleet O'Agent <fleet-agent@example.invalid>",
+  "committer": "Fleet O'Agent <fleet-agent@example.invalid>",
+  "commit": "b844dbfcfd88ab43f5d52e36f094e37ea1b77b7e"
+}

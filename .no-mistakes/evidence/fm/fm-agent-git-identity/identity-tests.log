@@ -1,0 +1,12 @@
+FM_TEST_BEGIN 2026-10-22T07:32:14Z tests/fm-spawn-worker-git-identity.test.sh family=backend-dispatch expected_gate_skip=none
+ok - a ship worker's first commit carries the configured identity; no git config file changes
+ok - the identity applies on its own when the home keeps AI trailers
+ok - an unconfigured worker's first commit carries the gsp-agent identity
+ok - raw author and committer overrides refuse the spawn before launch
+ok - an unconfigured raw worker replaces inherited author and committer identity with trailers kept
+ok - a malformed config/worker-git-identity refuses the spawn before any launch
+ok - a secondmate and its own crew inherit the worker git identity
+FM_TEST_END 2026-10-22T07:36:36Z tests/fm-spawn-worker-git-identity.test.sh exit=0 duration_ms=262376 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=263014
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=262376 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-spawn-worker-git-identity.test.sh duration_ms=262376

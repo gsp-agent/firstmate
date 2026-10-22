@@ -1,0 +1,21 @@
+Command: rm -r -- /tmp/fm-git-live-custom+06de88ad27d4b583fc0214c1c48a821532164662ad0951833b740837c76dd630
+
+Result: ALLOWED
+Command: rm -r -- /tmp/fm-git-live-default+06de88ad27d4b583fc0214c1c48a821532164662ad0951833b740837c76dd630
+
+Result: ALLOWED
+Command: rm -r -- /tmp/fm-git-live-mate+12684f30c701ca9bb86a8ee58cd15298a97636336654e888b42d35d62c3b2ff8
+
+Result: ALLOWED
+Command: rm -r -- /tmp/fm-git-live-mate+f958c5ea001dfecbf6d029145f3ad1c82c3ddba66bd5193ff26c899d9c77f684
+
+Result: ALLOWED
+Command: rm -r -- /tmp/fm-git-live-mate-crew+dd2605123f263e8e46c94f693453088d7f7a04757645076f86750ab2b383e5d0
+
+Result: ALLOWED
+Command: rm -r -- /tmp/fm-git-live-scout+06de88ad27d4b583fc0214c1c48a821532164662ad0951833b740837c76dd630
+
+Result: ALLOWED
+Command: rm -r -- .identity-validation
+
+Result: ALLOWED

@@ -1,0 +1,10 @@
+{
+  "name": "gsp-agent",
+  "email": "dale+gspagent@groovejones.com",
+  "hooks": "",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool/.treehouse/project-e5ebac/2/project",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project",
+  "author": "gsp-agent <dale+gspagent@groovejones.com>",
+  "committer": "gsp-agent <dale+gspagent@groovejones.com>",
+  "commit": "5215bddbae42a45e50b4302677cea6b5841d59ab"
+}

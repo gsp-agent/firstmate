@@ -1,0 +1,15 @@
+commit 018161f31c431ea0c25627d1047566940efe3c97
+Author:     Dale Carman <dale.carman@gmail.com>
+AuthorDate: Thu Oct 22 02:36:49 2026 -0500
+Commit:     Dale Carman <dale.carman@gmail.com>
+CommitDate: Thu Oct 22 02:36:49 2026 -0500
+
+    fixture baseline
+
+commit b7b4fe2515a5efc3a6f87c929840fc7ce76af592
+Author:     Replacement Agent <replacement@example.invalid>
+AuthorDate: Thu Oct 22 02:37:47 2026 -0500
+Commit:     Replacement Agent <replacement@example.invalid>
+CommitDate: Thu Oct 22 02:37:47 2026 -0500
+
+    live: first worker identity

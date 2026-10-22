@@ -1,0 +1,10 @@
+{
+  "name": "Fleet Parent",
+  "email": "parent-agent@example.invalid",
+  "hooks": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/state/git-live-mate-crew.git-hooks",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool3/.treehouse/project3-fa06ff/1/project3",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project3",
+  "author": "Fleet Parent <parent-agent@example.invalid>",
+  "committer": "Fleet Parent <parent-agent@example.invalid>",
+  "commit": "1d8399f1da9b2c83cd3bd2cac3efd9933852dbc2"
+}

@@ -1,0 +1,23 @@
+commit a6da6f3b2dd0ed8b814dc983db00eedf11f071ca
+Author:     gsp-agent <dale+gspagent@groovejones.com>
+AuthorDate: Thu Oct 22 02:31:15 2026 -0500
+Commit:     gsp-agent <dale+gspagent@groovejones.com>
+CommitDate: Thu Oct 22 02:31:15 2026 -0500
+
+    live: first worker identity
+
+commit b844dbfcfd88ab43f5d52e36f094e37ea1b77b7e
+Author:     Fleet O'Agent <fleet-agent@example.invalid>
+AuthorDate: Thu Oct 22 02:31:50 2026 -0500
+Commit:     Fleet O'Agent <fleet-agent@example.invalid>
+CommitDate: Thu Oct 22 02:31:50 2026 -0500
+
+    live: first worker identity
+
+commit 6540861677ea4b0bd18627471a9aa8bafa3fc1d4
+Author:     Dale Carman <dale.carman@gmail.com>
+AuthorDate: Thu Oct 22 02:32:12 2026 -0500
+Commit:     Dale Carman <dale.carman@gmail.com>
+CommitDate: Thu Oct 22 02:32:12 2026 -0500
+
+    live: operator retains own identity

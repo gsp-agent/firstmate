@@ -1,0 +1,140 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product-b/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab3
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab3
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product-b/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3
+[exit 0]
+
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product-b/bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab3
+/tmp/fml.kJQ5Lv
+[exit 0]
+
+$ tmux -L fm-lab -f /dev/null new-session -d -s primary -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN '/bin/bash --noprofile --norc'
+[exit 0]
+
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+[exit 0]
+
+$ tmux -L fm-lab display-message -p '#{socket_path},#{pid},0'
+/private/tmp/fml.kJQ5Lv/tmux-501/fm-lab,93090,0
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product-b/bin/fm-spawn.sh git-live-mate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3 'python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab3/git-live-mate.json' --secondmate
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab3
+warning: secondmate git-live-mate sync skipped before launch: primary default-branch commit cannot be resolved
+spawned git-live-mate harness=python3 kind=secondmate mode=secondmate yolo=off window=primary:fm-git-live-mate worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3
+[exit 0]
+
+WORKER REPORT {
+  "name": "Fleet Parent",
+  "email": "parent-agent@example.invalid",
+  "hooks": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab3/state/git-live-mate.git-hooks",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3",
+  "author": "Fleet Parent <parent-agent@example.invalid>",
+  "committer": "Fleet Parent <parent-agent@example.invalid>",
+  "commit": "3edf69ca33459eacb9deed7be81efe6bc54e8981"
+}
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project3
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project3 commit -q --allow-empty -m 'fixture baseline'
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product-b/bin/fm-spawn.sh git-live-mate-crew /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project3 'python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab3/git-live-mate-crew.json' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/data/git-live-mate-crew/launch-brief.md records no ship branch; defaulting to legacy branch fm/git-live-mate-crew
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/data/git-live-mate-crew/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: git-live-mate-crew ships mode=local-only while the standing posture for project3 is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned git-live-mate-crew harness=python3 kind=ship mode=local-only yolo=off window=primary:fm-git-live-mate-crew worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool3/.treehouse/project3-fa06ff/1/project3
+[exit 0]
+
+WORKER REPORT {
+  "name": "Fleet Parent",
+  "email": "parent-agent@example.invalid",
+  "hooks": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/state/git-live-mate-crew.git-hooks",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool3/.treehouse/project3-fa06ff/1/project3",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project3",
+  "author": "Fleet Parent <parent-agent@example.invalid>",
+  "committer": "Fleet Parent <parent-agent@example.invalid>",
+  "commit": "1d8399f1da9b2c83cd3bd2cac3efd9933852dbc2"
+}
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product-b/bin/fm-spawn.sh git-live-mate-crew --relaunch --harness 'python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab3/git-live-relaunched.json'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 33s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/data/git-live-mate-crew/launch-brief.md records no ship branch; defaulting to legacy branch fm/git-live-mate-crew
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/data/git-live-mate-crew/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: git-live-mate-crew ships mode=local-only while the standing posture for project3 is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned git-live-mate-crew harness=python3 kind=ship mode=local-only yolo=off window=primary:fm-git-live-mate-crew worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool3/.treehouse/project3-fa06ff/1/project3
+[exit 0]
+
+WORKER REPORT {
+  "name": "Replacement Agent",
+  "email": "replacement@example.invalid",
+  "hooks": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/state/git-live-mate-crew.git-hooks",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool3/.treehouse/project3-fa06ff/1/project3",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project3",
+  "author": "Replacement Agent <replacement@example.invalid>",
+  "committer": "Replacement Agent <replacement@example.invalid>",
+  "commit": "b7b4fe2515a5efc3a6f87c929840fc7ce76af592"
+}
+$ tmux -L fm-lab capture-pane -p -S -100 -t fm-git-live-mate-crew
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project3 dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-valida
+tion/pool3/.treehouse/project3-fa06ff/1/project3. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/p
+ool3/.treehouse/project3-fa06ff/1/project3'
+bash-3.2$ export GOTMPDIR=/tmp/fm-git-live-mate-crew/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=git-live-mate-crew
+bash-3.2$ . '/tmp/fm-git-live-mate-crew+dd2605123f263e8e46c94f693453088d7f7a04757645076f86750ab2b383e5d0/launch.s1792654
+627.19536.32678.sh'
+{"name": "Fleet Parent", "email": "parent-agent@example.invalid", "hooks": "/Users/dalecarman/.no-mistakes/worktrees/a5e
+67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/state/git-live-mate-crew.git-hooks", "cwd": "/Users/dale
+carman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool3/.treehouse/project3-fa0
+6ff/1/project3", "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-
+validation/project3", "author": "Fleet Parent <parent-agent@example.invalid>", "committer": "Fleet Parent <parent-agent@
+example.invalid>", "commit": "1d8399f1da9b2c83cd3bd2cac3efd9933852dbc2"}
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/p
+ool3/.treehouse/project3-fa06ff/1/project3'
+bash-3.2$ export GOTMPDIR=/tmp/fm-git-live-mate-crew/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=git-live-mate-crew
+bash-3.2$ . '/tmp/fm-git-live-mate-crew+dd2605123f263e8e46c94f693453088d7f7a04757645076f86750ab2b383e5d0/launch.s1792654
+655.54556.8298.sh'
+{"name": "Replacement Agent", "email": "replacement@example.invalid", "hooks": "/Users/dalecarman/.no-mistakes/worktrees
+/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/state/git-live-mate-crew.git-hooks", "cwd": "/Users/
+dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool3/.treehouse/project3
+-fa06ff/1/project3", "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.ident
+ity-validation/project3", "author": "Replacement Agent <replacement@example.invalid>", "committer": "Replacement Agent <
+replacement@example.invalid>", "commit": "b7b4fe2515a5efc3a6f87c929840fc7ce76af592"}
+bash-3.2$
+[exit 0]
+
+$ tmux -L fm-lab kill-server
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product-b/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab3
+[exit 0]

@@ -1,0 +1,52 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab2
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab2
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate
+[exit 0]
+
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product/bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab2
+/tmp/fml.r7e3BK
+[exit 0]
+
+$ tmux -L fm-lab -f /dev/null new-session -d -s primary -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN '/bin/bash --noprofile --norc'
+[exit 0]
+
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+[exit 0]
+
+$ tmux -L fm-lab display-message -p '#{socket_path},#{pid},0'
+/private/tmp/fml.r7e3BK/tmux-501/fm-lab,7362,0
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product/bin/fm-spawn.sh git-live-mate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate 'python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab2/git-live-mate.json' --secondmate
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab2
+warning: secondmate git-live-mate sync skipped before launch: primary default-branch commit cannot be resolved
+fm-config-inherit: warning: skipped backlog-backend for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate/config: destination does not allow inherited item (not gitignored or guard failed)
+fm-config-inherit: warning: skipped worker-git-identity for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate/config: destination does not allow inherited item (not gitignored or guard failed)
+spawned git-live-mate harness=python3 kind=secondmate mode=secondmate yolo=off window=primary:fm-git-live-mate worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate
+[exit 0]
+
+WORKER REPORT {
+  "name": "Fleet Parent",
+  "email": "parent-agent@example.invalid",
+  "hooks": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab2/state/git-live-mate.git-hooks",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate",
+  "author": "Fleet Parent <parent-agent@example.invalid>",
+  "committer": "Fleet Parent <parent-agent@example.invalid>",
+  "commit": "0cffeccd46d5a4905407db106baf9015982f0b88"
+}
+$ tmux -L fm-lab capture-pane -p -S -100 -t fm-git-live-mate-crew
+can't find pane: fm-git-live-mate-crew
+[exit 1]
+
+$ tmux -L fm-lab kill-server
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/product/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab2
+[exit 0]

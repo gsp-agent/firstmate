@@ -1,0 +1,199 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project init -q -b main
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project add treehouse.toml
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project commit -qm 'fixture baseline'
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project config user.name 'Dale Carman'
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project config user.email dale.carman@gmail.com
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project config user.email
+dale.carman@gmail.com
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project log -1 '--format=%an <%ae>'
+Dale Carman <dale.carman@gmail.com>
+[exit 0]
+
+BASELINE {"email": "dale.carman@gmail.com", "author": "Dale Carman <dale.carman@gmail.com>"}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+/tmp/fml.spRCDy
+[exit 0]
+
+$ tmux -L fm-lab -f /dev/null new-session -d -s primary -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project '/bin/bash --noprofile --norc'
+[exit 0]
+
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+[exit 0]
+
+$ tmux -L fm-lab display-message -p '#{socket_path},#{pid},0'
+/private/tmp/fml.spRCDy/tmux-501/fm-lab,8589,0
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-spawn.sh git-live-default /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project 'python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/git-live-default.json' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/data/git-live-default/launch-brief.md records no ship branch; defaulting to legacy branch fm/git-live-default
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/data/git-live-default/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: git-live-default ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned git-live-default harness=python3 kind=ship mode=local-only yolo=off window=primary:fm-git-live-default worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool/.treehouse/project-e5ebac/1/project
+[exit 0]
+
+WORKER REPORT {
+  "name": "gsp-agent",
+  "email": "dale+gspagent@groovejones.com",
+  "hooks": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/state/git-live-default.git-hooks",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool/.treehouse/project-e5ebac/1/project",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project",
+  "author": "gsp-agent <dale+gspagent@groovejones.com>",
+  "committer": "gsp-agent <dale+gspagent@groovejones.com>",
+  "commit": "a6da6f3b2dd0ed8b814dc983db00eedf11f071ca"
+}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-spawn.sh git-live-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project 'python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/git-live-scout.json' --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 37s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+spawned git-live-scout harness=python3 kind=scout window=primary:fm-git-live-scout worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool/.treehouse/project-e5ebac/2/project
+[exit 0]
+
+WORKER REPORT {
+  "name": "gsp-agent",
+  "email": "dale+gspagent@groovejones.com",
+  "hooks": "",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool/.treehouse/project-e5ebac/2/project",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project",
+  "author": "gsp-agent <dale+gspagent@groovejones.com>",
+  "committer": "gsp-agent <dale+gspagent@groovejones.com>",
+  "commit": "5215bddbae42a45e50b4302677cea6b5841d59ab"
+}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-spawn.sh git-live-custom /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project 'python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/git-live-custom.json' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 56s ago, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/data/git-live-custom/launch-brief.md records no ship branch; defaulting to legacy branch fm/git-live-custom
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/data/git-live-custom/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: git-live-custom ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned git-live-custom harness=python3 kind=ship mode=local-only yolo=off window=primary:fm-git-live-custom worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool/.treehouse/project-e5ebac/3/project
+[exit 0]
+
+WORKER REPORT {
+  "name": "Fleet O'Agent",
+  "email": "fleet-agent@example.invalid",
+  "hooks": "",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool/.treehouse/project-e5ebac/3/project",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project",
+  "author": "Fleet O'Agent <fleet-agent@example.invalid>",
+  "committer": "Fleet O'Agent <fleet-agent@example.invalid>",
+  "commit": "b844dbfcfd88ab43f5d52e36f094e37ea1b77b7e"
+}
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-spawn.sh git-live-invalid /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project 'python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/git-live-invalid.json' --mode local-only --yolo off
+error: config/worker-git-identity must be a readable file holding one line in git's 'Name <email>' form, such as: fleet-agent <fleet-agent@example.com>
+[exit 1]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-spawn.sh git-live-override-0 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project 'env GIT_AUTHOR_NAME=dale@example.invalid python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/git-live-override-0.json' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 73s ago, grace 300s) - full banner already printed this episode.
+error: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments
+[exit 1]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-spawn.sh git-live-override-1 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project 'env GIT_AUTHOR_EMAIL=dale@example.invalid python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/git-live-override-1.json' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 77s ago, grace 300s) - full banner already printed this episode.
+error: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments
+[exit 1]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-spawn.sh git-live-override-2 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project 'env GIT_COMMITTER_NAME=dale@example.invalid python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/git-live-override-2.json' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 82s ago, grace 300s) - full banner already printed this episode.
+error: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments
+[exit 1]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-spawn.sh git-live-override-3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project 'env GIT_COMMITTER_EMAIL=dale@example.invalid python3 /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/probe.py /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/git-live-override-3.json' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+WARNING: watcher still down (same stale episode; last beat: 89s ago, grace 300s) - full banner already printed this episode.
+error: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments
+[exit 1]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project config user.email
+dale.carman@gmail.com
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project commit -q --allow-empty -m 'live: operator retains own identity'
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project log -1 '--format=%an <%ae>'
+Dale Carman <dale.carman@gmail.com>
+[exit 0]
+
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project log -1 '--format=%an <%ae>'
+Dale Carman <dale.carman@gmail.com>
+[exit 0]
+
+OPERATOR AFTER: Dale Carman <dale.carman@gmail.com>
+Global and repository config SHA-256 unchanged.
+
+$ tmux -L fm-lab capture-pane -p -S -100 -t fm-git-live-default
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-valida
+tion/pool/.treehouse/project-e5ebac/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/p
+ool/.treehouse/project-e5ebac/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-git-live-default/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=git-live-default
+bash-3.2$ . '/tmp/fm-git-live-default+06de88ad27d4b583fc0214c1c48a821532164662ad0951833b740837c76dd630/launch.s179265426
+7.8697.2815.sh'
+{"name": "gsp-agent", "email": "dale+gspagent@groovejones.com", "hooks": "/Users/dalecarman/.no-mistakes/worktrees/a5e67
+f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab/state/git-live-default.git-hooks", "cwd": "/Users/dalecarman
+/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool/.treehouse/project-e5ebac/1/pr
+oject", "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validatio
+n/project", "author": "gsp-agent <dale+gspagent@groovejones.com>", "committer": "gsp-agent <dale+gspagent@groovejones.co
+m>", "commit": "a6da6f3b2dd0ed8b814dc983db00eedf11f071ca"}
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[exit 0]
+
+$ tmux -L fm-lab kill-server
+[exit 0]
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/lab
+[exit 0]

@@ -1,0 +1,10 @@
+{
+  "name": "Replacement Agent",
+  "email": "replacement@example.invalid",
+  "hooks": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/mate3/state/git-live-mate-crew.git-hooks",
+  "cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/pool3/.treehouse/project3-fa06ff/1/project3",
+  "primary": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/project3",
+  "author": "Replacement Agent <replacement@example.invalid>",
+  "committer": "Replacement Agent <replacement@example.invalid>",
+  "commit": "b7b4fe2515a5efc3a6f87c929840fc7ce76af592"
+}

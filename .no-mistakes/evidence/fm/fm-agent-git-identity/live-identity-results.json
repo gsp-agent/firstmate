@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Fresh pooled ship uses gsp-agent for config, author, and committer despite Dale config and inherited identities",
+    "result": "pass"
+  },
+  {
+    "name": "Scout with trailers retained still replaces inherited Dale identities",
+    "result": "pass"
+  },
+  {
+    "name": "Configured worker identity with spaces and apostrophe reaches a real first commit",
+    "result": "pass"
+  },
+  {
+    "name": "Malformed identity refuses before publishing a worker record",
+    "result": "pass"
+  },
+  {
+    "name": "Raw author and committer overrides are refused before any worker launches",
+    "result": "pass"
+  },
+  {
+    "name": "Worker commits leave global and shared repo configuration unchanged and operator commits remain Dale",
+    "result": "pass"
+  }
+]

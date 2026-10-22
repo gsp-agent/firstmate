@@ -1,0 +1,14 @@
+[
+  {
+    "name": "A real secondmate launch inherits the configured worker identity and commits as that identity",
+    "result": "pass"
+  },
+  {
+    "name": "A secondmate's own pooled worker makes its first commit as the inherited agent identity",
+    "result": "pass"
+  },
+  {
+    "name": "Relaunch reuses the same worker copy and applies the current identity to its next commit",
+    "result": "pass"
+  }
+]

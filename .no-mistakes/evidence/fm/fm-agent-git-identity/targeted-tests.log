@@ -1,0 +1,60 @@
+FM_TEST_BEGIN 2026-10-22T07:29:25Z tests/fm-spawn-worker-git-identity.test.sh family=backend-dispatch expected_gate_skip=none
+ok - a ship worker's first commit carries the configured identity; no git config file changes
+ok - the identity applies on its own when the home keeps AI trailers
+ok - an unconfigured worker's first commit carries the gsp-agent identity
+ok - raw author and committer overrides refuse the spawn before launch
+ok - an unconfigured raw worker replaces inherited author and committer identity with trailers kept
+ok - a malformed config/worker-git-identity refuses the spawn before any launch
+not ok - secondmate spawn with a worker git identity should succeed: error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/tmp/fm-spawn-worker-git-identity.IrtV7n/sm-home/home: expected exit 0, got 1
+FM_TEST_END 2026-10-22T07:30:45Z tests/fm-spawn-worker-git-identity.test.sh exit=1 duration_ms=80283 gate_skip=false
+FM_TEST_BEGIN 2026-10-22T07:30:45Z tests/fm-kimi-harness.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - Kimi hook install is idempotent and removal restores every foreign config byte
+ok - Kimi hook removal preserves owned newline boundaries and pristine bytes
+ok - Kimi hook install refuses missing, malformed, and surprising config without writing
+ok - Kimi hook install refuses without jq before any config write
+ok - fm-spawn: kimi launches, delivers its brief, and registers a guarded turn-end token
+ok - fm-spawn: unsafe task roots are refused, owned roots are tightened, and launch files stay unique and 0600
+ok - Kimi hook stays silent and inert without a Firstmate registry token
+ok - fm-spawn: unsafe Kimi global config refuses before pane creation
+ok - fm-teardown: Kimi task pointer and registry token are removed
+ok - fm-spawn: Kimi fallback expands the active HOME
+ok - fm-spawn: missing Kimi executable refuses before pane creation
+ok - fm-spawn: kimi treats a silent pointer drop as a failed spawn
+ok - fm-spawn: kimi never sends the brief pointer before an observable ready signal
+ok - fm-spawn: a fresh Kimi worktree answers the exact trust dialog once and verifies advancement
+ok - fm-spawn: a swallowed Kimi trust keypress is re-sent until the dialog clears
+ok - fm-spawn: a Kimi banner captured before the trust dialog paints does not read as ready
+ok - fm-spawn: an answered Kimi trust dialog left in scrollback neither re-answers nor fails the spawn
+ok - fm-spawn: a blank Kimi viewport frame costs its poll and nothing else
+ok - fm-spawn: Kimi refuses a backend that cannot read the viewport, before launching
+ok - fm-spawn: a Kimi trust dialog with its hint wrapped across rows is answered normally
+ok - fm-spawn: a blank Kimi frame between banners restarts the two-capture ready count
+ok - fm-spawn: a failed Kimi viewport read fails readiness with the backend named
+ok - fm-spawn: Kimi refuses the ready verdict while trust dialog markers remain
+ok - fm-spawn: a Kimi trust dialog must visibly clear before brief delivery
+ok - fm-spawn: Kimi trust detection requires every observed dialog signal
+ok - fm-harness: markerless kimi keeps its ancestry identity under an inherited marker
+lock acquired: harness pid 60370
+ok - fm-lock recognizes Kimi ancestry and live lock holders
+ok - busy detection: real Kimi moon-plus-middot captures require its harness while idle labels stay idle
+ok - fm-watch classifies Kimi as unknown rather than from its spinner, and Grok's fallback stays isolated
+ok - composer classifier: kimi's existing bordered > shape is already safe without an override
+FM_TEST_END 2026-10-22T07:41:41Z tests/fm-kimi-harness.test.sh exit=0 duration_ms=655482 gate_skip=false
+FM_TEST_BEGIN 2026-10-22T07:41:41Z tests/fm-spawn-dispatch-profile.test.sh family=backend-dispatch expected_gate_skip=none
+ok - allowlist=absent preserves the operational floor and filters only when opted in
+ok - allowlist=missing-config preserves the operational floor and filters only when opted in
+ok - allowlist=enabled preserves the operational floor and filters only when opted in
+ok - allowlist=empty preserves the operational floor and filters only when opted in
+ok - invalid allowlist names refuse before launch or task publication
+ok - inaccessible config with present allowlist refuses before launch or task publication
+ok - inaccessible config with absent allowlist refuses before launch or task publication
+ok - inaccessible ancestor with present allowlist refuses before launch or task publication
+ok - inaccessible ancestor with absent allowlist refuses before launch or task publication
+not ok - secondmate with an allowlist should spawn: error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6HF07C13SDYMP375JZVNN/.identity-validation/tmp/fm-spawn-dispatch-profile.S6HlNy/env-secondmate/secondmate-home: expected exit 0, got 1
+FM_TEST_END 2026-10-22T07:42:37Z tests/fm-spawn-dispatch-profile.test.sh exit=1 duration_ms=56427 gate_skip=false
+FM_TEST_SUMMARY total=3 failed=2 skipped_gate=0 duration_ms=792627
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=2 duration_ms=136710 failed=2
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=655482 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-kimi-harness.test.sh duration_ms=655482
+FM_TEST_SLOWEST rank=2 script=tests/fm-spawn-worker-git-identity.test.sh duration_ms=80283
+FM_TEST_SLOWEST rank=3 script=tests/fm-spawn-dispatch-profile.test.sh duration_ms=56427
