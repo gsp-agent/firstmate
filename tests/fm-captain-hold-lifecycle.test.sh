@@ -4811,7 +4811,7 @@ test_domain_failed_rehold_preserves_routing_fields() {
   new_reason='ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?'
   for mode in owner-only all-fields expired expired-origin; do
     domain_home=$(make_domain_home "domain-failed-rehold-$mode")
-    refused=hold-refused
+    refused='hold-refused'
     initial_args=()
     changed_args=(--decision-owner ep-new --reason "$old_reason")
     case "$mode" in
@@ -4824,7 +4824,7 @@ test_domain_failed_rehold_preserves_routing_fields() {
         changed_args=(--decision-owner ep-new --timeout-seconds 120 --reason "$new_reason")
         ;;
       expired-origin)
-        refused=origin-refused
+        refused='origin-refused'
         initial_args=(--until 2000-01-01 --origin origin-a)
         changed_args=(--decision-owner ep-new --timeout-seconds 120 --reason "$new_reason" --origin origin-b)
         ;;
@@ -6615,6 +6615,7 @@ captain_hold_lane_b() {
   test_domain_retries_failed_delivery_and_release expired
   test_watcher_routes_due_holds_before_surfacing_signals
   test_watcher_routing_failures_do_not_starve_scheduled_checks || exit 1
+  test_domain_probe_holds_wait_for_their_probe
   if [ -z "${FM_CAPTAIN_HOLD_LANE:-}" ]; then
     [ "${FM_TEST_HOLD_DOMAIN_ONLY:-0}" != 1 ] || exit 0
   fi
@@ -6684,7 +6685,6 @@ captain_hold_lane_b() {
   test_reprobe_keeps_a_hold_changed_by_its_probe
   test_reprobe_release_retries_finalize_one_occurrence
   test_failed_and_unknown_probes_do_not_notify_the_parent
-  test_domain_probe_holds_wait_for_their_probe
 }
 
 case "${FM_CAPTAIN_HOLD_LANE:-all}" in
