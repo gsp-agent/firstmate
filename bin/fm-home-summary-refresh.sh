@@ -19,7 +19,7 @@
 # (default 60 seconds). No reader can observe temporary output through the
 # ledger path.
 #
-# With --best-effort, a failure is appended to the bounded home-local
+# For synchronous runs with --best-effort, a failure is appended to the bounded home-local
 # state/.home-summary-refresh.log when available, with stderr as the bounded
 # fallback, and the command exits zero. Without it, failures are printed and
 # returned to the direct caller for tests and diagnostics.
@@ -30,13 +30,24 @@
 # ledger only for registered secondmate homes), so in a main home a request
 # is a no-op. In a secondmate home a request only marks
 # state/.home-summary-dirty and starts one detached --_drain when no drain
-# holds the drain lock; the drain waits until the ledger is at least
-# FM_HOME_SUMMARY_INTERVAL seconds old, consumes the mark, and runs the
-# timed worker, then re-checks the mark so a request that landed during the
-# walk is not lost. A burst of crew events therefore costs at most one
-# summary walk per interval instead of one ~25,000-process walk per event
-# (.agent-config-ks05d). A direct run with no --request still publishes
-# synchronously (tests, diagnostics).
+# holds the drain lock. Requests always exit zero without publishing inline.
+# The drain waits until both the ledger mtime and the persisted attempt epoch
+# in state/.home-summary-attempt have aged by FM_HOME_SUMMARY_INTERVAL seconds
+# (default 300; invalid or zero values use 300). Age zero waits a full interval.
+# Each future-dated timestamp is ignored independently, so it cannot cancel
+# a cooldown established by the other timestamp after a clock rollback.
+# The request worker rechecks the cooldown under the publication lock, records
+# the attempt before consuming the mark, then runs the timed producer.
+# Failed attempts therefore retain their cooldown across drain restarts.
+# A busy publication lock leaves the mark pending; a request during the walk
+# remains for a later pass, and the drain rechecks for marks after releasing
+# its drain lock before exiting. A burst costs at most one walk per interval.
+# Worker timeouts and signal failures use the same bounded failure logger,
+# with the worker's start time preserving ordering against a later publication.
+# A direct run without --request publishes synchronously in any home and
+# bypasses the interval, including with --best-effort (tests, diagnostics).
+# Regression coverage: tests/fm-fork-budget.test.sh and
+# tests/fm-home-summary-refresh.test.sh.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -287,9 +298,7 @@ home_summary_is_secondmate() {
 }
 
 if [ "$HOME_SUMMARY_MODE" = request ]; then
-  # Side-band: never fail and never publish synchronously. A main home
-  # forks nothing beyond this shell; a secondmate home leaves a dirty mark
-  # and starts the single drain if none is running.
+  # Keep side-band callers independent of publication results; see the header.
   home_summary_is_secondmate || exit 0
   [ -d "$STATE" ] || mkdir -p "$STATE" 2>/dev/null || exit 0
   : >> "$DIRTY_MARK" 2>/dev/null || exit 0
