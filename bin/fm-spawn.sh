@@ -671,6 +671,8 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 . "$SCRIPT_DIR/fm-config-inherit-lib.sh"
 # shellcheck source=bin/fm-exclude-tools-lib.sh
 . "$SCRIPT_DIR/fm-exclude-tools-lib.sh"
+# shellcheck source=bin/fm-dispatch-profile-lib.sh
+. "$SCRIPT_DIR/fm-dispatch-profile-lib.sh"
 if ! LAUNCH_ENV_ENABLED=$(fm_config_source_present "$CONFIG/launch-env-allowlist"); then
   exit 1
 fi
@@ -2380,56 +2382,17 @@ shell_quote() {
   printf "'"
 }
 
-# dispatch_profile_pairs <harness>: print one "model<TAB>effort" line per
-# distinct pair config/crew-dispatch.json names for that harness, across the
-# default profiles, label_routes, and rules use profiles. This is the same
-# enumeration bin/fm-bootstrap.sh validates and bin/fm-dispatch-resolve.sh
-# reads; an omitted model or effort axis reads as default here because that
-# is what the profile records for the harness.
-dispatch_profile_pairs() {
-  local harness=$1
-  jq -r --arg h "$harness" '
-    def profiles($v):
-      if ($v | type) == "array" then $v
-      elif ($v | type) == "object" then [$v]
-      else [] end;
-    ([((.rules // [])[]? | profiles(.use? // null)[]?),
-       (profiles(.default // null)[]?),
-       ((.label_routes // {})[]? | profiles(.)[]?)]
-     | map(select(type == "object" and .harness == $h))
-     | map([(.model // "default"), (.effort // "default")] | @tsv)
-     | unique | .[])' "$CONFIG/crew-dispatch.json" 2>/dev/null
-}
-
-dispatch_profile_pairs_pretty() {
-  local pairs=$1 model effort out=
-  while IFS="$(printf '\t')" read -r model effort; do
-    [ -n "$model" ] || continue
-    out="${out:+$out, }$model $effort"
-  done <<EOF
-$pairs
-EOF
-  printf '%s\n' "$out"
-}
-
-# enforce_dispatch_profile: the pair half of the consultation backstop;
+# enforce_dispatch_profile: the pair half of the consultation backstop.
 # docs/configuration.md "Crew dispatch profiles" owns the acceptance rules.
-# Canonical flags cannot prove what a raw command actually launches, so even
-# matching flags cannot make a raw command satisfy the named-harness check.
+# bin/fm-dispatch-profile-lib.sh reads the file. Canonical flags cannot prove
+# what a raw command actually launches, so even matching flags cannot make a
+# raw command satisfy the named-harness check.
 enforce_dispatch_profile() {
-  local pairs pretty pair model effort eff_model eff_effort count
+  local pairs pretty model effort eff_model eff_effort resolved resolved_model resolved_effort
   [ "$KIND" != secondmate ] || return 0
-  [ -f "$CONFIG/crew-dispatch.json" ] || return 0
-  if ! command -v jq >/dev/null 2>&1; then
-    echo "error: config/crew-dispatch.json is active - jq is required to read its dispatch profiles for harness $HARNESS" >&2
-    exit 1
-  fi
-  if ! pairs=$(dispatch_profile_pairs "$HARNESS"); then
-    echo "error: config/crew-dispatch.json is active - could not read its dispatch profiles for harness $HARNESS; fix the file rather than spawning around it" >&2
-    exit 1
-  fi
+  pairs=$(fm_dispatch_profile_read "$CONFIG" "$HARNESS") || exit 1
   [ -n "$pairs" ] || return 0
-  pretty=$(dispatch_profile_pairs_pretty "$pairs")
+  pretty=$(fm_dispatch_profile_pairs_pretty "$pairs")
   if [ "$RAW_LAUNCH" != 0 ]; then
     echo "error: config/crew-dispatch.json is active - raw launch command for $HARNESS requires the canonical --harness $HARNESS launch with a dispatch profile (file: $pretty); pass the file pair for this harness with --model and --effort" >&2
     exit 1
@@ -2449,35 +2412,23 @@ enforce_dispatch_profile() {
     else
       eff_effort=$RELAUNCH_RECORDED_EFFORT
     fi
-  else
-    eff_model=${MODEL:-default}
-    eff_effort=${EFFORT:-default}
+    resolved=$(fm_dispatch_relaunch_decide "$ID" "$HARNESS" "$eff_model" "$eff_effort" "$pairs") || exit 1
+    resolved_model=${resolved%%$'\n'*}
+    resolved_effort=${resolved#*$'\n'}
+    resolved_effort=${resolved_effort%%$'\n'*}
+    if [ "$resolved_model" = default ]; then MODEL=; else MODEL=$resolved_model; fi
+    if [ "$resolved_effort" = default ]; then EFFORT=; else EFFORT=$resolved_effort; fi
+    return 0
   fi
+  eff_model=${MODEL:-default}
+  eff_effort=${EFFORT:-default}
   while IFS="$(printf '\t')" read -r model effort; do
     if [ "$model" = "$eff_model" ] && [ "$effort" = "$eff_effort" ]; then
-      if [ "$RELAUNCH" -eq 1 ]; then
-        if [ "$eff_model" = default ]; then MODEL=; else MODEL=$eff_model; fi
-        if [ "$eff_effort" = default ]; then EFFORT=; else EFFORT=$eff_effort; fi
-      fi
       return 0
     fi
   done <<EOF
 $pairs
 EOF
-  if [ "$RELAUNCH" -eq 1 ]; then
-    count=$(printf '%s\n' "$pairs" | grep -c .)
-    if [ "$count" -eq 1 ]; then
-      pair=$(printf '%s\n' "$pairs" | head -n 1)
-      model=$(printf '%s' "$pair" | cut -f1)
-      effort=$(printf '%s' "$pair" | cut -f2)
-      if [ "$model" = default ]; then MODEL=; else MODEL=$model; fi
-      if [ "$effort" = default ]; then EFFORT=; else EFFORT=$effort; fi
-      echo "dispatch profile: relaunch of $ID adopts the dispatch file pair for $HARNESS ($pretty) over the recorded $eff_model $eff_effort" >&2
-      return 0
-    fi
-    echo "error: config/crew-dispatch.json is active - relaunch of $ID on $HARNESS $eff_model $eff_effort matches no dispatch profile for $HARNESS, and the file names more than one pair for that harness ($pretty); resolve one pair at intake rather than guessing" >&2
-    exit 1
-  fi
   echo "error: config/crew-dispatch.json is active - spawn profile $HARNESS $eff_model $eff_effort matches no dispatch profile for $HARNESS (file: $pretty); pass the file pair for this harness" >&2
   exit 1
 }
