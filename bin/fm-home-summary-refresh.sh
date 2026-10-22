@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # fm-home-summary-refresh.sh - publish this home's structured summary ledger.
 #
-# Usage: fm-home-summary-refresh.sh [--best-effort]
+# Usage: fm-home-summary-refresh.sh [--best-effort | --request]
 #
 # The published state/home-summary.json is the exact
 # `fm-fleet-snapshot.sh --secondmate-home-summary` document for this FM_HOME.
@@ -21,10 +21,22 @@
 #
 # With --best-effort, a failure is appended to the bounded home-local
 # state/.home-summary-refresh.log when available, with stderr as the bounded
-# fallback, and the command exits zero. Session start, watcher, spawn, and
-# teardown use that mode so this side-band publication can never change their
-# result. Without it, failures are printed and returned to the direct caller
-# for tests and diagnostics.
+# fallback, and the command exits zero. Without it, failures are printed and
+# returned to the direct caller for tests and diagnostics.
+#
+# Side-band triggers (session start, watcher, spawn, teardown) use --request
+# instead: this home's ledger has no reader unless it is a secondmate home
+# (the .fm-secondmate-home marker; the parent fleet snapshot reads the
+# ledger only for registered secondmate homes), so in a main home a request
+# is a no-op. In a secondmate home a request only marks
+# state/.home-summary-dirty and starts one detached --_drain when no drain
+# holds the drain lock; the drain waits until the ledger is at least
+# FM_HOME_SUMMARY_INTERVAL seconds old, consumes the mark, and runs the
+# timed worker, then re-checks the mark so a request that landed during the
+# walk is not lost. A burst of crew events therefore costs at most one
+# summary walk per interval instead of one ~25,000-process walk per event
+# (.agent-config-ks05d). A direct run with no --request still publishes
+# synchronously (tests, diagnostics).
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,8 +49,11 @@ PROJECTS="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}"
 LEDGER="$STATE/home-summary.json"
 ERROR_LOG="$STATE/.home-summary-refresh.log"
 REFRESH_LOCK="$STATE/.home-summary-refresh.lock"
+DIRTY_MARK="$STATE/.home-summary-dirty"
+DRAIN_LOCK="$STATE/.home-summary-drain.lock"
 ERROR_LOG_MAX_BYTES=${FM_HOME_SUMMARY_ERROR_LOG_MAX_BYTES:-65536}
 HOME_SUMMARY_TIMEOUT=${FM_HOME_SUMMARY_TIMEOUT:-60}
+HOME_SUMMARY_INTERVAL=${FM_HOME_SUMMARY_INTERVAL:-300}
 HOME_SUMMARY_IF_IDLE=${FM_HOME_SUMMARY_IF_IDLE:-0}
 BEST_EFFORT=0
 HOME_SUMMARY_MODE=parent
@@ -59,6 +74,8 @@ usage() {
 case "${1:-}" in
   '') ;;
   --best-effort) BEST_EFFORT=1 ;;
+  --request) HOME_SUMMARY_MODE=request ;;
+  --_drain) HOME_SUMMARY_MODE=drain ;;
   --_worker)
     HOME_SUMMARY_MODE=worker
     BEST_EFFORT=${FM_HOME_SUMMARY_WORKER_BEST_EFFORT:-0}
@@ -72,6 +89,9 @@ case "$ERROR_LOG_MAX_BYTES" in
 esac
 case "$HOME_SUMMARY_TIMEOUT" in
   ''|*[!0-9]*|0) HOME_SUMMARY_TIMEOUT=60 ;;
+esac
+case "$HOME_SUMMARY_INTERVAL" in
+  ''|*[!0-9]*|0) HOME_SUMMARY_INTERVAL=300 ;;
 esac
 case "$HOME_SUMMARY_IF_IDLE" in
   0|1) ;;
@@ -212,6 +232,66 @@ if [ "$HOME_SUMMARY_MODE" = log-failure ]; then
   HOME_SUMMARY_ERROR=${FM_HOME_SUMMARY_PARENT_ERROR:-"refresh worker failed"}
   HOME_SUMMARY_FAILURE_STAMP=${FM_HOME_SUMMARY_PARENT_STAMP:-}
   home_summary_log_failure
+  exit 0
+fi
+
+# Only a secondmate home's ledger is ever read (fm-fleet-snapshot.sh reads
+# it for registered secondmate homes); a main home publishes for nobody.
+home_summary_is_secondmate() {
+  [ -f "$FM_HOME/.fm-secondmate-home" ]
+}
+
+if [ "$HOME_SUMMARY_MODE" = request ]; then
+  # Side-band: never fail and never publish synchronously. A main home
+  # forks nothing beyond this shell; a secondmate home leaves a dirty mark
+  # and starts the single drain if none is running.
+  home_summary_is_secondmate || exit 0
+  [ -d "$STATE" ] || mkdir -p "$STATE" 2>/dev/null || exit 0
+  : >> "$DIRTY_MARK" 2>/dev/null || exit 0
+  if fm_lock_try_acquire "$DRAIN_LOCK"; then
+    fm_lock_release "$DRAIN_LOCK"
+    "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_drain </dev/null >/dev/null 2>&1 &
+  fi
+  exit 0
+fi
+
+if [ "$HOME_SUMMARY_MODE" = drain ]; then
+  home_summary_is_secondmate || exit 0
+  fm_lock_try_acquire "$DRAIN_LOCK" || exit 0
+  trap 'fm_lock_release "$DRAIN_LOCK"' EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  drain_mtime=''; drain_now=''; drain_wait=0; drain_slice=0; drain_attempt=0
+  while [ -e "$DIRTY_MARK" ]; do
+    drain_mtime=$(stat -c %Y "$LEDGER" 2>/dev/null || stat -f %m "$LEDGER" 2>/dev/null || true)
+    case "$drain_mtime" in
+      ''|*[!0-9]*) drain_mtime=0 ;;
+    esac
+    # The last attempt also ages the next walk: a failing producer must not
+    # turn a steady request stream into back-to-back walks.
+    [ "$drain_attempt" -gt "$drain_mtime" ] && drain_mtime=$drain_attempt
+    fm_epoch_seconds_to drain_now
+    if [ "$drain_mtime" -ge "$drain_now" ]; then drain_wait=0
+    elif [ $((drain_now - drain_mtime)) -ge "$HOME_SUMMARY_INTERVAL" ]; then drain_wait=0
+    else drain_wait=$((HOME_SUMMARY_INTERVAL - (drain_now - drain_mtime))); fi
+    if [ "$drain_wait" -gt 0 ]; then
+      # Sleep in short slices and re-read the ledger: a direct publication
+      # or an aged ledger shortens the wait without another request.
+      drain_slice=$drain_wait
+      [ "$drain_slice" -gt 2 ] && drain_slice=2
+      sleep "$drain_slice"
+      continue
+    fi
+    rm -f -- "$DIRTY_MARK" 2>/dev/null || true
+    fm_epoch_seconds_to drain_attempt
+    # IF_IDLE: a publication already in flight covers this mark; never
+    # queue a second walk behind its lock.
+    fm_run_timed "$HOME_SUMMARY_TIMEOUT" env \
+      FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 \
+      FM_HOME_SUMMARY_IF_IDLE=1 \
+      "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_worker >/dev/null 2>&1 || true
+  done
   exit 0
 fi
 

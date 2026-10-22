@@ -2577,6 +2577,10 @@ fi
 # is what the whole supervision chain rests on.
 HOME_SUMMARY_PID=
 home_summary_refresh_detached() {
+  # A main home's ledger has no reader: fork nothing for it. A secondmate
+  # home only marks the summary dirty; the refresh script's single drain
+  # publishes at most once per FM_HOME_SUMMARY_INTERVAL (.agent-config-ks05d).
+  [ -f "$FM_HOME/.fm-secondmate-home" ] || return 0
   if [ -n "$HOME_SUMMARY_PID" ]; then
     if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
       return 0
@@ -2584,8 +2588,7 @@ home_summary_refresh_detached() {
     wait "$HOME_SUMMARY_PID" 2>/dev/null || true
     HOME_SUMMARY_PID=
   fi
-  FM_HOME_SUMMARY_IF_IDLE=1 \
-    "$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort </dev/null >/dev/null 2>&1 &
+  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request </dev/null >/dev/null 2>&1 &
   HOME_SUMMARY_PID=$!
 }
 

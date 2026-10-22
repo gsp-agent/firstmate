@@ -737,8 +737,9 @@ make_path_without_lsof() {  # <case-dir>
 }
 
 test_local_only_fork_remote_allows() {
-  local case_dir rc
+  local case_dir rc i
   case_dir=$(make_case fork-allow)
+  printf 'mate\n' > "$case_dir/.fm-secondmate-home"
   write_meta "$case_dir" local-only ship
   wt_commit "$case_dir" "fix the thing"
   add_fork_with_pushed_branch "$case_dir"
@@ -768,6 +769,10 @@ test_local_only_fork_remote_allows() {
     || fail "fork-allow: post-teardown branch report recreated the retired task index"
   [ "$(cat "$case_dir/state/.branch-outcome-index-ready")" = 1 ] \
     || fail "fork-allow: post-teardown branch report did not publish its ready sequence"
+  i=0
+  while [ ! -f "$case_dir/state/home-summary.json" ] && [ "$i" -lt 150 ]; do
+    sleep 0.1; i=$((i + 1))
+  done
   jq -e --arg id task-x1 '
     .schema == "fm-secondmate-home-summary.v1"
     and all(.endpoints[]; .id != $id)
