@@ -481,6 +481,10 @@
       "audience": "maintainer-verification"
     },
     {
+      "path": "docs/verification/codex.md",
+      "audience": "maintainer-verification"
+    },
+    {
       "path": "docs/verification/devin.md",
       "audience": "maintainer-verification"
     },

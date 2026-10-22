@@ -74,6 +74,10 @@ case "$1 $2" in
     printf '{"ok":true}\n'
     exit 0
     ;;
+  "terminal read")
+    printf '{"ok":true,"result":{"terminal":{"tail":["• Working (1s • esc to interrupt)"]}}}\n'
+    exit 0
+    ;;
 esac
 exit 0
 SH
@@ -100,8 +104,9 @@ Exercise an Orca-backed spawn for $id.
 Confirm the launch enters the worktree Orca created for it.
 EOF
   fb=$(make_orca_fakebin "$case_dir")
+  mkdir -p "$case_dir/user-home"
 
-  out=$(FM_ROOT_OVERRIDE='' FM_HOME="$home" HOME="$case_dir/user-home" \
+  out=$(FM_ROOT_OVERRIDE='' FM_HOME="$home" HOME="$case_dir/user-home" CODEX_HOME='' \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
     FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
     FM_SPAWN_NO_GUARD=1 FM_TEST_ORCA_DIR="$case_dir" PATH="$fb:$PATH" \

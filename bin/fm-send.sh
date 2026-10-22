@@ -75,6 +75,10 @@
 # default to 20 for agy's late busy render) / FM_SEND_SLEEP (0.4). Slash
 # commands, and codex `$...` skill invocations resolved through harness meta,
 # get a longer pre-Enter settle so completion popups do not swallow Enter.
+# When local metadata resolves the target, typed submission holds that task's
+# metadata lock, revalidates its endpoint, and refreshes metadata activity
+# before submitting, including for explicit targets matched to metadata.
+# bin/fm-inactive-reconcile.sh owns terminal closure's use of that same lock.
 # A remote secondmate target has no typed text plane at all:
 # every remote text steer rides the inbox (a marked secondmate request already
 # reaches the harness as marker-prefixed chat rather than a parser command, so
@@ -1138,7 +1142,25 @@ else
   # block: remote text rides the inbox leg above, and remote --key exits
   # earlier.
   send_rc=0
-  if verdict=$(fm_backend_send_text_submit "$TARGET_BACKEND" "$T" "$MESSAGE" "$retries" "$sleep_s" "$settle" "$EXPECTED_LABEL"); then
+  if verdict=$(
+    if [ -n "$TARGET_META" ]; then
+      native_lock=$(fm_meta_lock_path "$TARGET_META") || exit 1
+      if ! fm_task_inbox_lock_acquire "$native_lock"; then
+        echo "error: task metadata could not be locked for native submission" >&2
+        exit 1
+      fi
+      trap 'fm_lock_release "$native_lock"' EXIT
+      if [ ! -f "$TARGET_META" ] \
+        || [ "$(fm_backend_target_of_meta "$TARGET_META")" != "$T" ] \
+        || [ "$(fm_backend_of_meta "$TARGET_META")" != "$TARGET_BACKEND" ] \
+        || [ -n "$(fm_meta_get "$TARGET_META" remote_host)" ]; then
+        echo "error: task endpoint changed before native submission" >&2
+        exit 1
+      fi
+      touch "$TARGET_META" || exit 1
+    fi
+    fm_backend_send_text_submit "$TARGET_BACKEND" "$T" "$MESSAGE" "$retries" "$sleep_s" "$settle" "$EXPECTED_LABEL"
+  ); then
     :
   else
     send_rc=$?

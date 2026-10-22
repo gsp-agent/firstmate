@@ -190,10 +190,15 @@ STATE=$(fm_backend_agent_state herdr "$SESSION:$PANE_ID")
 pass "real herdr $HERDR_VERSION: a gone session reads recoverable while a live pane and a malformed target do not"
 
 FAKEBIN="$SCRATCH/fakebin"
-mkdir -p "$FAKEBIN"
+# A codex relaunch records folder trust in its CODEX_HOME (bin/fm-codex-trust.sh),
+# so it gets a throwaway one rather than the developer's store, and the inert
+# stand-in draws codex's in-turn footer so the spawn's launch gate sees a turn.
+CODEX_HOME_LAB="$SCRATCH/codex-home"
+mkdir -p "$FAKEBIN" "$CODEX_HOME_LAB"
 cat > "$FAKEBIN/codex" <<EOF
 #!/usr/bin/env bash
 : > "$SCRATCH/codex-launched"
+printf '%s\n' '• Working (1s • esc to interrupt)'
 EOF
 chmod +x "$FAKEBIN/codex"
 printf -v FAKEBIN_Q '%q' "$FAKEBIN"
@@ -209,7 +214,7 @@ done
 [ "$(fm_backend_herdr_current_path "$SESSION:$PANE_ID" 2>/dev/null || true)" = "$PROJ_REAL" ] \
   || fail "the real Herdr pane did not drift out of its recorded worktree"
 
-OUT=$(env FM_HOME="$HOME_DIR" HERDR_SESSION="$SESSION" FM_SPAWN_NO_GUARD=1 \
+OUT=$(env FM_HOME="$HOME_DIR" HERDR_SESSION="$SESSION" FM_SPAWN_NO_GUARD=1 CODEX_HOME="$CODEX_HOME_LAB" \
   "$ROOT/bin/fm-spawn.sh" hsmoke --relaunch --harness codex) \
   || fail "a drifted, agent-free Herdr pane should be re-homed and relaunched: $OUT"
 for _ in $(seq 1 20); do
@@ -323,7 +328,7 @@ esac
 pass "real herdr: exit on a pane with a stale registration is idempotent success"
 
 rm -f "$SCRATCH/codex-launched"
-OUT=$(env FM_HOME="$HOME_DIR" HERDR_SESSION="$SESSION" FM_SPAWN_NO_GUARD=1 \
+OUT=$(env FM_HOME="$HOME_DIR" HERDR_SESSION="$SESSION" FM_SPAWN_NO_GUARD=1 CODEX_HOME="$CODEX_HOME_LAB" \
   "$ROOT/bin/fm-spawn.sh" hsmoke --relaunch --harness codex) \
   || fail "a stale-registration Herdr pane should be relaunched: $OUT"
 for _ in $(seq 1 20); do

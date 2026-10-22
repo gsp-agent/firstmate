@@ -704,19 +704,24 @@ case "${1:-}" in
   display-message) printf 'firstmate\n'; exit 0 ;;
   list-windows) exit 0 ;;
   has-session|new-session|new-window|kill-window) exit 0 ;;
+  capture-pane)
+    [ ! -e "$0.codex-launched" ] || printf '%s\n' '• Working (1s • esc to interrupt)'
+    exit 0
+    ;;
   send-keys)
-    if [ -n "${FM_FAKE_LAUNCH_LOG:-}" ]; then
-      prev=
-      for a in "$@"; do
-        if [ "$prev" = "-l" ]; then
-          case "$a" in
-            ". '"*"'") staged=${a#". '"}; staged=${staged%"'"}; [ ! -f "$staged" ] || a=$(cat "$staged") ;;
-          esac
-          printf '%s\n' "$a" >> "$FM_FAKE_LAUNCH_LOG"
-        fi
-        prev=$a
-      done
-    fi
+    prev=
+    for a in "$@"; do
+      if [ "$prev" = "-l" ]; then
+        case "$a" in
+          ". '"*"'") staged=${a#". '"}; staged=${staged%"'"}; [ ! -f "$staged" ] || a=$(cat "$staged") ;;
+        esac
+        case "$a" in
+          *"codex "*) : > "$0.codex-launched" ;;
+        esac
+        [ -z "${FM_FAKE_LAUNCH_LOG:-}" ] || printf '%s\n' "$a" >> "$FM_FAKE_LAUNCH_LOG"
+      fi
+      prev=$a
+    done
     exit 0
     ;;
 esac
@@ -724,10 +729,11 @@ exit 0
 SH
   chmod +x "$fakebin/tmux"
   fm_fake_exit0 "$fakebin" pi
-  # BASE_PATH deliberately omits the developer's node, which the trust
-  # registration below needs, so link the real one in rather than presenting a
-  # node-less spawn host no real fleet member looks like.
+  # BASE_PATH deliberately omits the developer's node and python3, which the
+  # claude and codex trust registrations below need, so link the real ones in
+  # rather than presenting a spawn host no real fleet member looks like.
   ln -sf "$(command -v node)" "$fakebin/node"
+  ln -sf "$(command -v python3)" "$fakebin/python3"
   printf '%s\n' "$fakebin"
 }
 
@@ -1058,7 +1064,9 @@ Exercise an ordinary crew launch.
 Verify secondmate harness settings do not affect it.
 EOF
   : > "$launchlog"
+  mkdir -p "$w/crew-user-home"
   PATH="$fakebin:$BASE_PATH" TMUX="fake,1,0" CLAUDECODE=1 \
+    HOME="$w/crew-user-home" CODEX_HOME='' \
     FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
     FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \

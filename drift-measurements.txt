@@ -1,3 +1,7 @@
+The current manifest format and replay rules are owned by bin/fm-drift-nightly.sh's header.
+The PR-keyed acceptance measurement is "PR 25 squash acceptance on upstream-lean" below.
+Earlier measurements apply to the revisions they name; their SHA entries, pending:, after:, and carried-unproven examples describe earlier guard versions, not the current manifest or output.
+
 Nightly drift guard measured on this machine
 Measured: 2026-10-14T13:08:36.431099-05:00
 Platform: Darwin 27.2.0 arm64
@@ -831,3 +835,19 @@ The manifest now lists 881214e1 with its R27 proof and e49413a2 with the section
 Required post-commit command: bash bin/fm-drift-nightly.sh check --no-fetch --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1
 Required result: exit 0, zero path-drift and carried-unproven lines, and 26 pending lines naming .agent-config-dtjsb on the resulting head.
 Checked before the commit on an unreferenced scratch commit made with git commit-tree from this final tree on e49413a2 (bash bin/fm-drift-nightly.sh check --no-fetch --fork <scratch sha> --upstream 7df545bf74ff729ed1733f77b0aea02a9b164ac1, which reads the scratch commit's own drift-proof.txt): exit 0, 26 pending lines naming .agent-config-dtjsb, zero path-drift and carried-unproven lines, keep for 881214e1, e49413a2 and the scratch commit, and the same 35 unproven cut commits that 881214e1's own check prints.
+
+PR 25 squash acceptance on upstream-lean
+Measured: 2026-10-21 (Central), git 2.56.0
+PR 25 was squash-merged as cfb4a4d1, so every branch SHA its SHA-keyed manifest pinned left the ancestry and the old check exited 2 with "proof commit is not reachable from fork: ec259ec5".
+The manifest is now keyed on PR number and the guard replays first-parent patches only, so a squash cannot strand an entry again.
+With this change's script and manifest on upstream-lean 97a45e03 against kunchenguid/main 3847411b (bash bin/fm-drift-nightly.sh check --no-fetch --upstream kunchenguid/main --fork 97a45e03 --proof drift-proof.txt): exit 0, behind 59, ahead 103, 147 path-ok lines, 0 path-drift lines, 26 keep lines, 77 pending lines naming .agent-config-dtjsb, 0 unproven lines, and one "unmatched: 53" line for this PR's own entry.
+The 77 pending lines include the seven former weak keeps #8, #11, #12, #16, #17 and #18 and #22, which have no measurement in this file under their SHAs or their PR numbers and are owed on .agent-config-dtjsb like the other pending PRs.
+They also include #54, #44, #45, #58, #59, #60, #51, #64, #67, #69, #66 and #76, which landed on upstream-lean after 8a8b4734 with no measurement in this file.
+On upstream-lean cdd12e94 against kunchenguid/main 97316301, without the eight lines #54 through #64 and with the previous script, the same check exited 1 with 62 path-drift lines and those eight squashes unproven.
+A scratch squash of this PR's tree onto upstream-lean 97a45e03 with a "(#53)" subject, made with git commit-tree and checked with --upstream kunchenguid/main --fork <scratch sha> and its own drift-proof.txt, exits 0 with behind 59, ahead 104, 148 path-ok, 0 path-drift, 27 keep, 77 pending, 0 unproven, 0 unmatched and 0 error lines, and keeps the scratch squash.
+The same squash without the #67, #69, #66 and #76 lines exits 1 with 24 path-drift lines, 9 unproven lines and one "error: missing manifest entry for PR <N>" line for each of the four.
+The check stays green after this PR lands only while every PR landing on upstream-lean carries its own pr: or pending-pr: line.
+The squash regression in tests/fm-drift-nightly.test.sh fails on the previous script with exit 2 ("proof line is not a full sha: pr: 7") and passes on this script with exit 0, "path-ok: notes.txt" and "keep: <squash sha> add notes (#7)".
+The open-PR regression fails on the previous script with exit 2 ("proof PR has no first-parent commit: 7") and passes on this script with exit 1 and "unmatched: 7" on the open branch and exit 0 once its squash lands.
+PR 25's 46 pre-squash branch commits stay reachable on origin archive/fm-drift-nightly-b2216803, pushed from b2216803 before origin/fm/fm-drift-nightly is deleted.
+This repair's own proof is the squash, merge, forgotten-line, wrong-number and open-PR regressions in tests/fm-drift-nightly.test.sh; its own "pr: 53" line names that test file.

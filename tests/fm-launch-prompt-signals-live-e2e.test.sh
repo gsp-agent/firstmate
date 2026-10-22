@@ -11,10 +11,11 @@
 # caught it.
 #
 # For each of claude, pi (covering pi-signed and omp, which share Pi's engine
-# and trust gate), and gemini that is actually installed, this drives the REAL
-# binary in an isolated tmux server into its genuine interactive launch prompt
-# (a fresh untrusted worktree carrying a project-local trust-requiring
-# resource for claude and pi, a fresh credential-less environment for gemini),
+# and trust gate), gemini, and codex that is actually installed, this drives the
+# REAL binary in an isolated tmux server into its genuine interactive launch
+# prompt (a fresh untrusted worktree carrying a project-local trust-requiring
+# resource for claude and pi, a fresh credential-less environment for gemini,
+# a repository root absent from an isolated CODEX_HOME for codex),
 # captures the pane with the exact production shape (bin/fm-backend.sh's
 # fm_backend_tmux_capture: `tmux capture-pane -p -S -40`), arms a scratch
 # busy-state record exactly as fm-spawn.sh does at launch, and requires
@@ -35,7 +36,7 @@
 #
 # Run explicitly with FM_LAUNCH_PROMPT_SIGNALS_LIVE=1. Refresh
 # docs/verification/runtime-backends.md ("Launch-prompt backstop signatures")
-# from this guard's output after any of claude/pi/gemini upgrades.
+# from this guard's output after any of claude/pi/gemini/codex upgrades.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -197,6 +198,28 @@ if [ -x "${GEMINI_BIN:-}" ]; then
   pass "gemini: a real launch parked on its own rendered auth or trust dialog surfaces through the watcher gate"
 else
   note "gemini not installed - launch-prompt signature not checked"
+fi
+
+CODEX_BIN=$(command -v codex 2>/dev/null || true)
+CODEX_AUTH="${CODEX_HOME:-$HOME/.codex}/auth.json"
+if [ -x "${CODEX_BIN:-}" ] && [ -f "$CODEX_AUTH" ]; then
+  VERSION_OUT=$("$CODEX_BIN" --version 2>&1) || fail "codex --version failed: $VERSION_OUT"
+  note "live codex version: $VERSION_OUT"
+  # Codex shows its sign-in screen ahead of any trust prompt when it holds no
+  # credential, so the isolated CODEX_HOME reaches the operator's credential
+  # through a symlink; its config has no entry for the scratch repository root,
+  # and the operator's own config is never read or written.
+  CODEX_HOME_LAB=$(mktemp -d "${TMPDIR:-/tmp}/fm-launch-prompt-codex-home.XXXXXX") || fail "codex: could not create the isolated CODEX_HOME"
+  LABS+=("$CODEX_HOME_LAB")
+  ln -s "$CODEX_AUTH" "$CODEX_HOME_LAB/auth.json" || fail "codex: could not link the credential into the isolated CODEX_HOME"
+  check_harness codex fm-lp-codex-$$ '' '' \
+    'Trust this folder' '' \
+    env CODEX_HOME="$CODEX_HOME_LAB" "$CODEX_BIN" --dangerously-bypass-approvals-and-sandbox --disable hooks hello
+  pass "codex: a real launch parked on its own rendered folder-access prompt surfaces through the watcher gate"
+elif [ -x "${CODEX_BIN:-}" ]; then
+  note "codex holds no credential at $CODEX_AUTH - launch-prompt signature not checked"
+else
+  note "codex not installed - launch-prompt signature not checked"
 fi
 
 [ "$CHECKED" -gt 0 ] || fail "no installed harness could be checked; this run verified nothing"

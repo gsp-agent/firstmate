@@ -774,7 +774,13 @@ case "$MODE" in
     ;;
 esac
 RULE1=$(fm_ship_rule_one "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH") || exit 1
-DOD=$(fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$FM_HOME" "$FM_ROOT") || exit 1
+# The repo slug comes only from an explicitly passed --project: falling back
+# to the caller's working directory would read the captain's own checkout
+# (usually a firstmate clone) and stamp its CI posture onto any project's
+# brief. No --project means no slug, and the DoD simply carries no skip line.
+REPO_SLUG=
+[ "$PROJECT_DIR_SET" -eq 0 ] || REPO_SLUG=$(fm_dod_repo_slug "$PROJECT_DIR")
+DOD=$(fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$FM_HOME" "$FM_ROOT" "$REPO_SLUG") || exit 1
 
 write_new_brief <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.

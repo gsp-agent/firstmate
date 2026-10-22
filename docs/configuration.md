@@ -102,7 +102,7 @@ Untracked files and directories whose names begin with `scratchpad` are also git
 
 - `bin/fm-spawn.sh` owns the base task-metadata fields it emits, while the runtime-backend section below owns backend-specific fields and selector interpretation.
 
-- After ship or scout retirement, [`bin/fm-task-data.py`'s header and `--help`](../bin/fm-task-data.py) own automatic clone/scratch pruning, evidence retention, one-cycle recovery, and guarded expiry.
+- For ship or scout retirement, [`bin/fm-task-data.py`'s header and `--help`](../bin/fm-task-data.py) own automatic clone/scratch pruning, evidence retention, one-cycle recovery, and guarded expiry.
 
 - `bin/fm-contributions.sh` owns durable published-contribution records under each task, observation bounds, equivalent triage-label configuration, and the authenticated contribution check.
 
@@ -657,6 +657,11 @@ That branch shares no history with code branches, so evidence never enters a pus
 The [`firstmate-coding-guidelines` skill](../.agents/skills/firstmate-coding-guidelines/SKILL.md#no-mistakes-test-configuration) owns why `commands.test` stays absent and targeted validation belongs to the evidence path.
 
 `commands.test` executes code, so no-mistakes honors it only from the default-branch copy of `.no-mistakes.yaml`; a pushed branch cannot change what the gate runs.
+
+The same trusted copy declares one extra gate, `stock-macos-bash`, which runs `bin/fm-stock-bash-check.sh` after lint and before push, so a red parks the run before any push or PR.
+It is this fork's only stock macOS Bash 3.2 check: GitHub's hosted macOS runners for the fork queue for hours or are never acquired, and a cancelled check held every PR, so the fork removed the `macos-stock-bash` CI job (decided 2026-10-21).
+The check needs the Mac's own `/bin/bash` 3.2.57 and fails closed on any other host; it is a fixed compatibility check, not a suite walk, so it does not reopen `commands.test`.
+The script header owns what it runs, its counts, and its time and memory bounds; run it by hand with `bin/fm-stock-bash-check.sh`.
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for the firstmate-specific local test policy and entry points.
 
 Portable shard evidence and coverage rules are in [fm-test-portable-shards.md](fm-test-portable-shards.md); [herdr-backend.md](herdr-backend.md#destructive-lab-safety) owns the real-Herdr lane's isolation boundary, and [runtime-backends.md](verification/runtime-backends.md#herdr) owns active evidence.
@@ -787,6 +792,7 @@ claude, codex, opencode, pi, pi-signed, grok, kimi, cursor, and omp are empirica
 
 ### Harness restrictions and credentials
 
+The [Codex adapter reference](../.agents/skills/harness-adapters/references/harness/codex.md#folder-trust) owns folder-trust registration and launch refusals for Codex crewmates and scouts.
 `fm-spawn.sh` refuses kimi on cmux and Orca at preflight, because answering Kimi's folder-trust dialog needs a verified viewport-only capture those backends lack; [its adapter reference](../.agents/skills/harness-adapters/references/harness/kimi.md#readiness-gated-start) owns the trust-dialog handling.
 A cursor secondmate or primary runs the tracked project-scope `.cursor/hooks.json` in its own home and must be launched with `--trust`, or no project hook loads; [`docs/supervision-protocols/cursor.md`](supervision-protocols/cursor.md) owns its supervision protocol.
 
@@ -909,6 +915,16 @@ The diagnostic names the accepted values; Firstmate never falls back to a permis
 The file is a captain-wide safety preference, so it is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract; a secondmate's own Claude crewmates then launch on the same posture.
 
 The [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) records the permission-mode observations and the distinct startup dialogs.
+
+## Claude worker MCP servers (FM_CREW_MCP_TRIM)
+
+Ship and scout workers launched through the Claude adapter load no MCP servers by default, avoiding idle MCP child processes for task workers.
+Each spawn or relaunch writes an empty `mcpServers` configuration to the launching home's `state/<id>.mcp-crew.json` and selects it with Claude's strict MCP configuration flags.
+Claude secondmates retain their normal MCP configuration, and other harnesses are unaffected.
+Set `FM_CREW_MCP_TRIM=0` in the environment running `fm-spawn.sh` to restore normal MCP loading for the next Claude worker launch.
+Unset or empty values default to `1`; only `1` enables trimming.
+This launch policy does not edit user or project MCP configuration.
+[`bin/fm-spawn.sh`](../bin/fm-spawn.sh) owns the launch mechanics; [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) covers the default Claude launch line.
 
 ## Worker tool exclusions (config/crew-exclude-tools)
 
@@ -2419,7 +2435,7 @@ FM_STATE_OVERRIDE=       # alternate state dir, mainly for tests
 FM_DATA_OVERRIDE=        # alternate data dir, mainly for tests
 FM_PROJECTS_OVERRIDE=    # alternate projects dir, mainly for tests
 FM_CONFIG_OVERRIDE=      # alternate config dir, mainly for tests
-FM_PROC_ROOT_OVERRIDE=   # alternate /proc root for Linux process-identity reads in fm-wake-lib.sh and fm-teardown.sh, mainly for tests
+FM_PROC_ROOT_OVERRIDE=   # alternate /proc root for Linux process-identity reads in fm-wake-lib.sh and fm-task-reap-lib.sh, mainly for tests
 FM_BACKEND=             # optional runtime backend override for new spawns; tmux/herdr/zellij/orca/cmux support ship/scout spawns, codex-app is not accepted
 FM_TRACE_CONTEXT=       # optional trace-context override; see "Trace context propagation"
 FM_TASK_ID=             # internal task-worker marker fm-spawn.sh exports into ship and scout panes, never set by hand; bin/fm-test-run.sh refuses to execute in the repository primary checkout while it is set
@@ -2452,8 +2468,8 @@ FM_SNAPSHOT_UNDATED_HOLD_AGE_DAYS=14  # floored elapsed-day threshold at which a
 FM_RECONCILE_REQUEST_MAX_BYTES=1048576   # maximum captured Bearings or fleet snapshot accepted for durable reconcile-notify request publication
 FM_HEARTBEAT=600        # base seconds between heartbeat scans; no-change heartbeats are absorbed while idle
 FM_HEARTBEAT_MAX=7200   # heartbeat backoff cap
-FM_INACTIVE_RECONCILE_SECS=900  # 60..1800-second watcher cadence and inactivity threshold; locked session start also requests an immediate scan in the deferred worker
-FM_INACTIVE_RECONCILE_BUDGET_SECS=10  # 1..30-second scan deadline; wedged-scan kill backstop follows one second later
+FM_INACTIVE_RECONCILE_SECS=300  # watcher default; an explicit environment value wins; bin/fm-inactive-reconcile.sh's header owns standalone/startup defaults, ranges, and scan mechanics
+FM_INACTIVE_RECONCILE_BUDGET_SECS=30  # watcher default; an explicit environment value wins; see the same reconciler header for deadline mechanics
 FM_CHECK_INTERVAL=300   # seconds between slow check sweeps; bin/fm-watch.sh owns their scope
 FM_TASK_INBOX_GRACE_SECS=90   # seconds an unhandled steering-inbox message may sit before the watcher attempts doorbell delivery on an idle pane; also the minimum spacing between attempts
 FM_TASK_INBOX_RING_MAX=3      # watcher delivery attempts without an acknowledgement before the task surfaces as a stale wake for recovery
@@ -2477,9 +2493,9 @@ FM_CODEX_WATCH_CHECKPOINT=180   # seconds per foreground watcher checkpoint in C
 FM_CODEX_WATCH_CHECKPOINT_AWAY=3600  # requested away checkpoint bound on a home that runs the supervision host; longer of this and attended bound, capped at 27000
 FM_CREW_STATE_NM_TIMEOUT=10   # seconds allowed per no-mistakes query inside fm-crew-state.sh, and per state-database run-inventory read behind a capped AXI overview
 FM_TEARDOWN_NM_TIMEOUT=10    # seconds allowed per no-mistakes query or abort inside fm-teardown.sh
-FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=10   # seconds after releasing its locks during which fm-teardown.sh starts and runs attempts to expire other tasks' held data; an ordinary attempt still running when it ends is cut off, while a hold's one full attempt (next line) can run past it; invalid or zero values use 10
-FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=60   # exact seconds of the one full attempt a hold cut off by that budget gets on a later teardown, whatever remains of the budget, so it can run past it; a hold cut off again is skipped and named for expiry by hand; invalid or zero values use 60
-FM_TEARDOWN_DATA_STAGE_TIMEOUT=10   # seconds after a retiring task's own task-data stage starts, including reading its references, after which its evidence and reference reads and its reference matching stop while fm-teardown.sh still holds its locks; past it nothing is moved, the folder stays whole for a later teardown and the backlog close still completes; invalid or zero values use 10
+FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=10   # foreground task-data expiry budget; bin/fm-task-data.py's header owns timing, retries, and background sweeping
+FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=60   # foreground full retry allowance; see the same task-data contract for cut-off and too-large holds
+FM_TEARDOWN_DATA_STAGE_TIMEOUT=10   # retiring task's reference-read and matching limit; see the same task-data contract for whole-folder retention and retry
 FM_CREW_STATE_RUNS_LIMIT=200  # plain runs-ledger rows scanned for fallback attribution; does not change the CLI's AXI overview window (selection owner: bin/fm-nm-run-lib.sh)
 FM_TEARDOWN_NM_RUNS_LIMIT=200  # recent no-mistakes run rows scanned to prove an unresolved-head parked run belongs to teardown's task
 FM_CREW_STATE_BIN=bin/fm-crew-state.sh   # test override for the current-state reader used by watcher triage: the working/paused classification, and the wedge timer's parked-gate wait evidence

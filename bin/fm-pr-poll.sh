@@ -15,6 +15,10 @@
 # needs no extra tooling to follow GitHub or GitLab. The Gerrit and Forgejo
 # branches additionally need jq, which bin/fm-pr-check.sh refuses to arm those
 # watches without.
+# The watcher asks this file to read every authenticated GitHub poll in one
+# sweep as one GraphQL query with one aliased pullRequest field per pull
+# request. Each poll reports from that result. A failed sweep stays silent for
+# the polls it covered. A poll the sweep did not cover reads itself.
 set -u
 LC_ALL=C
 export LC_ALL
@@ -120,33 +124,23 @@ poll_emit_dequeue() {
   printf 'dequeued %s reason=%s event=%s\n' "$url" "$GH_POLL_REASON" "$GH_POLL_EVENT"
 }
 
-github_read_poll() {
-  local fields line total=0
-  local state='' merged='' queued='' reason='' event=''
-  local saw_state=0 saw_merged=0 saw_queued=0 saw_reason=0 saw_event=0
-  # shellcheck disable=SC2016  # GraphQL and jq text are literal.
-  fields=$(gh api graphql --hostname "$host" \
-    -f query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}' \
-    -f "owner=$owner" -f "repo=$repo" -F "number=$number" \
-    --jq '.data.repository.pullRequest | ((.timelineItems.nodes // []) | last // {}) as $event | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "reason=" + (($event.reason // "") | tojson | .[1:-1]), "event=" + (($event.id // "") | if test("^[A-Za-z0-9_+/=-]{0,256}$") then . else "" end)' \
-    2>/dev/null) || return 1
-  [ -n "$fields" ] || return 1
-  while IFS= read -r line; do
-    total=$((total + 1))
-    case "$line" in
-      state=*) state=${line#state=}; saw_state=$((saw_state + 1)) ;;
-      merged=*) merged=${line#merged=}; saw_merged=$((saw_merged + 1)) ;;
-      queued=*) queued=${line#queued=}; saw_queued=$((saw_queued + 1)) ;;
-      reason=*) reason=${line#reason=}; saw_reason=$((saw_reason + 1)) ;;
-      event=*) event=${line#event=}; saw_event=$((saw_event + 1)) ;;
-      *) return 1 ;;
-    esac
-  done <<EOF
-$fields
-EOF
-  [ "$total" -eq 5 ] || return 1
-  [ "$saw_state" -eq 1 ] && [ "$saw_merged" -eq 1 ] \
-    && [ "$saw_queued" -eq 1 ] && [ "$saw_reason" -eq 1 ] && [ "$saw_event" -eq 1 ] || return 1
+github_identity_ok() {
+  [ "$host" = github.com ] || return 1
+  owner=${path%%/*}
+  repo=${path#*/}
+  [ "${#owner}" -ge 1 ] && [ "${#owner}" -le 39 ] || return 1
+  case "$owner" in
+    *[!A-Za-z0-9-]*|-*|*-|*--*) return 1 ;;
+  esac
+  [ "${#repo}" -ge 1 ] && [ "${#repo}" -le 100 ] || return 1
+  case "$repo" in
+    .|..|*[!A-Za-z0-9._-]*) return 1 ;;
+  esac
+  [ "$url" = "https://github.com/$owner/$repo/pull/$number" ]
+}
+
+poll_accept_reading() {
+  local state=$1 merged=$2 queued=$3 reason=$4 event=$5
   [ -n "$state" ] || return 1
   { [ "$merged" = true ] || [ "$merged" = false ]; } || return 1
   { [ "$queued" = true ] || [ "$queued" = false ]; } || return 1
@@ -170,6 +164,258 @@ EOF
   GH_POLL_STATE=$state
 }
 
+poll_cache_write_missing() {
+  printf 'key=%s/%s#%s\nmissing=1\n.\n' "$1" "$2" "$3" >> "$FM_PR_POLL_BATCH_CACHE"
+}
+
+poll_cache_write_reading() {
+  printf 'key=%s/%s#%s\nstate=%s\nmerged=%s\nqueued=%s\nreason=%s\nevent=%s\n.\n' \
+    "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" >> "$FM_PR_POLL_BATCH_CACHE"
+}
+
+# 0: this sweep recorded an accepted reading. 1: this sweep covered the poll
+# and the reading is missing or unusable, so the poll stays silent. 2: this
+# sweep did not cover the poll, so the caller reads it itself.
+poll_batch_lookup() {
+  local cache=${FM_PR_POLL_BATCH_CACHE-}
+  local key line phase=seek missing=0
+  local state='' merged='' queued='' reason='' event=''
+  [ -n "$cache" ] || return 2
+  [ -f "$cache" ] && [ ! -L "$cache" ] || return 2
+  key="key=$owner/$repo#$number"
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$phase" in
+      seek)
+        [ "$line" = "$key" ] || continue
+        phase='read'
+        missing=0
+        state=''
+        merged=''
+        queued=''
+        reason=''
+        event=''
+        ;;
+      read)
+        case "$line" in
+          .)
+            if [ "$missing" -eq 1 ]; then
+              return 1
+            fi
+            poll_accept_reading "$state" "$merged" "$queued" "$reason" "$event" && return 0
+            return 1
+            ;;
+          missing=1) missing=1 ;;
+          state=*) state=${line#state=} ;;
+          merged=*) merged=${line#merged=} ;;
+          queued=*) queued=${line#queued=} ;;
+          reason=*) reason=${line#reason=} ;;
+          event=*) event=${line#event=} ;;
+          *) return 1 ;;
+        esac
+        ;;
+    esac
+  done < "$cache"
+  if [ "$phase" = read ]; then
+    return 1
+  fi
+  return 2
+}
+
+poll_batch_commit_one() {
+  local owner=$1 repo=$2 number=$3 missing=$4 bad=$5
+  local state=$6 merged=$7 queued=$8 reason=$9 event=${10}
+  if [ "$missing" -eq 1 ] || [ "$bad" -eq 1 ] \
+    || ! poll_accept_reading "$state" "$merged" "$queued" "$reason" "$event"; then
+    poll_cache_write_missing "$owner" "$repo" "$number"
+  else
+    poll_cache_write_reading "$owner" "$repo" "$number" \
+      "$GH_POLL_STATE" "$GH_POLL_MERGED" "$GH_POLL_QUEUED" "$GH_POLL_REASON" "$GH_POLL_EVENT"
+  fi
+}
+
+poll_batch_prefetch() {
+  local state=$1
+  local cache=${FM_PR_POLL_BATCH_CACHE-}
+  local poll_root check id n i query vars='' body='' fields line batch_out batch_jq
+  local cur=-1 missing=0 bad=0 alias_index
+  local state_value='' merged_value='' queued_value='' reason_value='' event_value=''
+  local -a batch_owner=() batch_repo=() batch_number=() batch_got=() gh_args=()
+  [ -n "$cache" ] || return 0
+  [ -f "$cache" ] && [ ! -L "$cache" ] || return 0
+  [ -d "$state" ] && [ ! -L "$state" ] || return 0
+  poll_root=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd) || return 0
+  # shellcheck source=bin/fm-pr-lib.sh
+  . "$poll_root/fm-pr-lib.sh"
+  for check in "$state"/*.check.sh; do
+    [ -e "$check" ] || continue
+    id=$(basename -- "$check" .check.sh)
+    fm_pr_poll_snapshot_capture "$state" "$id" "$0" || continue
+    [ "$FM_PR_DATA_PROVIDER" = github ] || continue
+    url=$FM_PR_DATA_URL
+    host=$FM_PR_DATA_HOST
+    path=$FM_PR_DATA_PATH
+    number=$FM_PR_DATA_NUMBER
+    github_identity_ok || continue
+    batch_owner[${#batch_owner[@]}]=$owner
+    batch_repo[${#batch_repo[@]}]=$repo
+    batch_number[${#batch_number[@]}]=$number
+  done
+  n=${#batch_owner[@]}
+  [ "$n" -gt 0 ] || return 0
+  i=0
+  while [ "$i" -lt "$n" ]; do
+    poll_cache_write_missing "${batch_owner[$i]}" "${batch_repo[$i]}" "${batch_number[$i]}"
+    batch_got[i]=0
+    if [ "$i" -gt 0 ]; then
+      vars="${vars},"
+    fi
+    vars="${vars}\$o${i}:String!,\$r${i}:String!,\$n${i}:Int!"
+    body="${body}p${i}:repository(owner:\$o${i},name:\$r${i}){pullRequest(number:\$n${i}){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}"
+    i=$((i + 1))
+  done
+  query="query FmPollBatch(${vars}){${body}}"
+  gh_args=(--hostname github.com -f "query=${query}")
+  i=0
+  while [ "$i" -lt "$n" ]; do
+    gh_args+=(-f "o${i}=${batch_owner[$i]}")
+    gh_args+=(-f "r${i}=${batch_repo[$i]}")
+    gh_args+=(-F "n${i}=${batch_number[$i]}")
+    i=$((i + 1))
+  done
+  # shellcheck disable=SC2016  # GraphQL and jq text are literal.
+  batch_jq='def reading: if . == null then "missing=1", "" else ((.timelineItems.nodes // []) | last // {}) as $event | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "reason=" + (($event.reason // "") | tojson | .[1:-1]), "event=" + (($event.id // "") | if test("^[A-Za-z0-9_+/=-]{0,256}$") then . else "" end), "" end; (.data // {}) | to_entries[] | select(.key | test("^p[0-9]+$")) | "alias=" + .key, ((.value.pullRequest // null) | reading)'
+  if ! fields=$(gh api graphql "${gh_args[@]}" --jq "$batch_jq" 2>/dev/null) || [ -z "$fields" ]; then
+    return 0
+  fi
+  batch_out=$(mktemp "${TMPDIR:-/tmp}/fm-pr-poll-batch.XXXXXX") || return 0
+  if ! printf '%s\n' "$fields" > "$batch_out"; then
+    rm -f -- "$batch_out"
+    return 0
+  fi
+  if ! : > "$cache"; then
+    rm -f -- "$batch_out"
+    return 0
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      alias=p[0-9]*)
+        if [ "$cur" -ge 0 ] && [ "${batch_got[$cur]}" -ne 1 ]; then
+          poll_batch_commit_one "${batch_owner[$cur]}" "${batch_repo[$cur]}" \
+            "${batch_number[$cur]}" "$missing" "$bad" "$state_value" \
+            "$merged_value" "$queued_value" "$reason_value" "$event_value"
+          batch_got[cur]=1
+        fi
+        cur=-1
+        alias_index=${line#alias=p}
+        case "$alias_index" in
+          *[!0-9]*) ;;
+          *)
+            if [ "$alias_index" -lt "$n" ]; then
+              cur=$alias_index
+              missing=0
+              bad=0
+              state_value=''
+              merged_value=''
+              queued_value=''
+              reason_value=''
+              event_value=''
+            fi
+            ;;
+        esac
+        ;;
+      '')
+        if [ "$cur" -ge 0 ] && [ "${batch_got[$cur]}" -ne 1 ]; then
+          poll_batch_commit_one "${batch_owner[$cur]}" "${batch_repo[$cur]}" \
+            "${batch_number[$cur]}" "$missing" "$bad" "$state_value" \
+            "$merged_value" "$queued_value" "$reason_value" "$event_value"
+          batch_got[cur]=1
+        fi
+        cur=-1
+        ;;
+      missing=1)
+        [ "$cur" -ge 0 ] || continue
+        missing=1
+        ;;
+      state=*)
+        [ "$cur" -ge 0 ] || continue
+        state_value=${line#state=}
+        ;;
+      merged=*)
+        [ "$cur" -ge 0 ] || continue
+        merged_value=${line#merged=}
+        ;;
+      queued=*)
+        [ "$cur" -ge 0 ] || continue
+        queued_value=${line#queued=}
+        ;;
+      reason=*)
+        [ "$cur" -ge 0 ] || continue
+        reason_value=${line#reason=}
+        ;;
+      event=*)
+        [ "$cur" -ge 0 ] || continue
+        event_value=${line#event=}
+        ;;
+      *)
+        [ "$cur" -ge 0 ] || continue
+        bad=1
+        ;;
+    esac
+  done < "$batch_out"
+  rm -f -- "$batch_out"
+  if [ "$cur" -ge 0 ] && [ "${batch_got[$cur]}" -ne 1 ]; then
+    poll_batch_commit_one "${batch_owner[$cur]}" "${batch_repo[$cur]}" \
+      "${batch_number[$cur]}" "$missing" "$bad" "$state_value" \
+      "$merged_value" "$queued_value" "$reason_value" "$event_value"
+    batch_got[cur]=1
+  fi
+  i=0
+  while [ "$i" -lt "$n" ]; do
+    if [ "${batch_got[$i]}" -ne 1 ]; then
+      poll_cache_write_missing "${batch_owner[$i]}" "${batch_repo[$i]}" "${batch_number[$i]}"
+    fi
+    i=$((i + 1))
+  done
+}
+
+github_read_poll() {
+  local fields line total=0 cache_rc=2
+  local state='' merged='' queued='' reason='' event=''
+  local saw_state=0 saw_merged=0 saw_queued=0 saw_reason=0 saw_event=0
+  poll_batch_lookup
+  cache_rc=$?
+  if [ "$cache_rc" -eq 0 ]; then
+    return 0
+  fi
+  if [ "$cache_rc" -eq 1 ]; then
+    return 1
+  fi
+  # shellcheck disable=SC2016  # GraphQL and jq text are literal.
+  fields=$(gh api graphql --hostname "$host" \
+    -f query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue timelineItems(last:1,itemTypes:[REMOVED_FROM_MERGE_QUEUE_EVENT]){nodes{... on RemovedFromMergeQueueEvent{id reason}}}}}}' \
+    -f "owner=$owner" -f "repo=$repo" -F "number=$number" \
+    --jq '.data.repository.pullRequest | ((.timelineItems.nodes // []) | last // {}) as $event | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "reason=" + (($event.reason // "") | tojson | .[1:-1]), "event=" + (($event.id // "") | if test("^[A-Za-z0-9_+/=-]{0,256}$") then . else "" end)' \
+    2>/dev/null) || return 1
+  [ -n "$fields" ] || return 1
+  while IFS= read -r line; do
+    total=$((total + 1))
+    case "$line" in
+      state=*) state=${line#state=}; saw_state=$((saw_state + 1)) ;;
+      merged=*) merged=${line#merged=}; saw_merged=$((saw_merged + 1)) ;;
+      queued=*) queued=${line#queued=}; saw_queued=$((saw_queued + 1)) ;;
+      reason=*) reason=${line#reason=}; saw_reason=$((saw_reason + 1)) ;;
+      event=*) event=${line#event=}; saw_event=$((saw_event + 1)) ;;
+      *) return 1 ;;
+    esac
+  done <<EOF
+$fields
+EOF
+  [ "$total" -eq 5 ] || return 1
+  [ "$saw_state" -eq 1 ] && [ "$saw_merged" -eq 1 ] \
+    && [ "$saw_queued" -eq 1 ] && [ "$saw_reason" -eq 1 ] && [ "$saw_event" -eq 1 ] || return 1
+  poll_accept_reading "$state" "$merged" "$queued" "$reason" "$event"
+}
+
 github_poll() {
   poll_bind_identity
   github_read_poll || return 0
@@ -186,6 +432,11 @@ github_poll() {
   fi
   poll_emit_dequeue
 }
+
+if [ "$#" -eq 2 ] && [ "$1" = --batch-prefetch ]; then
+  poll_batch_prefetch "$2"
+  exit 0
+fi
 
 if [ "$#" -eq 6 ] && [ "$1" = --validated ]; then
   provider=$2
@@ -227,18 +478,7 @@ esac
 # a doctored sidecar cannot redirect this poll at another host or project.
 case "$provider" in
   github)
-    [ "$host" = github.com ] || exit 0
-    owner=${path%%/*}
-    repo=${path#*/}
-    [ "${#owner}" -ge 1 ] && [ "${#owner}" -le 39 ] || exit 0
-    case "$owner" in
-      *[!A-Za-z0-9-]*|-*|*-|*--*) exit 0 ;;
-    esac
-    [ "${#repo}" -ge 1 ] && [ "${#repo}" -le 100 ] || exit 0
-    case "$repo" in
-      .|..|*[!A-Za-z0-9._-]*) exit 0 ;;
-    esac
-    [ "$url" = "https://github.com/$owner/$repo/pull/$number" ] || exit 0
+    github_identity_ok || exit 0
     github_poll
     ;;
   gitlab)
@@ -254,20 +494,20 @@ case "$provider" in
     # A GitLab project sits under at least one group at no fixed depth, and
     # GitLab reserves the "-" segment as its route separator.
     rest=$path
-    segments=0
+    part_count=0
     while [ -n "$rest" ]; do
       case "$rest" in
         */*) segment=${rest%%/*}; rest=${rest#*/} ;;
         *) segment=$rest; rest= ;;
       esac
-      segments=$((segments + 1))
-      [ "$segments" -le 20 ] || exit 0
+      part_count=$((part_count + 1))
+      [ "$part_count" -le 20 ] || exit 0
       [ "${#segment}" -ge 1 ] && [ "${#segment}" -le 255 ] || exit 0
       case "$segment" in
         .|..|-*|*.git|*.atom|*[!A-Za-z0-9._-]*) exit 0 ;;
       esac
     done
-    [ "$segments" -ge 2 ] || exit 0
+    [ "$part_count" -ge 2 ] || exit 0
     [ "$url" = "https://$host/$path/-/merge_requests/$number" ] || exit 0
     # glab resolves the instance from the project URL passed to -R, so the host
     # comes from the validated record rather than glab's configured default.
@@ -295,20 +535,20 @@ case "$provider" in
     # group, so one segment is canonical here where GitLab needs two, and Gerrit
     # reserves no route segment inside it.
     rest=$path
-    segments=0
+    part_count=0
     while [ -n "$rest" ]; do
       case "$rest" in
         */*) segment=${rest%%/*}; rest=${rest#*/} ;;
         *) segment=$rest; rest= ;;
       esac
-      segments=$((segments + 1))
-      [ "$segments" -le 20 ] || exit 0
+      part_count=$((part_count + 1))
+      [ "$part_count" -le 20 ] || exit 0
       [ "${#segment}" -ge 1 ] && [ "${#segment}" -le 255 ] || exit 0
       case "$segment" in
         .|..|-*|*.git|*[!A-Za-z0-9._-]*) exit 0 ;;
       esac
     done
-    [ "$segments" -ge 1 ] || exit 0
+    [ "$part_count" -ge 1 ] || exit 0
     [ "$url" = "https://$host/c/$path/+/$number" ] || exit 0
     # gerrit-axi resolves its server from the current directory's origin remote
     # first, and the watcher runs in no repository, so the host must be passed
