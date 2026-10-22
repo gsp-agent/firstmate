@@ -1957,7 +1957,7 @@ test_collapse_newlines_pure() {
   pass "_collapse_newlines replaces newlines with literal separator"
 }
 
-test_afk_absent_daemon_does_not_inject() {
+test_afk_absent_daemon_still_injects() {
   local dir state fakebin sent capture
   dir=$(make_supercase afk-off)
   state="$dir/state"
@@ -1965,14 +1965,14 @@ test_afk_absent_daemon_does_not_inject() {
   sent="$dir/sent.log"; : > "$sent"
   capture="$dir/pane.txt"; printf '\342\235\257 \n' > "$capture"  # a proven-empty bare claude composer: STRICT injection needs positive proof
   escalate_add "$state" "done: PR 1"
-  # afk flag deliberately NOT set
-  if PATH="$fakebin:$PATH" FM_FAKE_TMUX_PANE_ALIVE=1 FM_FAKE_TMUX_SENT="$sent" \
-    FM_FAKE_TMUX_CAPTURE="$capture" FM_ESCALATE_BATCH_SECS=0 escalate_flush "$state"; then
-    fail "escalate_flush succeeded while afk inactive"
-  fi
-  [ -s "$sent" ] && fail "daemon injected while afk inactive"
-  [ -s "$state/.subsuper-escalations" ] || fail "buffer not preserved when afk inactive"
-  pass "afk flag absent: daemon does not inject, buffer preserved"
+  # afk flag deliberately NOT set: routing is not presence-gated (cut 4), so a
+  # named exception still reaches the supervisor while the captain is present.
+  PATH="$fakebin:$PATH" FM_FAKE_TMUX_PANE_ALIVE=1 FM_FAKE_TMUX_SENT="$sent" \
+    FM_FAKE_TMUX_CAPTURE="$capture" FM_ESCALATE_BATCH_SECS=0 escalate_flush "$state" \
+    || fail "escalate_flush deferred while afk inactive"
+  [ -s "$sent" ] || fail "daemon did not inject while afk inactive"
+  [ -s "$state/.subsuper-escalations" ] && fail "buffer not cleared after attended injection"
+  pass "afk flag absent: daemon still injects its named exceptions, buffer cleared"
 }
 
 test_busy_guard_defers_when_supervisor_busy() {
@@ -2603,20 +2603,22 @@ test_below_max_defer_does_nothing() {
   pass "below MAX_DEFER: no inject, no alarm, buffer preserved"
 }
 
-test_max_defer_afk_inactive_does_not_flush_or_alarm() {
+test_max_defer_afk_inactive_still_flushes() {
   local dir state fakebin sent
   dir=$(make_bordered_case maxdefer-inactive)
   state="$dir/state"; fakebin="$dir/fakebin"
   sent="$dir/sent.log"; : > "$sent"
   escalate_add "$state" "needs-decision: pick B"
   echo $(( $(date +%s) - 600 )) > "$state/.subsuper-escalations.since"
+  # afk flag deliberately NOT set: max-defer delivery is not presence-gated
+  # (cut 4), so a stuck exception still flushes while the captain is present.
   PATH="$fakebin:$PATH" FM_FAKE_COMPOSER="$dir/composer" FM_FAKE_SENT="$sent" \
     FM_ESCALATE_BATCH_SECS=99999 FM_MAX_DEFER_SECS=60 FM_INJECT_CONFIRM_SLEEP=0.05 \
     housekeeping "$state"
-  [ ! -s "$sent" ] || fail "injected while afk was inactive"
-  [ ! -e "$state/.subsuper-inject-wedged" ] || fail "wedge alarm fired while afk was inactive"
-  [ -s "$state/.subsuper-escalations" ] || fail "buffer dropped while afk was inactive"
-  pass "max-defer does not flush or alarm while afk is inactive"
+  [ -s "$sent" ] || fail "max-defer did not flush while afk was inactive"
+  [ ! -e "$state/.subsuper-inject-wedged" ] || fail "wedge alarm fired after a successful attended flush"
+  [ -s "$state/.subsuper-escalations" ] && fail "buffer not cleared after attended max-defer flush"
+  pass "max-defer flushes while afk is inactive, no alarm, buffer cleared"
 }
 
 # --- backend-independent active wedge alert ---------------------------------
@@ -3279,7 +3281,7 @@ test_is_wake_reason_distinguishes_status_stdout
 test_terminal_stale_escalate_leaves_no_marker
 test_signal_escalate_marks_seen_no_catchall_refire
 test_collapse_newlines_pure
-test_afk_absent_daemon_does_not_inject
+test_afk_absent_daemon_still_injects
 test_busy_guard_defers_when_supervisor_busy
 test_marker_detection
 test_afk_turn_exemption
@@ -3336,7 +3338,7 @@ test_inject_send_failure_logs_stage_stderr_and_bytes
 test_inject_enter_failure_logs_confirmation_stage
 test_bounded_digest_full_text_kept_after_typing
 test_below_max_defer_does_nothing
-test_max_defer_afk_inactive_does_not_flush_or_alarm
+test_max_defer_afk_inactive_still_flushes
 test_wedge_alarm_library_mode_defaults_to_discard
 test_wake_helpers_replace_inherited_notifier_override
 test_wedge_alarm_discard_seam_fires_nothing

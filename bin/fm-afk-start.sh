@@ -5,6 +5,11 @@
 # Usage: fm-afk-start.sh
 #   Sets state/.afk (mode preserved on refresh, see fm_afk_flag_write) unless
 #   FM_AFK_STATE_PREPARED=1, checks state/.supervise-daemon.lock, and:
+#   With FM_SUPERVISION_POSTURE=attended (cut 4) it sets no flag and clears no
+#   away artifacts: the daemon then owns wake routing while the captain stays
+#   present, and no away decision semantics (hold-for-return, captain-held
+#   silence) engage, because those key on the away record this entry never
+#   writes.
 #     - prints "afk: daemon already running pid=<pid>" then exits 0 when that
 #       lock is held by a live daemon (a REFRESH: no stale-artifact clear);
 #     - otherwise clears any prior away session's stale escalation artifacts
@@ -151,7 +156,9 @@ fm_afk_start_main() {
   esac
 
   mkdir -p "$FM_AFK_STATE"
-  if [ "${FM_AFK_STATE_PREPARED:-0}" = 1 ]; then
+  if [ "${FM_SUPERVISION_POSTURE:-}" = attended ]; then
+    : # Attended daemon (cut 4): no away flag, no away-session artifact clear.
+  elif [ "${FM_AFK_STATE_PREPARED:-0}" = 1 ]; then
     [ -f "$FM_AFK_STATE/.afk" ] || { echo "afk: launcher-prepared state is missing" >&2; return 1; }
   else
     fm_afk_flag_write "$FM_AFK_STATE" || { echo "afk: failed to write away-mode flag" >&2; return 1; }
@@ -170,11 +177,13 @@ fm_afk_start_main() {
 
   # Fresh start: clear the previous away session's stale delivery artifacts
   # before the new daemon can surface them (fix for the leaked-artifact defect).
-  if [ "${FM_AFK_STATE_PREPARED:-0}" != 1 ]; then
+  # An attended start (cut 4) clears nothing: it begins no away session, so
+  # every buffered escalation still belongs to live routing.
+  if [ "${FM_AFK_STATE_PREPARED:-0}" != 1 ] && [ "${FM_SUPERVISION_POSTURE:-}" != attended ]; then
     fm_afk_clear_stale_artifacts "$FM_AFK_STATE"
   fi
 
-  echo "afk: starting supervise daemon in foreground; keep this command as a tracked background session"
+  echo "supervision: starting supervise daemon in foreground (posture=${FM_SUPERVISION_POSTURE:-away}); keep this command as a tracked background session"
   exec "$FM_AFK_DAEMON"
 }
 
