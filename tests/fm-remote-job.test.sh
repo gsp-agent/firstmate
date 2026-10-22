@@ -406,7 +406,7 @@ crash_worker_leaving_unrelated_owner() {
   kill -KILL "$crashed"
   wait "$crashed" 2>/dev/null || true
   assert_present "$STATE_ROOT/worker.lock" "an unclean exit did not retain the worker ownership lock"
-  sleep 20 &
+  sleep 300 &
   OTHER_PID=$!
   printf '%s\n' "$OTHER_PID" > "$STATE_ROOT/worker.pid"
   printf '%s\n' "$OTHER_PID" > "$STATE_ROOT/worker.lock/pid"
@@ -424,7 +424,11 @@ assert_unrelated_owner_replaced() {
   fm_remote_job_stage "$ACCOUNT_HOME" "$REMOTE_ROOT" "$REMOTE_HOME" fm-probe-job.sh \
     < /dev/null > /dev/null || fail "$FM_REMOTE_JOB_ERROR"
   fm_remote_job_wait "$ACCOUNT_HOME" "$FM_REMOTE_JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
-  [ "$FM_REMOTE_JOB_EXIT" -eq 0 ] || fail "the replacement worker could not execute a queued command"
+  [ "$FM_REMOTE_JOB_EXIT" -eq 0 ] || fail "the replacement worker could not execute a queued command
+FM_REMOTE_JOB_EXIT=$FM_REMOTE_JOB_EXIT
+state=$(fm_remote_job_read_state "$STATE_ROOT/jobs/$FM_REMOTE_JOB_ID")
+stderr: $(<"$FM_REMOTE_JOB_STDERR")
+stdout: $(<"$FM_REMOTE_JOB_STDOUT")"
   fm_remote_job_reap "$ACCOUNT_HOME" "$FM_REMOTE_JOB_ID" \
     || fail "the replacement worker's completed command could not be reaped"
   kill "$OTHER_PID" 2>/dev/null || true
