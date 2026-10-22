@@ -72,7 +72,8 @@ Coordinate any workflow rollback with its required-check names so a retired chec
   Test scripts and helpers in `tests/` are plain bash too.
   `bin/fm-lint.sh` must pass: it is the single owner of the lint definition (the shellcheck file set, config, pinned shellcheck version, pinned actionlint workflow lint, and the backend-purity check rejecting direct Beads CLI calls in core `bin/` scripts).
   CI uses its full canonical partitions; the no-mistakes pre-push gate uses its context-selected default.
-  Lint a shell change, including during review, with `bin/fm-lint.sh [path...]` and never with a direct `shellcheck -x` call: source-following analysis of this repo's libraries can grow ShellCheck past 100 GB, and only `fm-lint.sh` caps the memory and time of each ShellCheck it starts.
+  For named-file reviews, including chip's review on the mini, use the capped entry point directly: `bin/fm-lint.sh bin/fm-task-data-lib.sh tests/fm-teardown.test.sh`.
+  Source-following analysis of this repo's libraries can grow ShellCheck past 100 GB, so use that entry point for shell analysis; its header owns the per-file memory and time caps.
   `docs/fm-test-portable-shards.md` owns partition verification and performance evidence.
   Its header and `--help` output own the exact local lint modes, file-set selection, and analysis flags.
   A malformed `.github/workflows/*.yml`, including a self-broken `ci.yml`, fails that local lint path before merge because a broken workflow cannot report its own breakage.

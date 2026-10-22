@@ -4,7 +4,7 @@
 # bin/fm-lint.sh is the single owner invoked by CI
 # (.github/workflows/ci.yml) and by the pre-push gate (.no-mistakes.yaml
 # commands.lint). CI and the local gate deliberately select different roots;
-# bin/fm-lint.sh owns their analysis modes, memory fallback, configuration,
+# bin/fm-lint.sh owns their analysis modes, resource caps, configuration,
 # and tool versions.
 # Regression origin: with no commands.lint configured, the local no-mistakes
 # lint step never ran the deterministic shell lint, so PRs passed local
@@ -1523,8 +1523,8 @@ test_root_memory_cap_fails_by_name() {
   awk -F '\t' '$1 == "end" && $3 ~ /hoarder\.sh$/ && $10 == "ok" { found=1 } END { exit !found }' \
     "$tmp/control.roots.tsv" || fail "the allocator root did not complete ok under the default cap"
 
-  # The hoarder holds at least 512 MiB; a 256 MiB cap must stop both its
-  # source-following attempt and its no-source retry and fail it by name.
+  # The hoarder holds at least 512 MiB; a 256 MiB cap must stop its
+  # source-following analysis and fail it by name.
   sleep 300 &
   sentinel_pid=$!
   rc=0
@@ -1540,20 +1540,22 @@ test_root_memory_cap_fails_by_name() {
     || fail "the memory-cap kill took an unrelated sentinel process with it"
   kill -KILL "$sentinel_pid" 2>/dev/null || true
   wait "$sentinel_pid" 2>/dev/null || true
-  awk -F '\t' '$1 == "end" && $3 ~ /hoarder\.sh$/ && $10 == "memory" { found=1 } END { exit !found }' \
+  awk -F '\t' '$1 == "end" && $3 ~ /hoarder\.sh$/ && $9 == 123 && $10 == "memory" && $12 == 1 { found=1 } END { exit !found }' \
     "$roots_log" || fail "the sidecar did not record the memory-capped root by name"
   awk -F '\t' '$1 == "end" && $3 ~ /ok\.sh$/ && $10 == "ok" { found=1 } END { exit !found }' \
     "$roots_log" || fail "the sidecar lost the clean root's record"
   pass "a root stopped at its memory cap fails by name, naming the cap"
 }
 
-test_memory_failure_retries_without_external_sources() {
-  local tmp fakebin fixture out rc log rss_kib
-  tmp=$(fm_test_tmproot fm-lint-memory-fallback)
+test_memory_failures_remain_failures_without_retry() {
+  local tmp fakebin fixture ok out rc log rss_kib status jobs telemetry
+  tmp=$(fm_test_tmproot fm-lint-memory-failure)
   fakebin=$(fm_fakebin "$tmp")
   fixture="$tmp/teardown.sh"
+  ok="$tmp/ok.sh"
   log="$tmp/flags.log"
   printf '#!/usr/bin/env bash\n# shellcheck source=lib.sh\nexit 0\n' > "$fixture"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$ok"
   cat > "$fakebin/shellcheck" <<'SH'
 #!/usr/bin/env bash
 if [ "${1:-}" = --version ]; then
@@ -1570,133 +1572,48 @@ while [ "$#" -gt 0 ] && [ "$1" != -- ]; do
   shift
 done
 shift
-printf '%s\t%s\n' "$follow" "$exclude" >> "$FM_TEST_FALLBACK_LOG"
-if [ "$follow" = yes ]; then
+printf '%s\t%s\t%s\n' "$follow" "$exclude" "$1" >> "$FM_TEST_ATTEMPT_LOG"
+if [ "$1" = "$FM_TEST_FAIL_ROOT" ] && [ "$follow" = yes ]; then
   printf 'shellcheck: Heap exhausted;\n' >&2
-  exit 251
+  exit "$FM_TEST_MEMORY_STATUS"
 fi
 exit 0
 SH
   chmod +x "$fakebin/shellcheck"
 
-  : > "$log"
-  rc=0
-  out=$(PATH="$fakebin:$PATH" FM_LINT_JOBS=1 \
-    FM_TEST_FALLBACK_LOG="$log" "$LINT" --telemetry "$tmp/pass.tsv" "$fixture" 2>&1) || rc=$?
-  [ "$rc" -eq 0 ] || fail "a clean no-source fallback did not pass"$'\n'"$out"
-  assert_grep $'source_directives\t1' "$tmp/pass.tsv" "telemetry lost the root's source directive"
-  assert_grep $'source_followed_directives\t0' "$tmp/pass.tsv" \
-    "telemetry counted a source directive that the passing fallback did not follow"
-  [ "$(cat "$log")" = "$(printf 'yes\tnone\nno\tSC1091,SC2034,SC2153,SC2329')" ] \
-    || fail "the memory failure did not retry without external sources and exclude only cross-file codes"$'\n'"$(cat "$log")"
-  assert_contains "$out" "teardown.sh hit the memory cap (4194304 KiB) with --external-sources (reason=memory rc=251)" \
-    "the fallback was not identified in the output with its cap"$'\n'"$out"
-  assert_contains "$out" "fallback passed with cross-file codes excluded (SC1091,SC2034,SC2153,SC2329)" \
-    "the narrower fallback result was not disclosed"
-  assert_not_contains "$out" "FAILED" "a passing fallback was reported as a failure"
-  awk -F '\t' '$1 == "end" && $3 ~ /teardown\.sh$/ && $9 == 0 && $10 == "memory-fallback" { found=1 } END { exit !found }' \
-    "$tmp/pass.roots.tsv" || fail "the clean fallback was not recorded distinctly"
-  assert_grep $'meta\tbounds_enforced\t1' "$tmp/pass.roots.tsv" "the fallback did not run under its caps"
-  rss_kib=$(awk -F '\t' '$1 == "end" && $3 ~ /teardown\.sh$/ { print $11 }' "$tmp/pass.roots.tsv")
-  case "$rss_kib" in ''|*[!0-9]*) fail "the fallback attempts lost per-root RSS reporting: $rss_kib" ;; esac
-
-  if ! pinned_ready; then
-    pass "SKIP (ShellCheck $REQUIRED not resolved): real fallback finding check"
-    return
-  fi
-  local real_shellcheck
-  real_shellcheck=$(command -v shellcheck)
-  cat > "$fakebin/shellcheck" <<'SH'
-#!/usr/bin/env bash
-if [ "${1:-}" = --version ]; then
-  exec "$FM_REAL_SHELLCHECK" "$@"
-fi
-for arg in "$@"; do
-  if [ "$arg" = --external-sources ]; then
-    printf 'shellcheck: Heap exhausted;\n' >&2
-    exit 251
-  fi
-done
-exec "$FM_REAL_SHELLCHECK" "$@"
-SH
-  chmod +x "$fakebin/shellcheck"
-  # shellcheck disable=SC2016 # The fixture intentionally contains an unexpanded parameter.
-  printf '#!/usr/bin/env bash\nx=$1\nprintf "%%s\\n" $x\n' > "$fixture"
-  rc=0
-  out=$(PATH="$fakebin:$PATH" FM_REAL_SHELLCHECK="$real_shellcheck" FM_LINT_JOBS=1 \
-    "$LINT" --telemetry "$tmp/finding.tsv" "$fixture" 2>&1) || rc=$?
-  [ "$rc" -eq 1 ] || fail "a real ShellCheck finding in the fallback did not fail lint (exit $rc)"$'\n'"$out"
-  assert_contains "$out" "fallback reason=findings rc=1" \
-    "the fallback finding was not identified"
-  assert_contains "$out" "SC2086" "the real fallback finding was not reported"
-  awk -F '\t' '$1 == "end" && $3 ~ /teardown\.sh$/ && $9 == 1 && $10 == "findings" { found=1 } END { exit !found }' \
-    "$tmp/finding.roots.tsv" || fail "the fallback finding was not recorded as a failure"
-  pass "memory failures retry without source following, exclude cross-file codes, and preserve a real fallback finding"
-}
-
-test_memory_fallback_spends_only_the_remaining_root_deadline() {
-  local tmp fakebin fixture log out rc duration_ms
-  tmp=$(fm_test_tmproot fm-lint-fallback-deadline)
-  fakebin=$(fm_fakebin "$tmp")
-  fixture="$tmp/teardown.sh"
-  log="$tmp/attempts.log"
-  printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture"
-  cat > "$fakebin/shellcheck" <<'SH'
-#!/usr/bin/env bash
-if [ "${1:-}" = --version ]; then
-  printf 'ShellCheck - shell script analysis tool\nversion: 0.11.0\n'
-  exit 0
-fi
-for arg in "$@"; do
-  if [ "$arg" = --external-sources ]; then
-    printf 'follow\n' >> "$FM_TEST_ATTEMPT_LOG"
-    sleep "$FM_TEST_FIRST_SECS"
-    printf 'shellcheck: Heap exhausted;\n' >&2
-    exit 251
-  fi
-done
-printf 'fallback\n' >> "$FM_TEST_ATTEMPT_LOG"
-sleep 60
-exit 0
-SH
-  chmod +x "$fakebin/shellcheck"
-
-  # A 3s first attempt leaves about 3s of the 6s deadline, so the retry is
-  # killed there; a fresh deadline would let the root run for about 9s.
-  : > "$log"
-  rc=0
-  out=$(PATH="$fakebin:$PATH" FM_LINT_JOBS=1 \
-    FM_LINT_ROOT_SECONDS=6 FM_LINT_ROOT_GRACE=1 \
-    FM_TEST_ATTEMPT_LOG="$log" FM_TEST_FIRST_SECS=3 \
-    "$LINT" --telemetry "$tmp/partial.tsv" "$fixture" 2>&1) || rc=$?
-  [ "$rc" -ne 0 ] || fail "a fallback cut off by the root deadline unexpectedly passed"
-  [ "$(cat "$log")" = "$(printf 'follow\nfallback')" ] \
-    || fail "the root did not retry once with its remaining time"$'\n'"$(cat "$log")"
-  assert_contains "$out" "fallback reason=timeout" \
-    "the fallback was not stopped by the root's remaining deadline"$'\n'"$out"
-  assert_contains "$out" "teardown.sh FAILED at the time cap (6s per root)" \
-    "the timed-out fallback was not reported as a failure naming the file and the cap"$'\n'"$out"
-  duration_ms=$(awk -F '\t' '$1 == "end" && $3 ~ /teardown\.sh$/ { print $8 }' "$tmp/partial.roots.tsv")
-  [ "$duration_ms" -lt 7000 ] \
-    || fail "the first attempt and fallback together exceeded the root deadline plus grace: ${duration_ms}ms"
-
-  # With under a second of the deadline left, no retry starts.
-  : > "$log"
-  rc=0
-  out=$(PATH="$fakebin:$PATH" FM_LINT_JOBS=1 \
-    FM_LINT_ROOT_SECONDS=6 FM_LINT_ROOT_GRACE=1 \
-    FM_TEST_ATTEMPT_LOG="$log" FM_TEST_FIRST_SECS=5.2 \
-    "$LINT" --telemetry "$tmp/spent.tsv" "$fixture" 2>&1) || rc=$?
-  [ "$rc" -ne 0 ] || fail "a memory failure with no deadline left unexpectedly passed"
-  [ "$(cat "$log")" = follow ] \
-    || fail "a fallback started with no time left in the root deadline"$'\n'"$(cat "$log")"
-  assert_contains "$out" "no time left in its 6s deadline to retry without it" \
-    "the skipped fallback was not explained"$'\n'"$out"
-  assert_contains "$out" "teardown.sh FAILED at the memory cap (4194304 KiB)" \
-    "the unretried memory failure was not reported as a failure naming the file and the cap"$'\n'"$out"
-  awk -F '\t' '$1 == "end" && $3 ~ /teardown\.sh$/ && $10 == "memory" && $12 == 1 { found=1 } END { exit !found }' \
-    "$tmp/spent.roots.tsv" || fail "the unretried memory failure was not recorded as a source-following memory failure"
-  pass "a memory fallback runs only within the time left in its root's original deadline"
+  for status in 123 251; do
+    for jobs in 1 2; do
+      : > "$log"
+      telemetry="$tmp/failure-$status-$jobs"
+      rc=0
+      out=$(PATH="$fakebin:$PATH" FM_LINT_JOBS="$jobs" \
+        FM_TEST_ATTEMPT_LOG="$log" FM_TEST_FAIL_ROOT="$fixture" FM_TEST_MEMORY_STATUS="$status" \
+        "$LINT" --telemetry "$telemetry.tsv" "$fixture" "$ok" 2>&1) || rc=$?
+      [ "$rc" -eq "$status" ] || fail "memory exit $status became $rc with jobs=$jobs"$'\n'"$out"
+      assert_grep $'source_directives\t1' "$telemetry.tsv" "telemetry lost the root's source directive"
+      assert_grep $'source_followed_directives\t1' "$telemetry.tsv" \
+        "telemetry lost the source-following analysis mode"
+      [ "$(awk -F '\t' -v target="$fixture" '$3 == target { print $1 "\t" $2 }' "$log")" = "$(printf 'yes\tnone')" ] \
+        || fail "the memory failure triggered a narrower retry"$'\n'"$(cat "$log")"
+      assert_contains "$out" "teardown.sh FAILED at the memory cap (4194304 KiB)" \
+        "the memory failure did not name its file and cap"$'\n'"$out"
+      assert_contains "$out" "reason=memory rc=$status" "the original memory failure was not reported"
+      assert_contains "$out" "shellcheck: Heap exhausted;" "the memory failure lost its diagnostics"
+      assert_not_contains "$out" "rerun" "a capped root was reported as a rerun"
+      awk -F '\t' -v status="$status" '$1 == "end" && $3 ~ /teardown\.sh$/ && $9 == status && $10 == "memory" && $12 == 1 { found=1 } END { exit !found }' \
+        "$telemetry.roots.tsv" || fail "the original memory failure was not recorded"
+      awk -F '\t' '$1 == "end" && $3 ~ /ok\.sh$/ && $9 == 0 && $10 == "ok" { found=1 } END { exit !found }' \
+        "$telemetry.roots.tsv" || fail "the clean sibling root did not finish"
+      awk -F '\t' -v status="$status" '$1 == "meta" && $2 == "result_exit" && $3 == status { found=1 } END { exit !found }' \
+        "$telemetry.roots.tsv" || fail "the roots sidecar lost the run's memory failure"
+      awk -F '\t' -v status="$status" '$1 == "result_exit" && $2 == status { found=1 } END { exit !found }' \
+        "$telemetry.tsv" || fail "telemetry lost the run's memory failure"
+      assert_grep $'meta\tbounds_enforced\t1' "$telemetry.roots.tsv" "the failed root did not run under its caps"
+      rss_kib=$(awk -F '\t' '$1 == "end" && $3 ~ /teardown\.sh$/ { print $11 }' "$telemetry.roots.tsv")
+      case "$rss_kib" in ''|*[!0-9]*) fail "the failed root lost per-root RSS reporting: $rss_kib" ;; esac
+    done
+  done
+  pass "watchdog and heap memory failures retain their status without retrying in both worker modes"
 }
 
 test_memory_evidence_outranks_findings_and_signal_reasons() {
@@ -1831,8 +1748,8 @@ test_pinned_shellcheck_stops_at_the_memory_cap() {
     "$roots_log" || fail "the pinned root did not complete ok under the default caps"
 
   # 32 copies of a ten-function block grow pinned ShellCheck 0.11.0 past
-  # 200 MiB over a few seconds, so a 64 MiB cap must stop both its
-  # source-following attempt and its retry and fail the file by name.
+  # 200 MiB over a few seconds, so a 64 MiB cap must stop its
+  # source-following analysis and fail the file by name.
   heavy="$tmp/heavy.sh"
   {
     printf '#!/usr/bin/env bash\n'
@@ -1849,8 +1766,8 @@ test_pinned_shellcheck_stops_at_the_memory_cap() {
   out=$(FM_LINT_ROOT_MEMORY_KIB=65536 "$LINT" --telemetry "$tmp/heavy.tsv" "$heavy" 2>&1) || rc=$?
   elapsed=$((SECONDS - started))
   [ "$rc" -ne 0 ] || fail "pinned ShellCheck ran past a 64 MiB memory cap and passed"$'\n'"$out"
-  assert_contains "$out" "heavy.sh hit the memory cap (65536 KiB) with --external-sources (reason=memory rc=123)" \
-    "the capped source-following attempt was not reported with its cap"$'\n'"$out"
+  assert_contains "$out" "reason=memory rc=123" \
+    "the watchdog's memory-cap exit was not preserved"$'\n'"$out"
   assert_contains "$out" "heavy.sh FAILED at the memory cap (65536 KiB)" \
     "the capped file was not reported as a failure naming the file and the cap"$'\n'"$out"
   assert_not_contains "$out" "rerun" "a capped file was reported as a rerun"
@@ -2032,8 +1949,7 @@ test_jobs_are_deterministic_and_complete
 test_worker_trees_stop_on_signal
 test_root_deadline_names_the_root_and_reaps_the_tree
 test_root_memory_cap_fails_by_name
-test_memory_failure_retries_without_external_sources
-test_memory_fallback_spends_only_the_remaining_root_deadline
+test_memory_failures_remain_failures_without_retry
 test_memory_evidence_outranks_findings_and_signal_reasons
 test_source_excerpt_with_oom_text_stays_findings
 test_refuses_to_lint_without_its_watchdog
