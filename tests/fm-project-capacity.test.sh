@@ -1445,7 +1445,9 @@ fi
 exec "$(dirname "$0")/fm-crew-state-answer" "$@"
 SH
   chmod +x "$stub"
-  export FM_PROJECT_CAPACITY_CREW_TIMEOUT=1
+  # Use the production bound rather than a load-sensitive one-second test
+  # deadline; live-c's 60-second hang still exceeds this bound.
+  export FM_PROJECT_CAPACITY_CREW_TIMEOUT=10
 
   printf 'hang\n' > "$case_dir/fakebin/live-c.read"
   before=$(call_count "$case_dir")

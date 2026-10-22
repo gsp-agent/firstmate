@@ -1149,6 +1149,7 @@ A line that is only `#`, or that begins with `#` followed by whitespace, is a co
 A project name may begin with `#` when that `#` is written immediately against the rest of the name and the line ends with the project's capacity.
 A name that is `#`, or that begins with `#` and a space, cannot be declared, because that line is a comment.
 See [`bin/fm-project-capacity-lib.sh`'s occupancy contract](../bin/fm-project-capacity-lib.sh) for which working tasks hold a place across local homes and clones, and how PR handoffs release capacity.
+A failed or timed-out crew-state read conservatively holds a place and adds `(state unreadable)` to the holder list; it does not fail the count.
 The declaration is matched by the spawning clone's directory name, so clones of the same origin share the cap only when they use that same directory name.
 A clone of that origin under a different directory name finds no declaration and is not capped, though its workers are still counted as holders for a same-origin clone that is capped.
 When every place is held, `bin/fm-spawn.sh` launches nothing, creates no record, leaves the backlog item queued, prints one `deferred:` line naming the holders, and exits 75, so Firstmate dispatches the item again once a place frees.
