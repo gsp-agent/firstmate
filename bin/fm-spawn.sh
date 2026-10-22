@@ -2401,7 +2401,7 @@ shell_quote() {
 # raw command satisfy the named-harness check.
 enforce_dispatch_profile() {
   local pairs pretty model effort eff_model eff_effort resolved resolved_model resolved_effort
-  local fallback_model= fallback_effort=
+  local fallback_model='' fallback_effort=''
   [ "$KIND" != secondmate ] || return 0
   # Control has already resolved both axes before stopping the worker. A second
   # read could replace that decision after stop and disagree with its journal.

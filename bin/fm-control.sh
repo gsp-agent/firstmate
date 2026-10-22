@@ -967,7 +967,7 @@ resolve_relaunch_profile() {
   # handoff prevents spawn from selecting again against a changed file.
   if [ "$KIND" != secondmate ]; then
     local dispatch_pair dispatch_model dispatch_effort route
-    local fallback_model= fallback_effort=
+    local fallback_model='' fallback_effort=''
     if [ "$TARGET_HARNESS" = "$PRIOR_RECORDED_HARNESS" ] \
         && [ "$(fm_meta_get "$META" route_fallback)" = 1 ]; then
       fallback_model=$PRIOR_MODEL
