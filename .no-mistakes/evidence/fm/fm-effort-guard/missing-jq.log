@@ -1,0 +1,4 @@
+$ PATH=<worktree>/.test-lab/nojqbin (symlinks to real installed tools; jq absent) fm-spawn.sh lab-no-jq-2 <disposable-project> --scout --harness grok --model grok-4.7 --effort xhigh
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/no-jq-e8j9ztzv
+error: config/crew-dispatch.json is active - jq is required to read its dispatch profiles for harness grok
+exit=1

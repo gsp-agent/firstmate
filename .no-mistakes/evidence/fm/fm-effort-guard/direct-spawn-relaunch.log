@@ -1,0 +1,42 @@
+PRIOR META
+window=fm-lab-dispatch:fm-lab-pi
+endpoint_task_id=lab-pi
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/wt
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/project
+harness=pi
+kind=scout
+tasktmp=/tmp/fm-lab-pi
+model=default
+effort=high
+busy_gen=g1792649390.31071.924
+spawn_gen=s1792649392.23289.2232
+control_relaunch_tx=6452.20261022T060945Z.5267
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s -f /dev/null new-session -d -s fm-lab-dispatch -x 120 -y 40 /bin/bash --noprofile --norc
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s display-message -p -t fm-lab-dispatch #{socket_path},#{pid},0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s,33376,0
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s set-option -g automatic-rename off
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s set-option -g allow-rename off
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s new-window -d -t fm-lab-dispatch: -n fm-lab-pi -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/wt /bin/bash --noprofile --norc
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh lab-pi --relaunch
+spawned lab-pi harness=pi kind=scout window=fm-lab-dispatch:fm-lab-pi worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/wt
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/home
+exit=0
+AFTER META
+window=fm-lab-dispatch:fm-lab-pi
+endpoint_task_id=lab-pi
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/wt
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/project
+harness=pi
+kind=scout
+tasktmp=/tmp/fm-lab-pi
+model=default
+effort=high
+busy_gen=g1792649581.57794.27282
+spawn_gen=s1792649584.34563.28816
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s kill-server
+exit=0

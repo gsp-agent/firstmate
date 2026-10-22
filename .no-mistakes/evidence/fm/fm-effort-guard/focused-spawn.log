@@ -1,0 +1,3 @@
+ok - active crew-dispatch profile allows raw launches on unnamed harnesses
+ok - named raw ship and scout launches refuse before provisioning, even with matching profile flags
+not ok - raw secondmate launch should remain exempt: error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-spawn-dispatch-profile.j0n2i9/profile-raw-secondmate/secondmate-home: expected exit 0, got 1

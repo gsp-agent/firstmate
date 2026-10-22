@@ -1,0 +1,38 @@
+[
+  {
+    "name": "adopt-single-distinct-pair",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-relaunch.log"
+  },
+  {
+    "name": "keep-recorded-matching-pair",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-relaunch.log"
+  },
+  {
+    "name": "reset-effort",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-relaunch.log"
+  },
+  {
+    "name": "reset-both",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-relaunch.log"
+  },
+  {
+    "name": "requested-matching-pair",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-relaunch.log"
+  },
+  {
+    "name": "reset-model",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-relaunch.log"
+  }
+]

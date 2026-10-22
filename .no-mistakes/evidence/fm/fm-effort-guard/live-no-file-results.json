@@ -1,0 +1,8 @@
+[
+  {
+    "name": "named-raw-command-without-dispatch-file-spawns",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-no-file.log"
+  }
+]

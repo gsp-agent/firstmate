@@ -1,0 +1,83 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/home
+exit=0
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project add README.md
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project commit -qm fixture
+exit=0
+treehouse init: Created /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project/treehouse.toml
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project add treehouse.toml
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project commit -qm configure fixture pool
+exit=0
+$ git clone --bare -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/origin.git
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project remote add origin /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/origin.git
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s4 display-message -p -t fm-lab-spawn #{socket_path},#{pid},0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s4,27664,0
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s4 set-option -g default-command /bin/bash --noprofile --norc
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh lab-no-file-pi /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project --scout pi --model anthropic/claude-sonnet-4-6 --thinking high
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/home
+spawned lab-no-file-pi harness=pi kind=scout window=fm-lab-spawn:fm-lab-no-file-pi worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/pool/.treehouse/project-d068ec/1/project
+exit=0
+META
+window=fm-lab-spawn:fm-lab-no-file-pi
+endpoint_task_id=lab-no-file-pi
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/pool/.treehouse/project-d068ec/1/project
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/project
+harness=pi
+kind=scout
+tasktmp=/tmp/fm-lab-no-file-pi
+model=default
+effort=default
+busy_gen=g1792649531.55482.27405
+spawn_gen=s1792649536.27932.20609
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s4 capture-pane -p -t fm-lab-spawn:fm-lab-no-file-pi
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/
+pool/.treehouse/project-d068ec/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live9/pool/.
+treehouse/project-d068ec/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lab-no-file-pi/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lab-no-file-pi
+bash-3.2$ . '/tmp/fm-lab-no-file-pi+bbe403cc6873525207d25a7ca5cf5ed258ba6db5c98bf3f1b6dd5e7d7a22b56e/launch.s1792649536.
+27932.20609.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s4 kill-server
+exit=0

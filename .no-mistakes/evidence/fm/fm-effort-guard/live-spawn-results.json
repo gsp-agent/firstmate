@@ -1,0 +1,14 @@
+[
+  {
+    "name": "unnamed-raw-command-spawns",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-spawn.log"
+  },
+  {
+    "name": "matching-profile-spawns",
+    "result": "pass",
+    "live": true,
+    "evidence": "live-spawn.log"
+  }
+]

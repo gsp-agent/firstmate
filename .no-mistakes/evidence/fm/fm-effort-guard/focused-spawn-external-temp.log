@@ -1,0 +1,7 @@
+ok - active crew-dispatch profile allows raw launches on unnamed harnesses
+ok - named raw ship and scout launches refuse before provisioning, even with matching profile flags
+ok - raw named harness launches preserve no-file and secondmate exemptions
+ok - dispatch profile refuses the heru-sj4-livecheck pair grok grok-4.7 medium against the file pair xhigh
+ok - dispatch profile allows the matching grok grok-4.7 xhigh pair
+ok - dispatch profile leaves a harness it never names untouched
+ok - dispatch profile leaves secondmate spawns untouched even on a mismatched pair

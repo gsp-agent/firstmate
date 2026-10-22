@@ -1,0 +1,113 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+exit=0
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project add README.md
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project commit -qm fixture
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh lab-mismatch-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project --scout --harness grok --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 high, grok-4.7 xhigh); pass the file pair for this harness
+exit=1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh lab-mismatch-crew /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project --mode local-only --yolo off --harness grok --model grok-4.7 --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 high, grok-4.7 xhigh); pass the file pair for this harness
+exit=1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh lab-raw-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project --scout grok --always-approve --model grok-4.7 --reasoning-effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 high, grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+exit=1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh lab-raw-crew /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project --mode local-only --yolo off grok --always-approve --model grok-4.7 --reasoning-effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 high, grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+exit=1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh lab-fresh-default /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project --scout --harness grok --effort default
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+error: default model or effort resets require --relaunch
+exit=1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh lab-empty /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project --scout --harness grok --effort 
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+error: --effort requires a non-empty value
+exit=1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh lab-malformed /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project --scout --harness grok --model grok-4.7 --effort xhigh
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+jq: parse error: Unfinished JSON term at EOF at line 2, column 0
+error: config/crew-dispatch.json is active - could not read its dispatch profiles for harness grok; fix the file rather than spawning around it
+exit=1
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s display-message -p -t fm-lab-dispatch #{socket_path},#{pid},0
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s,90656,0
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s new-window -dP -F #{window_id} -t fm-lab-dispatch: -n fm-lab-pi -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/project env HOME=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/user PI_CODING_AGENT_DIR=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/pi pi --no-extensions --no-skills --no-prompt-templates
+@1
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s capture-pane -p -t @1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s display-message -p -t @1 #{pane_pid}:#{pane_current_command}
+58135:node
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-control.sh lab-pi relaunch --note verify adopted effort refuses before stop
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+dispatch profile: relaunch of lab-pi adopts the dispatch file pair for pi (anthropic/claude-sonnet-4-6 ultra) over the recorded anthropic/claude-sonnet-4-6 high
+error: ultra effort requires pi or pi-signed with an explicit codex-native/<model> model
+exit=1
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s display-message -p -t @1 #{pane_pid}:#{pane_current_command}
+58135:node
+exit=0
+worker identity before=58135:node
+worker identity after=58135:node
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-control.sh lab-pi relaunch --effort default --note verify partial reset ambiguity
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+error: config/crew-dispatch.json is active - relaunch of lab-pi on pi anthropic/claude-sonnet-4-6 default matches no dispatch profile for pi, and the file names more than one pair for that harness (anthropic/claude-sonnet-4-6 high, default default); resolve one pair at intake rather than guessing
+exit=1
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-control.sh lab-pi relaunch --note verify parse failure before stop
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live2/home
+jq: parse error: Unfinished JSON term at EOF at line 2, column 0
+error: config/crew-dispatch.json is active - could not read its dispatch profiles for harness pi; fix the file rather than spawning around it
+exit=1
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s display-message -p -t @1 #{pane_pid}:#{pane_current_command}
+58135:node
+exit=0
+$ tmux -S /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.s kill-server
+exit=0

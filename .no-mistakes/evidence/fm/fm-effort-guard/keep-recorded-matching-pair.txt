@@ -1,0 +1,40 @@
+ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash · ctrl+o more
+ Press ctrl+o to show full startup help and loaded resources.
+
+ Pi can explain its own features and look up its docs. Ask it how to use or extend Pi.
+
+
+[Context]
+  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/AGENTS.md
+
+[Extensions]
+  lab-pi.pi-ext.ts
+
+ This project is not trusted. Project .pi resources and packages are ignored. Use /trust to save a trust decision, then
+ restart pi.
+
+ Error: No API key found for anthropic.
+
+ Use /login to log into a provider via OAuth or API key. See:
+   /opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/providers.md
+   /opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/models.md
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Update Available
+ New version 1.4.0 is available. Run pi update
+ Changelog: https://pi.dev/changelog
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/wt (lab-worker)
+0.0%/1.0M (auto)                                                                                claude-sonnet-4-6 • high
+
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/wt'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lab-pi/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lab-pi
+bash-3.2$ . '/tmp/fm-lab-pi+94394daadccbf665e05f8c4c6ecd4cc412b4c00f1119d8c3dda3d2f4c313d9b4/launch.s1792649045.91856.32
+594.sh'
+

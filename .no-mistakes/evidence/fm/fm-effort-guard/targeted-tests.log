@@ -1,0 +1,87 @@
+FM_TEST_BEGIN 2026-10-22T05:29:34Z tests/fm-control-relaunch.test.sh family=backend-dispatch expected_gate_skip=none
+ok - fm-control removes the dialog file after exit and after relaunch
+ok - fm-control exit removes the dialog file before it releases the control lock
+ok - fm-control relaunch: a same-harness relaunch replaces the agent in the same endpoint and worktree
+ok - fm-control relaunch: pending composer text refuses before the exit command is typed
+ok - fm-control relaunch: an unreadable composer fails safe before the exit command is typed
+ok - fm-control relaunch: a linked spawning home preserves committed and unfinished work in the recorded copy
+Terminated: 15             "$@"
+ok - fm-control relaunch: durable task metadata survives replacement launch publication
+not ok - relaunch did not reach trace delivery
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/pre-rebase: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/pre-applypatch: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/pre-auto-gc: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/pre-merge-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/post-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/sendemail-validate: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/applypatch-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/prepare-commit-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/post-checkout: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/post-applypatch: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/post-rewrite: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/commit-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/pre-push: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/post-merge: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks/pre-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state/rl1.git-hooks: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home/state: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571/home: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/same-7571: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/pre-rebase: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/pre-applypatch: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/pre-auto-gc: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/pre-merge-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/post-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/sendemail-validate: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/applypatch-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/prepare-commit-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/post-checkout: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/post-applypatch: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/post-rewrite: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/commit-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/pre-push: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/post-merge: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks/pre-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state/rl19.git-hooks: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home/state: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441/home: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/durable-meta-14441: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/pre-rebase: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/pre-applypatch: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/pre-auto-gc: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/pre-merge-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/post-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/sendemail-validate: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/applypatch-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/prepare-commit-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/post-checkout: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/post-applypatch: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/post-rewrite: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/commit-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/pre-push: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/post-merge: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks/pre-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state/rl71.git-hooks: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home/state: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855/home: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/dialog-file-relaunch-14855: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/pre-rebase: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/pre-applypatch: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/pre-auto-gc: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/pre-merge-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/post-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/sendemail-validate: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/applypatch-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/prepare-commit-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/post-checkout: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/post-applypatch: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/post-rewrite: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/commit-msg: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/pre-push: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/post-merge: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks/pre-commit: Permission denied
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state/rl42.git-hooks: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home/state: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654/home: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1/linked-home-5654: Directory not empty
+rm: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/tmp/fm-control-relaunch.kjddF1: Directory not empty

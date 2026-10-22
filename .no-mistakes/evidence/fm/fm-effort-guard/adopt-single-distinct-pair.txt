@@ -1,0 +1,40 @@
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.test-lab/live7/wt'
+bash-3.2$ export GOTMPDIR=/tmp/fm-lab-pi/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lab-pi
+bash-3.2$ . '/tmp/fm-lab-pi+94394daadccbf665e05f8c4c6ecd4cc412b4c00f1119d8c3dda3d2f4c313d9b4/launch.s1792648764.35093.14
+33.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
