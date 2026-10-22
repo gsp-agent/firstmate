@@ -426,6 +426,12 @@ if [ "$#" -lt 1 ] || ! fm_task_id_path_safe "$1"; then
 fi
 ID=$1
 TEARDOWN_LOST_SLOT_EXIT=4
+# Every lock wait in this script is bounded. An orphaned teardown spinning
+# forever on a held lock churns processes (ten sleep forks a second each;
+# five such orphans were the laptop load in .agent-config-ydbn7), so a wait
+# that expires fails the teardown with nothing changed. fm-wake-lib.sh's
+# fm_lock_acquire_wait_max is the bounded variant built for this hazard.
+TEARDOWN_LOCK_WAIT_SECS=${FM_TEARDOWN_LOCK_WAIT_SECS:-60}
 FORCE=
 LEGACY_RECORD_GIVEN=0
 shift
@@ -554,7 +560,10 @@ fm_backlog_record_present "$META" "task record" "$STATE" || {
   exit 1
 }
 META_LOCK=$(fm_meta_lock_path "$META") || exit 1
-fm_lock_acquire_wait "$META_LOCK"
+fm_lock_acquire_wait_max "$META_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
+  echo "error: teardown of $ID gave up waiting ${TEARDOWN_LOCK_WAIT_SECS}s for the task record lock; nothing was changed" >&2
+  exit 1
+}
 META_LOCK_HELD=1
 fm_backlog_record_present "$META" "task record" "$STATE" || {
   echo "error: teardown refused after locking: $FM_BACKLOG_TRANSITION_ERROR" >&2
@@ -766,7 +775,7 @@ handoff_wake_retire() {
     && [ "$(cat "$marker" 2>/dev/null || true)" = "$HANDOFF_WAKE_RETIRE_VALUE" ] || return 1
   if [ -n "$corr" ]; then
     lock="$STATE/.pending-reply-$corr.lock"
-    fm_lock_acquire_wait "$lock" || return 1
+    fm_lock_acquire_wait_max "$lock" "$TEARDOWN_LOCK_WAIT_SECS" || return 1
     rec=$(fm_pending_reply_path "$STATE" "$corr")
     confirmation=$(fm_pending_reply_delivery_confirmation_path "$STATE" "$corr")
     if { [ ! -e "$rec" ] && [ ! -L "$rec" ]; } \
@@ -858,7 +867,7 @@ handoff_wake_retire_stage_recover() {
   HANDOFF_WAKE_RETIRE_STAGE=$stage
   if [ -n "$corr" ]; then
     HANDOFF_WAKE_RETIRE_LOCK="$STATE/.pending-reply-$corr.lock"
-    fm_lock_acquire_wait "$HANDOFF_WAKE_RETIRE_LOCK" || return 1
+    fm_lock_acquire_wait_max "$HANDOFF_WAKE_RETIRE_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || return 1
   fi
   if [ -e "$home" ] || [ -L "$home" ]; then
     handoff_wake_retire_stage_restore
@@ -877,7 +886,7 @@ handoff_wake_retire_stage() {
   printf '%s\n' "$corr" > "$stage/corr" || { handoff_wake_retire_stage_restore || true; return 1; }
   if [ -n "$corr" ]; then
     HANDOFF_WAKE_RETIRE_LOCK="$STATE/.pending-reply-$corr.lock"
-    fm_lock_acquire_wait "$HANDOFF_WAKE_RETIRE_LOCK" || {
+    fm_lock_acquire_wait_max "$HANDOFF_WAKE_RETIRE_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
       HANDOFF_WAKE_RETIRE_LOCK=
       handoff_wake_retire_stage_restore || true
       return 1
@@ -1126,14 +1135,14 @@ remote_secondmate_teardown_locked() {
   local rc
   [ -n "$(fm_meta_get "$META" remote_host)" ] || return 3
   REMOTE_REGISTRY_LOCK=$(secondmate_registry_lock_path "$STATE")
-  fm_lock_acquire_wait "$REMOTE_REGISTRY_LOCK" || return 1
+  fm_lock_acquire_wait_max "$REMOTE_REGISTRY_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || return 1
   REMOTE_HANDOFF_LOCK="$STATE/.backlog-handoff-$ID.lock"
-  fm_lock_acquire_wait "$REMOTE_HANDOFF_LOCK" || {
+  fm_lock_acquire_wait_max "$REMOTE_HANDOFF_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
     remote_teardown_locks_release
     return 1
   }
   REMOTE_REPLY_LIFECYCLE_LOCK=$(secondmate_reply_lifecycle_lock_path "$STATE" "$ID")
-  fm_lock_acquire_wait "$REMOTE_REPLY_LIFECYCLE_LOCK" || {
+  fm_lock_acquire_wait_max "$REMOTE_REPLY_LIFECYCLE_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
     remote_teardown_locks_release
     return 1
   }
@@ -3253,7 +3262,7 @@ remove_secondmate_registry_entry() {
   [ -f "$SECONDMATE_REG" ] || return 0
   lock=$(secondmate_registry_lock_path "$STATE")
   if [ "$LOCAL_REGISTRY_LOCK" != "$lock" ]; then
-    fm_lock_acquire_wait "$lock" || return 1
+    fm_lock_acquire_wait_max "$lock" "$TEARDOWN_LOCK_WAIT_SECS" || return 1
     acquired=1
   fi
   tmp="$SECONDMATE_REG.tmp.$$"
@@ -3270,9 +3279,9 @@ validate_pr_poll_cleanup "$STATE" "$ID" || exit 1
 
 if [ "$KIND" = secondmate ]; then
   LOCAL_REGISTRY_LOCK=$(secondmate_registry_lock_path "$STATE")
-  fm_lock_acquire_wait "$LOCAL_REGISTRY_LOCK" || exit 1
+  fm_lock_acquire_wait_max "$LOCAL_REGISTRY_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || exit 1
   LOCAL_HANDOFF_LOCK="$STATE/.backlog-handoff-$ID.lock"
-  fm_lock_acquire_wait "$LOCAL_HANDOFF_LOCK" || exit 1
+  fm_lock_acquire_wait_max "$LOCAL_HANDOFF_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || exit 1
   [ -n "$HOME_PATH" ] || HOME_PATH=$WT
   handoff_wake_retire_stage_recover "$HOME_PATH" || exit 1
   handoff_wake_retire_validate || exit 1
