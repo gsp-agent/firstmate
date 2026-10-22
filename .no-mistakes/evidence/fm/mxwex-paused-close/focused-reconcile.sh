@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -u
+. "/Users/dalecarman/.no-mistakes/evidence/01M5G3MH318E8QVNSE345AGS9W/focused-reconcile-definitions.sh"
+test_context_paused_herdr_pane_closes_without_outcome
+test_event_paused_herdr_pane_stays_open
+test_pause_during_state_read_supersedes_terminal_closure
+test_context_paused_busy_herdr_pane_stays_open
+test_captain_holds_keep_inactive_herdr_panes_open
+test_captain_hold_and_pane_closure_are_serialized
+test_retained_context_pause_requires_current_evidence_and_missing_pane

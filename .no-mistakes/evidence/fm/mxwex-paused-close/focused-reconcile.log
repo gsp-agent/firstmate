@@ -1,0 +1,13 @@
+ok - context-paused ship and scout panes close without outcomes or wakes and retain paused current state
+ok - a pause for any other reason never closes
+ok - pauses arriving during a terminal state read retain pause semantics in both homes
+ok - busy evidence keeps a context-paused herdr pane open
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done pr=https://example.test/owner/repo/pull/1
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done pr=https://example.test/owner/repo/pull/1
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=failed pr=https://example.test/owner/repo/pull/1
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=failed pr=https://example.test/owner/repo/pull/1
+ok - authoritative captain holds and unreadable hold state preserve terminal and context-paused panes in both homes
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done pr=https://example.test/owner/repo/pull/1
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=failed pr=https://example.test/owner/repo/pull/1
+ok - captain holds and terminal/context-paused closure share task-control-before-metadata ordering in both homes
+ok - retained context pauses require current pause evidence and a confirmed missing ordinary pane

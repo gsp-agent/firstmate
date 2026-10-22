@@ -1,0 +1,41 @@
+Named lab: fm-lab-pause-close-41030-24128
+Lab provisioned with default-fleet tripwire.
+{"id": "close7retry", "note": "context limit reached; awaiting a fresh session and then continue", "guard": "", "expected_close": true, "pane_exists_after": false, "retained": true, "terminal_outcomes": 0, "silent": true, "crew_state": "state: paused \u00b7 source: status-log \u00b7 context limit reached; awaiting a fresh session and then continue", "seconds": 1.867, "result": "pass", "stderr": ""}
+Budget scan duration=6.528 marker=epoch=1792626149
+cursor=
+
+{"id": "watch-default-retry0", "expected_close": true, "pane_exists_after": false, "seconds": 6.554, "result": "pass", "overrides": {}}
+{"id": "watch-default-retry1", "expected_close": false, "pane_exists_after": true, "seconds": 6.595, "result": "pass", "overrides": {}}
+Budget scan duration=6.657 marker=epoch=1792626157
+cursor=
+
+{"id": "watch-override-retry0", "expected_close": false, "pane_exists_after": true, "seconds": 6.672, "result": "pass", "overrides": {"FM_INACTIVE_RECONCILE_SECS": "900", "FM_INACTIVE_RECONCILE_BUDGET_SECS": "30"}}
+{"id": "watch-override-retry1", "expected_close": true, "pane_exists_after": false, "seconds": 6.703, "result": "pass", "overrides": {"FM_INACTIVE_RECONCILE_SECS": "900", "FM_INACTIVE_RECONCILE_BUDGET_SECS": "30"}}
+Budget scan duration=46.126 marker=epoch=1792626201
+cursor=watch-budget2
+
+{"id": "watch-budget0", "expected_close": null, "pane_exists_after": false, "seconds": 46.148, "result": "observed", "overrides": {}}
+{"id": "watch-budget1", "expected_close": null, "pane_exists_after": false, "seconds": 46.293, "result": "observed", "overrides": {}}
+{"id": "watch-budget2", "expected_close": null, "pane_exists_after": true, "seconds": 46.452, "result": "observed", "overrides": {}}
+{"id": "watch-budget3", "expected_close": null, "pane_exists_after": true, "seconds": 46.516, "result": "observed", "overrides": {}}
+{"id": "watch-budget4", "expected_close": null, "pane_exists_after": true, "seconds": 46.536, "result": "observed", "overrides": {}}
+{"id": "watch-budget5", "expected_close": null, "pane_exists_after": true, "seconds": 46.776, "result": "observed", "overrides": {}}
+{"id": "watch-budget6", "expected_close": null, "pane_exists_after": true, "seconds": 46.879, "result": "observed", "overrides": {}}
+{"id": "watch-budget7", "expected_close": null, "pane_exists_after": true, "seconds": 46.901, "result": "observed", "overrides": {}}
+{"id": "watch-budget8", "expected_close": null, "pane_exists_after": true, "seconds": 46.982, "result": "observed", "overrides": {}}
+{"id": "watch-budget9", "expected_close": null, "pane_exists_after": true, "seconds": 47.121, "result": "observed", "overrides": {}}
+{"id": "watch-budget10", "expected_close": null, "pane_exists_after": false, "seconds": 47.138, "result": "observed", "overrides": {}}
+{"id": "watch-budget11", "expected_close": null, "pane_exists_after": false, "seconds": 47.155, "result": "observed", "overrides": {}}
+{"id": "watch-budget12", "expected_close": null, "pane_exists_after": false, "seconds": 47.195, "result": "observed", "overrides": {}}
+{"id": "watch-budget13", "expected_close": null, "pane_exists_after": false, "seconds": 47.244, "result": "observed", "overrides": {}}
+{"id": "watch-budget14", "expected_close": null, "pane_exists_after": false, "seconds": 47.297, "result": "observed", "overrides": {}}
+{"id": "watch-budget15", "expected_close": null, "pane_exists_after": false, "seconds": 47.371, "result": "observed", "overrides": {}}
+Budget scan duration=11.096 marker=epoch=1792626225
+cursor=watch-budget-one0
+
+{"id": "watch-budget-one0", "expected_close": null, "pane_exists_after": true, "seconds": 11.111, "result": "observed", "overrides": {"FM_INACTIVE_RECONCILE_BUDGET_SECS": "1"}}
+{"id": "watch-budget-one1", "expected_close": null, "pane_exists_after": true, "seconds": 11.127, "result": "observed", "overrides": {"FM_INACTIVE_RECONCILE_BUDGET_SECS": "1"}}
+{"id": "watch-budget-one2", "expected_close": null, "pane_exists_after": true, "seconds": 11.143, "result": "observed", "overrides": {"FM_INACTIVE_RECONCILE_BUDGET_SECS": "1"}}
+{"id": "watch-budget-one3", "expected_close": null, "pane_exists_after": true, "seconds": 11.16, "result": "observed", "overrides": {"FM_INACTIVE_RECONCILE_BUDGET_SECS": "1"}}
+All real-product scenarios finished.
+Lab teardown rc=0 

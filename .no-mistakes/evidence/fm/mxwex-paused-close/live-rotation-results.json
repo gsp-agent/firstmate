@@ -1,0 +1,111 @@
+[
+  {
+    "task_count": 104,
+    "closed": 104,
+    "cycles": [
+      {
+        "cycle": 1,
+        "scan_seconds": 32.092,
+        "newly_closed": 6,
+        "total_closed": 6,
+        "cursor_record": "epoch=1792626622\ncursor=load006\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 2,
+        "scan_seconds": 31.443,
+        "newly_closed": 9,
+        "total_closed": 15,
+        "cursor_record": "epoch=1792626654\ncursor=load015\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 3,
+        "scan_seconds": 31.232,
+        "newly_closed": 24,
+        "total_closed": 39,
+        "cursor_record": "epoch=1792626685\ncursor=load039\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 4,
+        "scan_seconds": 32.145,
+        "newly_closed": 19,
+        "total_closed": 58,
+        "cursor_record": "epoch=1792626713\ncursor=load059\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 5,
+        "scan_seconds": 34.499,
+        "newly_closed": 1,
+        "total_closed": 59,
+        "cursor_record": "epoch=1792626755\ncursor=load061\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 6,
+        "scan_seconds": 31.62,
+        "newly_closed": 18,
+        "total_closed": 77,
+        "cursor_record": "epoch=1792626787\ncursor=load080\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 7,
+        "scan_seconds": 31.21,
+        "newly_closed": 22,
+        "total_closed": 99,
+        "cursor_record": "epoch=1792626817\ncursor=load102\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 8,
+        "scan_seconds": 31.002,
+        "newly_closed": 2,
+        "total_closed": 101,
+        "cursor_record": "epoch=1792626848\ncursor=load007\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 9,
+        "scan_seconds": 30.475,
+        "newly_closed": 0,
+        "total_closed": 101,
+        "cursor_record": "epoch=1792626879\ncursor=load040\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 10,
+        "scan_seconds": 30.548,
+        "newly_closed": 2,
+        "total_closed": 103,
+        "cursor_record": "epoch=1792626909\ncursor=load066\n",
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "cycle": 11,
+        "scan_seconds": 30.541,
+        "newly_closed": 1,
+        "total_closed": 104,
+        "cursor_record": "epoch=1792626940\ncursor=load093\n",
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "clock_compression": "Between scans only the disposable cadence marker mtime was aged; the durable cursor and all product code were retained. Actual scan time plus 300 seconds per skipped cadence gives a schedule estimate, not a real-time hour observation.",
+    "conservative_schedule_seconds": 3646.807,
+    "result": "pass",
+    "schedule_with_default_15s_poll_seconds": 3811.807
+  }
+]
