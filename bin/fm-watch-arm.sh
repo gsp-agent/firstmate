@@ -736,6 +736,7 @@ fi
 # wake exit propagates out so the harness re-notifies firstmate.
 child=
 child_out=
+deadline=
 cleanup_child() {
   if [ -n "$child" ] && fm_pid_alive "$child"; then
     kill -TERM "$child" 2>/dev/null || true
@@ -839,8 +840,7 @@ owned_child_finished() {
     rm -f "$child_out" 2>/dev/null || true
     child=
     child_out=
-    echo "watcher: FAILED - covering watcher closed before confirmation"
-    return 1
+    return 0
   fi
   if [ "$rc" -eq 0 ] && watch_output_has_wake "$child_out"; then
     reason_type=$(watch_output_reason_type "$child_out")
@@ -913,7 +913,9 @@ run_owned_cycle() {
   }
   # date(1) exposes whole seconds. Keep the configured confirmation budget from
   # collapsing when startup begins just before the next second boundary.
-  deadline=$(( $(date +%s) + CONFIRM_TIMEOUT + 1 ))
+  if [ -z "$deadline" ]; then
+    deadline=$(( $(date +%s) + CONFIRM_TIMEOUT + 1 ))
+  fi
   if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
     FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" >"$child_out" &
   else
@@ -927,6 +929,7 @@ run_owned_cycle() {
   # until some other watcher legitimately holds the singleton (a startup race), or
   # until the child gives up. Only then print the honest line.
   while :; do
+    [ "$(date +%s)" -ge "$deadline" ] && break
     if healthy_watcher; then
       if [ "$HEALTHY_PID" = "$child" ]; then
         if grep -q '^watcher: replaced stalled pid ' "$child_out" 2>/dev/null; then
@@ -977,7 +980,6 @@ run_owned_cycle() {
       owned_child_finished "$rc"
       return $?
     fi
-    [ "$(date +%s)" -ge "$deadline" ] && break
     sleep 0.2
   done
 
@@ -994,8 +996,16 @@ run_owned_cycle() {
 while :; do
   run_owned_cycle
   status=$?
-  cover_chains "$status" || exit "$status"
-  CHAINED=1
-  TAKEN_OVER=0
+  if [ "$COVER" -eq 1 ] && [ "$COVER_RECORDED" -eq 0 ] && [ "$status" -eq 0 ]; then
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      echo "watcher: FAILED - no live watcher with a fresh beacon"
+      exit 1
+    fi
+  else
+    cover_chains "$status" || exit "$status"
+    CHAINED=1
+    TAKEN_OVER=0
+    deadline=
+  fi
   FM_WATCH_PREDECESSOR_ARM_PID=$ARM_PID
 done

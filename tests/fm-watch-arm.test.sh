@@ -1478,8 +1478,8 @@ test_handed_over_successor_chains_and_can_be_taken_over_while_owner_lives() {
   pass "watch-arm: explicit handover permits chaining and takeover while the original owner still lives"
 }
 
-test_covering_successor_reports_a_preconfirmation_clean_close() {
-  local dir state fakebin armout real_cat real_sleep cover status watcher
+test_covering_successor_rearms_after_a_preconfirmation_clean_close() {
+  local dir state fakebin armout real_cat real_sleep cover status first watcher watchers i
   real_cat=$(command -v cat)
   real_sleep=$(command -v sleep)
   for cover in 1 0; do
@@ -1490,7 +1490,8 @@ test_covering_successor_reports_a_preconfirmation_clean_close() {
     cat > "$fakebin/cat" <<SH
 #!/usr/bin/env bash
 if [ "\${FM_WATCH_HANDLING_SUCCESSOR:-0}" != 1 ] \\
-  && [ "\$#" -eq 1 ] && [ "\$1" = "\$FM_STATE_OVERRIDE/.watch.lock/pid" ]; then
+  && [ "\$#" -eq 1 ] && [ "\$1" = "\$FM_STATE_OVERRIDE/.watch.lock/pid" ] \\
+  && [ ! -e "\$FM_HOME/health-read" ]; then
   for capture in "\$FM_STATE_OVERRIDE"/.watch-arm-output.*; do
     [ -f "\$capture" ] || continue
     printf 'delayed\\n' >> "\$FM_HOME/health-read"
@@ -1513,11 +1514,40 @@ SH
       FM_WATCH_HANDLING_SUCCESSOR=0 FM_WATCH_PREDECESSOR_ARM_PID=$$ \
       "$WATCH_ARM" > "$armout" 2>&1 &
     ARM_PID=$!
-    wait_for_exit "$ARM_PID" "$REARM_EXIT_POLLS"
-    status=$?
+    if [ "$cover" -eq 1 ]; then
+      i=0
+      while [ "$i" -lt "$REARM_REPORT_POLLS" ]; do
+        grep -q '^watcher: started ' "$armout" && break
+        is_live_non_zombie "$ARM_PID" || break
+        sleep 0.05
+        i=$((i + 1))
+      done
+      grep -q '^watcher: started ' "$armout" \
+        || fail "the covering arm did not confirm a replacement after the early clean close: $(cat "$armout")"
+      [ "$(grep -c '^watcher: started ' "$armout")" -eq 1 ] \
+        || fail "the covering arm reported more than one started watcher"
+      consumer_tick "$dir" "$state" || fail "the replacement watcher is not healthy"
+      watcher=$(cat "$state/.watch.lock/pid")
+      [ "$(parent_of "$watcher")" = "$ARM_PID" ] || fail "the covering arm does not own the replacement"
+      watchers=$(ps -eo pid=,ppid=,args= | awk -v owner="$ARM_PID" '
+        $2 == owner {
+          for (i = 3; i <= NF; i++) {
+            if ($i ~ /(^|\/)fm-watch\.sh$/) { print $1; break }
+          }
+        }')
+      [ "$watchers" = "$watcher" ] || fail "the covering arm has more than one live watcher: $watchers"
+      [ "$(cut -f1 "$state/.watch-cover")" = "$ARM_PID" ] \
+        || fail "the replacement did not record covering responsibility"
+    else
+      wait_for_exit "$ARM_PID" "$REARM_EXIT_POLLS"
+      status=$?
+      expect_code 0 "$status" "a plain arm must still deliver a pre-confirmation wake"
+      ! grep -Eq '^watcher: (started|attached)' "$armout" \
+        || fail "fixture: the plain arm was confirmed before its clean close: $(cat "$armout")"
+      [ ! -e "$state/.watch.lock/pid" ] && [ ! -e "$state/.watch-cover" ] \
+        || fail "the plain arm retained watcher ownership after its close"
+    fi
     [ -s "$dir/health-read" ] || fail "fixture: no health read was delayed until the watcher closed"
-    ! grep -Eq '^watcher: (started|attached)' "$armout" \
-      || fail "fixture: the watcher was confirmed before its clean close: $(cat "$armout")"
     assert_grep 'check: process-event result captured: procevent:preconfirmation:1' "$armout" \
       "the pre-confirmation close did not surface the queued notification: $(cat "$armout")"
     assert_grep $'\texit_code=0\tsignal=none\t' "$state/.watch-cycle-exits.log" \
@@ -1525,20 +1555,54 @@ SH
     cmp -s "$dir/queue.before" "$state/.wake-queue" \
       || fail "the pre-confirmation close changed or acknowledged the queued notification"
     [ "$(wc -l < "$state/.watch-cycle-exits.log" | tr -d ' ')" -eq 1 ] \
-      || fail "the pre-confirmation close started another watcher"
-    watcher=$(awk -F '\t' '{ sub(/^watcher_pid=/, "", $2); print $2 }' "$state/.watch-cycle-exits.log")
-    ! is_live_non_zombie "$watcher" || fail "the closed watcher is still running"
-    [ ! -e "$state/.watch.lock/pid" ] && [ ! -e "$state/.watch-cover" ] \
-      || fail "the pre-confirmation close retained watcher ownership"
+      || fail "more than the first watcher closed during startup"
+    first=$(awk -F '\t' '{ sub(/^watcher_pid=/, "", $2); print $2 }' "$state/.watch-cycle-exits.log")
+    ! is_live_non_zombie "$first" || fail "the first watcher is still running"
+    ! grep -q '^watcher: FAILED' "$armout" || fail "the clean startup close was reported as failure"
     if [ "$cover" -eq 1 ]; then
-      expect_code 1 "$status" "an unconfirmed covering successor must report failure"
-      assert_grep 'watcher: FAILED' "$armout" "the owner received no covering-start failure"
-    else
-      expect_code 0 "$status" "a plain arm must still deliver a pre-confirmation wake"
-      ! grep -q '^watcher: FAILED' "$armout" || fail "a plain arm reported its delivered wake as failure"
+      [ "$first" != "$watcher" ] || fail "the covering arm confirmed the already closed watcher"
+      kill -TERM "$ARM_PID" 2>/dev/null || true
+      wait_for_exit "$ARM_PID" 100 >/dev/null 2>&1 || true
+      ! is_live_non_zombie "$watcher" || fail "the replacement survived its arm's cleanup"
     fi
   done
-  pass "watch-arm: an early clean close fails covering startup and preserves the queued wake"
+  pass "watch-arm: an early clean close leaves one confirmed covering watcher and preserves the queued wake"
+}
+
+test_covering_startup_clean_closes_share_one_deadline() {
+  local dir state fakebin armout fixture_bin dependency status attempts
+  dir=$(make_case covering-startup-deadline)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  armout="$dir/arm.out"
+  fixture_bin="$dir/bin"
+  mkdir -p "$fixture_bin"
+  for dependency in "$ROOT"/bin/*; do
+    case "${dependency##*/}" in fm-watch-arm.sh|fm-watch.sh) continue ;; esac
+    ln -s "$dependency" "$fixture_bin/${dependency##*/}"
+  done
+  cp "$WATCH_ARM" "$fixture_bin/fm-watch-arm.sh"
+  cat > "$fixture_bin/fm-watch.sh" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$$" >> "$FM_HOME/attempts"
+printf 'check: fixture clean startup close\n'
+SH
+  chmod +x "$fixture_bin/fm-watch.sh"
+  append_wake "$state" check procevent:preconfirmation:deadline 'procevent deadline fixture'
+  cp "$state/.wake-queue" "$dir/queue.before"
+  PATH="$fakebin:$PATH" FM_HOME="$dir" FM_STATE_OVERRIDE="$state" \
+    FM_ARM_CONFIRM_TIMEOUT=2 FM_WATCH_COVER=1 FM_WATCH_PREDECESSOR_ARM_PID=$$ \
+    "$fixture_bin/fm-watch-arm.sh" > "$armout" 2>&1 &
+  ARM_PID=$!
+  wait_for_exit "$ARM_PID" 100
+  status=$?
+  expect_code 1 "$status" "clean startup closes must exhaust one shared confirmation budget"
+  attempts=$(wc -l < "$dir/attempts" | tr -d ' ')
+  [ "$attempts" -gt 1 ] || fail "the covering arm failed before trying a replacement"
+  assert_grep 'watcher: FAILED' "$armout" "the exhausted confirmation budget did not report failure"
+  ! grep -q '^watcher: started ' "$armout" || fail "a dead watcher was reported as started"
+  cmp -s "$dir/queue.before" "$state/.wake-queue" || fail "startup retries consumed the queued wake"
+  pass "watch-arm: repeated clean startup closes exhaust one confirmation deadline"
 }
 
 test_chained_cycle_capture_failure_exits_without_retrying() {
@@ -2064,6 +2128,7 @@ test_successor_left_for_main_covers_the_whole_turn
 test_take_over_of_a_covering_successor_leaves_one_watcher
 test_covering_successor_with_a_live_owner_closes_on_its_wake
 test_handed_over_successor_chains_and_can_be_taken_over_while_owner_lives
-test_covering_successor_reports_a_preconfirmation_clean_close
+test_covering_successor_rearms_after_a_preconfirmation_clean_close
+test_covering_startup_clean_closes_share_one_deadline
 test_chained_cycle_capture_failure_exits_without_retrying
 test_opencode_arm_plugin_decides_with_the_shared_predicate
