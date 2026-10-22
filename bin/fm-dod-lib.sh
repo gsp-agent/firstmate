@@ -384,6 +384,7 @@ Two firstmate-specific rules layer on top of that guidance:
 - ask-user findings are never yours to answer: escalate to firstmate using rule 6's ask-user format and stop.
   Firstmate applies \`ask-user-authority\` and obtains any required captain decision.
   When the decision comes back, feed it to the gate with \`no-mistakes axi respond\` and let the pipeline apply it - do not route the question to "the user" or implement the fix yourself.
+  One exception, which is not an authority decision: a warning-level finding whose only question is whether to proceed without live validation because the change has no executable surface (a docs-only change; no-mistakes calls this a no-surface verdict) is yours to answer at the gate: respond to proceed, and name the untested scenarios in your status report. The scenarios stay listed as untested on the PR; you are deciding nothing about product behavior, only recording that there was no surface to drive.
 - NEVER pass \`--yes\` (or \`-y\`) to \`no-mistakes axi run\` or \`no-mistakes axi respond\`. It is banned fleet-wide.
   It auto-resolves every gate including ask-user findings with no escalation, and answering your own ask-user finding is a hard rule violation.
 EOF
