@@ -82,8 +82,9 @@
 # FM_WATCH_COVER=1 marks a covering successor: the arm an owner starts while
 # main handles a wake (bin/fm-supervision-host.sh start_successor,
 # bin/fm-claude-stop-autoarm.sh start_handling_successor). Once its first
-# watcher is confirmed it records itself in state/.watch-cover. While that
-# record still names it and its owner has exited (it was reparented), nobody
+# watcher is confirmed it records itself in state/.watch-cover before reporting
+# readiness. Its owner calls --cover-handoff <arm-pid> before detaching it.
+# While that record still names it and its owner handed over or exited, nobody
 # reads its close, so after a watcher closes on an actionable wake it starts
 # the next handling-successor watcher itself instead of exiting; the wake stays
 # durable in the queue for main. It never chains after a signal or failed
@@ -92,7 +93,7 @@
 # it removes it and stops the orphaned covering arm, taking its cycle over as
 # --take-over does, so main's turn-end arm owns a fresh cycle that surfaces any
 # wake queued during the turn and never runs beside the covering one. A
-# covering arm whose owner still runs closes exactly as a plain arm.
+# covering arm whose owner still holds responsibility closes as a plain arm.
 #
 # --stop: the same home-scoped stop without re-arming, for an owner that ends
 # its own supervision cycle on purpose (the supervision host's park boundary,
@@ -498,10 +499,17 @@ mode=arm
 handling_generation=
 handling_watcher_pid=
 take_over_arm_pid=
+cover_handoff_pid=
 case "${1:-}" in
   ''|arm|--arm) mode=arm ;;
   --restart) mode=restart ;;
   --stop) mode=stop ;;
+  --cover-handoff)
+    mode=cover-handoff
+    cover_handoff_pid=${2:-}
+    case "$cover_handoff_pid" in ''|*[!0-9]*) echo "watcher: invalid covering arm pid" >&2; exit 2 ;; esac
+    [ "$#" -eq 2 ] || { echo "watcher: unexpected coverage handoff arguments" >&2; exit 2; }
+    ;;
   --take-over)
     mode=take-over
     take_over_arm_pid=${2:-}
@@ -517,7 +525,7 @@ case "${1:-}" in
     case "$handling_watcher_pid" in ''|*[!0-9]*) echo "watcher: invalid successor watcher pid" >&2; exit 2 ;; esac
     [ "$#" -eq 4 ] || { echo "watcher: unexpected handling delivery arguments" >&2; exit 2; }
     ;;
-  *) echo "usage: $(basename "$0") [--restart | --stop | --take-over ARM_PID | --handling-delivered GENERATION --watcher-pid PID]" >&2; exit 2 ;;
+  *) echo "usage: $(basename "$0") [--restart | --stop | --take-over ARM_PID | --cover-handoff ARM_PID | --handling-delivered GENERATION --watcher-pid PID]" >&2; exit 2 ;;
 esac
 
 if [ "$mode" = handling-delivered ]; then
@@ -553,6 +561,27 @@ stop_home_watcher() {
 parent_of() {  # <pid>
   ps -o ppid= -p "$1" 2>/dev/null | tr -d ' '
 }
+
+cover_owner_released() {
+  [ "$3" = handed-over ] || [ "$(parent_of "$1")" != "$2" ]
+}
+
+if [ "$mode" = cover-handoff ]; then
+  cover_pid= cover_identity= cover_parent=
+  [ -f "$COVER_RECORD" ] && [ ! -L "$COVER_RECORD" ] || exit 1
+  IFS=$'\t' read -r cover_pid cover_identity cover_parent _ < "$COVER_RECORD" || exit 1
+  [ "$cover_pid" = "$cover_handoff_pid" ] && [ "$cover_parent" = "$PPID" ] \
+    && [ -n "$cover_identity" ] && fm_pid_alive "$cover_pid" \
+    && [ "$(fm_pid_identity "$cover_pid" 2>/dev/null)" = "$cover_identity" ] \
+    && [ "$(parent_of "$cover_pid")" = "$PPID" ] || exit 1
+  cover_tmp=$(mktemp "$COVER_RECORD.tmp.XXXXXX") || exit 1
+  if ! printf '%s\t%s\t%s\thanded-over\n' "$cover_pid" "$cover_identity" "$cover_parent" > "$cover_tmp" \
+    || ! mv -f "$cover_tmp" "$COVER_RECORD"; then
+    rm -f "$cover_tmp" 2>/dev/null || true
+    exit 1
+  fi
+  exit 0
+fi
 
 # Stop the watcher the named arm owns, by its locked identity, and wait for it
 # to exit (header, --take-over). A claimed covering arm is stopped itself
@@ -607,16 +636,16 @@ take_over_cycle() {  # <owner-arm-pid> <watcher-pid> <identity> [arm|watcher]
 
 # Claim an orphaned covering arm's record (header, FM_WATCH_COVER) and stop
 # that arm, so it starts no further watcher. Sets CLAIMED_COVER_PID; a record
-# naming a dead or reused pid is discarded, and one whose arm still has its
-# owner is left alone.
+# naming a dead or reused pid is discarded, and one whose owner still holds
+# responsibility is left alone.
 CLAIMED_COVER_PID=
 claim_cover_cycle() {
-  local pid='' identity='' parent=''
+  local pid='' identity='' parent='' handover=''
   [ -f "$COVER_RECORD" ] || return 0
-  IFS=$'\t' read -r pid identity parent < "$COVER_RECORD" 2>/dev/null || true
+  IFS=$'\t' read -r pid identity parent handover < "$COVER_RECORD" 2>/dev/null || true
   if fm_pid_alive "$pid" && [ -n "$identity" ] \
     && [ "$(fm_pid_identity "$pid" 2>/dev/null || true)" = "$identity" ]; then
-    [ "$(parent_of "$pid")" != "$parent" ] || return 0
+    cover_owner_released "$pid" "$parent" "$handover" || return 0
     CLAIMED_COVER_PID=$pid
   fi
   rm -f "$COVER_RECORD" 2>/dev/null || true
@@ -738,18 +767,19 @@ CHAINED=0
 CLOSED_ON_WAKE=0
 
 # Record this covering arm once its first watcher is confirmed (header,
-# FM_WATCH_COVER): its pid, identity, and the owner it was started by.
+# FM_WATCH_COVER): its pid, identity, parent pid, and owned responsibility.
 cover_record() {
   local identity tmp
   [ "$COVER" -eq 1 ] && [ "$COVER_RECORDED" -eq 0 ] || return 0
-  identity=$(fm_pid_identity "$ARM_PID" 2>/dev/null) || return 0
-  tmp=$(mktemp "$COVER_RECORD.tmp.XXXXXX" 2>/dev/null) || return 0
-  if printf '%s\t%s\t%s\n' "$ARM_PID" "$identity" "$PPID" > "$tmp" 2>/dev/null \
-    && mv -f "$tmp" "$COVER_RECORD" 2>/dev/null; then
-    COVER_RECORDED=1
-    trap cover_release EXIT
+  identity=$(fm_pid_identity "$ARM_PID" 2>/dev/null) || return 1
+  tmp=$(mktemp "$COVER_RECORD.tmp.XXXXXX" 2>/dev/null) || return 1
+  if ! printf '%s\t%s\t%s\towned\n' "$ARM_PID" "$identity" "$PPID" > "$tmp" 2>/dev/null \
+    || ! mv -f "$tmp" "$COVER_RECORD" 2>/dev/null; then
+    rm -f "$tmp" 2>/dev/null || true
+    return 1
   fi
-  rm -f "$tmp" 2>/dev/null || true
+  COVER_RECORDED=1
+  trap cover_release EXIT
 }
 
 cover_names_me() {
@@ -763,17 +793,16 @@ cover_release() {
   ! cover_names_me || rm -f "$COVER_RECORD" 2>/dev/null || true
 }
 
-# Chain only after a wake close, while the record still names this arm and its
-# owner has exited, so nothing else reads that close.
 cover_chains() {
-  [ "$COVER_RECORDED" -eq 1 ] && [ "$CLOSED_ON_WAKE" -eq 1 ] && cover_names_me \
-    && [ "$(parent_of "$ARM_PID")" != "$PPID" ]
+  local pid='' parent='' handover=''
+  [ "$COVER_RECORDED" -eq 1 ] && [ "$CLOSED_ON_WAKE" -eq 1 ] || return 1
+  IFS=$'\t' read -r pid _ parent handover < "$COVER_RECORD" 2>/dev/null || return 1
+  [ "$pid" = "$ARM_PID" ] && cover_owner_released "$pid" "$parent" "$handover"
 }
 
 owned_child_finished() {
   local rc=$1 signal reason_type status
   signal=$(cycle_signal_name "$rc")
-  CLOSED_ON_WAKE=0
   if [ "$rc" -eq 0 ] && watch_output_has_wake "$child_out"; then
     reason_type=$(watch_output_reason_type "$child_out")
     cycle_log_append "$rc" "$signal" "$reason_type" none
@@ -837,6 +866,7 @@ owned_child_finished() {
 
 # Fork one watcher as a tracked child, confirm it, and wait for its close.
 run_owned_cycle() {
+  CLOSED_ON_WAKE=0
   local rc
   child_out=$(mktemp "$STATE/.watch-arm-output.XXXXXX") || {
     echo "watcher: FAILED - no live watcher with a fresh beacon"
@@ -878,12 +908,18 @@ run_owned_cycle() {
         fi
         cycle_mark_predecessor_successor "started:$child"
         [ "$TAKEN_OVER" -eq 0 ] || cycle_mark_predecessor_successor "started:$child" "$ARM_PID"
+        if ! cover_record; then
+          cleanup_child
+          wait "$child" 2>/dev/null || true
+          cycle_log_append 1 none covering-record-failed none
+          echo "watcher: FAILED - covering responsibility could not be recorded"
+          return 1
+        fi
         if [ -n "$handling_generation" ]; then
           echo "watcher: started pid=$child (beacon fresh) recovery-generation=$handling_generation"
         else
           echo "watcher: started pid=$child (beacon fresh)"
         fi
-        cover_record
         wait "$child"
         rc=$?
         owned_child_finished "$rc"
@@ -919,7 +955,7 @@ run_owned_cycle() {
 while :; do
   run_owned_cycle
   status=$?
-  cover_chains || exit "$status"
+  [ "$status" -eq 0 ] && cover_chains || exit "$status"
   CHAINED=1
   TAKEN_OVER=0
   FM_WATCH_PREDECESSOR_ARM_PID=$ARM_PID

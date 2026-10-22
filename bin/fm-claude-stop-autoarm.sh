@@ -381,6 +381,11 @@ start_handling_successor() {  # <closed-arm-pid>
   deadline=$(( $(date +%s) + budget + 2 ))
   while :; do
     if grep -Eq '^watcher: (started|attached) pid=[0-9]+' "$out" 2>/dev/null; then
+      if ! "$SCRIPT_DIR/fm-watch-arm.sh" --cover-handoff "$pid" >/dev/null 2>&1; then
+        rm -f "$out" 2>/dev/null || true
+        SUCCESSOR_FAILURE="The handling successor pid=$pid could not record its coverage handover."
+        return 1
+      fi
       rm -f "$out" 2>/dev/null || true
       return 0
     fi

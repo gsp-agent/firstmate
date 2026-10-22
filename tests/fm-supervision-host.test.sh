@@ -325,6 +325,68 @@ teardown_still_holds_the_lease_lock() {  # <home>
   [ "$(cat "$1/state/.fm-lease-command.lock/pid" 2>/dev/null)" = "$(cat "$1/teardown.held")" ]
 }
 
+host_waiting_on_lease_release() {
+  ps -A -o ppid= -o command= 2>/dev/null \
+    | awk -v host="$1" '$1 == host && /fm-lease.sh --wait 120 release-actor/ { found = 1 } END { exit !found }'
+}
+
+test_handed_over_successor_covers_the_host_exit_lease_wait() {
+  local home real_mktemp host cover watcher
+  home=$(make_primary_home hook-handover-lease-wait)
+  ln -s "$ROOT/.agents" "$home/.agents"
+  echo captain > "$home/stub-mode"
+  : > "$home/hook.own-group"
+  real_mktemp=$(command -v mktemp)
+  cat > "$home/fakebin/mktemp" <<SH
+#!/usr/bin/env bash
+case "\$*" in
+  *'/.watcher-down.tmp.'*)
+    if [ -f "\$FM_HOME/state/.supervision-host-left" ] && [ ! -e "\$FM_HOME/handover-paused" ]; then
+      printf '%s\\n' "\$\$" >> "\$FM_HOME/orphan-pid"
+      : > "\$FM_HOME/handover-paused"
+      while [ ! -e "\$FM_HOME/cleanup.go" ]; do sleep 0.1; done
+    fi
+    ;;
+esac
+exec "$real_mktemp" "\$@"
+SH
+  chmod +x "$home/fakebin/mktemp"
+  FM_SUPERVISION_HOST_LEASE_WAIT=120 start_hook_session "$home"
+  turn_end "$home"
+  wait_until 200 watcher_live "$home" || fail "handover: the host did not start its watcher"
+  append_status "$home" 'first actionable wake'
+  wait_until 400 test -e "$home/handover-paused" || fail "handover: the host did not reach its hand-back"
+  host=$(awk -F '\t' '$1 == "host" { print $2; exit }' "$home/state/.supervision-host")
+  cover=$(cut -f1 "$home/state/.supervision-host-left")
+  watcher=$(cat "$home/state/.watch.lock/pid")
+  hold_lease_lock_like_a_teardown "$home"
+  : > "$home/cleanup.go"
+  wait_until 150 host_waiting_on_lease_release "$host" || fail "handover: the host was not in its exit lease wait"
+  [ "$(parent_of "$cover")" = "$host" ] || fail "fixture: the covering arm's owner already exited"
+  printf 'project=demo\nwindow=fm-later\nharness=claude\n' > "$home/state/later.meta"
+  printf 'needs-decision: notification during host exit cleanup\n' > "$home/state/later.status"
+  wait_until 250 bash -c '! kill -0 "$1" 2>/dev/null' _ "$watcher" \
+    || fail "handover: the covering watcher did not close on its notification"
+  if ! wait_until 150 home_has_one_consumer "$home"; then
+    : > "$home/teardown.done"
+    : > "$home/session.stop"
+    kill -TERM -- "-$(cat "$home/hook.pgid")" 2>/dev/null || true
+    stop_home_processes "$home"
+    fail "the handed-over consumer was lost while its owner waited in exit cleanup"
+  fi
+  [ "$(parent_of "$cover")" = "$host" ] || fail "the owner exited before coverage was proven"
+  host_waiting_on_lease_release "$host" || fail "the host's exit lease wait ended before coverage was proven"
+  [ "$(parent_of "$(cat "$home/state/.watch.lock/pid")")" = "$cover" ] \
+    || fail "the handed-over arm does not own the replacement consumer"
+  assert_grep 'later.status' "$home/state/.wake-queue" "the notification was lost during the exit lease wait"
+  : > "$home/teardown.done"
+  wait_until 200 hook_exited "$home" || fail "handover: releasing the lease did not finish the hook"
+  assert_rewoke_main "$home" "exit lease wait"
+  : > "$home/session.stop"
+  stop_home_processes "$home"
+  pass "host+hook: a handed-over consumer stays live while its owner waits for a lease in exit cleanup"
+}
+
 # --- report surface -----------------------------------------------------------
 
 test_report_surface_enforces_actor_turn_and_scope() {
@@ -1422,6 +1484,8 @@ test_claude_stop_hook_runs_the_host_without_the_file_and_off_opts_out() {
   assert_no_re '^supervision-host' "$home/hook.err" "off: the close must reach main exactly as the arm printed it"
   assert_absent "$home/state/.supervision-host.log" "a home opted out by config/supervision-host-off must never run the host"
   assert_absent "$home/state/.host-mirror.jsonl" "a home opted out by config/supervision-host-off must mirror nothing"
+  awk -F '\t' '$4 == "handed-over" { found = 1 } END { exit !found }' "$home/state/.watch-cover" \
+    || fail "off: the Stop hook did not hand over its covering successor before returning"
   [ "$(engine_calls "$home")" -eq 0 ] || fail "a home opted out by config/supervision-host-off ran an engine turn"
   : > "$home/session.stop"
   stop_home_processes "$home"
@@ -3148,6 +3212,7 @@ test_superseded_host_leaves_the_owner_untouched() {
 # half the measured time. A new case joins either list; tests/fm-test-run.test.sh
 # requires every case in exactly one.
 supervision_host_lane_a() {
+  test_handed_over_successor_covers_the_host_exit_lease_wait
   test_exit_to_main_keeps_a_consumer_through_main_turn
   test_claude_stop_hook_restores_handoff_when_successor_closed_before_exit_to_main
   test_claude_stop_hook_restores_handoff_when_successor_closed_mid_engine_turn

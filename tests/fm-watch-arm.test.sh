@@ -1438,6 +1438,83 @@ test_covering_successor_with_a_live_owner_closes_on_its_wake() {
   pass "watch-arm: a covering successor whose owner still runs closes on its wake"
 }
 
+test_handed_over_successor_chains_and_can_be_taken_over_while_owner_lives() {
+  local dir state fakebin armout first cover chained next
+  dir=$(make_case covering-handover)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  armout="$dir/cover.out"
+  start_cover_arm "$dir" "$state" "$fakebin" "$armout" owned \
+    || fail "fixture: the owned covering arm did not start"
+  cover=$ARM_PID
+  first=$(cat "$state/.watch.lock/pid")
+  [ "$(parent_of "$cover")" = "$$" ] || fail "fixture: the arm's owner is not this live process"
+  FM_HOME="$dir" FM_STATE_OVERRIDE="$state" "$WATCH_ARM" --cover-handoff "$cover" \
+    || fail "the owner could not hand over its covering arm"
+  printf 'done: notification after handover\n' > "$state/demo.status"
+  wait_for_pid_gone "$first" 120 || fail "the covering watcher did not deliver its wake"
+  local i=0
+  until consumer_tick "$dir" "$state"; do
+    [ "$i" -lt 150 ] || fail "the handed-over arm left no consumer while its owner still lived"
+    sleep 0.1
+    i=$((i + 1))
+  done
+  chained=$(cat "$state/.watch.lock/pid")
+  [ "$(parent_of "$cover")" = "$$" ] || fail "the owner exited before the test proved handover"
+  [ "$(parent_of "$chained")" = "$cover" ] || fail "the handed-over arm did not own the next watcher"
+  assert_grep 'demo.status' "$state/.wake-queue" "the notification was not durable after handover"
+  ack_wakes "$state" >/dev/null || fail "the queued notification could not be acknowledged"
+  PATH="$fakebin:$PATH" FM_HOME="$dir" FM_STATE_OVERRIDE="$state" \
+    FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+    FM_ARM_CONFIRM_TIMEOUT="$REARM_CONFIRM_SECONDS" "$WATCH_ARM" --take-over "$cover" > "$dir/next.out" &
+  ARM_PID=$!
+  wait_for_file_text "$dir/next.out" 'watcher: started pid=' || fail "the next owner did not take over the handed-over cycle"
+  wait_for_pid_gone "$cover" 100 || fail "the handed-over arm survived takeover while its old owner lived"
+  ! is_live_non_zombie "$chained" || fail "the previous watcher survived takeover"
+  next=$(cat "$state/.watch.lock/pid")
+  [ "$(parent_of "$next")" = "$ARM_PID" ] || fail "the next arm does not own the home's sole watcher"
+  kill -TERM "$ARM_PID" 2>/dev/null || true
+  wait_for_exit "$ARM_PID" 100 >/dev/null 2>&1 || true
+  pass "watch-arm: explicit handover permits chaining and takeover while the original owner still lives"
+}
+
+test_chained_cycle_capture_failure_exits_without_retrying() {
+  local dir state fakebin armout real_mktemp
+  dir=$(make_case covering-capture-failure)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  armout="$dir/cover.out"
+  real_mktemp=$(command -v mktemp)
+  cat > "$fakebin/mktemp" <<SH
+#!/usr/bin/env bash
+case "\$*" in
+  *'/.watch-arm-output.'*)
+    if [ -e "\$FM_HOME/fail-next-cycle" ]; then
+      printf 'attempt\\n' >> "\$FM_HOME/fail-attempts"
+      exit 1
+    fi
+    ;;
+esac
+exec "$real_mktemp" "\$@"
+SH
+  chmod +x "$fakebin/mktemp"
+  start_cover_arm "$dir" "$state" "$fakebin" "$armout" left \
+    || fail "fixture: the covering arm did not start"
+  : > "$dir/fail-next-cycle"
+  printf 'done: begin the failing chained cycle\n' > "$state/demo.status"
+  wait_for_file_text "$dir/fail-attempts" attempt || fail "fixture: the next cycle did not reach capture creation"
+  if ! wait_for_pid_gone "$ARM_PID" 200; then
+    kill -TERM "$ARM_PID" 2>/dev/null || true
+    wait_for_pid_gone "$ARM_PID" 100 || true
+    fail "the chained cycle retried after capture creation failed"
+  fi
+  [ "$(wc -l < "$dir/fail-attempts" | tr -d ' ')" -eq 1 ] || fail "capture creation failure was retried"
+  assert_grep 'watcher: FAILED' "$armout" "the failed chained cycle did not report failure"
+  assert_grep 'demo.status' "$state/.wake-queue" "startup failure discarded the triggering notification"
+  [ ! -e "$state/.watch-cover" ] || fail "the failed chained cycle retained its coverage record"
+  pass "watch-arm: a chained cycle exits after one capture creation failure"
+}
+
 test_downtime_marker_does_not_follow_symlink() {
   local dir home state fakebin armout watcher_pid sentinel
   dir=$(make_case downtime-marker-symlink)
@@ -1888,6 +1965,8 @@ EOF
   pass "watch-arm: the OpenCode arm plugin decides with the shared supervision predicate"
 }
 
+[ "${BASH_SOURCE[0]}" = "$0" ] || return 0
+
 test_attached_arm_reports_the_delivered_wake
 test_attached_arm_reports_the_delivered_wake_after_drain
 test_arm_refuses_an_unusable_launch_confirm_window
@@ -1921,4 +2000,6 @@ test_take_over_preserves_downtime_from_watcher_self_exit
 test_successor_left_for_main_covers_the_whole_turn
 test_take_over_of_a_covering_successor_leaves_one_watcher
 test_covering_successor_with_a_live_owner_closes_on_its_wake
+test_handed_over_successor_chains_and_can_be_taken_over_while_owner_lives
+test_chained_cycle_capture_failure_exits_without_retrying
 test_opencode_arm_plugin_decides_with_the_shared_predicate

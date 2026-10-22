@@ -660,7 +660,7 @@ stand_down() {  # <why>
 # Start the successor cycle and wait until it proves a live watcher. Sets
 # SUCCESSOR_WATCHER and SUCCESSOR_GENERATION (empty when the arm attached).
 # It is a covering successor (bin/fm-watch-arm.sh FM_WATCH_COVER), so once this
-# host leaves it for main and exits, it keeps the home covered for the turn.
+# host hands it to main, it keeps the home covered for the turn.
 start_successor() {  # <predecessor-arm-pid>
   local deadline line
   SUCCESSOR_WATCHER=
@@ -701,7 +701,8 @@ detach_successor() {
     || ! printf '%s\t%s\n' "$SUCCESSOR_PID" "$identity" > "$tmp" 2>/dev/null \
     || ! mv -f "$tmp" "$LEFT_RECORD" 2>/dev/null \
     || [ -L "$LEFT_RECORD" ] || [ ! -f "$LEFT_RECORD" ] \
-    || [ "$(cat "$LEFT_RECORD" 2>/dev/null)" != "$SUCCESSOR_PID"$'\t'"$identity" ]; then
+    || [ "$(cat "$LEFT_RECORD" 2>/dev/null)" != "$SUCCESSOR_PID"$'\t'"$identity" ] \
+    || ! "$SCRIPT_DIR/fm-watch-arm.sh" --cover-handoff "$SUCCESSOR_PID" >/dev/null 2>&1; then
     [ -z "$tmp" ] || rm -f "$tmp" "$LEFT_RECORD/${tmp##*/}" 2>/dev/null || true
     log_line "pass-through	successor-unrecorded	$(printf '%s\n' "${REASON:-}" | head -n 1)"
     return 1

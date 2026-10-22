@@ -169,7 +169,7 @@ After an actionable foreground close, including an attached peer cycle that ende
 
 1. Launches `bin/fm-watch-arm.sh` with the closed arm's pid as `FM_WATCH_PREDECESSOR_ARM_PID`.
 2. Waits for that arm's one status line.
-3. Only then exits 2 with the wake.
+3. Records the coverage handover through `--cover-handoff`, then exits 2 with the wake.
 
 A child of the hook cannot outlive its exit-2 rewake.
 So that successor is the one deliberate detached launch in the continuity path:
@@ -180,7 +180,8 @@ So that successor is the one deliberate detached launch in the continuity path:
 
 This is the shape `bin/fm-startup-network.sh` uses, and [`verification/supervision.md`](verification/supervision.md#detached-session-open-workers-survive-the-hook) verified that it survives the hook.
 
-That successor is a covering one, as is the successor the supervision host leaves for main: after its owner exits, a fleet event that closes its watcher starts the next handling-successor watcher in the same arm, so the home stays covered for the rest of main's turn while the wake waits in the durable queue.
+That successor is a covering one, as is the successor the supervision host leaves for main: after its owner hands over responsibility or exits, a fleet event that closes its watcher starts the next handling-successor watcher in the same arm, so the home stays covered for the rest of main's turn while the wake waits in the durable queue.
+The handover is recorded before the owner detaches, so coverage continues while that owner's exit cleanup waits on a lease lock.
 The next Stop's foreground arm takes that covering cycle over and owns a fresh one, which surfaces any wake queued during the turn; the [arm header](../bin/fm-watch-arm.sh) owns `FM_WATCH_COVER` and the claim every arm makes first.
 A successor that confirms no live watcher adds one line to the rewake banner and never withholds the wake.
 The next Stop then re-arms as before.
