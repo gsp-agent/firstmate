@@ -5044,6 +5044,7 @@ test_domain_archival_retires_pending_only_after_a_readable_lookup() {
   if domain_supervision_needed "$domain_home"; then
     fail 'confirmed archival kept an otherwise idle home supervised'
   fi
+  test_domain_terminal_routing_retries || return 1
   pass 'unreadable backlogs preserve routing supervision and confirmed zero-retention archival retires it'
 }
 
@@ -6193,6 +6194,97 @@ SH
   pass 'failed releases and parent delivery keep routing retryable until the same occurrence is published'
 }
 
+test_domain_terminal_routing_retries() {
+  local mode rc=0
+  for mode in done archived custom-archive; do
+    (
+      local home status pending record before scope occurrence=2
+      local technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+      local -a args
+      home=$(make_domain_home "terminal-release-$mode")
+      status="$home/parent/state/router-mate.status"
+      mkdir -p "$home/parent/state"
+      printf 'router-mate\n' > "$home/.fm-secondmate-home"
+      if [ "$mode" = custom-archive ]; then
+        status="$home/state/parent-replies.status"
+        printf 'schema=fm-secondmate-parent.v1\nroute=remote\n' > "$home/.fm-secondmate-parent"
+      else
+        printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$home/parent" > "$home/.fm-secondmate-parent"
+      fi
+      record="$home/data/backlog.md"
+      if [ "$mode" != done ]; then
+        record="$home/data/done-archive.md"
+        [ "$mode" != custom-archive ] || record="$home/history/completed.md"
+        printf 'backend = "markdown"\n\n[markdown]\npath = "data/backlog.md"\narchive = "%s"\ndone_keep = 0\n' \
+          "${record#"$home/"}" > "$home/.tasks.toml"
+      fi
+      cat > "$home/data/backlog.md" <<EOF
+## In flight
+
+## Queued
+- [ ] work - Update branch (repo: firstmate) (kind: captain) (hold: $technical) (hold-kind: captain)
+  Captain hold set: 2026-10-14T02:00:00Z
+  Decision owner: ep-firstmate
+  Hold timeout seconds: 60
+  Hold reason: $technical
+
+  Previous task body:
+  Resolution recorded by fm-captain-hold.
+  Decision digest: 0000000000000000000000000000000000000000000000000000000000000000
+  Resolution mode: released
+
+  Captain decision:
+  Proceed with the update.
+
+## Done
+EOF
+      printf '%s\n' 'resolved [key=captain-hold-work-1]: captain hold work: released' \
+        "needs-decision [key=captain-hold-work-$occurrence]: captain hold work: $technical" > "$status"
+      mv "$status" "$status.saved"
+      mkdir "$status"
+      if run_domain "$home" 2026-10-14T02:01:00Z route-due work > "$home/routed.out" 2>&1; then
+        fail 'the release succeeded while its parent channel was down'
+      fi
+      assert_contains "$(tasks_in "$home" show work --full)" 'held: no' 'the failed publication did not release work'
+      pending=$(cat "$home/state/hold-domain/pending/work.body")
+      tasks_in "$home" 'done' work >/dev/null || fail 'parent delivery blocked task completion'
+      if [ "$mode" = done ]; then
+        assert_contains "$(tasks_in "$home" show work --full)" 'state: done' 'the released task did not complete'
+      else
+        if tasks_in "$home" show work --full > "$home/absent.out" 2>&1; then
+          fail 'zero retention kept the completed task in the active backlog'
+        fi
+        assert_grep 'code: NOT_FOUND' "$home/absent.out" 'archival did not leave confirmed task absence'
+      fi
+      assert_grep 'Resolution mode: agent-routed' "$record" 'completion lost the routing record'
+      before=$(cat "$record")
+      for scope in direct sweep; do
+        args=(route-due)
+        [ "$scope" != direct ] || args+=(work)
+        if run_domain "$home" 2026-10-14T02:01:30Z "${args[@]}" > "$home/$scope.out" 2>&1; then
+          fail "$mode $scope retired a parent resolution while the channel was down"
+        fi
+        assert_grep 'actionable:' "$home/$scope.out" 'failed terminal publication was not actionable'
+        assert_equals "$pending" "$(cat "$home/state/hold-domain/pending/work.body")" 'failed terminal publication lost pending routing'
+        assert_equals "$before" "$(cat "$record")" 'terminal retry changed the completed record'
+      done
+      mv "$status" "$status.failed-channel"
+      mv "$status.saved" "$status"
+      run_domain "$home" 2026-10-14T02:02:00Z route-due || fail "$mode terminal publication did not recover"
+      assert_absent "$home/state/hold-domain/pending/work.body" 'successful terminal publication kept pending routing'
+      run_domain "$home" 2026-10-14T02:03:00Z route-due work || fail 'terminal publication replay failed'
+      assert_equals 1 "$(grep -Fc "resolved [key=captain-hold-work-$occurrence]" "$status")" \
+        'terminal recovery did not publish the original occurrence exactly once'
+      assert_grep 'captain hold work: agent-routed to ep-firstmate' "$status" 'terminal recovery changed the routing owner'
+      assert_equals 2 "$(grep -c '^resolved ' "$status")" 'terminal recovery created a new parent occurrence'
+      assert_equals 1 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'terminal recovery repeated the owner prompt'
+      assert_equals "$before" "$(cat "$record")" 'successful terminal publication changed the completed record'
+      pass "$mode routed release publishes its original parent occurrence after completion"
+    ) || rc=1
+  done
+  return "$rc"
+}
+
 test_domain_reasons_break_where_the_router_breaks() {
   local domain_home id sep show technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
   domain_home=$(make_domain_home domain-reason-breaks)
@@ -6566,6 +6658,7 @@ if [ -z "${FM_CAPTAIN_HOLD_LANE:-}" ]; then
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
   origins) test_hold_origins_precede_backend_holds; exit $? ;;
   stranded-release) test_domain_rehold_waits_for_an_unfinished_routed_release; exit $? ;;
+  terminal-release) test_domain_terminal_routing_retries; exit $? ;;
   parent-delivery)
     test_domain_rehold_waits_for_an_unfinished_routed_release || exit 1
     test_secondmate_home_publishes_holds_and_answers || exit 1

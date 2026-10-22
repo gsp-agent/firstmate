@@ -1448,6 +1448,7 @@ retire_hold_route() {
 
 route_hold() {  # <id>; caller owns the task control lock
   local id=$1 router show body stamp owner timeout reason live_reason tmp pending output result rc=0 receipt occurrence until today='' data
+  local archive archive_body archived=0 state read_timeout=${FM_BACKLOG_ROW_TIMEOUT_SECS:-10}
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   [ -f "$router" ] || return 0
   if task_show "$id"; then
@@ -1455,15 +1456,49 @@ route_hold() {  # <id>; caller owns the task control lock
   elif printf '%s\n' "$TASK_SHOW_OUTPUT" | grep -q '^code: NOT_FOUND$'; then
     data=$(fm_backlog_data_absolute "$DATA") || fail "could not resolve the backlog for routing $id"
     fm_backlog_source_present "$data" "$DATA" || fail "could not read the backlog for routing $id: $FM_BACKLOG_TRANSITION_ERROR"
-    retire_hold_route "$id"
-    return 0
+    fm_backlog_tasks_axi_addressing "$data" || fail "could not resolve the backlog for routing $id"
+    if [ -n "$FM_BACKLOG_AXI_FILE" ] && [ -f "$STATE/hold-domain/pending/$id.body" ]; then
+      archive=$(python3 - "$FM_BACKLOG_AXI_ROOT" "$FM_BACKLOG_AXI_FILE" <<'PY'
+import sys
+import tomllib
+from pathlib import Path
+
+root = Path(sys.argv[1])
+archive = Path(sys.argv[2]).with_name("done-archive.md")
+for config in (Path.home() / ".tasks-axi/config.toml", root / ".tasks.toml"):
+    if config.exists() or config.is_symlink():
+        markdown = tomllib.loads(config.read_text()).get("markdown", {})
+        value = markdown.get("archive")
+        if value is not None:
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"invalid markdown archive in {config}")
+            archive = root / value
+print(archive)
+PY
+      ) || fail "could not resolve the routing archive for $id"
+      if [ -e "$archive" ] || [ -L "$archive" ]; then
+        [ -f "$archive" ] && [ -r "$archive" ] || fail "could not read the routing archive for $id: $archive"
+        archive_body=$(sed -E '/^## Archived [0-9]{4}-[0-9]{2}-[0-9]{2}$/d' "$archive") \
+          || fail "could not read the routing archive for $id: $archive"
+        case "$read_timeout" in ''|*[!0-9]*) read_timeout=10 ;; esac
+        [ "$read_timeout" -gt 0 ] 2>/dev/null || read_timeout=10
+        show=$(cd "$FM_BACKLOG_AXI_ROOT" && printf '## Done\n%s\n' "$archive_body" \
+          | FM_TASKS_AXI_TIMEOUT="$read_timeout" fm_tasks_axi show "$id" --full --file /dev/stdin 2>&1) || rc=$?
+        if [ "$rc" -eq 0 ]; then
+          archived=1
+        elif [ "$rc" -eq 124 ] || ! printf '%s\n' "$show" | grep -q '^code: NOT_FOUND$'; then
+          fail "could not read archived task $id for routing: $show"
+        fi
+      fi
+    fi
+    if [ "$archived" = 0 ]; then
+      retire_hold_route "$id"
+      return 0
+    fi
   else
     fail "could not read task $id for routing: $TASK_SHOW_OUTPUT"
   fi
-  if [ "$(show_field_value "$show" state)" = 'done' ]; then
-    retire_hold_route "$id"
-    return 0
-  fi
+  state=$(show_field_value "$show" state)
   body=$(show_field_value "$show" body)
   stamp=$(body_hold_set_timestamp "$body")
   if body_has_current_hold_resolution "$body"; then
@@ -1471,14 +1506,16 @@ route_hold() {  # <id>; caller owns the task control lock
     return 0
   fi
   owner=$(body_domain_field "$body" 'Decision owner')
-  if [ "$(show_field_value "$show" hold_kind)" != captain ]; then
+  if [ "$archived" = 1 ] || [ "$state" = done ] || [ "$(show_field_value "$show" hold_kind)" != captain ]; then
     # A crash after unhold still owes normalization and the parent resolution.
-    if [ "$(recorded_resolution_mode "$body" || true)" != agent-routed ]; then
+    if [ "$(body_domain_field "$body" 'Resolution mode')" != agent-routed ]; then
       retire_hold_route "$id"
       return 0
     fi
     occurrence=$(resolution_record_count "$body")
-    remove_interrupted_answer_stamp "$id"
+    if [ "$archived" = 0 ] && [ "$state" != done ]; then
+      remove_interrupted_answer_stamp "$id"
+    fi
     publish_parent_resolution_then_retire "$id" "$occurrence" "agent-routed to $owner"
     retire_hold_route "$id"
     return 0
