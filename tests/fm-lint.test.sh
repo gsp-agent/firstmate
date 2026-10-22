@@ -233,7 +233,9 @@ test_canonical_partitions_preserve_full_lint() {
 # this worktree's actual branch, remotes, or history:
 #   FM_TEST_GIT_INSIDE_WORKTREE  1 (default) or 0
 #   FM_TEST_GIT_BRANCH           branch name for `rev-parse --abbrev-ref HEAD`
+#   FM_TEST_GIT_HAS_ORIGIN_UPSTREAM_LEAN  1 or 0 (default)
 #   FM_TEST_GIT_HAS_ORIGIN_MAIN  1 (default) or 0
+#   FM_TEST_GIT_MERGE_BASE_LOG   file that records each merge-base's base ref
 #   FM_TEST_GIT_HAS_MAIN         1 (default) or 0
 #   FM_TEST_GIT_MERGE_BASE_OK    1 (default) or 0
 #   FM_TEST_GIT_MERGE_BASE       merge-base value to print when OK
@@ -252,13 +254,20 @@ case "$*" in
     printf '%s\n' "${FM_TEST_GIT_BRANCH:-feature}"
     exit 0
     ;;
+  "rev-parse --verify -q origin/upstream-lean")
+    [ "${FM_TEST_GIT_HAS_ORIGIN_UPSTREAM_LEAN:-0}" = 1 ] && exit 0 || exit 1
+    ;;
   "rev-parse --verify -q origin/main")
     [ "${FM_TEST_GIT_HAS_ORIGIN_MAIN:-1}" = 1 ] && exit 0 || exit 1
+    ;;
+  "rev-parse --verify -q override/base")
+    exit 0
     ;;
   "rev-parse --verify -q main")
     [ "${FM_TEST_GIT_HAS_MAIN:-1}" = 1 ] && exit 0 || exit 1
     ;;
   "merge-base "*)
+    [ -z "${FM_TEST_GIT_MERGE_BASE_LOG:-}" ] || printf '%s\n' "$2" >> "$FM_TEST_GIT_MERGE_BASE_LOG"
     if [ "${FM_TEST_GIT_MERGE_BASE_OK:-1}" = 1 ]; then
       printf '%s\n' "${FM_TEST_GIT_MERGE_BASE:-fakebase123}"
       exit 0
@@ -548,6 +557,40 @@ test_main_branch_forces_full_lint() {
   [ "$(printf '%s\n' "$listed" | LC_ALL=C sort)" = "$expected" ] \
     || fail "fm-lint.sh did not force a full lint when HEAD is on main"
   pass "fm-lint.sh forces a full lint when HEAD is on main"
+}
+
+test_changed_mode_diffs_against_the_fork_base() {
+  local tmp fakebin listed expected mblog
+  tmp=$(fm_test_tmproot fm-lint-fork-base)
+  fakebin=$(fm_fakebin "$tmp")
+  fm_lint_stub_git "$fakebin"
+  mblog="$tmp/merge-base.log"
+
+  # This fork's PRs merge into upstream-lean; a stale origin/main base linted
+  # 125 roots for a 17-root change. upstream-lean wins over origin/main.
+  : > "$mblog"
+  PATH="$fakebin:$PATH" GITHUB_ACTIONS='' CI='' FM_TEST_GIT_BRANCH=feature \
+    FM_TEST_GIT_HAS_ORIGIN_UPSTREAM_LEAN=1 FM_TEST_GIT_MERGE_BASE_LOG="$mblog" \
+    "$LINT" --list-files > /dev/null
+  [ "$(cat "$mblog")" = origin/upstream-lean ] \
+    || fail "changed mode did not diff against origin/upstream-lean"$'\n'"logged: $(cat "$mblog")"
+
+  # FM_LINT_BASE_REF overrides both.
+  : > "$mblog"
+  PATH="$fakebin:$PATH" GITHUB_ACTIONS='' CI='' FM_TEST_GIT_BRANCH=feature \
+    FM_TEST_GIT_HAS_ORIGIN_UPSTREAM_LEAN=1 FM_LINT_BASE_REF=override/base \
+    FM_TEST_GIT_MERGE_BASE_LOG="$mblog" "$LINT" --list-files > /dev/null
+  [ "$(cat "$mblog")" = override/base ] \
+    || fail "FM_LINT_BASE_REF did not set the diff base"$'\n'"logged: $(cat "$mblog")"
+
+  # On upstream-lean itself, like main, the lint is full.
+  listed=$(PATH="$fakebin:$PATH" GITHUB_ACTIONS='' CI='' \
+    FM_TEST_GIT_BRANCH=upstream-lean FM_TEST_GIT_HAS_ORIGIN_UPSTREAM_LEAN=1 \
+    "$LINT" --list-files)
+  expected=$(find bin bin/backends tests -maxdepth 1 -type f -name '*.sh' -print | LC_ALL=C sort)
+  [ "$(printf '%s\n' "$listed" | LC_ALL=C sort)" = "$expected" ] \
+    || fail "fm-lint.sh did not force a full lint when HEAD is on upstream-lean"
+  pass "fm-lint.sh diffs against upstream-lean, honors FM_LINT_BASE_REF, and lints fully on upstream-lean"
 }
 
 test_explicit_path_bypasses_changed_logic() {
@@ -2063,6 +2106,7 @@ test_seeded_module_boundary_parity
 test_changed_mode_lints_only_the_changed_file
 test_ci_forces_full_lint_even_with_empty_diff
 test_main_branch_forces_full_lint
+test_changed_mode_diffs_against_the_fork_base
 test_explicit_path_bypasses_changed_logic
 test_zero_changed_files_exits_clean
 test_list_files_respects_changed_mode

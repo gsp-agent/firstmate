@@ -22,8 +22,9 @@
 #
 # With no explicit paths, the file set and source-following posture depend
 # on context:
-#   - In CI (GITHUB_ACTIONS=true or CI=true), on the main branch, or when no
-#     merge-base against origin/main (or local main) can be found, it lints
+#   - In CI (GITHUB_ACTIONS=true or CI=true), on main or upstream-lean, or
+#     when no merge-base against the base ref (see fm_lint_changed_base_ref)
+#     can be found, it lints
 #     the full canonical set: bin/*.sh bin/backends/*.sh tests/*.sh, with
 #     --external-sources and full dataflow first. CI coverage never depends
 #     on a local diff; memory failures may take the narrower retry below.
@@ -795,18 +796,20 @@ if [ "$FAST" -eq 1 ] && { [ "${GITHUB_ACTIONS:-}" = true ] || [ "${CI:-}" = true
 fi
 
 # fm_lint_changed_base_ref prints the ref to diff the working branch against:
-# the local origin/main tracking ref when present, else local main. Returns
-# nonzero when neither is resolvable, which the caller treats as "no
-# merge-base found" and falls back to a full lint.
+# FM_LINT_BASE_REF when set, else the first that resolves of origin/upstream-lean
+# (where this fork's PRs merge), origin/main, main. Diffing a fork branch
+# against a stale origin/main linted 125 roots for a 17-root change. Returns
+# nonzero when none is resolvable, which the caller treats as "no merge-base
+# found" and falls back to a full lint.
 fm_lint_changed_base_ref() {
-  if git rev-parse --verify -q origin/main >/dev/null 2>&1; then
-    printf 'origin/main\n'
-    return 0
-  fi
-  if git rev-parse --verify -q main >/dev/null 2>&1; then
-    printf 'main\n'
-    return 0
-  fi
+  local ref
+  for ref in "${FM_LINT_BASE_REF:-}" origin/upstream-lean origin/main main; do
+    [ -n "$ref" ] || continue
+    if git rev-parse --verify -q "$ref" >/dev/null 2>&1; then
+      printf '%s\n' "$ref"
+      return 0
+    fi
+  done
   return 1
 }
 
@@ -841,7 +844,7 @@ else
   if [ -z "$PARTITION" ] && [ "${GITHUB_ACTIONS:-}" != true ] && [ "${CI:-}" != true ] \
     && command -v git >/dev/null 2>&1 \
     && git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
-    && [ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" != main ]; then
+    && case "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" in main|upstream-lean) false ;; *) true ;; esac; then
     base_ref=$(fm_lint_changed_base_ref) || base_ref=
     merge_base=
     [ -z "$base_ref" ] || merge_base=$(git merge-base "$base_ref" HEAD 2>/dev/null) || merge_base=
