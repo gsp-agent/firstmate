@@ -334,6 +334,11 @@ healthy_watcher() {
 
 report_attached() {
   local age
+  if ! cover_record; then
+    cycle_log_append 1 none covering-record-failed none
+    echo "watcher: FAILED - covering responsibility could not be recorded"
+    return 1
+  fi
   age=$(fm_path_age "$BEAT")
   echo "watcher: attached pid=$HEALTHY_PID (beacon ${age}s)"
 }
@@ -421,7 +426,7 @@ attach_and_wait() {
         cycle_log_append unknown unknown lock-replaced "attached:$HEALTHY_PID"
         attached_pid=$HEALTHY_PID
         cycle_begin "$attached_pid" attached "$HEALTHY_IDENTITY"
-        report_attached
+        report_attached || return 1
       fi
       sleep "$ATTACH_POLL"
       continue
@@ -436,15 +441,22 @@ attach_and_wait() {
       echo "watcher: FAILED - attached watcher pid=$attached_pid stalled (beacon ${age}s at or past hard bound ${STALL_BOUND}s)"
       return 1
     fi
-    if wait_for_healthy_successor; then
+    if [ "$COVER" -eq 1 ] && cycle_delivered_reason; then
+      if fm_pid_alive "$attached_pid" \
+        && [ "$(fm_pid_identity "$attached_pid" 2>/dev/null || true)" = "$cycle_watcher_identity" ]; then
+        sleep "$ATTACH_POLL"
+        continue
+      fi
+    elif wait_for_healthy_successor; then
       cycle_log_append unknown unknown attached-cycle-ended "attached:$HEALTHY_PID"
       attached_pid=$HEALTHY_PID
       cycle_begin "$attached_pid" attached "$HEALTHY_IDENTITY"
-      report_attached
+      report_attached || return 1
       continue
     fi
     if close_unobserved_cycle; then
       cycle_log_append unknown unknown attached-delivered-wake none
+      CLOSED_ON_WAKE=1
       return 0
     fi
     cycle_log_append unknown unknown attached-cycle-ended none
@@ -718,18 +730,6 @@ if [ "$mode" = take-over ]; then
   fi
 fi
 
-# If a genuinely live+fresh watcher already holds the lock, do not start a second
-# one - attach to that cycle and wait until it ends so the harness notify fires
-# then, not as an immediate empty wake. (--restart skips this: it just stopped
-# this home's watcher and wants a fresh one.)
-if [ "$mode" = arm ] && healthy_watcher; then
-  cycle_mark_predecessor_successor "attached:$HEALTHY_PID"
-  cycle_begin "$HEALTHY_PID" attached "$HEALTHY_IDENTITY"
-  report_attached
-  attach_and_wait "$HEALTHY_PID"
-  exit $?
-fi
-
 # Start a watcher as a tracked child and confirm it before settling in. The child
 # stays our child for its whole life: we wait on it, so killing this arm (the
 # harness-tracked task) tears the watcher down too, and the watcher's eventual
@@ -863,8 +863,8 @@ owned_child_finished() {
       child=
       child_out=
       cycle_mark_predecessor_successor "attached:$HEALTHY_PID"
-      report_attached
       cycle_begin "$HEALTHY_PID" attached "$HEALTHY_IDENTITY"
+      report_attached || return 1
       attach_and_wait "$HEALTHY_PID"
       return $?
     fi
@@ -899,6 +899,13 @@ owned_child_finished() {
 run_owned_cycle() {
   CLOSED_ON_WAKE=0
   local rc
+  if [ "$mode" = arm ] && [ "$CHAINED" -eq 0 ] && healthy_watcher; then
+    cycle_mark_predecessor_successor "attached:$HEALTHY_PID"
+    cycle_begin "$HEALTHY_PID" attached "$HEALTHY_IDENTITY"
+    report_attached || return 1
+    attach_and_wait "$HEALTHY_PID"
+    return $?
+  fi
   child_out=$(mktemp "$STATE/.watch-arm-output.XXXXXX") || {
     echo "watcher: FAILED - no live watcher with a fresh beacon"
     return 1

@@ -445,6 +445,123 @@ test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm() {
   pass "host+hook: retirement rejects a racing handover and both owners leave one replacement consumer"
 }
 
+cover_attachment_fixture() {
+  local home=$1 real_mktemp real_cat real_grep tool
+  real_mktemp=$(command -v mktemp)
+  real_cat=$(command -v cat)
+  real_grep=$(command -v grep)
+  cat > "$home/fakebin/cover-attachment" <<SH
+#!/usr/bin/env bash
+case "\${0##*/}" in
+  mktemp)
+    start_peer=0
+    case "\$*" in
+      *'/.supervision-host-arm.'*) [ "\${FM_WATCH_COVER:-0}" != 1 ] || start_peer=1 ;;
+      *'/.claude-autoarm-successor.'*) start_peer=1 ;;
+    esac
+    if [ "\$start_peer" -eq 1 ] && mkdir "\$FM_HOME/attachment-peer-once" 2>/dev/null; then
+      set -m
+      FM_WATCH_HANDLING_SUCCESSOR=1 nohup "\$FM_HOME/bin/fm-watch.sh" \\
+        > "\$FM_HOME/attachment-peer.out" 2>&1 < /dev/null &
+      peer=\$!
+      set +m
+      printf '%s\\n' "\$peer" > "\$FM_HOME/attachment-peer.pid"
+      printf '%s\\n' "\$peer" >> "\$FM_HOME/orphan-pid"
+      . "\$FM_HOME/bin/fm-wake-lib.sh"
+      i=0
+      until fm_watcher_healthy "\$STATE" "\$FM_HOME/bin/fm-watch.sh" 300 "\$FM_HOME"; do
+        [ "\$i" -lt 600 ] || exit 1
+        sleep 0.05
+        i=\$((i + 1))
+      done
+      : > "\$FM_HOME/attachment-peer-ready"
+    fi
+    exec "$real_mktemp" "\$@"
+    ;;
+  cat)
+    if [ "\${FM_TEST_COVER_ATTACH_PATH:-}" = standdown ] \\
+      && [ -n "\${FM_WATCH_PREDECESSOR_ARM_PID:-}" ] \\
+      && [ "\${FM_WATCH_HANDLING_SUCCESSOR:-0}" != 1 ] \\
+      && [ "\$#" -eq 1 ] && [ "\$1" = "\$FM_HOME/state/.watch.lock/pid" ] \\
+      && [ -e "\$FM_HOME/attachment-peer-ready" ] \\
+      && [ ! -e "\$FM_HOME/attachment-skipped-health" ]; then
+      : > "\$FM_HOME/attachment-skipped-health"
+      exit 1
+    fi
+    exec "$real_cat" "\$@"
+    ;;
+  grep)
+    for arg in "\$@"; do
+      case "\$arg" in
+        "\$FM_HOME/state"/.supervision-host-arm.*|"\$FM_HOME/state"/.claude-autoarm-successor.*)
+          if "$real_grep" -q '^watcher: attached pid=' "\$arg"; then
+            [ -f "\$FM_HOME/state/.watch-cover" ] || : > "\$FM_HOME/attachment-unregistered"
+            cp "\$arg" "\$FM_HOME/attachment-ready.out"
+          fi
+          ;;
+      esac
+    done
+    exec "$real_grep" "\$@"
+    ;;
+esac
+SH
+  chmod +x "$home/fakebin/cover-attachment"
+  for tool in mktemp cat grep; do
+    ln -s cover-attachment "$home/fakebin/$tool"
+  done
+}
+
+attachment_process_exited() { ! is_live_non_zombie "$1"; }
+
+test_covering_attachments_handoff_and_continue_through_both_owners() {
+  local mode attach_path home peer cover replacement
+  for mode in host hook; do
+    for attach_path in startup standdown; do
+      home=$(make_primary_home "covering-attachment-$mode-$attach_path")
+      ln -s "$ROOT/.agents" "$home/.agents"
+      [ "$mode" != hook ] || : > "$home/config/supervision-host-off"
+      : > "$home/hook.own-group"
+      cover_attachment_fixture "$home"
+      FM_TEST_COVER_ATTACH_PATH="$attach_path" start_hook_session "$home"
+      turn_end "$home"
+      wait_until 200 watcher_live "$home" || fail "$mode $attach_path: the first watcher did not start"
+      append_status "$home" 'first notification for main' needs-decision
+      wait_until 400 test -s "$home/attachment-ready.out" \
+        || fail "$mode $attach_path: the covering successor did not report attachment"
+      [ ! -e "$home/attachment-unregistered" ] \
+        || fail "$mode $attach_path: attached covering readiness preceded coverage registration"
+      wait_until 400 hook_exited "$home" || fail "$mode $attach_path: the owner did not finish handoff"
+      assert_rewoke_main "$home" "$mode $attach_path attachment"
+      peer=$(cat "$home/attachment-peer.pid")
+      cover=$(cut -f1 "$home/state/.watch-cover")
+      printf '%s\n' "$cover" >> "$home/orphan-pid"
+      [ "$(cut -f4 "$home/state/.watch-cover")" = handed-over ] \
+        || fail "$mode $attach_path: the owner did not hand over its attached covering arm"
+      assert_grep "watcher: attached pid=$peer " "$home/attachment-ready.out" \
+        "$mode $attach_path: the covering successor did not attach to the peer"
+      [ "$(cat "$home/state/.watch.lock/pid")" = "$peer" ] \
+        || fail "$mode $attach_path: attachment replaced the healthy peer"
+      [ "$attach_path" != standdown ] || [ -f "$home/attachment-skipped-health" ] \
+        || fail "fixture: the stand-down attachment did not skip the first health sample"
+      printf 'project=demo\nwindow=fm-later\nharness=claude\n' > "$home/state/later.meta"
+      printf 'needs-decision: notification during the attached covering turn\n' > "$home/state/later.status"
+      wait_until 300 attachment_process_exited "$peer" || fail "$mode $attach_path: the attached peer did not close"
+      wait_until 200 home_has_one_consumer "$home" \
+        || fail "$mode $attach_path: the attached covering arm left no sole replacement consumer"
+      replacement=$(cat "$home/state/.watch.lock/pid")
+      [ "$replacement" != "$peer" ] && [ "$(parent_of "$replacement")" = "$cover" ] \
+        || fail "$mode $attach_path: the original covering arm does not own the replacement"
+      assert_grep 'demo.status' "$home/state/.wake-queue" "$mode $attach_path: handoff consumed the first wake"
+      assert_grep 'later.status' "$home/state/.wake-queue" "$mode $attach_path: continuation consumed the next wake"
+      : > "$home/session.stop"
+      kill -TERM "$cover" 2>/dev/null || true
+      wait_until 100 attachment_process_exited "$cover" || fail "$mode $attach_path: the covering arm did not stop"
+      stop_home_processes "$home"
+    done
+  done
+  pass "host+hook: startup and stand-down attachments hand over coverage and replace the closed peer without consuming wakes"
+}
+
 host_waiting_on_lease_release() {
   ps -A -o ppid= -o command= 2>/dev/null \
     | awk -v host="$1" '$1 == host && /fm-lease.sh --wait 120 release-actor/ { found = 1 } END { exit !found }'
@@ -3333,6 +3450,7 @@ test_superseded_host_leaves_the_owner_untouched() {
 # requires every case in exactly one.
 supervision_host_lane_a() {
   test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm
+  test_covering_attachments_handoff_and_continue_through_both_owners
   test_handed_over_successor_covers_the_host_exit_lease_wait
   test_exit_to_main_keeps_a_consumer_through_main_turn
   test_claude_stop_hook_restores_handoff_when_successor_closed_before_exit_to_main
