@@ -1,0 +1,13 @@
+FM_TEST_BEGIN 2026-10-22T10:55:29Z tests/fm-project-capacity.test.sh family=backend-dispatch expected_gate_skip=none
+ok - a record whose crew state cannot be read holds a place and the count still succeeds
+ok - a project with no declared capacity keeps today's uncapped dispatch
+ok - a spawn is admitted while its project still has a free place
+ok - a spawn beyond capacity is deferred before any record, brief, endpoint, worktree, or backlog move exists
+ok - a project name with spaces is declared by taking the capacity from the last field
+ok - a project name beginning with # is declared, and a # comment stays a comment
+ok - a home reached through a symlink counts each of its workers once
+ok - a recorded PR handoff or a cleanup each frees exactly one place
+FM_TEST_END 2026-10-22T11:04:56Z tests/fm-project-capacity.test.sh exit=143 duration_ms=566800 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=567652
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=566800 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-project-capacity.test.sh duration_ms=566800

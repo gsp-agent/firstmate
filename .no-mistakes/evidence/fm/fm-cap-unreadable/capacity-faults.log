@@ -1,0 +1,34 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/home
+[exit=0; elapsed=0.225s]
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/project
+[exit=0; elapsed=0.299s]
+A real crew-state process is suspended before it can answer. Production deadline remains 10 seconds.
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/capacity-before-fix.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/project
+FAULT: SIGSTOP to actual crew-state pid=82479: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/bin/fm-crew-state.sh resident
+count exit: 1
+occupants: 0
+holders: 
+error: crew state for task record /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/home/state/resident.meta cannot be read
+[exit=1; elapsed=10.755s]
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/bin/fm-project-capacity-lib.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/project
+FAULT: SIGSTOP to actual crew-state pid=86632: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/bin/fm-crew-state.sh resident
+count exit: 0
+occupants: 1
+holders: resident (state unreadable)
+error: 
+[exit=0; elapsed=11.646s]
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/bin/fm-project-capacity-lib.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/project
+FAULT: SIGKILL to actual crew-state pid=90341: bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/bin/fm-crew-state.sh resident
+count exit: 0
+occupants: 1
+holders: resident (state unreadable)
+error: 
+[exit=0; elapsed=1.077s]
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/bin/fm-project-capacity-lib.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/project
+count exit: 1
+occupants: 0
+holders: 
+error: task record /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-uq511vzq/home/state/resident.meta cannot be read
+[exit=1; elapsed=0.590s]
+Production-bound timeout reproduced before the fix; timeout and killed-reader fallbacks passed after it. Unreadable task metadata still refuses.

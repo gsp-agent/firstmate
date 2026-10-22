@@ -1,0 +1,19 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/home
+[exit=0; elapsed=0.210s]
+$ git init -q /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/project
+[exit=0; elapsed=0.126s]
+FAULT: unchanged real crew-state CLI blocks opening a disposable metadata FIFO; production deadline remains 10 seconds.
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/capacity-before-fix.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/project
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/capacity-before-fix.sh: line 333: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/fm-timeout-lib.sh: No such file or directory
+count exit: 1
+occupants: 0
+holders: 
+error: crew state for task record /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/home/state/resident.meta cannot be read
+[exit=1; elapsed=0.264s]
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/bin/fm-project-capacity-lib.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-faults-k3_nt7wz/project
+count exit: 0
+occupants: 0
+holders: 
+error: 
+[exit=0; elapsed=1.132s]

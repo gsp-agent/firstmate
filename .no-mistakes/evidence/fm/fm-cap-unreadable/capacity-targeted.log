@@ -1,0 +1,2 @@
+ok - a record whose crew state cannot be read holds a place and the count still succeeds
+Focused existing regression exit=0; elapsed=86.734s

@@ -1,0 +1,150 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home
+[exit=0; elapsed=0.460s]
+$ bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home
+/tmp/fml.f2z00l
+[exit=0; elapsed=0.479s]
+$ git init -q -b main /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project
+[exit=0; elapsed=0.082s]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project add README.md
+[exit=0; elapsed=0.094s]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project commit -qm Fixture seed
+[exit=0; elapsed=0.359s]
+$ git clone -q --bare /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/origin.git
+[exit=0; elapsed=0.241s]
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project remote add origin /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/origin.git
+[exit=0; elapsed=0.020s]
+$ tmux -L fm-lab -f /dev/null new-session -d -s primary -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV /bin/bash --noprofile --norc
+[exit=0; elapsed=0.287s]
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+[exit=0; elapsed=0.035s]
+$ tmux -L fm-lab set-option -g default-command /bin/bash --noprofile --norc
+[exit=0; elapsed=0.009s]
+$ tmux -L fm-lab display-message -p -t primary #{socket_path},#{pid},0
+/private/tmp/fml.f2z00l/tmux-501/fm-lab,62696,0
+[exit=0; elapsed=0.011s]
+$ bin/fm-busy-event.sh arm /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home/state resident
+g1792666691.63092.39
+[exit=0; elapsed=0.552s]
+$ bin/fm-crew-state.sh resident
+state: working · source: pane · harness busy (fm-spawn)
+[exit=0; elapsed=1.315s]
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project
+count exit: 0
+occupants: 1
+holders: resident
+error: 
+[exit=0; elapsed=2.067s]
+$ bin/fm-busy-event.sh apply /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home/state resident idle --current-gen --source fm-recovery --event live-verification
+[exit=0; elapsed=0.293s]
+$ bin/fm-crew-state.sh resident
+state: paused · source: status-log · waiting for disposable input
+[exit=0; elapsed=1.146s]
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project
+count exit: 0
+occupants: 0
+holders: 
+error: 
+[exit=0; elapsed=1.714s]
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project
+count exit: 0
+occupants: 1
+holders: resident (state unreadable)
+error: 
+[exit=0; elapsed=0.695s]
+$ /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/count.sh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project
+count exit: 0
+occupants: 1
+holders: resident (state unreadable)
+error: 
+[exit=0; elapsed=0.277s]
+$ tmux -L fm-lab list-windows -t primary -F #{window_id}
+@0
+[exit=0; elapsed=0.104s]
+$ bin/fm-spawn.sh blocked /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project --mode local-only --yolo off /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/worker.sh
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 10s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+deferred: project project admits 1 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home/config/project-capacity) and 1 already hold a place (resident (state unreadable)); task blocked was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR, stops working or is cleaned up
+[exit=75; elapsed=6.122s]
+$ tmux -L fm-lab list-windows -t primary -F #{window_id}
+@0
+[exit=0; elapsed=0.012s]
+$ bin/fm-spawn.sh admitted /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project --mode local-only --yolo off /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/worker.sh
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home
+WARNING: watcher still down (same stale episode; last beat: 17s ago, grace 300s) - full banner already printed this episode.
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home/data/admitted/launch-brief.md records no ship branch; defaulting to legacy branch fm/admitted
+notice: admitted ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned admitted harness=bash kind=ship mode=local-only yolo=off window=primary:fm-admitted worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/pool/.treehouse/project-27c72e/1/project
+[exit=0; elapsed=26.137s]
+Persisted admitted task metadata:
+window=primary:fm-admitted
+endpoint_task_id=admitted
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/pool/.treehouse/project-27c72e/1/project
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project
+harness=bash
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/admitted
+tasktmp=/tmp/fm-admitted
+model=default
+effort=default
+spawn_gen=s1792666720.87273.13698
+$ tmux -L fm-lab capture-pane -p -t primary:fm-admitted
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d
+6eudmkt/pool/.treehouse/project-27c72e/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmk
+t/pool/.treehouse/project-27c72e/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-admitted/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=admitted
+bash-3.2$ . '/tmp/fm-admitted+a7545228f8008cc3b0e941ef3416d4eb833bd513a7a90a14496359020aca2c8f/launch.s1792666720.87273.
+13698.sh'
+capacity-live-worker-started
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[exit=0; elapsed=0.012s]
+$ bin/fm-spawn.sh second-blocked /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/project --mode local-only --yolo off /bin/bash /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/worker.sh
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home
+WARNING: watcher still down (same stale episode; last beat: 43s ago, grace 300s) - full banner already printed this episode.
+deferred: project project admits 2 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home/config/project-capacity) and 2 already hold a place (admitted (state unreadable), resident (state unreadable)); task second-blocked was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR, stops working or is cleaned up
+[exit=75; elapsed=6.772s]
+All live capacity checks completed. Real tmux, treehouse, crew-state and spawn were used.
+$ tmux -L fm-lab kill-server
+[exit=0; elapsed=0.015s]
+$ bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HJWD7NWSB5DVEKH4338NFV/.capacity-live-d6eudmkt/home
+[exit=0; elapsed=0.522s]
