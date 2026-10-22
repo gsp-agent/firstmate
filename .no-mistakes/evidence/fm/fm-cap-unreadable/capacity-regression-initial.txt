@@ -1,0 +1,4 @@
+Command: bash tests/.nm-capacity-targeted.sh (only test_unreadable_crew_state_holds_a_place)
+Initial result: failed under host load because live-a's healthy fixture reader also hit FM_PROJECT_CAPACITY_CREW_TIMEOUT=1.
+Observed product output: 2 already hold a place (live-a (state unreadable), live-c (state unreadable)).
+Test-only fix: use the production ten-second timeout; retain the 60-second hung reader and the bounded elapsed-time assertion.

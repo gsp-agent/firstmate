@@ -1,0 +1,4 @@
+== Before P0 fix: e9fdc88a capacity library, actual crew-state reader ==
+count exit=1 occupants=0 holders= error=crew state for task record /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV/.nm-capacity-live/state/slow.meta cannot be read
+== After P0 fix: same records and actual crew-state reader ==
+count exit=0 occupants=1 holders=slow (state unreadable) error=

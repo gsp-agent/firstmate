@@ -1,0 +1,23 @@
+== Actual reader: slow persisted status exceeds the ten-second read bound ==
+reader exit=124 elapsed=10s
+== Actual reader: a readable unknown answer ==
+state: unknown · source: none · worktree gone (torn down?)
+== Occupancy count with a real timed-out reader and a readable unknown ==
+count exit=0 occupants=1 holders=slow (state unreadable) error=
+== Real spawn at capacity: defer, do not refuse unreadable count ==
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV/.nm-capacity-live
+deferred: project capacity-project admits 1 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV/.nm-capacity-live/config/project-capacity) and 1 already hold a place (slow (state unreadable)); task candidate was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR, stops working or is cleaned up
+spawn exit=75 candidate metadata=absent
+== Real spawn below capacity: crosses admission, reaches missing-brief guard ==
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV/.nm-capacity-live
+error: task candidate has no brief at inaccessible data path /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV/.nm-capacity-live/data/candidate/brief.md
+spawn exit=1
+error: task candidate has no brief at inaccessible data path /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV/.nm-capacity-live/data/candidate/brief.md
+== Missing crew-state dependency: all resident records hold slots ==
+count exit=0 occupants=2 holders=slow (state unreadable), unknown (state unreadable) error=
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV/.nm-capacity-live
+deferred: project capacity-project admits 2 worker(s) at once on this machine (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV/.nm-capacity-live/config/project-capacity) and 2 already hold a place (slow (state unreadable), unknown (state unreadable)); task candidate was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR, stops working or is cleaned up
+spawn exit=75
+== Recover real reader: unknown holds no slot ==
+count exit=0 occupants=0 holders= error=
+Live capacity checks complete.

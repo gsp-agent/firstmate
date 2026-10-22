@@ -1,0 +1,40 @@
+{
+  "branch": "HEAD",
+  "generated_at": "2026-10-22T08:39:35.650757+00:00",
+  "head": "7898348e3d8477fbaf294b62ac78c09c68f46603",
+  "id": "01a162be-16a4-70c1-8eab-5fa78fd77dbe",
+  "repo": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV",
+  "schema": "agent-dirtiness.snapshot.v1",
+  "status": [
+    {
+      "content_hash": "8da55c2099563c9d74a3a39bf3a4f843c2e4509faa404728193423217ca099e7",
+      "path": ".nm-capacity-live/.fm-lab-home",
+      "source_path": null,
+      "status": "??"
+    },
+    {
+      "content_hash": "5dc64ad97a60b8c3a17b92cba764a3922c57d3f26f1104e329cf25501e30256d",
+      "path": ".nm-capacity-live/admitted.txt",
+      "source_path": null,
+      "status": "??"
+    },
+    {
+      "content_hash": "72e9562088adf56f9b3623d325be685f5152764e6e953ff751925ddbfe6df05c",
+      "path": ".nm-capacity-live/deferred.txt",
+      "source_path": null,
+      "status": "??"
+    },
+    {
+      "content_hash": "22c76dd29db27558cb6aa6f65d56281c19da92df3ee499bb7f252d137f51d9fa",
+      "path": ".nm-capacity-live/missing.txt",
+      "source_path": null,
+      "status": "??"
+    },
+    {
+      "content_hash": "ed3d6a20624681cffe7ade0c3ae5788f756e864abe0641e45a8109c6d9160bfe",
+      "path": "tests/.nm-capacity-targeted.sh",
+      "source_path": null,
+      "status": "??"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H1GWTAJ1Z85C3PQ147EQFV/.nm-capacity-live
+== Actual reader: slow persisted status exceeds the one-second read bound ==
+reader exit=124 elapsed=1s
+== Actual reader: a readable unknown answer ==
+state: unknown · source: none · worktree gone (torn down?)
+== Occupancy count with a real timed-out reader and a readable unknown ==
+count exit=0 occupants=2 holders=slow (state unreadable), unknown (state unreadable) error=
