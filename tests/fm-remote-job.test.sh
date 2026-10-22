@@ -85,8 +85,7 @@ cat > "$REMOTE_ROOT/bin/fm-shutdown-job.sh" <<'SH'
 #!/bin/bash
 trap '' HUP INT TERM
 printf 'started\n' > "$1"
-# Keep the side effect pending until the test has exercised termination.
-while [ ! -f "$2.release" ]; do sleep 0.1; done
+sleep 3
 printf 'ran\n' > "$2"
 SH
 cat > "$REMOTE_ROOT/bin/fm-output-job.sh" <<'SH'
@@ -213,7 +212,7 @@ pass "default queue and execution bounds independently cover long polls"
 export FM_REMOTE_JOB_STATE_ROOT="$STATE_ROOT"
 export FM_REMOTE_JOB_PLATFORM_OVERRIDE=Linux
 # shellcheck disable=SC2031 # The sourced defaults above were confined to DEFAULT_BOUNDS.
-export FM_REMOTE_JOB_QUEUE_TIMEOUT=60
+export FM_REMOTE_JOB_QUEUE_TIMEOUT=5
 # shellcheck disable=SC2031 # The sourced defaults above were confined to DEFAULT_BOUNDS.
 export FM_REMOTE_JOB_TIMEOUT=5
 # shellcheck source=bin/fm-remote-job-lib.sh
@@ -474,7 +473,7 @@ pass "the worker expires queued jobs before they can mutate"
 
 FIRST_DELAYED_SIDE_EFFECT="$TMP_ROOT/first-delayed-side-effect"
 SECOND_DELAYED_SIDE_EFFECT="$TMP_ROOT/second-delayed-side-effect"
-FM_REMOTE_JOB_QUEUE_TIMEOUT=60
+FM_REMOTE_JOB_QUEUE_TIMEOUT=5
 FM_REMOTE_JOB_TIMEOUT=3
 fm_remote_job_stage "$ACCOUNT_HOME" "$REMOTE_ROOT" "$REMOTE_HOME" \
   fm-delay-job.sh 1.8 "$FIRST_DELAYED_SIDE_EFFECT" < /dev/null > /dev/null
@@ -572,7 +571,7 @@ fm_remote_job_wait "$ACCOUNT_HOME" "$JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
 [ "$FM_REMOTE_JOB_EXIT" -eq 75 ] || fail "the queued sibling poll did not run after the first window"
 fm_remote_job_reap "$ACCOUNT_HOME" "$FIRST_JOB_ID" || fail "the first sibling poll could not be reaped"
 fm_remote_job_reap "$ACCOUNT_HOME" "$JOB_ID" || fail "the queued sibling poll could not be reaped"
-FM_REMOTE_JOB_QUEUE_TIMEOUT=60
+FM_REMOTE_JOB_QUEUE_TIMEOUT=5
 pass "sibling polls never preempt each other into a re-arm churn loop"
 
 STARTED="$TMP_ROOT/shutdown-started"
@@ -603,7 +602,6 @@ done
 assert_present "$STATE_ROOT/worker.ready" "the replacement worker did not become ready"
 fm_remote_job_wait "$ACCOUNT_HOME" "$JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
 [ "$FM_REMOTE_JOB_EXIT" -eq 125 ] || fail "the interrupted job did not publish an unknown-completion result"
-touch "$SHUTDOWN_SIDE_EFFECT.release"
 sleep 3
 assert_absent "$SHUTDOWN_SIDE_EFFECT" "the active command mutated after worker shutdown"
 fm_remote_job_reap "$ACCOUNT_HOME" "$JOB_ID" || fail "the interrupted job could not be reaped"
@@ -631,7 +629,6 @@ done
   || fail "the Linux supervisor did not restart a crashed worker"
 fm_remote_job_wait "$ACCOUNT_HOME" "$JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
 [ "$FM_REMOTE_JOB_EXIT" -eq 125 ] || fail "worker crash recovery did not publish unknown completion"
-touch "$CRASH_SIDE_EFFECT.release"
 sleep 3
 assert_absent "$CRASH_SIDE_EFFECT" "an orphaned command mutated after worker crash recovery"
 fm_remote_job_reap "$ACCOUNT_HOME" "$JOB_ID" || fail "the crash-recovered job could not be reaped"
@@ -644,7 +641,7 @@ PREEXEC_FINISHED="$TMP_ROOT/preexecution-finished"
 cat > "$ACCOUNT_HOME/.local/bin/git" <<SH
 #!/bin/bash
 if [ "\${3:-}" = ls-files ]; then
-  date +%s > "$PREEXEC_STARTED"
+  printf 'started\n' > "$PREEXEC_STARTED"
   sleep 30
   printf 'finished\n' > "$PREEXEC_FINISHED"
 fi
@@ -652,15 +649,14 @@ exec "$REAL_GIT" "\$@"
 SH
 chmod +x "$ACCOUNT_HOME/.local/bin/git"
 FM_REMOTE_JOB_TIMEOUT=3
+PREEXEC_BEGAN=$(date +%s)
 fm_remote_job_stage "$ACCOUNT_HOME" "$REMOTE_ROOT" "$REMOTE_HOME" fm-probe-job.sh < /dev/null > /dev/null
 JOB_ID=$FM_REMOTE_JOB_ID
 JOB_DIR="$STATE_ROOT/jobs/$JOB_ID"
 fm_remote_job_wait "$ACCOUNT_HOME" "$JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
+PREEXEC_ELAPSED=$(( $(date +%s) - PREEXEC_BEGAN ))
 [ "$FM_REMOTE_JOB_EXIT" -eq 124 ] || fail "the pre-execution deadline did not publish a timeout result"
 assert_present "$PREEXEC_STARTED" "the pre-execution timeout fixture did not enter tracked-command validation"
-# Measure validation from its own start, excluding queue and staging time.
-PREEXEC_BEGAN=$(cat "$PREEXEC_STARTED")
-PREEXEC_ELAPSED=$(( $(date +%s) - PREEXEC_BEGAN ))
 assert_absent "$PREEXEC_FINISHED" "tracked-command validation continued after the job timeout"
 [ "$PREEXEC_ELAPSED" -le 7 ] || fail "tracked-command validation exceeded the job timeout bound"
 fm_remote_job_reap "$ACCOUNT_HOME" "$JOB_ID" || fail "the pre-execution timeout leaked output readers or FIFOs"
@@ -726,7 +722,6 @@ set -e
 [ "$REPLACEMENT_RC" -ne 0 ] || fail "a replacement worker ignored quarantined ownership"
 assert_present "$STATE_ROOT/worker.lock/quarantine" "a replacement removed quarantined ownership"
 kill -KILL -- "-$GROUP_PID" 2>/dev/null || true
-touch "$QUARANTINE_SIDE_EFFECT.release"
 sleep 3
 assert_absent "$QUARANTINE_SIDE_EFFECT" "the quarantined command mutated after explicit termination"
 pass "failed shutdown quarantines ownership against replacement workers"
@@ -1187,9 +1182,6 @@ for QUIET_TOOL in sleep chmod mktemp mv rm date stat uname dirname basename wc t
   cat > "$QUIET_SHIM/$QUIET_TOOL" <<SH
 #!/bin/sh
 printf '%s\n' $QUIET_TOOL >> "\$FM_TEST_EXEC_LOG"
-if [ "$QUIET_TOOL" = sleep ] && [ "\${1:-}" = 1 ]; then
-  : > "\$FM_TEST_EXEC_LOG.idle"
-fi
 exec $QUIET_REAL "\$@"
 SH
   chmod +x "$QUIET_SHIM/$QUIET_TOOL"
@@ -1206,72 +1198,59 @@ quiet_wait_ready() { # <state> <label>
   done
   assert_present "$1/worker.ready" "the $2 worker did not become ready"
 }
-# Observe the one-second sleep itself: a slow startup can leave an empty log
-# while the worker has not yet finished its fast-poll burst.
-quiet_settle() {
-  local attempt
-  for ((attempt = 0; attempt < 600; attempt++)); do
-    [ -f "$QUIET_EXEC_LOG.idle" ] && break
-    sleep 0.05
+# Startup counts as activity, so wait out its short fast-poll window (slowed by
+# the shims themselves) before measuring the idle steady state.
+quiet_settle() { # <max-sleeps-per-window>
+  local deadline=$((SECONDS + 30))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    : > "$QUIET_EXEC_LOG"
+    sleep 1.5
+    [ "$(grep -cx sleep "$QUIET_EXEC_LOG" || true)" -gt "$1" ] || break
   done
-  assert_present "$QUIET_EXEC_LOG.idle" "the worker did not reach its idle wait"
   : > "$QUIET_EXEC_LOG"
 }
 quiet_measure() { # <label> <max-sleeps>
-  local sample line execs=0 sleeps=0
+  local execs sleeps
   sleep 4
-  # Freeze the sample before counting; the worker keeps appending while the
-  # observer runs, especially when external counting commands are delayed.
-  sample=$(< "$QUIET_EXEC_LOG")
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    execs=$((execs + 1))
-    [ "$line" != sleep ] || sleeps=$((sleeps + 1))
-  done <<< "$sample"
+  execs=$(wc -l < "$QUIET_EXEC_LOG" | tr -d ' ')
+  sleeps=$(grep -cx sleep "$QUIET_EXEC_LOG" || true)
   [ "$sleeps" -le "$2" ] \
     || fail "$1 kept polling with sleep ($sleeps sleeps in 4s)"
   # Allow the independent heartbeat's bounded ownership checks as well as
   # sweeps at either edge of the window; the sleep limit still rejects fast
   # queue polling independently of this external-command budget.
   [ "$execs" -le 120 ] \
-    || fail "$1 ran $execs commands in 4s; expected only heartbeats and sweeps"$'\n'"$(printf '%s\n' "$sample" | sort | uniq -c)"
+    || fail "$1 ran $execs commands in 4s; expected only heartbeats and sweeps"$'\n'"$(sort "$QUIET_EXEC_LOG" | uniq -c)"
 }
 # fm_remote_job_probe must keep reading an idle worker as ready: its heartbeat
 # stays far inside the probe's 10-second bound across several idle waits.
 quiet_heartbeat_stays_fresh() { # <state> <account-home> <label>
-  local deadline=$((SECONDS + 5)) age
+  local deadline=$((SECONDS + 5)) mtime age
   while [ "$SECONDS" -lt "$deadline" ]; do
     ( FM_REMOTE_JOB_STATE_ROOT="$1"; fm_remote_job_probe "$2" ) \
       || fail "the probe read the live $3 worker as unready"
-    # Sample the timestamp and clock together so observer scheduling cannot
-    # age a saved timestamp after the worker has already refreshed the file.
-    age=$(perl -e 'my @s = stat $ARGV[0]; @s or exit 1; print time - $s[9], "\n";' "$1/worker.ready") \
-      || fail "the $3 worker heartbeat vanished"
+    mtime=$(fm_remote_job_path_mtime "$1/worker.ready") || fail "the $3 worker heartbeat vanished"
+    age=$(( $(date +%s) - mtime ))
     [ "$age" -le 3 ] || fail "the $3 worker heartbeat went ${age}s stale"
     sleep 0.5
   done
 }
 quiet_stage_completes() { # <state> <account-home> <touched> <label>
-  local attempt state
+  local began=$SECONDS elapsed
   (
     FM_REMOTE_JOB_STATE_ROOT="$1"
     FM_REMOTE_JOB_QUEUE_TIMEOUT=60
     FM_REMOTE_JOB_TIMEOUT=30
     fm_remote_job_stage "$2" "$REMOTE_ROOT" "$REMOTE_HOME" fm-touch-job.sh "$3" \
       < /dev/null > /dev/null || exit 1
-    # Bound pickup after publication, independently of staging, execution and
-    # cleanup. Poll attempts allow for the counting shims and host scheduling.
-    for ((attempt = 0; attempt < 100; attempt++)); do
-      fm_remote_job_read_state "$FM_REMOTE_JOB_JOBS/$FM_REMOTE_JOB_ID" state || exit 1
-      [ "$state" = queued ] || break
-      sleep 0.05
-    done
-    [ "$state" != queued ] || fail "the $4 worker did not claim the staged job"
     fm_remote_job_wait "$2" "$FM_REMOTE_JOB_ID" || exit 1
     [ "$FM_REMOTE_JOB_EXIT" -eq 0 ] || exit 1
     fm_remote_job_reap "$2" "$FM_REMOTE_JOB_ID"
   ) || fail "a job staged to the $4 worker did not complete"
+  elapsed=$((SECONDS - began))
   assert_present "$3" "the job staged to the $4 worker did not run"
+  [ "$elapsed" -le 5 ] \
+    || fail "a job staged to the $4 worker waited ${elapsed}s"
 }
 quiet_stop() { # <pid>
   kill -TERM "$1"
@@ -1283,17 +1262,17 @@ quiet_stop() { # <pid>
   wait "$1" 2>/dev/null || true
 }
 quiet_wait_ready "$QUIET_STATE" idle-rate
-quiet_settle
+quiet_settle 3
 quiet_measure "an idle worker" 6
 pass "an idle worker sleeps out a second between passes instead of busy-polling"
 
 quiet_heartbeat_stays_fresh "$QUIET_STATE" "$QUIET_HOME" idle
 pass "an idle worker keeps its readiness heartbeat fresh between passes"
 
-# A job published to an idle worker is picked up on a later pass and runs to
-# successful result publication, even with the command-counting shims active.
+# The one-second idle bound is the pickup latency: a job staged to an idle
+# worker is claimed on its next pass and completes within a few seconds.
 quiet_stage_completes "$QUIET_STATE" "$QUIET_HOME" "$QUIET_TOUCHED" idle
-pass "an idle worker claims a staged job and publishes its successful result"
+pass "an idle worker claims and publishes a staged job within a few seconds"
 
 # Hoisting setup out of every pass must not drop the worker's own repair of the
 # queue directories' 0700 modes: the periodic sweep still re-applies them with
