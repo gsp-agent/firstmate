@@ -54,9 +54,10 @@ jobs:
       # fails locally before merge.
       - name: Lint canonical partition
         env:
-          # Fail closed rather than lint uncapped when a configured per-root
-          # bound (wall deadline or memory rlimit) cannot be enforced here.
-          FM_LINT_REQUIRE_BOUNDS: '1'
+          # fm-lint caps every root's memory and time on every host. One root
+          # at a time on a 16 GiB runner leaves room for 8 GiB, which keeps
+          # source-following coverage for the roots that pass at 6-8 GiB.
+          FM_LINT_ROOT_MEMORY_KIB: '8388608'
           FM_LINT_JOBS: '1'
         run: |
           set -eu
