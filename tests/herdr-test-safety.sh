@@ -12,6 +12,9 @@ set -u
 # tests/lib.sh and bin/fm-gate-refuse-lib.sh for why firstmate's own suite,
 # which the no-mistakes gate runs from a gate worktree, must be exempt).
 export FM_GATE_REFUSE_BYPASS=1
+# For the same reason, keep the operator machine's live-session detector out of
+# their spawns, exactly as tests/lib.sh does for the rest of the suite.
+export FM_LIVE_SESSION_CHECK=
 
 HERDR_TEST_SAFETY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=/dev/null

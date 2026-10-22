@@ -91,9 +91,9 @@
 #              running.
 #
 # Teardown and discard are NOT verbs here and never will be. `exit` stops an
-# agent and preserves everything else; removing a worktree, killing an
-# endpoint, or discarding work stays with bin/fm-teardown.sh, which owns the
-# landed-work test.
+# agent and preserves everything else; removing a worktree or discarding work
+# stays with bin/fm-teardown.sh, which owns the landed-work test.
+# bin/fm-inactive-reconcile.sh owns automatic inactive pane closure.
 #
 # `resume` is not a verb: it is not deterministic across the verified adapters
 # (bin/fm-control-lib.sh's header owns that reasoning). `relaunch` covers the
@@ -181,6 +181,8 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 . "$SCRIPT_DIR/fm-worker-account-lib.sh"
 # shellcheck source=bin/fm-exclude-tools-lib.sh
 . "$SCRIPT_DIR/fm-exclude-tools-lib.sh"
+# shellcheck source=bin/fm-live-session-lib.sh
+. "$SCRIPT_DIR/fm-live-session-lib.sh"
 
 POLL=${FM_CONTROL_POLL:-0.5}
 SETTLE_WAIT=${FM_CONTROL_SETTLE_WAIT:-5}
@@ -1069,7 +1071,7 @@ record_note() {
 }
 
 do_relaunch() {
-  local exit_result state note_line
+  local exit_result state note_line project live_session_deferral
   local -a spawn_args
 
   require_state_verified_backend relaunch
@@ -1106,6 +1108,13 @@ do_relaunch() {
   record_note
   journal_write noted "${CHECKPOINT_LINES[@]}" "$note_line"
 
+  if [ "$KIND" != secondmate ]; then
+    project=$(fm_meta_get "$META" project)
+    if ! live_session_deferral=$(fm_live_session_admit "$project" "$(basename "$project")"); then
+      echo "deferred: $live_session_deferral; task $ID was not relaunched and its agent, instructions, and task record are unchanged - relaunch it again once the check reads clear" >&2
+      exit 75
+    fi
+  fi
   journal_write stopping "${CHECKPOINT_LINES[@]}" "$note_line"
   exit_result=$(do_exit)
   journal_write exited "${CHECKPOINT_LINES[@]}" "$note_line" "exit_result=$exit_result"
