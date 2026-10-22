@@ -17,8 +17,11 @@ This skill is the single owner of the decision policy for no-mistakes ask-user f
 Finding authority is determined by the criteria below, not by `yolo`.
 Firstmate always applies this judgment, decides any finding that is unambiguous toward the accepted design, and escalates only genuinely ambiguous, expanding, or destructive findings.
 
-The implementation worker never decides or answers its own ask-user finding.
+Except for the no-surface case below, the implementation worker never decides or answers its own ask-user finding.
 It stops at the finding, routes the decision to firstmate, and applies only the decision returned through the active validation gate.
+One class is not an authority decision at all: a warning-level finding whose only question is whether to proceed without live validation because the change has no executable surface (a docs-only change; no-mistakes calls this a no-surface verdict).
+That is decided here, in advance: proceed, with the scenarios recorded as untested on the PR.
+The worker may answer that one at the gate itself.
 
 ## Decide
 
@@ -50,6 +53,7 @@ Do not relay reviewer labels or gate output as if they settled the decision.
 
 ## Classification examples
 
+- A warning-level no-surface finding on a docs-only change is decided (proceed, scenarios recorded untested); it never escalates, and the worker may answer it at the gate.
 - Fixing a concrete defect that violates an original acceptance criterion is firstmate's to decide, regardless of implementation difficulty.
 - Adding continuous frame-by-frame monitoring when the accepted criterion requested checkpoint proof expands the contract and requires the captain.
 - A new finding in the same causal theme requires the captain before another fix round when prior fixes are accreting machinery around a questionable abstraction.

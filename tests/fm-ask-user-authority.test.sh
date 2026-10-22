@@ -18,6 +18,16 @@ test_primary_and_secondmate_instruction_generation() {
   ship="$home/data/authority-worker/brief.md"
   assert_grep 'ask-user findings are never yours to answer' "$ship" \
     "generated implementation brief lets the worker own an ask-user decision"
+  # `.agent-config-ydbn7`: the one carve-out - a warning-level no-surface
+  # finding on a docs-only change is the worker's to answer (proceed), never
+  # a parked authority decision.
+  assert_grep 'a warning-level finding whose only question is whether to proceed without live validation' "$ship" \
+    "generated implementation brief parks a docs-only no-surface warning with the captain"
+  assert_grep 'is yours to answer at the gate: respond to proceed' "$ship" \
+    "generated implementation brief does not let the worker answer the no-surface warning"
+  assert_grep 'A warning-level no-surface finding on a docs-only change is decided' \
+    "$ROOT/.agents/skills/ask-user-authority/SKILL.md" \
+    "the authority skill does not classify the no-surface warning as decided"
   assert_grep "Firstmate applies \`ask-user-authority\` and obtains any required captain decision" "$ship" \
     "generated implementation brief bypasses the primary authority owner"
   # shellcheck disable=SC2016 # Backticks are literal generated Markdown.

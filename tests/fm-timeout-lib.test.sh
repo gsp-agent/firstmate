@@ -201,31 +201,64 @@ test_a_signal_to_the_bounding_process_reaches_the_command() {
   pass "fm_exec_timed forwards a TERM it receives to the bounded command"
 }
 
+# An INT is different: a caller started in the background by a non-interactive
+# shell inherits INT ignored and never sees it, so the bounding process reports
+# the interruption as 130 even when the command handled it and exited 0.
+test_an_interrupt_is_reported_as_130() {
+  local dir watchdog rc=0
+  dir="$TMP_ROOT/interrupt"
+  mkdir -p "$dir"
+  # shellcheck disable=SC2016
+  (
+    . "$ROOT/bin/fm-timeout-lib.sh"
+    PATH=$PERL_ONLY
+    fm_exec_timed 60 30 bash -c '
+      trap "echo interrupted > \"\$2\"; exit 0" INT
+      echo $$ > "$1"
+      while :; do sleep 0.1; done
+    ' _ "$dir/pid" "$dir/int"
+  ) 2>/dev/null &
+  watchdog=$!
+  wait_for_file "$dir/pid"
+  kill -INT "$watchdog" || fail "could not signal the bounding process"
+  wait "$watchdog" || rc=$?
+  [ "$(cat "$dir/int" 2>/dev/null)" = interrupted ] || fail "the INT never reached the bounded command"
+  [ "$rc" -eq 130 ] || fail "an INT to the bounding process was reported as $rc, not 130"
+  pass "fm_exec_timed forwards an INT and reports it as 130"
+}
+
 # A caller that names its owner before launching the watchdog is watched even
 # when that owner died while the watchdog was still starting: the watchdog's
 # parent is then not the named owner, so the escalation starts at once rather
-# than at the bound.
+# than at the bound. That TERM usually lands while the command is still being
+# started, and must end it there instead of being lost to the grace's KILL.
+# Only some launches put it in the few Perl ops before the forked child resets
+# its handlers, so a hundred launches make a lost TERM show as 137, not 143.
 test_a_named_owner_that_is_gone_ends_the_command() {
-  local dir gone rc=0 started elapsed pid
+  local dir gone rc started elapsed pid launch
   dir="$TMP_ROOT/owner"
   mkdir -p "$dir"
   sleep 0 &
   gone=$!
   wait "$gone" 2>/dev/null || true
-  started=$SECONDS
-  (
-    . "$ROOT/bin/fm-timeout-lib.sh"
-    PATH=$PERL_ONLY FM_EXEC_TIMED_OWNER_PID=$gone \
-      fm_exec_timed 60 1 bash -c 'echo $$ > "$1"; exec sleep 300' _ "$dir/pid"
-  ) || rc=$?
-  elapsed=$((SECONDS - started))
-  [ "$elapsed" -lt 15 ] || fail "a watchdog whose named owner was gone ran to its bound (${elapsed}s)"
-  [ "$rc" -ne 0 ] || fail "a command ended by its owner's death reported success"
-  if [ -s "$dir/pid" ]; then
-    pid=$(cat "$dir/pid")
-    ! kill -0 "$pid" 2>/dev/null || fail "the bounded command outlived its named owner"
-  fi
-  pass "fm_exec_timed ends the command when its named owner is already gone"
+  for ((launch = 1; launch <= 100; launch++)); do
+    rm -f "$dir/pid"
+    rc=0
+    started=$SECONDS
+    (
+      . "$ROOT/bin/fm-timeout-lib.sh"
+      PATH=$PERL_ONLY FM_EXEC_TIMED_OWNER_PID=$gone \
+        fm_exec_timed 60 1 bash -c 'echo $$ > "$1"; exec sleep 300' _ "$dir/pid"
+    ) || rc=$?
+    elapsed=$((SECONDS - started))
+    [ "$elapsed" -lt 15 ] || fail "a watchdog whose named owner was gone ran to its bound (${elapsed}s)"
+    [ "$rc" -eq 143 ] || fail "launch $launch whose named owner was gone did not end at its TERM (rc=$rc)"
+    if [ -s "$dir/pid" ]; then
+      pid=$(cat "$dir/pid")
+      ! kill -0 "$pid" 2>/dev/null || fail "the bounded command outlived its named owner"
+    fi
+  done
+  pass "fm_exec_timed ends the command at its TERM when its named owner is already gone"
 }
 
 # With no named owner the calling script is captured before the watchdog
@@ -295,6 +328,45 @@ test_a_top_level_parent_that_dies_during_startup_ends_the_command() {
     sleep 0.02
   done
   pass "fm_exec_timed preserves a top-level shell's parent across exec startup"
+}
+
+# The watchdog stays in its caller's process group so that group's signals
+# reach it, so a KILL to that whole group - an outer timeout or cancellation
+# escalating - kills the watchdog with its caller. The command's own group must
+# still get its TERM, and then the KILL after the grace, instead of running on
+# with nobody left to end it.
+test_a_kill_to_the_callers_group_still_ends_the_command() {
+  local dir caller started pids
+  dir="$TMP_ROOT/group-kill"
+  mkdir -p "$dir"
+  cat > "$dir/command.sh" <<'SH'
+trap 'echo cleaned > "$2"; exit 143' TERM
+sleep 300 &
+echo "$$ $!" > "$1"
+wait
+SH
+  PATH=$PERL_ONLY perl -e 'setpgrp(0, 0); exec @ARGV' bash -c '
+    . "$1/bin/fm-timeout-lib.sh"
+    (fm_exec_timed 60 2 bash "$2/command.sh" "$2/pids" "$2/cleaned")
+  ' _ "$ROOT" "$dir" >/dev/null 2>&1 &
+  caller=$!
+  wait_for_file "$dir/pids"
+  kill -KILL -- "-$caller"
+  wait "$caller" 2>/dev/null || true
+  pids=$(cat "$dir/pids")
+  started=$SECONDS
+  # shellcheck disable=SC2086
+  while kill -0 $pids 2>/dev/null; do
+    if [ "$((SECONDS - started))" -ge 10 ]; then
+      # shellcheck disable=SC2086
+      kill -KILL $pids 2>/dev/null || true
+      fail "a KILL to the caller's group left the bounded command or its child running ($pids)"
+    fi
+    sleep 0.05
+  done
+  [ "$(cat "$dir/cleaned" 2>/dev/null)" = cleaned ] \
+    || fail "a KILL to the caller's group ended the bounded command without its TERM"
+  pass "fm_exec_timed ends the command at its TERM when the caller's whole group is KILLed"
 }
 
 # perl is preferred whenever it exists, because only its watchdog can reap a
@@ -403,9 +475,11 @@ test_kill_ends_a_term_ignoring_command_after_the_grace
 test_the_bound_replaces_the_calling_shell
 test_a_descendant_holding_the_output_cannot_outlast_the_bound
 test_a_signal_to_the_bounding_process_reaches_the_command
+test_an_interrupt_is_reported_as_130
 test_a_named_owner_that_is_gone_ends_the_command
 test_an_owner_that_dies_during_startup_ends_the_command
 test_a_top_level_parent_that_dies_during_startup_ends_the_command
+test_a_kill_to_the_callers_group_still_ends_the_command
 test_perl_is_preferred_over_timeout
 test_refuses_rather_than_running_unbounded
 test_rejects_malformed_bounds_before_running_anything

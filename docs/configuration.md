@@ -102,7 +102,7 @@ Untracked files and directories whose names begin with `scratchpad` are also git
 
 - `bin/fm-spawn.sh` owns the base task-metadata fields it emits, while the runtime-backend section below owns backend-specific fields and selector interpretation.
 
-- After ship or scout retirement, [`bin/fm-task-data.py`'s header and `--help`](../bin/fm-task-data.py) own automatic clone/scratch pruning, evidence retention, one-cycle recovery, and guarded expiry.
+- For ship or scout retirement, [`bin/fm-task-data.py`'s header and `--help`](../bin/fm-task-data.py) own automatic clone/scratch pruning, evidence retention, one-cycle recovery, and guarded expiry.
 
 - `bin/fm-contributions.sh` owns durable published-contribution records under each task, observation bounds, equivalent triage-label configuration, and the authenticated contribution check.
 
@@ -657,6 +657,11 @@ That branch shares no history with code branches, so evidence never enters a pus
 The [`firstmate-coding-guidelines` skill](../.agents/skills/firstmate-coding-guidelines/SKILL.md#no-mistakes-test-configuration) owns why `commands.test` stays absent and targeted validation belongs to the evidence path.
 
 `commands.test` executes code, so no-mistakes honors it only from the default-branch copy of `.no-mistakes.yaml`; a pushed branch cannot change what the gate runs.
+
+The same trusted copy declares one extra gate, `stock-macos-bash`, which runs `bin/fm-stock-bash-check.sh` after lint and before push, so a red parks the run before any push or PR.
+It is this fork's only stock macOS Bash 3.2 check: GitHub's hosted macOS runners for the fork queue for hours or are never acquired, and a cancelled check held every PR, so the fork removed the `macos-stock-bash` CI job (decided 2026-10-21).
+The check needs the Mac's own `/bin/bash` 3.2.57 and fails closed on any other host; it is a fixed compatibility check, not a suite walk, so it does not reopen `commands.test`.
+The script header owns what it runs, its counts, and its time and memory bounds; run it by hand with `bin/fm-stock-bash-check.sh`.
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for the firstmate-specific local test policy and entry points.
 
 Portable shard evidence and coverage rules are in [fm-test-portable-shards.md](fm-test-portable-shards.md); [herdr-backend.md](herdr-backend.md#destructive-lab-safety) owns the real-Herdr lane's isolation boundary, and [runtime-backends.md](verification/runtime-backends.md#herdr) owns active evidence.
@@ -911,6 +916,16 @@ The file is a captain-wide safety preference, so it is inherited into secondmate
 
 The [Claude adapter reference](../.agents/skills/harness-adapters/references/harness/claude.md) records the permission-mode observations and the distinct startup dialogs.
 
+## Claude worker MCP servers (FM_CREW_MCP_TRIM)
+
+Ship and scout workers launched with the generated Claude command load no MCP servers by default, avoiding idle MCP child processes for task workers.
+Each such spawn or relaunch writes an empty `mcpServers` configuration to the launching home's `state/<id>.mcp-crew.json` and selects it with Claude's strict MCP configuration flags.
+Claude secondmates retain their normal MCP configuration, and other harnesses are unaffected.
+Set `FM_CREW_MCP_TRIM=0` in the environment running `fm-spawn.sh` to restore normal MCP loading for the next Claude worker launch.
+Unset or empty values default to `1`; only `1` enables trimming.
+Raw launch commands retain their supplied MCP flags; the policy does not edit user or project MCP configuration.
+[`bin/fm-spawn.sh`](../bin/fm-spawn.sh) owns the launch mechanics; [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) covers the default Claude launch line.
+
 ## Worker tool exclusions (config/crew-exclude-tools)
 
 The optional local, gitignored `config/crew-exclude-tools` hides named tools from this home's ship and scout workers, for example to keep an MCP server's write tools out of reach while its read tools stay available.
@@ -1023,7 +1038,7 @@ The text is static and never executed or expanded; secondmate charters never tak
 ## Worker launch environment (config/launch-env-allowlist)
 
 The optional local, gitignored `config/launch-env-allowlist` limits the ambient environment passed to newly launched workers, scouts, and secondmates, including relaunches.
-With no file, ambient inheritance remains unfiltered: selected harness markers are cleared, while the provider, long-lived terminal daemon, and shell initialization determine which other variables reach the worker.
+With no file, ambient inheritance remains unfiltered except for explicit launch assignments, including [worker git identity](#worker-git-identity), and cleared harness markers; the provider, long-lived terminal daemon, and shell initialization determine which other variables reach the worker.
 
 Do not assume every worker inherits the invoking Firstmate process's current environment.
 The file is inherited into secondmate homes through the [primary-authoritative configuration contract](../.agents/skills/secondmate-provisioning/SKILL.md).
@@ -1066,7 +1081,7 @@ Choose the minimum additions for the authentication method actually in use:
 | --- | --- |
 | Provider login stored under the normal home directory | None for the environment contract; the same user still has access to that provider's stored login. |
 | Provider configured through environment variables | The exact credential and endpoint names required by that provider, for example `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`; a multi-provider tool needs each provider it will actually use. |
-| Custom provider store | Its configured location variables, such as `CODEX_HOME`, `GROK_HOME`, or `XDG_CONFIG_HOME`; Firstmate's existing explicit Claude and Muse store assignments still apply. |
+| Custom provider store | Its configured location variables, such as `CODEX_HOME`, `GROK_HOME`, or `XDG_CONFIG_HOME`, unless Firstmate already assigns them explicitly for that launch. |
 | Muse environment authentication | `META_API_KEY`, already present in the target tmux session environment; Firstmate's preflight requires the stored-login path on other backends. |
 | Git over SSH with an agent | `SSH_AUTH_SOCK`; add `GIT_SSH_COMMAND` only if the chosen transport requires that override. |
 | Git over SSH with a key file | No credential variable when normal SSH configuration selects the key; file permissions and any passphrase handling still apply. |
@@ -1104,6 +1119,19 @@ The flag is a home-wide attribution choice, so it is inherited into secondmate h
 Per-machine Cursor `cli-config.json` attribution-off is not this contract: it does not travel with Firstmate, defaults back to on when unset, and only feeds the CLI's request to the server, so it suppresses the trailer rather than preventing it.
 The flag does not govern the `Made-with:` lines Firstmate adds to a task's GitHub pull request body, one per engine that wrote its commits, so a reviewer that routes by model family can see who wrote it; [`bin/fm-pr-made-with.sh`](../bin/fm-pr-made-with.sh) owns that stamp.
 
+### Worker git identity
+
+Every crewmate, scout, and secondmate this home launches commits as `gsp-agent <dale+gspagent@groovejones.com>` by default, from its first commit on fresh spawns and relaunches alike.
+The optional local, gitignored `config/worker-git-identity` selects a different worker identity with one line in git's `Name <email>` form, such as `fleet-agent <fleet-agent@example.com>`.
+The launch carries it in the same pane-scoped `GIT_CONFIG` export as the AI-trailer `core.hooksPath`, as `user.name` and `user.email`, so `git config user.email` inside the launched agent reports it and it takes precedence over any repository or global identity there.
+It also replaces inherited `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, and `GIT_COMMITTER_EMAIL`, which Git otherwise ranks above configuration.
+Raw launch commands assigning those variables refuse before launch; select the worker identity through `config/worker-git-identity` instead.
+No git config file is written: the captain's `~/.gitconfig` and the project's shared repository config keep their values, so the captain's own commits, and any shell outside a launched agent, keep the captain's identity.
+A file that does not hold one well-formed line refuses the spawn before launch rather than falling back to another identity.
+The setting is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract, so a secondmate's own workers commit as the same identity.
+The setting applies to the launched agent's environment; a separately running no-mistakes daemon manages its own commit identity.
+[`fm-spawn.sh --help`](../bin/fm-spawn.sh) owns the delivery mechanics, with regression coverage in [`tests/fm-spawn-worker-git-identity.test.sh`](../tests/fm-spawn-worker-git-identity.test.sh).
+
 ## Project capacity (config/project-capacity)
 
 The optional local, gitignored `config/project-capacity` tells Firstmate how many workers a project can run at once on this machine, for a project whose machine-local resource - a heavy test suite, a local editor stack, a device - only serves a few workers at a time.
@@ -1120,7 +1148,8 @@ A count of 0 admits no worker for that project, and a headroom reading does not 
 A line that is only `#`, or that begins with `#` followed by whitespace, is a comment, as is a `#` line whose last field is not an integer.
 A project name may begin with `#` when that `#` is written immediately against the rest of the name and the line ends with the project's capacity.
 A name that is `#`, or that begins with `#` and a space, cannot be declared, because that line is a comment.
-A place is held by every ship or scout on that project in the root home or any local secondmate home registered under it, including one working in a separate clone of the same origin, until its ready PR is recorded or it is cleaned up; a local-only ship or a scout holds its place until cleanup.
+See [`bin/fm-project-capacity-lib.sh`'s occupancy contract](../bin/fm-project-capacity-lib.sh) for which working tasks hold a place across local homes and clones, and how PR handoffs release capacity.
+A failed or timed-out crew-state read conservatively holds a place and adds `(state unreadable)` to the holder list; it does not fail the count.
 The declaration is matched by the spawning clone's directory name, so clones of the same origin share the cap only when they use that same directory name.
 A clone of that origin under a different directory name finds no declaration and is not capped, though its workers are still counted as holders for a same-origin clone that is capped.
 When every place is held, `bin/fm-spawn.sh` launches nothing, creates no record, leaves the backlog item queued, prints one `deferred:` line naming the holders, and exits 75, so Firstmate dispatches the item again once a place frees.
@@ -1139,8 +1168,23 @@ The reading runs in the spawn process's working directory, so use an absolute pa
 The file is read from the machine's root home, as `config/project-capacity` is, and a copy in a secondmate home is not consulted.
 Workers that are already running are left running.
 A malformed or unreadable capacity file refuses every fresh ship or scout spawn until it is fixed, rather than guessing the intended limit, and so does a local home's state directory or task record that cannot be read while counting a capped project's holders.
-Firstmate cannot see which part of a worker's life uses the resource, so the number bounds whole workers from launch to handoff, and the tightest resource every worker needs should decide it.
+Choose the number from the tightest resource every worker needs.
 [`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns the capacity file format, what holds a place, the headroom program, the 420-second record, and why concurrent spawns cannot both take the last place or the extra start.
+
+## Live-session check
+
+A live session - a tester, a client, or the captain at a headset, present or waiting at a set time - is run by the project's own agent, never by Firstmate.
+When the machine has a live-session detector at `~/.agent-config/scripts/live-session.py`, or wherever `FM_LIVE_SESSION_CHECK` names one, every ship or scout launch, including a relaunch, asks it about the project first.
+Firstmate does not ship the detector; its own header documents what it observes and what it misses.
+The detector is asked about the project's checkout folder name, with symlinks resolved, rather than Firstmate's registered project name, because it matches the name against the folders a person's work happens in.
+The check runs immediately before dispatch, after launch preparation.
+When it reports a live session, or cannot decide, `bin/fm-spawn.sh` launches no worker, preserves the prior task record and backlog state, prints one `deferred:` line carrying the detector's verdict, and exits 75, so Firstmate tries again once the check reads clear.
+A refused relaunch preserves the task's recorded worktree; a fresh spawn may already have prepared a worktree and its ship branch before the check.
+For the additional check before stopping an agent during a control-plane relaunch, see [Transactional relaunch](agent-control.md#transactional-relaunch).
+A secondmate spawn or relaunch is not checked.
+Typing in a focused terminal pane that works inside the project's checkout reads as live for two minutes, so typing to a project's own agent seat, or to Firstmate itself when the project is this Firstmate repository, defers that project's spawns until a later dispatch.
+Without a detector, or with `FM_LIVE_SESSION_CHECK` set to an empty value, dispatch is unchanged.
+[`bin/fm-live-session-lib.sh`](../bin/fm-live-session-lib.sh) owns how the detector is found and called and what each of its answers does.
 
 ## Crew dispatch profiles (config/crew-dispatch.json)
 
@@ -1151,6 +1195,19 @@ Firstmate resolves the rule's profile object or array under `AGENTS.md` section 
 **Spawn requirements**
 
 - When the file exists, `fm-spawn.sh` enforces that contract by refusing crewmate and scout spawns that lack an explicit harness (`--harness`, a positional adapter, or a raw launch command).
+- A fresh spawn's resolved model and effort must also equal one profile the file names for that harness across `default`, `label_routes`, and each rule's `use` profiles, with an omitted model or effort axis reading as the harness default.
+- A fresh spawn whose pair matches no named profile for its harness refuses before any worktree or endpoint is provisioned and prints the file pair or pairs for that harness.
+- A raw launch command whose resolved harness the file names refuses before any worktree or endpoint is provisioned and prints the file pair or pairs.
+- A rung skip uses the canonical `--harness`, `--model`, and `--effort` launch form.
+- A harness the file never names and a secondmate spawn are exempt from the pair check, including raw launch commands.
+- A relaunch keeps its requested or recorded pair when that pair matches a profile for its harness.
+- Otherwise, the relaunch adopts and records the file's only distinct pair for that harness, or refuses and prints the alternatives when multiple distinct pairs exist, because choosing among profile candidates stays with firstmate intake.
+- `fm-control.sh relaunch` resolves that pair before stopping the old agent and journals the resolved pair; an adopted effort outside spawn's accepted vocabulary refuses at this step, and the adopted pair must pass native-effort and worker-account pin checks too.
+  Spawn uses the model and effort handed off by that control transaction without reading the dispatch file again, so a later file change cannot replace the journaled pair or cause a dispatch-file refusal after the old agent stops.
+  A direct `fm-spawn.sh --relaunch` still resolves against the current file, even when both axes are explicit, and refuses an unknown adopted effort before launch or task-record publication.
+- An unreadable dispatch file refuses; malformed JSON includes jq's parse diagnostic followed by the dispatch read error, while missing jq prints only the jq-required error.
+  On a control relaunch these dispatch-file failures also occur before the old agent stops.
+- [`fm-spawn.sh`'s header](../bin/fm-spawn.sh) owns relaunch flag inheritance and explicit default resets.
 - Batch spawns satisfy the same requirement with a shared `--harness`.
 - Secondmate spawns are exempt and still resolve through `config/secondmate-harness` and its optional model and effort tokens.
 
@@ -1239,7 +1296,7 @@ The worker helper uses a separate legacy mapping in the [shared quota library](.
 - OpenCode receives the effort as its default `build` agent's `variant`, keyed to the resolved model, inside the `OPENCODE_CONFIG_CONTENT` JSON its launch already writes (the per-model reasoning-effort field of the config schema, verified on opencode 1.18.32); with no model resolved, the effort is recorded in task metadata but omitted from the launch.
 - Every profile array selected through firstmate's natural-language intake is an implicit quota-aware choice resolved through `quota-array-dispatch`; deterministic label routing follows the separate header contract linked above.
 - If no dispatch rule fits, firstmate resolves `default` through the same object-or-array path before falling back to `config/crew-harness`.
-- Except for `ultra`, which refuses unsupported profiles under the native-effort contract above, an effort value the chosen harness does not accept is recorded as `effort=` in task meta for traceability but omitted from the launch flags.
+- Except for `ultra`, which refuses unsupported profiles under the native-effort contract above, an effort within spawn's accepted vocabulary that the chosen harness does not accept is recorded as `effort=` in task meta for traceability but omitted from the launch flags.
 - Bootstrap reports unsupported harness/model/effort combinations as a `CREW_DISPATCH` diagnostic when they are visible in the file.
 
 See [`docs/examples/crew-dispatch.json`](examples/crew-dispatch.json) for a starting point to copy into local `config/crew-dispatch.json`; its Pi default declares the `claude` provider required for typed resolution of that Anthropic model.
@@ -2424,6 +2481,7 @@ FM_PROC_ROOT_OVERRIDE=   # alternate /proc root for Linux process-identity reads
 FM_BACKEND=             # optional runtime backend override for new spawns; tmux/herdr/zellij/orca/cmux support ship/scout spawns, codex-app is not accepted
 FM_TRACE_CONTEXT=       # optional trace-context override; see "Trace context propagation"
 FM_TASK_ID=             # internal task-worker marker fm-spawn.sh exports into ship and scout panes, never set by hand; bin/fm-test-run.sh refuses to execute in the repository primary checkout while it is set
+FM_LIVE_SESSION_CHECK=  # unset uses ~/.agent-config/scripts/live-session.py when present; a path selects another detector, empty turns the check off (see "Live-session check")
 FM_TASK_INBOX=          # internal: absolute path of the task's steering inbox (state/<id>.inbox) that fm-spawn.sh exports into every ship, scout, and secondmate launch, never set by hand; the steering doorbell names "$FM_TASK_INBOX"
 HERDR_SESSION=default  # herdr-only: named session for normal backend ops; not enough for destructive cleanup (docs/herdr-backend.md)
 FM_BACKEND_HERDR_SUBMIT_POLLS=6  # herdr-only: agent-state samples spread across each Enter attempt's budget when confirming a submit (docs/herdr-backend.md "Current transport behavior")
@@ -2441,7 +2499,7 @@ FM_TASKS_AXI_COMPATIBLE=   # internal one-hop handoff of an already-computed tas
 FM_GUARD_READ_ONLY=0    # internal/read-only guard mode: keep alarms but suppress drain, supervision repair, and checkout repair commands
 FM_GUARD_CONTINUE_LINE='This is a supervision warning only; the guarded operation WILL still run.'   # banner continuation line; fm-send.sh overrides it to name the requested message specifically
 FM_POLL=15              # seconds between watcher poll cycles
-FM_HOME_SUMMARY_INTERVAL=300   # seconds before a live watcher refreshes this home's state/home-summary.json even without a status signal; invalid or zero values use 300
+FM_HOME_SUMMARY_INTERVAL=300   # coalesced request cooldown in seconds; also the watcher's age threshold for requesting a refresh without a status signal; bin/fm-home-summary-refresh.sh's header owns cooldown and direct-run semantics; invalid or zero values use 300
 FM_HOME_SUMMARY_TIMEOUT=60     # seconds bounding the complete best-effort home-summary refresh, including lock acquisition, validation, atomic publication, and worker-side failure logging; invalid or zero values use 60
 FM_HOME_SUMMARY_ERROR_LOG_MAX_BYTES=65536   # approximate size cap for state/.home-summary-refresh.log before it is trimmed to the newest 200 lines; invalid or zero values use 65536
 FM_HOME_SUMMARY_FAILURE_REPORT=2   # recorded publication failures since the ledger's own last publication before session start reports a HOME_SUMMARY line; invalid or zero values use 2
@@ -2453,8 +2511,8 @@ FM_SNAPSHOT_UNDATED_HOLD_AGE_DAYS=14  # floored elapsed-day threshold at which a
 FM_RECONCILE_REQUEST_MAX_BYTES=1048576   # maximum captured Bearings or fleet snapshot accepted for durable reconcile-notify request publication
 FM_HEARTBEAT=600        # base seconds between heartbeat scans; no-change heartbeats are absorbed while idle
 FM_HEARTBEAT_MAX=7200   # heartbeat backoff cap
-FM_INACTIVE_RECONCILE_SECS=900  # 60..1800-second watcher cadence and inactivity threshold; locked session start also requests an immediate scan in the deferred worker
-FM_INACTIVE_RECONCILE_BUDGET_SECS=10  # 1..30-second scan deadline; wedged-scan kill backstop follows one second later
+FM_INACTIVE_RECONCILE_SECS=300  # watcher default; an explicit environment value wins; bin/fm-inactive-reconcile.sh's header owns standalone/startup defaults, ranges, and scan mechanics
+FM_INACTIVE_RECONCILE_BUDGET_SECS=30  # watcher default; an explicit environment value wins; see the same reconciler header for deadline mechanics
 FM_CHECK_INTERVAL=300   # seconds between slow check sweeps; bin/fm-watch.sh owns their scope
 FM_TASK_INBOX_GRACE_SECS=90   # seconds an unhandled steering-inbox message may sit before the watcher attempts doorbell delivery on an idle pane; also the minimum spacing between attempts
 FM_TASK_INBOX_RING_MAX=3      # watcher delivery attempts without an acknowledgement before the task surfaces as a stale wake for recovery
@@ -2478,9 +2536,9 @@ FM_CODEX_WATCH_CHECKPOINT=180   # seconds per foreground watcher checkpoint in C
 FM_CODEX_WATCH_CHECKPOINT_AWAY=3600  # requested away checkpoint bound on a home that runs the supervision host; longer of this and attended bound, capped at 27000
 FM_CREW_STATE_NM_TIMEOUT=10   # seconds allowed per no-mistakes query inside fm-crew-state.sh, and per state-database run-inventory read behind a capped AXI overview
 FM_TEARDOWN_NM_TIMEOUT=10    # seconds allowed per no-mistakes query or abort inside fm-teardown.sh
-FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=10   # seconds after releasing its locks during which fm-teardown.sh starts and runs attempts to expire other tasks' held data; an ordinary attempt still running when it ends is cut off, while a hold's one full attempt (next line) can run past it; invalid or zero values use 10
-FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=60   # exact seconds of the one full attempt a hold cut off by that budget gets on a later teardown, whatever remains of the budget, so it can run past it; a hold cut off again is skipped and named for expiry by hand; invalid or zero values use 60
-FM_TEARDOWN_DATA_STAGE_TIMEOUT=10   # seconds after a retiring task's own task-data stage starts, including reading its references, after which its evidence and reference reads and its reference matching stop while fm-teardown.sh still holds its locks; past it nothing is moved, the folder stays whole for a later teardown and the backlog close still completes; invalid or zero values use 10
+FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=10   # foreground task-data expiry budget; bin/fm-task-data.py's header owns timing, retries, and background sweeping
+FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT=60   # foreground full retry allowance; see the same task-data contract for cut-off and too-large holds
+FM_TEARDOWN_DATA_STAGE_TIMEOUT=10   # retiring task's reference-read and matching limit; see the same task-data contract for whole-folder retention and retry
 FM_CREW_STATE_RUNS_LIMIT=200  # plain runs-ledger rows scanned for fallback attribution; does not change the CLI's AXI overview window (selection owner: bin/fm-nm-run-lib.sh)
 FM_TEARDOWN_NM_RUNS_LIMIT=200  # recent no-mistakes run rows scanned to prove an unresolved-head parked run belongs to teardown's task
 FM_CREW_STATE_BIN=bin/fm-crew-state.sh   # test override for the current-state reader used by watcher triage: the working/paused classification, and the wedge timer's parked-gate wait evidence

@@ -38,10 +38,10 @@
 # with no `.tasks.toml` gets tasks-axi's built-in defaults.
 # bin/fm-tasks-axi-lib.sh owns backend precedence and configuration failures.
 #
-# CRASH RECOVERY. Only teardown needs a durable record: it removes the meta and
-# with it the completion links, so a process killed between the two halves would
-# leave nothing to reconstruct the close from. It writes
-# `state/<id>.backlog-close` first, and removes it once the close lands.
+# CRASH RECOVERY. Teardown writes `state/<id>.backlog-close` before destructive
+# cleanup to preserve completion links across interruption, and removes it only
+# once retirement succeeds. fm_backlog_retire_task_record owns the protected
+# completion ordering for both teardown and replay.
 # The writer and replay share one complete-record validator, and teardown stages
 # that record before destructive cleanup, so it never publishes or acts on a close
 # replay would reject. The validator pins the data path to this home's configured
@@ -78,6 +78,10 @@ FM_BACKLOG_CLOSE_REPLAY_RESULT=
 # library does not source fm-tasks-axi-lib.sh does not apply.
 # shellcheck source=bin/fm-timeout-lib.sh disable=SC1091
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-timeout-lib.sh"
+if ! declare -F fm_task_data_sweep_request >/dev/null; then
+  # shellcheck source=bin/fm-task-data-lib.sh disable=SC1091
+  . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data-lib.sh"
+fi
 # fm-pr-lib.sh owns which URL is a Gerrit change. It is functions and empty
 # globals only, so it is sourced once rather than re-initialising a caller's
 # parsed identity.
@@ -845,8 +849,7 @@ fm_backlog_dispatch_rollback() {
 fm_backlog_close_transition() {
   local meta=$1 marker=$2 data=$3 id=$4 state=$5
   shift 5
-  [ -z "$meta" ] || fm_backlog_retire_task_record "$meta" "$data" "$id" "$state" "$@" || return 1
-  fm_backlog_done "$data" "$id" "$@" || return 1
+  fm_backlog_retire_task_record "$meta" "$data" "$id" "$state" --close "$@" || return 1
   fm_backlog_record_remove "$marker" "pending-close record" "$state"
 }
 
@@ -855,28 +858,46 @@ fm_backlog_close_transition() {
 fm_backlog_retain_transition() {
   local meta=$1 marker=$2 data=$3 id=$4 state=$5
   shift 5
-  [ -z "$meta" ] || fm_backlog_retire_task_record "$meta" "$data" "$id" "$state" "$@" || return 1
-  fm_backlog_retain "$data" "$id" "$@" || return 1
+  fm_backlog_retire_task_record "$meta" "$data" "$id" "$state" --retain "$@" || return 1
   fm_backlog_record_remove "$marker" "pending-close record" "$state"
 }
 
+# Existing metadata or a pending close protects recovery through preparation,
+# the backlog transition, and staging under the caller's meta lock. Publish
+# completion only after those steps, before removing metadata; publication
+# failure leaves that protection in place so an older sweep cannot expire it.
 # FM_BACKLOG_RETIRE_LABEL names the record in a removal error; it defaults to "task record".
 fm_backlog_retire_task_record() {
-  local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0
+  local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0 transition=retire
   shift 4
+  case "${1:-}" in --close|--retain) transition=${1#--}; shift ;; esac
   if [ "${1:-}" = --pr ]; then pr=${2:-}; fi
+  [ "$meta" = "$state/$id.meta" ] || return 1
+  helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   if [ -e "$meta" ] || [ -L "$meta" ]; then
     fm_backlog_record_present "$meta" "task record" "$state" || return 1
-    [ "$meta" = "$state/$id.meta" ] || return 1
     kind=$(sed -n 's/^kind=//p' "$meta" | tail -1)
     prepare=1
   elif [ -n "$pr" ] && { [ -e "$data/$id/record/data-cleanup.json" ] || [ -L "$data/$id/record/data-cleanup.json" ]; }; then
     prepare=1
   fi
   if [ "$prepare" = 1 ] && [ "$kind" != secondmate ] && { [ -e "$data/$id" ] || [ -L "$data/$id" ]; }; then
-    helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
     if ! python3 "$helper" prepare "$data" "$state" "$id" "$pr"; then
       FM_BACKLOG_TRANSITION_ERROR="task-data cleanup could not be recorded for $id"
+      return 1
+    fi
+  fi
+  case "$transition" in
+    close) fm_backlog_done "$data" "$id" "$@" || return 1 ;;
+    retain) fm_backlog_retain "$data" "$id" "$@" || return 1 ;;
+  esac
+  if [ "$kind" != secondmate ]; then
+    if [ -e "$data/$id" ] || [ -L "$data/$id" ]; then
+      python3 "$helper" retire "$data" "$state" "$id" "$pr" \
+        || echo "warning: $id retirement completed, but task-data cleanup needs a retry" >&2
+    fi
+    if ! fm_task_data_sweep_request "$state" "$id"; then
+      FM_BACKLOG_TRANSITION_ERROR="task-data completion could not be published for $id; retaining its task protection and data"
       return 1
     fi
   fi
@@ -1196,9 +1217,6 @@ fm_backlog_close_marker_replay() {  # <state-dir> <marker-path> <authorized-data
       || return 1
     cleanup_incomplete=1
   fi
-  FM_BACKLOG_RETIRE_LABEL="the interrupted task record" \
-    fm_backlog_atomic_transition retire "$meta" "$data" "$id" "$state" "${args[@]+"${args[@]}"}" \
-    || return 1
   if fm_backlog_row_probe "$data" "$id"; then
     row_state=$FM_BACKLOG_ROW_STATE
     if [ "${row_state%% *}" != "done" ] && [ "$FM_BACKLOG_ROW_HOLD_KIND" = captain ]; then
@@ -1216,11 +1234,14 @@ fm_backlog_close_marker_replay() {  # <state-dir> <marker-path> <authorized-data
       if [ "$mode" = retain ]; then
         # The captain's answer closed the row before this replay; the retained
         # transition owes it nothing more than retiring the record.
+        FM_BACKLOG_RETIRE_LABEL="the interrupted task record" \
+          fm_backlog_atomic_transition retire "$meta" "$data" "$id" "$state" "${args[@]+"${args[@]}"}" || return 1
         fm_backlog_close_marker_remove "$marker" "$state" || return 1
         FM_BACKLOG_CLOSE_REPLAY_RESULT=answered
         return 0
       fi
-      if fm_backlog_atomic_transition close '' "$marker" "$data" "$id" "$state" \
+      if FM_BACKLOG_RETIRE_LABEL="the interrupted task record" \
+          fm_backlog_atomic_transition close "$meta" "$marker" "$data" "$id" "$state" \
           "${args[@]+"${args[@]}"}"; then
         if [ "$cleanup_incomplete" = 1 ]; then
           FM_BACKLOG_CLOSE_REPLAY_RESULT=closed_incomplete
@@ -1232,12 +1253,15 @@ fm_backlog_close_marker_replay() {  # <state-dir> <marker-path> <authorized-data
       return 1
       ;;
     '')
+      FM_BACKLOG_RETIRE_LABEL="the interrupted task record" \
+        fm_backlog_atomic_transition retire "$meta" "$data" "$id" "$state" "${args[@]+"${args[@]}"}" || return 1
       fm_backlog_close_marker_remove "$marker" "$state" || return 1
       FM_BACKLOG_CLOSE_REPLAY_RESULT=stale
       return 0
       ;;
   esac
-  if fm_backlog_atomic_transition "$mode" '' "$marker" "$data" "$id" "$state" \
+  if FM_BACKLOG_RETIRE_LABEL="the interrupted task record" \
+      fm_backlog_atomic_transition "$mode" "$meta" "$marker" "$data" "$id" "$state" \
       "${args[@]+"${args[@]}"}"; then
     if [ "$mode" = retain ]; then
       if [ "$cleanup_incomplete" = 1 ]; then

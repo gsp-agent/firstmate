@@ -119,7 +119,7 @@
 # session-start sweep could still close, while a journal bound to any other pane
 # - or a version 1 attempt whose workspace is still present or unreadable - may
 # name a live quarantined space and is retained for that sweep.
-# After successful task retirement, bin/fm-task-data.py owns pruning data/<id>/
+# At ship or scout retirement, bin/fm-task-data.py owns pruning data/<id>/
 # and one-cycle scratch recovery; brief.md remains available to successor spawns.
 # Worktree-slot ownership (teardown-slot-collision): a treehouse pool slot is
 # reused across tasks, so a stale, duplicated, or drifted worktree= record can
@@ -426,6 +426,12 @@ if [ "$#" -lt 1 ] || ! fm_task_id_path_safe "$1"; then
 fi
 ID=$1
 TEARDOWN_LOST_SLOT_EXIT=4
+# Every lock wait in this script is bounded. An orphaned teardown spinning
+# forever on a held lock churns processes (ten sleep forks a second each;
+# five such orphans were the laptop load in .agent-config-ydbn7), so a wait
+# that expires fails the teardown with nothing changed. fm-wake-lib.sh's
+# fm_lock_acquire_wait_max is the bounded variant built for this hazard.
+TEARDOWN_LOCK_WAIT_SECS=${FM_TEARDOWN_LOCK_WAIT_SECS:-60}
 FORCE=
 LEGACY_RECORD_GIVEN=0
 shift
@@ -554,7 +560,10 @@ fm_backlog_record_present "$META" "task record" "$STATE" || {
   exit 1
 }
 META_LOCK=$(fm_meta_lock_path "$META") || exit 1
-fm_lock_acquire_wait "$META_LOCK"
+fm_lock_acquire_wait_max "$META_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
+  echo "error: teardown of $ID gave up waiting ${TEARDOWN_LOCK_WAIT_SECS}s for the task record lock; nothing was changed" >&2
+  exit 1
+}
 META_LOCK_HELD=1
 fm_backlog_record_present "$META" "task record" "$STATE" || {
   echo "error: teardown refused after locking: $FM_BACKLOG_TRANSITION_ERROR" >&2
@@ -766,7 +775,7 @@ handoff_wake_retire() {
     && [ "$(cat "$marker" 2>/dev/null || true)" = "$HANDOFF_WAKE_RETIRE_VALUE" ] || return 1
   if [ -n "$corr" ]; then
     lock="$STATE/.pending-reply-$corr.lock"
-    fm_lock_acquire_wait "$lock" || return 1
+    fm_lock_acquire_wait_max "$lock" "$TEARDOWN_LOCK_WAIT_SECS" || return 1
     rec=$(fm_pending_reply_path "$STATE" "$corr")
     confirmation=$(fm_pending_reply_delivery_confirmation_path "$STATE" "$corr")
     if { [ ! -e "$rec" ] && [ ! -L "$rec" ]; } \
@@ -858,7 +867,7 @@ handoff_wake_retire_stage_recover() {
   HANDOFF_WAKE_RETIRE_STAGE=$stage
   if [ -n "$corr" ]; then
     HANDOFF_WAKE_RETIRE_LOCK="$STATE/.pending-reply-$corr.lock"
-    fm_lock_acquire_wait "$HANDOFF_WAKE_RETIRE_LOCK" || return 1
+    fm_lock_acquire_wait_max "$HANDOFF_WAKE_RETIRE_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || return 1
   fi
   if [ -e "$home" ] || [ -L "$home" ]; then
     handoff_wake_retire_stage_restore
@@ -877,7 +886,7 @@ handoff_wake_retire_stage() {
   printf '%s\n' "$corr" > "$stage/corr" || { handoff_wake_retire_stage_restore || true; return 1; }
   if [ -n "$corr" ]; then
     HANDOFF_WAKE_RETIRE_LOCK="$STATE/.pending-reply-$corr.lock"
-    fm_lock_acquire_wait "$HANDOFF_WAKE_RETIRE_LOCK" || {
+    fm_lock_acquire_wait_max "$HANDOFF_WAKE_RETIRE_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
       HANDOFF_WAKE_RETIRE_LOCK=
       handoff_wake_retire_stage_restore || true
       return 1
@@ -1126,14 +1135,14 @@ remote_secondmate_teardown_locked() {
   local rc
   [ -n "$(fm_meta_get "$META" remote_host)" ] || return 3
   REMOTE_REGISTRY_LOCK=$(secondmate_registry_lock_path "$STATE")
-  fm_lock_acquire_wait "$REMOTE_REGISTRY_LOCK" || return 1
+  fm_lock_acquire_wait_max "$REMOTE_REGISTRY_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || return 1
   REMOTE_HANDOFF_LOCK="$STATE/.backlog-handoff-$ID.lock"
-  fm_lock_acquire_wait "$REMOTE_HANDOFF_LOCK" || {
+  fm_lock_acquire_wait_max "$REMOTE_HANDOFF_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
     remote_teardown_locks_release
     return 1
   }
   REMOTE_REPLY_LIFECYCLE_LOCK=$(secondmate_reply_lifecycle_lock_path "$STATE" "$ID")
-  fm_lock_acquire_wait "$REMOTE_REPLY_LIFECYCLE_LOCK" || {
+  fm_lock_acquire_wait_max "$REMOTE_REPLY_LIFECYCLE_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
     remote_teardown_locks_release
     return 1
   }
@@ -1148,7 +1157,7 @@ else
   remote_teardown_rc=$?
 fi
 if [ "$remote_teardown_rc" -eq 0 ] || [ "$remote_teardown_rc" -eq "$TEARDOWN_LOST_SLOT_EXIT" ]; then
-  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort || true
+  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request || true
   exit "$remote_teardown_rc"
 fi
 [ "$remote_teardown_rc" -eq 3 ] || exit "$remote_teardown_rc"
@@ -3253,7 +3262,7 @@ remove_secondmate_registry_entry() {
   [ -f "$SECONDMATE_REG" ] || return 0
   lock=$(secondmate_registry_lock_path "$STATE")
   if [ "$LOCAL_REGISTRY_LOCK" != "$lock" ]; then
-    fm_lock_acquire_wait "$lock" || return 1
+    fm_lock_acquire_wait_max "$lock" "$TEARDOWN_LOCK_WAIT_SECS" || return 1
     acquired=1
   fi
   tmp="$SECONDMATE_REG.tmp.$$"
@@ -3270,9 +3279,9 @@ validate_pr_poll_cleanup "$STATE" "$ID" || exit 1
 
 if [ "$KIND" = secondmate ]; then
   LOCAL_REGISTRY_LOCK=$(secondmate_registry_lock_path "$STATE")
-  fm_lock_acquire_wait "$LOCAL_REGISTRY_LOCK" || exit 1
+  fm_lock_acquire_wait_max "$LOCAL_REGISTRY_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || exit 1
   LOCAL_HANDOFF_LOCK="$STATE/.backlog-handoff-$ID.lock"
-  fm_lock_acquire_wait "$LOCAL_HANDOFF_LOCK" || exit 1
+  fm_lock_acquire_wait_max "$LOCAL_HANDOFF_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || exit 1
   [ -n "$HOME_PATH" ] || HOME_PATH=$WT
   handoff_wake_retire_stage_recover "$HOME_PATH" || exit 1
   handoff_wake_retire_validate || exit 1
@@ -3785,10 +3794,6 @@ else
     exit 1
   fi
 fi
-if [ "$KIND" != secondmate ]; then
-  fm_task_data_cleanup "$DATA" "$STATE" "$ID" "$PROJ" "$PR_URL" \
-    || echo "warning: $ID teardown completed, but task-data cleanup needs a retry" >&2
-fi
 fm_lock_release "$META_LOCK"
 META_LOCK_HELD=0
 if [ "$KIND" != scout ] && [ "$KIND" != secondmate ] && [ "$MODE" != local-only ]; then
@@ -3797,7 +3802,7 @@ fi
 # A secondmate retirement may remove the home containing an overridden control
 # state directory. Do not let the side-band refresh recreate that retired home.
 if [ -d "$STATE" ]; then
-  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort || true
+  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request || true
 fi
 if [ "$TEARDOWN_POOL_SLOT_LOST" = 1 ]; then
   echo "teardown $ID finished its cleanup and removed its task record, but a returned pool slot did not come back clean (see the warning above); clear those paths so the pool can reuse the slot" >&2
@@ -3815,5 +3820,8 @@ teardown_release_locks || true
 if [ "$KIND" != secondmate ]; then
   fm_task_data_expire_others "$DATA" "$STATE" "$ID" \
     || echo "warning: $ID teardown completed, but expiring other tasks' held data needs a retry" >&2
+  # Holds the budget left behind drain in the background with no budget, so a
+  # hold bigger than the budget is not stuck until another teardown.
+  fm_task_data_sweep_start "$DATA" "$STATE" || true
 fi
 [ "$TEARDOWN_POOL_SLOT_LOST" = 0 ] || exit "$TEARDOWN_LOST_SLOT_EXIT"

@@ -129,7 +129,7 @@ hand_scaffold() {  # <case-dir> <id>
 }
 
 hand_spawn() {  # <case-dir> <id>
-  spawn_env "$1" "$SPAWN" "$2" "$1/project" --mode no-mistakes --yolo off --harness claude 2>&1
+  spawn_env "$1" "$SPAWN" "$2" "$1/project" --mode no-mistakes --yolo off --harness claude --model default-route-model --effort xhigh 2>&1
 }
 
 # A hand start's brief, written the way Firstmate writes one: scaffolded by

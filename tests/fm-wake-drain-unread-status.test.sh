@@ -357,6 +357,44 @@ test_weak_identity_still_presents_and_advances() {
   pass "fallback identity still presents and advances status state"
 }
 
+test_cursor_offset_lookup_does_not_fork_per_cursor_row() {
+  local dir state status manifest row size i small large
+  dir=$(make_case cursor-row-processes)
+  state="$dir/state"
+  status="$state/target.status"
+  manifest="$state/.status-presentation-cursor"
+  prime_cursor "$state" "$status"
+  row=$(grep -F "target"$'\t' "$manifest") || fail "priming wrote no cursor row for the target log"
+  for size in 1 1000; do
+    {
+      for ((i = 0; i < size; i++)); do
+        printf 'other-%s\tstrong:1:%s:0.0\t%s\t0\n' "$i" "$i" "$i"
+      done
+      printf '%s\n' "$row"
+    } > "$manifest"
+    : > "$dir/children-$size"
+    (
+      export FM_STATE_OVERRIDE="$state"
+      # shellcheck source=bin/fm-classify-lib.sh
+      . "$ROOT/bin/fm-classify-lib.sh"
+      # The trap runs inside the function under test, so its names must not
+      # collide with that function's locals.
+      fork_test_log="$dir/children-$size"
+      fork_test_level=$BASH_SUBSHELL
+      set -T
+      trap 'if [ "$BASH_SUBSHELL" -gt "$fork_test_level" ]; then printf x >> "$fork_test_log"; fi' DEBUG
+      status_presentation_cursor_offset "$status" > "$dir/offset-$size"
+    ) 2> "$dir/err-$size" || fail "cursor offset lookup failed behind $size other rows: $(cat "$dir/err-$size")"
+    [ "$(cat "$dir/offset-$size")" = 28 ] \
+      || fail "cursor offset lookup returned the wrong offset behind $size other rows: $(cat "$dir/offset-$size")"
+  done
+  small=$(wc -c < "$dir/children-1")
+  large=$(wc -c < "$dir/children-1000")
+  [ "$large" -le "$((small + 20))" ] \
+    || fail "cursor offset lookup launches subprocess work per cursor row ($small -> $large)"
+  pass "cursor offset lookup finds its row without subprocess work growing with other rows"
+}
+
 test_snapshot_failure_is_visible() {
   local dir state out reader
   dir=$(make_case snapshot-failure); state="$dir/state"; out="$dir/drain.out"; reader="$dir/identity-reader"
@@ -459,6 +497,7 @@ test_unread_output_over_cap_remains_recoverable
 test_snapshot_does_not_ack_a_later_append
 test_retired_task_id_starts_new_status_unread
 test_weak_identity_still_presents_and_advances
+test_cursor_offset_lookup_does_not_fork_per_cursor_row
 test_snapshot_failure_is_visible
 test_open_decisions_fold_is_unchanged
 test_empty_queue_does_not_swallow_later_signal_annotation

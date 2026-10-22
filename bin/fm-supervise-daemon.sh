@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fm-supervise-daemon.sh — presence-gated sub-supervisor (closes #27's P2).
+# fm-supervise-daemon.sh — the always-on sub-supervisor (closes #27's P2).
 #
 # Wraps bin/fm-watch.sh: runs it as a child, presents and classifies every
 # durable wake after an actionable close, acknowledges only after routing, and
@@ -14,14 +14,20 @@
 # or omits anything it names a state/.subsuper-digests/ file holding every
 # buffered event verbatim.
 #
-# PRESENCE-GATING (the /afk contract). The daemon is the away-mode engine: it
-# injects ONLY when the durable away-mode flag state/.afk is present. Invoking
-# the /afk skill sets that flag and starts this daemon; any real (unmarked)
-# user message clears it and firstmate resumes full responsiveness.
-# When afk is off, normal fm-watch.sh always-on triage is the active mechanism.
-# Any buffered daemon escalations that remain while afk is off survive in
-# state/.subsuper-escalations and are flushed on the next "while you were out"
-# catch-up or when afk is re-entered.
+# ROUTING OWNERSHIP (decoupled from posture, .agent-config-ty23z cut 4). This
+# daemon owns wake routing whenever it runs, in every posture: it classifies
+# every wake in bash, self-handles the routine majority, and injects only the
+# named exceptions (the escalated digest) into the supervisor pane. The away
+# posture is a decision contract, not a routing gate: state/.afk and
+# state/.afk-contract keep owning what away mode means for decisions (the
+# captain-owned hold-for-return, never rechecking a captain-held transfer
+# while an away record exists), and a real (unmarked) user message still exits
+# that posture through the /afk return path. Routing never reads the flag:
+# outside away mode the captain is present and answers the exceptions this
+# daemon wakes them for, exactly as they answer them while away.
+# Buffered escalations that cannot be delivered survive in
+# state/.subsuper-escalations and are flushed on the next delivery window or
+# the "while you were out" catch-up.
 #
 # IN-BAND OPERATIONAL INPUT. bin/fm-operational-input.sh constructs every
 # current daemon injection as the typed away-supervisor kind after the stable
@@ -40,7 +46,7 @@
 # /afk.
 #
 # Reliability model (see the /afk skill):
-#   - Nothing is lost in away mode: while state/.afk exists, the watcher reverts
+#   - Nothing is lost while the daemon runs: the watcher reverts
 #     to daemon-owned one-shot behavior and enqueues every wake to
 #     state/.wake-queue BEFORE advancing its suppression markers, so a
 #     crash/restart/missed injection is recovered on the next fm-wake-drain.sh.
@@ -1206,7 +1212,7 @@ housekeeping() {  # <state>
   # retry the normal delivery path. If that still cannot confirm, raise a loud
   # wedge alarm while preserving the buffer.
   max_defer=${FM_MAX_DEFER_SECS:-$MAX_DEFER_SECS_DEFAULT}
-  if afk_active "$state" && [ "$max_defer" -gt 0 ] && [ -s "$state/.subsuper-escalations" ]; then
+  if [ "$max_defer" -gt 0 ] && [ -s "$state/.subsuper-escalations" ]; then
     oldest=$(_oldest_line_age "$state/.subsuper-escalations")
     # Throttle the alarm to once per max-defer window (the wedge marker doubles
     # as the throttle). A successful flush clears the buffer; a failed one alarms
@@ -1399,7 +1405,7 @@ window_for_task() {  # <task-key> [state]
 # --- injection --------------------------------------------------------------
 # inject_msg: send one escalation digest to the supervisor pane.
 # Returns 0 on successful inject (or empty buffer), non-zero if the pane is
-# gone, the supervisor is busy, afk is inactive, or the verified submit cannot
+# gone, the supervisor is busy, or the verified submit cannot
 # be confirmed after bounded retries. On non-zero the caller preserves
 # the buffer so the escalation survives for the next cycle or the catch-up flush.
 #
@@ -1419,12 +1425,13 @@ window_for_task() {  # <task-key> [state]
 inject_msg() {  # <message> [state]
   local msg=$1 state target backend retries sleep_s verdict composer encoded bytes errf err='' body
   state="${2:-$(_state_root)}"
-  # (1) Presence-gate: inject ONLY when afk is active. When afk is off, the
-  # daemon self-handles and stays quiet; firstmate drives the normal always-on
-  # watcher triage. Escalations buffer and survive for the next catch-up flush.
+  # (1) Routing is not presence-gated (cut 4): an escalation is a named
+  # exception the supervisor must answer in every posture, so delivery is
+  # attempted whenever this daemon runs. The busy and composer guards below
+  # are the only delivery gates; a deferred escalation stays buffered for
+  # the next cycle or the catch-up flush.
   INJECT_LAST_FAILURE=
   INJECT_SUBMIT_ATTEMPTED=0
-  afk_active "$state" || { INJECT_LAST_FAILURE="deferred: afk inactive"; log "inject $INJECT_LAST_FAILURE"; return 1; }
   # (2) Single-line digest: collapse any embedded newlines so submission via
   # send-keys + Enter is unambiguous regardless of how the TUI composer treats
   # them. Then use the canonical typed envelope so downstream consumers retain
@@ -1909,7 +1916,10 @@ fm_super_main() {
 
   start_watcher() {
     CUR_TMP=$(mktemp "${TMPDIR:-/tmp}/fm-watch.XXXXXX") || { log "error: mktemp failed; retrying in 5s"; sleep 5; return 1; }
-    "$WATCH" >"$CUR_TMP" 2>>"$WATCH_ERR" &
+    # The watcher child is daemon-owned in every posture: the env marker is
+    # how fm-watch.sh knows to one-shot every wake to this daemon's
+    # classification instead of running its own attended triage (cut 4).
+    FM_DAEMON_OWNS_SUPERVISION=1 "$WATCH" >"$CUR_TMP" 2>>"$WATCH_ERR" &
     WATCHER_PID=$!
   }
 

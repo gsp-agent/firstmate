@@ -12,7 +12,8 @@
 # wrapper and eliminates the whole defect class regardless of future prose.
 # test_no_heredoc_in_command_substitution guards that structure directly.
 # Ambient `bash -n` here is Bash 5 and cannot see the bug, so the real
-# cross-version enforcement lives in the macos-stock-bash CI job.
+# cross-version enforcement lives in bin/fm-stock-bash-check.sh, the
+# stock-macos-bash no-mistakes gate.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -25,7 +26,8 @@ mkdir -p "$BRIEF_HOME/data"
 # The script itself must always parse under the ambient bash. That is Bash 5 in
 # CI and locally, where the issue #958/#1069 parser bug does not fire, so this
 # is a weak guard on its own; test_no_heredoc_in_command_substitution and the
-# macos-stock-bash CI job carry the real cross-version enforcement.
+# stock-macos-bash gate (bin/fm-stock-bash-check.sh) carry the real
+# cross-version enforcement.
 test_script_parses() {
   local out rc
   out=$(bash -n "$ROOT/bin/fm-brief.sh" 2>&1); rc=$?
@@ -337,7 +339,7 @@ test_ship_mode_is_explicit_not_registry() {
   brief="$home/data/brief-explicit-a5/brief.md"
   grep -qx "Delivery contract: mode=no-mistakes" "$brief" \
     || fail "registered direct-PR posture overrode the explicit --mode"
-  assert_grep "Firstmate will then instruct you to run /no-mistakes" "$brief" \
+  assert_grep "then run /no-mistakes at once to validate and ship a PR; do not wait for an instruction." "$brief" \
     "explicit no-mistakes brief did not render the pipeline definition of done"
   assert_grep "FM_HOME=$home $ROOT/bin/fm-pr-made-with.sh brief-explicit-a5 <PR url>" "$brief" \
     "the brief does not hand the worker the Made-with stamp for its own home"
@@ -1613,5 +1615,34 @@ test_ship_branch_prefix_empty_override_yields_bare_task_id
 test_branch_prefix_is_refused_where_it_does_not_apply
 test_branch_prefix_value_is_validated
 test_branch_prefix_command_is_shell_safe
+# `.agent-config-ydbn7`: the --skip ci line follows the brief's own --project,
+# never the caller's working directory (this suite runs from a firstmate
+# checkout, which is exactly the cwd that must not leak into other briefs).
+test_skip_ci_follows_project_not_cwd() {
+  local home="$TMP_ROOT/skipci-home" fmproj="$TMP_ROOT/skipci-fmproj" otherproj="$TMP_ROOT/skipci-otherproj" status
+  write_registry "$home"
+  git init -q "$fmproj"
+  git -C "$fmproj" remote add origin git@github.com:gsp-agent/firstmate.git
+  git init -q "$otherproj"
+  git -C "$otherproj" remote add origin git@github.com:carmandale/agent-config.git
+
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-skipci-a1 some-proj --mode no-mistakes >/dev/null 2>&1; status=$?
+  expect_code 0 "$status" "fm-brief without --project should exit 0"
+  assert_no_grep '--skip ci' "$home/data/brief-skipci-a1/brief.md" \
+    "a brief without --project inherited the caller's firstmate checkout CI posture"
+
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-skipci-a2 some-proj --mode no-mistakes --project "$fmproj" >/dev/null 2>&1; status=$?
+  expect_code 0 "$status" "fm-brief with a firstmate --project should exit 0"
+  assert_grep '--skip ci' "$home/data/brief-skipci-a2/brief.md" \
+    "a brief for gsp-agent/firstmate lost its --skip ci line"
+
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-skipci-a3 some-proj --mode no-mistakes --project "$otherproj" >/dev/null 2>&1; status=$?
+  expect_code 0 "$status" "fm-brief with another --project should exit 0"
+  assert_no_grep '--skip ci' "$home/data/brief-skipci-a3/brief.md" \
+    "a brief for a repo with CI got a --skip ci line"
+  pass "fm-brief.sh: --skip ci follows --project, never the caller's working directory"
+}
+
+test_skip_ci_follows_project_not_cwd
 test_crewmate_scaffolds_forbid_pool_administration
 test_scaffold_claims_the_brief_at_write_time

@@ -772,7 +772,7 @@ write_omp_loaded_markers() {
 # --- context digest: absent vs empty vs present -----------------------------
 
 test_context_digest_absent_empty_present() {
-  local rec root home fakebin out
+  local rec root home fakebin out i
   rec=$(new_world context-digest)
   IFS='|' read -r root home fakebin <<EOF
 $rec
@@ -782,10 +782,15 @@ EOF
 
   printf '%s\n' '- demo [no-mistakes] - a demo project (added 2026-07-01)' > "$home/data/projects.md"
   : > "$home/data/captain.md"
+  printf 'demo\n' > "$home/.fm-secondmate-home"
   # secondmates.md, captain-shared.md, and learnings.md deliberately absent
 
   out=$(run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
 
+  i=0
+  while [ ! -f "$home/state/home-summary.json" ] && [ "$i" -lt 150 ]; do
+    sleep 0.1; i=$((i + 1))
+  done
   jq -e --arg home "$home" '
     .schema == "fm-secondmate-home-summary.v1"
     and .home == $home

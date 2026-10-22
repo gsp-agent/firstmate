@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fm-inactive-reconcile.sh - bounded reconciliation of suspicious inactive terminal outcomes.
+# fm-inactive-reconcile.sh - bounded inactive outcome reconciliation and pane closure.
 #
 # Usage:
 #   fm-inactive-reconcile.sh scan [--startup]
@@ -38,6 +38,9 @@
 # start's deferred worker. Each scan uses an aggregate
 # FM_INACTIVE_RECONCILE_BUDGET_SECS deadline (default 10, valid 1..30) and
 # resumes after its last visited child on the next scan.
+# Those defaults apply to standalone and deferred startup scans; the watcher
+# supplies the defaults documented in docs/configuration.md unless an operator
+# environment value is set.
 # The scan enforces that budget itself through a whole-second deadline, and the
 # first due child of every scan is always visited with at least a one-second
 # state-read bound: whole-second arithmetic can otherwise round a small budget
@@ -50,13 +53,41 @@
 # It considers only a direct ordinary crewmate whose newest meta, status, or
 # turn-ended mtime is older than that interval and whose last status is not
 # captain-held. In a secondmate home a child whose ledger already ends in a
-# terminal done or failed line belongs to the ledger-first path above and is
-# skipped here, so one outcome is never reported twice. It then uses
-# fm-crew-state.sh as the sole current-state source.
+# terminal done or failed line belongs to the ledger-first delivery path above,
+# but remains eligible for pane closure. Terminal outcomes use fm-crew-state.sh
+# as the sole current-state source; context-limit pauses use the shared
+# status_is_context_paused predicate in bin/fm-classify-lib.sh directly.
 # Only a done or failed state is suspicious enough to create a durable terminal
 # outcome record or wake the supervisor.
 # Working, paused, parked, blocked, unknown, persistent secondmates, and
-# captain-held work retain their existing supervision semantics.
+# captain-held work retain their existing supervision semantics. One pause is
+# the exception: a crewmate whose last status line confirms context exhaustion
+# under that shared predicate has no turn left to run in that session.
+# That paused pane may close under the same
+# guards as a terminal pane (below), without an outcome record or a supervisor
+# wake; the pause stays the task's state, and fm-control's relaunch is the
+# wake when work resumes. A pause for any other reason - a person, a date, an
+# event - never closes.
+#
+# An aged done or failed herdr crewmate with positive semantic idle evidence
+# may have its pane closed through fm_backend_kill. A no-mistakes ship's
+# pre-validation done handoff stays open, as do all other runtime backends.
+# The task control lock, then the metadata lock, cover the final activity check,
+# the idle sample, and the close, serializing them with captain-hold changes,
+# lifecycle control, and fm-send's metadata-bound typed submit.
+# A structured open captain hold also prevents closure; an unreadable hold
+# check leaves the pane open.
+# Before sampling idle, any unhandled steering inbox message, including a
+# fire-and-forget message, prevents closure without consuming the message.
+# Only the pane closes; for terminal states, the accepted outcome and close
+# target must first be durable in the incarnation-bound receipt.
+# The meta, worktree, branch, status, and transcript stay for teardown, and a
+# later follow-up wakes the task through fm-control's relaunch, which is the
+# documented wake for an exited agent. Endpoint identity is proven with the
+# same fm_backend_validate_task_endpoint gate teardown uses; any ambiguity, or
+# a close that cannot do its job, warns and leaves the pane alone.
+# tests/fm-inactive-reconcile.test.sh covers context-pause closure, external
+# waits, busy panes, captain holds, and retained state after closure.
 #
 # A terminal-outcomes/<fingerprint>.pending record remains until its upstream
 # receipt is durable.
@@ -69,7 +100,9 @@
 #
 # New fm-terminal-outcome.v1 receipts contain schema, fingerprint, task_id,
 # incarnation, state, outcome_key, origin, phase, pr, created_epoch, and
-# notice_emitted, plus optional status_head and ledger_claim fields. The
+# notice_emitted, plus optional status_head, ledger_claim, and pane_close_target
+# fields. pane_close_target binds an intentional herdr close to its exact
+# endpoint and spawn_gen incarnation for fm-crew-state.sh's retained reading. The
 # inactive-path fingerprint binds only the spawn incarnation, task id, terminal
 # state, and PR text, never the child's last status line, so a child that keeps
 # appending routine prose after one terminal outcome yields at most one parent
@@ -83,7 +116,7 @@
 # main-home acknowledgement. The atomic epoch/cursor marker's mtime gates scans,
 # and its cursor records the last child visited within the aggregate budget.
 #
-# The scan reads only durable local state and fm-crew-state.sh; it never invokes
+# The scan uses local state and runtime-backend probes; it never invokes
 # gh, gh-axi, curl, fm-pr-check.sh, fm-pr-poll.sh, or a state *.check.sh.
 set -u
 export LC_ALL=C
@@ -106,6 +139,12 @@ CREW_STATE_BIN="${FM_INACTIVE_CREW_STATE_BIN:-$SCRIPT_DIR/fm-crew-state.sh}"
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
 # shellcheck source=bin/fm-dod-lib.sh
 . "$SCRIPT_DIR/fm-dod-lib.sh"
+# shellcheck source=bin/fm-backend.sh
+. "$SCRIPT_DIR/fm-backend.sh"
+# shellcheck source=bin/fm-busy-lib.sh
+. "$SCRIPT_DIR/fm-busy-lib.sh"
+# shellcheck source=bin/fm-task-inbox-lib.sh
+. "$SCRIPT_DIR/fm-task-inbox-lib.sh"
 
 FM_INACTIVE_RECONCILE_SECS=${FM_INACTIVE_RECONCILE_SECS:-900}
 case "$FM_INACTIVE_RECONCILE_SECS" in
@@ -495,8 +534,83 @@ report_child() { # <id>
   report_child_ledger_locked "$id" "$meta"
 }
 
+# Called under the task metadata lock; this script's header owns closure
+# eligibility, retained records, and follow-up recovery.
+close_inactive_child_pane() {
+  local id=$1 meta=$2 reason=$3 record=${4:-} busy message last hold_rc=0
+  [ "$(meta_field "$meta" backend)" = herdr ] || return 0
+  last=$(last_status_line "$STATE/$id.status")
+  status_is_captain_held "$last" && return 0
+  if status_is_paused "$last" && ! status_is_context_paused "$last"; then
+    return 0
+  fi
+  FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
+    "$SCRIPT_DIR/fm-captain-hold.sh" open "$id" >/dev/null 2>&1 || hold_rc=$?
+  [ "$hold_rc" -eq 1 ] || return 0
+  [ "$(last_activity_age "$meta" "$STATE/$id.status" "$STATE/$id.turn-ended")" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
+  if ! fm_backend_validate_task_endpoint "$meta" "$id" 2>/dev/null; then
+    printf 'fm-inactive-reconcile: %s %s pane left open: endpoint identity not proven\n' "$id" "$reason" >&2
+    return 0
+  fi
+  for message in "$(fm_task_inbox_dir "$STATE" "$id")"/*.msg; do
+    [ ! -e "$message" ] || return 0
+  done
+  busy=$(fm_busy_classify_meta "$meta" "$id" "$STATE")
+  case "$busy" in
+    'idle grok-regex') return 0 ;;
+    'idle '*) ;;
+    *) return 0 ;;
+  esac
+  if [ -n "$record" ]; then
+    record_field_set "$record" pane_close_target "$FM_BACKEND_VALIDATED_TARGET" || return 0
+  fi
+  fm_backend_kill herdr "$FM_BACKEND_VALIDATED_TARGET" \
+    || printf 'fm-inactive-reconcile: %s %s pane close did not complete; pane left open\n' "$id" "$reason" >&2
+  return 0
+}
+
+close_terminal_child_pane() { # <id> <meta> <fingerprint>
+  local id=$1 meta=$2 fingerprint=$3 record suffix kind mode last state spawn_gen
+  [ "$(meta_field "$meta" backend)" = herdr ] || return 0
+  spawn_gen=$(meta_field "$meta" spawn_gen)
+  valid_id "$spawn_gen" || return 0
+  record=
+  for suffix in pending reported presented; do
+    record=$(record_path "$fingerprint" "$suffix")
+    [ -f "$record" ] && [ ! -L "$record" ] && break
+    record=
+  done
+  [ -n "$record" ] || return 0
+  [ "$(record_value "$record" incarnation)" = "$spawn_gen" ] || return 0
+  state=$(record_value "$record" state)
+  case "$state" in done|failed) ;; *) return 0 ;; esac
+  last=$(last_status_line "$STATE/$id.status")
+  kind=$(meta_field "$meta" kind)
+  mode=$(meta_field "$meta" mode)
+  if [ "$state" = "done" ] && [ "${kind:-ship}" = ship ]; then
+    case "$mode" in
+      no-mistakes|'')
+        if [ "$(status_line_verb "$last")" = "done" ] \
+          && ! fm_dod_should_gate_ship_done ship "$mode" "$last"; then
+          return 0
+        fi
+        ;;
+    esac
+  fi
+  close_inactive_child_pane "$id" "$meta" terminal "$record"
+}
+
+# Called under the task metadata lock, like close_terminal_child_pane, with
+# the same guards minus the outcome receipt: no outcome is delivered for a
+# pause, so nothing is recorded and nobody is woken. Only the pane closes.
+close_context_paused_child_pane() { # <id> <meta>
+  local id=$1 meta=$2
+  status_is_context_paused "$(last_status_line "$STATE/$id.status")" || return 0
+  close_inactive_child_pane "$id" "$meta" context-paused
+}
+
 reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeout>
-  local id=$1 meta=$2 self=${3:-} timeout=$4 status turn last age state_line state pr incarnation fingerprint outcome_key payload kind state_rc=0
+  local id=$1 meta=$2 self=${3:-} timeout=$4 status turn last age state_line state pr incarnation fingerprint outcome_key payload kind ledger_rc=1 state_rc=0
   [ -f "$meta" ] && [ ! -L "$meta" ] || return 0
   kind=$(meta_field "$meta" kind)
   [ "$kind" = secondmate ] && return 0
@@ -507,17 +621,30 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
   # A ledger that states its own outcome is the ledger-first path's to deliver.
   if [ -n "$self" ]; then
     child_terminal_ledger_line "$status" >/dev/null
-    case "$?" in 0|2) return 0 ;; esac
+    case "$?" in
+      0) [ "$(meta_field "$meta" backend)" = herdr ] || return 0 ;;
+      2) return 0 ;;
+    esac
   fi
   age=$(last_activity_age "$meta" "$status" "$turn")
   [ "$age" -ge "$FM_INACTIVE_RECONCILE_SECS" ] || return 0
+  # A context-limit pause is not a terminal outcome: no crew-state read, no
+  # record, no wake. The pane may still close under the pause's own guards.
+  if status_is_paused "$last"; then
+    close_context_paused_child_pane "$id" "$meta"
+    return 0
+  fi
   state_line=$(fm_run_timed "$timeout" env FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CREW_STATE_NO_FORGE=1 \
     "$CREW_STATE_BIN" "$id" 2>/dev/null) || state_rc=$?
   [ "$state_rc" -ne 124 ] || return 3
   last=$(last_status_line "$status")
+  if status_is_paused "$last"; then
+    close_context_paused_child_pane "$id" "$meta"
+    return 0
+  fi
   if [ -n "$self" ]; then
-    child_terminal_ledger_line "$status" >/dev/null
-    case "$?" in 0|2) return 0 ;; esac
+    child_terminal_ledger_line "$status" >/dev/null && ledger_rc=0 || ledger_rc=$?
+    [ "$ledger_rc" -ne 2 ] || return 0
   fi
   case "$state_line" in
     'state: done '*) state='done' ;;
@@ -526,6 +653,12 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
   esac
   pr=$(pr_for_task "$meta")
   incarnation=$(meta_incarnation "$meta")
+  if [ "$ledger_rc" -eq 0 ]; then
+    [ "$(status_line_verb "$last")" = "$state" ] || return 0
+    fingerprint=$(sha256_text "$incarnation|$id|$state|ledger|$last")
+    close_terminal_child_pane "$id" "$meta" "$fingerprint"
+    return 0
+  fi
   # The receipt identity binds structured fields only: a persistent child that
   # keeps appending routine prose after one terminal outcome must not mint a
   # fresh parent event per sentence. The last line stays in the record as
@@ -537,6 +670,7 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
     outcome_key="inactive-outcome-main-$id-$state"
   fi
   ensure_record "$fingerprint" "$id" "$incarnation" "$state" "$outcome_key" direct "upstream" "$pr" "$(sha256_text "$last")" || return 1
+  close_terminal_child_pane "$id" "$meta" "$fingerprint"
   [ -n "$RECORD_PENDING" ] || return 0
   if [ -n "$self" ]; then
     if report_to_parent "$id" "$state" "$outcome_key" "$fingerprint" "$pr"; then
@@ -554,11 +688,18 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
 }
 
 reconcile_direct_child() { # <id> <meta> <secondmate-id-or-empty> <timeout>
-  local id=$1 meta=$2 self=${3:-} timeout=$4 lock rc=0
-  lock=$(fm_meta_lock_path "$meta") || return 1
-  fm_lock_acquire_wait "$lock" || return 1
+  local id=$1 meta=$2 self=${3:-} timeout=$4 lock control_lock rc=0
+  control_lock="$STATE/.control-$id.lock"
+  # Lock order: task control, then metadata; release in reverse order.
+  fm_lock_try_acquire "$control_lock" || return 0
+  lock=$(fm_meta_lock_path "$meta") || { fm_lock_release "$control_lock"; return 1; }
+  if ! fm_lock_acquire_wait_max "$lock" "$timeout"; then
+    fm_lock_release "$control_lock"
+    return 0
+  fi
   reconcile_direct_child_locked "$id" "$meta" "$self" "$timeout" || rc=$?
   fm_lock_release "$lock"
+  fm_lock_release "$control_lock"
   return "$rc"
 }
 
