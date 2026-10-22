@@ -721,7 +721,7 @@ detach_successor() {
 # downtime (autoarm_commit in bin/fm-claude-stop-autoarm.sh). A failed start
 # returns 1; the caller still prints the close unchanged.
 leave_successor_for_main() {
-  local deadline= rc
+  local deadline='' rc
   while :; do
     if ! fm_pid_alive "$SUCCESSOR_PID" \
       || ! fm_watcher_healthy "$STATE" "$SCRIPT_DIR/fm-watch.sh" "$GRACE" "$FM_HOME"; then

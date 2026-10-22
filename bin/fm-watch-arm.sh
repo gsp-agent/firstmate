@@ -585,7 +585,7 @@ cover_owner_released() {
 }
 
 if [ "$mode" = cover-handoff ]; then
-  cover_pid= cover_identity= cover_parent= cover_handover=
+  cover_pid='' cover_identity='' cover_parent='' cover_handover=''
   trap 'fm_lock_release "$COVER_LOCK"' EXIT
   fm_lock_acquire_wait "$COVER_LOCK" || exit 1
   [ -f "$COVER_RECORD" ] && [ ! -L "$COVER_RECORD" ] || exit 1
