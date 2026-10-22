@@ -1140,7 +1140,6 @@ command_reprobe() {
   body_has_resolution_record "$(show_field "$show" body)" \
     || fail "captain-held task $id did not retain its probe release record"
   publish_parent_resolution_then_retire "$id" "$occurrence" probe-released
-  [ "$PARENT_HOLD_PUBLISHED" = 1 ] || fail "could not publish the probe-released task $id to its parent"
 }
 
 refuse_self_inventory() {
@@ -2105,12 +2104,10 @@ reconcile_request_retire() {  # <task-id>
 }
 
 publish_parent_resolution_then_retire() {  # <task-id> <occurrence> <note>
-  local id=$1 occurrence=$2 note=$3 request
-  request=$(reconcile_request_path "$id")
+  local id=$1 occurrence=$2 note=$3
   publish_parent_hold "$id" "$occurrence" resolved "$note"
-  if [ -e "$request" ] && [ "$PARENT_HOLD_PUBLISHED" != 1 ]; then
-    fail "could not publish the answered captain-held task $id to its parent"
-  fi
+  [ "$PARENT_HOLD_PUBLISHED" = 1 ] \
+    || fail "could not publish the resolved captain-held task $id to its parent"
   reconcile_request_retire "$id"
 }
 

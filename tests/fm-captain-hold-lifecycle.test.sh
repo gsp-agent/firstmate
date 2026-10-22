@@ -1477,11 +1477,14 @@ EOF
     || fail "batch hold failed"
   mv "$channel" "$channel.saved"
   mkdir "$channel"
-  out=$(printf 'batch-call\tship now\t\n' \
-    | run_captain "$mate" answers --source "batch retry fixture" 2>&1) \
-    || fail "batch answer did not preserve its durable close: $out"
+  if out=$(printf 'batch-call\tship now\t\n' \
+    | run_captain "$mate" answers --source "batch retry fixture" 2>&1); then
+    fail "batch answer reported success before parent delivery: $out"
+  fi
   printf '%s\n' "$out" | grep -Fq 'actionable:' \
     || fail "failed batch parent delivery was not actionable: $out"
+  assert_contains "$(tasks_in "$mate" show batch-call --full)" 'state: done' \
+    'failed batch parent delivery reversed its durable close'
   rmdir "$channel"
   mv "$channel.saved" "$channel"
   printf 'batch-call\tship now\t\n' \
@@ -1492,6 +1495,8 @@ EOF
 
   run_captain "$parent" hold main-call --title "Choose the main release" \
     --reason "main choice pending" --repo sample >/dev/null || fail "main hold failed"
+  run_captain "$parent" answer main-call --decision-file "$decision" >/dev/null \
+    || fail "a main home could not answer without a parent channel"
   [ ! -e "$parent/state/parent-replies.status" ] || fail "a main home wrote a parent reply"
   assert_no_grep 'captain-hold-main-call' "$channel" "a main home's hold leaked onto a mate channel"
   pass "a secondmate home publishes each hold occurrence and its answer on the parent channel"
@@ -6099,15 +6104,22 @@ SH
 }
 
 test_domain_rehold_waits_for_an_unfinished_routed_release() {
-  local home status before technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
-  home=$(make_domain_home stranded-release)
-  status="$home/parent/state/router-mate.status"
-  mkdir -p "$home/parent/state"
-  printf 'router-mate\n' > "$home/.fm-secondmate-home"
-  printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$home/parent" > "$home/.fm-secondmate-parent"
-  run_domain "$home" 2026-10-14T02:00:00Z hold work --title 'Update branch' \
-    --decision-owner ep-firstmate --timeout-seconds 60 --reason "$technical" >/dev/null || fail 'could not hold work'
-  cat > "$home/fakebin/tasks-axi" <<'SH'
+  local home status before pending mode scope technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
+  local -a args
+  for mode in unhold local remote; do
+    home=$(make_domain_home "stranded-release-$mode")
+    printf 'router-mate\n' > "$home/.fm-secondmate-home"
+    if [ "$mode" = remote ]; then
+      status="$home/state/parent-replies.status"
+      printf 'schema=fm-secondmate-parent.v1\nroute=remote\n' > "$home/.fm-secondmate-parent"
+    else
+      status="$home/parent/state/router-mate.status"
+      mkdir -p "$home/parent/state"
+      printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$home/parent" > "$home/.fm-secondmate-parent"
+    fi
+    run_domain "$home" 2026-10-14T02:00:00Z hold work --title 'Update branch' \
+      --decision-owner ep-firstmate --timeout-seconds 60 --reason "$technical" >/dev/null || fail 'could not hold work'
+    cat > "$home/fakebin/tasks-axi" <<'SH'
 #!/usr/bin/env bash
 if [ "${1:-}" = unhold ] && [ -f "$FM_HOME/unhold-dies" ]; then
   "$REAL_TASKS_AXI" "$@" >/dev/null
@@ -6115,32 +6127,70 @@ if [ "${1:-}" = unhold ] && [ -f "$FM_HOME/unhold-dies" ]; then
 fi
 exec "$REAL_TASKS_AXI" "$@"
 SH
-  chmod +x "$home/fakebin/tasks-axi"
-  touch "$home/unhold-dies"
-  if run_domain "$home" 2026-10-14T02:01:00Z route-due > "$home/routed.out" 2>&1; then
-    fail 'the release that died after unhold reported success'
-  fi
-  rm "$home/unhold-dies"
-  before=$(tasks_in "$home" show work --full)
-  assert_contains "$before" 'held: no' 'the fixture did not apply the release before dying'
-  assert_contains "$before" 'Resolution mode: agent-routed' 'the fixture lost its routing record'
-  if run_domain "$home" 2026-10-14T02:01:30Z hold work --decision-owner ep-firstmate --timeout-seconds 60 \
-    --reason "$technical" > "$home/rehold.out" 2>&1; then
-    fail 'a re-hold stamped a new lifecycle over an unfinished routed release'
-  fi
-  assert_grep 'route-due' "$home/rehold.out" 'the refused re-hold did not name the recovery pass'
-  assert_equals "$before" "$(tasks_in "$home" show work --full)" 'the refused re-hold changed the task'
-  assert_no_grep 'captain-hold-work-2' "$status" 'the refused re-hold opened a second parent occurrence'
-  run_domain "$home" 2026-10-14T02:02:00Z route-due || fail 'the recovery pass failed'
-  assert_grep 'resolved [key=captain-hold-work-1]' "$status" 'the recovery pass did not resolve the routed occurrence'
-  run_domain "$home" 2026-10-14T03:00:00Z hold work --decision-owner ep-firstmate --timeout-seconds 60 \
-    --reason "$technical" >/dev/null || fail 'the re-hold after the recovery pass was refused'
-  run_domain "$home" 2026-10-14T03:01:00Z route-due work || fail 'the new lifecycle did not route'
-  assert_grep 'resolved [key=captain-hold-work-2]' "$status" 'the new lifecycle did not resolve its own occurrence'
-  assert_equals 2 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'each lifecycle did not reach its owner exactly once'
-  assert_equals '' "$(bash -c '. "$1"; status_open_decisions "$2"' _ "$ROOT/bin/fm-classify-lib.sh" "$status")" \
-    'an unfinished routed release left a parent decision open'
-  pass 'a re-hold waits for route-due to finish an unfinished routed release'
+    chmod +x "$home/fakebin/tasks-axi"
+    if [ "$mode" = unhold ]; then
+      touch "$home/unhold-dies"
+    else
+      mv "$status" "$status.saved"
+      mkdir "$status"
+    fi
+    if run_domain "$home" 2026-10-14T02:01:00Z route-due > "$home/routed.out" 2>&1; then
+      fail "the $mode release reported success before parent delivery"
+    fi
+    if [ "$mode" = unhold ]; then
+      mv "$home/unhold-dies" "$home/unhold-restored"
+      mv "$status" "$status.saved"
+      mkdir "$status"
+    fi
+    assert_absent "$home/state/reconcile-requests/work.request" 'the fixture unexpectedly has a reconciliation retry trigger'
+    assert_present "$home/state/hold-domain/pending/work.body" 'the failed release discarded pending routing'
+    pending=$(cat "$home/state/hold-domain/pending/work.body")
+    before=$(tasks_in "$home" show work --full)
+    assert_contains "$before" 'held: no' "the fixture did not apply the release before failing: $(cat "$home/routed.out")"
+    assert_contains "$before" 'Resolution mode: agent-routed' 'the fixture lost its routing record'
+    for scope in direct sweep; do
+      args=(route-due)
+      [ "$scope" != direct ] || args+=(work)
+      if run_domain "$home" 2026-10-14T02:01:10Z "${args[@]}" > "$home/$scope.out" 2>&1; then
+        fail "the $scope recovery reported success before parent delivery"
+      fi
+      assert_grep 'actionable:' "$home/$scope.out" 'failed parent delivery was not actionable'
+      assert_equals "$pending" "$(cat "$home/state/hold-domain/pending/work.body")" 'failed parent delivery changed pending routing'
+      if [ "$scope" = direct ]; then
+        before=$(tasks_in "$home" show work --full)
+        assert_contains "$before" 'held: no' 'release recovery restored the captain hold'
+        assert_contains "$before" 'Resolution mode: agent-routed' 'release recovery lost its routing record'
+        assert_not_contains "$before" 'Captain hold set:' 'release recovery left the active hold stamp'
+      else
+        assert_equals "$before" "$(tasks_in "$home" show work --full)" 'repeated parent delivery changed the routed task'
+      fi
+      assert_equals 1 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'failed parent delivery repeated the owner prompt'
+      assert_equals 1 "$(wc -l < "$home/state/hold-domain/routed.tsv" | tr -d ' ')" 'failed parent delivery duplicated its routing receipt'
+    done
+    if run_domain "$home" 2026-10-14T02:01:30Z hold work --decision-owner ep-firstmate --timeout-seconds 60 \
+      --reason "$technical" > "$home/rehold.out" 2>&1; then
+      fail 'a re-hold stamped a new lifecycle over an unfinished routed release'
+    fi
+    assert_grep 'route-due' "$home/rehold.out" 'the refused re-hold did not name the recovery pass'
+    assert_equals "$before" "$(tasks_in "$home" show work --full)" 'the refused re-hold changed the task'
+    assert_no_grep 'captain-hold-work-2' "$status.saved" 'the refused re-hold opened a second parent occurrence'
+    mv "$status" "$status.failed-channel"
+    mv "$status.saved" "$status"
+    run_domain "$home" 2026-10-14T02:02:00Z route-due || fail 'the recovery pass failed'
+    assert_absent "$home/state/hold-domain/pending/work.body" 'successful parent delivery kept pending routing'
+    assert_grep 'resolved [key=captain-hold-work-1]' "$status" 'the recovery pass did not resolve the routed occurrence'
+    run_domain "$home" 2026-10-14T02:03:00Z route-due work || fail 'the completed release did not replay'
+    assert_equals 1 "$(grep -c '^resolved ' "$status")" 'the completed release duplicated its parent resolution'
+    assert_equals 1 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'successful parent delivery repeated the owner prompt'
+    run_domain "$home" 2026-10-14T03:00:00Z hold work --decision-owner ep-firstmate --timeout-seconds 60 \
+      --reason "$technical" >/dev/null || fail 'the re-hold after the recovery pass was refused'
+    run_domain "$home" 2026-10-14T03:01:00Z route-due work || fail 'the new lifecycle did not route'
+    assert_grep 'resolved [key=captain-hold-work-2]' "$status" 'the new lifecycle did not resolve its own occurrence'
+    assert_equals 2 "$(wc -l < "$home/owner.log" | tr -d ' ')" 'each lifecycle did not reach its owner exactly once'
+    assert_equals '' "$(bash -c '. "$1"; status_open_decisions "$2"' _ "$ROOT/bin/fm-classify-lib.sh" "$status")" \
+      'an unfinished routed release left a parent decision open'
+  done
+  pass 'failed releases and parent delivery keep routing retryable until the same occurrence is published'
 }
 
 test_domain_reasons_break_where_the_router_breaks() {
@@ -6516,6 +6566,12 @@ if [ -z "${FM_CAPTAIN_HOLD_LANE:-}" ]; then
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
   origins) test_hold_origins_precede_backend_holds; exit $? ;;
   stranded-release) test_domain_rehold_waits_for_an_unfinished_routed_release; exit $? ;;
+  parent-delivery)
+    test_domain_rehold_waits_for_an_unfinished_routed_release || exit 1
+    test_secondmate_home_publishes_holds_and_answers || exit 1
+    test_reprobe_release_retries_finalize_one_occurrence
+    exit $?
+    ;;
   reason-breaks) test_domain_reasons_break_where_the_router_breaks; exit $? ;;
   probe-holds) test_domain_probe_holds_wait_for_their_probe; exit $? ;;
   receipt-deferral)
