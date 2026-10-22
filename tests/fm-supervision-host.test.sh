@@ -325,6 +325,126 @@ teardown_still_holds_the_lease_lock() {  # <home>
   [ "$(cat "$1/state/.fm-lease-command.lock/pid" 2>/dev/null)" = "$(cat "$1/teardown.held")" ]
 }
 
+cover_handover_barriers() {
+  local home=$1 real_cat real_rm real_mktemp real_grep tool
+  real_cat=$(command -v cat)
+  real_rm=$(command -v rm)
+  real_mktemp=$(command -v mktemp)
+  real_grep=$(command -v grep)
+  cat > "$home/fakebin/cover-handover-barrier" <<SH
+#!/usr/bin/env bash
+pause_owner() {
+  [ ! -e "\$FM_HOME/handover-owner-paused" ] || return 0
+  printf '%s\\n' "\$\$" >> "\$FM_HOME/orphan-pid"
+  : > "\$FM_HOME/handover-owner-paused"
+  local deadline=\$((SECONDS + 60))
+  while [ ! -e "\$FM_HOME/handover-owner-go" ]; do
+    [ "\$SECONDS" -lt "\$deadline" ] || exit 1
+    sleep 0.05
+  done
+}
+case "\${0##*/}" in
+  rm)
+    for arg in "\$@"; do
+      if [ "\$arg" = "\$FM_HOME/state/.watch-cover" ] \
+        && [ -e "\$FM_HOME/handover-owner-paused" ] \
+        && [ ! -e "\$FM_HOME/handover-retire-paused" ]; then
+        printf '%s\\n' "\$\$" >> "\$FM_HOME/orphan-pid"
+        : > "\$FM_HOME/handover-retire-paused"
+        deadline=\$((SECONDS + 60))
+        while [ ! -e "\$FM_HOME/handover-retire-go" ]; do
+          [ "\$SECONDS" -lt "\$deadline" ] || exit 1
+          sleep 0.05
+        done
+      fi
+    done
+    exec "$real_rm" "\$@"
+    ;;
+  cat)
+    case "\$*" in
+      *'/state/.watch-cover.lock/pid'*)
+        if [ -e "\$FM_HOME/handover-retire-paused" ] \
+          && [ ! -e "\$FM_HOME/handover-retire-go" ]; then
+          : > "\$FM_HOME/handover-contended"
+          : > "\$FM_HOME/handover-retire-go"
+        fi
+        ;;
+    esac
+    exec "$real_cat" "\$@"
+    ;;
+  mktemp)
+    case "\$*" in
+      *'/.supervision-host-left.tmp.'*) pause_owner ;;
+      *'/.watch-cover.tmp.'*)
+        if [ -e "\$FM_HOME/handover-retire-paused" ] \
+          && [ ! -e "\$FM_HOME/handover-retire-go" ]; then
+          : > "\$FM_HOME/handover-unlocked"
+          : > "\$FM_HOME/handover-retire-go"
+        fi
+        ;;
+    esac
+    exec "$real_mktemp" "\$@"
+    ;;
+  grep)
+    case "\$*" in
+      *'/.claude-autoarm-successor.'*)
+        "$real_grep" "\$@" || exit \$?
+        pause_owner
+        exit 0
+        ;;
+    esac
+    exec "$real_grep" "\$@"
+    ;;
+esac
+SH
+  chmod +x "$home/fakebin/cover-handover-barrier"
+  for tool in cat rm mktemp grep; do
+    ln -s cover-handover-barrier "$home/fakebin/$tool"
+  done
+}
+
+test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm() {
+  local mode home cover watcher replacement
+  for mode in host hook; do
+    home=$(make_primary_home "hook-handover-retirement-$mode")
+    ln -s "$ROOT/.agents" "$home/.agents"
+    echo captain > "$home/stub-mode"
+    [ "$mode" != hook ] || : > "$home/config/supervision-host-off"
+    : > "$home/hook.own-group"
+    cover_handover_barriers "$home"
+    start_hook_session "$home"
+    turn_end "$home"
+    wait_until 200 watcher_live "$home" || fail "$mode handover: the first watcher did not start"
+    append_status "$home" 'first actionable wake'
+    wait_until 400 test -e "$home/handover-owner-paused" || fail "$mode handover: the owner did not reach transfer"
+    cover=$(cut -f1 "$home/state/.watch-cover")
+    watcher=$(cat "$home/state/.watch.lock/pid")
+    [ "$(parent_of "$watcher")" = "$cover" ] || fail "fixture: the covering arm does not own the watcher"
+    printf 'project=demo\nwindow=fm-later\nharness=claude\n' > "$home/state/later.meta"
+    printf 'needs-decision: notification racing coverage transfer\n' > "$home/state/later.status"
+    wait_until 300 test -e "$home/handover-retire-paused" || fail "$mode handover: the arm did not decide to retire"
+    kill -0 "$cover" 2>/dev/null || fail "fixture: the arm exited before transfer raced retirement"
+    : > "$home/handover-owner-go"
+    wait_until 400 hook_exited "$home" || fail "$mode handover: transfer did not finish the hook"
+    assert_rewoke_main "$home" "$mode handover"
+    if ! wait_until 150 home_has_one_consumer "$home"; then
+      : > "$home/session.stop"
+      stop_home_processes "$home"
+      fail "$mode handover reported success for a retiring arm and left main without a consumer"
+    fi
+    [ -e "$home/handover-contended" ] || fail "fixture: transfer did not contend with retirement"
+    replacement=$(cut -f1 "$home/state/.watch-cover")
+    [ "$replacement" != "$cover" ] || fail "$mode handover did not replace the rejected covering arm"
+    [ "$(cut -f4 "$home/state/.watch-cover")" = handed-over ] || fail "$mode handover did not transfer the replacement"
+    [ "$(parent_of "$(cat "$home/state/.watch.lock/pid")")" = "$replacement" ] \
+      || fail "$mode handover left a watcher outside the replacement arm"
+    assert_grep 'later.status' "$home/state/.wake-queue" "$mode handover lost the notification racing transfer"
+    : > "$home/session.stop"
+    stop_home_processes "$home"
+  done
+  pass "host+hook: retirement rejects a racing handover and both owners leave one replacement consumer"
+}
+
 host_waiting_on_lease_release() {
   ps -A -o ppid= -o command= 2>/dev/null \
     | awk -v host="$1" '$1 == host && /fm-lease.sh --wait 120 release-actor/ { found = 1 } END { exit !found }'
@@ -3212,6 +3332,7 @@ test_superseded_host_leaves_the_owner_untouched() {
 # half the measured time. A new case joins either list; tests/fm-test-run.test.sh
 # requires every case in exactly one.
 supervision_host_lane_a() {
+  test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm
   test_handed_over_successor_covers_the_host_exit_lease_wait
   test_exit_to_main_keeps_a_consumer_through_main_turn
   test_claude_stop_hook_restores_handoff_when_successor_closed_before_exit_to_main

@@ -181,6 +181,8 @@ So that successor is the one deliberate detached launch in the continuity path:
 This is the shape `bin/fm-startup-network.sh` uses, and [`verification/supervision.md`](verification/supervision.md#detached-session-open-workers-survive-the-hook) verified that it survives the hook.
 
 That successor is a covering one, as is the successor the supervision host leaves for main: after its owner hands over responsibility or exits, a fleet event that closes its watcher starts the next handling-successor watcher in the same arm, so the home stays covered for the rest of main's turn while the wake waits in the durable queue.
+The handover and the arm's decision to chain or retire share a home lock, so a transfer cannot succeed after the arm commits to exiting.
+When a transfer is rejected, the owner retires that candidate and starts a fresh covering successor within a confirmation budget before handing control to main.
 The handover is recorded before the owner detaches, so coverage continues while that owner's exit cleanup waits on a lease lock.
 The next Stop's foreground arm takes that covering cycle over and owns a fresh one, which surfaces any wake queued during the turn; the [arm header](../bin/fm-watch-arm.sh) owns `FM_WATCH_COVER` and the claim every arm makes first.
 A successor that confirms no live watcher adds one line to the rewake banner and never withholds the wake.

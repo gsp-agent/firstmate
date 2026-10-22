@@ -701,11 +701,14 @@ detach_successor() {
     || ! printf '%s\t%s\n' "$SUCCESSOR_PID" "$identity" > "$tmp" 2>/dev/null \
     || ! mv -f "$tmp" "$LEFT_RECORD" 2>/dev/null \
     || [ -L "$LEFT_RECORD" ] || [ ! -f "$LEFT_RECORD" ] \
-    || [ "$(cat "$LEFT_RECORD" 2>/dev/null)" != "$SUCCESSOR_PID"$'\t'"$identity" ] \
-    || ! "$SCRIPT_DIR/fm-watch-arm.sh" --cover-handoff "$SUCCESSOR_PID" >/dev/null 2>&1; then
+    || [ "$(cat "$LEFT_RECORD" 2>/dev/null)" != "$SUCCESSOR_PID"$'\t'"$identity" ]; then
     [ -z "$tmp" ] || rm -f "$tmp" "$LEFT_RECORD/${tmp##*/}" 2>/dev/null || true
     log_line "pass-through	successor-unrecorded	$(printf '%s\n' "${REASON:-}" | head -n 1)"
     return 1
+  fi
+  if ! "$SCRIPT_DIR/fm-watch-arm.sh" --cover-handoff "$SUCCESSOR_PID" >/dev/null 2>&1; then
+    rm -f "$LEFT_RECORD" 2>/dev/null || true
+    return 2
   fi
   disown "$SUCCESSOR_PID" 2>/dev/null || true
   forget_process "$SUCCESSOR_PID"
@@ -718,19 +721,28 @@ detach_successor() {
 # downtime (autoarm_commit in bin/fm-claude-stop-autoarm.sh). A failed start
 # returns 1; the caller still prints the close unchanged.
 leave_successor_for_main() {
-  if fm_pid_alive "$SUCCESSOR_PID" \
-    && fm_watcher_healthy "$STATE" "$SCRIPT_DIR/fm-watch.sh" "$GRACE" "$FM_HOME"; then
+  local deadline= rc
+  while :; do
+    if ! fm_pid_alive "$SUCCESSOR_PID" \
+      || ! fm_watcher_healthy "$STATE" "$SCRIPT_DIR/fm-watch.sh" "$GRACE" "$FM_HOME"; then
+      retire_arm "$SUCCESSOR_PID" "$SUCCESSOR_OUT"
+      SUCCESSOR_PID=
+      SUCCESSOR_OUT=
+      if ! ARM_OWN_GROUP=1 start_successor "$CLOSED_ARM_PID"; then
+        log_line "pass-through	successor-unverified	$(printf '%s\n' "${REASON:-}" | head -n 1)"
+        return 1
+      fi
+    fi
     detach_successor
-    return $?
-  fi
-  retire_arm "$SUCCESSOR_PID" "$SUCCESSOR_OUT"
-  SUCCESSOR_PID=
-  SUCCESSOR_OUT=
-  if ! ARM_OWN_GROUP=1 start_successor "$CLOSED_ARM_PID"; then
-    log_line "pass-through	successor-unverified	$(printf '%s\n' "${REASON:-}" | head -n 1)"
-    return 1
-  fi
-  detach_successor
+    rc=$?
+    [ "$rc" -ne 0 ] || return 0
+    [ "$rc" -eq 2 ] || return 1
+    [ -n "$deadline" ] || deadline=$(( $(date +%s) + READY_TIMEOUT ))
+    retire_arm "$SUCCESSOR_PID" "$SUCCESSOR_OUT"
+    SUCCESSOR_PID=
+    SUCCESSOR_OUT=
+    [ "$(date +%s)" -lt "$deadline" ] || return 1
+  done
 }
 
 # The engine conversation for this turn: the recorded one while it belongs to

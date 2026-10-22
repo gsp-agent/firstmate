@@ -162,6 +162,7 @@ CYCLE_LOG_MAX_BYTES=${FM_WATCH_CYCLE_LOG_MAX_BYTES:-262144}
 CYCLE_LOG_KEEP_LINES=${FM_WATCH_CYCLE_LOG_KEEP_LINES:-1000}
 ARM_PID=${BASHPID:-$$}
 COVER_RECORD="$STATE/.watch-cover"
+COVER_LOCK="$COVER_RECORD.lock"
 COVER=0
 [ "${FM_WATCH_COVER:-0}" != 1 ] || COVER=1
 unset FM_WATCH_COVER
@@ -567,10 +568,13 @@ cover_owner_released() {
 }
 
 if [ "$mode" = cover-handoff ]; then
-  cover_pid= cover_identity= cover_parent=
+  cover_pid= cover_identity= cover_parent= cover_handover=
+  trap 'fm_lock_release "$COVER_LOCK"' EXIT
+  fm_lock_acquire_wait "$COVER_LOCK" || exit 1
   [ -f "$COVER_RECORD" ] && [ ! -L "$COVER_RECORD" ] || exit 1
-  IFS=$'\t' read -r cover_pid cover_identity cover_parent _ < "$COVER_RECORD" || exit 1
+  IFS=$'\t' read -r cover_pid cover_identity cover_parent cover_handover < "$COVER_RECORD" || exit 1
   [ "$cover_pid" = "$cover_handoff_pid" ] && [ "$cover_parent" = "$PPID" ] \
+    && [ "$cover_handover" = owned ] \
     && [ -n "$cover_identity" ] && fm_pid_alive "$cover_pid" \
     && [ "$(fm_pid_identity "$cover_pid" 2>/dev/null)" = "$cover_identity" ] \
     && [ "$(parent_of "$cover_pid")" = "$PPID" ] || exit 1
@@ -641,14 +645,22 @@ take_over_cycle() {  # <owner-arm-pid> <watcher-pid> <identity> [arm|watcher]
 CLAIMED_COVER_PID=
 claim_cover_cycle() {
   local pid='' identity='' parent='' handover=''
-  [ -f "$COVER_RECORD" ] || return 0
-  IFS=$'\t' read -r pid identity parent handover < "$COVER_RECORD" 2>/dev/null || true
+  fm_lock_acquire_wait "$COVER_LOCK" || return 1
+  if [ ! -f "$COVER_RECORD" ]; then
+    fm_lock_release "$COVER_LOCK"
+    return 0
+  fi
+  IFS=$'\t' read -r pid identity parent handover 2>/dev/null < "$COVER_RECORD" || true
   if fm_pid_alive "$pid" && [ -n "$identity" ] \
     && [ "$(fm_pid_identity "$pid" 2>/dev/null || true)" = "$identity" ]; then
-    cover_owner_released "$pid" "$parent" "$handover" || return 0
+    if ! cover_owner_released "$pid" "$parent" "$handover"; then
+      fm_lock_release "$COVER_LOCK"
+      return 0
+    fi
     CLAIMED_COVER_PID=$pid
   fi
   rm -f "$COVER_RECORD" 2>/dev/null || true
+  fm_lock_release "$COVER_LOCK"
 }
 
 # Sets STOPPED_PID to the covering arm's watcher when it held the lock.
@@ -664,7 +676,7 @@ stop_claimed_cover() {
 }
 
 TAKEN_OVER=0
-claim_cover_cycle
+claim_cover_cycle || exit 1
 if [ -n "$CLAIMED_COVER_PID" ]; then
   if [ "$mode" != stop ] && [ "$mode" != restart ] && healthy_watcher \
     && [ "$(parent_of "$HEALTHY_PID")" = "$CLAIMED_COVER_PID" ]; then
@@ -771,33 +783,51 @@ CLOSED_ON_WAKE=0
 cover_record() {
   local identity tmp
   [ "$COVER" -eq 1 ] && [ "$COVER_RECORDED" -eq 0 ] || return 0
-  identity=$(fm_pid_identity "$ARM_PID" 2>/dev/null) || return 1
-  tmp=$(mktemp "$COVER_RECORD.tmp.XXXXXX" 2>/dev/null) || return 1
+  trap cover_release EXIT
+  fm_lock_acquire_wait "$COVER_LOCK" || return 1
+  if ! identity=$(fm_pid_identity "$ARM_PID" 2>/dev/null) \
+    || ! tmp=$(mktemp "$COVER_RECORD.tmp.XXXXXX" 2>/dev/null); then
+    fm_lock_release "$COVER_LOCK"
+    return 1
+  fi
   if ! printf '%s\t%s\t%s\towned\n' "$ARM_PID" "$identity" "$PPID" > "$tmp" 2>/dev/null \
     || ! mv -f "$tmp" "$COVER_RECORD" 2>/dev/null; then
     rm -f "$tmp" 2>/dev/null || true
+    fm_lock_release "$COVER_LOCK"
     return 1
   fi
   COVER_RECORDED=1
-  trap cover_release EXIT
+  fm_lock_release "$COVER_LOCK"
 }
 
 cover_names_me() {
   local pid=''
-  IFS=$'\t' read -r pid _ < "$COVER_RECORD" 2>/dev/null || true
+  IFS=$'\t' read -r pid _ 2>/dev/null < "$COVER_RECORD" || true
   [ "$pid" = "$ARM_PID" ]
 }
 
 # shellcheck disable=SC2329 # Invoked indirectly by the EXIT trap.
 cover_release() {
+  fm_lock_acquire_wait "$COVER_LOCK" || return 1
   ! cover_names_me || rm -f "$COVER_RECORD" 2>/dev/null || true
+  fm_lock_release "$COVER_LOCK"
 }
 
 cover_chains() {
-  local pid='' parent='' handover=''
-  [ "$COVER_RECORDED" -eq 1 ] && [ "$CLOSED_ON_WAKE" -eq 1 ] || return 1
-  IFS=$'\t' read -r pid _ parent handover < "$COVER_RECORD" 2>/dev/null || return 1
-  [ "$pid" = "$ARM_PID" ] && cover_owner_released "$pid" "$parent" "$handover"
+  local pid='' parent='' handover='' rc=1
+  [ "$COVER_RECORDED" -eq 1 ] || return 1
+  fm_lock_acquire_wait "$COVER_LOCK" || return 1
+  IFS=$'\t' read -r pid _ parent handover 2>/dev/null < "$COVER_RECORD" || true
+  if [ "$pid" = "$ARM_PID" ]; then
+    if [ "$1" -eq 0 ] && [ "$CLOSED_ON_WAKE" -eq 1 ] \
+      && cover_owner_released "$pid" "$parent" "$handover"; then
+      rc=0
+    else
+      rm -f "$COVER_RECORD" 2>/dev/null || true
+    fi
+  fi
+  fm_lock_release "$COVER_LOCK"
+  return "$rc"
 }
 
 owned_child_finished() {
@@ -955,7 +985,7 @@ run_owned_cycle() {
 while :; do
   run_owned_cycle
   status=$?
-  [ "$status" -eq 0 ] && cover_chains || exit "$status"
+  cover_chains "$status" || exit "$status"
   CHAINED=1
   TAKEN_OVER=0
   FM_WATCH_PREDECESSOR_ARM_PID=$ARM_PID
