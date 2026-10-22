@@ -1157,7 +1157,7 @@ else
   remote_teardown_rc=$?
 fi
 if [ "$remote_teardown_rc" -eq 0 ] || [ "$remote_teardown_rc" -eq "$TEARDOWN_LOST_SLOT_EXIT" ]; then
-  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort || true
+  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request || true
   exit "$remote_teardown_rc"
 fi
 [ "$remote_teardown_rc" -eq 3 ] || exit "$remote_teardown_rc"
@@ -3802,7 +3802,7 @@ fi
 # A secondmate retirement may remove the home containing an overridden control
 # state directory. Do not let the side-band refresh recreate that retired home.
 if [ -d "$STATE" ]; then
-  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort || true
+  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request || true
 fi
 if [ "$TEARDOWN_POOL_SLOT_LOST" = 1 ]; then
   echo "teardown $ID finished its cleanup and removed its task record, but a returned pool slot did not come back clean (see the warning above); clear those paths so the pool can reuse the slot" >&2

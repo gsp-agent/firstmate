@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # fm-home-summary-refresh.sh - publish this home's structured summary ledger.
 #
-# Usage: fm-home-summary-refresh.sh [--best-effort]
+# Usage: fm-home-summary-refresh.sh [--best-effort | --request]
 #
 # The published state/home-summary.json is the exact
 # `fm-fleet-snapshot.sh --secondmate-home-summary` document for this FM_HOME.
@@ -19,12 +19,35 @@
 # (default 60 seconds). No reader can observe temporary output through the
 # ledger path.
 #
-# With --best-effort, a failure is appended to the bounded home-local
+# For synchronous runs with --best-effort, a failure is appended to the bounded home-local
 # state/.home-summary-refresh.log when available, with stderr as the bounded
-# fallback, and the command exits zero. Session start, watcher, spawn, and
-# teardown use that mode so this side-band publication can never change their
-# result. Without it, failures are printed and returned to the direct caller
-# for tests and diagnostics.
+# fallback, and the command exits zero. Without it, failures are printed and
+# returned to the direct caller for tests and diagnostics.
+#
+# Side-band triggers (session start, watcher, spawn, teardown) use --request
+# instead: this home's ledger has no reader unless it is a secondmate home
+# (the .fm-secondmate-home marker; the parent fleet snapshot reads the
+# ledger only for registered secondmate homes), so in a main home a request
+# is a no-op. In a secondmate home a request only marks
+# state/.home-summary-dirty and starts one detached --_drain when no drain
+# holds the drain lock. Requests always exit zero without publishing inline.
+# The drain waits until both the ledger mtime and the persisted attempt epoch
+# in state/.home-summary-attempt have aged by FM_HOME_SUMMARY_INTERVAL seconds
+# (default 300; invalid or zero values use 300). Age zero waits a full interval.
+# Each future-dated timestamp is ignored independently, so it cannot cancel
+# a cooldown established by the other timestamp after a clock rollback.
+# The request worker rechecks the cooldown under the publication lock, records
+# the attempt before consuming the mark, then runs the timed producer.
+# Failed attempts therefore retain their cooldown across drain restarts.
+# A busy publication lock leaves the mark pending; a request during the walk
+# remains for a later pass, and the drain rechecks for marks after releasing
+# its drain lock before exiting. A burst costs at most one walk per interval.
+# Worker timeouts and signal failures use the same bounded failure logger,
+# with the worker's start time preserving ordering against a later publication.
+# A direct run without --request publishes synchronously in any home and
+# bypasses the interval, including with --best-effort (tests, diagnostics).
+# Regression coverage: tests/fm-fork-budget.test.sh and
+# tests/fm-home-summary-refresh.test.sh.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,8 +60,12 @@ PROJECTS="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}"
 LEDGER="$STATE/home-summary.json"
 ERROR_LOG="$STATE/.home-summary-refresh.log"
 REFRESH_LOCK="$STATE/.home-summary-refresh.lock"
+DIRTY_MARK="$STATE/.home-summary-dirty"
+DRAIN_LOCK="$STATE/.home-summary-drain.lock"
+ATTEMPT_STAMP="$STATE/.home-summary-attempt"
 ERROR_LOG_MAX_BYTES=${FM_HOME_SUMMARY_ERROR_LOG_MAX_BYTES:-65536}
 HOME_SUMMARY_TIMEOUT=${FM_HOME_SUMMARY_TIMEOUT:-60}
+HOME_SUMMARY_INTERVAL=${FM_HOME_SUMMARY_INTERVAL:-300}
 HOME_SUMMARY_IF_IDLE=${FM_HOME_SUMMARY_IF_IDLE:-0}
 BEST_EFFORT=0
 HOME_SUMMARY_MODE=parent
@@ -59,8 +86,10 @@ usage() {
 case "${1:-}" in
   '') ;;
   --best-effort) BEST_EFFORT=1 ;;
-  --_worker)
-    HOME_SUMMARY_MODE=worker
+  --request) HOME_SUMMARY_MODE=request ;;
+  --_drain) HOME_SUMMARY_MODE=drain ;;
+  --_worker|--_request-worker)
+    HOME_SUMMARY_MODE=${1#--_}
     BEST_EFFORT=${FM_HOME_SUMMARY_WORKER_BEST_EFFORT:-0}
     ;;
   --_log-failure) HOME_SUMMARY_MODE=log-failure ;;
@@ -72,6 +101,9 @@ case "$ERROR_LOG_MAX_BYTES" in
 esac
 case "$HOME_SUMMARY_TIMEOUT" in
   ''|*[!0-9]*|0) HOME_SUMMARY_TIMEOUT=60 ;;
+esac
+case "$HOME_SUMMARY_INTERVAL" in
+  ''|*[!0-9]*|0) HOME_SUMMARY_INTERVAL=300 ;;
 esac
 case "$HOME_SUMMARY_IF_IDLE" in
   0|1) ;;
@@ -99,8 +131,28 @@ home_summary_fail() {
   return 1
 }
 
+home_summary_wait_to() {
+  local mtime attempt=0 now stamp remaining delay=0
+  mtime=$(stat -c %Y "$LEDGER" 2>/dev/null || stat -f %m "$LEDGER" 2>/dev/null || true)
+  case "$mtime" in
+    ''|*[!0-9]*) mtime=0 ;;
+  esac
+  IFS= read -r attempt 2>/dev/null < "$ATTEMPT_STAMP" || true
+  case "$attempt" in
+    ''|*[!0-9]*) attempt=0 ;;
+  esac
+  fm_epoch_seconds_to now
+  for stamp in "$mtime" "$attempt"; do
+    if [ "$stamp" -le "$now" ] && [ $((now - stamp)) -lt "$HOME_SUMMARY_INTERVAL" ]; then
+      remaining=$((HOME_SUMMARY_INTERVAL - (now - stamp)))
+      [ "$remaining" -le "$delay" ] || delay=$remaining
+    fi
+  done
+  printf -v "$1" '%s' "$delay"
+}
+
 home_summary_refresh_once() {
-  local producer_rc producer_error
+  local producer_rc producer_error attempt_epoch request_wait
   if ! mkdir -p "$STATE" 2>/dev/null; then
     home_summary_fail "state directory is unavailable: $STATE"
     return 1
@@ -115,6 +167,17 @@ home_summary_refresh_once() {
     fm_lock_acquire_wait "$REFRESH_LOCK"
   fi
   HOME_SUMMARY_LOCK_HELD=1
+  if [ "$HOME_SUMMARY_MODE" = request-worker ]; then
+    [ -e "$DIRTY_MARK" ] || return 0
+    home_summary_wait_to request_wait
+    [ "$request_wait" -eq 0 ] || return 0
+  fi
+  fm_epoch_seconds_to attempt_epoch
+  if ! printf '%s\n' "$attempt_epoch" > "$ATTEMPT_STAMP"; then
+    home_summary_fail "could not record the publication attempt in $STATE"
+    return 1
+  fi
+  rm -f -- "$DIRTY_MARK" 2>/dev/null || true
   HOME_SUMMARY_TMP=$(umask 077; mktemp "$STATE/.home-summary.json.XXXXXX") || {
     home_summary_fail "could not create an atomic publication file in $STATE"
     return 1
@@ -208,10 +271,76 @@ home_summary_log_failure() {
   fi
 }
 
+home_summary_log_worker_failure() {
+  local rc=$1 stamp=$2 error
+  if [ "$rc" -eq 124 ]; then
+    error="refresh exceeded its ${HOME_SUMMARY_TIMEOUT}-second deadline"
+  else
+    error="refresh worker failed with exit $rc"
+  fi
+  fm_run_timed 2 env \
+    FM_HOME_SUMMARY_PARENT_ERROR="$error" \
+    FM_HOME_SUMMARY_PARENT_STAMP="$stamp" \
+    "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_log-failure >/dev/null || true
+}
+
 if [ "$HOME_SUMMARY_MODE" = log-failure ]; then
   HOME_SUMMARY_ERROR=${FM_HOME_SUMMARY_PARENT_ERROR:-"refresh worker failed"}
   HOME_SUMMARY_FAILURE_STAMP=${FM_HOME_SUMMARY_PARENT_STAMP:-}
   home_summary_log_failure
+  exit 0
+fi
+
+# Only a secondmate home's ledger is ever read (fm-fleet-snapshot.sh reads
+# it for registered secondmate homes); a main home publishes for nobody.
+home_summary_is_secondmate() {
+  [ -f "$FM_HOME/.fm-secondmate-home" ]
+}
+
+if [ "$HOME_SUMMARY_MODE" = request ]; then
+  # Keep side-band callers independent of publication results; see the header.
+  home_summary_is_secondmate || exit 0
+  [ -d "$STATE" ] || mkdir -p "$STATE" 2>/dev/null || exit 0
+  : >> "$DIRTY_MARK" 2>/dev/null || exit 0
+  if fm_lock_try_acquire "$DRAIN_LOCK"; then
+    fm_lock_release "$DRAIN_LOCK"
+    "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_drain </dev/null >/dev/null 2>&1 &
+  fi
+  exit 0
+fi
+
+if [ "$HOME_SUMMARY_MODE" = drain ]; then
+  home_summary_is_secondmate || exit 0
+  fm_lock_try_acquire "$DRAIN_LOCK" || exit 0
+  trap 'fm_lock_release "$DRAIN_LOCK"' EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  drain_wait=0; drain_slice=0
+  while :; do
+    if [ ! -e "$DIRTY_MARK" ]; then
+      fm_lock_release "$DRAIN_LOCK"
+      [ -e "$DIRTY_MARK" ] || break
+      fm_lock_try_acquire "$DRAIN_LOCK" || break
+    fi
+    home_summary_wait_to drain_wait
+    if [ "$drain_wait" -gt 0 ]; then
+      drain_slice=$drain_wait
+      [ "$drain_slice" -gt 2 ] && drain_slice=2
+      sleep "$drain_slice"
+      continue
+    fi
+    attempt_stamp=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || attempt_stamp=
+    if fm_run_timed "$HOME_SUMMARY_TIMEOUT" env \
+      FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 \
+      FM_HOME_SUMMARY_IF_IDLE=1 \
+      "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_request-worker >/dev/null 2>&1; then
+      :
+    else
+      home_summary_log_worker_failure "$?" "$attempt_stamp"
+    fi
+    [ ! -e "$DIRTY_MARK" ] || sleep 1
+  done
   exit 0
 fi
 
@@ -226,15 +355,7 @@ if [ "$HOME_SUMMARY_MODE" = parent ]; then
     refresh_rc=$?
   fi
   if [ "$BEST_EFFORT" -eq 1 ]; then
-    if [ "$refresh_rc" -eq 124 ]; then
-      parent_error="refresh exceeded its ${HOME_SUMMARY_TIMEOUT}-second deadline"
-    else
-      parent_error="refresh worker failed with exit $refresh_rc"
-    fi
-    fm_run_timed 2 env \
-      FM_HOME_SUMMARY_PARENT_ERROR="$parent_error" \
-      FM_HOME_SUMMARY_PARENT_STAMP="$attempt_stamp" \
-      "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_log-failure >/dev/null || true
+    home_summary_log_worker_failure "$refresh_rc" "$attempt_stamp"
     exit 0
   fi
   if [ "$refresh_rc" -eq 124 ]; then

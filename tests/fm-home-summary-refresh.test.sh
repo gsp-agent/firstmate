@@ -134,7 +134,7 @@ jq -e --arg home "$HOME_DIR" --arg now "$NOW_ONE" --argjson epoch "$EPOCH_ONE" '
 PATH="$FAKEBIN:$PATH" \
   FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$HOME_DIR" \
   FM_SNAPSHOT_NOW="$NOW_TWO" FM_SNAPSHOT_NOW_EPOCH="$EPOCH_TWO" \
-  FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=9999999 FM_HEARTBEAT=9999999 \
+  FM_POLL=1 FM_HOME_SUMMARY_INTERVAL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=9999999 FM_HEARTBEAT=9999999 \
   "$WATCH" > "$TMP_ROOT/watch.out" 2> "$TMP_ROOT/watch.err" &
 WATCH_PID=$!
 i=0
@@ -888,11 +888,13 @@ fm_write_meta "$RESTART_HOME/state/restart-task.meta" \
   "mode=no-mistakes" \
   "spawn_gen=fm.restart123456"
 RESTART_LOCK_MARKER="$TMP_ROOT/restart-lock-held"
+# Keep the lock owner alive until explicitly killed below. The real producer
+# retains its normal deadline so startup latency is not a lock-queue verdict.
 FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$RESTART_HOME" bash -c '
   . "$1/bin/fm-wake-lib.sh"
   fm_lock_acquire_wait "$2/state/.home-summary-refresh.lock"
   : > "$3"
-  sleep 30
+  exec sleep 180
 ' _ "$ROOT" "$RESTART_HOME" "$RESTART_LOCK_MARKER" &
 LOCK_HOLDER_PID=$!
 i=0
@@ -903,7 +905,7 @@ while [ ! -e "$RESTART_LOCK_MARKER" ] && [ "$i" -lt 100 ]; do
 done
 [ -e "$RESTART_LOCK_MARKER" ] || fail "could not hold the publication lock for restart coverage"
 PATH="$FAKEBIN:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$RESTART_HOME" \
-  FM_POLL=1 FM_HOME_SUMMARY_INTERVAL=999999 FM_HOME_SUMMARY_TIMEOUT=2 \
+  FM_POLL=1 FM_HOME_SUMMARY_INTERVAL=999999 FM_HOME_SUMMARY_TIMEOUT=60 \
   FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=9999999 FM_HEARTBEAT=9999999 \
   "$WATCH" > "$TMP_ROOT/restart-watch-one.out" 2> "$TMP_ROOT/restart-watch-one.err" &
 WATCH_PID=$!
@@ -928,7 +930,7 @@ wait "$WATCH_PID" >/dev/null 2>&1 || true
 WATCH_PID=
 rm -f "$RESTART_HOME/state/.last-watcher-beat"
 PATH="$FAKEBIN:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$RESTART_HOME" \
-  FM_POLL=1 FM_HOME_SUMMARY_INTERVAL=999999 FM_HOME_SUMMARY_TIMEOUT=2 \
+  FM_POLL=1 FM_HOME_SUMMARY_INTERVAL=999999 FM_HOME_SUMMARY_TIMEOUT=60 \
   FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=9999999 FM_HEARTBEAT=9999999 \
   "$WATCH" > "$TMP_ROOT/restart-watch-two.out" 2> "$TMP_ROOT/restart-watch-two.err" &
 WATCH_PID=$!
@@ -941,13 +943,17 @@ done
 [ -e "$RESTART_HOME/state/.last-watcher-beat" ] \
   || fail "the replacement restart watcher did not begin polling"
 sleep 4
+[ ! -e "$RESTART_HOME/state/.home-summary-attempt" ] \
+  || fail "watcher restart began a publication while the refresh lock was held"
+[ -e "$RESTART_HOME/state/.home-summary-dirty" ] \
+  || fail "watcher restart lost the pending publication request"
 [ ! -s "$RESTART_HOME/state/.home-summary-refresh.log" ] \
-  || fail "watcher restart queued refreshes behind a live publication lock: $(cat "$RESTART_HOME/state/.home-summary-refresh.log")"
+  || fail "watcher restart failed before publication lock release: $(cat "$RESTART_HOME/state/.home-summary-refresh.log")"
 if ! kill -0 "$WATCH_PID" 2>/dev/null; then
   wait "$WATCH_PID" >/dev/null 2>&1 || true
   rm -f "$RESTART_HOME/state/.last-watcher-beat"
   PATH="$FAKEBIN:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$RESTART_HOME" \
-    FM_POLL=1 FM_HOME_SUMMARY_INTERVAL=999999 FM_HOME_SUMMARY_TIMEOUT=2 \
+    FM_POLL=1 FM_HOME_SUMMARY_INTERVAL=999999 FM_HOME_SUMMARY_TIMEOUT=60 \
     FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=9999999 FM_HEARTBEAT=9999999 \
     "$WATCH" > "$TMP_ROOT/restart-watch-three.out" 2> "$TMP_ROOT/restart-watch-three.err" &
   WATCH_PID=$!
@@ -967,7 +973,7 @@ PATH="$FAKEBIN:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$RESTART_HOME" \
   FM_HOME_SUMMARY_IF_IDLE=1 "$WRITER" --best-effort \
   || fail "stale-lock recovery changed the best-effort caller result"
 i=0
-while [ ! -e "$RESTART_HOME/state/home-summary.json" ] && [ "$i" -lt 200 ]; do
+while [ ! -e "$RESTART_HOME/state/home-summary.json" ] && [ "$i" -lt 1200 ]; do
   sleep 0.05
   i=$((i + 1))
 done
@@ -1139,3 +1145,247 @@ case "$report_out" in
     ;;
 esac
 pass "repeated publication failure is reported at session start until it clears"
+
+REQUEST_BIN="$TMP_ROOT/request-bin"
+mkdir -p "$REQUEST_BIN"
+for library in fm-home-summary-refresh.sh fm-wake-lib.sh fm-path-lib.sh fm-timeout-lib.sh; do
+  ln -s "$ROOT/bin/$library" "$REQUEST_BIN/$library"
+done
+REQUEST_WRITER="$REQUEST_BIN/fm-home-summary-refresh.sh"
+REQUEST_REAL_STAT=$(command -v stat)
+REQUEST_REAL_RM=$(command -v rm)
+cat > "$REQUEST_BIN/fm-fleet-snapshot.sh" <<'SH'
+#!/usr/bin/env bash
+event=$(cat "$FM_HOME/state/event")
+printf '%s\n' "$event" >> "$FM_HOME/state/walks"
+if [ -e "$FM_HOME/state/hold" ]; then
+  : > "$FM_HOME/state/producer-started"
+  while [ "$(cat "$FM_HOME/state/hold")" = wait ]; do sleep 0.05; done
+fi
+if [ -e "$FM_HOME/state/signal" ]; then
+  kill -TERM "$PPID"
+  exit 0
+fi
+if [ -e "$FM_HOME/state/delay" ]; then sleep 30; fi
+[ ! -e "$FM_HOME/state/fail" ] || exit 23
+jq -n --arg home "$FM_HOME" --arg event "$event" '{
+  schema:"fm-secondmate-home-summary.v1",hold_classifier_schema:"fm-captain-hold-buckets.v1",
+  home:$home,generated:"2026-08-28T10:00:00Z",generated_epoch:1787911200,
+  valid:true,state:$event,invalidity:{},active_children:[],decisions_open:[],
+  holds:[],queued:[],landed:[],endpoints:[],counts:{},omitted:[]
+}'
+SH
+cat > "$REQUEST_BIN/stat" <<'SH'
+#!/usr/bin/env bash
+if [ "${!#}" = "$FM_HOME/state/home-summary.json" ] && [ -e "$FM_HOME/state/ledger-time" ]; then
+  stamp=$(cat "$FM_HOME/state/ledger-time")
+  if [ "$stamp" = now ]; then date +%s; else printf '%s\n' "$stamp"; fi
+  exit 0
+fi
+exec "$FM_TEST_REQUEST_STAT" "$@"
+SH
+cat > "$REQUEST_BIN/rm" <<'SH'
+#!/usr/bin/env bash
+if [ "${!#}" = "$FM_HOME/state/.home-summary-drain.lock" ] \
+  && [ -e "$FM_HOME/state/handoff-armed" ] && [ ! -e "$FM_HOME/state/.home-summary-dirty" ]; then
+  mv "$FM_HOME/state/handoff-armed" "$FM_HOME/state/handoff-fired"
+  printf 'after\n' > "$FM_HOME/state/event"
+  "$FM_TEST_REQUEST_WRITER" --request || exit 1
+fi
+exec "$FM_TEST_REQUEST_RM" "$@"
+SH
+chmod +x "$REQUEST_BIN/fm-fleet-snapshot.sh" "$REQUEST_BIN/stat" "$REQUEST_BIN/rm"
+
+request_fixture() {
+  local home="$TMP_ROOT/request-$1"
+  mkdir -p "$home/state" "$home/data" "$home/config" "$home/projects"
+  printf 'mate\n' > "$home/.fm-secondmate-home"
+  printf 'before\n' > "$home/state/event"
+  printf '%s\n' "$home"
+}
+
+run_request_writer() {
+  local home=$1 interval=$2
+  shift 2
+  PATH="$REQUEST_BIN:$FAKEBIN:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
+    FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    FM_CONFIG_OVERRIDE="$home/config" FM_PROJECTS_OVERRIDE="$home/projects" \
+    FM_HOME_SUMMARY_IF_IDLE=0 FM_HOME_SUMMARY_INTERVAL="$interval" \
+    FM_HOME_SUMMARY_TIMEOUT="${FM_TEST_REQUEST_TIMEOUT:-5}" \
+    FM_TEST_REQUEST_STAT="$REQUEST_REAL_STAT" FM_TEST_REQUEST_RM="$REQUEST_REAL_RM" \
+    FM_TEST_REQUEST_WRITER="$REQUEST_WRITER" "$REQUEST_WRITER" "$@"
+}
+
+wait_request_condition() {
+  local tries=0
+  until "$@"; do
+    [ "$tries" -lt 200 ] || return 1
+    sleep 0.05
+    tries=$((tries + 1))
+  done
+}
+
+request_walks_equal() {
+  local count=0
+  [ ! -f "$1/state/walks" ] || count=$(wc -l < "$1/state/walks")
+  [ "$count" -eq "$2" ]
+}
+
+request_is_idle() {
+  [ ! -e "$1/state/.home-summary-drain.lock" ] && [ ! -e "$1/state/.home-summary-dirty" ]
+}
+
+REQUEST_HOME=$(request_fixture zero-age)
+printf '{}\n' > "$REQUEST_HOME/state/home-summary.json"
+printf 'now\n' > "$REQUEST_HOME/state/ledger-time"
+run_request_writer "$REQUEST_HOME" 30 --request || fail "zero-age request failed"
+wait_request_condition test -e "$REQUEST_HOME/state/.home-summary-drain.lock" \
+  || fail "zero-age request did not start its drain"
+sleep 1
+request_walks_equal "$REQUEST_HOME" 0 || fail "zero-age ledger permitted another walk"
+printf '0\n' > "$REQUEST_HOME/state/ledger-time"
+wait_request_condition request_walks_equal "$REQUEST_HOME" 1 \
+  || fail "the due ledger did not publish"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "zero-age drain did not finish"
+pass "a ledger in the current second defers publication for the interval"
+
+REQUEST_HOME=$(request_fixture future)
+printf '{}\n' > "$REQUEST_HOME/state/home-summary.json"
+printf '4102444800\n' > "$REQUEST_HOME/state/ledger-time"
+run_request_writer "$REQUEST_HOME" 30 --request || fail "future-ledger request failed"
+wait_request_condition request_walks_equal "$REQUEST_HOME" 1 \
+  || fail "a strictly future ledger was not immediately due"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "future-ledger drain did not finish"
+pass "a strictly future ledger remains immediately due"
+
+for entry in request request-worker; do
+  for future in ledger attempt; do
+    REQUEST_HOME=$(request_fixture "$entry-future-$future")
+    printf '{}\n' > "$REQUEST_HOME/state/home-summary.json"
+    if [ "$future" = ledger ]; then
+      printf '4102444800\n' > "$REQUEST_HOME/state/ledger-time"
+      date +%s > "$REQUEST_HOME/state/.home-summary-attempt"
+    else
+      printf 'now\n' > "$REQUEST_HOME/state/ledger-time"
+      printf '4102444800\n' > "$REQUEST_HOME/state/.home-summary-attempt"
+    fi
+    if [ "$entry" = request ]; then
+      run_request_writer "$REQUEST_HOME" 30 --request || fail "future-$future request failed"
+      wait_request_condition test -e "$REQUEST_HOME/state/.home-summary-drain.lock" \
+        || fail "future-$future request did not start its drain"
+      sleep 1
+    else
+      : > "$REQUEST_HOME/state/.home-summary-dirty"
+      run_request_writer "$REQUEST_HOME" 30 --_request-worker \
+        || fail "future-$future locked worker failed"
+    fi
+    request_walks_equal "$REQUEST_HOME" 0 \
+      || fail "$entry let a future $future bypass the other timestamp's cooldown"
+    [ -e "$REQUEST_HOME/state/.home-summary-dirty" ] \
+      || fail "$entry consumed a mark during a valid cooldown"
+    printf '0\n' > "$REQUEST_HOME/state/ledger-time"
+    printf '0\n' > "$REQUEST_HOME/state/.home-summary-attempt"
+    run_request_writer "$REQUEST_HOME" 30 --request || fail "due $entry request failed"
+    wait_request_condition request_walks_equal "$REQUEST_HOME" 1 \
+      || fail "$entry did not publish after both cooldowns elapsed"
+    wait_request_condition request_is_idle "$REQUEST_HOME" || fail "$entry drain did not finish"
+  done
+done
+pass "future timestamps cannot mask valid cooldowns in the drain or locked worker"
+
+# Allow worker startup before bounding the fixture's deliberate 30-second stall.
+for result in success failure timeout; do
+  REQUEST_HOME=$(request_fixture "restart-$result")
+  case "$result" in
+    failure)
+      : > "$REQUEST_HOME/state/fail"
+      printf '{}\n' > "$REQUEST_HOME/state/home-summary.json"
+      printf '0\n' > "$REQUEST_HOME/state/ledger-time"
+      ;;
+    timeout) : > "$REQUEST_HOME/state/delay" ;;
+  esac
+  FM_TEST_REQUEST_TIMEOUT=5 run_request_writer "$REQUEST_HOME" 30 --request \
+    || fail "$result request failed"
+  wait_request_condition request_walks_equal "$REQUEST_HOME" 1 \
+    || fail "$result producer did not start"
+  wait_request_condition request_is_idle "$REQUEST_HOME" \
+    || fail "$result drain did not finish"
+  if [ "$result" = success ]; then
+    mv "$REQUEST_HOME/state/home-summary.json" "$REQUEST_HOME/state/previous-ledger.json"
+  fi
+  FM_TEST_REQUEST_TIMEOUT=5 run_request_writer "$REQUEST_HOME" 30 --request \
+    || fail "$result successor request failed"
+  wait_request_condition test -e "$REQUEST_HOME/state/.home-summary-drain.lock" \
+    || fail "$result successor drain did not start"
+  sleep 1
+  request_walks_equal "$REQUEST_HOME" 1 \
+    || fail "$result drain exit discarded the publication cooldown"
+  printf '0\n' > "$REQUEST_HOME/state/.home-summary-attempt"
+  wait_request_condition request_walks_equal "$REQUEST_HOME" 2 \
+    || fail "$result successor did not publish when due"
+  wait_request_condition request_is_idle "$REQUEST_HOME" \
+    || fail "$result successor drain did not finish"
+  if [ "$result" = timeout ]; then
+    timeout_report=$(run_bootstrap_detect "$REQUEST_HOME")
+    assert_contains "$timeout_report" '2 failed attempt(s)' "drain timeouts did not reach the bootstrap diagnostic"
+    assert_contains "$timeout_report" 'refresh exceeded its 5-second deadline' "drain timeout reason was not recorded"
+    python3 - "$REQUEST_HOME/state/.home-summary-refresh.log" \
+      "$REQUEST_HOME/state/.home-summary-attempt" <<'PY' || fail "drain failure lost its attempt ordering"
+from datetime import datetime, timezone
+from pathlib import Path
+import sys
+
+last_failure = Path(sys.argv[1]).read_text().splitlines()[-1]
+stamp = last_failure.split("]", 1)[0][1:]
+failure_epoch = datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
+attempt_epoch = int(Path(sys.argv[2]).read_text())
+if failure_epoch > attempt_epoch:
+    raise SystemExit("timeout was stamped after the publication attempt")
+PY
+  fi
+done
+pass "successful, failed, and timed-out attempts retain cooldown across drain exit"
+
+REQUEST_HOME=$(request_fixture signal)
+: > "$REQUEST_HOME/state/signal"
+run_request_writer "$REQUEST_HOME" 30 --request || fail "signaled request failed"
+wait_request_condition request_walks_equal "$REQUEST_HOME" 1 || fail "signaled producer did not start"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "signaled drain did not finish"
+signal_report=$(run_bootstrap_detect "$REQUEST_HOME" 1)
+assert_contains "$signal_report" '1 failed attempt(s)' "drain signal did not reach the bootstrap diagnostic"
+assert_contains "$signal_report" 'refresh worker failed with exit 143' "drain signal reason was not recorded"
+pass "drain timeout and signal failures reach the bounded bootstrap diagnostic"
+
+REQUEST_HOME=$(request_fixture busy)
+printf 'wait\n' > "$REQUEST_HOME/state/hold"
+run_request_writer "$REQUEST_HOME" 1 &
+SLOW_WRITER_PID=$!
+wait_request_condition test -e "$REQUEST_HOME/state/producer-started" \
+  || fail "synchronous publication did not start"
+printf 'after\n' > "$REQUEST_HOME/state/event"
+run_request_writer "$REQUEST_HOME" 1 --request || fail "busy publication request failed"
+sleep 2
+[ -e "$REQUEST_HOME/state/.home-summary-dirty" ] \
+  || fail "a busy publication discarded its pending request"
+request_walks_equal "$REQUEST_HOME" 1 || fail "a request overlapped the synchronous publication"
+printf 'release\n' > "$REQUEST_HOME/state/hold"
+wait "$SLOW_WRITER_PID" || fail "synchronous publication failed"
+SLOW_WRITER_PID=
+wait_request_condition request_walks_equal "$REQUEST_HOME" 2 \
+  || fail "the pending request did not publish after lock release"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "busy publication drain did not finish"
+jq -e '.state == "after"' "$REQUEST_HOME/state/home-summary.json" >/dev/null \
+  || fail "the pending event was absent from the ledger"
+pass "a request survives an older synchronous publication and publishes its own event"
+
+REQUEST_HOME=$(request_fixture handoff)
+: > "$REQUEST_HOME/state/handoff-armed"
+run_request_writer "$REQUEST_HOME" 1 --request || fail "handoff request failed"
+wait_request_condition test -e "$REQUEST_HOME/state/handoff-fired" \
+  || fail "the request did not arrive during drain shutdown"
+wait_request_condition request_walks_equal "$REQUEST_HOME" 2 \
+  || fail "a request during drain shutdown was stranded"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "handoff drain did not finish"
+jq -e '.state == "after"' "$REQUEST_HOME/state/home-summary.json" >/dev/null \
+  || fail "the shutdown request was absent from the ledger"
+pass "a request arriving during drain shutdown is published without another trigger"
