@@ -1,0 +1,320 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+
+exit=0
+$ bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+/tmp/fml.5RMykt
+
+exit=0
+$ tmux -L fm-lab new-session -d -s primary -x 140 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+
+exit=0
+$ tmux -L fm-lab set-option -g default-command '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab display-message -p '#{socket_path}'
+/private/tmp/fml.5RMykt/tmux-501/fm-lab
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project init -q -b main
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project add readme.txt
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project -c user.name=Test -c user.email=test@example.invalid commit -qm fixture
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project worktree add -q -b worker /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/worker
+
+exit=0
+
+SCENARIO: Mismatched canonical and named raw ship/scout spawns refuse before provisioning
+$ tmux -L fm-lab list-windows -a -F '#{window_id}'
+@0
+
+exit=0
+$ bin/fm-spawn.sh r3-ship-pair /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project --harness grok --model grok-4.7 --effort medium --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+
+exit=1
+$ bin/fm-spawn.sh r3-ship-raw /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project 'grok --always-approve --model grok-4.7 --reasoning-effort medium' --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+
+exit=1
+$ bin/fm-spawn.sh r3-scout-pair /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project --harness grok --model grok-4.7 --effort medium --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+
+exit=1
+$ bin/fm-spawn.sh r3-scout-raw /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project 'grok --always-approve --model grok-4.7 --reasoning-effort medium' --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+
+exit=1
+$ tmux -L fm-lab list-windows -a -F '#{window_id}'
+@0
+
+exit=0
+Observed: all four refusals print the configured pair; no task record or endpoint was provisioned.
+$ tmux -L fm-lab new-window -d -t primary -n fm-r3-worker -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/worker codex
+
+exit=0
+$ tmux -L fm-lab capture-pane -p -t primary:fm-r3-worker
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+
+SCENARIO: Ambiguous relaunch prints alternatives and preserves the running CLI
+$ tmux -L fm-lab display-message -p -t primary:fm-r3-worker '#{pane_pid} #{pane_current_command}'
+86774 node
+
+exit=0
+$ bin/fm-control.sh r3-worker relaunch --note 'Isolated validation'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+error: config/crew-dispatch.json is active - relaunch of r3-worker on codex gpt-5 medium matches no dispatch profile for codex, and the file names more than one pair for that harness (gpt-5 high, gpt-5 xhigh); resolve one pair at intake rather than guessing
+
+exit=1
+$ tmux -L fm-lab display-message -p -t primary:fm-r3-worker '#{pane_pid} #{pane_current_command}'
+86774 node
+
+exit=0
+Observed: original real CLI pane process unchanged, task record byte-identical, no relaunch journal. CLI is at its login screen, not authenticated.
+
+SCENARIO: Malformed JSON preserves the running CLI and prints jq and read diagnostics
+$ tmux -L fm-lab display-message -p -t primary:fm-r3-worker '#{pane_pid} #{pane_current_command}'
+86774 node
+
+exit=0
+$ bin/fm-control.sh r3-worker relaunch --note 'Isolated validation'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+jq: parse error: Unfinished JSON term at EOF at line 2, column 0
+error: config/crew-dispatch.json is active - could not read its dispatch profiles for harness codex; fix the file rather than spawning around it
+
+exit=1
+$ tmux -L fm-lab display-message -p -t primary:fm-r3-worker '#{pane_pid} #{pane_current_command}'
+86774 node
+
+exit=0
+Observed: original real CLI pane process unchanged, task record byte-identical, no relaunch journal. CLI is at its login screen, not authenticated.
+
+SCENARIO: Unknown adopted effort refuses before the running CLI stops
+$ tmux -L fm-lab display-message -p -t primary:fm-r3-worker '#{pane_pid} #{pane_current_command}'
+86774 node
+
+exit=0
+$ bin/fm-control.sh r3-worker relaunch --note 'Isolated validation'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+dispatch profile: relaunch of r3-worker adopts the dispatch file pair for codex (gpt-5 typo) over the recorded gpt-5 medium
+error: dispatch profile for codex has invalid effort 'typo'; expected default, low, medium, high, xhigh, max, ultra
+
+exit=1
+$ tmux -L fm-lab display-message -p -t primary:fm-r3-worker '#{pane_pid} #{pane_current_command}'
+86774 node
+
+exit=0
+Observed: original real CLI pane process unchanged, task record byte-identical, no relaunch journal. CLI is at its login screen, not authenticated.
+
+SCENARIO: Missing jq prints only its dependency diagnostic and preserves the task
+$ bin/fm-control.sh r3-worker relaunch --note 'Missing jq validation'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+error: another lifecycle action is already running for task r3-worker
+
+exit=1
+CHECK FAILED: fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+error: another lifecycle action is already running for task r3-worker
+
+
+SCENARIO: A raw command on an unnamed harness starts a real process
+$ bin/fm-spawn.sh r3-unnamed /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project 'sleep 120' --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+spawned r3-unnamed harness=sleep kind=scout window=primary:fm-r3-unnamed worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/pool/.treehouse/project-5b4d57/1/project
+
+exit=0
+window=primary:fm-r3-unnamed
+endpoint_task_id=r3-unnamed
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/pool/.treehouse/project-5b4d57/1/project
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project
+harness=sleep
+kind=scout
+tasktmp=/tmp/fm-r3-unnamed
+model=default
+effort=default
+spawn_gen=s1792674628.99914.14726
+$ tmux -L fm-lab capture-pane -p -t primary:fm-r3-unnamed
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/pool/.treehouse/project
+-5b4d57/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/pool/.treehouse/project-5b4d5
+7/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-r3-unnamed/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=r3-unnamed
+bash-3.2$ . '/tmp/fm-r3-unnamed+fe0a1ef77428c8c78a2a1a2dbb6481749d28318512d228c720dc76d47ea65130/launch.s1792674628.99914.14726.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ tmux -L fm-lab display-message -p -t primary:fm-r3-unnamed '#{pane_current_command}'
+sleep
+
+exit=0
+
+SCENARIO: A named raw command without a dispatch file executes normally
+$ bin/fm-spawn.sh r3-nofile /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/project 'grok --version' --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+spawned r3-nofile harness=grok kind=scout window=primary:fm-r3-nofile worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/pool/.treehouse/project-5b4d57/2/project
+
+exit=0
+$ tmux -L fm-lab capture-pane -p -S -40 -t primary:fm-r3-nofile
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/pool/.treehouse/project
+-5b4d57/2/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/pool/.treehouse/project-5b4d5
+7/2/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-r3-nofile/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=r3-nofile
+bash-3.2$ . '/tmp/fm-r3-nofile+fe0a1ef77428c8c78a2a1a2dbb6481749d28318512d228c720dc76d47ea65130/launch.s1792674636.15313.32360.sh'
+grok 1.0.67 (2fe064390d07)
+bash-3.2$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ claude auth status
+{
+  "loggedIn": false,
+  "authMethod": "none",
+  "apiProvider": "firstParty",
+  "analyticsDisabled": false,
+  "projectsDirectory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/claude/projects",
+  "configDirectory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/claude"
+}
+
+exit=1
+$ grok models
+You are not authenticated.
+
+Default model: grok-4.6
+
+Available models:
+  * grok-4.6 (default)
+  - grok-4.5
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/secondmate init -q -b main
+
+exit=0
+$ bin/fm-spawn.sh r3-secondmate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/secondmate 'grok --version' --secondmate
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/secondmate
+
+exit=1
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-live2/lab
+
+exit=0
+Cleanup: the isolated tmux server is stopped. Disposable directories are removed by the phase cleanup.

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Mismatched canonical and named raw ship/scout spawns refuse before provisioning",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Ambiguous relaunch prints alternatives and preserves the running CLI",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Malformed JSON preserves the running CLI and prints jq and read diagnostics",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Unknown adopted effort refuses before the running CLI stops",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Missing jq prints only its dependency diagnostic and preserves the task",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A raw command on an unnamed harness starts a real process",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A named raw command without a dispatch file executes normally",
+    "result": "pass",
+    "live": true
+  }
+]

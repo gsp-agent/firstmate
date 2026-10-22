@@ -1,0 +1,122 @@
+$ bin/fm-lab-home.sh create /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/lab
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/lab
+
+exit=0
+$ bin/fm-lab-home.sh tmux-dir /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/lab
+/tmp/fml.qlR1xJ
+
+exit=0
+$ tmux -L fm-lab new-session -d -s primary -x 140 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab set-option -g default-shell /bin/bash
+
+exit=0
+$ tmux -L fm-lab set-option -g default-command '/bin/bash --noprofile --norc'
+
+exit=0
+$ tmux -L fm-lab display-message -p '#{socket_path}'
+/private/tmp/fml.qlR1xJ/tmux-501/fm-lab
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/project init -q -b main
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/project add readme.txt
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/project -c user.name=Test -c user.email=test@example.invalid commit -qm fixture
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/project worktree add -q -b worker /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/worker
+
+exit=0
+$ tmux -L fm-lab new-window -d -t primary -n fm-r3-worker -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/worker codex
+
+exit=0
+$ tmux -L fm-lab capture-pane -p -t primary:fm-r3-worker
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+
+SCENARIO: Missing jq prints only its dependency diagnostic and preserves the task
+$ bin/fm-control.sh r3-worker relaunch --note 'Missing jq validation'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/lab
+error: config/crew-dispatch.json is active - jq is required to read its dispatch profiles for harness codex
+
+exit=1
+$ claude auth status
+{
+  "loggedIn": false,
+  "authMethod": "none",
+  "apiProvider": "firstParty",
+  "analyticsDisabled": false,
+  "projectsDirectory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/claude/projects",
+  "configDirectory": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/claude"
+}
+
+exit=1
+$ grok models
+You are not authenticated.
+
+Default model: grok-4.6
+
+Available models:
+  * grok-4.6 (default)
+  - grok-4.5
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/secondmate init -q -b main
+
+exit=0
+$ bin/fm-spawn.sh r3-secondmate /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/secondmate 'grok --version' --secondmate
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/lab
+error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/secondmate
+
+exit=1
+$ tmux -L fm-lab kill-server
+
+exit=0
+$ bin/fm-lab-home.sh teardown /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-missing/lab
+
+exit=0
+Cleanup: the isolated tmux server is stopped. Disposable directories are removed by the phase cleanup.

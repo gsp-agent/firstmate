@@ -1,0 +1,7 @@
+[
+  {
+    "name": "Missing jq prints only its dependency diagnostic and preserves the task",
+    "result": "pass",
+    "live": true
+  }
+]

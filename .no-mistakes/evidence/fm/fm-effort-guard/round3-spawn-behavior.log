@@ -1,0 +1,12 @@
+FM_TEST_BEGIN 2026-10-22T13:09:35Z tests/.phase-fm-spawn-dispatch-profile.test.sh family=unclassified expected_gate_skip=none
+ok - named raw ship and scout launches refuse before provisioning, even with matching profile flags
+ok - dispatch profile refuses the heru-sj4-livecheck pair grok grok-4.7 medium against the file pair xhigh
+ok - dispatch profile allows the matching grok grok-4.7 xhigh pair
+ok - dispatch profile leaves a harness it never names untouched
+ok - dispatch profile leaves secondmate spawns untouched even on a mismatched pair
+ok - active crew-dispatch profile allows raw launches on unnamed harnesses
+ok - raw named harness launches preserve no-file and secondmate exemptions
+FM_TEST_END 2026-10-22T13:11:03Z tests/.phase-fm-spawn-dispatch-profile.test.sh exit=0 duration_ms=88208 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=89026
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=88208 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/.phase-fm-spawn-dispatch-profile.test.sh duration_ms=88208
