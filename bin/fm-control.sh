@@ -989,6 +989,13 @@ resolve_relaunch_profile() {
     dispatch_effort=${dispatch_effort%%$'\n'*}
     [ -z "$dispatch_model" ] || TARGET_MODEL=$dispatch_model
     [ -z "$dispatch_effort" ] || TARGET_EFFORT=$dispatch_effort
+    if [ "$TARGET_EFFORT" = ultra ]; then
+      "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1
+    fi
+    account_model=$TARGET_MODEL
+    [ "$account_model" != default ] || account_model=
+    fm_worker_account_select "$TARGET_HARNESS" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
+      "$account_model" "$TARGET_HARNESS" >/dev/null || return 1
   fi
 }
 
@@ -1144,9 +1151,8 @@ do_relaunch() {
   # per-task harness wiring before arming the new one, so nothing to do here.
   RELAUNCH_TX="${BASHPID:-$$}.$(date -u +%Y%m%dT%H%M%SZ).$RANDOM"
   journal_write launching "${CHECKPOINT_LINES[@]}" "$note_line" "relaunch_tx=$RELAUNCH_TX"
-  spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS")
-  [ "$TARGET_MODEL" = default ] || spawn_args+=(--model "$TARGET_MODEL")
-  [ "$TARGET_EFFORT" = default ] || spawn_args+=(--effort "$TARGET_EFFORT")
+  spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS"
+    --model "$TARGET_MODEL" --effort "$TARGET_EFFORT")
   if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then
     RELAUNCH_META_PUBLISHED=1

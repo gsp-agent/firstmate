@@ -1018,8 +1018,12 @@ if [ "$TRACEPARENT_SET" -eq 1 ]; then
     exit 1
   }
 fi
+if [ "$RELAUNCH" -eq 0 ] && { [ "$MODEL" = default ] || [ "$EFFORT" = default ]; }; then
+  echo "error: default model or effort resets require --relaunch" >&2
+  exit 1
+fi
 case "$EFFORT" in
-'' | low | medium | high | xhigh | max | ultra) ;;
+'' | default | low | medium | high | xhigh | max | ultra) ;;
 *)
   echo "error: --effort must be one of low, medium, high, xhigh, max, ultra" >&2
   exit 1
@@ -2397,31 +2401,17 @@ enforce_dispatch_profile() {
     echo "error: config/crew-dispatch.json is active - raw launch command for $HARNESS requires the canonical --harness $HARNESS launch with a dispatch profile (file: $pretty); pass the file pair for this harness with --model and --effort" >&2
     exit 1
   fi
+  eff_model=${MODEL:-default}
+  eff_effort=${EFFORT:-default}
   if [ "$RELAUNCH" -eq 1 ]; then
-    if [ "$MODEL_SET" -eq 1 ]; then
-      eff_model=$MODEL
-    elif [ "$HARNESS_SET" -eq 1 ] && [ "$HARNESS" != "$RELAUNCH_PRIOR_HARNESS" ]; then
-      eff_model=default
-    else
-      eff_model=$RELAUNCH_RECORDED_MODEL
-    fi
-    if [ "$EFFORT_SET" -eq 1 ]; then
-      eff_effort=$EFFORT
-    elif [ "$HARNESS_SET" -eq 1 ] && [ "$HARNESS" != "$RELAUNCH_PRIOR_HARNESS" ]; then
-      eff_effort=default
-    else
-      eff_effort=$RELAUNCH_RECORDED_EFFORT
-    fi
     resolved=$(fm_dispatch_relaunch_decide "$ID" "$HARNESS" "$eff_model" "$eff_effort" "$pairs") || exit 1
     resolved_model=${resolved%%$'\n'*}
     resolved_effort=${resolved#*$'\n'}
     resolved_effort=${resolved_effort%%$'\n'*}
-    if [ "$resolved_model" = default ]; then MODEL=; else MODEL=$resolved_model; fi
-    if [ "$resolved_effort" = default ]; then EFFORT=; else EFFORT=$resolved_effort; fi
+    MODEL=$resolved_model
+    EFFORT=$resolved_effort
     return 0
   fi
-  eff_model=${MODEL:-default}
-  eff_effort=${EFFORT:-default}
   while IFS="$(printf '\t')" read -r model effort; do
     if [ "$model" = "$eff_model" ] && [ "$effort" = "$eff_effort" ]; then
       return 0
@@ -2854,11 +2844,18 @@ case "$ARG3" in
   ;;
 esac
 
+if [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" = "$RELAUNCH_PRIOR_HARNESS" ]; then
+  [ "$MODEL_SET" -eq 1 ] || MODEL=$RELAUNCH_RECORDED_MODEL
+  [ "$EFFORT_SET" -eq 1 ] || EFFORT=$RELAUNCH_RECORDED_EFFORT
+fi
+
 # Pair half of the consultation backstop, on the fully resolved harness,
 # model, and effort and before any endpoint or worktree provisioning. The
 # deterministic Cursor fallback below is exempt once it fires, because it
 # already prints its own reason and records it.
 enforce_dispatch_profile
+[ "$MODEL" != default ] || MODEL=
+[ "$EFFORT" != default ] || EFFORT=
 
 # Apply the quota-file fallback owned by bin/fm-cursor-guard.sh; its header
 # defines freshness, credit-room eligibility, and fallback selection.

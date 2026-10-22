@@ -1276,6 +1276,201 @@ test_relaunch_journal_records_the_adopted_dispatch_pair() {
   pass "fm-control relaunch: the journal records the dispatch pair the replacement launched"
 }
 
+test_relaunch_validates_the_adopted_profile_before_the_agent_stops() {
+  local dir out rc check id
+  for check in pin effort; do
+    id="rl-adopt-$check"
+    dir=$(new_case "dispatch-$check" "$id")
+    add_ship_task "$dir" "$id" pi
+    printf 'model=anthropic/claude-sonnet-4-6\neffort=high\n' >> "$dir/home/state/$id.meta"
+    printf pi > "$dir/fake/command"
+    printf pi > "$dir/fake/becomes"
+    cat > "$dir/fakebin/pi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = auth ]; then
+  printf '%s\n' '{"status":"ready"}'
+else
+  printf 'Options: --tui-mode\n'
+fi
+SH
+    chmod +x "$dir/fakebin/pi"
+    mkdir -p "$dir/home/config" "$dir/account"
+    printf '%s\n' "$dir/account" anthropic > "$dir/home/config/pi-account"
+    if [ "$check" = pin ]; then
+      printf '%s\n' '{"default":{"harness":"pi","model":"codex-native/gpt-6-astra","effort":"high"}}'
+    else
+      printf '%s\n' '{"default":{"harness":"pi","model":"anthropic/claude-sonnet-4-6","effort":"ultra"}}'
+    fi > "$dir/home/config/crew-dispatch.json"
+    cp "$dir/home/state/$id.meta" "$dir/meta-before"
+    out=$(run_control "$dir" "$id" relaunch --note "validate the adopted pair"); rc=$?
+    expect_code 1 "$rc" "an invalid adopted $check must refuse before stopping: $out"
+    assert_contains "$out" "adopts the dispatch file pair" "the recorded profile did not reach dispatch adoption"
+    if [ "$check" = pin ]; then
+      assert_contains "$out" "names provider 'codex-native'" "the adopted provider must fail the account pin"
+    else
+      assert_contains "$out" "ultra effort requires pi or pi-signed" "the adopted effort must fail native validation"
+    fi
+    [ "$(cat "$dir/fake/command")" = pi ] || fail "invalid adopted $check stopped the running worker"
+    [ ! -s "$dir/fake/literal" ] || fail "invalid adopted $check sent lifecycle input"
+    [ ! -e "$dir/home/state/$id.control-relaunch" ] || fail "invalid adopted $check wrote a relaunch journal"
+    cmp -s "$dir/meta-before" "$dir/home/state/$id.meta" || fail "invalid adopted $check changed the task record"
+  done
+  pass "fm-control relaunch: adopted profiles pass account and native-effort checks before stopping"
+}
+
+test_relaunch_preserves_explicit_default_resets() {
+  local dir out rc reset id model effort literal
+  local -a reset_args
+  for reset in both model effort adopted; do
+    id="rl-reset-$reset"
+    dir=$(new_case "dispatch-reset-$reset" "$id")
+    add_ship_task "$dir" "$id" grok
+    printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+    mkdir -p "$dir/home/config"
+    printf '%s\n' '{"default":[{"harness":"grok"},{"harness":"grok","effort":"xhigh"},{"harness":"grok","model":"grok-4.7"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"}]}' \
+      > "$dir/home/config/crew-dispatch.json"
+    model=grok-4.7 effort=xhigh
+    case "$reset" in
+      both) reset_args=(--model default --effort default); model=default effort=default ;;
+      model) reset_args=(--model=default); model=default ;;
+      effort) reset_args=(--effort=default); effort=default ;;
+      adopted)
+        reset_args=(--model default --effort default)
+        printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}' \
+          > "$dir/home/config/crew-dispatch.json"
+        ;;
+    esac
+    printf grok > "$dir/fake/command"
+    printf grok > "$dir/fake/becomes"
+    out=$(run_control "$dir" "$id" relaunch "${reset_args[@]}" --note "reset $reset"); rc=$?
+    expect_code 0 "$rc" "a $reset reset should relaunch on the resolved pair: $out"
+    [ "$(cat "$dir/fake/command")" = grok ] || fail "$reset reset left no replacement running"
+    [ "$(journal_field "$dir" "$id" phase)" = complete ] || fail "$reset reset did not complete"
+    [ "$(journal_field "$dir" "$id" to_model)" = "$model" ] || fail "$reset reset journal lost the model"
+    [ "$(journal_field "$dir" "$id" to_effort)" = "$effort" ] || fail "$reset reset journal lost the effort"
+    [ "$(meta_field "$dir" "$id" model)" = "$model" ] || fail "$reset reset restored the recorded model"
+    [ "$(meta_field "$dir" "$id" effort)" = "$effort" ] || fail "$reset reset restored the recorded effort"
+    assert_contains "$out" "model=$model effort=$effort" "the result must report the resolved pair"
+    literal=$(cat "$dir/fake/literal")
+    assert_not_contains "$literal" "'default'" "a reset token reached the launch command"
+    if [ "$model" = default ]; then
+      assert_not_contains "$literal" "--model " "a model reset must omit the harness flag"
+    else
+      assert_contains "$literal" "--model '$model'" "a reset lost the resolved model flag"
+    fi
+    if [ "$effort" = default ]; then
+      assert_not_contains "$literal" "--reasoning-effort " "an effort reset must omit the harness flag"
+    else
+      assert_contains "$literal" "--reasoning-effort '$effort'" "a reset lost the resolved effort flag"
+    fi
+  done
+  pass "fm-control relaunch: full and partial default resets preserve the resolved pair through launch"
+}
+
+test_relaunch_refuses_unmatched_partial_resets_before_stopping() {
+  local dir out rc axis id
+  for axis in model effort; do
+    id="rl-partial-$axis"
+    dir=$(new_case "dispatch-partial-$axis" "$id")
+    add_ship_task "$dir" "$id" grok
+    printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+    mkdir -p "$dir/home/config"
+    printf '%s\n' '{"default":[{"harness":"grok"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"}]}' \
+      > "$dir/home/config/crew-dispatch.json"
+    printf grok > "$dir/fake/command"
+    printf grok > "$dir/fake/becomes"
+    cp "$dir/home/state/$id.meta" "$dir/meta-before"
+    out=$(run_control "$dir" "$id" relaunch "--$axis" default --note "refuse unmatched reset"); rc=$?
+    expect_code 1 "$rc" "an unmatched $axis reset must refuse: $out"
+    assert_contains "$out" "matches no dispatch profile" "the partial reset must reach pair matching"
+    assert_contains "$out" "default default" "the refusal must list the default pair"
+    assert_contains "$out" "grok-4.7 xhigh" "the refusal must list the concrete pair"
+    [ "$(cat "$dir/fake/command")" = grok ] || fail "unmatched $axis reset stopped the worker"
+    [ ! -s "$dir/fake/literal" ] || fail "unmatched $axis reset sent lifecycle input"
+    [ ! -e "$dir/home/state/$id.control-relaunch" ] || fail "unmatched $axis reset wrote a journal"
+    cmp -s "$dir/meta-before" "$dir/home/state/$id.meta" || fail "unmatched $axis reset changed the record"
+  done
+  pass "fm-control relaunch: unmatched partial resets refuse before stopping the worker"
+}
+
+test_relaunch_default_resets_without_named_dispatch_profiles() {
+  local dir out rc config id literal
+  for config in absent unnamed; do
+    id="rl-exempt-$config"
+    dir=$(new_case "reset-$config" "$id")
+    add_ship_task "$dir" "$id" grok
+    printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+    if [ "$config" = unnamed ]; then
+      mkdir -p "$dir/home/config"
+      printf '%s\n' '{"default":{"harness":"codex","model":"gpt-6-astra","effort":"xhigh"}}' \
+        > "$dir/home/config/crew-dispatch.json"
+    fi
+    printf grok > "$dir/fake/command"
+    printf grok > "$dir/fake/becomes"
+    out=$(run_control "$dir" "$id" relaunch --model default --effort default --note "reset without a named pair"); rc=$?
+    expect_code 0 "$rc" "resets should work with $config dispatch profiles: $out"
+    [ "$(meta_field "$dir" "$id" model)" = default ] || fail "$config dispatch reset lost the default model"
+    [ "$(meta_field "$dir" "$id" effort)" = default ] || fail "$config dispatch reset lost the default effort"
+    [ "$(journal_field "$dir" "$id" to_model)" = default ] || fail "$config dispatch journal lost the default model"
+    [ "$(journal_field "$dir" "$id" to_effort)" = default ] || fail "$config dispatch journal lost the default effort"
+    literal=$(cat "$dir/fake/literal")
+    assert_not_contains "$literal" "'default'" "an exempt reset token reached the launch command"
+    assert_not_contains "$literal" "--model " "an exempt model reset must omit the flag"
+    assert_not_contains "$literal" "--reasoning-effort " "an exempt effort reset must omit the flag"
+  done
+  pass "fm-control relaunch: defaults reset with an absent dispatch file or an unnamed harness"
+}
+
+test_spawn_relaunch_without_profile_flags_inherits_the_recorded_pair() {
+  local dir out rc config id literal
+  for config in named absent unnamed; do
+    id="rl-inherit-$config"
+    dir=$(new_case "inherit-$config" "$id")
+    add_ship_task "$dir" "$id" grok
+    printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+    mkdir -p "$dir/home/config"
+    case "$config" in
+      named)
+        printf '%s\n' '{"default":[{"harness":"grok"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"}]}' \
+          > "$dir/home/config/crew-dispatch.json"
+        ;;
+      unnamed)
+        printf '%s\n' '{"default":{"harness":"codex","model":"gpt-6-astra","effort":"xhigh"}}' \
+          > "$dir/home/config/crew-dispatch.json"
+        ;;
+    esac
+    printf zsh > "$dir/fake/command"
+    printf grok > "$dir/fake/becomes"
+    out=$(run_spawn "$dir" "$id" --relaunch); rc=$?
+    expect_code 0 "$rc" "an omitted profile should inherit with $config dispatch profiles: $out"
+    [ "$(meta_field "$dir" "$id" model)" = grok-4.7 ] || fail "$config dispatch lost the inherited model"
+    [ "$(meta_field "$dir" "$id" effort)" = xhigh ] || fail "$config dispatch lost the inherited effort"
+    literal=$(cat "$dir/fake/literal")
+    assert_contains "$literal" "--model 'grok-4.7'" "the launch lost the inherited model"
+    assert_contains "$literal" "--reasoning-effort 'xhigh'" "the launch lost the inherited effort"
+  done
+  pass "fm-spawn --relaunch: omitted profile flags keep the recorded pair"
+}
+
+test_spawn_rejects_fresh_default_resets_and_empty_profile_values() {
+  local dir out rc axis
+  for axis in model effort; do
+    dir=$(new_case "invalid-reset-$axis" "rl-invalid-$axis")
+    out=$(run_spawn "$dir" "rl-invalid-$axis" "$dir/proj" --scout --harness grok "--$axis" default); rc=$?
+    expect_code 1 "$rc" "a fresh --$axis default must refuse"
+    assert_contains "$out" "resets require --relaunch" "a fresh default reset must name the relaunch restriction"
+    out=$(run_spawn "$dir" "rl-invalid-$axis" --relaunch "--$axis" ''); rc=$?
+    expect_code 1 "$rc" "an empty --$axis value must refuse"
+    assert_contains "$out" "--$axis requires a non-empty value" "an empty profile value was accepted"
+    out=$(run_spawn "$dir" "rl-invalid-$axis" --relaunch "--$axis="); rc=$?
+    expect_code 1 "$rc" "an empty --$axis= value must refuse"
+    assert_contains "$out" "--$axis requires a non-empty value" "an empty equals profile value was accepted"
+    [ ! -s "$dir/fake/literal" ] || fail "an invalid $axis value sent lifecycle input"
+    [ ! -e "$dir/home/state/rl-invalid-$axis.meta" ] || fail "an invalid $axis value published a task record"
+  done
+  pass "fm-spawn: default resets require relaunch and empty profile values remain illegal"
+}
+
 test_relaunch_refuses_an_unreadable_dispatch_file_before_the_agent_stops() {
   local dir out rc
   dir=$(new_case dispatchbad rl47)
@@ -2689,6 +2884,12 @@ test_spawn_relaunch_adopts_the_single_dispatch_pair
 test_spawn_relaunch_refuses_when_the_file_offers_two_pairs
 test_relaunch_refuses_an_ambiguous_dispatch_pair_before_the_agent_stops
 test_relaunch_journal_records_the_adopted_dispatch_pair
+test_relaunch_validates_the_adopted_profile_before_the_agent_stops
+test_relaunch_preserves_explicit_default_resets
+test_relaunch_refuses_unmatched_partial_resets_before_stopping
+test_relaunch_default_resets_without_named_dispatch_profiles
+test_spawn_relaunch_without_profile_flags_inherits_the_recorded_pair
+test_spawn_rejects_fresh_default_resets_and_empty_profile_values
 test_relaunch_refuses_an_unreadable_dispatch_file_before_the_agent_stops
 test_spawn_relaunch_of_promoted_scout_uses_the_recorded_branch
 test_promoted_scout_relaunch_receives_the_current_delivery_contract
