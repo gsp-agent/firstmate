@@ -395,6 +395,9 @@ for s in "${CANDIDATES[@]}"; do
   [ -f "$s" ] || die "candidate not found: $s"
 done
 
+# shellcheck source=bin/fm-timeout-lib.sh
+. "$ROOT/bin/fm-timeout-lib.sh"
+
 enter_machine_line "$ROOT/bin/fm-test-isolation-proof.sh" ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}
 
 PROOF_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/fm-isolation-proof.XXXXXX")
@@ -416,6 +419,13 @@ printf 'FM_ISOLATION_BEGIN %s concurrency=%s candidates=%s\n' \
 declare -a WORKER_PIDS=()
 declare -a WORKER_IDX=()
 ACTIVE_WORKERS=0
+
+stop_when_owner_gone() {
+  kill -0 "$RUN_OWNER_PID" 2>/dev/null && return 0
+  log "the runner the caller launched (pid $RUN_OWNER_PID) is gone; starting no further candidates"
+  wait
+  exit 143
+}
 
 wait_one_slot() {
   local slot=$1 pid idx work rc duration script mode gate_skip
@@ -478,6 +488,7 @@ worker_pid_is_running() {
 wait_one_completed_slot() {
   local slot work
   while :; do
+    stop_when_owner_gone
     for slot in "${!WORKER_PIDS[@]}"; do
       work="$PROOF_ROOT/w${WORKER_IDX[$slot]}"
       if [ -f "$work/out/exit" ] || ! worker_pid_is_running "${WORKER_PIDS[$slot]}"; then
@@ -508,6 +519,7 @@ for script in "${CANDIDATES[@]}"; do
     *) die "failed to create mode-0700 TMPDIR at $work/tmp (mode=$mode)" ;;
   esac
 
+  stop_when_owner_gone
   printf 'FM_ISOLATION_CANDIDATE_BEGIN %s %s worker=%s\n' \
     "$(now_iso)" "$script" "$idx"
 
@@ -520,7 +532,8 @@ for script in "${CANDIDATES[@]}"; do
       FM_PROJECTS_OVERRIDE FM_CONFIG_OVERRIDE FM_BACKEND 2>/dev/null || true
     cd "$ROOT" || exit 1
     begin_ms=$(now_ms)
-    bash "$script" >"$work/out/output" 2>&1
+    (FM_EXEC_TIMED_OWNER_PID=$RUN_OWNER_PID
+      fm_exec_timed 315360000 10 bash "$script") >"$work/out/output" 2>&1
     rc=$?
     end_ms=$(now_ms)
     duration=$((end_ms - begin_ms))

@@ -61,6 +61,90 @@ exit 0
 SH
 chmod +x "$FAKEBIN/tmux" "$FAKEBIN/no-mistakes"
 
+python3 - "$ROOT" "$TMP_ROOT" "$FAKEBIN" <<'PY' || fail "watcher refresh cleanup failed"
+import os
+from pathlib import Path
+import shutil
+import signal
+import subprocess
+import sys
+import time
+
+root, tmp, fakebin = map(Path, sys.argv[1:])
+code = tmp / "refresh-cleanup-code" / "bin"
+code.mkdir(parents=True)
+for helper in (root / "bin").iterdir():
+    if helper.name not in ("fm-watch.sh", "fm-home-summary-refresh.sh"):
+        (code / helper.name).symlink_to(helper)
+shutil.copy2(root / "bin/fm-watch.sh", code / "fm-watch.sh")
+writer = code / "fm-home-summary-refresh.sh"
+writer.write_text('''#!/usr/bin/env bash
+printf '%s\\n' "$$" > "$FM_HOME/state/refresh.pid"
+[ "${FM_TEST_REFRESH_COMPLETES:-0}" = 0 ] || exit 0
+exec sleep 60
+''')
+writer.chmod(0o755)
+
+def wait_for(predicate, message):
+    for _ in range(600):
+        if predicate():
+            return
+        time.sleep(0.1)
+    raise AssertionError(message)
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+
+for trigger in ("poll", "signal", "completed"):
+    home = tmp / ("refresh-cleanup-" + trigger)
+    state = home / "state"
+    for directory in (state, home / "data", home / "config"):
+        directory.mkdir(parents=True)
+    (home / "data/backlog.md").write_text("## In flight\n\n## Queued\n\n## Done\n")
+    if trigger == "signal":
+        (state / "task.meta").write_text("kind=scout\nharness=claude\nwindow=fmtest:task\n")
+        (state / "task.status").touch()
+    env = dict(os.environ, PATH=str(fakebin) + os.pathsep + os.environ["PATH"],
+               FM_ROOT_OVERRIDE=str(root), FM_HOME=str(home), FM_POLL="1",
+               FM_HOME_SUMMARY_INTERVAL="9999999" if trigger == "signal" else "1",
+               FM_TEST_REFRESH_COMPLETES="1" if trigger == "completed" else "0",
+               FM_SIGNAL_GRACE="0", FM_CHECK_INTERVAL="9999999", FM_HEARTBEAT="9999999")
+    refresh_pid = None
+    with (home / "watch.out").open("w") as out, (home / "watch.err").open("w") as err:
+        watcher = subprocess.Popen(["bash", str(code / "fm-watch.sh")], env=env,
+                                   stdout=out, stderr=err)
+        try:
+            def polled():
+                assert watcher.poll() is None, "watcher exited before polling: " + (home / "watch.err").read_text()
+                return (state / ".last-watcher-beat").exists()
+
+            wait_for(polled, "watcher never polled")
+            if trigger == "signal":
+                (state / "task.status").write_text("blocked [key=fixture]: fixture dependency\n")
+            wait_for(lambda: (state / "refresh.pid").exists() and (state / "refresh.pid").stat().st_size,
+                     trigger + " never started a refresh")
+            refresh_pid = int((state / "refresh.pid").read_text())
+            if trigger == "completed":
+                wait_for(lambda: not alive(refresh_pid), "completed refresh did not exit")
+            if trigger != "signal":
+                watcher.terminate()
+            watcher.wait(timeout=120)
+            assert not alive(refresh_pid), trigger + " refresh outlived its watcher"
+        except Exception as error:
+            raise AssertionError(str(error) + "\n" + (home / "watch.err").read_text()) from error
+        finally:
+            if watcher.poll() is None:
+                watcher.kill()
+            watcher.wait()
+            if refresh_pid and alive(refresh_pid):
+                os.kill(refresh_pid, signal.SIGKILL)
+PY
+pass "watcher cleanup reaps polling, signal-batch, and completed refreshes"
+
 mkdir -p "$HOME_DIR/state" "$HOME_DIR/data" "$HOME_DIR/config" \
   "$HOME_DIR/projects/task" "$HOME_DIR/bin"
 HOME_DIR=$(cd "$HOME_DIR" && pwd -P)

@@ -11,6 +11,124 @@ RUNNER="$ROOT/bin/fm-test-run.sh"
 assert_present "$PROOF" "bin/fm-test-isolation-proof.sh is missing"
 [ -x "$PROOF" ] || fail "bin/fm-test-isolation-proof.sh must be executable"
 
+test_owner_death_stops_candidates() {
+  local tmp
+  tmp=$(fm_test_tmproot fm-proof-owner)
+  python3 - "$ROOT" "$tmp" <<'PY' || fail "isolation proof survived its owner"
+import os
+from pathlib import Path
+import shutil
+import signal
+import subprocess
+import sys
+import time
+
+root, tmp = map(Path, sys.argv[1:])
+repo = tmp / "repo"
+(repo / "bin").mkdir(parents=True)
+(repo / "tests").mkdir()
+for name in ("fm-test-isolation-proof.sh", "fm-test-machine-line-lib.sh", "fm-timeout-lib.sh"):
+    shutil.copy2(root / "bin" / name, repo / "bin" / name)
+runner = repo / "bin/fm-test-run.sh"
+runner.write_text('''#!/usr/bin/env bash
+for ((i=1; i<=PROOF_CANDIDATE_COUNT; i++)); do
+  printf 'tests/candidate-%s.test.sh\\n' "$i"
+done
+''')
+runner.chmod(0o755)
+for i in range(1, 4):
+    (repo / ("tests/candidate-%d.test.sh" % i)).write_text('''#!/usr/bin/env bash
+sleep 120 &
+child=$!
+printf '%s\\n' "$PPID" "$$" "$child" > "$PROOF_OWNER_EVIDENCE/'''+str(i)+'''.pids"
+wait "$child"
+''')
+gate = tmp / "gate.sh"
+gate.write_text('''#!/usr/bin/env bash
+shift 4
+printf '%s\\n' "$$" > "$PROOF_OWNER_EVIDENCE/gate.pid"
+if [ "$PROOF_DEFER_ENTRY" = 1 ]; then
+  : > "$PROOF_OWNER_EVIDENCE/ready"
+  while [ ! -e "$PROOF_OWNER_EVIDENCE/enter" ]; do sleep 0.05; done
+fi
+"$@" &
+child=$!
+printf '%s\\n' "$child" > "$PROOF_OWNER_EVIDENCE/scheduler.pid"
+wait "$child"
+printf '%s\\n' "$?" > "$PROOF_OWNER_EVIDENCE/released"
+''')
+gate.chmod(0o755)
+
+def wait_for(predicate, message):
+    for _ in range(600):
+        if predicate():
+            return
+        time.sleep(0.1)
+    raise AssertionError(message)
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+
+for name, jobs, count, gated, deferred in (
+    ("before-launch", 1, 3, True, True),
+    ("serial-slot", 1, 3, True, False),
+    ("parallel-slot", 2, 3, True, False),
+    ("final-drain", 2, 1, True, False),
+    ("direct", 2, 3, False, False),
+):
+    evidence = tmp / name
+    evidence.mkdir()
+    env = dict(os.environ, PROOF_OWNER_EVIDENCE=str(evidence),
+               PROOF_CANDIDATE_COUNT=str(count), PROOF_DEFER_ENTRY=str(int(deferred)),
+               FM_TEST_MACHINE_GATE=str(gate) if gated else "")
+    for key in ("FM_TEST_MACHINE_LINE_HELD", "FM_TEST_MACHINE_LINE_ADMITTED",
+                "FM_TEST_MACHINE_LINE_OWNER_PID"):
+        env.pop(key, None)
+    with (evidence / "out").open("w") as out, (evidence / "err").open("w") as err:
+        owner = subprocess.Popen([str(repo / "bin/fm-test-isolation-proof.sh"),
+                                  "--pool", "fixture", "--jobs", str(jobs)],
+                                 env=env, stdout=out, stderr=err)
+        try:
+            if deferred:
+                wait_for(lambda: (evidence / "ready").exists(), name + " gate never started")
+            else:
+                def started():
+                    assert owner.poll() is None, name + " proof exited before starting candidates"
+                    records = [evidence / (str(i) + ".pids") for i in range(1, min(jobs, count) + 1)]
+                    return all(record.exists() and len(record.read_text().split()) == 3 for record in records)
+
+                wait_for(started, name + " candidates never started")
+            owner.kill()
+            owner.wait()
+            if deferred:
+                (evidence / "enter").touch()
+            if gated:
+                wait_for(lambda: (evidence / "released").exists(), name + " retained the machine line")
+                assert (evidence / "released").read_text().strip() == "143", name + " exit was not cancellation"
+            expected = set() if deferred else {str(i) + ".pids" for i in range(1, min(jobs, count) + 1)}
+            assert {p.name for p in evidence.glob("*.pids")} == expected, name + " launched another candidate"
+            for record in evidence.glob("*.pids"):
+                for pid in map(int, record.read_text().split()[1:]):
+                    wait_for(lambda pid=pid: not alive(pid), name + " left a candidate process alive")
+        except Exception as error:
+            raise AssertionError(str(error) + "\n" + (evidence / "err").read_text()) from error
+        finally:
+            if owner.poll() is None:
+                owner.kill()
+            owner.wait()
+            for record in (evidence / "scheduler.pid", evidence / "gate.pid", *evidence.glob("*.pids")):
+                if record.exists():
+                    for pid in map(int, record.read_text().split()):
+                        if alive(pid):
+                            os.kill(pid, signal.SIGKILL)
+PY
+  pass "owner death stops proof admission, active candidates, and the final drain"
+}
+
 test_unknown_pool_is_refused() {
   local tmp rc
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-isolation-proof-pool.XXXXXX")
@@ -34,7 +152,7 @@ test_family_pool_json_identifies_admission() {
   capped_json="$tmp/capped-proof.json"
   skipped_json="$tmp/skipped-proof.json"
   mkdir -p "$repo/bin" "$repo/tests"
-  cp "$PROOF" "$ROOT/bin/fm-test-machine-line-lib.sh" "$repo/bin/"
+  cp "$PROOF" "$ROOT/bin/fm-test-machine-line-lib.sh" "$ROOT/bin/fm-timeout-lib.sh" "$repo/bin/"
   cat >"$repo/bin/fm-test-run.sh" <<'SH'
 #!/usr/bin/env bash
 if { [ "$1" = --list ] || [ "$1" = --list-scheduled ]; } && [ "$2" = --family ]; then
@@ -286,6 +404,7 @@ test_fixture_repo_branch_is_pinned() {
   pass "fixture repositories pin their initial branch to main"
 }
 
+test_owner_death_stops_candidates
 test_unknown_pool_is_refused
 test_family_pool_json_identifies_admission
 test_list_candidates_nonempty_and_stable

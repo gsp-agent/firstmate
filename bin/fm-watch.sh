@@ -2663,6 +2663,13 @@ watcher_cleanup() {
     fi
   fi
   fm_active_check_stop || cleanup_status=1
+  if [ -n "$HOME_SUMMARY_PID" ]; then
+    if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
+      kill "$HOME_SUMMARY_PID" 2>/dev/null || true
+    fi
+    wait "$HOME_SUMMARY_PID" 2>/dev/null || true
+    HOME_SUMMARY_PID=
+  fi
   fm_check_output_cleanup
   fm_capture_output_cleanup
   fm_custom_check_snapshot_cleanup
