@@ -1,0 +1,2 @@
+MISSING: no-mistakes (install: curl -fsSL https://raw.githubusercontent.com/kunchenguid/no-mistakes/main/docs/install.sh | sh)
+HOME_SUMMARY: this home has never published state/home-summary.json; 2 failed attempt(s) recorded in state/.home-summary-refresh.log, last: refresh exceeded its 5-second deadline

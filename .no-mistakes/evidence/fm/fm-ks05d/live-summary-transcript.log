@@ -1,0 +1,61 @@
+$ FM_HOME=live/main fm-home-summary-refresh.sh --request => exit 0 (0.297s)
+$ FM_HOME=live/main fm-home-summary-refresh.sh --request => exit 0 (0.234s)
+$ FM_HOME=live/main fm-home-summary-refresh.sh --request => exit 0 (0.326s)
+$ FM_HOME=live/main fm-home-summary-refresh.sh --request => exit 0 (0.314s)
+$ FM_HOME=live/main fm-home-summary-refresh.sh --request => exit 0 (0.044s)
+MAIN REQUEST: five requests left state empty; no producer, ledger, mark, or drain.
+$ FM_HOME=live/main fm-home-summary-refresh.sh  => exit 0 (2.898s)
+published direct-main-ledger: {"schema": "fm-secondmate-home-summary.v1", "generated_epoch": 1792681200, "valid": true, "state": "no_active_work", "counts": {"active_children": 0, "decisions_open": 0, "holds": 0, "queued": 0, "landed": 0, "endpoints": 0}}
+DIRECT: synchronous ledger exactly equals real producer output; permissions 0600.
+$ FM_HOME=live/burst fm-home-summary-refresh.sh --request => exit 0 (0.568s)
+$ FM_HOME=live/burst fm-home-summary-refresh.sh --request => exit 0 (0.362s)
+$ FM_HOME=live/burst fm-home-summary-refresh.sh --request => exit 0 (0.459s)
+$ FM_HOME=live/burst fm-home-summary-refresh.sh --request => exit 0 (0.865s)
+$ FM_HOME=live/burst fm-home-summary-refresh.sh --request => exit 0 (1.240s)
+$ FM_HOME=live/burst fm-home-summary-refresh.sh --request => exit 0 (1.256s)
+$ FM_HOME=live/burst fm-home-summary-refresh.sh --request => exit 0 (1.304s)
+$ FM_HOME=live/burst fm-home-summary-refresh.sh --request => exit 0 (1.586s)
+$ FM_HOME=live/burst fm-home-summary-refresh.sh --request => exit 0 (0.674s)
+BURST: eight distinct requests exposed exactly one generation [('2026-10-22T15:00:00Z', 1792681200)]; in-interval request retained the mark and prior ledger.
+published coalesced-latest-event: {"schema": "fm-secondmate-home-summary.v1", "generated_epoch": 1792681320, "valid": true, "state": "no_active_work", "counts": {"active_children": 0, "decisions_open": 0, "holds": 0, "queued": 1, "landed": 0, "endpoints": 0}}
+$ FM_HOME=live/future-ledger fm-home-summary-refresh.sh  => exit 0 (3.959s)
+$ FM_HOME=live/future-ledger fm-home-summary-refresh.sh --request => exit 0 (0.936s)
+$ FM_HOME=live/future-ledger fm-home-summary-refresh.sh --_request-worker => exit 0 (0.751s)
+FUTURE LEDGER: drain and locked worker both retained valid independent cooldown and pending mark.
+FUTURE LEDGER: after both timestamps aged, real publication completed.
+$ FM_HOME=live/future-attempt fm-home-summary-refresh.sh  => exit 0 (2.896s)
+$ FM_HOME=live/future-attempt fm-home-summary-refresh.sh --request => exit 0 (0.389s)
+$ FM_HOME=live/future-attempt fm-home-summary-refresh.sh --_request-worker => exit 0 (0.983s)
+FUTURE ATTEMPT: drain and locked worker both retained valid independent cooldown and pending mark.
+FUTURE ATTEMPT: after both timestamps aged, real publication completed.
+$ FM_HOME=live/timeouts fm-home-summary-refresh.sh --request => exit 0 (0.648s)
+$ FM_HOME=live/timeouts5 fm-home-summary-refresh.sh --request => exit 0 (0.601s)
+$ FM_HOME=live/timeouts5 fm-home-summary-refresh.sh --request => exit 0 (0.406s)
+TIMEOUT RESTART: successor drain retained persisted attempt cooldown, with mark pending and no second attempt.
+$ FM_HOME=live/timeouts5 fm-home-summary-refresh.sh --request => exit 0 (0.351s)
+REAL DRAIN FAILURES:
+[2026-10-22T10:48:00Z] refresh exceeded its 5-second deadline
+[2026-10-22T10:48:07Z] refresh exceeded its 5-second deadline
+TIMEOUTS: two real 3000-record publications were bounded, logged with attempt ordering, and left no partial ledger.
+BOOTSTRAP: HOME_SUMMARY: this home has never published state/home-summary.json; 2 failed attempt(s) recorded in state/.home-summary-refresh.log, last: refresh exceeded its 5-second deadline
+LIVE SCENARIOS COMPLETED
+$ FM_HOME=live/busy fm-home-summary-refresh.sh --request => exit 0 (1.571s)
+BUSY: pending request survived two seconds while a real synchronous writer retained the refresh lock; no competing publisher acquired it.
+published busy-pending-event: {"schema": "fm-secondmate-home-summary.v1", "generated_epoch": 1792666196, "valid": true, "state": "no_active_work", "counts": {"active_children": 0, "decisions_open": 0, "holds": 0, "queued": 1, "landed": 0, "endpoints": 0}}
+$ FM_HOME=live/busy fm-home-summary-refresh.sh --request => exit 0 (0.703s)
+$ FM_HOME=live/busy fm-home-summary-refresh.sh --request => exit 0 (3.185s)
+$ FM_HOME=live/busy fm-home-summary-refresh.sh --request => exit 0 (0.273s)
+$ FM_HOME=live/busy fm-home-summary-refresh.sh --request => exit 0 (0.313s)
+$ FM_HOME=live/busy fm-home-summary-refresh.sh --request => exit 0 (0.351s)
+published handoff-final-event: {"schema": "fm-secondmate-home-summary.v1", "generated_epoch": 1792666221, "valid": true, "state": "no_active_work", "counts": {"active_children": 0, "decisions_open": 0, "holds": 0, "queued": 1, "landed": 0, "endpoints": 0}}
+HANDOFF STRESS: five successive events around publication/cleanup all reached the real ledger, including the final event without another trigger. Deterministic exact-boundary coverage remains in the regression script.
+$ FM_HOME=live/signaled fm-home-summary-refresh.sh --request => exit 0 (0.684s)
+REAL DRAIN SIGNAL: [2026-10-22T10:50:25Z] refresh worker failed with exit 143
+LIVE RACE SCENARIOS COMPLETED
+PARENT READER: real fleet snapshot consumed the coalesced local ledger and surfaced latest-event in its queued work; no session or backend fixtures.
+$ FM_HOME=live/watcher fm-home-summary-refresh.sh  => exit 0 (4.116s)
+published watcher-coalesced-event: {"schema": "fm-secondmate-home-summary.v1", "generated_epoch": 1792666393, "valid": true, "state": "no_active_work", "counts": {"active_children": 0, "decisions_open": 0, "holds": 0, "queued": 1, "landed": 0, "endpoints": 0}}
+WATCHER: real monitoring loop automatically published a backlog-only change through the request drain; private unused tmux directory selected, no fleet session touched.
+$ FM_HOME=live/stale-lock fm-home-summary-refresh.sh --best-effort => exit 0 (4.989s)
+published recovered-stale-lock: {"schema": "fm-secondmate-home-summary.v1", "generated_epoch": 1792666914, "valid": true, "state": "no_active_work", "counts": {"active_children": 0, "decisions_open": 0, "holds": 0, "queued": 0, "landed": 0, "endpoints": 0}}
+STALE LOCK: after killing the real lock-owning process, a direct best-effort publication recovered the lock and published successfully.

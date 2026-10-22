@@ -1,0 +1,6 @@
+ok - duplicate secondmate preflight leaves trace-context unchanged
+ok - relaunch reuses the recorded carrier verbatim for both the meta record and the injected export
+ok - session start freezes the env override and later config or environment edits do not alter spawns
+sed: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEEJBFTMC18N0RBFS5569B/.test-phase/tmp/fm-trace-context-spawn.U0mgcT/2level-enable/sm/state/w-enable.meta: No such file or directory
+not ok - env-on/file-absent must keep the nested worker enabled (got '')
+

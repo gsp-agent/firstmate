@@ -1,0 +1,7 @@
+window=fmtest:fm-restart-task
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEEJBFTMC18N0RBFS5569B/.test-phase/tmp/fm-home-summary-refresh.Aw941N/restart-home/projects/task
+project=firstmate
+harness=claude
+kind=ship
+mode=no-mistakes
+spawn_gen=fm.restart123456

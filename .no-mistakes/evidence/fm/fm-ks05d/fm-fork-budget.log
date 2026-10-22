@@ -1,0 +1,4 @@
+ok - main-home requests fork no producer and leave no mark
+ok - secondmate request burst coalesces to one publication
+ok - in-interval request defers to one publication per interval
+fm-fork-budget: all assertions passed

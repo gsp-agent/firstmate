@@ -1,0 +1,5 @@
+ok - two-level: env-on/file-absent keeps the nested worker enabled, rooting its own per-task trace
+ok - two-level: env-off/file-present keeps the nested worker disabled even though the config file was copied into the secondmate home
+ok - two unrelated routed tasks through one persistent Secondmate root distinct traces, adopt nothing from its environment, and keep per-task identity across relaunch
+ok - secondmate carrier and FM_TRACE_CONTEXT snapshot always agree, both derived from one frozen decision (file-decided path)
+# all fm-trace-context-spawn tests passed

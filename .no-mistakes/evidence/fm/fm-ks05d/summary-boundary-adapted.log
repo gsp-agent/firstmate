@@ -1,0 +1,23 @@
+ok - watcher-carried status append publishes the real home summary
+ok - many-task summary preserves bounded output, duplicate metadata, and keyed status text
+ok - large backlog snapshots and home-summary publication stay within exec limits
+ok - fleet snapshot transport does not require or mutate operational state
+ok - parent snapshot consumes large child ledgers without argument transport
+ok - live watcher cadence bounds publication staleness without signals
+ok - fleet snapshot consumes the published local ledger by default
+ok - writer kill and replacement preserve an atomic JSON ledger
+ok - best-effort publication logs and continues
+Terminated: 15             sleep 0.1
+Terminated: 15             sleep 0.1
+ok - best-effort refresh bounds publication lock acquisition
+ok - best-effort refresh bounds validation and publication
+ok - best-effort refresh bounds state initialization
+/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEEJBFTMC18N0RBFS5569B/bin/fm-timeout-lib.sh: child setpgid (15530 to 15530): Operation not permitted
+ok - best-effort refresh logs worker termination
+ok - best-effort refresh bounds failure reporting fallback
+ok - valid publication ignores an unavailable failure record
+ok - publication completes on a home carrying accumulated status history
+ok - producer skips remote per-task state probes
+ok - a stalled publication does not delay the watcher liveness beacon
+not ok - watcher restart queued refreshes behind a live publication lock: [2026-10-22T10:57:17Z] refresh exceeded its 2-second deadline
+[2026-10-22T10:57:22Z] refresh exceeded its 2-second deadline

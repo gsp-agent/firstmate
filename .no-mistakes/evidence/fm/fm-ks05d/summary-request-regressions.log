@@ -1,0 +1,11 @@
+ok - bootstrap scopes retained failures to the current publication
+Terminated: 15             sleep 0.1
+ok - failure records preserve refresh attempt ordering
+ok - repeated publication failure is reported at session start until it clears
+ok - a ledger in the current second defers publication for the interval
+ok - a strictly future ledger remains immediately due
+ok - future timestamps cannot mask valid cooldowns in the drain or locked worker
+ok - successful, failed, and timed-out attempts retain cooldown across drain exit
+ok - drain timeout and signal failures reach the bounded bootstrap diagnostic
+ok - a request survives an older synchronous publication and publishes its own event
+ok - a request arriving during drain shutdown is published without another trigger

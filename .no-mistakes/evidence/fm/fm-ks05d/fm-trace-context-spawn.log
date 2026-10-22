@@ -1,0 +1,8 @@
+ok - enabled: one resolved carrier is recorded in meta and the identical TRACEPARENT is exported before launch
+ok - disabled: neither traceparent= in meta nor a TRACEPARENT export is produced
+ok - failed TRACEPARENT delivery omits metadata while the source task still launches
+ok - uncleared TRACEPARENT input stops before the launch command is appended
+ok - failed traceparent metadata append removes the carrier from the launched task
+not ok - duplicate secondmate spawn should report the existing endpoint (missing: 'already exists')
+--- output ---
+error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEEJBFTMC18N0RBFS5569B/.test-phase/tmp/fm-trace-context-spawn.XB7x8W/duplicate-secondmate/sm
