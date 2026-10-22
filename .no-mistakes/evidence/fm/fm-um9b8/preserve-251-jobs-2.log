@@ -1,0 +1,27 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh --telemetry /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/preserve-251-jobs-2.tsv /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/reported.sh /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh
+Environment overrides: {"FM_LINT_JOBS": "2", "CAP_REPORTED_STATUS": "251"}
+Controlled ShellCheck workload; real fm-lint runner.
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/reported.sh reason=memory rc=251 duration_ms=194 rss_kib=17408
+shellcheck: Heap exhausted;
+fm-lint: /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/reported.sh FAILED at the memory cap (4194304 KiB); a capped root is a lint failure, not a pass
+Controlled workload completed: clean.sh
+
+{
+  "name": "preserve-251-jobs-2",
+  "result": "pass",
+  "exit": 251,
+  "seconds": 1.545,
+  "root_attempts": 2,
+  "external_timeout": false,
+  "survivors": [],
+  "errors": [],
+  "command": [
+    "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+    "--telemetry",
+    "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/preserve-251-jobs-2.tsv",
+    "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/reported.sh",
+    "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+  ]
+}

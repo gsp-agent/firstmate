@@ -1,0 +1,20 @@
+[
+  {
+    "mode": "memory",
+    "exit": 123,
+    "expected": 123,
+    "elapsed_seconds": 1.42,
+    "analysis_started": false,
+    "version_process_alive": false,
+    "passed": true
+  },
+  {
+    "mode": "time",
+    "exit": 124,
+    "expected": 124,
+    "elapsed_seconds": 1.456,
+    "analysis_started": false,
+    "version_process_alive": false,
+    "passed": true
+  }
+]

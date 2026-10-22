@@ -1,0 +1,16 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh
+Environment overrides: {"CAP_VERSION_BLOCK": "1", "FM_LINT_ROOT_MEMORY_KIB": "65536", "FM_LINT_ROOT_SECONDS": "1", "FM_LINT_ROOT_GRACE": "1"}
+Controlled ShellCheck workload; real fm-lint runner.
+
+PID PGID RSS_KiB ELAPSED COMMAND sampled at 3s:
+82222 82209 214048 00:03 /opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python
+
+{
+  "scenario": "version-measured",
+  "exit": -9,
+  "expected_exit": 123,
+  "elapsed_seconds": 6.099,
+  "external_timeout": true,
+  "survivors": [],
+  "result": "fail"
+}

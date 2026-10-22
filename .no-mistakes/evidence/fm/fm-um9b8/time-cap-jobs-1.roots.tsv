@@ -1,0 +1,21 @@
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	1
+meta	bounds_enforced	1
+meta	root_deadline_seconds	1
+meta	root_kill_grace_seconds	1
+meta	root_memory_limit_kib	4194304
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/hang.sh	0	full	1792675520092
+end	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/hang.sh	0	full	1792675520092	1792675521550	1458	124	timeout	unavailable	1
+begin	2	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh	1	full	1792675521730
+end	2	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh	1	full	1792675521730	1792675522176	446	0	ok	17488	1
+meta	roots_begun	2
+meta	roots_completed	2
+meta	roots_unfinished	0
+meta	result_exit	124

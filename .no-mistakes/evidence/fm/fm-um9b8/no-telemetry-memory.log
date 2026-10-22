@@ -1,0 +1,20 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/memory.sh
+Environment overrides: {"FM_LINT_ROOT_MEMORY_KIB": "65536", "FM_LINT_REQUIRE_BOUNDS": "0"}
+Controlled ShellCheck workload; real fm-lint runner.
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/memory.sh reason=memory rc=123 duration_ms=1466 rss_kib=215520
+fm_exec_timed: bash used 215520 KiB of memory, past its 65536 KiB cap; killed
+fm-lint: /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/memory.sh FAILED at the memory cap (65536 KiB); a capped root is a lint failure, not a pass
+
+PID PGID RSS_KiB ELAPSED COMMAND sampled at 3s:
+
+{
+  "scenario": "no-telemetry-memory",
+  "exit": 123,
+  "expected_exit": 123,
+  "elapsed_seconds": 2.161,
+  "external_timeout": false,
+  "survivors": [],
+  "result": "pass"
+}

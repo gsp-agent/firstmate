@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+if [ "${1:-}" = --version ]; then
+  printf '%s\n' "$$" > "$VERSION_PID"
+  printf 'ShellCheck - controlled adversarial version workload\nversion: 0.11.0\n'
+  case "$VERSION_MODE" in
+    memory) exec perl -e 'my $s = "x" x (128 * 1048576); sleep 5' ;;
+    time) exec sleep 5 ;;
+  esac
+fi
+printf 'analysis-started\n' >> "$ANALYSIS_LOG"

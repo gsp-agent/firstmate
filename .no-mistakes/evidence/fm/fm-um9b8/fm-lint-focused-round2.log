@@ -1,0 +1,9 @@
+ok - ShellCheck's version probe obeys the memory cap before file analysis
+ok - ShellCheck's version probe obeys the time cap before file analysis
+ok - jobs=1 and jobs=2 stop complete worker trees with and without telemetry
+ok - a root pinned at the wall deadline fails by name, reaps its tree, and leaves the sentinel alive
+ok - a root stopped at its memory cap fails by name, naming the cap
+ok - watchdog and heap memory failures retain their status without retrying in both worker modes
+ok - fm-lint refuses to run ShellCheck without its watchdog and lints once it has one
+ok - pinned ShellCheck lints under the default caps and a file past its memory cap fails by name
+ok - seeded dispatcher, adapter, production-owner, and test-local diagnostics preserve parity

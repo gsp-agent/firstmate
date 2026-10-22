@@ -1,0 +1,22 @@
+$ git cat-file -t 6cd03b3d
+fatal: Not a valid object name 6cd03b3d
+exit=128
+
+$ git show-ref --verify refs/heads/fm/fm-ojg69-refs-owner
+fatal: 'refs/heads/fm/fm-ojg69-refs-owner' - not a valid ref
+exit=128
+
+$ git show-ref --verify refs/remotes/origin/fm/fm-ojg69-refs-owner
+fatal: 'refs/remotes/origin/fm/fm-ojg69-refs-owner' - not a valid ref
+exit=128
+
+$ git branch -a --list *ojg69*
+  fm/fm-ojg69-drain
+  fm/fm-ojg69-drain-2
+  remotes/origin/fm/fm-ojg69-drain
+  remotes/origin/fm/fm-ojg69-drain-2
+exit=0
+
+$ GIT_TERMINAL_PROMPT=0 git ls-remote https://github.com/gsp-agent/firstmate.git refs/heads/fm/fm-ojg69-refs-owner
+(no matching advertised branch)
+exit=0

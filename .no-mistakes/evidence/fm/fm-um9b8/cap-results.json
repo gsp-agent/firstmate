@@ -1,0 +1,206 @@
+[
+  {
+    "name": "control-default-caps",
+    "result": "pass",
+    "exit": 0,
+    "seconds": 8.755,
+    "root_attempts": 2,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/control-default-caps.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/memory.sh"
+    ]
+  },
+  {
+    "name": "memory-cap-jobs-1",
+    "result": "pass",
+    "exit": 123,
+    "seconds": 3.962,
+    "root_attempts": 2,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/memory-cap-jobs-1.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/memory.sh",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  },
+  {
+    "name": "time-cap-jobs-1",
+    "result": "pass",
+    "exit": 124,
+    "seconds": 3.781,
+    "root_attempts": 2,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/time-cap-jobs-1.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/hang.sh",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  },
+  {
+    "name": "preserve-123-jobs-1",
+    "result": "pass",
+    "exit": 123,
+    "seconds": 2.566,
+    "root_attempts": 2,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/preserve-123-jobs-1.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/reported.sh",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  },
+  {
+    "name": "preserve-251-jobs-1",
+    "result": "pass",
+    "exit": 251,
+    "seconds": 3.398,
+    "root_attempts": 2,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/preserve-251-jobs-1.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/reported.sh",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  },
+  {
+    "name": "memory-cap-jobs-2",
+    "result": "pass",
+    "exit": 123,
+    "seconds": 2.802,
+    "root_attempts": 2,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/memory-cap-jobs-2.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/memory.sh",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  },
+  {
+    "name": "time-cap-jobs-2",
+    "result": "pass",
+    "exit": 124,
+    "seconds": 3.219,
+    "root_attempts": 2,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/time-cap-jobs-2.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/hang.sh",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  },
+  {
+    "name": "preserve-123-jobs-2",
+    "result": "pass",
+    "exit": 123,
+    "seconds": 3.836,
+    "root_attempts": 2,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/preserve-123-jobs-2.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/reported.sh",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  },
+  {
+    "name": "preserve-251-jobs-2",
+    "result": "pass",
+    "exit": 251,
+    "seconds": 1.545,
+    "root_attempts": 2,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/preserve-251-jobs-2.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/reported.sh",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  },
+  {
+    "name": "aggregate-process-group-memory",
+    "result": "pass",
+    "exit": 123,
+    "seconds": 3.227,
+    "root_attempts": 1,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/aggregate-process-group-memory.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/group.sh"
+    ]
+  },
+  {
+    "name": "missing-watchdog-refusal",
+    "result": "pass",
+    "exit": 2,
+    "seconds": 0.42,
+    "root_attempts": 0,
+    "external_timeout": false,
+    "survivors": [],
+    "errors": [],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/lone/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/missing-watchdog-refusal.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  },
+  {
+    "name": "version-invocation-cap",
+    "result": "fail",
+    "exit": -9,
+    "seconds": 4.051,
+    "root_attempts": 0,
+    "external_timeout": true,
+    "survivors": [],
+    "errors": [
+      "Runner exceeded external safety deadline of 4s; required cap did not stop it",
+      "Missing retained memory failure"
+    ],
+    "command": [
+      "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh",
+      "--telemetry",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/version-invocation-cap.tsv",
+      "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+    ]
+  }
+]

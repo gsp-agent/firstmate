@@ -1,0 +1,23 @@
+$ /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/lone/bin/fm-lint.sh --telemetry /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/missing-watchdog-refusal.tsv /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh
+Environment overrides: {}
+Controlled ShellCheck workload; real fm-lint runner.
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint.sh: bin/fm-timeout-lib.sh is missing beside fm-lint.sh, so no watchdog can cap ShellCheck; refusing to lint uncapped.
+
+{
+  "name": "missing-watchdog-refusal",
+  "result": "pass",
+  "exit": 2,
+  "seconds": 0.42,
+  "root_attempts": 0,
+  "external_timeout": false,
+  "survivors": [],
+  "errors": [],
+  "command": [
+    "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/lone/bin/fm-lint.sh",
+    "--telemetry",
+    "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/missing-watchdog-refusal.tsv",
+    "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"
+  ]
+}

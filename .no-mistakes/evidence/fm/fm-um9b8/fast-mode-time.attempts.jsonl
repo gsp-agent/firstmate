@@ -1,0 +1,2 @@
+{"pid": 80854, "args": ["--version"]}
+{"pid": 81285, "args": ["--norc", "--external-sources", "--extended-analysis=false", "--", "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/hang.sh"]}

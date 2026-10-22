@@ -1,0 +1,264 @@
+Product validation at 2026-10-22T13:41:24Z
+
+SCENARIO named-clean
+environment overrides: {}
+command: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh --telemetry /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/named-clean.tsv /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/clean.sh
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+exit=0 elapsed_seconds=18.23
+per-root records:
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	1
+meta	root_deadline_seconds	300
+meta	root_kill_grace_seconds	5
+meta	root_memory_limit_kib	4194304
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/clean.sh	0	full	1792676495093
+end	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/clean.sh	0	full	1792676495093	1792676500411	5318	0	ok	24256	1
+meta	roots_begun	1
+meta	roots_completed	1
+meta	roots_unfinished	0
+meta	result_exit	0
+
+SCENARIO named-finding
+environment overrides: {}
+command: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh --telemetry /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/named-finding.tsv /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/finding.sh
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+
+In /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/finding.sh line 2:
+printf "%s\n" $1
+              ^-- SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean:
+printf "%s\n" "$1"
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2086 -- Double quote to prevent globbing ...
+exit=1 elapsed_seconds=12.573
+per-root records:
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	1
+meta	root_deadline_seconds	300
+meta	root_kill_grace_seconds	5
+meta	root_memory_limit_kib	4194304
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/finding.sh	0	full	1792676507394
+end	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/finding.sh	0	full	1792676507394	1792676513904	6510	1	findings	24640	1
+meta	roots_begun	1
+meta	roots_completed	1
+meta	roots_unfinished	0
+meta	result_exit	1
+
+SCENARIO real-memory-cap
+environment overrides: {"FM_LINT_ROOT_MEMORY_KIB": "65536", "FM_LINT_ROOT_SECONDS": "30", "FM_LINT_ROOT_GRACE": "1"}
+command: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh --telemetry /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/real-memory-cap.tsv /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh reason=memory rc=123 duration_ms=15338 rss_kib=98016
+fm_exec_timed: bash used 98016 KiB of memory, past its 65536 KiB cap; killed
+fm-lint: /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh FAILED at the memory cap (65536 KiB); a capped root is a lint failure, not a pass
+exit=123 elapsed_seconds=30.787
+per-root records:
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	1
+meta	root_deadline_seconds	30
+meta	root_kill_grace_seconds	1
+meta	root_memory_limit_kib	65536
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh	0	full	1792676521148
+end	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh	0	full	1792676521148	1792676536486	15338	123	memory	98016	1
+meta	roots_begun	1
+meta	roots_completed	1
+meta	roots_unfinished	0
+meta	result_exit	123
+
+SCENARIO real-time-cap
+environment overrides: {"FM_LINT_ROOT_MEMORY_KIB": "2097152", "FM_LINT_ROOT_SECONDS": "1", "FM_LINT_ROOT_GRACE": "1"}
+command: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh --telemetry /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/real-time-cap.tsv /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh reason=timeout rc=124 duration_ms=2372 rss_kib=unavailable
+fm-lint: /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh FAILED at the time cap (1s per root); a capped root is a lint failure, not a pass
+exit=124 elapsed_seconds=11.623
+per-root records:
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	1
+meta	root_deadline_seconds	1
+meta	root_kill_grace_seconds	1
+meta	root_memory_limit_kib	2097152
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh	0	full	1792676552412
+end	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/heavy.sh	0	full	1792676552412	1792676554784	2372	124	timeout	unavailable	1
+meta	roots_begun	1
+meta	roots_completed	1
+meta	roots_unfinished	0
+meta	result_exit	124
+
+BEFORE incident roots:
+vm.swapusage: total = 9216.00M  used = 8038.00M  free = 1178.00M  (encrypted)
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                   259440.
+Pages active:                                3233974.
+Pages inactive:                              3229164.
+Pages speculative:                              2566.
+Pages throttled:                                   0.
+Pages wired down:                             803651.
+Pages purgeable:                               64840.
+"Translation faults":                   263857380971.
+Pages copy-on-write:                     66399909108.
+Pages zero filled:                       64150934111.
+Pages reactivated:                         770358450.
+Pages purged:                              163739427.
+File-backed pages:                           2151796.
+Anonymous pages:                             4313908.
+Pages stored in compressor:                  1621459.
+Pages occupied by compressor:                 782216.
+Decompressions:                            437682127.
+Compressions:                              539157756.
+Pageins:                                  3576279894.
+Pageouts:                                     219361.
+Swapins:                                     9750512.
+Swapouts:                                   14481310.
+
+
+SCENARIO incident-roots
+environment overrides: {}
+command: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh --telemetry /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/incident-roots.tsv bin/fm-task-data-lib.sh tests/fm-teardown.test.sh
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+exit=0 elapsed_seconds=242.178
+per-root records:
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	1
+meta	root_deadline_seconds	300
+meta	root_kill_grace_seconds	5
+meta	root_memory_limit_kib	4194304
+meta	timing_mechanism	perl
+begin	2	tests/fm-teardown.test.sh	0	full	1792676565912
+begin	1	bin/fm-task-data-lib.sh	1	full	1792676565913
+end	1	bin/fm-task-data-lib.sh	1	full	1792676565913	1792676697679	131766	0	ok	1002240	1
+end	2	tests/fm-teardown.test.sh	0	full	1792676565912	1792676799343	233431	0	ok	3443424	1
+meta	roots_begun	2
+meta	roots_completed	2
+meta	roots_unfinished	0
+meta	result_exit	0
+AFTER incident roots:
+vm.swapusage: total = 9216.00M  used = 8038.00M  free = 1178.00M  (encrypted)
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                   337190.
+Pages active:                                3096995.
+Pages inactive:                              3093336.
+Pages speculative:                              2333.
+Pages throttled:                                   0.
+Pages wired down:                            1005883.
+Pages purgeable:                               90716.
+"Translation faults":                   263951251994.
+Pages copy-on-write:                     66418725351.
+Pages zero filled:                       64188505762.
+Pages reactivated:                         770698903.
+Pages purged:                              163816088.
+File-backed pages:                           1877924.
+Anonymous pages:                             4314740.
+Pages stored in compressor:                  1614298.
+Pages occupied by compressor:                 775280.
+Decompressions:                            437699947.
+Compressions:                              539180326.
+Pageins:                                  3578614513.
+Pageouts:                                     219361.
+Swapins:                                     9750536.
+Swapouts:                                   14481310.
+
+
+SCENARIO minimal-source-growth
+environment overrides: {"FM_LINT_ROOT_MEMORY_KIB": "2097152", "FM_LINT_ROOT_SECONDS": "90", "FM_LINT_ROOT_GRACE": "1"}
+command: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh --telemetry /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/minimal-source-growth.tsv /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/l7.sh
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+fm-lint: end /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/l7.sh reason=memory rc=123 duration_ms=38992 rss_kib=2295456
+fm_exec_timed: bash used 2295456 KiB of memory, past its 2097152 KiB cap; killed
+fm-lint: /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/l7.sh FAILED at the memory cap (2097152 KiB); a capped root is a lint failure, not a pass
+exit=123 elapsed_seconds=40.329
+per-root records:
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	full
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	1
+meta	root_deadline_seconds	90
+meta	root_kill_grace_seconds	1
+meta	root_memory_limit_kib	2097152
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/l7.sh	0	full	1792676800912
+end	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/l7.sh	0	full	1792676800912	1792676839904	38992	123	memory	2295456	1
+meta	roots_begun	1
+meta	roots_completed	1
+meta	roots_unfinished	0
+meta	result_exit	123
+
+SCENARIO minimal-source-fast-control
+environment overrides: {"FM_LINT_ROOT_MEMORY_KIB": "2097152", "FM_LINT_ROOT_SECONDS": "30", "FM_LINT_ROOT_GRACE": "1"}
+command: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5HEFVZ2ZGARFBBBDTE72WAN/bin/fm-lint.sh --telemetry /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/minimal-source-fast-control.tsv --fast /Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/l7.sh
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: fast local mode; ShellCheck extended analysis disabled
+exit=0 elapsed_seconds=10.278
+per-root records:
+format	fm-lint-roots-v1
+meta	shellcheck_version	0.11.0
+meta	platform	Darwin arm64
+meta	image_os	unknown
+meta	image_version	unknown
+meta	mode	fast
+meta	partition	all
+meta	jobs	2
+meta	bounds_enforced	1
+meta	root_deadline_seconds	30
+meta	root_kill_grace_seconds	1
+meta	root_memory_limit_kib	2097152
+meta	timing_mechanism	perl
+begin	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/l7.sh	0	fast	1792676841609
+end	1	/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/lint-inputs-round2/l7.sh	0	fast	1792676841609	1792676850415	8806	0	ok	236656	1
+meta	roots_begun	1
+meta	roots_completed	1
+meta	roots_unfinished	0
+meta	result_exit	0
+All manual scenarios finished.

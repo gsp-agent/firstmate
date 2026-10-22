@@ -1,0 +1,10 @@
+Real fm-lint.sh with controlled external ShellCheck version workloads; synthetic dependency tests, not real ShellCheck workloads.
+
+$ FM_LINT_ROOT_SECONDS=10 FM_LINT_ROOT_MEMORY_KIB=65536 bin/fm-lint.sh clean.sh
+fm_exec_timed: shellcheck used 266128 KiB of memory, past its 65536 KiB cap; killed
+fm-lint.sh: ShellCheck --version FAILED at the memory cap (65536 KiB).
+{"mode": "memory", "exit": 123, "expected": 123, "elapsed_seconds": 1.42, "analysis_started": false, "version_process_alive": false, "passed": true}
+
+$ FM_LINT_ROOT_SECONDS=1 FM_LINT_ROOT_MEMORY_KIB=262144 bin/fm-lint.sh clean.sh
+fm-lint.sh: ShellCheck --version FAILED at the time cap (1s).
+{"mode": "time", "exit": 124, "expected": 124, "elapsed_seconds": 1.456, "analysis_started": false, "version_process_alive": false, "passed": true}

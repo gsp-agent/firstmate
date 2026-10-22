@@ -1,0 +1,3 @@
+{"pid": 84497, "args": ["--version"]}
+{"pid": 85475, "args": ["--norc", "--external-sources", "--", "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/hang.sh"]}
+{"pid": 87399, "args": ["--norc", "--external-sources", "--", "/Users/dalecarman/.no-mistakes/evidence/01M5HEFVZ2ZGARFBBBDTE72WAN/cap-fixtures/clean.sh"]}

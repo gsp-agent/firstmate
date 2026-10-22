@@ -1,0 +1,51 @@
+[
+  {
+    "name": "named-clean",
+    "exit": 0,
+    "expected": 0,
+    "elapsed_seconds": 18.23,
+    "passed": true
+  },
+  {
+    "name": "named-finding",
+    "exit": 1,
+    "expected": 1,
+    "elapsed_seconds": 12.573,
+    "passed": true
+  },
+  {
+    "name": "real-memory-cap",
+    "exit": 123,
+    "expected": 123,
+    "elapsed_seconds": 30.787,
+    "passed": true
+  },
+  {
+    "name": "real-time-cap",
+    "exit": 124,
+    "expected": 124,
+    "elapsed_seconds": 11.623,
+    "passed": true
+  },
+  {
+    "name": "incident-roots",
+    "exit": 0,
+    "expected": 0,
+    "elapsed_seconds": 242.178,
+    "passed": true
+  },
+  {
+    "name": "minimal-source-growth",
+    "exit": 123,
+    "expected": 123,
+    "elapsed_seconds": 40.329,
+    "passed": true
+  },
+  {
+    "name": "minimal-source-fast-control",
+    "exit": 0,
+    "expected": 0,
+    "elapsed_seconds": 10.278,
+    "passed": true
+  }
+]
