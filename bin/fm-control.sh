@@ -794,6 +794,7 @@ PRIOR_EFFORT=
 TARGET_HARNESS=$HARNESS
 TARGET_MODEL=
 TARGET_EFFORT=
+TARGET_ROUTE_FALLBACK=0
 
 journal_write() {  # <phase> [extra-line]...
   local phase=$1
@@ -966,9 +967,19 @@ resolve_relaunch_profile() {
   # handoff prevents spawn from selecting again against a changed file.
   if [ "$KIND" != secondmate ]; then
     local dispatch_pair dispatch_model dispatch_effort route
+    local fallback_model= fallback_effort=
+    if [ "$TARGET_HARNESS" = "$PRIOR_RECORDED_HARNESS" ] \
+        && [ "$(fm_meta_get "$META" route_fallback)" = 1 ]; then
+      fallback_model=$PRIOR_MODEL
+      fallback_effort=$PRIOR_EFFORT
+      if [ "$TARGET_MODEL" = "$fallback_model" ] && [ "$TARGET_EFFORT" = "$fallback_effort" ]; then
+        TARGET_ROUTE_FALLBACK=1
+      fi
+    fi
     dispatch_pair=$(fm_dispatch_relaunch_pair \
       "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
-      "$ID" "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT") || return 1
+      "$ID" "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" \
+      "$fallback_model" "$fallback_effort") || return 1
     dispatch_model=${dispatch_pair%%$'\n'*}
     dispatch_effort=${dispatch_pair#*$'\n'}
     dispatch_effort=${dispatch_effort%%$'\n'*}
@@ -987,6 +998,7 @@ resolve_relaunch_profile() {
     if [ "${route%% *}" != "$TARGET_HARNESS" ]; then
       echo "$TARGET_HARNESS fallback: relaunching $ID on the ${route%% *} harness (default model xhigh): ${route#* }" >&2
       TARGET_HARNESS=${route%% *} TARGET_MODEL=default TARGET_EFFORT=xhigh
+      TARGET_ROUTE_FALLBACK=1
     fi
   fi
   if [ "$TARGET_EFFORT" = ultra ]; then
@@ -1162,6 +1174,7 @@ do_relaunch() {
   spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS"
     --model "$TARGET_MODEL" --effort "$TARGET_EFFORT")
   if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
+      FM_CONTROL_ROUTE_FALLBACK="$TARGET_ROUTE_FALLBACK" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then
     RELAUNCH_META_PUBLISHED=1
     # $T was resolved from the record before the launch. When the recorded

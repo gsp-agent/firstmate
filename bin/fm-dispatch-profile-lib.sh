@@ -65,6 +65,7 @@ EOF
 # pair and prints the adoption notice on stderr. Any other mismatch refuses.
 fm_dispatch_relaunch_decide() {
   local id=$1 harness=$2 model=$3 effort=$4 pairs=$5
+  local fallback_model=${6:-} fallback_effort=${7:-}
   local pretty pair one_model one_effort count matched=0
   [ -n "$model" ] || model=default
   [ -n "$effort" ] || effort=default
@@ -77,7 +78,8 @@ fm_dispatch_relaunch_decide() {
   done <<EOF
 $pairs
 EOF
-  if [ "$matched" = 1 ]; then
+  if [ "$matched" = 1 ] \
+      || { [ "$model" = "$fallback_model" ] && [ "$effort" = "$fallback_effort" ]; }; then
     printf '%s\n' "$model"
     printf '%s\n' "$effort"
     return 0
@@ -110,5 +112,5 @@ fm_dispatch_relaunch_pair() {
     printf '%s\n' "$effort"
     return 0
   fi
-  fm_dispatch_relaunch_decide "$id" "$harness" "$model" "$effort" "$pairs"
+  fm_dispatch_relaunch_decide "$id" "$harness" "$model" "$effort" "$pairs" "${6:-}" "${7:-}"
 }

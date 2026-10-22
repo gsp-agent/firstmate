@@ -45,7 +45,7 @@ relaunch_cleanup() {
   for d in "${TASK_TMPS[@]:-}"; do
     [ -n "$d" ] && rm -rf "$d"
   done
-  rm -rf "$TMP_ROOT"
+  fm_test_remove_tree "$TMP_ROOT"
 }
 trap relaunch_cleanup EXIT
 
@@ -1750,7 +1750,7 @@ test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude() {
 }
 
 test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs() {
-  local dir out rc
+  local dir out rc route_fallback
   dir=$(new_case codexlimitpairs rl79)
   add_ship_task "$dir" rl79 codex
   codex_limit_session "$dir" rl79
@@ -1763,26 +1763,67 @@ test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs() {
   assert_contains "$out" "relaunched rl79 harness=claude from=codex" "the outcome should name the claude replacement"
   [ "$(meta_field "$dir" rl79 model)" = default ] || fail "the claude replacement should run the default model, got '$(meta_field "$dir" rl79 model)'"
   [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "the claude replacement should run at xhigh, got '$(meta_field "$dir" rl79 effort)'"
-  pass "fm-control relaunch: a usage-limit route to claude launches the fallback profile, exempt from the claude dispatch pairs as on a fresh spawn"
+  route_fallback=$(meta_field "$dir" rl79 route_fallback)
+  out=$(run_control "$dir" rl79 relaunch --note "continue on the fallback profile"); rc=$?
+  expect_code 0 "$rc" "an ordinary relaunch must keep the recorded fallback pair"$'\n'"$out"
+  assert_contains "$out" "relaunched rl79 harness=claude from=claude model=default effort=xhigh" "the next relaunch must keep the fallback profile"
+  [ "$route_fallback" = 1 ] || fail "the first routed launch must record its fallback profile"
+  [ "$(meta_field "$dir" rl79 harness)" = claude ] || fail "the next relaunch must keep claude"
+  [ "$(meta_field "$dir" rl79 model)" = default ] || fail "the next relaunch must keep the default model"
+  [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "the next relaunch must keep xhigh"
+  [ "$(meta_field "$dir" rl79 route_fallback)" = 1 ] || fail "keeping the fallback pair must carry its provenance"
+
+  out=$(run_control "$dir" rl79 relaunch --effort high --note "request an unmatched pair"); rc=$?
+  expect_code 1 "$rc" "fallback provenance must not exempt a different pair"$'\n'"$out"
+  assert_contains "$out" "matches no dispatch profile" "an unmatched change must still refuse"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "the unmatched change must not stop the agent"
+  [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "a refusal must keep the recorded fallback pair"
+
+  out=$(run_control "$dir" rl79 relaunch --model opus --effort high --note "choose a named profile"); rc=$?
+  expect_code 0 "$rc" "an explicit named pair must still relaunch"$'\n'"$out"
+  [ "$(meta_field "$dir" rl79 model)" = opus ] || fail "the explicit model must be recorded"
+  [ "$(meta_field "$dir" rl79 effort)" = high ] || fail "the explicit effort must be recorded"
+  [ -z "$(meta_field "$dir" rl79 route_fallback)" ] || fail "choosing another pair must clear fallback provenance"
+  pass "fm-control relaunch: a routed fallback pair survives the next relaunch and only that pair is exempt"
 }
 
 test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude() {
-  local dir out
+  local dir out rc
   dir=$(new_case codexmarked rl74)
   add_ship_task "$dir" rl74 codex
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":[{"harness":"codex"},{"harness":"claude","model":"sonnet","effort":"medium"}]}' \
+    > "$dir/home/config/crew-dispatch.json"
   printf 'codex run for rl74 hit its usage limit\n' > "$dir/home/state/rl74.codex-limit"
   printf 'zsh' > "$dir/fake/command"
   out=$(run_spawn "$dir" rl74 --relaunch)
   assert_contains "$out" "spawned rl74 harness=claude" "a marked codex task must relaunch on claude"$'\n'"$out"
   [ "$(meta_field "$dir" rl74 harness)" = claude ] || fail "the record should name claude, got '$(meta_field "$dir" rl74 harness)'"
   [ "$(meta_field "$dir" rl74 effort)" = xhigh ] || fail "the claude replacement should run at xhigh"
-  pass "fm-spawn --relaunch: a task marked by a codex usage limit relaunches on claude"
+  [ "$(meta_field "$dir" rl74 route_fallback)" = 1 ] || fail "the direct fallback must record its provenance"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl74 --relaunch); rc=$?
+  expect_code 0 "$rc" "the direct relaunch must keep its fallback pair"$'\n'"$out"
+  [ "$(meta_field "$dir" rl74 model)" = default ] || fail "a fallback pair must not adopt the file's single model"
+  [ "$(meta_field "$dir" rl74 effort)" = xhigh ] || fail "a fallback pair must not adopt the file's single effort"
+  [ "$(meta_field "$dir" rl74 route_fallback)" = 1 ] || fail "the direct relaunch must carry fallback provenance"
+
+  printf 'zsh' > "$dir/fake/command"
+  out=$(FM_CONTROL_ROUTE_FALLBACK=1 run_spawn "$dir" rl74 --relaunch --effort high); rc=$?
+  expect_code 0 "$rc" "a changed pair must still adopt the single file pair"$'\n'"$out"
+  [ "$(meta_field "$dir" rl74 model)" = sonnet ] || fail "the fallback must not count as another adoption candidate"
+  [ "$(meta_field "$dir" rl74 effort)" = medium ] || fail "the adopted effort must be recorded"
+  [ -z "$(meta_field "$dir" rl74 route_fallback)" ] || fail "adopting another pair must clear provenance and ignore an untrusted control handoff"
+  pass "fm-spawn --relaunch: fallback pairs survive relaunch and do not change single-pair adoption"
 }
 
 test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched() {
   local dir out rc
   dir=$(new_case cursorroute rl75)
   add_ship_task "$dir" rl75 cursor
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"review","use":{"harness":"codex","model":"gpt-5","effort":"high"}}],"default":[{"harness":"cursor"},{"harness":"codex","model":"gpt-5","effort":"medium"}]}' \
+    > "$dir/home/config/crew-dispatch.json"
   printf 'cursor-agent' > "$dir/fake/command"
   printf 'codex' > "$dir/fake/becomes"
   out=$(run_control "$dir" rl75 relaunch --note "cursor pool unknown"); rc=$?
@@ -1791,7 +1832,12 @@ test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched() {
   [ "$(meta_field "$dir" rl75 harness)" = codex ] || fail "the record should name codex, got '$(meta_field "$dir" rl75 harness)'"
   [ "$(journal_field "$dir" rl75 to_harness)" = codex ] || fail "the journal should name the harness actually launched, got '$(journal_field "$dir" rl75 to_harness)'"
   assert_contains "$(cat "$dir/home/state/rl75.cursor-fallback" 2>/dev/null)" "no Cursor spending file" "the fallback reason should be recorded"
-  pass "fm-control relaunch: a cursor task routed off cursor records the same harness in its record, journal, and outcome"
+  [ "$(meta_field "$dir" rl75 route_fallback)" = 1 ] || fail "the Cursor fallback must record its provenance"
+  out=$(run_control "$dir" rl75 relaunch --note "continue on codex"); rc=$?
+  expect_code 0 "$rc" "a Cursor fallback pair must remain eligible on codex"$'\n'"$out"
+  assert_contains "$out" "relaunched rl75 harness=codex from=codex model=default effort=xhigh" "the next relaunch must keep the Cursor fallback pair"
+  [ "$(meta_field "$dir" rl75 route_fallback)" = 1 ] || fail "the next relaunch must carry Cursor fallback provenance"
+  pass "fm-control relaunch: a cursor fallback records the actual harness and keeps its pair on the next relaunch"
 }
 
 test_explicit_override_of_a_cursor_task_is_recorded() {
@@ -3047,6 +3093,7 @@ SH
   pass "fm-control exit removes the dialog file before it releases the control lock"
 }
 
+test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
@@ -3101,7 +3148,6 @@ test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_session_binding_is_retired_on_a_harness_switch
 test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude
-test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs
 test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude
 test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched
 test_explicit_override_of_a_cursor_task_is_recorded
