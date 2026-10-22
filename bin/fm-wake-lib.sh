@@ -122,6 +122,36 @@ fm_path_age() {
   echo $(( now - m ))
 }
 
+# fm_pm_live_task <state> <task-id>: 0 when a live PM owns this task, proven
+# by the registration its own waiter keeps in state/.pm-live-<task-id>: a
+# `pid=` line naming a live process and a file refreshed within
+# FM_PM_LIVE_MAX_AGE seconds (default 180). The writer is whichever captain
+# process watches the task's status file directly (refreshed on every wait
+# slice and removed on exit); this library only reads the proof, and any
+# doubt - absent,
+# malformed, stale, or a dead pid - reads as no live PM, so the ordinary
+# main-owned routing stays in charge. Tasks with a live PM get their status
+# signals, stale wakes, and merged outcomes from that PM alone; waking main
+# for them too puts two agents on one task.
+fm_pm_live_task() {  # <state> <task-id>
+  local state=$1 task=$2 marker pid age max_age=${FM_PM_LIVE_MAX_AGE:-180}
+  case "$task" in ''|*[!A-Za-z0-9._-]*) return 1 ;; esac
+  case "$max_age" in ''|*[!0-9]*) max_age=180 ;; esac
+  marker="$state/.pm-live-$task"
+  [ -f "$marker" ] && [ ! -L "$marker" ] || return 1
+  pid=$(sed -n 's/^pid=//p' "$marker" 2>/dev/null | head -n 1)
+  case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+  age=$(fm_path_age "$marker")
+  case "$age" in ''|*[!0-9-]*) return 1 ;; esac
+  # Live means the waiter process still runs, or it returned within the
+  # freshness window and its captain has not re-armed it yet: a captain
+  # acts on a returned waiter before re-arming, and that gap must not hand
+  # the task back to main. Past the window with a dead pid, the
+  # registration is stale and ordinary routing resumes.
+  if kill -0 "$pid" 2>/dev/null; then return 0; fi
+  [ "$age" -ge 0 ] && [ "$age" -le "$max_age" ]
+}
+
 # fm_poll_derived_grace [poll-seconds]
 # Default guard-grace derivation: max(300, poll + 60). A watcher touches its
 # liveness beacon once per poll cycle, so a fixed 300s grace stops correctly

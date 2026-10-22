@@ -14,6 +14,59 @@ fm_custom_check_sha256() {
   fi
 }
 
+# One identity string for a rejected check and its trust record: content hash
+# plus the exact file facts the authentication reads themselves check (mode,
+# device, inode, link count, symlink-ness), so any change a re-registration or
+# a tamper makes - including a same-bytes hardlink or device shift - reads as
+# a new rejection. An absent part reads "absent", an unreadable one keeps a
+# stable placeholder rather than failing the sweep.
+_fm_rejected_check_part() {  # <file>
+  local file=$1 hash
+  if [ -L "$file" ]; then
+    printf 'symlink:%s:%s' "$(fm_pr_file_device "$file" 2>/dev/null || printf x)" \
+      "$(fm_pr_file_inode "$file" 2>/dev/null || printf x)"
+    return 0
+  fi
+  [ -f "$file" ] || { printf 'absent'; return 0; }
+  hash=$(fm_custom_check_sha256 "$file" 2>/dev/null || printf unreadable)
+  printf '%s:%s:%s:%s:%s' "$hash" \
+    "$(fm_pr_file_mode "$file" 2>/dev/null || printf x)" \
+    "$(fm_pr_file_device "$file" 2>/dev/null || printf x)" \
+    "$(fm_pr_file_inode "$file" 2>/dev/null || printf x)" \
+    "$(fm_pr_file_link_count "$file" 2>/dev/null || printf x)"
+}
+
+fm_rejected_check_fingerprint() {  # <state> <id>
+  printf '%s|%s|%s|%s' "$(_fm_rejected_check_part "$1/$2.check.sh")" \
+    "$(_fm_rejected_check_part "$1/$2.check-trust")" \
+    "$(_fm_rejected_check_part "$1/$2.pr-poll-registration")" \
+    "$(_fm_rejected_check_part "$1/$2.meta")"
+}
+
+# The once-only announcement record for a rejected check: state holds one
+# marker per check id, containing the fingerprint that was announced. A
+# rejected check wakes main once, naming its owning task id (the filename
+# stem fm-check-register.sh itself takes); while the fingerprint is
+# unchanged it stays silent, and a changed fingerprint announces again.
+fm_rejected_check_announced() {  # <state> <id> <fingerprint>
+  local marker="$1/.rejected-check-$2"
+  [ -f "$marker" ] && [ ! -L "$marker" ] \
+    && [ "$(cat "$marker" 2>/dev/null || true)" = "$3" ]
+}
+
+fm_rejected_check_mark() {  # <state> <id> <fingerprint>
+  local marker="$1/.rejected-check-$2" tmp
+  tmp=$(umask 077; mktemp "$1/.rejected-check.XXXXXX") || return 1
+  if ! printf '%s' "$3" > "$tmp" || ! mv -f -- "$tmp" "$marker"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+}
+
+fm_rejected_check_clear() {  # <state> <id>
+  rm -f -- "$1/.rejected-check-$2"
+}
+
 fm_custom_check_trust_read() {
   local state=$1 id=$2 trust state_device version hash
   FM_CUSTOM_CHECK_HASH=

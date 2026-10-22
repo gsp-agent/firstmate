@@ -227,6 +227,9 @@ The first recovery marks that generation announced, and later empty-queue arms l
 A non-successor watcher start checks the durable queue and recovery marker under their locks.
 If an announced-but-unacknowledged episode has an empty queue, the arm leaves that generation announced, making repeated empty-queue arms idempotent while a long-poll source is merely alive.
 If a durable row arrived after the announcement, the arm opens a fresh pending downtime generation so buried work still resurfaces once.
+A recovery announcement is presented to main only when the durable queue holds a row only main can do (`resurface_row_main_only` in `bin/fm-watch.sh`: a check row, a needs-decision signal, a decision-owned signal or stale row, or a row that cannot be classified).
+A queue holding only branch-owned or live-PM-owned rows, or nothing at all, is absorbed in the poll loop instead: those rows surface by their own reasons to their own owners, and the episode stays announced.
+The marker alone never manufactures a main wake - that is what kept a covering watcher's handling turn from waking main to drain rows it had already watched.
 A Codex foreground checkpoint skips the announced-episode reopen transition, so an already-announced generation stays announced while the checkpoint continues its bounded supervision.
 Its ordinary arm check still announces a never-announced generation, including one made pending by a durable queue append during the checkpoint.
 
@@ -255,7 +258,7 @@ It is a non-fatal result that names its own remedy: re-drain, then acknowledge t
 
 The acknowledgement retires the marker only when no rows remain after sequence-bound consumption.
 A concurrently appended wake has a higher sequence, remains queued, and keeps the episode pending for presentation.
-Consequently, a watcher close during handling republishes the same generation as pending and forces one recovery turn even when no queue row remains, while the outstanding generation-bound acknowledgement stays valid.
+Consequently, a watcher close during handling republishes the same generation as pending and presents one recovery turn when the queue then holds a row only main can do (an empty queue is absorbed under the announcement rule above), while the outstanding generation-bound acknowledgement stays valid.
 An acknowledged episode does not freeze the generation, because the next downtime after it opens an episode of its own.
 
 ## Per-actor acknowledgement
