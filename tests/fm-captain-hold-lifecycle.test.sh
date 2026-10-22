@@ -4805,18 +4805,30 @@ test_domain_deferred_holds_keep_their_routing_wake() (
 )
 
 test_domain_failed_rehold_preserves_routing_fields() {
-  local domain_home mode before after old_fields new_fields old_reason new_reason
+  local domain_home mode refused before after old_fields new_fields old_reason new_reason
   local initial_args=() changed_args=()
   old_reason='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
   new_reason='ep-groove-sight-platform already approved raising GSP capacity from 3 places to 5. Should I apply that?'
-  for mode in owner-only all-fields; do
+  for mode in owner-only all-fields expired expired-origin; do
     domain_home=$(make_domain_home "domain-failed-rehold-$mode")
+    refused=hold-refused
     initial_args=()
     changed_args=(--decision-owner ep-new --reason "$old_reason")
-    if [ "$mode" = all-fields ]; then
-      initial_args=(--origin origin-a)
-      changed_args=(--decision-owner ep-new --timeout-seconds 120 --reason "$new_reason" --origin origin-b)
-    fi
+    case "$mode" in
+      all-fields)
+        initial_args=(--origin origin-a)
+        changed_args=(--decision-owner ep-new --timeout-seconds 120 --reason "$new_reason" --origin origin-b)
+        ;;
+      expired)
+        initial_args=(--until 2000-01-01)
+        changed_args=(--decision-owner ep-new --timeout-seconds 120 --reason "$new_reason")
+        ;;
+      expired-origin)
+        refused=origin-refused
+        initial_args=(--until 2000-01-01 --origin origin-a)
+        changed_args=(--decision-owner ep-new --timeout-seconds 120 --reason "$new_reason" --origin origin-b)
+        ;;
+    esac
     run_domain "$domain_home" 2026-10-14T02:00:00Z hold rehold --title 'Failed re-hold' \
       --decision-owner ep-old --timeout-seconds 60 --reason "$old_reason" \
       ${initial_args[@]+"${initial_args[@]}"} >/dev/null || fail 'could not establish the original routing fields'
@@ -4829,21 +4841,40 @@ if [ "${1:-}" = hold ] && [ "${2:-}" = rehold ]; then
   : > "$FM_HOME/hold-refused"
   exit 9
 fi
+if [ "${1:-} ${2:-}" = 'update rehold' ] && [ "${FM_TEST_REFUSED_WRITE:-}" = origin-refused ]; then
+  previous=
+  for argument in "$@"; do
+    if [ "$previous" = --body-file ] && grep -Fx 'Captain hold origin: origin-b' "$argument" >/dev/null; then
+      : > "$FM_HOME/origin-refused"
+      exit 9
+    fi
+    previous=$argument
+  done
+fi
 exec "$REAL_TASKS_AXI" "$@"
 SH
     chmod +x "$domain_home/fakebin/tasks-axi"
-    if run_domain "$domain_home" 2026-10-14T02:00:30Z hold rehold "${changed_args[@]}" \
+    if FM_TEST_REFUSED_WRITE=$refused run_domain "$domain_home" 2026-10-14T02:00:30Z hold rehold "${changed_args[@]}" \
       > "$domain_home/failed.out" 2>&1; then
       fail "$mode re-hold succeeded despite the backend failure"
     fi
-    assert_present "$domain_home/hold-refused" 'the failed re-hold did not reach the backend'
+    assert_present "$domain_home/$refused" "the $mode re-hold did not reach the refused backend write"
     after=$(tasks_in "$domain_home" show rehold --full)
     new_fields=$(shown_task_body "$after" \
       | grep -E '^(Decision owner|Hold timeout seconds|Hold reason|Captain hold origin):' | LC_ALL=C sort)
     assert_equals "$old_fields" "$new_fields" "$mode failed re-hold changed prior routing fields"
-    assert_contains "$after" 'held: yes' 'the failed re-hold released the original hold'
+    assert_equals "$(shown_task_body "$before")" "$(shown_task_body "$after")" \
+      "$mode failed re-hold rewrote the lifecycle it found"
+    case "$mode" in
+      expired*)
+        assert_contains "$after" 'held: no' 'the elapsed deferral became active again'
+        assert_contains "$after" 'hold_kind: captain' 'the failed re-hold dropped the elapsed captain hold'
+        ;;
+      *) assert_contains "$after" 'held: yes' 'the failed re-hold released the original hold' ;;
+    esac
     run_domain "$domain_home" 2026-10-14T02:00:59Z route-due rehold || fail 'pre-deadline retry failed'
     assert_absent "$domain_home/owner.log" 'a failed re-hold prompted an owner before the original deadline'
+    assert_present "$domain_home/state/hold-domain/pending/rehold.body" "$mode failed re-hold dropped its routing wake"
     run_domain "$domain_home" 2026-10-14T02:01:00Z route-due rehold || fail 'original routing failed after a refused re-hold'
     after=$(tasks_in "$domain_home" show rehold --full)
     assert_contains "$after" 'held: no' 'the original hold did not release at its unchanged deadline'
@@ -4854,7 +4885,7 @@ SH
     run_domain "$domain_home" 2026-10-14T02:02:00Z route-due rehold || fail 'replayed routing failed'
     [ "$(wc -l < "$domain_home/owner.log" | tr -d ' ')" = 1 ] || fail 'a refused re-hold caused duplicate routing'
   done
-  pass 'failed re-holds preserve owner, timeout, reason and origin before routing once to the original owner'
+  pass 'failed re-holds, active or elapsed, preserve owner, timeout, reason and origin before routing once to the original owner'
 }
 
 test_domain_interrupted_resolutions_block_immediate_and_periodic_routing() {
