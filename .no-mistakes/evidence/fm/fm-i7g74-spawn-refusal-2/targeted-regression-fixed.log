@@ -1,0 +1,8 @@
+ok - headroom-reading contention exits 75 for ships, scouts, and batch entries
+ok - late live and unknown refusals close only newly created endpoints and permit retry
+ok - repeated refusals restore an already-stopped ship or scout's original instructions
+ok - ship and scout starts and relaunches refuse a live signal appearing during preparation
+ok - a clear live-session read launches the worker
+ok - ship and scout relaunches preserve prior state and work on non-clear reads and launch on clear
+not ok - a clear detector refused the ship control relaunch: error: task task-control-7615-ship's composer state is 'unknown', not proven empty; refusing to type the /quit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+error: relaunch of task-control-7615-ship failed while stopping the old agent, which is still running; its original instructions were restored: expected exit 0, got 1

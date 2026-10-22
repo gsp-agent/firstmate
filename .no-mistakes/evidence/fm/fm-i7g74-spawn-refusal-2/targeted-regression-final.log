@@ -1,0 +1,14 @@
+ok - headroom-reading contention exits 75 for ships, scouts, and batch entries
+ok - late live and unknown refusals close only newly created endpoints and permit retry
+ok - repeated refusals restore an already-stopped ship or scout's original instructions
+ok - ship and scout starts and relaunches refuse a live signal appearing during preparation
+ok - a clear live-session read launches the worker
+ok - ship and scout relaunches preserve prior state and work on non-clear reads and launch on clear
+ok - control relaunches check live-session admission before stopping ships or scouts and still replace on clear
+ok - a live read defers the spawn before launch or a backlog move
+ok - an unknown read defers the spawn and names the detector's reason
+ok - a detector status outside its contract defers as unknown
+ok - a symlinked project is asked about its checkout folder, not its registered name
+ok - a machine without the detector keeps today's dispatch
+ok - with no override, the detector under ~/.agent-config/scripts is consulted
+ok - a batch reports a live-session deferral as deferred, not failed

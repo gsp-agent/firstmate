@@ -1,0 +1,5 @@
+ok - headroom-reading contention exits 75 for ships, scouts, and batch entries
+not ok - the ship could not retry after the live signal cleared: warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/tmp/fm-live-session.dE5Qlb/owned-46634-ship-75/home/data/owned-46634-ship-75/launch-brief.md records no ship branch; defaulting to legacy branch fm/owned-46634-ship-75
+error: codex-cli 0.163.0 showed neither its folder-access prompt nor a started turn on the brief in window firstmate:fm-owned-46634-ship-75; inspect window firstmate:fm-owned-46634-ship-75: expected exit 0, got 1
+not ok - could not prepare the stopped ship: warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/tmp/fm-live-session.dE5Qlb/stopped-46634-ship/home/data/stopped-46634-ship/launch-brief.md records no ship branch; defaulting to legacy branch fm/stopped-46634-ship
+error: codex-cli 0.163.0 showed neither its folder-access prompt nor a started turn on the brief in window firstmate:fm-stopped-46634-ship; inspect window firstmate:fm-stopped-46634-ship: expected exit 0, got 1

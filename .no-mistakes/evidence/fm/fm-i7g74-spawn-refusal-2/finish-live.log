@@ -1,0 +1,23 @@
+$ fm-spawn.sh live-ship --relaunch; stopped endpoint; reservation=ep-agent-config
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home/data/live-ship/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-ship
+deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:ep-agent-config), and a live session is run by the project's own agent, never by Firstmate; task live-ship was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear
+
+Observed: stopped endpoint remains bash; instructions, metadata and uncommitted work preserved.
+$ fm-spawn.sh live-ship --relaunch; stopped endpoint; reservation=pm-other-abc
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home/data/live-ship/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-ship
+deferred: the live-session check cannot tell whether a person is live on project agent-config (folder .agent-config: unknown signal=herdr-keyboard source=herdr reason=source read failed), and an undecided check never counts as clear; task live-ship was not relaunched and its prior task record and worktree are unchanged - relaunch it again once the check reads clear
+
+Observed: stopped endpoint remains bash; instructions, metadata and uncommitted work preserved.
+$ fm-spawn.sh late-live agent-config --mode no-mistakes --yolo off "/bin/sleep 600"
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home/data/late-live/launch-brief.md records no ship branch; defaulting to legacy branch fm/late-live
+deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:ep-agent-config), and a live session is run by the project's own agent, never by Firstmate; task late-live was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task late-live's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.agent-config-856b68/2/.agent-config in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+
+Observed: the reservation became live when real Treehouse acquisition began; final detector read refused dispatch, left no task endpoint or metadata, and kept the row queued.
+Private lab server stopped: exit=0

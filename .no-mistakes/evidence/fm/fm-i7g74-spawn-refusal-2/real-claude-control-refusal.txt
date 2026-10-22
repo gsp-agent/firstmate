@@ -1,0 +1,57 @@
+Actual normal-login Claude CLI, on private 120x40 lab terminal; no prompt or trust answer submitted.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Accessing workspace:
+
+ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.age
+ nt-config-856b68/1/.agent-config
+
+ Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source
+ project, or work from your team). If not, take a moment to review what's in this folder first.
+
+ Claude Code'll be able to read, edit, and execute files here.
+
+ Security guide
+
+ ❯ No, exit
+   Yes, I trust this folder
+
+ Enter to confirm · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$ fm-control.sh live-ship relaunch --note <note>; reservation=ep-agent-config
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:ep-agent-config), and a live session is run by the project's own agent, never by Firstmate; task live-ship was not relaunched and its agent, instructions, and task record are unchanged - relaunch it again once the check reads clear
+error: relaunch of live-ship was refused before its agent was touched; nothing changed
+
+Observed: same real Claude process remains; metadata and instructions byte-identical; uncommitted file unchanged.
+$ fm-control.sh live-ship relaunch --note <note>; reservation=pm-other-abc
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+deferred: the live-session check cannot tell whether a person is live on project agent-config (folder .agent-config: unknown signal=herdr-keyboard source=herdr reason=source read failed), and an undecided check never counts as clear; task live-ship was not relaunched and its agent, instructions, and task record are unchanged - relaunch it again once the check reads clear
+error: relaunch of live-ship was refused before its agent was touched; nothing changed
+
+Observed: same real Claude process remains; metadata and instructions byte-identical; uncommitted file unchanged.
+Private lab server and Claude CLI stopped: exit=0

@@ -1,0 +1,69 @@
+Isolation: marked disposable FM_HOME; real tmux on a private 120x40 fm-lab socket; real Git, Treehouse and tasks-axi. All project data inside this worktree.
+Outside detector: byte-for-byte copy of installed agent-config live-session.py, invoked by Python with private HOME/PATH and a real lab reservation file. Unavailable external sources cannot access operator credentials or fleet data.
+$ fm-spawn.sh live-ship agent-config --mode no-mistakes --yolo off "/bin/sleep 600"
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home/data/live-ship/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-ship
+deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:ep-agent-config), and a live session is run by the project's own agent, never by Firstmate; task live-ship was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task live-ship's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.agent-config-856b68/1/.agent-config in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+
+Observed live-ship: state: queued; task metadata absent; newly prepared endpoint absent. Surviving windows: bash
+$ fm-spawn.sh unknown-scout agent-config  --scout "/bin/sleep 600"
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+deferred: the live-session check cannot tell whether a person is live on project agent-config (folder .agent-config: unknown signal=herdr-keyboard source=herdr reason=source read failed), and an undecided check never counts as clear; task unknown-scout was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task unknown-scout's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.agent-config-856b68/1/.agent-config in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+
+Observed unknown-scout: state: queued; task metadata absent; newly prepared endpoint absent. Surviving windows: bash
+$ fm-spawn.sh live-scout agent-config  --scout "/bin/sleep 600"
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:ep-agent-config), and a live session is run by the project's own agent, never by Firstmate; task live-scout was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task live-scout's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.agent-config-856b68/1/.agent-config in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+
+Observed live-scout: state: queued; task metadata absent; newly prepared endpoint absent. Surviving windows: bash
+$ fm-spawn.sh live-batch=agent-config --mode no-mistakes --yolo off "/bin/sleep 600"
+exit=2
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home/data/live-batch/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-batch
+deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:ep-agent-config), and a live session is run by the project's own agent, never by Firstmate; task live-batch was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task live-batch's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.agent-config-856b68/1/.agent-config in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+batch: DEFERRED live-batch (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/agent-config) - its deferred: line above says why, and it stays queued
+error: batch dispatch expects every argument as id=repo; got '/bin/sleep 600'
+
+DRIVER FAILURE: fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home/data/live-batch/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-batch
+deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:ep-agent-config), and a live session is run by the project's own agent, never by Firstmate; task live-batch was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task live-batch's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.agent-config-856b68/1/.agent-config in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+batch: DEFERRED live-batch (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/agent-config) - its deferred: line above says why, and it stays queued
+error: batch dispatch expects every argument as id=repo; got '/bin/sleep 600'
+
+Private lab server stopped: exit=0 
+$ fm-spawn.sh live-batch=agent-config --mode no-mistakes --yolo off "/bin/sleep 600"
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home/data/live-batch/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-batch
+deferred: a person is live on project agent-config (live-session check of folder .agent-config: live signal=machine-line-reservation source=machine-line/reserve:ep-agent-config), and a live session is run by the project's own agent, never by Firstmate; task live-batch was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task live-batch's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.agent-config-856b68/1/.agent-config in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+batch: DEFERRED live-batch (/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/agent-config) - its deferred: line above says why, and it stays queued
+
+Observed live-batch: state: queued; task metadata absent; newly prepared endpoint absent. Surviving windows: bash
+$ fm-spawn.sh live-ship agent-config --mode no-mistakes --yolo off "/bin/sleep 600"
+exit=0
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home/data/live-ship/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-ship
+spawned live-ship harness=sleep kind=ship mode=no-mistakes yolo=off window=primary:fm-live-ship worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.agent-config-856b68/1/.agent-config
+
+Retry with no installed detector: state: in_flight; actual private-pane foreground command=sleep
+$ fm-spawn.sh live-ship --relaunch (reservation owner ep-agent-config)
+exit=1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+error: task live-ship's endpoint reads 'ambiguous'; a relaunch requires a positively agent-free endpoint (stop the agent first with bin/fm-control.sh live-ship exit)
+
+DRIVER FAILURE: fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+error: task live-ship's endpoint reads 'ambiguous'; a relaunch requires a positively agent-free endpoint (stop the agent first with bin/fm-control.sh live-ship exit)
+
+Private lab server stopped: exit=0 

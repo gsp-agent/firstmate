@@ -1,0 +1,8 @@
+$ FM_LIVE_SESSION_CHECK=<malformed Python file> fm-spawn.sh bad-detector agent-config --mode no-mistakes --yolo off "/bin/sleep 600"
+exit=75
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/home/data/bad-detector/launch-brief.md records no ship branch; defaulting to legacy branch fm/bad-detector
+deferred: the live-session check cannot tell whether a person is live on project agent-config (folder .agent-config: exit 1 with no verdict line), and an undecided check never counts as clear; task bad-detector was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task bad-detector's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H65BTPXNAE8EY0SAZPJGPX/.gate-live/live3/pool/.treehouse/.agent-config-856b68/2/.agent-config in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+
+Observed: real Python interpreter failure treated as unknown; traceback suppressed; no metadata or worker endpoint; task still queued.
