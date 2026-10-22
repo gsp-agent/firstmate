@@ -486,4 +486,31 @@ test_worker_role_names_skill_and_fallback_file() {
 
 test_worker_role_names_skill_and_fallback_file
 
+# `.agent-config-ydbn7`: on gsp-agent/firstmate (Actions disabled, decision c)
+# the gated run must skip ci; other repos and direct delivery never do.
+test_firstmate_dod_skips_ci() {
+  local fm_file="$TMP_ROOT/dod-firstmate.txt" other_file="$TMP_ROOT/dod-other.txt"
+  fm_dod_block no-mistakes fm-skipci fm/fm-skipci none '' '' '' '' gsp-agent/firstmate >"$fm_file"
+  assert_grep '--skip ci' "$fm_file" "firstmate gated run did not get --skip ci"
+  fm_dod_block no-mistakes fm-skipci fm/fm-skipci none '' '' '' '' carmandale/agent-config >"$other_file"
+  assert_no_grep '--skip ci' "$other_file" "another repo's gated run got --skip ci"
+  fm_dod_block local-only fm-skipci fm/fm-skipci none '' '' '' '' gsp-agent/firstmate >"$other_file"
+  assert_no_grep '--skip ci' "$other_file" "direct delivery got a --skip ci line"
+  pass "firstmate gated run skips ci; other repos and direct delivery do not"
+}
+
+test_repo_slug_reads_origins() {
+  local d="$TMP_ROOT/slugproj"
+  mkdir -p "$d"
+  git init -q "$d"
+  git -C "$d" remote add origin git@github.com:gsp-agent/firstmate.git
+  [ "$(fm_dod_repo_slug "$d")" = "gsp-agent/firstmate" ] || fail "ssh origin slug wrong: $(fm_dod_repo_slug "$d")"
+  git -C "$d" remote set-url origin https://github.com/carmandale/agent-config.git
+  [ "$(fm_dod_repo_slug "$d")" = "carmandale/agent-config" ] || fail "https origin slug wrong: $(fm_dod_repo_slug "$d")"
+  pass "repo slug read from ssh and https origins"
+}
+
+test_firstmate_dod_skips_ci
+test_repo_slug_reads_origins
+
 echo "all fm-dod-lib tests passed"

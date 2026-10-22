@@ -759,7 +759,8 @@ case "$MODE" in
     ;;
 esac
 RULE1=$(fm_ship_rule_one "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH") || exit 1
-DOD=$(fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$FM_HOME" "$FM_ROOT") || exit 1
+REPO_SLUG=$(fm_dod_repo_slug "${PROJECT_DIR:-$PWD}")
+DOD=$(fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$FM_HOME" "$FM_ROOT" "$REPO_SLUG") || exit 1
 
 write_new_brief <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.

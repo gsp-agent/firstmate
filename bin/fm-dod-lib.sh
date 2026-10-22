@@ -411,10 +411,34 @@ There is no pull request, no \`gh-axi\` call, and no forge CI result to report: 
 EOF
 }
 
-fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<home> <code-root>]
-  local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-} home=${7:-} root=${8:-}
+# owner/repo for a project directory's origin, or empty when unreadable.
+fm_dod_repo_slug() {  # <dir>
+  local url
+  url=$(git -C "$1" remote get-url origin 2>/dev/null) || return 0
+  url=${url%.git}
+  url=${url#https://github.com/}
+  url=${url#http://github.com/}
+  url=${url#git@github.com:}
+  url=${url#ssh://git@github.com/}
+  case "$url" in */*) printf '%s\n' "$url" ;; esac
+}
+
+fm_dod_block() {  # <mode> <task-id> [branch] [<forge>] [<base>] [<consent>] [<home> <code-root>] [<repo-slug>]
+  local mode=$1 id=$2 forge=${4:-none} base=${5:-} consent=${6:-} home=${7:-} root=${8:-} repo_slug=${9:-}
   local branch=${3:-fm/$id} pr_base='' nm_base='' base_q contract_forge='' contract_consent='' forge_cli=gh-axi draft_check
-  local stamp_cmd stamp_why direct_stamp='' nm_stamp='' nm_stamp_why=''
+  local stamp_cmd stamp_why direct_stamp='' nm_stamp='' nm_stamp_why='' nm_skip='' meta_project=''
+  if [ -z "$repo_slug" ] && [ -n "$home" ] && [ -f "$home/state/$id.meta" ]; then
+    meta_project=$(grep '^project=' "$home/state/$id.meta" 2>/dev/null | tail -1 | cut -d= -f2-)
+    [ -n "$meta_project" ] && repo_slug=$(fm_dod_repo_slug "$meta_project")
+  fi
+  # Dale 10-21 (.agent-config-ydbn7, decision c): nothing runs on GitHub CI
+  # for gsp-agent/firstmate (Actions disabled there), so a gated run's ci
+  # step would wait 168h for checks that never register. Skip ci there;
+  # local lint and test still run.
+  if [ "$repo_slug" = "gsp-agent/firstmate" ]; then
+    nm_skip="This repo runs no GitHub CI (Actions is disabled on gsp-agent/firstmate): pass \`--skip ci\` on every \`no-mistakes axi run\` for this task, and skip nothing else; local \`lint\` and \`test\` still run and are the test truth here.
+"
+  fi
   if [ "$forge" = none ] && [ -n "$home" ] && [ -n "$root" ]; then
     printf -v stamp_cmd 'FM_HOME=%q %q %q <PR url>' "$home" "$root/bin/fm-pr-made-with.sh" "$id"
     stamp_why="That command names each engine that wrote the PR's commits on a \`Made-with:\` line in its body, so the review gate can route the PR away from a reviewer of the same model family; firstmate repeats it when it registers the PR, so a failure there does not hold your report."
@@ -532,7 +556,7 @@ The task is complete only when committed on your branch.
 When you believe it is complete, append \`done [at=<epoch>]: {summary}\` to the status file and stop.
 Firstmate will then instruct you to run /no-mistakes to validate and ship a PR.
 That first \`done:\` is the handoff that starts the pipeline, which owns the push; it is not a request to push from this copy.
-${nm_base}
+${nm_base}${nm_skip}
 EOF
       fm_nm_driving_block "$forge"
       cat <<EOF
