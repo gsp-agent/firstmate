@@ -1038,7 +1038,7 @@ The text is static and never executed or expanded; secondmate charters never tak
 ## Worker launch environment (config/launch-env-allowlist)
 
 The optional local, gitignored `config/launch-env-allowlist` limits the ambient environment passed to newly launched workers, scouts, and secondmates, including relaunches.
-With no file, ambient inheritance remains unfiltered: selected harness markers are cleared, while the provider, long-lived terminal daemon, and shell initialization determine which other variables reach the worker.
+With no file, ambient inheritance remains unfiltered except for explicit launch assignments, including [worker git identity](#worker-git-identity), and cleared harness markers; the provider, long-lived terminal daemon, and shell initialization determine which other variables reach the worker.
 
 Do not assume every worker inherits the invoking Firstmate process's current environment.
 The file is inherited into secondmate homes through the [primary-authoritative configuration contract](../.agents/skills/secondmate-provisioning/SKILL.md).
@@ -1081,7 +1081,7 @@ Choose the minimum additions for the authentication method actually in use:
 | --- | --- |
 | Provider login stored under the normal home directory | None for the environment contract; the same user still has access to that provider's stored login. |
 | Provider configured through environment variables | The exact credential and endpoint names required by that provider, for example `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`; a multi-provider tool needs each provider it will actually use. |
-| Custom provider store | Its configured location variables, such as `CODEX_HOME`, `GROK_HOME`, or `XDG_CONFIG_HOME`; Firstmate's existing explicit Claude and Muse store assignments still apply. |
+| Custom provider store | Its configured location variables, such as `CODEX_HOME`, `GROK_HOME`, or `XDG_CONFIG_HOME`, unless Firstmate already assigns them explicitly for that launch. |
 | Muse environment authentication | `META_API_KEY`, already present in the target tmux session environment; Firstmate's preflight requires the stored-login path on other backends. |
 | Git over SSH with an agent | `SSH_AUTH_SOCK`; add `GIT_SSH_COMMAND` only if the chosen transport requires that override. |
 | Git over SSH with a key file | No credential variable when normal SSH configuration selects the key; file permissions and any passphrase handling still apply. |
@@ -1119,6 +1119,19 @@ The flag is a home-wide attribution choice, so it is inherited into secondmate h
 Per-machine Cursor `cli-config.json` attribution-off is not this contract: it does not travel with Firstmate, defaults back to on when unset, and only feeds the CLI's request to the server, so it suppresses the trailer rather than preventing it.
 The flag does not govern the `Made-with:` lines Firstmate adds to a task's GitHub pull request body, one per engine that wrote its commits, so a reviewer that routes by model family can see who wrote it; [`bin/fm-pr-made-with.sh`](../bin/fm-pr-made-with.sh) owns that stamp.
 
+### Worker git identity
+
+Every crewmate, scout, and secondmate this home launches commits as `gsp-agent <dale+gspagent@groovejones.com>` by default, from its first commit on fresh spawns and relaunches alike.
+The optional local, gitignored `config/worker-git-identity` selects a different worker identity with one line in git's `Name <email>` form, such as `fleet-agent <fleet-agent@example.com>`.
+The launch carries it in the same pane-scoped `GIT_CONFIG` export as the AI-trailer `core.hooksPath`, as `user.name` and `user.email`, so `git config user.email` inside the launched agent reports it and it takes precedence over any repository or global identity there.
+It also replaces inherited `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, and `GIT_COMMITTER_EMAIL`, which Git otherwise ranks above configuration.
+Raw launch commands assigning those variables refuse before launch; select the worker identity through `config/worker-git-identity` instead.
+No git config file is written: the captain's `~/.gitconfig` and the project's shared repository config keep their values, so the captain's own commits, and any shell outside a launched agent, keep the captain's identity.
+A file that does not hold one well-formed line refuses the spawn before launch rather than falling back to another identity.
+The setting is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract, so a secondmate's own workers commit as the same identity.
+The setting applies to the launched agent's environment; a separately running no-mistakes daemon manages its own commit identity.
+[`fm-spawn.sh --help`](../bin/fm-spawn.sh) owns the delivery mechanics, with regression coverage in [`tests/fm-spawn-worker-git-identity.test.sh`](../tests/fm-spawn-worker-git-identity.test.sh).
+
 ## Project capacity (config/project-capacity)
 
 The optional local, gitignored `config/project-capacity` tells Firstmate how many workers a project can run at once on this machine, for a project whose machine-local resource - a heavy test suite, a local editor stack, a device - only serves a few workers at a time.
@@ -1135,7 +1148,7 @@ A count of 0 admits no worker for that project, and a headroom reading does not 
 A line that is only `#`, or that begins with `#` followed by whitespace, is a comment, as is a `#` line whose last field is not an integer.
 A project name may begin with `#` when that `#` is written immediately against the rest of the name and the line ends with the project's capacity.
 A name that is `#`, or that begins with `#` and a space, cannot be declared, because that line is a comment.
-A place is held by every ship or scout on that project in the root home or any local secondmate home registered under it, including one working in a separate clone of the same origin, until its ready PR is recorded or it is cleaned up; a local-only ship or a scout holds its place until cleanup.
+See [`bin/fm-project-capacity-lib.sh`'s occupancy contract](../bin/fm-project-capacity-lib.sh) for which working tasks hold a place across local homes and clones, and how PR handoffs release capacity.
 The declaration is matched by the spawning clone's directory name, so clones of the same origin share the cap only when they use that same directory name.
 A clone of that origin under a different directory name finds no declaration and is not capped, though its workers are still counted as holders for a same-origin clone that is capped.
 When every place is held, `bin/fm-spawn.sh` launches nothing, creates no record, leaves the backlog item queued, prints one `deferred:` line naming the holders, and exits 75, so Firstmate dispatches the item again once a place frees.
@@ -1154,7 +1167,7 @@ The reading runs in the spawn process's working directory, so use an absolute pa
 The file is read from the machine's root home, as `config/project-capacity` is, and a copy in a secondmate home is not consulted.
 Workers that are already running are left running.
 A malformed or unreadable capacity file refuses every fresh ship or scout spawn until it is fixed, rather than guessing the intended limit, and so does a local home's state directory or task record that cannot be read while counting a capped project's holders.
-Firstmate cannot see which part of a worker's life uses the resource, so the number bounds whole workers from launch to handoff, and the tightest resource every worker needs should decide it.
+Choose the number from the tightest resource every worker needs.
 [`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns the capacity file format, what holds a place, the headroom program, the 420-second record, and why concurrent spawns cannot both take the last place or the extra start.
 
 ## Live-session check

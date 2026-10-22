@@ -388,7 +388,7 @@
 #   Spawn refuses an unsafe pre-existing task temp root or launch namespace, and
 #   task teardown removes only the current home's launch namespace.
 # Launch environment (config/launch-env-allowlist):
-#   Absent means unchanged ambient inheritance. A present readable regular file
+#   Absent disables filtering. A present readable regular file
 #   opts every launch (ship, scout, secondmate, raw command, and relaunch) into
 #   /usr/bin/env -i followed by /bin/sh -c of the existing launch command.
 #   Each line is one POSIX environment name, never a value or shell expression;
@@ -568,8 +568,12 @@
 # commit-msg strips known AI trailers at the commit object for every launched
 # runtime, Claude included as defense in depth. bin/fm-git-strip-ai-trailers.sh
 # owns the identities, the hook install, and chaining the repository git is
-# actually running in so a project husky hook still runs. Author identity is
-# not rewritten.
+# actually running in so a project husky hook still runs. The strip does not
+# rewrite author identity.
+# Worker identity follows docs/configuration.md "Worker git identity".
+# Every launch exports user.name and user.email through GIT_CONFIG_*, plus
+# matching GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME and
+# GIT_COMMITTER_EMAIL, without writing any git config file.
 # Publishing the record and moving this home's backlog item to In flight are one
 # step, not two: bin/fm-backlog-transition-lib.sh owns that invariant, and this
 # script performs the transition under the task's own meta lock before it reports
@@ -728,6 +732,26 @@ if [ "$LAVISH_AXI_HOST_CONFIG_PRESENT" = 1 ]; then
 fi
 if ! KEEP_AI_TRAILERS=$(fm_config_source_present "$CONFIG/keep-ai-trailers"); then
   exit 1
+fi
+# config/worker-git-identity: one "Name <email>" line (see the header above).
+WORKER_GIT_NAME=gsp-agent
+WORKER_GIT_EMAIL=dale+gspagent@groovejones.com
+if ! WORKER_GIT_IDENTITY_PRESENT=$(fm_config_source_present "$CONFIG/worker-git-identity"); then
+  exit 1
+fi
+if [ "$WORKER_GIT_IDENTITY_PRESENT" = 1 ]; then
+  worker_git_ident=
+  if [ -f "$CONFIG/worker-git-identity" ] && [ -r "$CONFIG/worker-git-identity" ]; then
+    worker_git_ident=$(cat "$CONFIG/worker-git-identity") || exit 1
+  fi
+  worker_git_ident_re='^([^<>[:space:][:cntrl:]]([^<>[:cntrl:]]*[^<>[:space:][:cntrl:]])?) <([^<>[:space:][:cntrl:]]+)>$'
+  if [[ $worker_git_ident =~ $worker_git_ident_re ]]; then
+    WORKER_GIT_NAME=${BASH_REMATCH[1]}
+    WORKER_GIT_EMAIL=${BASH_REMATCH[3]}
+  else
+    echo "error: config/worker-git-identity must be a readable file holding one line in git's 'Name <email>' form, such as: fleet-agent <fleet-agent@example.com>" >&2
+    exit 1
+  fi
 fi
 SUB_HOME_MARKER=".fm-secondmate-home"
 if [ -e "$STATE" ] || [ -L "$STATE" ]; then
@@ -2719,6 +2743,12 @@ case "$ARG3" in
 *' '*) # raw launch command (unverified-adapter escape hatch)
   RAW_LAUNCH=1
   LAUNCH=$ARG3
+  case "$LAUNCH" in
+  *GIT_AUTHOR_NAME=* | *GIT_AUTHOR_EMAIL=* | *GIT_COMMITTER_NAME=* | *GIT_COMMITTER_EMAIL=*)
+    echo "error: raw launch commands cannot override the worker git identity; remove GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL assignments" >&2
+    exit 1
+    ;;
+  esac
   HARNESS=""
   for word in $LAUNCH; do
     case "$word" in [A-Za-z_]*=*) continue ;; *)
@@ -6088,15 +6118,28 @@ if [ "$KIND" = secondmate ]; then
   # injected carrier and this on/off snapshot are guaranteed to agree.
   LAUNCH="FM_ROOT_OVERRIDE= FM_STATE_OVERRIDE= FM_DATA_OVERRIDE= FM_PROJECTS_OVERRIDE= FM_CONFIG_OVERRIDE= FM_PUBLIC_FOLLOWUP_PRIMARY_HOME=$sq_primary_home FM_HOME=$sq_home FM_TRACE_CONTEXT=$SPAWN_TRACE_EFFECTIVE FM_SUPERVISION_MODEL=$supervision_model $LAUNCH"
 fi
-# Pane-scoped override: git in this worker reads our commit-msg strip without
-# rewriting the project's core.hooksPath. GIT_CONFIG_* takes precedence over
-# config files and is inherited by child git processes. When the home opts in
-# to keeping trailers, leave core.hooksPath alone so the repository's hooks run
-# directly. An export statement inside the pane command carries the override
-# across every step of a compound raw launch while firstmate's own git is unchanged.
+# Pane-scoped overrides: git in this worker reads our commit-msg strip without
+# rewriting the project's core.hooksPath, and commits as the home's configured
+# worker identity without writing ~/.gitconfig or the shared repository config.
+# GIT_CONFIG_* takes precedence over config files and is inherited by child git
+# processes. When the home opts in to keeping trailers, leave core.hooksPath
+# alone so the repository's hooks run directly. An export statement inside the
+# pane command carries the overrides across every step of a compound raw launch
+# while firstmate's own git is unchanged.
+GIT_CONFIG_EXPORT=
+GIT_CONFIG_EXPORT_COUNT=0
+spawn_git_config_add() {  # <key> <value>
+  GIT_CONFIG_EXPORT="$GIT_CONFIG_EXPORT GIT_CONFIG_KEY_$GIT_CONFIG_EXPORT_COUNT=$1 GIT_CONFIG_VALUE_$GIT_CONFIG_EXPORT_COUNT=$(shell_quote "$2")"
+  GIT_CONFIG_EXPORT_COUNT=$((GIT_CONFIG_EXPORT_COUNT + 1))
+}
 if [ "$KEEP_AI_TRAILERS" = 0 ]; then
-  LAUNCH="export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=$(shell_quote "$GIT_HOOKS_DIR"); $LAUNCH"
+  spawn_git_config_add core.hooksPath "$GIT_HOOKS_DIR"
 fi
+spawn_git_config_add user.name "$WORKER_GIT_NAME"
+spawn_git_config_add user.email "$WORKER_GIT_EMAIL"
+LAUNCH="export GIT_CONFIG_COUNT=$GIT_CONFIG_EXPORT_COUNT$GIT_CONFIG_EXPORT; $LAUNCH"
+# Git's author/committer environment takes precedence even over command config.
+LAUNCH="export GIT_AUTHOR_NAME=$(shell_quote "$WORKER_GIT_NAME") GIT_AUTHOR_EMAIL=$(shell_quote "$WORKER_GIT_EMAIL") GIT_COMMITTER_NAME=$(shell_quote "$WORKER_GIT_NAME") GIT_COMMITTER_EMAIL=$(shell_quote "$WORKER_GIT_EMAIL"); $LAUNCH"
 # Every agent this fleet launches - crewmate, scout, and secondmate, on a fresh
 # spawn and on a relaunch alike - runs with the compact-adviser kill switch on.
 # This is an export statement rather than a forwarded ambient name or a
