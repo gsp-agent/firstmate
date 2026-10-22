@@ -198,9 +198,9 @@ fm_task_data_sweep_start() { # <data> <state>
   lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data-lib.sh"
   (
     trap '' HUP
-    # shellcheck source=bin/fm-wake-lib.sh
+    # shellcheck source=/dev/null
     . "${lib%/*}/fm-wake-lib.sh" || exit 1
-    # shellcheck source=bin/fm-pr-lib.sh
+    # shellcheck source=/dev/null
     . "${lib%/*}/fm-pr-lib.sh" || exit 1
     fm_task_data_sweep "$1" "$2"
   ) >/dev/null 2>&1 </dev/null &
@@ -344,17 +344,17 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       ;;
     expire)
       [ "$#" -eq 4 ] || exit 1
-      # shellcheck source=bin/fm-wake-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
-      # shellcheck source=bin/fm-pr-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
       fm_task_data_expire_by_hand "$2" "$3" "$4"
       ;;
     sweep)
       [ "$#" -eq 3 ] || [ "$#" -eq 4 ] || exit 1
-      # shellcheck source=bin/fm-wake-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
-      # shellcheck source=bin/fm-pr-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
       if [ -n "${4:-}" ]; then
         fm_task_data_sweep_request "$3" "$4" || exit 1

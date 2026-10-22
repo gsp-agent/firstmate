@@ -415,7 +415,7 @@ unset _teardown_source
 . "$SCRIPT_DIR/fm-pending-reply-lib.sh"
 # shellcheck source=bin/fm-nm-run-lib.sh
 . "$SCRIPT_DIR/fm-nm-run-lib.sh"
-# shellcheck source=bin/fm-task-data-lib.sh
+# shellcheck source=/dev/null
 . "$SCRIPT_DIR/fm-task-data-lib.sh"
 # shellcheck source=bin/fm-task-reap-lib.sh
 . "$SCRIPT_DIR/fm-task-reap-lib.sh"
@@ -3001,7 +3001,7 @@ teardown_herdr_require_prerequisites() {  # <task-id>
     fi
   done
   if ! declare -F fm_lock_try_acquire >/dev/null 2>&1; then
-    # shellcheck source=bin/fm-wake-lib.sh
+    # shellcheck source=/dev/null
     . "$SCRIPT_DIR/fm-wake-lib.sh"
   fi
   if ! declare -F fm_lock_try_acquire >/dev/null 2>&1 \
