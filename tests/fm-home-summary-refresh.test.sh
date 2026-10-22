@@ -275,7 +275,18 @@ esac
     assert not (owned_state / "producer.pids").exists(), mechanism + " cooldown started a producer"
     assert (owned_state / "home-summary.json").read_bytes() == original, mechanism + " cooldown changed the ledger"
     assert (owned_state / ".home-summary-dirty").exists(), mechanism + " cooldown lost the pending request"
-    assert not (owned_state / ".home-summary-drain.lock").exists(), mechanism + " cooldown kept its drain alive"
+    drain_pid_path = owned_state / ".home-summary-drain.lock/pid"
+    wait_for(drain_pid_path.exists, mechanism + " cooldown did not hand off its pending request")
+    cooling_pid = int(drain_pid_path.read_text())
+    try:
+        assert cooling_pid in running([cooling_pid]), mechanism + " cooldown drain was not running"
+        assert not (owned_state / "producer.pids").exists(), mechanism + " detached drain bypassed the cooldown"
+    finally:
+        try:
+            os.kill(cooling_pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        wait_for(lambda: not running([cooling_pid]), mechanism + " cooldown fixture did not stop its drain")
     main_home, main_env = make_home("main-" + mechanism, mechanism, secondmate=False)
     main_request = subprocess.run(request_command, env=main_env, stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE, text=True, timeout=10)
@@ -1636,6 +1647,27 @@ wait_request_condition request_is_idle "$REQUEST_HOME" || fail "busy publication
 jq -e '.state == "after"' "$REQUEST_HOME/state/home-summary.json" >/dev/null \
   || fail "the pending event was absent from the ledger"
 pass "a request survives an older synchronous publication and publishes its own event"
+
+REQUEST_HOME=$(request_fixture watcher-teardown)
+printf 'wait\n' > "$REQUEST_HOME/state/hold"
+FM_TEST_REQUEST_TIMEOUT=30 run_request_writer "$REQUEST_HOME" 1 --request --wait &
+SLOW_WRITER_PID=$!
+wait_request_condition test -e "$REQUEST_HOME/state/producer-started" \
+  || fail "the watcher's waited publication did not start"
+printf 'after\n' > "$REQUEST_HOME/state/event"
+run_request_writer "$REQUEST_HOME" 1 --request || fail "the teardown publication request failed"
+[ -e "$REQUEST_HOME/state/.home-summary-dirty" ] \
+  || fail "the teardown publication request was not pending"
+request_walks_equal "$REQUEST_HOME" 1 || fail "the teardown request overlapped the watcher's publication"
+printf 'release\n' > "$REQUEST_HOME/state/hold"
+wait "$SLOW_WRITER_PID" || fail "the watcher's waited publication failed"
+SLOW_WRITER_PID=
+wait_request_condition request_walks_equal "$REQUEST_HOME" 2 \
+  || fail "the teardown request was stranded after the watcher's pass"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "the teardown request's drain did not finish"
+jq -e '.state == "after"' "$REQUEST_HOME/state/home-summary.json" >/dev/null \
+  || fail "the teardown event was absent from the final ledger"
+pass "a teardown publication request survives the watcher's waited drain pass"
 
 REQUEST_HOME=$(request_fixture handoff)
 : > "$REQUEST_HOME/state/handoff-armed"

@@ -32,7 +32,7 @@
 # state/.home-summary-dirty and starts one detached --_drain when no drain
 # holds the drain lock. Requests exit zero without publishing inline by default.
 # With --wait, a request runs one due drain pass inline instead of detaching it;
-# a cooldown or busy lock leaves the mark pending for a later request.
+# pending marks continue in an ordinary detached drain after lock release.
 # The drain waits until both the ledger mtime and the persisted attempt epoch
 # in state/.home-summary-attempt have aged by FM_HOME_SUMMARY_INTERVAL seconds
 # (default 300; invalid or zero values use 300). Age zero waits a full interval.
@@ -352,6 +352,12 @@ if [ "$HOME_SUMMARY_MODE" = drain ]; then
     [ "$HOME_SUMMARY_WAIT" -eq 0 ] || break
     [ ! -e "$DIRTY_MARK" ] || sleep 1
   done
+  if [ "$HOME_SUMMARY_WAIT" -eq 1 ]; then
+    fm_lock_release "$DRAIN_LOCK"
+    if [ -e "$DIRTY_MARK" ]; then
+      "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_drain </dev/null >/dev/null 2>&1 &
+    fi
+  fi
   exit 0
 fi
 
