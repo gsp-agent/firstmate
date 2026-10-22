@@ -395,7 +395,7 @@ test_event_paused_herdr_pane_stays_open() {
     'context limit reached; awaiting a fresh session to resume. Waiting for the PM call' \
     'context limit reached; awaiting a fresh session and then continue until 2026-10-22T15:00Z' \
     'session reached the context limit; waiting for the PM call, until 2026-10-22T15:00Z'; do
-    for state in unknown done failed; do
+    for state in unknown 'done' failed; do
       index=$((index + 1))
       make_world "event-paused-keep-$index"
       write_herdr_child "$MAIN" child "paused: $note"
@@ -410,7 +410,7 @@ test_event_paused_herdr_pane_stays_open() {
 test_pause_during_state_read_supersedes_terminal_closure() {
   local route state pause_kind task_home note expected_closes
   for route in main ledger; do
-    for state in done failed; do
+    for state in 'done' failed; do
       for pause_kind in context event; do
         make_world "pause-during-state-read-$route-$state-$pause_kind"
         task_home="$MAIN"
@@ -445,7 +445,7 @@ SH
 test_captain_holds_keep_inactive_herdr_panes_open() {
   local route state protection task_home note hold_rc expected_rc
   for route in main ledger; do
-    for state in paused done failed; do
+    for state in paused 'done' failed; do
       for protection in held unreadable; do
         make_world "captain-hold-$route-$state-$protection"
         task_home="$MAIN"
@@ -483,7 +483,7 @@ test_captain_hold_and_pane_closure_are_serialized() {
   local control_owner meta_owner hold_pid reconcile_pid hold_rc reconcile_rc ready check_order expected_closes
   real_tasks_axi=$(command -v tasks-axi) || fail "tasks-axi is required for captain-hold races"
   for route in main ledger; do
-    for state in done failed paused; do
+    for state in 'done' failed paused; do
       for order in hold-first close-first; do
         make_world "captain-hold-race-$route-$state-$order"
         task_home="$MAIN"
