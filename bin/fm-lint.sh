@@ -56,14 +56,14 @@
 # workflow lint and backend-purity checks, keeping either invocation
 # independently useful.
 #
-# Every per-root ShellCheck process runs capped, on every host and with no
-# opt-in: a time cap (FM_LINT_ROOT_SECONDS, default 300) with a
+# Every ShellCheck process, including the version probe, runs capped on every
+# host with no opt-in: a time cap (FM_LINT_ROOT_SECONDS, default 300) with a
 # terminate-then-kill grace (FM_LINT_ROOT_GRACE, default 5), and a memory cap
 # (FM_LINT_ROOT_MEMORY_KIB, default 4194304 = 4 GiB) on the root's process
 # group. Both caps belong to fm_exec_timed in bin/fm-timeout-lib.sh, which
 # owns how memory is measured and KILLs the group past the cap, so a cap or
 # an interrupt removes the owned process group. The sizing rationale lives
-# beside ROOT_MEMORY_KIB below. Before any root starts the run proves the
+# beside ROOT_MEMORY_KIB below. Before ShellCheck starts the run proves the
 # watchdog can run a probe command under the memory cap; without the sibling
 # library or a working watchdog it refuses with a named error, so fm-lint
 # never lints uncapped. A root stopped by either cap
@@ -828,7 +828,72 @@ if ! PERL_BIN=$(command -v perl); then
   printf 'fm-lint.sh: perl is required for bounded worker cleanup.\n' >&2
   exit 127
 fi
-resolved=$("$SHELLCHECK_BIN" --version | awk '/^version:/ {print $2; exit}')
+
+# Shared version-probe and per-root caps. Every run proves the watchdog can
+# cap a command before starting ShellCheck, so no invocation runs uncapped.
+# The time cap leaves room over CI's slowest root, about 150 s.
+ROOT_SECONDS=${FM_LINT_ROOT_SECONDS:-300}
+ROOT_GRACE=${FM_LINT_ROOT_GRACE:-5}
+# 4 GiB of memory per root, so the two default workers hold at most 8 GiB.
+# Source-following analysis of the heaviest roots needs more: on CI's x86_64
+# runner they peak at 6-8 GiB. CI runs one root at a time on a 16 GiB runner
+# and sets 8 GiB in its workflow env.
+# The roots sidecar records each root's peak RSS; roots peaking above about
+# 3 GiB resident are reduction candidates.
+ROOT_MEMORY_KIB=${FM_LINT_ROOT_MEMORY_KIB:-4194304}
+for bound_pair in \
+  "FM_LINT_ROOT_SECONDS=$ROOT_SECONDS" \
+  "FM_LINT_ROOT_GRACE=$ROOT_GRACE" \
+  "FM_LINT_ROOT_MEMORY_KIB=$ROOT_MEMORY_KIB"; do
+  case "${bound_pair#*=}" in
+    ''|0*|*[!0-9]*)
+      printf 'fm-lint.sh: %s must be a positive integer, got %s.\n' \
+        "${bound_pair%%=*}" "${bound_pair#*=}" >&2
+      exit 2
+      ;;
+  esac
+done
+
+# perl is mandatory above, so fm_exec_timed always takes its perl watchdog.
+# Run one probe through the real watchdog under the real memory cap before
+# ShellCheck starts, so a watchdog that cannot cap a command (a perl without
+# Time::HiRes, say) refuses the run here instead of running an uncapped probe.
+BOUND_MECH=perl
+cap_problem=
+if ! declare -F fm_exec_timed >/dev/null 2>&1; then
+  cap_problem='bin/fm-timeout-lib.sh is missing beside fm-lint.sh, so no watchdog can cap ShellCheck'
+else
+  probe_rc=0
+  ( FM_EXEC_TIMED_MEMORY_KIB=$ROOT_MEMORY_KIB fm_exec_timed "$ROOT_SECONDS" 1 true ) >/dev/null 2>&1 || probe_rc=$?
+  [ "$probe_rc" -eq 0 ] \
+    || cap_problem="the watchdog could not run a probe command under the memory cap (rc=$probe_rc)"
+fi
+if [ -n "$cap_problem" ]; then
+  printf 'fm-lint.sh: %s; refusing to lint uncapped.\n' "$cap_problem" >&2
+  exit 2
+fi
+
+version_rc=0
+resolved=$(
+  set -o pipefail
+  FM_EXEC_TIMED_MEMORY_KIB=$ROOT_MEMORY_KIB \
+    fm_exec_timed "$ROOT_SECONDS" "$ROOT_GRACE" "$SHELLCHECK_BIN" --version \
+    | awk '/^version:/ {print $2; exit}'
+) || version_rc=$?
+if [ "$version_rc" -ne 0 ]; then
+  case "$version_rc" in
+    123)
+      printf 'fm-lint.sh: ShellCheck --version FAILED at the memory cap (%s KiB).\n' "$ROOT_MEMORY_KIB" >&2
+      ;;
+    124)
+      printf 'fm-lint.sh: ShellCheck --version FAILED at the time cap (%ss).\n' "$ROOT_SECONDS" >&2
+      ;;
+    *)
+      printf 'fm-lint.sh: ShellCheck --version FAILED (exit %s).\n' "$version_rc" >&2
+      ;;
+  esac
+  exit "$version_rc"
+fi
 printf 'fm-lint.sh: ShellCheck %s (pinned %s)\n' "$resolved" "$REQUIRED_SHELLCHECK" >&2
 if [ "$resolved" != "$REQUIRED_SHELLCHECK" ]; then
   printf 'fm-lint.sh: ShellCheck %s required for CI parity, found %s. Install %s with bin/fm-install-shellcheck.sh <destination-directory>.\n' \
@@ -857,50 +922,6 @@ if [ -n "$TELEMETRY" ]; then
     printf 'fm-lint.sh: telemetry directory does not exist: %s\n' "$telemetry_parent" >&2
     exit 2
   }
-fi
-
-# Per-root caps. Every run probes the watchdog before any root starts and
-# refuses with a named error when it cannot cap a root, so no path lints
-# uncapped. The time cap leaves room over CI's slowest root, about 150 s.
-ROOT_SECONDS=${FM_LINT_ROOT_SECONDS:-300}
-ROOT_GRACE=${FM_LINT_ROOT_GRACE:-5}
-# 4 GiB of memory per root, so the two default workers hold at most 8 GiB.
-# Source-following analysis of the heaviest roots needs more: on CI's x86_64
-# runner they peak at 6-8 GiB. CI runs one root at a time on a 16 GiB runner
-# and sets 8 GiB in its workflow env.
-# The roots sidecar records each root's peak RSS; roots peaking above about
-# 3 GiB resident are reduction candidates.
-ROOT_MEMORY_KIB=${FM_LINT_ROOT_MEMORY_KIB:-4194304}
-for bound_pair in \
-  "FM_LINT_ROOT_SECONDS=$ROOT_SECONDS" \
-  "FM_LINT_ROOT_GRACE=$ROOT_GRACE" \
-  "FM_LINT_ROOT_MEMORY_KIB=$ROOT_MEMORY_KIB"; do
-  case "${bound_pair#*=}" in
-    ''|0*|*[!0-9]*)
-      printf 'fm-lint.sh: %s must be a positive integer, got %s.\n' \
-        "${bound_pair%%=*}" "${bound_pair#*=}" >&2
-      exit 2
-      ;;
-  esac
-done
-
-# perl is mandatory above, so fm_exec_timed always takes its perl watchdog.
-# Run one probe through the real watchdog under the real memory cap before
-# any root starts, so a watchdog that cannot cap a command (a perl without
-# Time::HiRes, say) refuses the run here instead of failing every root.
-BOUND_MECH=perl
-cap_problem=
-if ! declare -F fm_exec_timed >/dev/null 2>&1; then
-  cap_problem='bin/fm-timeout-lib.sh is missing beside fm-lint.sh, so no watchdog can cap ShellCheck'
-else
-  probe_rc=0
-  ( FM_EXEC_TIMED_MEMORY_KIB=$ROOT_MEMORY_KIB fm_exec_timed "$ROOT_SECONDS" 1 true ) >/dev/null 2>&1 || probe_rc=$?
-  [ "$probe_rc" -eq 0 ] \
-    || cap_problem="the watchdog could not run a probe command under the memory cap (rc=$probe_rc)"
-fi
-if [ -n "$cap_problem" ]; then
-  printf 'fm-lint.sh: %s; refusing to lint uncapped.\n' "$cap_problem" >&2
-  exit 2
 fi
 
 PROGRESS=0

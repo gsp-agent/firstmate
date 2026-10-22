@@ -1135,6 +1135,70 @@ SH
   pass "fm-lint.sh refuses to lint under a non-pinned ShellCheck version"
 }
 
+fm_lint_check_version_probe_cap() {  # <memory|time>
+  local workload=$1 tmp fakebin fixture log pid_file out rc seconds memory expected cap pid
+  tmp=$(fm_test_tmproot fm-lint-version-cap)
+  fakebin=$(fm_fakebin "$tmp")
+  fixture="$tmp/clean.sh"
+  log="$tmp/analysis.log"
+  pid_file="$tmp/version.pid"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture"
+  cat > "$fakebin/shellcheck" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = --version ]; then
+  printf '%s\n' "$$" > "$FM_TEST_VERSION_PID"
+  printf 'ShellCheck - shell script analysis tool\nversion: 0.11.0\n'
+  case "$FM_TEST_VERSION_WORKLOAD" in
+    memory) exec perl -e 'my $s = "x" x (128 * 1048576); sleep 4' ;;
+    time) exec sleep 4 ;;
+  esac
+fi
+printf '%s\n' "$*" >> "$FM_TEST_ANALYSIS_LOG"
+SH
+  chmod +x "$fakebin/shellcheck"
+
+  # The finite workload succeeds with room under both caps, proving that the
+  # tighter cap below causes the failure, even after a valid version line.
+  rc=0
+  out=$(PATH="$fakebin:$PATH" FM_LINT_JOBS=1 \
+    FM_TEST_VERSION_WORKLOAD="$workload" FM_TEST_VERSION_PID="$pid_file" FM_TEST_ANALYSIS_LOG="$log" \
+    FM_LINT_ROOT_SECONDS=10 FM_LINT_ROOT_GRACE=1 FM_LINT_ROOT_MEMORY_KIB=4194304 \
+    "$LINT" "$fixture" 2>&1) || rc=$?
+  [ "$rc" -eq 0 ] || fail "the version probe failed below its caps"$'\n'"$out"
+  [ -s "$log" ] || fail "a successful version probe did not reach file analysis"
+  : > "$log"
+  case "$workload" in
+    memory) seconds=10; memory=65536; expected=123; cap='memory cap (65536 KiB)' ;;
+    time) seconds=1; memory=262144; expected=124; cap='time cap (1s)' ;;
+  esac
+  rc=0
+  out=$(PATH="$fakebin:$PATH" FM_LINT_JOBS=1 \
+    FM_TEST_VERSION_WORKLOAD="$workload" FM_TEST_VERSION_PID="$pid_file" FM_TEST_ANALYSIS_LOG="$log" \
+    FM_LINT_ROOT_SECONDS="$seconds" FM_LINT_ROOT_GRACE=1 FM_LINT_ROOT_MEMORY_KIB="$memory" \
+    "$LINT" "$fixture" 2>&1) || rc=$?
+  [ "$rc" -eq "$expected" ] \
+    || fail "the version probe bypassed its $workload cap: exit $rc, expected $expected"$'\n'"$out"
+  assert_contains "$out" "ShellCheck --version FAILED at the $cap" \
+    "the version-probe failure did not name its invocation and cap"$'\n'"$out"
+  assert_not_contains "$out" "rerun" "a capped version probe was reported as a rerun"
+  [ ! -s "$log" ] || fail "file analysis started after the version probe hit its cap"
+  [ -s "$pid_file" ] || fail "the version probe never recorded its process"
+  pid=$(cat "$pid_file")
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -KILL "$pid" 2>/dev/null || true
+    fail "the version probe survived its $workload cap"
+  fi
+  pass "ShellCheck's version probe obeys the $workload cap before file analysis"
+}
+
+test_version_probe_memory_is_capped() {
+  fm_lint_check_version_probe_cap memory
+}
+
+test_version_probe_time_is_capped() {
+  fm_lint_check_version_probe_cap time
+}
+
 test_catches_a_real_lint_defect() {
   if ! pinned_ready; then
     pass "SKIP (ShellCheck $REQUIRED not resolved): lint-defect regression check"
@@ -1940,6 +2004,8 @@ test_installer_prefers_sha256sum_over_shasum
 test_installer_rejects_unsupported_platform
 test_missing_shellcheck_fails_closed
 test_rejects_wrong_shellcheck_version
+test_version_probe_memory_is_capped
+test_version_probe_time_is_capped
 test_catches_a_real_lint_defect
 test_rejects_direct_beads_cli_invocations
 test_rejects_direct_beads_cli_in_explicit_core_path
