@@ -34,6 +34,8 @@
 # Overrides for tests: FM_STATE_OVERRIDE, FM_CONFIG_OVERRIDE, FM_CURSOR_USAGE_DIR.
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=bin/fm-control-lib.sh
+. "$SCRIPT_DIR/fm-control-lib.sh"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-$FM_ROOT}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
@@ -41,11 +43,15 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 USAGE="${FM_CURSOR_USAGE_DIR:-$HOME/.agent-state/a3ov3/cursor-usage}"
 op=${1:-}; id=${2:-}; harness=${3:-}; recorded=${4:-}
 [ "$op" = route ] && [ -n "$id" ] && [ -n "$harness" ] || { echo "usage: fm-cursor-guard.sh route <bead-id> <harness> [<recorded-harness>]" >&2; exit 2; }
+harness=$(fm_control_harness_family "$harness") || harness=${3:-}
+recorded=$(fm_control_harness_family "$recorded") || recorded=${4:-}
 if [ "$recorded" = cursor ] && [ "$harness" != cursor ]; then
   printf '%s\n' "explicit --harness $harness override of a recorded cursor task" > "$STATE/$id.cursor-fallback"
 fi
 retiring_codex=0
-if [ "$recorded" = codex ] || [ "$(sed -n 's/^harness=//p' "$STATE/$id.meta" 2>/dev/null | tail -1)" = codex ]; then
+meta_harness=$(sed -n 's/^harness=//p' "$STATE/$id.meta" 2>/dev/null | tail -1)
+meta_harness=$(fm_control_harness_family "$meta_harness") || meta_harness=
+if [ "$recorded" = codex ] || [ "$meta_harness" = codex ]; then
   retiring_codex=1
 fi
 case "$harness:$retiring_codex" in cursor:* | codex:* | *:1) ;; *) echo "$harness"; exit 0 ;; esac

@@ -1735,15 +1735,15 @@ codex_limit_session() {
 test_raw_relaunch_preserves_retiring_codex_limit_for_later_routes() {
   local dir out rc gen_before
   dir=$(new_case rawcodexlimit rl80)
-  add_ship_task "$dir" rl80 codex
+  add_ship_task "$dir" rl80 codex-client
   codex_limit_session "$dir" rl80
   gen_before=$(meta_field "$dir" rl80 spawn_gen)
   printf 'zsh' > "$dir/fake/command"
-  out=$(run_spawn "$dir" rl80 --relaunch --harness 'claude --model sonnet'); rc=$?
+  out=$(run_spawn "$dir" rl80 --relaunch --harness 'claude-client --model sonnet'); rc=$?
   expect_code 0 "$rc" "a raw Claude override should keep its launch command"$'\n'"$out"
-  assert_contains "$out" "spawned rl80 harness=claude" "the raw override must launch Claude"
-  assert_contains "$(cat "$dir/fake/literal")" "claude --model sonnet" "the raw command must be preserved"
-  [ "$(meta_field "$dir" rl80 harness)" = claude ] || fail "the raw override must record Claude"
+  assert_contains "$out" "spawned rl80 harness=claude-client" "the raw override must keep its executable identity"
+  assert_contains "$(cat "$dir/fake/literal")" "claude-client --model sonnet" "the raw command must be preserved"
+  [ "$(meta_field "$dir" rl80 harness)" = claude-client ] || fail "the raw override must record its executable identity"
   [ "$(meta_field "$dir" rl80 spawn_gen)" != "$gen_before" ] || fail "the raw relaunch must replace the generation"
   [ "$(cat "$dir/home/state/rl80.codex-limit" 2>/dev/null)" = "codex run for rl80 hit its usage limit: You have hit your usage limit." ] \
     || fail "the raw override must preserve the retiring Codex limit before replacing its generation"
@@ -1758,9 +1758,14 @@ test_raw_relaunch_preserves_retiring_codex_limit_for_later_routes() {
 }
 
 test_raw_relaunch_refuses_route_changes_without_replacing_generation() {
-  local dir id harness route out rc before
-  for harness in codex cursor; do
-    id="rl81-$harness"
+  local dir id harness route out rc before raw executable
+  for raw in 'cursor-agent --trust' 'codex --model custom' 'codex-client --model custom' 'cursor --model custom'; do
+    executable=${raw%% *}
+    case "$executable" in
+      cursor|cursor-agent) harness=cursor ;;
+      *) harness=codex ;;
+    esac
+    id="rl81-$executable"
     dir=$(new_case "rawroute-$harness" "$id")
     add_ship_task "$dir" "$id" "$harness"
     printf 'spawn_gen=s%s.1.1\n' "$(( $(date +%s) - 600 ))" >> "$dir/home/state/$id.meta"
@@ -1775,7 +1780,7 @@ test_raw_relaunch_refuses_route_changes_without_replacing_generation() {
     before=$(cat "$dir/home/state/$id.meta")
     printf 'zsh' > "$dir/fake/command"
     out=$(FM_CURSOR_USAGE_DIR="$dir/user-home/.agent-state/a3ov3/cursor-usage" \
-      run_spawn "$dir" "$id" --relaunch --harness "$harness --model custom"); rc=$?
+      run_spawn "$dir" "$id" --relaunch --harness "$raw"); rc=$?
     expect_code 1 "$rc" "a raw $harness command must refuse a route to $route"$'\n'"$out"
     assert_contains "$out" "route to $route" "the refusal must name the selected harness"
     assert_contains "$out" "canonical --harness $harness" "the refusal must request a canonical launch"
@@ -1785,6 +1790,23 @@ test_raw_relaunch_refuses_route_changes_without_replacing_generation() {
     [ "$(cat "$dir/fake/command")" = zsh ] || fail "a raw route refusal must not start an agent"
   done
   pass "fm-spawn --relaunch: raw Codex and Cursor commands refuse changed routes without replacing the task generation"
+}
+
+test_raw_cursor_family_is_kept_when_usage_is_healthy() {
+  local dir out rc
+  dir=$(new_case rawcursorhealthy rl83)
+  add_ship_task "$dir" rl83 cursor
+  mkdir -p "$dir/user-home/.agent-state/a3ov3/cursor-usage"
+  printf 'cursor_models_pct=10\n' > "$dir/user-home/.agent-state/a3ov3/cursor-usage/test-spending.txt"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(FM_CURSOR_USAGE_DIR="$dir/user-home/.agent-state/a3ov3/cursor-usage" \
+    run_spawn "$dir" rl83 --relaunch --harness 'cursor-agent --trust'); rc=$?
+  expect_code 0 "$rc" "a healthy raw Cursor command must keep its family"$'\n'"$out"
+  assert_contains "$out" "spawned rl83 harness=cursor-agent" "the raw executable identity must be preserved"
+  assert_contains "$(cat "$dir/fake/literal")" "cursor-agent --trust" "the raw Cursor command must be preserved"
+  [ "$(meta_field "$dir" rl83 harness)" = cursor-agent ] || fail "the record must keep the raw executable identity"
+  [ ! -e "$dir/home/state/rl83.cursor-fallback" ] || fail "keeping the Cursor family must not record an override"
+  pass "fm-spawn --relaunch: healthy raw Cursor keeps its command and executable identity without an override"
 }
 
 test_raw_cursor_override_is_recorded() {
@@ -3218,6 +3240,7 @@ test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_session_binding_is_retired_on_a_harness_switch
 test_raw_relaunch_preserves_retiring_codex_limit_for_later_routes
 test_raw_relaunch_refuses_route_changes_without_replacing_generation
+test_raw_cursor_family_is_kept_when_usage_is_healthy
 test_raw_cursor_override_is_recorded
 test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude
 test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude

@@ -85,11 +85,12 @@ codex_session() {
 # task_meta <id> <worktree>: the fields the route reads from state/<id>.meta,
 # for a launch ten minutes ago.
 task_meta() {
-  printf 'worktree=%s\nharness=codex\nspawn_gen=s%s.1.1\n' "$2" "$(( $(date +%s) - 600 ))" > "$FM_STATE_OVERRIDE/$1.meta"
+  printf 'worktree=%s\nharness=%s\nspawn_gen=s%s.1.1\n' "$2" "${3:-codex}" "$(( $(date +%s) - 600 ))" > "$FM_STATE_OVERRIDE/$1.meta"
 }
 limit_msg="You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 10:13 AM."
 
 [ "$("$TOOL" route c1 codex)" = codex ] || fail "a codex task with no record must stay on codex"
+[ "$("$TOOL" route c1-prefixed codex-client)" = codex ] || fail "a prefixed Codex target with no limit must keep the Codex family"
 task_meta c1 "$TMP_ROOT/wt-c1"
 codex_session "$TMP_ROOT/wt-c1" 01a0c100-0000-7000-8000-000000000001 none >/dev/null
 [ "$("$TOOL" route c1 codex)" = codex ] || fail "a codex session whose turns ended cleanly must stay on codex"
@@ -99,6 +100,8 @@ out=$("$TOOL" route c1 codex)
 [ "$out" = "claude codex run for c1 hit its usage limit: $limit_msg" ] || fail "a codex usage-limit stop in the task's worktree must route to claude: $out"
 [ "$(cat "$FM_STATE_OVERRIDE/c1.codex-limit")" = "codex run for c1 hit its usage limit: $limit_msg" ] \
   || fail "a codex usage-limit stop must write state/<id>.codex-limit: $(cat "$FM_STATE_OVERRIDE/c1.codex-limit" 2>&1)"
+[ "$("$TOOL" route c1 codex-client)" = "claude codex run for c1 hit its usage limit: $limit_msg" ] \
+  || fail "a prefixed Codex target must follow its usage-limit marker"
 mv "$CODEX_HOME/sessions" "$CODEX_HOME/sessions.gone"
 [ "$("$TOOL" route c1 codex | cut -d' ' -f1)" = claude ] || fail "the marker must keep routing every later launch to claude"
 printf 'cursor_models_pct=89\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
@@ -121,11 +124,15 @@ touch -t 200001010000 "$f"
   || fail "an unmatched, cleared, or older session must not write the marker"
 pass "only the task's own newest codex session, ended on a usage limit since its launch, writes the marker"
 
-for replacement in claude cursor; do
-  for recorded in codex ''; do
-    task_id="c5-$replacement-${recorded:-meta}"
+for replacement in claude:claude claude-client:claude cursor:cursor cursor-agent:cursor; do
+  target=${replacement%%:*}
+  family=${replacement#*:}
+  for recorded in codex codex-client ''; do
+    task_id="c5-$target-${recorded:-meta}"
     wt="$TMP_ROOT/wt-$task_id"
-    task_meta "$task_id" "$wt"
+    meta_harness=claude
+    [ -n "$recorded" ] || meta_harness=codex-client
+    task_meta "$task_id" "$wt" "$meta_harness"
     f=$(codex_session "$wt" "$task_id" usage_limit_exceeded)
     python3 - "$f" <<'PY'
 import os
@@ -135,15 +142,15 @@ import time
 stamp = time.time() - 300
 os.utime(sys.argv[1], (stamp, stamp))
 PY
-    out=$("$TOOL" route "$task_id" "$replacement" "$recorded")
-    [ "$out" = "$replacement" ] || fail "a manual Codex-to-$replacement override must keep the requested harness: $out"
+    out=$("$TOOL" route "$task_id" "$target" "$recorded")
+    [ "$out" = "$family" ] || fail "a manual Codex-to-$target override must keep the requested family: $out"
     [ "$(cat "$FM_STATE_OVERRIDE/$task_id.codex-limit" 2>/dev/null)" = "codex run for $task_id hit its usage limit: $limit_msg" ] \
-      || fail "a manual Codex-to-$replacement override must preserve the retiring Codex usage limit"
-    [ ! -e "$FM_STATE_OVERRIDE/$task_id.cursor-fallback" ] || fail "a manual Codex-to-$replacement override must not record a Cursor fallback"
-    printf 'worktree=%s\nharness=%s\nspawn_gen=s%s.1.1\n' "$wt" "$replacement" "$(date +%s)" > "$FM_STATE_OVERRIDE/$task_id.meta"
-    out=$("$TOOL" route "$task_id" codex "$replacement")
+      || fail "a manual Codex-to-$target override must preserve the retiring Codex usage limit"
+    [ ! -e "$FM_STATE_OVERRIDE/$task_id.cursor-fallback" ] || fail "a manual Codex-to-$target override must not record a Cursor fallback"
+    printf 'worktree=%s\nharness=%s\nspawn_gen=s%s.1.1\n' "$wt" "$target" "$(date +%s)" > "$FM_STATE_OVERRIDE/$task_id.meta"
+    out=$("$TOOL" route "$task_id" codex "$target")
     [ "$out" = "claude codex run for $task_id hit its usage limit: $limit_msg" ] \
-      || fail "a later Codex relaunch after a manual $replacement override must still route to Claude: $out"
+      || fail "a later Codex relaunch after a manual $target override must still route to Claude: $out"
   done
 done
 pass "manual Codex overrides preserve usage limits across replacement generations, including healthy Cursor and meta-only records"
@@ -154,6 +161,11 @@ pass "manual Codex overrides preserve usage limits across replacement generation
 [ "$("$TOOL" route o2 claude)" = claude ] && [ "$("$TOOL" route o2 claude claude)" = claude ] \
   || fail "any other harness must pass through unchanged"
 [ ! -e "$FM_STATE_OVERRIDE/o2.cursor-fallback" ] || fail "a harness that is neither cursor nor an override must record nothing"
+[ "$("$TOOL" route o3 cursor-agent cursor-agent)" = cursor ] || fail "keeping a prefixed Cursor family must return Cursor"
+[ ! -e "$FM_STATE_OVERRIDE/o3.cursor-fallback" ] || fail "keeping the Cursor family must not record an override"
+[ "$("$TOOL" route o4 claude-client cursor-agent)" = claude ] || fail "a prefixed Cursor override must return the replacement family"
+[ "$(cat "$FM_STATE_OVERRIDE/o4.cursor-fallback")" = "explicit --harness claude override of a recorded cursor task" ] \
+  || fail "a prefixed Cursor record must log a cross-family override"
 pass "an explicit override of a recorded cursor task is kept and recorded; other harnesses pass through"
 
 stat_bin="$TMP_ROOT/stat-bin"

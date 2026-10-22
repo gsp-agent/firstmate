@@ -2894,13 +2894,14 @@ enforce_dispatch_profile
 # its header defines the Cursor fallback and the Codex usage-limit marker. A
 # control-driven relaunch arrives already routed by bin/fm-control.sh.
 if [ "$KIND" != secondmate ] && [ "$SPAWN_CONTROL_PARENT" = 0 ]; then
-  LAUNCH_ROUTE=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" route "$ID" "$HARNESS" "$RELAUNCH_PRIOR_HARNESS") || {
+  ROUTE_HARNESS=$(fm_control_harness_family "$HARNESS") || ROUTE_HARNESS=$HARNESS
+  LAUNCH_ROUTE=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" route "$ID" "$ROUTE_HARNESS" "$RELAUNCH_PRIOR_HARNESS") || {
     echo "error: the launch route for $ID on '$HARNESS' could not be read (bin/fm-cursor-guard.sh); nothing was launched" >&2
     exit 1
   }
-  if [ "${LAUNCH_ROUTE%% *}" != "$HARNESS" ]; then
+  if [ "${LAUNCH_ROUTE%% *}" != "$ROUTE_HARNESS" ]; then
     if [ "$RAW_LAUNCH" != 0 ]; then
-      echo "error: raw launch command for $HARNESS would route to ${LAUNCH_ROUTE%% *}; use the canonical --harness $HARNESS launch" >&2
+      echo "error: raw launch command for $HARNESS would route to ${LAUNCH_ROUTE%% *}; use the canonical --harness $ROUTE_HARNESS launch" >&2
       exit 1
     fi
     echo "$HARNESS fallback: launching $ID on the ${LAUNCH_ROUTE%% *} harness (default model xhigh): ${LAUNCH_ROUTE#* }" >&2
