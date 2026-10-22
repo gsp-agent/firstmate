@@ -3002,6 +3002,7 @@ SH
 }
 
 test_answer_before_cleanup_replay_preserves_the_retained_report() {
+  retained_alias_artifact_recovery report || return 1
   local home id wt rc bootstrap json
   home=$(make_home answer-before-cleanup-replay)
   id=sample-answer-before-cleanup-replay
@@ -3055,6 +3056,7 @@ SH
 }
 
 test_answer_before_cleanup_replay_notes_a_retained_gerrit_change() {
+  retained_alias_artifact_recovery gerrit || return 1
   local home id repo wt rc show real_tasks_axi gerrit_url=https://gerrit.example.com/c/project/+/12345
   home=$(make_home answer-before-replay-gerrit)
   id=sample-answer-before-replay-gerrit
@@ -3109,6 +3111,91 @@ SH
   assert_contains "$show" "Gerrit change $gerrit_url" \
     "the answer dropped the retained Gerrit change URL"
   pass "an answer before cleanup replay notes the retained Gerrit change"
+}
+
+retained_alias_artifact_recovery() {
+  local artifact_type=${1:-all} close artifact rc=0
+  for artifact in report gerrit; do
+    [ "$artifact_type" = all ] || [ "$artifact_type" = "$artifact" ] || continue
+    for close in answer reconcile; do
+      (
+        local home flag value shown spelling
+        local -a args
+        home=$(make_home "retained-alias-$artifact-$close")
+        mkdir -p "$home/data/o" "$home/projects/sample" "$home/projects/o"
+        cat > "$home/data/backlog.md" <<'EOF'
+## In flight
+- [ ] fm-o - Finish the retained artifact (repo: sample) (kind: scout) (hold: captain decision pending) (hold-kind: captain)
+  Captain hold set: 2026-10-14T02:00:00Z
+
+## Queued
+
+## Done
+EOF
+        fm_write_meta "$home/state/o.meta" "endpoint_task_id=o" "window=firstmate:fm-o" \
+          "worktree=$home/projects/o" "project=$home/projects/sample" "harness=codex" \
+          "kind=scout" "mode=scout" "spawn_gen=fixture-o"
+        printf 'done: retained artifact ready\n' > "$home/state/o.status"
+        flag=--report
+        value=data/o/report.md
+        printf '# Retained report\n' > "$home/data/o/report.md"
+        if [ "$artifact" = gerrit ]; then
+          flag=--pr
+          value=https://gerrit.example.com/c/project/+/12345
+        fi
+        cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+case "${1:-}" in
+  update|done) printf '%s\t%s\n' "$1" "${2:-}" >> "$FM_HOME/mutations.tsv" ;;
+esac
+if [ "${1:-}" = done ] && [ -f "$FM_HOME/refuse-close" ]; then
+  touch "$FM_HOME/close-refused"
+  exit 1
+fi
+if [ "$#" -ge 2 ] && [ "$2" = o ]; then set -- "$1" fm-o "${@:3}"; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+        chmod +x "$home/fakebin/tasks-axi"
+        (
+          export FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data"
+          . "$ROOT/bin/fm-wake-lib.sh"
+          . "$ROOT/bin/fm-tasks-axi-lib.sh"
+          . "$ROOT/bin/fm-backlog-transition-lib.sh"
+          fm_backlog_close_marker_write "$home/state" o "$home/data" fixture-o --retain "$flag" "$value"
+        ) || fail 'could not write the interrupted runtime close record'
+        assert_present "$home/state/o.backlog-close" 'the retained marker did not use the runtime identity'
+        assert_absent "$home/state/fm-o.backlog-close" 'the fixture created a backend-named marker'
+        printf 'The completed result is confirmed.\n' > "$home/decision.txt"
+        spelling=o
+        args=(answer "$spelling" --decision-file "$home/decision.txt")
+        if [ "$close" = reconcile ]; then
+          spelling=fm-o
+          request_reconciles "$home" alias-board "$spelling" || fail 'could not request runtime-alias reconciliation'
+          args=(reconcile close "$spelling" --evidence-file "$home/decision.txt")
+        fi
+        touch "$home/refuse-close"
+        if run_captain "$home" "${args[@]}" > "$home/interrupted.out" 2>&1; then
+          fail 'the interrupted captain closure unexpectedly succeeded'
+        fi
+        assert_present "$home/close-refused" "the $artifact artifact prevented the close attempt: $(cat "$home/interrupted.out")"
+        assert_present "$home/state/o.backlog-close" 'the interrupted closure removed the retained marker'
+        mv "$home/refuse-close" "$home/close-restored"
+        run_captain "$home" "${args[@]}" > "$home/closed.out" 2>&1 \
+          || fail "could not replay the runtime-alias closure: $(cat "$home/closed.out")"
+        shown=$(tasks_in "$home" show fm-o --full) || fail 'the canonical backend task disappeared'
+        assert_contains "$shown" 'state: done' 'replayed closure left the task open'
+        if [ "$artifact" = report ]; then
+          assert_contains "$shown" "$value" 'runtime-alias closure skipped the retained report'
+        else
+          assert_contains "$shown" "Gerrit change $value" 'runtime-alias closure skipped the retained Gerrit note'
+        fi
+        awk -F '\t' 'NF != 2 || $2 != "fm-o" { exit 1 }' "$home/mutations.tsv" \
+          || fail 'retained recovery mutated a runtime alias instead of the backend task'
+        pass "$close replay preserves the runtime $artifact on its canonical backend task"
+      ) || rc=1
+    done
+  done
+  return "$rc"
 }
 
 test_unusable_pending_close_record_names_its_reason() {
@@ -5044,7 +5131,7 @@ test_domain_archival_retires_pending_only_after_a_readable_lookup() {
   if domain_supervision_needed "$domain_home"; then
     fail 'confirmed archival kept an otherwise idle home supervised'
   fi
-  test_domain_terminal_routing_retries || return 1
+  domain_terminal_routing_retries || return 1
   pass 'unreadable backlogs preserve routing supervision and confirmed zero-retention archival retires it'
 }
 
@@ -6194,7 +6281,7 @@ SH
   pass 'failed releases and parent delivery keep routing retryable until the same occurrence is published'
 }
 
-test_domain_terminal_routing_retries() {
+domain_terminal_routing_retries() {
   local mode rc=0
   for mode in done archived custom-archive; do
     (
@@ -6658,8 +6745,10 @@ if [ -z "${FM_CAPTAIN_HOLD_LANE:-}" ]; then
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
   origins) test_hold_origins_precede_backend_holds; exit $? ;;
   stranded-release) test_domain_rehold_waits_for_an_unfinished_routed_release; exit $? ;;
-  terminal-release) test_domain_terminal_routing_retries; exit $? ;;
+  terminal-release) domain_terminal_routing_retries; exit $? ;;
+  retained-alias) retained_alias_artifact_recovery; exit $? ;;
   parent-delivery)
+    domain_terminal_routing_retries || exit 1
     test_domain_rehold_waits_for_an_unfinished_routed_release || exit 1
     test_secondmate_home_publishes_holds_and_answers || exit 1
     test_reprobe_release_retries_finalize_one_occurrence
@@ -6751,7 +6840,7 @@ captain_hold_lane_a() {
   test_domain_failed_rehold_preserves_routing_fields
   test_domain_interrupted_resolutions_block_immediate_and_periodic_routing
   test_domain_new_lifecycles_preserve_historical_decisions
-  test_domain_archival_retires_pending_only_after_a_readable_lookup
+  test_domain_archival_retires_pending_only_after_a_readable_lookup || exit 1
   test_domain_pending_holds_keep_supervision_after_task_retirement
 }
 
@@ -6805,8 +6894,8 @@ captain_hold_lane_b() {
   test_teardown_never_closes_a_captain_held_task
   test_retained_row_artifacts_survive_captain_answers
   test_interrupted_cleanup_keeps_the_captain_call_recoverable
-  test_answer_before_cleanup_replay_preserves_the_retained_report
-  test_answer_before_cleanup_replay_notes_a_retained_gerrit_change
+  test_answer_before_cleanup_replay_preserves_the_retained_report || exit 1
+  test_answer_before_cleanup_replay_notes_a_retained_gerrit_change || exit 1
   test_unusable_pending_close_record_names_its_reason
   test_relocated_report_does_not_wedge_an_answer_before_replay
   test_teardown_retains_captain_calls_in_a_relocated_backlog

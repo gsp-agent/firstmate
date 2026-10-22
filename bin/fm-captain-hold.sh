@@ -1682,12 +1682,12 @@ report_retained_artifact_failure() {  # <task-id> <marker-path>
 }
 
 apply_pending_retained_artifact() {  # <task-id>
-  local id=$1 marker
+  local id=$1 runtime_id=$CAPTAIN_RUNTIME_ID marker
   local -a args=()
   RETAINED_CLOSE_ARGS=()
-  marker=$(fm_backlog_close_marker_path "$STATE" "$id") || return 1
+  marker=$(fm_backlog_close_marker_path "$STATE" "$runtime_id") || return 1
   [ -e "$marker" ] || [ -L "$marker" ] || return 0
-  fm_backlog_close_marker_validate "$marker" "$DATA" "$id" "$STATE" \
+  fm_backlog_close_marker_validate "$marker" "$DATA" "$runtime_id" "$STATE" \
     || { report_retained_artifact_failure "$id" "$marker"; return 1; }
   [ "$FM_BACKLOG_CLOSE_VALIDATED_MODE" = retain ] || return 0
   args=("${FM_BACKLOG_CLOSE_VALIDATED_ARGS[@]+"${FM_BACKLOG_CLOSE_VALIDATED_ARGS[@]}"}")
@@ -1697,7 +1697,7 @@ apply_pending_retained_artifact() {  # <task-id>
         RETAINED_CLOSE_ARGS=(--note "Gerrit change ${args[1]}")
         return 0
       fi
-      fm_backlog_row_artifact_supported "$id" "${args[@]}" || return 0
+      fm_backlog_row_artifact_supported "$runtime_id" "${args[@]}" || return 0
       fm_backlog_mutate "$DATA" update "$id" "${args[@]}" \
         || { report_retained_artifact_failure "$id" "$marker"; return 1; }
       ;;

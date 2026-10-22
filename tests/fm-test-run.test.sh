@@ -1290,7 +1290,7 @@ captain_hold_dispatched_cases() { # <hook> <script> <lane|-> [regression] [domai
 }
 
 test_captain_hold_lanes_partition_its_cases() {
-  local tmp fakebin hook main a b defined all lane_a lane_b actual calls duplicates shard listed a_shard='' b_shard=''
+  local tmp fakebin hook main a b defined all lane_a lane_b actual calls duplicates shard listed failing_case a_shard='' b_shard=''
   tmp=$(fm_test_tmproot fm-test-run-captain-lanes)
   fakebin=$(fm_fakebin "$tmp")
   fm_fake_exit0 "$fakebin" jq tasks-axi
@@ -1359,12 +1359,14 @@ SH
     fail 'captain-hold accepted an invalid lane'
   fi
   assert_grep 'FM_CAPTAIN_HOLD_LANE must be a, b or all' "$tmp/invalid.out" 'invalid captain-hold lane has no diagnostic'
-  if PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" all '' 0 \
-    test_domain_deferred_holds_keep_their_routing_wake >"$tmp/failed.out"; then
-    fail 'captain-hold lost the existing exit-on-failure semantics'
-  fi
-  [ "$(sed -n 's/^ran //p' "$tmp/failed.out" | tail -1)" = test_domain_deferred_holds_keep_their_routing_wake ] \
-    || fail 'captain-hold continued after an explicitly guarded case failed'
+  for failing_case in test_domain_deferred_holds_keep_their_routing_wake test_domain_archival_retires_pending_only_after_a_readable_lookup; do
+    if PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" all '' 0 \
+      "$failing_case" >"$tmp/failed.out"; then
+      fail 'captain-hold lost the existing exit-on-failure semantics'
+    fi
+    [ "$(sed -n 's/^ran //p' "$tmp/failed.out" | tail -1)" = "$failing_case" ] \
+      || fail 'captain-hold continued after an explicitly guarded case failed'
+  done
   for shard in 1 2; do
     listed=$("$RUNNER" --list --lane "portable-parallel-$shard")
     printf '%s\n' "$listed" | grep -qx "${a#"$ROOT"/}" && a_shard=$shard
