@@ -82,17 +82,22 @@
 # FM_WATCH_COVER=1 marks a covering successor: the arm an owner starts while
 # main handles a wake (bin/fm-supervision-host.sh start_successor,
 # bin/fm-claude-stop-autoarm.sh start_handling_successor). Once its first
-# watcher is confirmed it records itself in state/.watch-cover before reporting
-# readiness. Its owner calls --cover-handoff <arm-pid> before detaching it.
+# watcher is confirmed, whether owned or attached, it records itself in
+# state/.watch-cover before reporting readiness. Its owner calls
+# --cover-handoff <arm-pid> before detaching it.
 # While that record still names it and its owner handed over or exited, nobody
 # reads its close, so after a watcher closes on an actionable wake it starts
 # the next handling-successor watcher itself instead of exiting; the wake stays
-# durable in the queue for main. It never chains after a signal or failed
+# durable in the queue for main, without this arm draining or acknowledging it.
+# Before first confirmation, an actionable clean close retries startup within
+# the original confirmation deadline; a stand-down follows the ordinary attach
+# path. It never chains after a signal or failed
 # close, and a chained watcher that loses the singleton yields instead of
 # attaching. Every other invocation of this script first claims that record:
-# it removes it and stops the orphaned covering arm, taking its cycle over as
-# --take-over does, so main's turn-end arm owns a fresh cycle that surfaces any
-# wake queued during the turn and never runs beside the covering one. A
+# it removes it and stops the released covering arm. A watcher owned by that
+# arm is taken over as --take-over does, so a fresh cycle surfaces queued wakes;
+# a healthy peer watcher is attached to without stopping it. The new arm never
+# runs beside the covering arm. A
 # covering arm whose owner still holds responsibility closes as a plain arm.
 #
 # --stop: the same home-scoped stop without re-arming, for an owner that ends

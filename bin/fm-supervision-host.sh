@@ -107,8 +107,9 @@
 # stop hook carries the same tracked 28800-second registration, and a host
 # that handles its own wakes is not shortened by them, so the host ends its
 # own park before that timeout: after FM_SUPERVISION_HOST_PARK_SECONDS (default
-# 27000, under the tracked 28800-second registration) it stops this home's
-# watcher and exits with one "supervision-host: cycle boundary" line, which the
+# 27000, under the tracked 28800-second registration) it ends its current cycle,
+# leaves a covering successor for main, and exits with one
+# "supervision-host: cycle boundary" line, which the
 # owner delivers as an ordinary wake; main drains, acknowledges, and ends its
 # turn, and that turn end starts the next park. The boundary is checked on
 # every loop pass, however many closes are already waiting, and an away close
@@ -518,9 +519,8 @@ turn_crosses_boundary() {
   [ $((PARK_ELAPSED + TURN_TIMEOUT + ENGINE_GRACE)) -ge "$PARK_LIMIT" ]
 }
 
-# End the park at the boundary: stop the current and successor arms and this
-# home's watcher, print any close already read so main drains it, then the
-# boundary line.
+# End the current cycles, then use the normal main hand-back to leave a
+# covering successor and print any close already read plus the boundary line.
 boundary_exit() {
   [ -z "$ARM_PID" ] || CLOSED_ARM_PID=$ARM_PID
   retire_arm "$ARM_PID" "$ARM_OUT"

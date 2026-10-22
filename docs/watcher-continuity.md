@@ -5,7 +5,8 @@ Read it when debugging a supervision gap or changing a harness's re-arm path.
 
 The watcher remains intentionally one-shot: one actionable reason closes one watcher cycle.
 Must-work continuity now lives above that process boundary instead of depending on the model remembering a re-arm step.
-In this document, an arm is one run of `bin/fm-watch-arm.sh`, which starts a watcher cycle or attaches to one and returns the cycle's reason.
+In this document, an arm is one run of `bin/fm-watch-arm.sh`, which starts a watcher cycle or attaches to one.
+An ordinary arm returns the cycle's reason; a [covering successor](#claude-handling-successor) can continue across actionable closes during main's turn.
 
 | Topic | Section |
 | --- | --- |
@@ -184,7 +185,7 @@ That successor is a covering one, as is the successor the supervision host leave
 The handover and the arm's decision to chain or retire share a home lock, so a transfer cannot succeed after the arm commits to exiting.
 When a transfer is rejected, the owner retires that candidate and starts a fresh covering successor within a confirmation budget before handing control to main.
 The handover is recorded before the owner detaches, so coverage continues while that owner's exit cleanup waits on a lease lock.
-The next Stop's foreground arm takes that covering cycle over and owns a fresh one, which surfaces any wake queued during the turn; the [arm header](../bin/fm-watch-arm.sh) owns `FM_WATCH_COVER` and the claim every arm makes first.
+The next Stop's foreground arm reclaims the released covering arm; the [arm header](../bin/fm-watch-arm.sh) owns `FM_WATCH_COVER`, coverage for attached watchers, and whether reclamation takes over an owned watcher or follows a healthy peer.
 A successor that confirms no live watcher adds one line to the rewake banner and never withholds the wake.
 The next Stop then re-arms as before.
 
@@ -369,6 +370,8 @@ Branch acknowledgement retiring the check-row receipts of exactly its granted se
 `bin/fm-watch-arm.sh` never returns a clean empty success.
 
 ### How an arm resolves a close
+
+The table describes an ordinary arm; [covering successors](#claude-handling-successor) continue across actionable closes after handover.
 
 | Child return | What the arm does |
 | --- | --- |

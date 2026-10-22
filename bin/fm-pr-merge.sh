@@ -32,7 +32,8 @@
 # Without --attended-override, GitHub also requires approval at the verified
 # head from FM_MERGE_REVIEWER (default carmanchip23-dev). Among that reviewer's
 # APPROVED, CHANGES_REQUESTED and COMMENTED reviews at that head in the response,
-# the last must be APPROVED; an unreadable review response refuses the merge.
+# the last must be APPROVED, and any CHANGES_REQUESTED in that response vetoes
+# the head even if an approval follows; an unreadable response refuses the merge.
 # The check rollup is a second read, and only after the cheap fields show the
 # pull request is open, not a draft, and otherwise mergeable. A closed, draft,
 # conflicting, or still-UNKNOWN pull request never requests that rollup.
