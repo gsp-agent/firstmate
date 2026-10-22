@@ -10,9 +10,9 @@ The concurrent isolation proof in [fm-test-isolation-proof.md](fm-test-isolation
 Local timings are not interchangeable with CI timings: platform and machine load can affect each script differently and change their relative weights.
 
 Both hint tables were refreshed on 2026-09-30 from five Ubuntu CI runs: [36583881812](https://github.com/kunchenguid/firstmate/actions/runs/36583881812), [36658498535](https://github.com/kunchenguid/firstmate/actions/runs/36658498535), [36663947738](https://github.com/kunchenguid/firstmate/actions/runs/36663947738), [36664663190](https://github.com/kunchenguid/firstmate/actions/runs/36664663190), and [36669175457](https://github.com/kunchenguid/firstmate/actions/runs/36669175457).
-Use the slowest successful `duration_ms` per script across their uploaded portable timing artifacts and completed `FM_TEST_END` log markers, with the two exceptions below.
+Use the slowest successful `duration_ms` per script across their uploaded portable timing artifacts and completed `FM_TEST_END` log markers, with the exceptions below.
 All artifact records were cross-checked against the corresponding job's markers.
-This covers all 24 parallel and 201 serial members; an existing live-capability skip is a portable-runner measurement, not a timing claim for the unavailable live integration.
+That refresh covered the 24 parallel and 201 serial members present then; an existing live-capability skip is a portable-runner measurement, not a timing claim for the unavailable live integration.
 Observed maxima provide conservative packing weights, not an upper bound on future durations.
 
 Two serial-5 jobs were cancelled at their 30-minute cap and uploaded no artifact.
@@ -23,6 +23,11 @@ Collect successful per-script measurements for every member before calculating a
 
 `tests/fm-supervision-host.test.sh` alone reached the 30-minute tripwire on slow runners (1015-1244 s green, past 1753 s on slow runners), so CI runs its cases in two lanes: `tests/fm-supervision-host-lane-a.test.sh` and `tests/fm-supervision-host-lane-b.test.sh` on different serial shards, scheduled in place of the file; run directly, the file still runs every case.
 Their hints, 619000 ms and 625000 ms, apportion the slowest green whole-file sample (1244 s) by each lane's share of per-case time in a green run, so further green runs must replace them with measured lane samples.
+
+`tests/fm-captain-hold-lifecycle.test.sh` outgrew its 343658 ms hint, so CI likewise schedules `tests/fm-captain-hold-lifecycle-lane-a.test.sh` and `tests/fm-captain-hold-lifecycle-lane-b.test.sh` in place of the subject, one per parallel lane; run directly, the subject still runs every case.
+The boundary follows `test_domain_pending_holds_keep_supervision_after_task_retirement`: lane a covers the first 26 reported tests and lane b starts with `test_domain_holds_route_after_timeout_and_record_evidence` and covers the remaining cases.
+Their 819000 ms and 811000 ms hints sum those case measurements from CI run `39215403369`, job `117937961845`, where the whole file took 1629912 ms; completed green lane samples must replace them.
+
 The native-Windows-only `tests/fm-pi-windows-shell-invocation.test.sh` retains its separate 5121 ms measurement from 2026-09-06T21:02Z instead of a portable capability skip.
 The session-start hint retains its pre-optimization maximum until CI measures the shorter fixture-only home-summary bound; do not discount a local speedup from CI packing weights.
 

@@ -23,6 +23,7 @@ test_list_all_exact_suite_coverage() {
       [ -f "$f" ] || continue
       # A lane-split subject runs through its lane wrappers instead.
       [ "$(basename "$f")" = fm-supervision-host.test.sh ] && continue
+      [ "$(basename "$f")" = fm-captain-hold-lifecycle.test.sh ] && continue
       printf 'tests/%s\n' "$(basename "$f")"
     done | LC_ALL=C sort
   )
@@ -503,6 +504,39 @@ test_changed_lane_split_subject_runs_each_case_once() {
 
   rm -rf "$tmp"
   pass "changed selection runs each supervision-host case once, through the lanes or the subject"
+}
+
+test_changed_captain_hold_subject_runs_each_case_once() {
+  local tmp repo listed script
+  tmp=$(fm_test_tmproot fm-test-run-captain-subject)
+  repo="$tmp/repo"
+  init_changed_fixture_repo "$repo"
+  for script in fm-captain-hold-lifecycle.test.sh fm-captain-hold-lifecycle-lane-a.test.sh fm-captain-hold-lifecycle-lane-b.test.sh; do
+    printf '#!/usr/bin/env bash\n' >"$repo/tests/$script"
+    chmod +x "$repo/tests/$script"
+  done
+  : >"$repo/bin/fm-captain-hold.sh"
+  git -C "$repo" add .
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm captain-hold
+
+  printf '\n' >>"$repo/bin/fm-captain-hold.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-captain-hold-lifecycle-lane-a.test.sh' \
+    || fail "source change did not select captain-hold lane a: $listed"
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-captain-hold-lifecycle-lane-b.test.sh' \
+    || fail "source change did not select captain-hold lane b: $listed"
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-captain-hold-lifecycle.test.sh' \
+    && fail "source change selected captain-hold beside its lanes: $listed"
+
+  printf '\n' >>"$repo/tests/fm-captain-hold-lifecycle.test.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-captain-hold-lifecycle.test.sh' \
+    || fail "changed captain-hold subject was not selected: $listed"
+  printf '%s\n' "$listed" | grep -qx 'tests/fm-brief.test.sh' \
+    || fail "captain-hold source change lost the rest of its family: $listed"
+  printf '%s\n' "$listed" | grep -q -- '-lane-[ab]\.test\.sh$' \
+    && fail "captain-hold cases selected through both the subject and its lanes: $listed"
+  pass "changed selection runs each captain-hold case once, through the lanes or the subject"
 }
 
 # Exercise begin/end markers from real fixture processes to prove the automatic
@@ -1052,7 +1086,8 @@ test_list_scheduled_non_lane_selections_use_serial_weights() {
     tests/fm-operational-input.test.sh
     tests/fm-lint.test.sh
     tests/fm-muse-harness.test.sh
-    tests/fm-captain-hold-lifecycle.test.sh
+    tests/fm-captain-hold-lifecycle-lane-a.test.sh
+    tests/fm-captain-hold-lifecycle-lane-b.test.sh
     tests/fm-kimi-harness.test.sh
     tests/fm-brief.test.sh
   )
@@ -1074,7 +1109,8 @@ test_list_scheduled_non_lane_selections_use_serial_weights() {
     tests/fm-kimi-harness.test.sh \
     tests/fm-muse-harness.test.sh \
     tests/fm-brief.test.sh \
-    tests/fm-captain-hold-lifecycle.test.sh \
+    tests/fm-captain-hold-lifecycle-lane-a.test.sh \
+    tests/fm-captain-hold-lifecycle-lane-b.test.sh \
     tests/fm-lint.test.sh \
     tests/fm-operational-input.test.sh >"$tmp/expected"
   for selection in family all changed scripts; do
@@ -1153,13 +1189,73 @@ test_portable_parallel_lanes_stay_duration_balanced() {
   pass "portable parallel lanes are fully hinted and packed within 5% of each other"
 }
 
+supervision_host_dispatched_cases() { # <hook> <script> <lane|->
+  local hook=$1 script=$2 lane=$3
+  local -a selector=(-u FM_SUPERVISION_HOST_LANE)
+  [ "$lane" = - ] || selector=("FM_SUPERVISION_HOST_LANE=$lane")
+  env -u FM_TEST_LIB_SOURCED "${selector[@]}" BASH_ENV="$hook" bash "$script"
+}
+
 test_supervision_host_lanes_are_scheduled_separately() {
-  local lane_a lane_b wrapper lanes count shard a_shard b_shard main_shard listed_shard
+  local tmp fakebin hook main lane_a lane_b wrapper defined calls dups lanes count shard a_shard b_shard main_shard listed_shard ran_all ran_a ran_b actual
+  tmp=$(fm_test_tmproot fm-test-run-supervision-lanes)
+  fakebin=$(fm_fakebin "$tmp")
+  fm_fake_exit0 "$fakebin" node perl
+  hook="$tmp/stub-cases.bash"
+  cat >"$hook" <<'SH'
+case "$0" in
+  */fm-supervision-host.test.sh)
+    unset BASH_ENV
+    stub_supervision_cases() {
+      [ "${supervision_cases_stubbed:-0}" = 0 ] || return 0
+      case "$BASH_COMMAND" in test_*|supervision_host_lane_*) ;; *) return ;; esac
+      supervision_cases_stubbed=1
+      trap - DEBUG
+      local name
+      while read -r _ _ name; do
+        case "$name" in
+          test_*)
+            printf 'defined %s\n' "$name"
+            eval "$name() { printf 'ran %s\\n' '$name'; }"
+            ;;
+        esac
+      done < <(declare -F)
+    }
+    trap stub_supervision_cases DEBUG
+    ;;
+esac
+SH
+  main="$ROOT/tests/fm-supervision-host.test.sh"
   lane_a="$ROOT/tests/fm-supervision-host-lane-a.test.sh"
   lane_b="$ROOT/tests/fm-supervision-host-lane-b.test.sh"
   for wrapper in "$lane_a" "$lane_b"; do
     [ -x "$wrapper" ] || fail "${wrapper#"$ROOT"/} must exist and be executable"
   done
+  ran_all=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" -) \
+    || fail "supervision-host dispatch with no lane set failed: $ran_all"
+  defined=$(printf '%s\n' "$ran_all" | sed -n 's/^defined //p' | LC_ALL=C sort)
+  calls=$(printf '%s\n' "$ran_all" | sed -n 's/^ran //p' | LC_ALL=C sort)
+  [ -n "$defined" ] || fail 'supervision-host runtime case inventory is empty'
+  [ "$calls" = "$defined" ] || fail 'direct supervision-host dispatch must run every defined case exactly once'
+  actual=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" all) || fail "lane all failed: $actual"
+  [ "$actual" = "$ran_all" ] || fail 'FM_SUPERVISION_HOST_LANE=all must run the whole subject'
+  ran_a=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" a) || fail "lane a failed: $ran_a"
+  ran_b=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" b) || fail "lane b failed: $ran_b"
+  ran_a=$(printf '%s\n' "$ran_a" | sed -n 's/^ran //p')
+  ran_b=$(printf '%s\n' "$ran_b" | sed -n 's/^ran //p')
+  [ -n "$ran_a" ] && [ -n "$ran_b" ] || fail "lanes a and b must each run cases"
+  [ "$(printf '%s\n%s\n' "$ran_a" "$ran_b" | LC_ALL=C sort)" = "$defined" ] \
+    || fail "lanes a and b together must run every case exactly once"
+  dups=$(comm -12 <(printf '%s\n' "$ran_a" | LC_ALL=C sort) <(printf '%s\n' "$ran_b" | LC_ALL=C sort))
+  [ -z "$dups" ] || fail "supervision-host cases appear in both lanes: $dups"
+  actual=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$lane_a" -) || fail 'supervision-host wrapper a failed'
+  [ "$(printf '%s\n' "$actual" | sed -n 's/^ran //p')" = "$ran_a" ] || fail 'supervision-host wrapper a must select lane a'
+  actual=$(PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$lane_b" -) || fail 'supervision-host wrapper b failed'
+  [ "$(printf '%s\n' "$actual" | sed -n 's/^ran //p')" = "$ran_b" ] || fail 'supervision-host wrapper b must select lane b'
+  if PATH="$fakebin:$PATH" supervision_host_dispatched_cases "$hook" "$main" invalid >"$tmp/invalid.out" 2>&1; then
+    fail 'supervision-host accepted an invalid lane'
+  fi
+  assert_grep 'FM_SUPERVISION_HOST_LANE must be a, b or all' "$tmp/invalid.out" 'invalid supervision-host lane has no diagnostic'
   # CI schedules the two lane wrappers, never the whole file, on different
   # portable serial shards, so each case runs there exactly once.
   lanes=$("$RUNNER" --list-lanes)
@@ -1179,6 +1275,109 @@ test_supervision_host_lanes_are_scheduled_separately() {
   [ -n "$a_shard" ] && [ -n "$b_shard" ] || fail "both supervision-host lanes must land on a portable serial shard (a=$a_shard b=$b_shard)"
   [ "$a_shard" != "$b_shard" ] || fail "both supervision-host lanes packed onto serial shard $a_shard"
   pass "supervision-host: CI schedules lanes a and b on different serial shards"
+}
+
+# Execute the actual subject or wrapper with its case functions replaced at
+# runtime. The emitted inventory and calls are the dispatch contract; no source
+# text is used as evidence that a lane selects or runs a case.
+captain_hold_dispatched_cases() { # <hook> <script> <lane|-> [regression] [domain-only] [failing-case]
+  local hook=$1 script=$2 lane=$3
+  local -a selector=(-u FM_CAPTAIN_HOLD_LANE)
+  [ "$lane" = - ] || selector=("FM_CAPTAIN_HOLD_LANE=$lane")
+  env -u FM_TEST_LIB_SOURCED "${selector[@]}" BASH_ENV="$hook" \
+    FM_TEST_HOLD_ROUTING_REGRESSION="${4:-}" FM_TEST_HOLD_DOMAIN_ONLY="${5:-0}" \
+    FM_LANE_FAIL_CASE="${6:-}" bash "$script"
+}
+
+test_captain_hold_lanes_partition_its_cases() {
+  local tmp fakebin hook main a b defined all lane_a lane_b actual calls duplicates shard listed failing_case a_shard='' b_shard=''
+  tmp=$(fm_test_tmproot fm-test-run-captain-lanes)
+  fakebin=$(fm_fakebin "$tmp")
+  fm_fake_exit0 "$fakebin" jq tasks-axi
+  hook="$tmp/stub-cases.bash"
+  cat >"$hook" <<'SH'
+case "$0" in
+  */fm-captain-hold-lifecycle.test.sh)
+    unset BASH_ENV
+    stub_captain_cases() {
+      [ "${captain_cases_stubbed:-0}" = 0 ] || return 0
+      case "$BASH_COMMAND" in test_*|captain_hold_lane_*) ;; *) return ;; esac
+      captain_cases_stubbed=1
+      trap - DEBUG
+      local name
+      while read -r _ _ name; do
+        case "$name" in
+          test_*)
+            printf 'defined %s\n' "$name"
+            eval "$name() { printf 'ran %s' '$name'; if [ \"\$#\" -gt 0 ]; then printf ' %s' \"\$@\"; fi; printf '\\n'; [ \"\${FM_LANE_FAIL_CASE:-}\" != '$name' ]; }"
+            ;;
+        esac
+      done < <(declare -F)
+    }
+    trap stub_captain_cases DEBUG
+    ;;
+esac
+SH
+  main="$ROOT/tests/fm-captain-hold-lifecycle.test.sh"
+  a="$ROOT/tests/fm-captain-hold-lifecycle-lane-a.test.sh"
+  b="$ROOT/tests/fm-captain-hold-lifecycle-lane-b.test.sh"
+  [ -x "$a" ] && [ -x "$b" ] || fail 'both captain-hold lane wrappers must exist and be executable'
+  all=$(PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" - | LC_ALL=C sort) \
+    || fail 'captain-hold dispatch without a lane failed'
+  defined=$(printf '%s\n' "$all" | sed -n 's/^defined //p')
+  calls=$(printf '%s\n' "$all" | sed -n 's/^ran //p')
+  [ -n "$defined" ] || fail 'captain-hold runtime case inventory is empty'
+  [ "$(printf '%s\n' "$calls" | awk '{print $1}' | LC_ALL=C sort -u)" = "$defined" ] \
+    || fail "direct captain-hold dispatch must run every defined case: $(diff <(printf '%s\n' "$defined") <(printf '%s\n' "$calls" | awk '{print $1}' | LC_ALL=C sort -u) | head -20)"
+  duplicates=$(printf '%s\n' "$calls" | uniq -d)
+  [ -z "$duplicates" ] || fail "captain-hold repeats case invocations: $duplicates"
+  printf '%s\n' "$calls" | grep -qx 'test_domain_retries_failed_delivery_and_release' \
+    || fail 'captain-hold lost the ordinary delivery/release retry case'
+  printf '%s\n' "$calls" | grep -qx 'test_domain_retries_failed_delivery_and_release expired' \
+    || fail 'captain-hold lost the expired delivery/release retry case'
+  lane_a=$(PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" a | LC_ALL=C sort) || fail 'captain-hold lane a failed'
+  lane_b=$(PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" b | LC_ALL=C sort) || fail 'captain-hold lane b failed'
+  actual=$(printf '%s\n%s\n' "$lane_a" "$lane_b" | sed -n 's/^ran //p' | LC_ALL=C sort)
+  [ "$actual" = "$calls" ] || fail 'captain-hold lanes must run every original invocation exactly once'
+  actual=$(comm -12 <(printf '%s\n' "$lane_a" | awk '$1 == "ran" {print $2}' | LC_ALL=C sort -u) \
+    <(printf '%s\n' "$lane_b" | awk '$1 == "ran" {print $2}' | LC_ALL=C sort -u))
+  [ -z "$actual" ] || fail "captain-hold cases appear in both lanes: $actual"
+  actual=$(PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" all | LC_ALL=C sort) || fail 'captain-hold lane all failed'
+  [ "$actual" = "$all" ] || fail 'explicit captain-hold lane all must run the whole subject'
+  actual=$(PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" all origins 1 | LC_ALL=C sort) || fail 'captain-hold lane all with selectors failed'
+  [ "$actual" = "$all" ] || fail 'explicit captain-hold lane all must override regression/domain selectors'
+  actual=$(PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$a" - origins 1 | LC_ALL=C sort) || fail 'captain-hold wrapper a failed'
+  [ "$actual" = "$lane_a" ] || fail 'captain-hold wrapper a must select lane a ahead of regression/domain selectors'
+  actual=$(PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$b" - origins 1 | LC_ALL=C sort) || fail 'captain-hold wrapper b failed'
+  [ "$actual" = "$lane_b" ] || fail 'captain-hold wrapper b must select lane b ahead of regression/domain selectors'
+  actual=$(PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" - origins | sed -n 's/^ran //p') || fail 'captain-hold origins selector failed'
+  [ "$actual" = test_hold_origins_precede_backend_holds ] || fail 'unset lane must preserve the origins regression selector'
+  actual=$(PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" - '' 1 | sed -n 's/^ran //p' | LC_ALL=C sort) || fail 'captain-hold domain-only selector failed'
+  [ "$actual" = "$(printf '%s\n' "$calls" | awk '$1 ~ /^test_(domain_|watcher_)/')" ] \
+    || fail 'unset lane must preserve the domain-only early exit'
+  if PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" invalid origins 1 >"$tmp/invalid.out" 2>&1; then
+    fail 'captain-hold accepted an invalid lane'
+  fi
+  assert_grep 'FM_CAPTAIN_HOLD_LANE must be a, b or all' "$tmp/invalid.out" 'invalid captain-hold lane has no diagnostic'
+  for failing_case in test_domain_deferred_holds_keep_their_routing_wake test_domain_archival_retires_pending_only_after_a_readable_lookup; do
+    if PATH="$fakebin:$PATH" captain_hold_dispatched_cases "$hook" "$main" all '' 0 \
+      "$failing_case" >"$tmp/failed.out"; then
+      fail 'captain-hold lost the existing exit-on-failure semantics'
+    fi
+    [ "$(sed -n 's/^ran //p' "$tmp/failed.out" | tail -1)" = "$failing_case" ] \
+      || fail 'captain-hold continued after an explicitly guarded case failed'
+  done
+  for shard in 1 2; do
+    listed=$("$RUNNER" --list --lane "portable-parallel-$shard")
+    printf '%s\n' "$listed" | grep -qx "${a#"$ROOT"/}" && a_shard=$shard
+    printf '%s\n' "$listed" | grep -qx "${b#"$ROOT"/}" && b_shard=$shard
+    printf '%s\n' "$listed" | grep -qx "${main#"$ROOT"/}" && fail 'CI schedules the captain-hold subject beside its wrappers'
+  done
+  [ -n "$a_shard" ] && [ -n "$b_shard" ] && [ "$a_shard" != "$b_shard" ] \
+    || fail "captain-hold wrappers must occupy different parallel lanes (a=$a_shard b=$b_shard)"
+  "$RUNNER" --list --family pure-contract-unit | grep -qx "${a#"$ROOT"/}" || fail 'captain-hold wrapper a lost its family'
+  "$RUNNER" --list --family pure-contract-unit | grep -qx "${b#"$ROOT"/}" || fail 'captain-hold wrapper b lost its family'
+  pass 'captain-hold: direct dispatch preserves all cases and selectors; CI runs each lane wrapper once'
 }
 
 test_portable_serial_shards_partition_the_serial_lane() {
@@ -2632,6 +2831,7 @@ test_shell_line_ending_policy_selects_runner_contract
 test_changed_dependency_selection_and_unmapped_failure
 test_changed_bin_reference_selects_per_script_not_per_family
 test_changed_lane_split_subject_runs_each_case_once
+test_changed_captain_hold_subject_runs_each_case_once
 test_changed_uses_bounded_automatic_concurrency
 test_windows_posix_mode_emulation_does_not_fail_parallel_runs
 test_script_list_uses_bounded_automatic_concurrency
@@ -2651,6 +2851,7 @@ test_portable_shard_union_and_coverage_guard
 test_portable_parallel_lanes_stay_duration_balanced
 test_portable_serial_shards_partition_the_serial_lane
 test_supervision_host_lanes_are_scheduled_separately
+test_captain_hold_lanes_partition_its_cases
 test_portable_serial_hint_coverage_is_reported_and_bounded
 test_portable_serial_packing_budget_boundary
 test_portable_serial_shard_lane_refusals

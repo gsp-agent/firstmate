@@ -20,7 +20,10 @@ This record owns concurrent isolation evidence for the portable parallel candida
 | failed | 0 |
 | wall duration | 113278 ms |
 
-## Candidate set
+## Measured candidate set
+
+The list and timings below record the 2026-08-20 proof, before lane splitting.
+[`bin/fm-test-isolation-proof.sh --list`](../bin/fm-test-isolation-proof.sh) reports the current candidate set.
 
 - `tests/fm-arm-pretool-check.test.sh`
 - `tests/fm-backend-herdr.test.sh`

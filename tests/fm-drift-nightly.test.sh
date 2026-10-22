@@ -785,15 +785,17 @@ test_install_and_uninstall_round_trip() {
   assert_equals "installed: $plist" "$out" "install names the plist it wrote"
   assert_present "$plist" "install did not write the plist"
   assert_grep "bootstrap gui/$(id -u) $plist" "$log" "install did not bootstrap the agent"
-  assert_equals 3 "$(plist_value "$plist" StartCalendarInterval Hour)" "the plist hour is not 3"
-  assert_equals 17 "$(plist_value "$plist" StartCalendarInterval Minute)" "the plist minute is not 17"
-  assert_equals "/bin/bash
-$SCRIPT
-nightly
---repo
-$repo
---log
-$joblog" "$(plist_args "$plist")" "the plist has the expected script, repo and log arguments"
+  python3 -I - "$plist" "$SCRIPT" "$repo" "$joblog" <<'PY' || fail 'the plist schedule or command arguments are incorrect'
+import plistlib
+import sys
+
+with open(sys.argv[1], "rb") as stream:
+    job = plistlib.load(stream)
+assert job["StartCalendarInterval"] == {"Hour": 3, "Minute": 17}, job["StartCalendarInterval"]
+assert job["ProgramArguments"] == [
+    "/bin/bash", sys.argv[2], "nightly", "--repo", sys.argv[3], "--log", sys.argv[4]
+], job["ProgramArguments"]
+PY
   assert_present "$dir/logs" "install did not create the log directory launchd writes into"
   assert_equals "$joblog" "$(plist_value "$plist" StandardOutPath)" "the job's stdout does not go to the log"
   assert_equals "$joblog" "$(plist_value "$plist" StandardErrorPath)" "the job's stderr does not go to the log"

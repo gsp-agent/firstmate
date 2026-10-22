@@ -70,10 +70,9 @@
 #                   script paths, which use the bounded automatic scheduler.
 #   --per-script-timeout-secs N
 #                   terminate a script that runs longer than N seconds and
-#                   record it as exit 124 (0 disables, the default). The
-#                   --changed applies 1500s automatically, above the slowest
-#                   healthy CI measurement with margin; exceeding it becomes a
-#                   bounded failure, not proof of a hang. --max-wall-ms is checked
+#                   record it as exit 124 (0 disables, the default).
+#                   --changed applies 1500s automatically; exceeding it becomes
+#                   a bounded failure, not proof of a hang. --max-wall-ms is checked
 #                   after the run and so cannot catch a hang on its own.
 #                   With or without a bound, each script runs in its own
 #                   process group under fm_exec_timed (bin/fm-timeout-lib.sh),
@@ -203,19 +202,10 @@ JOBS_EXPLICIT=0
 JOBS_MAX=8
 MAX_WALL_MS=
 PER_SCRIPT_TIMEOUT_SECS=0
-# Bound applied automatically on the automatic --changed path, derived from
-# measured healthy runtimes with margin rather than picked: the slowest measured
-# script is tests/fm-supervision-host.test.sh run whole, at about 1244s green
-# under CI load (CI runs it as two lanes, so the hint table below splits that
-# figure between them; docs/fm-test-portable-shards.md), then
-# tests/fm-watch-triage.test.sh at about 1075s. 1500s keeps every measured
-# healthy script under the bound with roughly 1.2x headroom over the slowest
-# loaded measurement, and it stays under the 30-minute normal CI tier so a
-# wedged script fails here,
-# with its output, before the job cap
-# cancels the lane. It is a guard, not a speed control: a HUNG script becomes a
-# bounded failure instead of an unbounded suite, which is the shape that
-# silently outruns a caller's invocation budget.
+# Keep automatic --changed execution below the normal CI job tripwire so a
+# script exceeding this local bound fails with its output before job cancellation.
+# CI lane splitting does not raise the bound for a directly selected subject.
+# docs/fm-test-portable-shards.md owns timing provenance and split measurements.
 CHANGED_DEFAULT_TIMEOUT_SECS=1500
 
 # How many separate-runner shards the portable serial remainder splits into.
@@ -311,6 +301,7 @@ family_for_basename() {
     fm-classify-decision-key.test.sh|\
     fm-composer-ghost.test.sh|fm-composer-lib.test.sh|\
     fm-crew-state.test.sh|fm-captain-hold-lifecycle.test.sh|\
+    fm-captain-hold-lifecycle-lane-a.test.sh|fm-captain-hold-lifecycle-lane-b.test.sh|\
     fm-documentation-audiences.test.sh|fm-ensure-agents-md.test.sh|fm-forge-detect.test.sh|fm-grok-harness.test.sh|\
     fm-fork-free-helpers.test.sh|\
     fm-harness-precedence.test.sh|\
@@ -518,7 +509,8 @@ list_proven_isolated() {
 tests/fm-arm-pretool-check.test.sh
 tests/fm-backend-herdr.test.sh
 tests/fm-brief.test.sh
-tests/fm-captain-hold-lifecycle.test.sh
+tests/fm-captain-hold-lifecycle-lane-a.test.sh
+tests/fm-captain-hold-lifecycle-lane-b.test.sh
 tests/fm-cd-pretool-check.test.sh
 tests/fm-composer-ghost.test.sh
 tests/fm-composer-lib.test.sh
@@ -550,7 +542,8 @@ portable_parallel_weight_hints() {
 tests/fm-arm-pretool-check.test.sh 33778
 tests/fm-backend-herdr.test.sh 36331
 tests/fm-brief.test.sh 10594
-tests/fm-captain-hold-lifecycle.test.sh 343658
+tests/fm-captain-hold-lifecycle-lane-a.test.sh 819000
+tests/fm-captain-hold-lifecycle-lane-b.test.sh 811000
 tests/fm-cd-pretool-check.test.sh 16801
 tests/fm-composer-ghost.test.sh 2292
 tests/fm-composer-lib.test.sh 9521
@@ -593,15 +586,15 @@ portable_parallel_lane_weight() {
 # workflow step moved with it.
 list_portable_parallel_1() {
   cat <<'EOF'
-tests/fm-pr-merge.test.sh
+tests/fm-captain-hold-lifecycle-lane-a.test.sh
 tests/fm-lint.test.sh
-tests/fm-backend-herdr.test.sh
-tests/fm-x-mode.test.sh
+tests/fm-test-run.test.sh
+tests/fm-arm-pretool-check.test.sh
 tests/fm-cd-pretool-check.test.sh
 tests/fm-composer-lib.test.sh
-tests/fm-send-popup-settle.test.sh
+tests/fm-grok-harness.test.sh
 tests/fm-pi-primary-types.test.sh
-tests/fm-review-diff.test.sh
+tests/fm-spawn-batch.test.sh
 tests/fm-send-settle.test.sh
 tests/fm-ensure-agents-md.test.sh
 tests/fm-supervision-instructions.test.sh
@@ -612,15 +605,16 @@ EOF
 # Portable parallel shard 2: the complementary LPT half of the proven set.
 list_portable_parallel_2() {
   cat <<'EOF'
-tests/fm-captain-hold-lifecycle.test.sh
-tests/fm-test-run.test.sh
+tests/fm-captain-hold-lifecycle-lane-b.test.sh
+tests/fm-pr-merge.test.sh
 tests/fm-crew-state.test.sh
-tests/fm-arm-pretool-check.test.sh
+tests/fm-backend-herdr.test.sh
+tests/fm-x-mode.test.sh
 tests/fm-herdr-lab.test.sh
 tests/fm-brief.test.sh
-tests/fm-grok-harness.test.sh
+tests/fm-send-popup-settle.test.sh
 tests/fm-send-strict.test.sh
-tests/fm-spawn-batch.test.sh
+tests/fm-review-diff.test.sh
 tests/fm-tmux-submit-busy.test.sh
 tests/fm-composer-ghost.test.sh
 EOF
@@ -1321,7 +1315,7 @@ all_repo_test_files() {
 # runs once. Named explicitly, the subject still runs, and runs every case.
 LANE_SPLIT_SUBJECT=tests/fm-supervision-host.test.sh
 all_repo_tests() {
-  all_repo_test_files | grep -vx "$LANE_SPLIT_SUBJECT"
+  all_repo_test_files | grep -vx "$LANE_SPLIT_SUBJECT" | grep -vx tests/fm-captain-hold-lifecycle.test.sh
 }
 
 normalize_script_path() {
@@ -1842,6 +1836,18 @@ select_changed() {
       for s in "${SCRIPTS[@]}"; do
         case "$s" in
           "${LANE_SPLIT_SUBJECT%.test.sh}"-lane-*.test.sh) ;;
+          *) kept+=("$s") ;;
+        esac
+      done
+      SCRIPTS=("${kept[@]}")
+      ;;
+  esac
+  case " ${SCRIPTS[*]-} " in
+    *" tests/fm-captain-hold-lifecycle.test.sh "*)
+      kept=()
+      for s in "${SCRIPTS[@]}"; do
+        case "$s" in
+          tests/fm-captain-hold-lifecycle-lane-*.test.sh) ;;
           *) kept+=("$s") ;;
         esac
       done
