@@ -6756,7 +6756,9 @@ SH
   [ "$(cat "$dir/ready.attempts")" = "$before" ] \
     || { reap "$pid"; fail "probes ran outside the existing check cadence"; }
   set_mtime 1 "$state/.last-check"
-  if ! wait_for_exit "$pid" 600; then
+  # Output follows the complete sequential sweep: its list, four probes, and
+  # prefetch have a combined 420-second bound at FM_CHECK_TIMEOUT=60.
+  if ! wait_for_exit "$pid" 4200; then
     reap "$pid"
     fail "the due sweep did not wake after a passing probe: $(cat "$out" "$dir/watch.err")"
   fi
