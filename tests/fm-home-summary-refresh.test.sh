@@ -1139,3 +1139,179 @@ case "$report_out" in
     ;;
 esac
 pass "repeated publication failure is reported at session start until it clears"
+
+REQUEST_BIN="$TMP_ROOT/request-bin"
+mkdir -p "$REQUEST_BIN"
+for library in fm-home-summary-refresh.sh fm-wake-lib.sh fm-path-lib.sh fm-timeout-lib.sh; do
+  ln -s "$ROOT/bin/$library" "$REQUEST_BIN/$library"
+done
+REQUEST_WRITER="$REQUEST_BIN/fm-home-summary-refresh.sh"
+REQUEST_REAL_STAT=$(command -v stat)
+REQUEST_REAL_RM=$(command -v rm)
+cat > "$REQUEST_BIN/fm-fleet-snapshot.sh" <<'SH'
+#!/usr/bin/env bash
+event=$(cat "$FM_HOME/state/event")
+printf '%s\n' "$event" >> "$FM_HOME/state/walks"
+if [ -e "$FM_HOME/state/hold" ]; then
+  : > "$FM_HOME/state/producer-started"
+  while [ "$(cat "$FM_HOME/state/hold")" = wait ]; do sleep 0.05; done
+fi
+if [ -e "$FM_HOME/state/delay" ]; then sleep 30; fi
+[ ! -e "$FM_HOME/state/fail" ] || exit 23
+jq -n --arg home "$FM_HOME" --arg event "$event" '{
+  schema:"fm-secondmate-home-summary.v1",hold_classifier_schema:"fm-captain-hold-buckets.v1",
+  home:$home,generated:"2026-08-28T10:00:00Z",generated_epoch:1787911200,
+  valid:true,state:$event,invalidity:{},active_children:[],decisions_open:[],
+  holds:[],queued:[],landed:[],endpoints:[],counts:{},omitted:[]
+}'
+SH
+cat > "$REQUEST_BIN/stat" <<'SH'
+#!/usr/bin/env bash
+if [ "${!#}" = "$FM_HOME/state/home-summary.json" ] && [ -e "$FM_HOME/state/ledger-time" ]; then
+  stamp=$(cat "$FM_HOME/state/ledger-time")
+  if [ "$stamp" = now ]; then date +%s; else printf '%s\n' "$stamp"; fi
+  exit 0
+fi
+exec "$FM_TEST_REQUEST_STAT" "$@"
+SH
+cat > "$REQUEST_BIN/rm" <<'SH'
+#!/usr/bin/env bash
+if [ "${!#}" = "$FM_HOME/state/.home-summary-drain.lock" ] \
+  && [ -e "$FM_HOME/state/handoff-armed" ] && [ ! -e "$FM_HOME/state/.home-summary-dirty" ]; then
+  mv "$FM_HOME/state/handoff-armed" "$FM_HOME/state/handoff-fired"
+  printf 'after\n' > "$FM_HOME/state/event"
+  "$FM_TEST_REQUEST_WRITER" --request || exit 1
+fi
+exec "$FM_TEST_REQUEST_RM" "$@"
+SH
+chmod +x "$REQUEST_BIN/fm-fleet-snapshot.sh" "$REQUEST_BIN/stat" "$REQUEST_BIN/rm"
+
+request_fixture() {
+  local home="$TMP_ROOT/request-$1"
+  mkdir -p "$home/state" "$home/data" "$home/config" "$home/projects"
+  printf 'mate\n' > "$home/.fm-secondmate-home"
+  printf 'before\n' > "$home/state/event"
+  printf '%s\n' "$home"
+}
+
+run_request_writer() {
+  local home=$1 interval=$2
+  shift 2
+  PATH="$REQUEST_BIN:$FAKEBIN:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
+    FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    FM_CONFIG_OVERRIDE="$home/config" FM_PROJECTS_OVERRIDE="$home/projects" \
+    FM_HOME_SUMMARY_IF_IDLE=0 FM_HOME_SUMMARY_INTERVAL="$interval" \
+    FM_HOME_SUMMARY_TIMEOUT="${FM_TEST_REQUEST_TIMEOUT:-5}" \
+    FM_TEST_REQUEST_STAT="$REQUEST_REAL_STAT" FM_TEST_REQUEST_RM="$REQUEST_REAL_RM" \
+    FM_TEST_REQUEST_WRITER="$REQUEST_WRITER" "$REQUEST_WRITER" "$@"
+}
+
+wait_request_condition() {
+  local tries=0
+  until "$@"; do
+    [ "$tries" -lt 200 ] || return 1
+    sleep 0.05
+    tries=$((tries + 1))
+  done
+}
+
+request_walks_equal() {
+  local count=0
+  [ ! -f "$1/state/walks" ] || count=$(wc -l < "$1/state/walks")
+  [ "$count" -eq "$2" ]
+}
+
+request_is_idle() {
+  [ ! -e "$1/state/.home-summary-drain.lock" ] && [ ! -e "$1/state/.home-summary-dirty" ]
+}
+
+REQUEST_HOME=$(request_fixture zero-age)
+printf '{}\n' > "$REQUEST_HOME/state/home-summary.json"
+printf 'now\n' > "$REQUEST_HOME/state/ledger-time"
+run_request_writer "$REQUEST_HOME" 30 --request || fail "zero-age request failed"
+wait_request_condition test -e "$REQUEST_HOME/state/.home-summary-drain.lock" \
+  || fail "zero-age request did not start its drain"
+sleep 1
+request_walks_equal "$REQUEST_HOME" 0 || fail "zero-age ledger permitted another walk"
+printf '0\n' > "$REQUEST_HOME/state/ledger-time"
+wait_request_condition request_walks_equal "$REQUEST_HOME" 1 \
+  || fail "the due ledger did not publish"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "zero-age drain did not finish"
+pass "a ledger in the current second defers publication for the interval"
+
+REQUEST_HOME=$(request_fixture future)
+printf '{}\n' > "$REQUEST_HOME/state/home-summary.json"
+printf '4102444800\n' > "$REQUEST_HOME/state/ledger-time"
+run_request_writer "$REQUEST_HOME" 30 --request || fail "future-ledger request failed"
+wait_request_condition request_walks_equal "$REQUEST_HOME" 1 \
+  || fail "a strictly future ledger was not immediately due"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "future-ledger drain did not finish"
+pass "a strictly future ledger remains immediately due"
+
+for result in success failure timeout; do
+  REQUEST_HOME=$(request_fixture "restart-$result")
+  case "$result" in
+    failure)
+      : > "$REQUEST_HOME/state/fail"
+      printf '{}\n' > "$REQUEST_HOME/state/home-summary.json"
+      printf '0\n' > "$REQUEST_HOME/state/ledger-time"
+      ;;
+    timeout) : > "$REQUEST_HOME/state/delay" ;;
+  esac
+  FM_TEST_REQUEST_TIMEOUT=1 run_request_writer "$REQUEST_HOME" 30 --request \
+    || fail "$result request failed"
+  wait_request_condition request_walks_equal "$REQUEST_HOME" 1 \
+    || fail "$result producer did not start"
+  wait_request_condition request_is_idle "$REQUEST_HOME" \
+    || fail "$result drain did not finish"
+  if [ "$result" = success ]; then
+    mv "$REQUEST_HOME/state/home-summary.json" "$REQUEST_HOME/state/previous-ledger.json"
+  fi
+  FM_TEST_REQUEST_TIMEOUT=1 run_request_writer "$REQUEST_HOME" 30 --request \
+    || fail "$result successor request failed"
+  wait_request_condition test -e "$REQUEST_HOME/state/.home-summary-drain.lock" \
+    || fail "$result successor drain did not start"
+  sleep 1
+  request_walks_equal "$REQUEST_HOME" 1 \
+    || fail "$result drain exit discarded the publication cooldown"
+  printf '0\n' > "$REQUEST_HOME/state/.home-summary-attempt"
+  wait_request_condition request_walks_equal "$REQUEST_HOME" 2 \
+    || fail "$result successor did not publish when due"
+  wait_request_condition request_is_idle "$REQUEST_HOME" \
+    || fail "$result successor drain did not finish"
+done
+pass "successful, failed, and timed-out attempts retain cooldown across drain exit"
+
+REQUEST_HOME=$(request_fixture busy)
+printf 'wait\n' > "$REQUEST_HOME/state/hold"
+run_request_writer "$REQUEST_HOME" 1 &
+SLOW_WRITER_PID=$!
+wait_request_condition test -e "$REQUEST_HOME/state/producer-started" \
+  || fail "synchronous publication did not start"
+printf 'after\n' > "$REQUEST_HOME/state/event"
+run_request_writer "$REQUEST_HOME" 1 --request || fail "busy publication request failed"
+sleep 2
+[ -e "$REQUEST_HOME/state/.home-summary-dirty" ] \
+  || fail "a busy publication discarded its pending request"
+request_walks_equal "$REQUEST_HOME" 1 || fail "a request overlapped the synchronous publication"
+printf 'release\n' > "$REQUEST_HOME/state/hold"
+wait "$SLOW_WRITER_PID" || fail "synchronous publication failed"
+SLOW_WRITER_PID=
+wait_request_condition request_walks_equal "$REQUEST_HOME" 2 \
+  || fail "the pending request did not publish after lock release"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "busy publication drain did not finish"
+jq -e '.state == "after"' "$REQUEST_HOME/state/home-summary.json" >/dev/null \
+  || fail "the pending event was absent from the ledger"
+pass "a request survives an older synchronous publication and publishes its own event"
+
+REQUEST_HOME=$(request_fixture handoff)
+: > "$REQUEST_HOME/state/handoff-armed"
+run_request_writer "$REQUEST_HOME" 1 --request || fail "handoff request failed"
+wait_request_condition test -e "$REQUEST_HOME/state/handoff-fired" \
+  || fail "the request did not arrive during drain shutdown"
+wait_request_condition request_walks_equal "$REQUEST_HOME" 2 \
+  || fail "a request during drain shutdown was stranded"
+wait_request_condition request_is_idle "$REQUEST_HOME" || fail "handoff drain did not finish"
+jq -e '.state == "after"' "$REQUEST_HOME/state/home-summary.json" >/dev/null \
+  || fail "the shutdown request was absent from the ledger"
+pass "a request arriving during drain shutdown is published without another trigger"

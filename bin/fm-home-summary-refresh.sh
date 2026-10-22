@@ -51,6 +51,7 @@ ERROR_LOG="$STATE/.home-summary-refresh.log"
 REFRESH_LOCK="$STATE/.home-summary-refresh.lock"
 DIRTY_MARK="$STATE/.home-summary-dirty"
 DRAIN_LOCK="$STATE/.home-summary-drain.lock"
+ATTEMPT_STAMP="$STATE/.home-summary-attempt"
 ERROR_LOG_MAX_BYTES=${FM_HOME_SUMMARY_ERROR_LOG_MAX_BYTES:-65536}
 HOME_SUMMARY_TIMEOUT=${FM_HOME_SUMMARY_TIMEOUT:-60}
 HOME_SUMMARY_INTERVAL=${FM_HOME_SUMMARY_INTERVAL:-300}
@@ -76,8 +77,8 @@ case "${1:-}" in
   --best-effort) BEST_EFFORT=1 ;;
   --request) HOME_SUMMARY_MODE=request ;;
   --_drain) HOME_SUMMARY_MODE=drain ;;
-  --_worker)
-    HOME_SUMMARY_MODE=worker
+  --_worker|--_request-worker)
+    HOME_SUMMARY_MODE=${1#--_}
     BEST_EFFORT=${FM_HOME_SUMMARY_WORKER_BEST_EFFORT:-0}
     ;;
   --_log-failure) HOME_SUMMARY_MODE=log-failure ;;
@@ -119,8 +120,26 @@ home_summary_fail() {
   return 1
 }
 
+home_summary_wait_to() {
+  local mtime attempt=0 now delay=0
+  mtime=$(stat -c %Y "$LEDGER" 2>/dev/null || stat -f %m "$LEDGER" 2>/dev/null || true)
+  case "$mtime" in
+    ''|*[!0-9]*) mtime=0 ;;
+  esac
+  IFS= read -r attempt 2>/dev/null < "$ATTEMPT_STAMP" || true
+  case "$attempt" in
+    ''|*[!0-9]*) attempt=0 ;;
+  esac
+  [ "$attempt" -gt "$mtime" ] && mtime=$attempt
+  fm_epoch_seconds_to now
+  if [ "$mtime" -le "$now" ] && [ $((now - mtime)) -lt "$HOME_SUMMARY_INTERVAL" ]; then
+    delay=$((HOME_SUMMARY_INTERVAL - (now - mtime)))
+  fi
+  printf -v "$1" '%s' "$delay"
+}
+
 home_summary_refresh_once() {
-  local producer_rc producer_error
+  local producer_rc producer_error attempt_epoch request_wait
   if ! mkdir -p "$STATE" 2>/dev/null; then
     home_summary_fail "state directory is unavailable: $STATE"
     return 1
@@ -135,6 +154,17 @@ home_summary_refresh_once() {
     fm_lock_acquire_wait "$REFRESH_LOCK"
   fi
   HOME_SUMMARY_LOCK_HELD=1
+  if [ "$HOME_SUMMARY_MODE" = request-worker ]; then
+    [ -e "$DIRTY_MARK" ] || return 0
+    home_summary_wait_to request_wait
+    [ "$request_wait" -eq 0 ] || return 0
+  fi
+  fm_epoch_seconds_to attempt_epoch
+  if ! printf '%s\n' "$attempt_epoch" > "$ATTEMPT_STAMP"; then
+    home_summary_fail "could not record the publication attempt in $STATE"
+    return 1
+  fi
+  rm -f -- "$DIRTY_MARK" 2>/dev/null || true
   HOME_SUMMARY_TMP=$(umask 077; mktemp "$STATE/.home-summary.json.XXXXXX") || {
     home_summary_fail "could not create an atomic publication file in $STATE"
     return 1
@@ -262,35 +292,25 @@ if [ "$HOME_SUMMARY_MODE" = drain ]; then
   trap 'exit 129' HUP
   trap 'exit 130' INT
   trap 'exit 143' TERM
-  drain_mtime=''; drain_now=''; drain_wait=0; drain_slice=0; drain_attempt=0
-  while [ -e "$DIRTY_MARK" ]; do
-    drain_mtime=$(stat -c %Y "$LEDGER" 2>/dev/null || stat -f %m "$LEDGER" 2>/dev/null || true)
-    case "$drain_mtime" in
-      ''|*[!0-9]*) drain_mtime=0 ;;
-    esac
-    # The last attempt also ages the next walk: a failing producer must not
-    # turn a steady request stream into back-to-back walks.
-    [ "$drain_attempt" -gt "$drain_mtime" ] && drain_mtime=$drain_attempt
-    fm_epoch_seconds_to drain_now
-    if [ "$drain_mtime" -ge "$drain_now" ]; then drain_wait=0
-    elif [ $((drain_now - drain_mtime)) -ge "$HOME_SUMMARY_INTERVAL" ]; then drain_wait=0
-    else drain_wait=$((HOME_SUMMARY_INTERVAL - (drain_now - drain_mtime))); fi
+  drain_wait=0; drain_slice=0
+  while :; do
+    if [ ! -e "$DIRTY_MARK" ]; then
+      fm_lock_release "$DRAIN_LOCK"
+      [ -e "$DIRTY_MARK" ] || break
+      fm_lock_try_acquire "$DRAIN_LOCK" || break
+    fi
+    home_summary_wait_to drain_wait
     if [ "$drain_wait" -gt 0 ]; then
-      # Sleep in short slices and re-read the ledger: a direct publication
-      # or an aged ledger shortens the wait without another request.
       drain_slice=$drain_wait
       [ "$drain_slice" -gt 2 ] && drain_slice=2
       sleep "$drain_slice"
       continue
     fi
-    rm -f -- "$DIRTY_MARK" 2>/dev/null || true
-    fm_epoch_seconds_to drain_attempt
-    # IF_IDLE: a publication already in flight covers this mark; never
-    # queue a second walk behind its lock.
     fm_run_timed "$HOME_SUMMARY_TIMEOUT" env \
       FM_HOME_SUMMARY_WORKER_BEST_EFFORT=1 \
       FM_HOME_SUMMARY_IF_IDLE=1 \
-      "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_worker >/dev/null 2>&1 || true
+      "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_request-worker >/dev/null 2>&1 || true
+    [ ! -e "$DIRTY_MARK" ] || sleep 1
   done
   exit 0
 fi

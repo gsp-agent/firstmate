@@ -734,9 +734,8 @@ test_kimi_readiness_gate_precedes_pointer() {
   assert_contains "$out" "kimi did not show a verified ready signal" \
     "kimi readiness failure lacked a loud diagnostic"
   [ ! -s "$CASE_DIR/pointer.log" ] || fail "kimi pointer was sent before readiness"
-  jq -e --arg id "$id" 'any(.endpoints[]; .id == $id)' \
-    "$HOME_DIR/state/home-summary.json" >/dev/null \
-    || fail "kimi readiness failure omitted its durable endpoint from the home summary"
+  assert_absent "$HOME_DIR/state/home-summary.json" "main-home readiness failure published a summary ledger"
+  assert_absent "$HOME_DIR/state/.home-summary-dirty" "main-home readiness failure requested summary publication"
   pass "fm-spawn: kimi never sends the brief pointer before an observable ready signal"
 }
 

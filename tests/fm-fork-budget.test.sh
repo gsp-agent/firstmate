@@ -121,8 +121,17 @@ sleep 2
 [ "$(generated_of "$MATE_HOME")" = "2026-08-28T10:00:00Z" ] \
   || fail "in-interval request republished inside FM_HOME_SUMMARY_INTERVAL"
 # Age the ledger past the interval; the next request publishes at once.
-python3 -c 'import os,sys,time; p=sys.argv[1]; old=time.time()-60; os.utime(p,(old,old))' \
-  "$MATE_HOME/state/home-summary.json"
+python3 - "$MATE_HOME/state" <<'PY'
+import os
+from pathlib import Path
+import sys
+import time
+
+state = Path(sys.argv[1])
+old = time.time() - 60
+os.utime(state / "home-summary.json", (old, old))
+(state / ".home-summary-attempt").write_text(f"{int(old)}\n")
+PY
 request "$MATE_HOME" 2026-08-28T10:01:00Z 1787911260 30 \
   || fail "post-interval request must exit 0"
 wait_generated "$MATE_HOME" 2026-08-28T10:01:00Z 100 \
