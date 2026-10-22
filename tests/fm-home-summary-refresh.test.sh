@@ -167,8 +167,9 @@ def cancel(name, mechanism, sig, watcher=False):
     home, env = make_home(name, mechanism)
     state = home / "state"
     env["FM_TEST_SLOW_REFRESH"] = "1"
-    env["FM_HOME_SUMMARY_INTERVAL"] = "9999999" if name == "signal" else "1"
-    if name == "signal":
+    signal_trigger = name in ("signal", "actionable")
+    env["FM_HOME_SUMMARY_INTERVAL"] = "9999999" if signal_trigger else "1"
+    if signal_trigger:
         (state / "task.meta").write_text("kind=scout\nharness=claude\nwindow=fmtest:task\n")
         (state / "task.status").touch()
         crew = home / "crew-state.sh"
@@ -181,9 +182,10 @@ def cancel(name, mechanism, sig, watcher=False):
     with (home / "out").open("w") as out, (home / "err").open("w") as err:
         parent = subprocess.Popen(command, env=env, stdout=out, stderr=err)
         try:
-            if name == "signal":
+            if signal_trigger:
                 wait_for(lambda: (state / ".last-watcher-beat").exists(), "signal watcher never polled")
-                (state / "task.status").write_text("working: fixture busy\n")
+                verb = "blocked" if name == "actionable" else "working"
+                (state / "task.status").write_text(verb + ": fixture busy\n")
             def started():
                 assert parent.poll() is None, name + " exited before starting its producer"
                 record = state / "producer.pids"
@@ -193,9 +195,13 @@ def cancel(name, mechanism, sig, watcher=False):
             producer_group = os.getpgid(records[0])
             assert producer_group != os.getpgrp(), name + " producer did not own a separate group"
             assert {records[0], records[2]} <= running(records), name + " producer was not running"
+            if name == "actionable":
+                wait_for(lambda: (home / "out").read_text().startswith("signal:"),
+                         "actionable signal was not delivered while publication was pending")
             parent.send_signal(sig)
             parent.wait(timeout=120)
-            assert parent.returncode in (-sig, 128 + sig), name + " cancellation status: " + str(parent.returncode)
+            expected = (0,) if name == "actionable" else (-sig, 128 + sig)
+            assert parent.returncode in expected, name + " cancellation status: " + str(parent.returncode)
             assert not running(records), name + " left a producer or worker running"
         except Exception as error:
             raise AssertionError(str(error) + "\n" + (home / "err").read_text() + (home / "out").read_text()) from error
@@ -240,7 +246,7 @@ esac
 mechanism = next(iter(paths))
 for sig in (signal.SIGHUP, signal.SIGINT):
     cancel("parent-signal-" + str(sig), mechanism, sig)
-for trigger in ("poll", "signal"):
+for trigger in ("poll", "signal", "actionable"):
     cancel(trigger, mechanism, signal.SIGTERM, watcher=True)
     print("ok - real refresh producer reaped after watcher " + trigger, flush=True)
 PYTHON
@@ -319,6 +325,7 @@ jq -e --arg home "$HOME_DIR" --arg now "$NOW_ONE" --argjson epoch "$EPOCH_ONE" '
 PATH="$FAKEBIN:$PATH" \
   FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$HOME_DIR" \
   FM_SNAPSHOT_NOW="$NOW_TWO" FM_SNAPSHOT_NOW_EPOCH="$EPOCH_TWO" \
+  FM_TEST_NM_MARKER="$TMP_ROOT/status-refresh-nm.pid" FM_TEST_NM_SLEEP=2 \
   FM_POLL=1 FM_HOME_SUMMARY_INTERVAL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=9999999 FM_HEARTBEAT=9999999 \
   "$WATCH" > "$TMP_ROOT/watch.out" 2> "$TMP_ROOT/watch.err" &
 WATCH_PID=$!
@@ -336,6 +343,11 @@ wait_for_ledger_generation "$NOW_TWO" \
   || fail "a status append did not refresh the ledger within the watcher cadence"
 wait "$WATCH_PID" >/dev/null 2>&1 || true
 WATCH_PID=
+[ -s "$TMP_ROOT/status-refresh-nm.pid" ] \
+  || fail "the status-triggered producer did not reach its delayed dependency"
+jq -e 'any(.decisions_open[]; .id == "ledger-task" and .key == "fixture-dependency")' \
+  "$HOME_DIR/state/home-summary.json" >/dev/null \
+  || fail "the status-triggered ledger lost the actionable decision"
 
 run_producer "$NOW_TWO" "$EPOCH_TWO" > "$TMP_ROOT/fresh-summary.json" \
   || fail "fresh secondmate-home-summary production failed"

@@ -2664,6 +2664,14 @@ watcher_cleanup() {
   fi
   fm_active_check_stop || cleanup_status=1
   if [ -n "$HOME_SUMMARY_PID" ]; then
+    if [ "$exit_status" -eq 0 ] && [ -n "${FM_WATCH_DELIVERED_REASON:-}" ]; then
+      # A normal delivered close must let its status-triggered publication
+      # finish. Keep that bounded wait cancellable, including after wake()
+      # temporarily ignored signals while publishing its delivery.
+      trap 'kill "$HOME_SUMMARY_PID" 2>/dev/null || true' HUP INT TERM
+      wait "$HOME_SUMMARY_PID" 2>/dev/null || true
+      trap '' HUP INT TERM
+    fi
     if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
       kill "$HOME_SUMMARY_PID" 2>/dev/null || true
     fi
@@ -3230,7 +3238,7 @@ EOF
     pending=$(printf '%s\n%s' "$pending" "$(scan_signals)")
     # The final coalesced signal set is the watcher-carried status-change
     # trigger for this home's published summary. Start it before either
-    # surfacing or absorbing the signal, but never wait on it: see
+    # surfacing or absorbing the signal, keeping the poll detached: see
     # home_summary_refresh_detached for why publication stays off the beacon's
     # path. Publication failure stays side-band.
     home_summary_refresh_detached
