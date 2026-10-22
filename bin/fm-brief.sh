@@ -719,6 +719,7 @@ The report is the only thing that survives, so anything worth keeping must be in
    copies that URL from your line rather than assembling one.
 $CREWMATE_PAUSE_INSTRUCTIONS
 5. If you hit the same obstacle twice, append \`blocked [at=<epoch>]: {why}\` and stop; firstmate will help.
+   One exception: a no-mistakes daemon reply that misses its deadline (an error containing \`did not reply within\`) is laptop load, not an obstacle. Retry that same call with backoff (1, 2, 4, 8 minutes, then every 10) for up to 60 minutes before you report blocked.
 6. If a decision belongs to a human (product choices, destructive actions),
    append \`needs-decision [at=<epoch>]: {summary of options}\` and stop. Firstmate will reply with the decision.
    A decision or blocker you opened stays open until a \`resolved\` line carrying its exact key lands; a later \`done:\` or \`working:\` line never closes it, even when the answer is what started that work.
@@ -804,6 +805,7 @@ $RULE1
    turn after it; continue the same stage until a defined \`done:\` gate under Definition of done.
 $CREWMATE_PAUSE_INSTRUCTIONS
 5. If you hit the same obstacle twice, append \`blocked [at=<epoch>]: {why}\` and stop; firstmate will help.
+   One exception: a no-mistakes daemon reply that misses its deadline (an error containing \`did not reply within\`) is laptop load, not an obstacle. Retry that same call with backoff (1, 2, 4, 8 minutes, then every 10) for up to 60 minutes before you report blocked.
 6. If a decision belongs above the implementation worker (product choices, destructive actions),
    append \`needs-decision [at=<epoch>]: {summary of options}\` and stop. Firstmate will reply with the decision.
 $ASK_USER_BLOCK

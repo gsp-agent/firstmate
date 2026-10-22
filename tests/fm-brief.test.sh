@@ -339,6 +339,8 @@ test_ship_mode_is_explicit_not_registry() {
   brief="$home/data/brief-explicit-a5/brief.md"
   grep -qx "Delivery contract: mode=no-mistakes" "$brief" \
     || fail "registered direct-PR posture overrode the explicit --mode"
+  assert_grep "is laptop load, not an obstacle. Retry that same call with backoff" "$brief" \
+    "the brief does not tell the worker to retry a daemon reply timeout with backoff"
   assert_grep "then run /no-mistakes at once to validate and ship a PR; do not wait for an instruction." "$brief" \
     "explicit no-mistakes brief did not render the pipeline definition of done"
   assert_grep "FM_HOME=$home $ROOT/bin/fm-pr-made-with.sh brief-explicit-a5 <PR url>" "$brief" \
