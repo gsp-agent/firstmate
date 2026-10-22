@@ -91,9 +91,9 @@
 #              running.
 #
 # Teardown and discard are NOT verbs here and never will be. `exit` stops an
-# agent and preserves everything else; removing a worktree, killing an
-# endpoint, or discarding work stays with bin/fm-teardown.sh, which owns the
-# landed-work test.
+# agent and preserves everything else; removing a worktree or discarding work
+# stays with bin/fm-teardown.sh, which owns the landed-work test.
+# bin/fm-inactive-reconcile.sh owns automatic inactive pane closure.
 #
 # `resume` is not a verb: it is not deterministic across the verified adapters
 # (bin/fm-control-lib.sh's header owns that reasoning). `relaunch` covers the

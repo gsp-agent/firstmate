@@ -70,7 +70,15 @@ make_case() {  # <name> <task-id> [project-folder]
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FM_FAKE_CALL_LOG"
 case "$*" in
-  *"#{cursor_y}"*) printf '0\n'; exit 0 ;;
+  *"#{cursor_y}"*)
+    if [ -f "${FM_FAKE_COMMAND_FILE:-}" ] &&
+      [ "$(cat "$FM_FAKE_COMMAND_FILE")" = codex ]; then
+      printf '1\n'
+    else
+      printf '0\n'
+    fi
+    exit 0
+    ;;
   *"#{pane_current_path}"*) printf '%s\n' "${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
   *"#{pane_current_command}"*)
     if [ -f "${FM_FAKE_COMMAND_FILE:-}" ]; then cat "$FM_FAKE_COMMAND_FILE"; else printf '%s\n' zsh; fi
@@ -96,7 +104,14 @@ case "${1:-}" in
     awk -v window="$window" '$0 != window' "$FM_FAKE_WINDOWS" > "$FM_FAKE_WINDOWS.next"
     mv "$FM_FAKE_WINDOWS.next" "$FM_FAKE_WINDOWS"
     ;;
-  capture-pane) printf '›\n' ;;
+  capture-pane)
+    if [ -f "${FM_FAKE_COMMAND_FILE:-}" ] &&
+      [ "$(cat "$FM_FAKE_COMMAND_FILE")" = codex ]; then
+      printf 'Working (esc to interrupt)\n›\n'
+    else
+      printf '›\n'
+    fi
+    ;;
   send-keys)
     if [ -f "${FM_FAKE_COMMAND_FILE:-}" ]; then
       for payload in "$@"; do
