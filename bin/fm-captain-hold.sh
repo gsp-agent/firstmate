@@ -1506,14 +1506,14 @@ PY
     return 0
   fi
   owner=$(body_domain_field "$body" 'Decision owner')
-  if [ "$archived" = 1 ] || [ "$state" = done ] || [ "$(show_field_value "$show" hold_kind)" != captain ]; then
+  if [ "$archived" = 1 ] || [ "$state" = 'done' ] || [ "$(show_field_value "$show" hold_kind)" != captain ]; then
     # A crash after unhold still owes normalization and the parent resolution.
     if [ "$(body_domain_field "$body" 'Resolution mode')" != agent-routed ]; then
       retire_hold_route "$id"
       return 0
     fi
     occurrence=$(resolution_record_count "$body")
-    if [ "$archived" = 0 ] && [ "$state" != done ]; then
+    if [ "$archived" = 0 ] && [ "$state" != 'done' ]; then
       remove_interrupted_answer_stamp "$id"
     fi
     publish_parent_resolution_then_retire "$id" "$occurrence" "agent-routed to $owner"

@@ -6285,7 +6285,7 @@ SH
 
 domain_terminal_routing_retries() {
   local mode rc=0
-  for mode in done archived custom-archive; do
+  for mode in 'done' archived custom-archive; do
     (
       local home status pending record before scope occurrence=2
       local technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
@@ -6301,7 +6301,7 @@ domain_terminal_routing_retries() {
         printf 'schema=fm-secondmate-parent.v1\nroute=local\nparent_home=%s\n' "$home/parent" > "$home/.fm-secondmate-parent"
       fi
       record="$home/data/backlog.md"
-      if [ "$mode" != done ]; then
+      if [ "$mode" != 'done' ]; then
         record="$home/data/done-archive.md"
         [ "$mode" != custom-archive ] || record="$home/history/completed.md"
         printf 'backend = "markdown"\n\n[markdown]\npath = "data/backlog.md"\narchive = "%s"\ndone_keep = 0\n' \
@@ -6337,7 +6337,7 @@ EOF
       assert_contains "$(tasks_in "$home" show work --full)" 'held: no' 'the failed publication did not release work'
       pending=$(cat "$home/state/hold-domain/pending/work.body")
       tasks_in "$home" 'done' work >/dev/null || fail 'parent delivery blocked task completion'
-      if [ "$mode" = done ]; then
+      if [ "$mode" = 'done' ]; then
         assert_contains "$(tasks_in "$home" show work --full)" 'state: done' 'the released task did not complete'
       else
         if tasks_in "$home" show work --full > "$home/absent.out" 2>&1; then
