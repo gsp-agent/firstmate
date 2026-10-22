@@ -1023,6 +1023,17 @@ write_hold_origin() {  # <task-id> <shown-body> <origin-or-empty>
   rm -f -- "$tmp"
 }
 
+restore_found_body() {  # <task-id> <decoded-body>
+  local tmp
+  tmp=$(umask 077; mktemp "${TMPDIR:-/tmp}/fm-captain-hold-restore.XXXXXX") \
+    || fail "cannot stage the previous body of $1"
+  if ! printf '%s\n' "$2" > "$tmp" || ! tasks_axi update "$1" --body-file "$tmp" >/dev/null; then
+    rm -f -- "$tmp"
+    fail "could not restore the previous body of $1 after its hold was refused"
+  fi
+  rm -f -- "$tmp"
+}
+
 body_hold_probe() {  # <decoded-task-body>
   [ -n "$(body_hold_set_timestamp "$1")" ] || return 0
   body_domain_field "$1" 'Hold probe'
@@ -1184,7 +1195,7 @@ verify_entry_durable() {  # <origin-or-empty> <entry>; prints "<id> <how> <origi
 
 command_hold() {
   local id=${1:-} title='' reason='' repo='' origin='' until='' show state existing_title body='' hold_kind hold_set occurrence
-  local existing_hold_kind='' existing_held='' preserve_hold_set=0 stored_reason previous_origin='' hold_status=0
+  local existing_hold_kind='' existing_held='' preserve_hold_set=0 stored_reason hold_status=0
   local decision_owner='' timeout_seconds='' old_owner old_timeout old_reason routing_reason origin_runtime='' today=''
   local origin_id origin_status=0
   local dale_step='' probe='' owner=dale hold_timeout=3600
@@ -1343,22 +1354,21 @@ command_hold() {
   [ -n "$(body_hold_set_timestamp "$(show_field_value "$show" body)")" ] \
     || fail "task $id did not retain its hold-set stamp"
   if [ -n "$origin" ]; then
-    previous_origin=$(body_hold_origin "$(show_field_value "$show" body)")
-    write_hold_origin "$id" "$(show_field "$show" body)" "$origin" || exit $?
+    ( write_hold_origin "$id" "$(show_field "$show" body)" "$origin" ) || hold_status=$?
   fi
-  if [ -n "$until" ]; then
+  if [ "$hold_status" -eq 0 ] && [ -n "$until" ]; then
     tasks_axi hold "$id" --reason "$stored_reason" --kind captain --until "$until" >/dev/null \
       || hold_status=$?
-  else
+  elif [ "$hold_status" -eq 0 ]; then
     tasks_axi hold "$id" --reason "$stored_reason" --kind captain >/dev/null \
       || hold_status=$?
   fi
   if [ "$hold_status" -ne 0 ]; then
-    # A refused re-hold must not associate the previous hold or answer with a
-    # new origin. Restore the old line verbatim, without resolving it again.
-    if [ -n "$origin" ]; then
-      write_hold_origin "$id" "$(show_field "$show" body)" "$previous_origin" || exit $?
-    fi
+    # A refused hold restores the body it found under the lock, so a previous
+    # lifecycle keeps its stamp, origin and routing fields, and with them its
+    # routing wake. tasks-axi refuses an empty body, and a task whose body is
+    # empty has no previous lifecycle to keep.
+    [ -z "$body" ] || restore_found_body "$id" "$body"
     fail "could not hold task $id for the captain"
   fi
   # A refused re-hold must leave the previous routing authority unchanged.

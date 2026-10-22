@@ -68,6 +68,7 @@ Repeat and edge cases:
 - `--until` stores the captain's own deferral date through tasks-axi's date gate.
 - Before the backend hold runs, `--origin` records the origin the call is held for on its own `Captain hold origin:` body line, which `complete` and `verify` check using backend identities rather than alias spellings.
   If that write fails, the backend hold is not attempted.
+- If the origin write or the backend hold fails, a previous lifecycle's body is restored exactly as found, keeping its timestamp, origin and routing fields, so an elapsed deferral keeps its pending route.
 - An ordinary hold's reason may contain parentheses, semicolons, quotes, and line breaks; the [command reference](../bin/fm-captain-hold.sh) owns Dale-step input restrictions.
   [`bin/fm-hold-reason-lib.sh`](../bin/fm-hold-reason-lib.sh) owns the storage encoding and compatibility rules; [`bin/fm-tasks-axi.sh --help`](../bin/fm-tasks-axi.sh) owns the public read commands and output contract.
 
@@ -567,7 +568,7 @@ The suite does not test the accepted merge-to-cleanup re-hold window or asynchro
 ### Technical routing coverage
 
 The lifecycle suite replays update-branch and EP-approved capacity holds through the public hold and route commands.
-It checks pending deadlines, exact owner delivery, durable routing evidence, repeated sweeps, new lifecycles, failed sends, and interrupted releases for both active and expired dated holds.
+It checks pending deadlines, exact owner delivery, durable routing evidence, repeated sweeps, new lifecycles, failed sends, refused re-holds, and interrupted releases for both active and expired dated holds.
 It also checks that money, credentials, people, client words, production, accounts, taste, mixed asks joined by router-recognized line separators, and human endpoints remain held, while an eligible technical reason with a leading non-breaking space routes exactly once.
 An answered hold never routes from its stale pending body.
 A real watcher subprocess proves the existing periodic pass routes before surfacing ordinary status signals.
