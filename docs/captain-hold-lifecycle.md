@@ -81,9 +81,12 @@ Repeated passes resume after interrupted attempts so later holds make progress e
 [`bin/fm-watch.sh`](../bin/fm-watch.sh)'s header owns the whole-sweep deadline and failure-notification order.
 Pending per-home routing bodies keep that supervision required even with no other work.
 Every hold, re-hold and sweep row asks the router before it spools, so a protected ask or human-owned hold is retired at once and stays a plain captain hold without creating routing state.
-A deferral dated after the local calendar date, the date tasks-axi gates on, is classified at its hold-set instant, so an eligible deferred entry stays pending without prompting anyone before its date, while the watcher retires answered, closed or replaced entries against live state.
+A deferral dated after the local calendar date, the date tasks-axi gates on, is classified at its hold-set instant, so an eligible deferred entry stays pending without prompting anyone before its date, while the watcher retires answered or replaced entries against live state.
 An unfinished recorded answer or reconciliation blocks routing for that lifecycle; a new stamp separates the previous body from the current header before the backend hold, so a failed header publication preserves historical words and permits retry without reusing historical authority.
-Confirmed archival retires pending routing, while an unreadable backlog leaves it supervised and reports the read failure.
+Completed or archived agent-routed tasks with pending routing still owe their original parent resolution; task completion, teardown and archival proceed independently of that delivery.
+Routing retires the pending body only after publication succeeds, preserving it for retry on failure without prompting the owner again.
+Never-routed and captain-answered tasks retain their ordinary retirement behavior, as does a confirmed absent task with no retained archived record.
+An unreadable backlog or configured archive leaves pending routing supervised and reports the read failure.
 A successful prompt transfers responsibility to the owner and releases the hold without completing the task.
 The `agent-routed` resolution records the matching receipt under `Agent routing evidence:` and never supplies captain words.
 Retries use that receipt to finish interrupted recording or release without prompting the owner again.
@@ -185,7 +188,8 @@ Teardown already stages a pending-close record before destructive cleanup.
 That record carries the retention intent as a `mode=retain` line.
 An interrupted cleanup therefore replays the retention at the next session start through the same record, validator, and lock as an ordinary close, and never closes the row.
 
-If the captain answers before replay, `answer` validates that record and copies any supported retained pull request or report into the row before closing it.
+If `answer` or evidence-backed `reconcile close` closes the call before replay, it validates that record and copies any supported retained pull request or report into the row before closing it.
+Recovery looks up and validates the pending-close record and checks the canonical report path using the runtime task identity, while backlog mutations use the backend task identity.
 A retained Gerrit change URL is instead recorded as a `Gerrit change <url>` note on that close.
 Replay then retires the record.
 
@@ -530,7 +534,8 @@ The suite does not test the accepted merge-to-cleanup re-hold window or asynchro
   An ordinary finished task in the same home still closes with its report link.
 - An interrupted cleanup leaves the row In flight and untouched with its pending record.
   When the row remains unanswered, the next session start retains it as queued and held with the deliverable recorded.
-  An answer before replay preserves that record's completed report while closing the call, so the next session start retires the satisfied record without losing the delivery from Recently Landed.
+  Closure before replay follows the [retained-artifact recovery contract](#interrupted-cleanup).
+  Runtime-alias cases cover both `answer` and `reconcile close` retries with retained reports and Gerrit notes.
 - A pending-close record that cannot be validated refuses the answer while naming the record and the reason.
 - A relocated data directory keeps the retention in its one configured backlog.
 
@@ -579,7 +584,8 @@ A sweep probes tasks-axi once, reads only captain-held and pending rows, and rou
 Deferrals follow the local calendar date for routing and release recovery, and a re-hold, answer or reconciliation over an unreleased routed hold resolves that lifecycle's own parent occurrence.
 A re-hold over a routed release that died after unhold is refused until the recovery pass resolves its occurrence, and only then starts the next one.
 Fault-injected answer, release and reconciliation closures stay protected from immediate and periodic routing, while a new lifecycle preserves historical decisions and still routes.
-Zero-retention archival clears pending routing without treating an unreadable backlog as an absent task.
+Terminal parent-delivery cases cover retained Done records and both default and configured zero-retention archives under the [routing recovery contract](#technical-hold-routing).
+Separate archival cases cover ordinary retirement and unreadable-backlog failures.
 Persistent reason drift, transport failures and release failures still allow ordinary scheduled checks to execute before the routing error surfaces.
 Native and fallback watcher bounds cover blocked listing, control locks, body writes and release, terminate blocked subprocesses, and preserve pending work and scheduled checks.
 Origin and task aliases preserve authority inheritance, shared control locks and canonical receipt identity, including new tasks and retries after interrupted release.

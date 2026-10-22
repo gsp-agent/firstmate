@@ -3146,7 +3146,9 @@ EOF
         cat > "$home/fakebin/tasks-axi" <<'SH'
 #!/usr/bin/env bash
 case "${1:-}" in
-  update|done) printf '%s\t%s\n' "$1" "${2:-}" >> "$FM_HOME/mutations.tsv" ;;
+  update|done)
+    [ "${2:-}" = --help ] || printf '%s\t%s\n' "$1" "${2:-}" >> "$FM_HOME/mutations.tsv"
+    ;;
 esac
 if [ "${1:-}" = done ] && [ -f "$FM_HOME/refuse-close" ]; then
   touch "$FM_HOME/close-refused"
