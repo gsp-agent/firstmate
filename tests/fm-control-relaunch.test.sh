@@ -1749,6 +1749,23 @@ test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude() {
   pass "fm-control relaunch: a codex task whose session ended on its usage limit is relaunched on claude and marked"
 }
 
+test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs() {
+  local dir out rc
+  dir=$(new_case codexlimitpairs rl79)
+  add_ship_task "$dir" rl79 codex
+  codex_limit_session "$dir" rl79
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"review","use":{"harness":"claude","model":"opus","effort":"high"}}],"default":[{"harness":"codex"},{"harness":"claude","model":"sonnet","effort":"medium"}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'codex' > "$dir/fake/command"
+  out=$(run_control "$dir" rl79 relaunch --note "codex hit its usage limit"); rc=$?
+  expect_code 0 "$rc" "a usage-limit route to claude must not be refused by the claude dispatch pairs"$'\n'"$out"
+  assert_contains "$out" "relaunched rl79 harness=claude from=codex" "the outcome should name the claude replacement"
+  [ "$(meta_field "$dir" rl79 model)" = default ] || fail "the claude replacement should run the default model, got '$(meta_field "$dir" rl79 model)'"
+  [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "the claude replacement should run at xhigh, got '$(meta_field "$dir" rl79 effort)'"
+  pass "fm-control relaunch: a usage-limit route to claude launches the fallback profile, exempt from the claude dispatch pairs as on a fresh spawn"
+}
+
 test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude() {
   local dir out
   dir=$(new_case codexmarked rl74)
@@ -3084,6 +3101,7 @@ test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_session_binding_is_retired_on_a_harness_switch
 test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude
+test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs
 test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude
 test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched
 test_explicit_override_of_a_cursor_task_is_recorded
