@@ -9046,6 +9046,35 @@ test_task_data_discovered_pr_retirement
 test_task_data_forge_references
 test_task_data_leaves_temporary_scratch "$ROOT/bin/fm-task-data.py"
 [ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data ] || exit 0
+# `.agent-config-ydbn7`: a teardown whose lock wait never ends becomes an
+# orphan churning sleep forks forever. Every lock wait in fm-teardown.sh is
+# bounded (FM_TEARDOWN_LOCK_WAIT_SECS), so a teardown on a held task-record
+# lock gives up inside its bound, exits 1, and changes nothing.
+test_held_meta_lock_teardown_gives_up_within_bound() {
+  local case_dir out rc=0 start elapsed lock
+  case_dir=$(make_case held-meta-lock)
+  write_meta "$case_dir" local-only ship
+  seed_backlog_in_flight "$case_dir"
+  . "$ROOT/bin/fm-wake-lib.sh"
+  lock=$(fm_meta_lock_path "$case_dir/state/task-x1.meta")
+  fm_lock_try_acquire "$lock" || fail "test could not take the task record lock"
+  export FM_TEARDOWN_LOCK_WAIT_SECS=2
+  start=$SECONDS
+  out=$(run_teardown "$case_dir" 2>&1) || rc=$?
+  elapsed=$((SECONDS - start))
+  unset FM_TEARDOWN_LOCK_WAIT_SECS
+  fm_lock_release "$lock"
+  expect_code 1 "$rc" "a teardown on a held task-record lock did not give up: $out"
+  [ "$elapsed" -lt 30 ] || fail "a teardown on a held lock waited ${elapsed}s, past its 2s bound"
+  assert_contains "$out" "gave up waiting 2s for the task record lock" \
+    "the refusal did not name the expired lock wait"
+  assert_present "$case_dir/state/task-x1.meta" "a refused teardown removed the task record"
+  [ "$(backlog_row_state "$case_dir")" = "in_flight" ] \
+    || fail "a refused teardown closed its backlog item: $(backlog_row_state "$case_dir")"
+  pass "a teardown on a held task-record lock gives up within its bound and changes nothing"
+}
+
+test_held_meta_lock_teardown_gives_up_within_bound
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
 test_teardown_closes_a_gerrit_task_with_its_change_url_as_a_note
