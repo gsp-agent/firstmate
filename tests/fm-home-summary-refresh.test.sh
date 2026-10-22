@@ -148,10 +148,12 @@ for mechanism in ("timeout", "gtimeout", "perl", "bash"):
         assert shutil.which("perl"), "perl refresh cancellation requires perl on PATH"
     paths[mechanism] = str(tools) + os.pathsep + str(fakebin)
 
-def make_home(name, mechanism):
+def make_home(name, mechanism, secondmate=True):
     home = tmp / ("refresh-cleanup-" + name)
     for directory in (home / "state", home / "data", home / "config"):
         directory.mkdir(parents=True)
+    if secondmate:
+        (home / ".fm-secondmate-home").write_text("mate\n")
     (home / "data/backlog.md").write_text("## In flight\n\n## Queued\n\n## Done\n")
     env = dict(os.environ, PATH=paths[mechanism], FM_ROOT_OVERRIDE=str(root), FM_HOME=str(home),
                FM_STATE_OVERRIDE=str(home / "state"), FM_DATA_OVERRIDE=str(home / "data"),
@@ -164,7 +166,7 @@ def make_home(name, mechanism):
     return home, env
 
 def cancel(name, mechanism, sig, watcher=False):
-    home, env = make_home(name, mechanism)
+    home, env = make_home(name + "-" + mechanism, mechanism)
     state = home / "state"
     env["FM_TEST_SLOW_REFRESH"] = "1"
     signal_trigger = name in ("signal", "actionable")
@@ -179,6 +181,7 @@ def cancel(name, mechanism, sig, watcher=False):
     command = ["bash", str(code / ("fm-watch.sh" if watcher else "fm-home-summary-refresh.sh"))]
     records = []
     producer_group = None
+    drain_pid = None
     with (home / "out").open("w") as out, (home / "err").open("w") as err:
         parent = subprocess.Popen(command, env=env, stdout=out, stderr=err)
         try:
@@ -192,9 +195,17 @@ def cancel(name, mechanism, sig, watcher=False):
                 return record.exists() and len(record.read_text().split()) == 3
             wait_for(started, name + " producer never started")
             records = list(map(int, (state / "producer.pids").read_text().split()))
+            if watcher:
+                drain_pid = int((state / ".home-summary-drain.lock/pid").read_text())
             producer_group = os.getpgid(records[0])
             assert producer_group != os.getpgrp(), name + " producer did not own a separate group"
             assert {records[0], records[2]} <= running(records), name + " producer was not running"
+            if name == "signal":
+                assert not (state / ".home-summary-dirty").exists(), "producer did not consume its request"
+                with (state / "task.status").open("a") as status:
+                    status.write("working: another status during publication\n")
+                wait_for(lambda: (state / ".home-summary-dirty").exists(),
+                         "signal during publication lost its pending request")
             if name == "actionable":
                 wait_for(lambda: (home / "out").read_text().startswith("signal:"),
                          "actionable signal was not delivered while publication was pending")
@@ -202,7 +213,9 @@ def cancel(name, mechanism, sig, watcher=False):
             parent.wait(timeout=120)
             expected = (0,) if name == "actionable" else (-sig, 128 + sig)
             assert parent.returncode in expected, name + " cancellation status: " + str(parent.returncode)
-            assert not running(records), name + " left a producer or worker running"
+            owned = records + ([drain_pid] if drain_pid else [])
+            survivors = running(owned)
+            assert not survivors, name + " left a drain, producer, or worker running: " + str(sorted(survivors))
         except Exception as error:
             raise AssertionError(str(error) + "\n" + (home / "err").read_text() + (home / "out").read_text()) from error
         finally:
@@ -221,6 +234,11 @@ def cancel(name, mechanism, sig, watcher=False):
                         os.kill(pid, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
+            if drain_pid:
+                try:
+                    os.kill(drain_pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
 
 for mechanism in paths:
     home, env = make_home("completed-" + mechanism, mechanism)
@@ -240,15 +258,38 @@ esac
     assert published.returncode == 0, mechanism + " publication failed: " + published.stderr
     ledger = json.loads((home / "state/home-summary.json").read_text())
     assert ledger["home"] == str(home) and ledger["valid"], mechanism + " publication changed"
-    cancel("parent-" + mechanism, mechanism, signal.SIGTERM)
+    owned_home, owned_env = make_home("request-" + mechanism, mechanism)
+    request_command = ["bash", str(code / "fm-home-summary-refresh.sh"), "--request", "--wait"]
+    published = subprocess.run(request_command, env=owned_env, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, text=True, timeout=30)
+    assert published.returncode == 0, mechanism + " waited request failed: " + published.stderr
+    owned_state = owned_home / "state"
+    original = (owned_state / "home-summary.json").read_bytes()
+    assert json.loads(original)["home"] == str(owned_home), mechanism + " waited request did not publish"
+    assert not (owned_state / ".home-summary-drain.lock").exists(), mechanism + " drain lock survived publication"
+    owned_env["FM_TEST_SLOW_REFRESH"] = "1"
+    owned_env["FM_HOME_SUMMARY_INTERVAL"] = "9999999"
+    cooling = subprocess.run(request_command, env=owned_env, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, text=True, timeout=10)
+    assert cooling.returncode == 0, mechanism + " cooling request failed: " + cooling.stderr
+    assert not (owned_state / "producer.pids").exists(), mechanism + " cooldown started a producer"
+    assert (owned_state / "home-summary.json").read_bytes() == original, mechanism + " cooldown changed the ledger"
+    assert (owned_state / ".home-summary-dirty").exists(), mechanism + " cooldown lost the pending request"
+    assert not (owned_state / ".home-summary-drain.lock").exists(), mechanism + " cooldown kept its drain alive"
+    main_home, main_env = make_home("main-" + mechanism, mechanism, secondmate=False)
+    main_request = subprocess.run(request_command, env=main_env, stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True, timeout=10)
+    assert main_request.returncode == 0, mechanism + " main-home request failed"
+    assert not list((main_home / "state").iterdir()), mechanism + " main-home request wrote publication state"
+    cancel("parent", mechanism, signal.SIGTERM)
+    for trigger in ("poll", "signal", "actionable"):
+        cancel(trigger, mechanism, signal.SIGTERM, watcher=True)
+        print("ok - real refresh producer reaped after watcher " + trigger + ": " + mechanism, flush=True)
     print("ok - real refresh cancellation and normal calls: " + mechanism, flush=True)
 
 mechanism = next(iter(paths))
 for sig in (signal.SIGHUP, signal.SIGINT):
     cancel("parent-signal-" + str(sig), mechanism, sig)
-for trigger in ("poll", "signal", "actionable"):
-    cancel(trigger, mechanism, signal.SIGTERM, watcher=True)
-    print("ok - real refresh producer reaped after watcher " + trigger, flush=True)
 PYTHON
 pass "watcher cleanup reaps real refresh workers and producers across timeout mechanisms"
 

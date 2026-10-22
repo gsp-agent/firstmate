@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # fm-home-summary-refresh.sh - publish this home's structured summary ledger.
 #
-# Usage: fm-home-summary-refresh.sh [--best-effort | --request]
+# Usage: fm-home-summary-refresh.sh [--best-effort | --request [--wait]]
 #
 # The published state/home-summary.json is the exact
 # `fm-fleet-snapshot.sh --secondmate-home-summary` document for this FM_HOME.
@@ -30,7 +30,9 @@
 # ledger only for registered secondmate homes), so in a main home a request
 # is a no-op. In a secondmate home a request only marks
 # state/.home-summary-dirty and starts one detached --_drain when no drain
-# holds the drain lock. Requests always exit zero without publishing inline.
+# holds the drain lock. Requests exit zero without publishing inline by default.
+# With --wait, a request runs one due drain pass inline instead of detaching it;
+# a cooldown or busy lock leaves the mark pending for a later request.
 # The drain waits until both the ledger mtime and the persisted attempt epoch
 # in state/.home-summary-attempt have aged by FM_HOME_SUMMARY_INTERVAL seconds
 # (default 300; invalid or zero values use 300). Age zero waits a full interval.
@@ -69,6 +71,7 @@ HOME_SUMMARY_INTERVAL=${FM_HOME_SUMMARY_INTERVAL:-300}
 HOME_SUMMARY_IF_IDLE=${FM_HOME_SUMMARY_IF_IDLE:-0}
 BEST_EFFORT=0
 HOME_SUMMARY_MODE=parent
+HOME_SUMMARY_WAIT=0
 HOME_SUMMARY_ERROR=
 HOME_SUMMARY_FAILURE_STAMP=
 HOME_SUMMARY_TMP=
@@ -95,6 +98,9 @@ case "${1:-}" in
   --_log-failure) HOME_SUMMARY_MODE=log-failure ;;
   -h|--help) usage; exit 0 ;;
   *) usage >&2; exit 2 ;;
+esac
+case "${1:-}:${2:-}" in
+  --request:--wait|--_drain:--wait) HOME_SUMMARY_WAIT=1 ;;
 esac
 case "$ERROR_LOG_MAX_BYTES" in
   ''|*[!0-9]*|0) ERROR_LOG_MAX_BYTES=65536 ;;
@@ -302,6 +308,9 @@ if [ "$HOME_SUMMARY_MODE" = request ]; then
   home_summary_is_secondmate || exit 0
   [ -d "$STATE" ] || mkdir -p "$STATE" 2>/dev/null || exit 0
   : >> "$DIRTY_MARK" 2>/dev/null || exit 0
+  if [ "$HOME_SUMMARY_WAIT" -eq 1 ]; then
+    exec "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_drain --wait
+  fi
   if fm_lock_try_acquire "$DRAIN_LOCK"; then
     fm_lock_release "$DRAIN_LOCK"
     "$SCRIPT_DIR/fm-home-summary-refresh.sh" --_drain </dev/null >/dev/null 2>&1 &
@@ -325,6 +334,7 @@ if [ "$HOME_SUMMARY_MODE" = drain ]; then
     fi
     home_summary_wait_to drain_wait
     if [ "$drain_wait" -gt 0 ]; then
+      [ "$HOME_SUMMARY_WAIT" -eq 0 ] || break
       drain_slice=$drain_wait
       [ "$drain_slice" -gt 2 ] && drain_slice=2
       sleep "$drain_slice"
@@ -339,6 +349,7 @@ if [ "$HOME_SUMMARY_MODE" = drain ]; then
     else
       home_summary_log_worker_failure "$?" "$attempt_stamp"
     fi
+    [ "$HOME_SUMMARY_WAIT" -eq 0 ] || break
     [ ! -e "$DIRTY_MARK" ] || sleep 1
   done
   exit 0

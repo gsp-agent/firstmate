@@ -2568,6 +2568,7 @@ HOME_SUMMARY_PID=
 home_summary_refresh_detached() {
   # Skip the request process entirely when this home has no ledger reader.
   [ -f "$FM_HOME/.fm-secondmate-home" ] || return 0
+  : >> "$STATE/.home-summary-dirty" 2>/dev/null || return 0
   if [ -n "$HOME_SUMMARY_PID" ]; then
     if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
       return 0
@@ -2575,7 +2576,7 @@ home_summary_refresh_detached() {
     wait "$HOME_SUMMARY_PID" 2>/dev/null || true
     HOME_SUMMARY_PID=
   fi
-  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request </dev/null >/dev/null 2>&1 &
+  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request --wait </dev/null >/dev/null 2>&1 &
   HOME_SUMMARY_PID=$!
 }
 
@@ -2646,7 +2647,7 @@ watcher_world_gone() {
 }
 
 watcher_cleanup() {
-  local exit_status=$? cleanup_status=0 owns_lock=0 transition=release-lock
+  local exit_status=$? cleanup_status=0 owns_lock=0 transition=release-lock fm_timed_signal=""
   # One place logs the world-gone reason, so a step that failed because its
   # world went away mid-poll names it exactly as the next poll's check would.
   if [ "$exit_status" -ne 0 ] && watcher_world_gone; then
@@ -2668,14 +2669,15 @@ watcher_cleanup() {
       # A normal delivered close must let its status-triggered publication
       # finish. Keep that bounded wait cancellable, including after wake()
       # temporarily ignored signals while publishing its delivery.
-      trap 'kill "$HOME_SUMMARY_PID" 2>/dev/null || true' HUP INT TERM
-      wait "$HOME_SUMMARY_PID" 2>/dev/null || true
+      trap 'fm_timed_signal=143' HUP INT TERM
+      fm_wait_timed "$HOME_SUMMARY_PID" 2>/dev/null || true
       trap '' HUP INT TERM
+    else
+      if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
+        kill "$HOME_SUMMARY_PID" 2>/dev/null || true
+      fi
+      wait "$HOME_SUMMARY_PID" 2>/dev/null || true
     fi
-    if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
-      kill "$HOME_SUMMARY_PID" 2>/dev/null || true
-    fi
-    wait "$HOME_SUMMARY_PID" 2>/dev/null || true
     HOME_SUMMARY_PID=
   fi
   fm_check_output_cleanup
