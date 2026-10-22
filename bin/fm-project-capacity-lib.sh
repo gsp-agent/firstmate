@@ -219,7 +219,7 @@ fm_project_capacity_lookup() {  # <config-dir> <project-name>
   return 0
 }
 
-# Count the task records holding a place in one project's capacity.
+# Count the WORKING task records holding a place in one project's capacity.
 # <project-lock> is fm_treehouse_project_lock_path for the project being
 # admitted, and <project-dir> is that project's own directory, which matches
 # without recomputing its identity. The local homes come from
@@ -232,6 +232,19 @@ fm_project_capacity_lookup() {  # <config-dir> <project-name>
 # FM_PROJECT_CAPACITY_ERROR when the local homes cannot be enumerated, or when
 # a state directory or task record in them cannot be read, since skipping it
 # could undercount the holders.
+# 0 when bin/fm-crew-state.sh reads the task in <state-dir> as working.
+# Local evidence only (no forge read): a state the helper cannot read
+# working - parked, paused, done, blocked, failed, unknown - holds no slot.
+fm_project_capacity_is_working() {  # <state-dir> <id>
+  local out crew_state=${FM_PROJECT_CAPACITY_CREW_STATE:-$(dirname "${BASH_SOURCE[0]}")/fm-crew-state.sh}
+  out=$(FM_HOME="$(dirname "$1")" FM_STATE_OVERRIDE="$1" FM_CREW_STATE_NO_FORGE=1 \
+    "$crew_state" "$2" 2>/dev/null) || return 1
+  case "$out" in
+    "state: working"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> <own-id>
   local want=$1 own=$2 first=$3 self=$4 state meta kind project lock id label i
   local -a cache_dirs cache_locks
@@ -277,6 +290,11 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
       fi
       [ -n "$lock" ] && [ "$lock" = "$want" ] || continue
       id=$(basename "$meta" .meta)
+      # Dale 10-21 (.agent-config-ydbn7): the capacity knob counts WORKING
+      # tasks (docs/laptop-capacity.md). A resident record that fm-crew-state
+      # reads as parked, paused, done, blocked, failed or unknown holds no
+      # slot; idle records once filled the cap while one task worked.
+      fm_project_capacity_is_working "$state" "$id" || continue
       label=$id
       [ "$state" = "$first" ] || label="$id in $(dirname "$state")"
       FM_PROJECT_CAPACITY_OCCUPANTS=$((FM_PROJECT_CAPACITY_OCCUPANTS + 1))
