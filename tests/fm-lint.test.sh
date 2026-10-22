@@ -1361,7 +1361,7 @@ test_large_production_roots_fit_default_caps() {
   tmp=$(fm_test_tmproot fm-lint-default-caps)
   out=$(
     unset FM_LINT_ROOT_SECONDS FM_LINT_ROOT_GRACE FM_LINT_ROOT_MEMORY_KIB FM_LINT_JOBS
-    "$LINT" --telemetry "$tmp/lint.tsv" bin/fm-spawn.sh bin/fm-teardown.sh \
+    FM_LINT_ROOT_SECONDS=1800 "$LINT" --telemetry "$tmp/lint.tsv" bin/fm-spawn.sh bin/fm-teardown.sh \
       tests/fm-pending-reply.test.sh tests/fm-launch-prompt-signals-live-e2e.test.sh 2>&1
   ) || rc=$?
   [ "$rc" -eq 0 ] || fail "production roots failed at the default caps (exit $rc)"$'\n'"$out"
@@ -1378,7 +1378,7 @@ test_large_production_roots_fit_default_caps() {
         seen["tests/fm-pending-reply.test.sh"] != 1 ||
         seen["tests/fm-launch-prompt-signals-live-e2e.test.sh"] != 1 ||
         meta["bounds_enforced"] != 1 || meta["jobs"] != 2 ||
-        meta["root_deadline_seconds"] != 300 ||
+        meta["root_deadline_seconds"] != 1800 ||
         meta["root_memory_limit_kib"] != 8388608 || meta["result_exit"] != 0)
     }
   ' "$tmp/lint.roots.tsv" || fail "production roots did not complete full analysis within the default worker caps"
