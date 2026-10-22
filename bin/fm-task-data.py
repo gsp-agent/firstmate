@@ -38,6 +38,12 @@ and read those files and record/'s .txt/.md/.log/.json files for references up t
 16 MiB each. A larger one is an unread reference: the folder stays whole and the
 file is named in the warning and record.
 Also keep .txt/.md/.log/.json files up to 1 MiB outside nested repositories.
+Before reading any of that kept text, every action adds up its sizes from lstat.
+Over 16 MiB in total, nothing is read, moved or deleted: the record is marked
+"too-large" and its retained field and the warning name the total. By-hand
+expiry and the sweep refuse it the same way until the kept text shrinks.
+Matching holds several copies of the text at once, so this cap is what bounds
+its memory.
 Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
 the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
@@ -143,6 +149,7 @@ from urllib.parse import unquote
 
 LIMIT = 1024 * 1024
 KEPT_LIMIT = 16 * LIMIT
+TOTAL_LIMIT = 16 * LIMIT
 CHUNK = 1024 * 1024
 TEXT = {".txt", ".md", ".log", ".json"}
 HOLD = ".cleanup-hold"
@@ -180,6 +187,10 @@ class RetainWhole(UnreadReferences):
 
 
 class StageLimit(RetainWhole):
+    pass
+
+
+class TooLarge(RetainWhole):
     pass
 
 
@@ -261,7 +272,9 @@ def read_command(args, project, limit=None):
 
 
 def local_references(root, files, repos, limit=None):
-    texts, oversized = [], []
+    # Choose and size every file from lstat first, so an oversized total is
+    # refused before any content is read.
+    paths, oversized, total = [], [], 0
     for rel in files:
         check_limit(limit)
         path = root / rel
@@ -269,10 +282,18 @@ def local_references(root, files, repos, limit=None):
                 and not path.is_symlink()
                 and (path.suffix.lower() in TEXT or path.name in ("status", "findings", "review"))
                 and ordinary_evidence(path, rel, repos)):
-            if path.lstat().st_size > KEPT_LIMIT:
+            size = path.lstat().st_size
+            if size > KEPT_LIMIT:
                 oversized.append(str(rel))
             else:
-                texts.append(path.read_text(errors="replace"))
+                paths.append(path)
+                total += size
+    if total > TOTAL_LIMIT:
+        raise TooLarge(f"kept text totals {total} bytes, over its {TOTAL_LIMIT // LIMIT} MiB cap, so none of it was read")
+    texts = []
+    for path in paths:
+        check_limit(limit)
+        texts.append(path.read_text(errors="replace"))
     return "\n".join(texts), oversized
 
 
@@ -789,6 +810,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if hold.exists() and record is None:
         raise ValueError("unowned recovery directory")
     files, all_directories, repos = inventory(root)
+    too_large = ""
     try:
         check_limit(limit)
         local = unquote(html.unescape(local_references(root, files, repos, limit)[0]))
@@ -798,6 +820,8 @@ def cleanup(action, data, state, task_id, project="", pr=""):
             write_record(root, record)
         print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         return
+    except TooLarge as error:
+        too_large, local = str(error), ""
     if record is None:
         record = {"version": 1, "task": task_id, "sources": [], "complete": False}
     if record.get("expired"):
@@ -824,7 +848,12 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if record.get("expiry") != "too-large":
         record.pop("expiry", None)
     record.pop("retained", None)
+    if too_large:
+        record.update(expiry="too-large", retained=too_large)
     write_record(root, record)
+    if too_large:
+        print(f"warning: task data {task_id} retained whole and marked too-large: {too_large}", file=sys.stderr)
+        return
     if action == "prepare":
         try:
             backlog_references(record["sources"][-1], task_id)

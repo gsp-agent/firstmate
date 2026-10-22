@@ -6015,6 +6015,58 @@ SH
   pass "fm-teardown: by-hand expiry of a staged hold keeps scratch it re-held, fails, names it and keeps its mark"
 }
 
+test_task_data_expire_over_total_cap_reads_nothing() {
+  local case_dir task record cap_note
+  case_dir=$(make_case task-data-total-cap)
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+SH
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$case_dir/fakebin/br"
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/br"
+  write_pending_hold "$case_dir" aa-big
+  task="$case_dir/data/aa-big"
+  record="$task/record/data-cleanup.json"
+  # Two sparse logs, each under the 16 MiB per-file limit and together over
+  # the 16 MiB total, plus a small note. None of them may be opened.
+  python3 - "$task/record/run-1.log" "$task/record/run-2.log" <<'PY'
+import sys
+
+for path in sys.argv[1:]:
+    with open(path, "wb") as stream:
+        stream.truncate(9 * 1024 * 1024)
+PY
+  printf 'plain notes\n' > "$task/notes.md"
+  chmod 000 "$task/record/run-1.log" "$task/record/run-2.log" "$task/notes.md"
+  cap_note="kept text totals 18874380 bytes, over its 16 MiB cap, so none of it was read"
+  if PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" aa-big \
+      > "$case_dir/out" 2> "$case_dir/err"; then
+    fail "by-hand expiry reported success for a hold over the total cap"
+  fi
+  assert_not_contains "$(cat "$case_dir/err")" "Permission denied" "expiry opened kept text over the total cap"
+  assert_contains "$(cat "$case_dir/err")" "task data aa-big retained whole and marked too-large: $cap_note" \
+    "expiry did not refuse kept text over the total cap"
+  assert_contains "$(cat "$case_dir/err")" "task data aa-big is not expired" \
+    "by-hand expiry did not name the hold over the total cap"
+  jq -e --arg note "$cap_note" '.expiry == "too-large" and .retained == $note
+      and .complete == true and .expired == false' "$record" >/dev/null \
+    || fail "the record did not mark the hold over the total cap too large: $(cat "$record")"
+  assert_present "$task/.cleanup-hold/scratch.bin" "expiry over the total cap deleted held scratch"
+  assert_present "$task/record/run-2.log" "expiry over the total cap deleted kept text"
+
+  chmod 644 "$task/record/run-1.log" "$task/record/run-2.log" "$task/notes.md"
+  : > "$task/record/run-1.log"
+  : > "$task/record/run-2.log"
+  PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" aa-big \
+    > "$case_dir/next.out" 2> "$case_dir/next.err" \
+    || fail "by-hand expiry failed once the kept text fell under the cap: $(cat "$case_dir/next.err")"
+  assert_absent "$task/.cleanup-hold" "the hold did not expire once the kept text fell under the cap"
+  assert_present "$task/notes.md" "expiry deleted kept text"
+  jq -e '.expired == true and (has("expiry") | not) and (has("retained") | not)' "$record" >/dev/null \
+    || fail "expiry under the cap kept the too-large mark: $(cat "$record")"
+  pass "fm-teardown: expiry sizes kept text before reading it, marks a hold over the 16 MiB total too large without opening a file, and expires it once the text shrinks"
+}
+
 test_task_data_full_attempt_uses_its_own_limit() {
   local case_dir real_python record started marked
   case_dir=$(make_case task-data-full-attempt-limit)
@@ -8941,6 +8993,15 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-requester ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-total-cap ]; then
+  test_task_data_expire_over_total_cap_reads_nothing
+  test_task_data_large_kept_evidence
+  test_task_data_oversized_kept_evidence
+  test_task_data_stage_stops_at_its_limit
+  test_task_data_by_hand_expiry_finishes_an_unstaged_hold
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-publication ]; then
   test_task_data_failed_slot_write_keeps_retiring_hold
   test_task_data_sweep_requester_recovery
@@ -9012,6 +9073,7 @@ test_task_data_expire_cut_off_hold_moves_back
 test_task_data_expire_too_large_hold_skipped
 test_task_data_by_hand_expiry_finishes_an_unstaged_hold
 test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
+test_task_data_expire_over_total_cap_reads_nothing
 test_task_data_bead_id_filter
 test_task_data_archived_row_reference
 test_task_data_row_named_beads
