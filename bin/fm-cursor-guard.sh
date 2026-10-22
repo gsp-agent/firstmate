@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # fm-cursor-guard.sh - the launch route for a Cursor or Codex code worker. No model judgment.
 #   route <id> <harness> [<recorded-harness>]
-#                      prints <harness> when it is kept, else "<new-harness> <reason>",
-#                      and exits 0; fm-spawn and fm-control relaunch call it for every
-#                      crewmate and scout launch, and launch what it prints.
+#                      prints the resolved harness family when it is kept, else
+#                      "<new-harness> <reason>", and exits 0. Target, recorded, and meta
+#                      harness identities use fm_control_harness_family. fm-spawn and
+#                      fm-control relaunch consult it for every crewmate and scout launch;
+#                      callers own launch substitution and raw-command refusal.
 #                      cursor: Codex when the shared Cursor/Grok pool is short or unknown: the newest
 #                      <usage dir>/*-spending.txt says cursor_models_pct >= the crew-dispatch.json
 #                      cursor_fallback.models_pct (integer 1..100, default 85), or there is no readable file, or
@@ -26,8 +28,8 @@
 #                      early returns, including a healthy Cursor choice, so overrides preserve the
 #                      stop before the replacement changes spawn_gen. Other target harnesses keep
 #                      their normal route even when that scan writes the marker.
-#                      An explicit harness other than cursor for a task recorded on cursor is kept
-#                      and named in state/<id>.cursor-fallback. Any other harness prints unchanged.
+#                      An explicit request outside the Cursor family for a recorded Cursor task
+#                      is named in state/<id>.cursor-fallback before applying the requested route.
 # The usage directory defaults to ~/.agent-state/a3ov3/cursor-usage.
 # Spending files supply cursor_models_pct=<integer>; invalid values select fallback.
 # Usage percentages, configured thresholds, and configured ages are consumed as integers.
