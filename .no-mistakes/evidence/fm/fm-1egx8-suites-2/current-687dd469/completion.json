@@ -1,0 +1,8 @@
+{
+  "captured_owned_pids": 184,
+  "surviving_captured_processes": {},
+  "disposable_root_removed": true,
+  "tracked_source_modified": false,
+  "setup_resolution": "Original summary fixture child home was inside FM_ROOT_OVERRIDE and was rejected by the product guard. The continuation uses a sibling disposable code root with unchanged assertions and passes.",
+  "resource_comparison": "Not repeated under the explicit no-third-alone-run decision; post-merge remeasurement belongs to the authorized delivery owner."
+}

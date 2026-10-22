@@ -1,0 +1,22 @@
+ok - real refresh producer reaped after watcher poll: timeout
+ok - real refresh producer reaped after watcher signal: timeout
+ok - real refresh producer reaped after watcher actionable: timeout
+ok - real refresh cancellation and normal calls: timeout
+ok - real refresh producer reaped after watcher poll: gtimeout
+ok - real refresh producer reaped after watcher signal: gtimeout
+ok - real refresh producer reaped after watcher actionable: gtimeout
+ok - real refresh cancellation and normal calls: gtimeout
+ok - real refresh producer reaped after watcher poll: perl
+ok - real refresh producer reaped after watcher signal: perl
+ok - real refresh producer reaped after watcher actionable: perl
+ok - real refresh cancellation and normal calls: perl
+ok - real refresh producer reaped after watcher poll: bash
+ok - real refresh producer reaped after watcher signal: bash
+ok - real refresh producer reaped after watcher actionable: bash
+ok - real refresh cancellation and normal calls: bash
+ok - watcher cleanup reaps real refresh workers and producers across timeout mechanisms
+ok - watcher-carried status append publishes the real home summary
+ok - many-task summary preserves bounded output, duplicate metadata, and keyed status text
+ok - large backlog snapshots and home-summary publication stay within exec limits
+ok - fleet snapshot transport does not require or mutate operational state
+not ok - parent fleet snapshot did not preserve the large child invalidity

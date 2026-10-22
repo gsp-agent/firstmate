@@ -1,0 +1,11 @@
+ok - captain-relevant signal is surfaced (queue + exit) and marked surfaced
+
+FILE actionable-signal/watch.out
+signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-live-687dd469/tmp/fm-watch-triage-tests.usiWPc/actionable-signal/state/task.status
+
+FILE actionable-signal/state/.wake-queue
+1792678078	1	signal	task.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-live-687dd469/tmp/fm-watch-triage-tests.usiWPc/actionable-signal/state/task.status
+1792678078	2	signal	task.status	needs-decision: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-live-687dd469/tmp/fm-watch-triage-tests.usiWPc/actionable-signal/state/task.status
+
+FILE actionable-signal/state/.seen-task_status
+v2	r1:3433007374726f6e673a31363737373233343a333237393437393635353a313739323637383037352e38303831383338373700526567756c61722046696c653a313030363434002d007265616461626c65007265616461626c65	43@strong:16777234:3279479655:1792678075.808183877

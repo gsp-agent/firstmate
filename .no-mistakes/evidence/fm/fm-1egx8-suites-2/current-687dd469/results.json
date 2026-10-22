@@ -1,0 +1,104 @@
+[
+  {
+    "name": "summary",
+    "command": [
+      "bash",
+      "tests/fm-home-summary-refresh.test.sh"
+    ],
+    "env": {},
+    "rc": 1,
+    "elapsed": 86.734
+  },
+  {
+    "name": "proof",
+    "command": [
+      "bash",
+      "tests/fm-test-isolation-proof.test.sh"
+    ],
+    "env": {},
+    "rc": 0,
+    "elapsed": 14.335
+  },
+  {
+    "name": "timeout",
+    "command": [
+      "bash",
+      "tests/fm-timeout-lib.test.sh"
+    ],
+    "env": {},
+    "rc": 0,
+    "elapsed": 39.359
+  },
+  {
+    "name": "test_provably_working_signal_absorbed",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_provably_working_signal_absorbed"
+    },
+    "rc": 0,
+    "elapsed": 5.57
+  },
+  {
+    "name": "test_turn_ended_not_working_surfaced",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_turn_ended_not_working_surfaced"
+    },
+    "rc": 0,
+    "elapsed": 5.405
+  },
+  {
+    "name": "test_actionable_signal_surfaced",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_actionable_signal_surfaced"
+    },
+    "rc": 0,
+    "elapsed": 4.403
+  },
+  {
+    "name": "test_actionable_signal_survives_a_later_routine_append",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_actionable_signal_survives_a_later_routine_append"
+    },
+    "rc": 0,
+    "elapsed": 4.306
+  },
+  {
+    "name": "test_term_stops_a_watcher_blocked_inside_a_poll",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_term_stops_a_watcher_blocked_inside_a_poll"
+    },
+    "rc": 0,
+    "elapsed": 3.085
+  },
+  {
+    "name": "test_check_sweep_reprobes_captain_holds",
+    "command": [
+      "bash",
+      "tests/fm-watch-triage.test.sh"
+    ],
+    "env": {
+      "FM_TEST_ONLY": "test_check_sweep_reprobes_captain_holds"
+    },
+    "rc": 0,
+    "elapsed": 47.028
+  }
+]

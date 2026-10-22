@@ -1,0 +1,8 @@
+ok - a no-verb signal whose crew is provably working is absorbed (no exit, no queue, suppressor advanced, beacon present)
+
+FILE provably-working-signal/watch.out
+
+FILE provably-working-signal/state/.seen-task_status
+v2	r1:3236007374726f6e673a31363737373233343a333237393437393434323a313739323637383037312e35393633373430323900526567756c61722046696c653a313030363434002d007265616461626c65007265616461626c65	26@strong:16777234:3279479442:1792678071.596374029
+FILE provably-working-signal/state/.watch-triage.log
+[2026-10-22T09:07:54-0500] absorbed benign signal: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5H6NCKQJM2YC31BBNGTSVQQ/.test-live-687dd469/tmp/fm-watch-triage-tests.nyaF47/provably-working-signal/state/task.status
