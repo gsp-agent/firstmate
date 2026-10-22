@@ -1,0 +1,145 @@
+$ tmux -L fm-lab -f /dev/null new-session -d -s primary -n fm-limitproof57586 -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/wt
+[exit 0]
+$ tmux -L fm-lab display-message -p -t primary '#{socket_path},#{pid},0'
+/Users/dalecarman/.no-mistakes/evidence/01M5JHQCG4FESCSQGZDRMVAJQS/t/tmux-501/fm-lab,60402,0
+[exit 0]
+$ tmux -L fm-lab display-message -p -t primary '#{pane_id}'
+%0
+[exit 0]
+$ bash bin/fm-spawn.sh limitproof57586 --relaunch --model sonnet --effort high
+spawned limitproof57586 harness=claude kind=ship mode=local-only yolo=off window=primary:fm-limitproof57586 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/wt
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/home/data/limitproof57586/launch-brief.md records no ship branch; defaulting to legacy branch fm/limitproof57586
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/home/data/limitproof57586/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: limitproof57586 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+[exit 0]
+Recorded explicit pair: {"window": "primary:fm-limitproof57586", "endpoint_task_id": "limitproof57586", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/wt", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/project", "harness": "claude", "kind": "ship", "mode": "local-only", "yolo": "off", "branch": "fm/limitproof57586", "tasktmp": "/tmp/fm-limitproof57586", "model": "sonnet", "effort": "high", "busy_gen": "g1792708508.64682.17651", "spawn_gen": "s1792708509.60620.22396"}
+$ tmux -L fm-lab capture-pane -p -t primary
+dalecarman@Dales-MacBook-Pro-M4-7 wt % cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDR
+MVAJQS/.live-limit-lab3/wt'
+dalecarman@Dales-MacBook-Pro-M4-7 wt % export GOTMPDIR=/tmp/fm-limitproof57586/gotmp
+dalecarman@Dales-MacBook-Pro-M4-7 wt % export COMPACT_ADVISER_DISABLE=1
+dalecarman@Dales-MacBook-Pro-M4-7 wt % export FM_TASK_ID=limitproof57586
+dalecarman@Dales-MacBook-Pro-M4-7 wt % . '/tmp/fm-limitproof57586+d99e65b908b015599202d71b2ca3d277b2d07c35e390658a48f7e1
+261d28bc1b/launch.s1792708509.60620.22396.sh'
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Allow external CLAUDE.md file imports?
+
+  This project's CLAUDE.md or .claude/rules imports files outside the current working directory. Never allow this for
+  third-party repositories.
+
+  External imports:
+    /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/AGENTS.md
+
+  Important: Only use Claude Code with files you trust. Accessing untrusted files may pose security risks
+  https://code.claude.com/docs/en/security
+
+  ❯ No, disable external imports
+    Yes, allow external imports
+
+  Enter to confirm · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[exit 0]
+$ tmux -L fm-lab kill-server
+[exit 0]
+$ tmux -L fm-lab -f /dev/null new-session -d -s primary -n fm-limitproof57586 -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/wt
+[exit 0]
+$ tmux -L fm-lab display-message -p -t primary '#{socket_path},#{pid},0'
+/Users/dalecarman/.no-mistakes/evidence/01M5JHQCG4FESCSQGZDRMVAJQS/t/tmux-501/fm-lab,74762,0
+[exit 0]
+$ tmux -L fm-lab display-message -p -t primary '#{pane_id}'
+%0
+[exit 0]
+$ bash bin/fm-spawn.sh limitproof57586 --relaunch
+spawned limitproof57586 harness=claude kind=ship mode=local-only yolo=off window=primary:fm-limitproof57586 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/wt
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/home
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/home/data/limitproof57586/launch-brief.md records no ship branch; defaulting to legacy branch fm/limitproof57586
+warning: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/home/data/limitproof57586/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: limitproof57586 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+[exit 0]
+After omitted-axis relaunch: {"window": "primary:fm-limitproof57586", "endpoint_task_id": "limitproof57586", "worktree": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/wt", "project": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/project", "harness": "claude", "kind": "ship", "mode": "local-only", "yolo": "off", "branch": "fm/limitproof57586", "tasktmp": "/tmp/fm-limitproof57586", "model": "sonnet", "effort": "high", "busy_gen": "g1792708515.79914.37", "spawn_gen": "s1792708516.74849.21389"}
+$ tmux -L fm-lab capture-pane -p -t primary
+dalecarman@Dales-MacBook-Pro-M4-7 wt % cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDR
+MVAJQS/.live-limit-lab3/wt'
+dalecarman@Dales-MacBook-Pro-M4-7 wt % export GOTMPDIR=/tmp/fm-limitproof57586/gotmp
+dalecarman@Dales-MacBook-Pro-M4-7 wt % export COMPACT_ADVISER_DISABLE=1
+dalecarman@Dales-MacBook-Pro-M4-7 wt % export FM_TASK_ID=limitproof57586
+dalecarman@Dales-MacBook-Pro-M4-7 wt % . '/tmp/fm-limitproof57586+d99e65b908b015599202d71b2ca3d277b2d07c35e390658a48f7e1
+261d28bc1b/launch.s1792708516.74849.21389.sh'
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Allow external CLAUDE.md file imports?
+
+  This project's CLAUDE.md or .claude/rules imports files outside the current working directory. Never allow this for
+  third-party repositories.
+
+  External imports:
+    /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/AGENTS.md
+
+  Important: Only use Claude Code with files you trust. Accessing untrusted files may pose security risks
+  https://code.claude.com/docs/en/security
+
+  ❯ No, disable external imports
+    Yes, allow external imports
+
+  Enter to confirm · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[exit 0]
+$ tmux -L fm-lab kill-server
+[exit 0]
+$ bash bin/fm-cursor-guard.sh route limitproof57586-unrelated codex
+codex
+[exit 0]
+$ bash bin/fm-cursor-guard.sh route limitproof57586-stale codex
+codex
+[exit 0]
+$ bash bin/fm-cursor-guard.sh route limitproof57586-override 'claude --model sonnet' 'cursor-agent --trust'
+claude
+[exit 0]
+Cursor override reason: explicit --harness claude override of a recorded cursor task
+$ tmux -L fm-lab -f /dev/null new-session -d -s primary -n fm-limitproof57586 -x 120 -y 40 -c /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/wt
+[exit 0]
+$ tmux -L fm-lab display-message -p -t primary '#{socket_path},#{pid},0'
+/Users/dalecarman/.no-mistakes/evidence/01M5JHQCG4FESCSQGZDRMVAJQS/t/tmux-501/fm-lab,94727,0
+[exit 0]
+$ tmux -L fm-lab display-message -p -t primary '#{pane_id}'
+%0
+[exit 0]
+$ bash bin/fm-spawn.sh limitproof57586-fresh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/project --scout --harness 'codex --no-alt-screen'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5JHQCG4FESCSQGZDRMVAJQS/.live-limit-lab3/home
+error: raw launch command for codex would route to claude; use the canonical --harness codex launch
+[exit 1]
+Fresh raw Codex spawn selected Claude and refused before allocating a task.
+$ tmux -L fm-lab kill-server
+[exit 0]

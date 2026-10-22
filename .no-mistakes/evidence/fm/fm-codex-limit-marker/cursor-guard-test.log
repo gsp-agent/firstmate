@@ -1,0 +1,11 @@
+ok - fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit
+ok - a Cursor fallback records its reason in state/<id>.cursor-fallback
+ok - a codex usage-limit stop writes the marker, and the marker routes every later codex launch to claude
+ok - only the task's own newest codex session, ended on a usage limit since its launch, writes the marker
+ok - manual Codex overrides preserve usage limits across replacement generations, including healthy Cursor and meta-only records
+ok - an explicit override of a recorded cursor task is kept and recorded; other harnesses pass through
+ok - GNU stat supports spending-file age
+ok - the real spending file shape at 26% keeps cursor
+ok - crew guard: refuses git symbolic-ref and update-ref in every command position, leaves reads and branch creation alone
+ok - crew guard: pins an empty working directory, leaves explicit ones, other tools and bad input alone
+# all fm-cursor-guard tests passed

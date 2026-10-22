@@ -1,0 +1,10 @@
+ok - fm-spawn --relaunch: a raw override preserves the retiring Codex limit for later canonical routes
+ok - fm-spawn --relaunch: raw Codex and Cursor commands refuse changed routes without replacing the task generation
+ok - fm-spawn --relaunch: healthy raw Cursor keeps its command and executable identity without an override
+ok - fm-spawn --relaunch: a raw Cursor override records its replacement harness
+ok - fm-control relaunch: a codex task whose session ended on its usage limit is relaunched on claude and marked
+ok - fm-spawn --relaunch: fallback pairs survive relaunch and do not change single-pair adoption
+ok - fm-control relaunch: a cursor fallback records the actual harness and keeps its pair on the next relaunch
+ok - an explicit --harness relaunch of a cursor task is kept and recorded in state/<id>.cursor-fallback
+ok - fm-spawn --relaunch: omitted --model and --effort keep the recorded axes
+ok - fm-control relaunch: a routed fallback pair survives the next relaunch and only that pair is exempt

@@ -1,0 +1,8 @@
+{
+  "model": "sonnet",
+  "effort": "high",
+  "omitted_axes_preserved": true,
+  "unrelated_and_old_sessions_ignored": true,
+  "cursor_override_recorded": true,
+  "fresh_spawn_marked_route": "claude"
+}
