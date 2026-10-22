@@ -1,0 +1,9 @@
+$ env <disposable HOME and GROK_HOME, no API keys> grok
+grok: refusing to start. Grok has no usable xAI login for this run (home: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/grok; `grok models` said: You are not authenticated.), and it would open a browser sign-in on this Mac.
+  Sign in yourself with: grok login
+  Or run with the machine's login: GROK_HOME=/Users/dalecarman/.grok grok ...
+  Or set XAI_API_KEY for this run.
+  (guard: ~/.local/bin/grok, source configs/grok/guard/grok, bead .agent-config-mpstk)
+exit=3
+
+The normal existing Grok login did start a real CLI, but its folder-trust prompt would persist operator configuration outside this worktree. That prompt was not approved. A fully disposable Grok configuration with the existing API credential still entered browser approval; it was cancelled without approving a login. Isolated Claude auth status returned loggedIn=false, authMethod=none; No authentication approval or production credential-store changes were performed.

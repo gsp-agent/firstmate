@@ -1,0 +1,119 @@
+$ tmux -L fm-lab set-window-option -t @2 automatic-rename off
+exit=0
+$ tmux -L fm-lab rename-window -t @2 fm-worker
+exit=0
+$ tmux -L fm-lab capture-pane -p -t @2
+
+   worker worktree /U/d/.n/w/a/0/.phase-dispatch/worker
+
+
+
+
+                                                               ⠀⠀⠀⠀⠀⠀⣀⣀⡀⠀⠀⠀⢀⠄
+                                                               ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀
+                                                               ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀
+                                                               ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀
+                                                               ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀
+                                                               ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀
+                                                               ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+
+                                                Do you trust the contents of this directory?
+                  /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/project
+
+                                          Grok Build may run or modify contents in this directory,
+                                                           posing security risks.
+
+                                                       Yes, proceed                 y
+                                                       No, quit                     n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                               Grok Build  1.0.67 [stable]
+
+exit=0
+$ tmux -L fm-lab list-panes -a -F #{window_id} #{pane_width}x#{pane_height} #{pane_current_command} #{pane_current_path}
+@0 140x40 zsh /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/worker
+@2 140x40 grok-1.0.67-mac /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/worker
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh reject-scout /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/project --harness grok --model grok-4.7 --effort medium --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+exit=1
+Observed: dispatch refusal lists grok-4.7 xhigh; lab endpoint inventory is unchanged and no task record was created.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh reject-scout-raw /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/project grok --always-approve --model grok-4.7 --reasoning-effort medium --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+exit=1
+Observed: dispatch refusal lists grok-4.7 xhigh; lab endpoint inventory is unchanged and no task record was created.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh reject-ship /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/project --harness grok --model grok-4.7 --effort medium --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+error: config/crew-dispatch.json is active - spawn profile grok grok-4.7 medium matches no dispatch profile for grok (file: grok-4.7 xhigh); pass the file pair for this harness
+exit=1
+Observed: dispatch refusal lists grok-4.7 xhigh; lab endpoint inventory is unchanged and no task record was created.
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh reject-ship-raw /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/project grok --always-approve --model grok-4.7 --reasoning-effort medium --mode local-only --yolo off
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+exit=1
+Observed: dispatch refusal lists grok-4.7 xhigh; lab endpoint inventory is unchanged and no task record was created.
+SCENARIO: ambiguous
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-control.sh worker relaunch --note ambiguous isolated live check
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+error: config/crew-dispatch.json is active - relaunch of worker on grok grok-4.7 medium matches no dispatch profile for grok, and the file names more than one pair for that harness (grok-4.7 high, grok-4.7 xhigh); resolve one pair at intake rather than guessing
+exit=1
+$ tmux -L fm-lab display-message -p -t @2 #{pane_current_command}
+grok-1.0.67-mac
+exit=0
+Observed: original Grok process is still foreground; metadata is byte-identical; no relaunch journal exists.
+SCENARIO: malformed
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-control.sh worker relaunch --note malformed isolated live check
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+jq: parse error: Unfinished JSON term at EOF at line 2, column 0
+error: config/crew-dispatch.json is active - could not read its dispatch profiles for harness grok; fix the file rather than spawning around it
+exit=1
+$ tmux -L fm-lab display-message -p -t @2 #{pane_current_command}
+grok-1.0.67-mac
+exit=0
+Observed: original Grok process is still foreground; metadata is byte-identical; no relaunch journal exists.
+SCENARIO: invalid-effort
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-control.sh worker relaunch --note invalid-effort isolated live check
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+dispatch profile: relaunch of worker adopts the dispatch file pair for grok (grok-4.7 typo) over the recorded grok-4.7 medium
+error: dispatch profile for grok has invalid effort 'typo'; expected default, low, medium, high, xhigh, max, ultra
+exit=1
+$ tmux -L fm-lab display-message -p -t @2 #{pane_current_command}
+grok-1.0.67-mac
+exit=0
+Observed: original Grok process is still foreground; metadata is byte-identical; no relaunch journal exists.
+NEGATIVE LIVE SCENARIOS COMPLETE
+$ PATH=<isolated real tools without jq> bin/fm-control.sh worker relaunch --note "missing jq live check"
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+error: config/crew-dispatch.json is active - jq is required to read its dispatch profiles for harness grok
+exit=1
+Observed: metadata unchanged; no relaunch journal; only the jq-is-required diagnostic.
+$ bin/fm-spawn.sh worker --relaunch
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+error: config/crew-dispatch.json is active - relaunch of worker on grok grok-4.7 medium matches no dispatch profile for grok, and the file names more than one pair for that harness (grok-4.7 high, grok-4.7 xhigh); resolve one pair at intake rather than guessing
+exit=1
+$ bin/fm-spawn.sh worker --relaunch
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+dispatch profile: relaunch of worker adopts the dispatch file pair for grok (grok-4.7 typo) over the recorded grok-4.7 medium
+error: dispatch profile for grok has invalid effort 'typo'; expected default, low, medium, high, xhigh, max, ultra
+exit=1
+$ bin/fm-spawn.sh all-alternatives <lab-project> --scout --harness "grok --version" --model grok-4.7 --effort xhigh
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+error: config/crew-dispatch.json is active - raw launch command for grok requires the canonical --harness grok launch with a dispatch profile (file: grok-4.7 high, grok-4.7 low, grok-4.7 xhigh); pass the file pair for this harness with --model and --effort
+exit=1
+Observed: file alternatives from rules arrays, default, and label_routes are all printed before any endpoint is created.

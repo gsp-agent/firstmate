@@ -1,0 +1,112 @@
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh unnamed-raw /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/project sleep 300 --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+spawned unnamed-raw harness=sleep kind=scout window=primary:fm-unnamed-raw worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/pool/.treehouse/project-075f5c/1/project
+exit=0
+Persisted task record:
+window=primary:fm-unnamed-raw
+endpoint_task_id=unnamed-raw
+worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/pool/.treehouse/project-075f5c/1/project
+project=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/project
+harness=sleep
+kind=scout
+tasktmp=/tmp/fm-unnamed-raw
+model=default
+effort=default
+spawn_gen=s1792665660.28334.567
+
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh nofile-raw /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/project grok --version --scout
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+spawned nofile-raw harness=grok kind=scout window=primary:fm-nofile-raw worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/pool/.treehouse/project-075f5c/2/project
+exit=0
+$ tmux -L fm-lab capture-pane -p -S -15 -t primary:fm-nofile-raw
+
+dalecarman@Dales-MacBook-Pro-M4-7 project % treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/pool/.treehouse/proj
+ect-075f5c/2/project. Type 'exit' to return.
+dalecarman@Dales-MacBook-Pro-M4-7 project % cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-d
+ispatch/pool/.treehouse/project-075f5c/2/project'
+dalecarman@Dales-MacBook-Pro-M4-7 project % export GOTMPDIR=/tmp/fm-nofile-raw/gotmp
+dalecarman@Dales-MacBook-Pro-M4-7 project % export COMPACT_ADVISER_DISABLE=1
+dalecarman@Dales-MacBook-Pro-M4-7 project % export FM_TASK_ID=nofile-raw
+dalecarman@Dales-MacBook-Pro-M4-7 project % . '/tmp/fm-nofile-raw+2bbf83d45d88a576d26ea6e05e7aef6eada6239602e0ff689c0cfd351bc0512e/launch.s1
+792665673.58673.5977.sh'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit=0
+$ git -C /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/secondmate init -q -b main
+exit=0
+$ /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/bin/fm-spawn.sh secondmate-raw /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/secondmate grok --version --secondmate
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/home
+error: secondmate home cannot be inside the firstmate repo: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/secondmate
+exit=1
+
+Later capture of the actual raw command output:
+
+dalecarman@Dales-MacBook-Pro-M4-7 project % treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-dispatch/pool/.treehouse/proj
+ect-075f5c/2/project. Type 'exit' to return.
+dalecarman@Dales-MacBook-Pro-M4-7 project % cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5GPT3RCR39N2R45MJ1B5WXR/.phase-d
+ispatch/pool/.treehouse/project-075f5c/2/project'
+dalecarman@Dales-MacBook-Pro-M4-7 project % export GOTMPDIR=/tmp/fm-nofile-raw/gotmp
+dalecarman@Dales-MacBook-Pro-M4-7 project % export COMPACT_ADVISER_DISABLE=1
+dalecarman@Dales-MacBook-Pro-M4-7 project % export FM_TASK_ID=nofile-raw
+dalecarman@Dales-MacBook-Pro-M4-7 project % . '/tmp/fm-nofile-raw+2bbf83d45d88a576d26ea6e05e7aef6eada6239602e0ff689c0cfd351bc0512e/launch.s1
+792665673.58673.5977.sh'
+grok 1.0.67 (2fe064390d07)
+dalecarman@Dales-MacBook-Pro-M4-7 project %
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
