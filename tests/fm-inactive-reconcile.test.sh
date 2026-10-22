@@ -81,6 +81,14 @@ case "${1:-} ${2:-}" in
     printf 'all quiet\n> \n' ;;
   'pane close')
     [ ! -e "$FM_HERDR_WORLD/native-started" ] || : > "$FM_HERDR_WORLD/closed-running"
+    if [ "${FM_HOLD_RACE_ORDER:-}" = close-first ]; then
+      control_owner=$(cat "$FM_STATE_OVERRIDE/.control-child.lock/pid" 2>/dev/null || true)
+      meta_owner=$(cat "$FM_STATE_OVERRIDE/.meta-child.lock/pid" 2>/dev/null || true)
+      if [ -z "$control_owner" ] || [ "$control_owner" != "$meta_owner" ]; then
+        : > "$FM_HERDR_WORLD/close-without-control"
+      fi
+      [ ! -e "$FM_HERDR_WORLD/hold-finished" ] || : > "$FM_HERDR_WORLD/closed-held"
+    fi
     for record in "$FM_STATE_OVERRIDE/terminal-outcomes"/*; do
       [ -f "$record" ] || continue
       if grep -Fxq "pane_close_target=default:$3" "$record"; then
@@ -117,6 +125,15 @@ exit 0
 SH
   cat > "$fake/mktemp" <<'SH'
 #!/usr/bin/env bash
+for arg in "$@"; do
+  case "${FM_HOLD_RACE_ACTOR:-}:$arg" in
+    hold:*/.control-child.lock.owner.*) : > "$FM_HERDR_WORLD/hold-lock-attempt" ;;
+    reconcile:*/.meta-child.lock.owner.*)
+      if [ "${FM_HOLD_RACE_CHECK_ORDER:-0}" = 1 ] && [ ! -e "$FM_STATE_OVERRIDE/.control-child.lock/pid" ]; then
+        : > "$FM_HERDR_WORLD/meta-before-control"
+      fi ;;
+  esac
+done
 case "${FM_NATIVE_RACE_ACTOR:-}:${1:-}" in
   send:*/.lock-probe.*) : > "$FM_HERDR_WORLD/native-lock-attempt" ;;
   reconcile:*/.inactive-outcome-reconcile.*) : > "$FM_HERDR_WORLD/reconcile-started" ;;
@@ -179,6 +196,8 @@ make_world() { # <name>
   MAIN="$WORLD/main"
   MATE="$WORLD/mate"
   mkdir -p "$WORLD/root" "$MAIN"/{state,data,config,projects} "$MATE"/{state,data,config,projects,bin}
+  fm_test_tasks_toml "$MAIN/.tasks.toml"
+  fm_test_tasks_toml "$MATE/.tasks.toml"
   : > "$MATE/AGENTS.md"
   make_tools "$WORLD"
   : > "$WORLD/forge.log"
@@ -297,6 +316,291 @@ prime_seen() { # <state> <status>
 }
 
 reap() { kill "$1" 2>/dev/null || true; wait "$1" 2>/dev/null || true; }
+
+test_context_paused_herdr_pane_closes_without_outcome() {
+  local kind note phase index=0 out
+  for kind in ship scout; do
+    for note in \
+      "session reached Dale's 300K context line; work in progress committed" \
+      'context passed 300k tokens; stowed' \
+      'session context limit reached; fix committed' \
+      'session context limit, a fresh session resumes' \
+      'context limit reached mid-diagnosis, fresh session needed' \
+      'session reached the 300K context line; work committed, a fresh session resumes' \
+      'reached the context limit; a fresh session resumes' \
+      'passed the context limit; a fresh session resumes' \
+      'passed the 300K context line; a fresh session resumes' \
+      'session context limit reached' \
+      'context limit reached with a fresh session needed' \
+      'context limit reached; awaiting a fresh session to resume' \
+      'context limit reached; awaiting a fresh session to continue' \
+      'context limit reached; awaiting a fresh session and then continue' \
+      'context limit reached; awaiting a fresh session and then restart; waiting for a replacement session to take over' \
+      'context limit reached; waiting for a new session to resume and for a replacement session to take over' \
+      'context limit reached; awaiting a new session to restart' \
+      'context limit reached; waiting for a replacement session to take over' \
+      'context limit reached; until a new session takes over' \
+      'context limit reached; awaiting a fresh session to carry on' \
+      'context limit reached; awaiting a fresh session to continue and then resume' \
+      'context limit reached; waiting for a replacement session to resume' \
+      'context limit reached; until a fresh session resumes' \
+      'context limit reached; waiting until a fresh session resumes; work committed' \
+      'SESSION REACHED THE 300 K CONTEXT LINE; a fresh session resumes'; do
+      index=$((index + 1))
+      make_world "context-paused-close-$kind-$index"
+      write_herdr_child "$MAIN" child "paused: $note"
+      set_child_field "$MAIN/state/child.meta" kind "$kind"
+      age "$MAIN/state/child.meta"
+      run_reconcile "$MAIN" --startup
+      [ "$(herdr_close_count)" = 1 ] || fail "$kind context-paused herdr pane was not closed: $note"
+      for phase in pending reported presented; do
+        [ "$(outcome_count "$MAIN" "$phase")" = 0 ] || fail "context pause produced a $phase terminal outcome"
+      done
+      [ ! -s "$MAIN/state/.wake-queue" ] || fail "context pause woke the supervisor"
+      [ -f "$MAIN/state/child.meta" ] && [ -f "$MAIN/state/child.status" ] \
+        && [ -d "$MAIN/projects/child" ] || fail "context-paused child records or worktree were removed"
+      out=$(read_child_state "$MAIN" child)
+      assert_contains "$out" 'state: paused' "closed $kind context-paused child lost its current state"
+      assert_contains "$out" "$note" "closed $kind context-paused child lost its reason"
+    done
+  done
+  pass "context-paused ship and scout panes close without outcomes or wakes and retain paused current state"
+}
+
+test_event_paused_herdr_pane_stays_open() {
+  local note state index=0
+  for note in \
+    'waiting for the PM call on the context question, until 2026-10-22T15:00Z' \
+    'waiting for the PM call on the context limit question, until 2026-10-22T15:00Z' \
+    'awaiting a decision about the 300K context line' \
+    'context limit reached; awaiting the PM call' \
+    'context limit reached; awaiting Firstmate' \
+    'context limit reached; waiting for Dale' \
+    'context limit reached; waiting for a call' \
+    'context limit reached; waiting for a review' \
+    'context limit reached; awaiting approval' \
+    'context limit reached; until 2026-10-22T15:00Z' \
+    'context limit reached; awaiting a fresh session to continue until tomorrow' \
+    'context limit reached; awaiting a new session to restart while waiting for the PM call' \
+    'context limit reached; awaiting a fresh session to resume; waiting for the PM call' \
+    'context limit reached; awaiting a fresh session and PM approval' \
+    'context limit reached; waiting for a replacement session to take over and for PM approval' \
+    'context limit reached; waiting for a replacement session to take over and PM approval' \
+    'context limit reached; awaiting a fresh session to continue or release notes' \
+    'context limit reached; awaiting a fresh session to review the work and continue' \
+    'context limit reached; awaiting a fresh session, then pick up the remaining commits' \
+    'context limit reached; waiting for a fresh session to resume or for a review' \
+    'context limit reached; waiting on a fresh session to continue and on Dale' \
+    'context limit reached; awaiting a new session and then continue; awaiting Firstmate' \
+    'context limit reached; awaiting a fresh session to resume. Waiting for the PM call' \
+    'context limit reached; awaiting a fresh session and then continue until 2026-10-22T15:00Z' \
+    'session reached the context limit; waiting for the PM call, until 2026-10-22T15:00Z'; do
+    for state in unknown 'done' failed; do
+      index=$((index + 1))
+      make_world "event-paused-keep-$index"
+      write_herdr_child "$MAIN" child "paused: $note"
+      FM_FAKE_CREW_STATE="$state" run_reconcile "$MAIN" --startup
+      [ "$(herdr_close_count)" = 0 ] || fail "event-paused herdr pane was closed with $state state: $note"
+      [ "$(outcome_count "$MAIN" pending)" = 0 ] || fail "event pause produced a terminal outcome"
+    done
+  done
+  pass "a pause for any other reason never closes"
+}
+
+test_pause_during_state_read_supersedes_terminal_closure() {
+  local route state pause_kind task_home note expected_closes
+  for route in main ledger; do
+    for state in 'done' failed; do
+      for pause_kind in context event; do
+        make_world "pause-during-state-read-$route-$state-$pause_kind"
+        task_home="$MAIN"
+        if [ "$route" = ledger ]; then
+          bind_secondmate local
+          task_home="$MATE"
+        fi
+        write_herdr_child "$task_home" child 'working: finishing the turn'
+        note='context limit reached; awaiting a fresh session and then continue'
+        expected_closes=1
+        if [ "$pause_kind" = event ]; then
+          note='context limit reached; waiting for a replacement session to take over and PM approval'
+          expected_closes=0
+        fi
+        cat > "$WORLD/fakebin/fm-crew-state.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'paused: %s\n' "$FM_FAKE_PAUSE_NOTE" >> "$FM_STATE_OVERRIDE/$1.status"
+touch -r "$FM_STATE_OVERRIDE/$1.turn-ended" "$FM_STATE_OVERRIDE/$1.status"
+printf 'state: %s · source: fake\n' "$FM_FAKE_CREW_STATE"
+SH
+        FM_FAKE_PAUSE_NOTE="$note" FM_FAKE_CREW_STATE="$state" run_reconcile "$task_home" --startup
+        [ "$(herdr_close_count)" = "$expected_closes" ] || fail "$route $pause_kind pause arriving during $state read used the wrong closure path"
+        [ "$(outcome_count "$task_home" pending)" = 0 ] && [ "$(outcome_count "$task_home" reported)" = 0 ] \
+          || fail "a pause arriving during the state read produced a terminal outcome"
+        [ ! -s "$task_home/state/.wake-queue" ] || fail "a pause arriving during the state read woke the supervisor"
+      done
+    done
+  done
+  pass "pauses arriving during a terminal state read retain pause semantics in both homes"
+}
+
+test_captain_holds_keep_inactive_herdr_panes_open() {
+  local route state protection task_home note hold_rc expected_rc
+  for route in main ledger; do
+    for state in paused 'done' failed; do
+      for protection in held unreadable; do
+        make_world "captain-hold-$route-$state-$protection"
+        task_home="$MAIN"
+        if [ "$route" = ledger ]; then
+          bind_secondmate local
+          task_home="$MATE"
+        fi
+        note='PR https://example.test/owner/repo/pull/1 checks green'
+        [ "$state" != paused ] || note='context limit reached, fresh session needed'
+        write_herdr_child "$task_home" child "$state: $note"
+        FM_HOME="$task_home" FM_STATE_OVERRIDE="$task_home/state" FM_DATA_OVERRIDE="$task_home/data" \
+          "$ROOT/bin/fm-captain-hold.sh" hold child --title 'Review child work' --reason 'Awaiting the captain' >/dev/null \
+          || fail "could not create the authoritative captain hold"
+        expected_rc=0
+        if [ "$protection" = unreadable ]; then
+          chmod 000 "$task_home/data/backlog.md"
+          expected_rc=2
+        fi
+        hold_rc=0
+        FM_HOME="$task_home" FM_STATE_OVERRIDE="$task_home/state" FM_DATA_OVERRIDE="$task_home/data" \
+          "$ROOT/bin/fm-captain-hold.sh" open child >/dev/null 2>&1 || hold_rc=$?
+        [ "$hold_rc" -eq "$expected_rc" ] || fail "$protection captain-hold fixture did not reach its predicate result"
+        FM_FAKE_CREW_STATE="$state" run_reconcile "$task_home" --startup
+        chmod 644 "$task_home/data/backlog.md"
+        [ "$(herdr_close_count)" = 0 ] || fail "$route $state pane closed with $protection captain-hold state"
+        assert_contains "$(cat "$task_home/state/child.status")" "$state: $note" "captain hold replaced the original status"
+      done
+    done
+  done
+  pass "authoritative captain holds and unreadable hold state preserve terminal and context-paused panes in both homes"
+}
+
+test_captain_hold_and_pane_closure_are_serialized() {
+  local route state order task_home note real_tasks_axi control_lock meta_lock
+  local control_owner meta_owner hold_pid reconcile_pid hold_rc reconcile_rc ready check_order expected_closes
+  real_tasks_axi=$(command -v tasks-axi) || fail "tasks-axi is required for captain-hold races"
+  for route in main ledger; do
+    for state in 'done' failed paused; do
+      for order in hold-first close-first; do
+        make_world "captain-hold-race-$route-$state-$order"
+        task_home="$MAIN"
+        check_order=1
+        if [ "$route" = ledger ]; then
+          bind_secondmate local
+          task_home="$MATE"
+          check_order=0
+        fi
+        note='PR https://example.test/owner/repo/pull/1 checks green'
+        [ "$state" != paused ] || note='context limit reached; awaiting a fresh session to resume'
+        write_herdr_child "$task_home" child "$state: $note"
+        cat > "$WORLD/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${FM_HOLD_RACE_ACTOR:-}:${1:-}:${2:-}" = hold:hold:child ]; then
+  : > "$FM_HERDR_WORLD/hold-acquired-control"
+  if [ "$FM_HOLD_RACE_ORDER" = hold-first ]; then
+    deadline=$((SECONDS + 20))
+    while [ ! -e "$FM_HERDR_WORLD/hold-release" ]; do
+      [ "$SECONDS" -lt "$deadline" ] || exit 1
+      sleep 0.02
+    done
+  fi
+fi
+exec "${FM_HOLD_RACE_TASKS_AXI_BIN:?}" "$@"
+SH
+        chmod +x "$WORLD/fakebin/tasks-axi"
+        control_lock="$task_home/state/.control-child.lock"
+        meta_lock=$(fm_meta_lock_path "$task_home/state/child.meta")
+        ready=1
+        reconcile_pid=
+        reconcile_rc=0
+        expected_closes=0
+        if [ "$order" = close-first ]; then
+          expected_closes=1
+          FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" FM_NATIVE_RACE_ACTOR=reconcile \
+            FM_HOLD_RACE_ACTOR=reconcile FM_HOLD_RACE_ORDER="$order" FM_HOLD_RACE_CHECK_ORDER="$check_order" \
+            FM_HOLD_RACE_TASKS_AXI_BIN="$real_tasks_axi" run_reconcile "$task_home" --startup > "$WORLD/reconcile.out" 2>&1 &
+          reconcile_pid=$!
+          wait_native_race_event "$WORLD/close-waiting" || ready=0
+          control_owner=$(cat "$control_lock/pid" 2>/dev/null || true)
+          meta_owner=$(cat "$meta_lock/pid" 2>/dev/null || true)
+          [ -n "$control_owner" ] && [ "$control_owner" = "$meta_owner" ] || ready=0
+        fi
+        (
+          PATH="$WORLD/fakebin:$PATH" FM_HOME="$task_home" FM_STATE_OVERRIDE="$task_home/state" \
+            FM_DATA_OVERRIDE="$task_home/data" FM_HERDR_WORLD="$WORLD" FM_HOLD_RACE_ACTOR=hold \
+            FM_HOLD_RACE_ORDER="$order" FM_HOLD_RACE_TASKS_AXI_BIN="$real_tasks_axi" \
+            "$ROOT/bin/fm-captain-hold.sh" hold child --title 'Review child work' --reason 'Awaiting the captain' \
+            && : > "$WORLD/hold-finished"
+        ) > "$WORLD/hold.out" 2>&1 &
+        hold_pid=$!
+        if [ "$order" = hold-first ]; then
+          wait_native_race_event "$WORLD/hold-acquired-control" || ready=0
+          FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" FM_HOLD_RACE_ACTOR=reconcile \
+            FM_HOLD_RACE_ORDER="$order" FM_HOLD_RACE_CHECK_ORDER="$check_order" \
+            FM_HOLD_RACE_TASKS_AXI_BIN="$real_tasks_axi" run_reconcile "$task_home" --startup > "$WORLD/reconcile.out" 2>&1 \
+            || reconcile_rc=$?
+          [ ! -e "$WORLD/herdr-closed" ] || ready=0
+        else
+          wait_native_race_event "$WORLD/hold-lock-attempt" || ready=0
+          [ ! -e "$WORLD/hold-acquired-control" ] && [ ! -e "$WORLD/hold-finished" ] || ready=0
+        fi
+        : > "$WORLD/hold-release"
+        : > "$WORLD/close-release"
+        if [ -n "$reconcile_pid" ]; then wait "$reconcile_pid" || reconcile_rc=$?; fi
+        hold_rc=0
+        wait "$hold_pid" || hold_rc=$?
+        [ "$ready" = 1 ] && [ "$hold_rc" = 0 ] && [ "$reconcile_rc" = 0 ] \
+          || { cat "$WORLD/reconcile.out" "$WORLD/hold.out"; fail "$route $state $order race did not serialize hold and closure"; }
+        [ ! -e "$WORLD/meta-before-control" ] && [ ! -e "$WORLD/close-without-control" ] \
+          && [ ! -e "$WORLD/closed-held" ] || fail "$route $state $order violated the task-control boundary"
+        [ ! -e "$control_lock" ] && [ ! -L "$control_lock" ] \
+          && [ ! -e "$meta_lock" ] && [ ! -L "$meta_lock" ] || fail "hold/close race left a task lock held"
+        FM_HOME="$task_home" FM_STATE_OVERRIDE="$task_home/state" FM_DATA_OVERRIDE="$task_home/data" \
+          "$ROOT/bin/fm-captain-hold.sh" open child || fail "racing hold did not become authoritative"
+        [ "$(herdr_close_count)" = "$expected_closes" ] || fail "$order closed the pane on the wrong side of the hold"
+        FM_FAKE_CREW_STATE="$state" FM_HOLD_RACE_TASKS_AXI_BIN="$real_tasks_axi" run_reconcile "$task_home" --startup
+        [ "$(herdr_close_count)" = "$expected_closes" ] || fail "a later scan closed over the completed hold"
+      done
+    done
+  done
+  pass "captain holds and terminal/context-paused closure share task-control-before-metadata ordering in both homes"
+}
+
+test_retained_context_pause_requires_current_evidence_and_missing_pane() {
+  local variant out
+  for variant in unreachable event superseded secondmate; do
+    make_world "retained-context-pause-$variant"
+    write_herdr_child "$MAIN" child 'paused: context limit reached, fresh session needed'
+    set_child_field "$MAIN/state/child.meta" kind scout
+    age "$MAIN/state/child.meta"
+    run_reconcile "$MAIN" --startup
+    [ -e "$WORLD/herdr-closed" ] || fail "$variant fixture did not close its context-paused pane"
+    case "$variant" in
+      event) printf 'paused: waiting for the PM call on the context limit question\n' >> "$MAIN/state/child.status" ;;
+      superseded) printf 'working: resumed in a new session\n' >> "$MAIN/state/child.status" ;;
+      secondmate) set_child_field "$MAIN/state/child.meta" kind secondmate ;;
+    esac
+    if [ "$variant" = unreachable ]; then
+      out=$(FM_FAKE_HERDR_UNREACHABLE=1 read_child_state "$MAIN" child)
+    else
+      out=$(read_child_state "$MAIN" child)
+    fi
+    assert_contains "$out" 'state: unknown' "$variant incorrectly reused a retained context pause"
+  done
+  pass "retained context pauses require current pause evidence and a confirmed missing ordinary pane"
+}
+
+test_context_paused_busy_herdr_pane_stays_open() {
+  make_world context-paused-busy
+  write_herdr_child "$MAIN" child 'paused: context limit reached, fresh session needed'
+  "$ROOT/bin/fm-busy-event.sh" apply "$MAIN/state" child busy --current-gen --source claude-hook --event user-prompt-submit
+  run_reconcile "$MAIN" --startup
+  [ "$(herdr_close_count)" = 0 ] || fail "busy context-paused herdr pane was closed"
+  pass "busy evidence keeps a context-paused herdr pane open"
+}
 
 # The main retains a terminal presentation receipt until the corresponding wake
 # is handled and acknowledged.
@@ -1091,10 +1395,10 @@ test_herdr_close_requires_semantic_idle() {
   pass "only positive semantic idle permits terminal herdr closure"
 }
 
-test_pending_steering_keeps_terminal_herdr_pane_open() {
-  local route state delivery task_home phase lock message
+test_pending_steering_keeps_inactive_herdr_pane_open() {
+  local route state delivery task_home phase lock message note expected_outcomes
   for route in main ledger; do
-    for state in "done" failed; do
+    for state in "done" failed paused; do
       for delivery in '' fire-and-forget; do
         make_world "pending-steer-$route-$state-${delivery:-ordinary}"
         task_home="$MAIN"
@@ -1104,7 +1408,13 @@ test_pending_steering_keeps_terminal_herdr_pane_open() {
           task_home="$MATE"
           phase=reported
         fi
-        write_herdr_child "$task_home" child "$state: PR https://example.test/owner/repo/pull/1 checks green"
+        note='PR https://example.test/owner/repo/pull/1 checks green'
+        expected_outcomes=1
+        if [ "$state" = paused ]; then
+          note='context limit reached, fresh session needed'
+          expected_outcomes=0
+        fi
+        write_herdr_child "$task_home" child "$state: $note"
         lock=$(fm_meta_lock_path "$task_home/state/child.meta")
         fm_lock_acquire_wait "$lock" || fail "could not lock metadata for steering enqueue"
         message=$(fm_task_inbox_write "$task_home/state" child 'Please continue with this follow-up.' "$delivery") \
@@ -1112,7 +1422,7 @@ test_pending_steering_keeps_terminal_herdr_pane_open() {
         fm_lock_release "$lock"
 
         FM_INACTIVE_RECONCILE_BUDGET_SECS=30 FM_FAKE_CREW_STATE="$state" run_reconcile "$task_home" --startup
-        [ "$(outcome_count "$task_home" "$phase")" = 1 ] || fail "terminal scan did not reach closure eligibility"
+        [ "$(outcome_count "$task_home" "$phase")" = "$expected_outcomes" ] || fail "$state scan produced an unexpected outcome count"
         [ "$(herdr_close_count)" = 0 ] && [ ! -e "$WORLD/herdr-closed" ] \
           || fail "$route $state pane closed with an unhandled ${delivery:-ordinary} message"
         [ -f "$message" ] || fail "closure check consumed an unhandled message"
@@ -1124,7 +1434,7 @@ test_pending_steering_keeps_terminal_herdr_pane_open() {
       done
     done
   done
-  pass "unhandled ordinary and fire-and-forget steering prevents both terminal closure paths"
+  pass "unhandled ordinary and fire-and-forget steering prevents terminal and context-paused closure in both homes"
 }
 
 test_native_submit_and_terminal_closure_are_serialized() {
@@ -1534,7 +1844,7 @@ test_nonterminal_and_captain_held_states_do_not_report
 test_terminal_herdr_child_pane_closes_and_records_stay
 test_other_backend_panes_stay_open
 test_herdr_close_requires_semantic_idle
-test_pending_steering_keeps_terminal_herdr_pane_open
+test_pending_steering_keeps_inactive_herdr_pane_open
 test_native_submit_and_terminal_closure_are_serialized
 test_herdr_prevalidation_and_unproven_identity_stay_open
 test_secondmate_ledger_children_close_without_duplicate_reports
@@ -1548,5 +1858,12 @@ test_notice_recovery_does_not_duplicate_wake
 test_missing_parent_binding_names_itself
 test_reconciliation_never_calls_forge
 test_reconciliation_sets_no_forge_mode_for_state_read
+test_context_paused_herdr_pane_closes_without_outcome
+test_event_paused_herdr_pane_stays_open
+test_pause_during_state_read_supersedes_terminal_closure
+test_context_paused_busy_herdr_pane_stays_open
+test_captain_holds_keep_inactive_herdr_panes_open
+test_captain_hold_and_pane_closure_are_serialized
+test_retained_context_pause_requires_current_evidence_and_missing_pane
 
 echo "all inactive reconciliation tests passed"

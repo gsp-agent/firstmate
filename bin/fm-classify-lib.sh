@@ -330,6 +330,44 @@ status_is_paused() {  # <status-line>
   [ "$verb" = "${FM_CLASSIFY_PAUSED_VERB:-$FM_CLASSIFY_PAUSED_VERB_DEFAULT}" ]
 }
 
+# Context exhaustion permits ending a spent session, never an external wait.
+# Require affirmative exhaustion evidence, then inspect every wait clause:
+# after removing session targets and bare continuation wording, any remaining
+# content keeps the pane open. The reconciler and current-state reader share
+# this predicate so an eligible pause remains paused after its pane closes.
+status_is_context_paused() {
+  local note limit session continuation
+  status_is_paused "$1" || return 1
+  note=$(status_line_note "$1" | tr '[:upper:]' '[:lower:]')
+  limit="(context[[:space:]]+limit|([[:alnum:]_-]+'s[[:space:]]+)?300[[:space:]]*k[[:space:]]+context[[:space:]]+(line|limit))"
+  session='((a|an|the)[[:space:]]+)?(fresh|new|replacement)[[:space:]]+session'
+  continuation='(continues?|resumes?|restarts?|takes?[[:space:]]+over|carr(y|ies)[[:space:]]+on)'
+  if ! [[ "$note" =~ ^((this|the)[[:space:]]+)?(session[[:space:]]+)?((has[[:space:]]+)?(reached|passed|hit|exhausted)[[:space:]]+(the[[:space:]]+)?${limit}|${limit}[[:space:]]+(reached|passed|hit|exhausted))([[:space:][:punct:]]|$) ]] \
+    && ! [[ "$note" =~ ^context[[:space:]]+((has[[:space:]]+)?(reached|passed|hit|exhausted)[[:space:]]+300[[:space:]]*k[[:space:]]+tokens|300[[:space:]]*k[[:space:]]+tokens[[:space:]]+(reached|passed|hit|exhausted))([[:space:][:punct:]]|$) ]] \
+    && ! [[ "$note" =~ ^((this|the)[[:space:]]+)?session[[:space:]]+context[[:space:]]+limit[[:space:]]*[,\;:][[:space:]]*${session}[[:space:]]+${continuation}([[:space:][:punct:]]|$) ]]; then
+    return 1
+  fi
+  printf '%s\n' "$note" | tr ';.' '\n' | awk -v session="$session" -v continuation="$continuation" '
+    BEGIN {
+      session = "(^|[[:space:]])" session "([[:space:]]|$)"
+      continuation = "(^|[[:space:]])" continuation "([[:space:]]|$)"
+      bare = "(^|[[:space:]])(for|on|to|and|or|then|waiting|awaiting|until)([[:space:]]|$)"
+    }
+    {
+      while (match($0, /(^|[[:space:][:punct:]])(waiting|awaiting|until)[[:space:]]+/)) {
+        $0 = substr($0, RSTART + RLENGTH)
+        remaining = $0
+        gsub(/[[:punct:]]/, " ", remaining)
+        while (gsub(session, " ", remaining)) {}
+        while (gsub(continuation, " ", remaining)) {}
+        while (gsub(bare, " ", remaining)) {}
+        gsub(/[[:space:]]/, "", remaining)
+        if (remaining != "") exit 1
+      }
+    }
+  '
+}
+
 # 0 if a status line's leading verb is the verified captain-held transfer verb.
 # The same pure verb read as status_is_paused, and the discriminator a supervisor
 # needs once a declared wait has already been recognized: the two declarations get
