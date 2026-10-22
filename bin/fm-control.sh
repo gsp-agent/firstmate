@@ -64,8 +64,9 @@
 #              answer. Reclaim is HERDR-ONLY for the reason `exit` gives above:
 #              a tmux `missing` cannot be proven absent from a task record, so
 #              it refuses.
-#              An explicit `default` model or effort clears that
-#              axis for the replacement. With no explicit axis, a secondmate
+#              An explicit `default` model or effort requests the harness
+#              default for that axis, subject to the dispatch rules below.
+#              With no explicit axis, a secondmate
 #              re-resolves its durable config/secondmate-harness pin (harness
 #              plus its optional model and effort tokens) exactly as any other
 #              respawn does, while a ship or scout keeps the exact adapter
@@ -79,6 +80,10 @@
 #              The same pre-stop refusal applies to this home's worker tool
 #              exclusions (bin/fm-exclude-tools-lib.sh): a malformed list, or a
 #              replacement runtime that cannot hide the listed tools.
+#              A ship or scout relaunch also resolves config/crew-dispatch.json
+#              here, before the old agent stops (docs/configuration.md "Crew
+#              dispatch profiles"). The pair that file adopts is the pair the
+#              journal records.
 #              --note is required for a ship or scout, whose replacement
 #              inherits the local copy but none of the conversation; a
 #              secondmate reconciles its own home's records at startup, so its
@@ -183,6 +188,8 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 . "$SCRIPT_DIR/fm-exclude-tools-lib.sh"
 # shellcheck source=bin/fm-live-session-lib.sh
 . "$SCRIPT_DIR/fm-live-session-lib.sh"
+# shellcheck source=bin/fm-dispatch-profile-lib.sh
+. "$SCRIPT_DIR/fm-dispatch-profile-lib.sh"
 
 POLL=${FM_CONTROL_POLL:-0.5}
 SETTLE_WAIT=${FM_CONTROL_SETTLE_WAIT:-5}
@@ -969,6 +976,31 @@ resolve_relaunch_profile() {
   if [ "$KIND" != secondmate ]; then
     fm_exclude_tools_check "$TARGET_HARNESS" 0 "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" >/dev/null || return 1
   fi
+  # docs/configuration.md "Crew dispatch profiles" owns the pair rules. Resolve
+  # here so the journal and launch share one pre-stop decision; the control
+  # handoff prevents spawn from selecting again against a changed file.
+  if [ "$KIND" != secondmate ]; then
+    local dispatch_pair dispatch_model dispatch_effort
+    dispatch_pair=$(fm_dispatch_relaunch_pair \
+      "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
+      "$ID" "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT") || return 1
+    dispatch_model=${dispatch_pair%%$'\n'*}
+    dispatch_effort=${dispatch_pair#*$'\n'}
+    dispatch_effort=${dispatch_effort%%$'\n'*}
+    [ -z "$dispatch_model" ] || TARGET_MODEL=$dispatch_model
+    [ -z "$dispatch_effort" ] || TARGET_EFFORT=$dispatch_effort
+    case "$TARGET_EFFORT" in
+      ''|default|low|medium|high|xhigh|max|ultra) ;;
+      *) die "dispatch profile for $TARGET_HARNESS has invalid effort '$TARGET_EFFORT'; expected default, low, medium, high, xhigh, max, ultra" ;;
+    esac
+    if [ "$TARGET_EFFORT" = ultra ]; then
+      "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1
+    fi
+    account_model=$TARGET_MODEL
+    [ "$account_model" != default ] || account_model=
+    fm_worker_account_select "$TARGET_HARNESS" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
+      "$account_model" "$TARGET_HARNESS" >/dev/null || return 1
+  fi
 }
 
 # safe_checkpoint: prove, before anything is stopped, that the work a relaunch
@@ -1123,9 +1155,8 @@ do_relaunch() {
   # per-task harness wiring before arming the new one, so nothing to do here.
   RELAUNCH_TX="${BASHPID:-$$}.$(date -u +%Y%m%dT%H%M%SZ).$RANDOM"
   journal_write launching "${CHECKPOINT_LINES[@]}" "$note_line" "relaunch_tx=$RELAUNCH_TX"
-  spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS")
-  [ "$TARGET_MODEL" = default ] || spawn_args+=(--model "$TARGET_MODEL")
-  [ "$TARGET_EFFORT" = default ] || spawn_args+=(--effort "$TARGET_EFFORT")
+  spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS"
+    --model "$TARGET_MODEL" --effort "$TARGET_EFFORT")
   if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then
     RELAUNCH_META_PUBLISHED=1

@@ -918,12 +918,12 @@ The [Claude adapter reference](../.agents/skills/harness-adapters/references/har
 
 ## Claude worker MCP servers (FM_CREW_MCP_TRIM)
 
-Ship and scout workers launched through the Claude adapter load no MCP servers by default, avoiding idle MCP child processes for task workers.
-Each spawn or relaunch writes an empty `mcpServers` configuration to the launching home's `state/<id>.mcp-crew.json` and selects it with Claude's strict MCP configuration flags.
+Ship and scout workers launched with the generated Claude command load no MCP servers by default, avoiding idle MCP child processes for task workers.
+Each such spawn or relaunch writes an empty `mcpServers` configuration to the launching home's `state/<id>.mcp-crew.json` and selects it with Claude's strict MCP configuration flags.
 Claude secondmates retain their normal MCP configuration, and other harnesses are unaffected.
 Set `FM_CREW_MCP_TRIM=0` in the environment running `fm-spawn.sh` to restore normal MCP loading for the next Claude worker launch.
 Unset or empty values default to `1`; only `1` enables trimming.
-This launch policy does not edit user or project MCP configuration.
+Raw launch commands retain their supplied MCP flags; the policy does not edit user or project MCP configuration.
 [`bin/fm-spawn.sh`](../bin/fm-spawn.sh) owns the launch mechanics; [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) covers the default Claude launch line.
 
 ## Worker tool exclusions (config/crew-exclude-tools)
@@ -1195,6 +1195,19 @@ Firstmate resolves the rule's profile object or array under `AGENTS.md` section 
 **Spawn requirements**
 
 - When the file exists, `fm-spawn.sh` enforces that contract by refusing crewmate and scout spawns that lack an explicit harness (`--harness`, a positional adapter, or a raw launch command).
+- A fresh spawn's resolved model and effort must also equal one profile the file names for that harness across `default`, `label_routes`, and each rule's `use` profiles, with an omitted model or effort axis reading as the harness default.
+- A fresh spawn whose pair matches no named profile for its harness refuses before any worktree or endpoint is provisioned and prints the file pair or pairs for that harness.
+- A raw launch command whose resolved harness the file names refuses before any worktree or endpoint is provisioned and prints the file pair or pairs.
+- A rung skip uses the canonical `--harness`, `--model`, and `--effort` launch form.
+- A harness the file never names and a secondmate spawn are exempt from the pair check, including raw launch commands.
+- A relaunch keeps its requested or recorded pair when that pair matches a profile for its harness.
+- Otherwise, the relaunch adopts and records the file's only distinct pair for that harness, or refuses and prints the alternatives when multiple distinct pairs exist, because choosing among profile candidates stays with firstmate intake.
+- `fm-control.sh relaunch` resolves that pair before stopping the old agent and journals the resolved pair; an adopted effort outside spawn's accepted vocabulary refuses at this step, and the adopted pair must pass native-effort and worker-account pin checks too.
+  Spawn uses the model and effort handed off by that control transaction without reading the dispatch file again, so a later file change cannot replace the journaled pair or cause a dispatch-file refusal after the old agent stops.
+  A direct `fm-spawn.sh --relaunch` still resolves against the current file, even when both axes are explicit, and refuses an unknown adopted effort before launch or task-record publication.
+- An unreadable dispatch file refuses; malformed JSON includes jq's parse diagnostic followed by the dispatch read error, while missing jq prints only the jq-required error.
+  On a control relaunch these dispatch-file failures also occur before the old agent stops.
+- [`fm-spawn.sh`'s header](../bin/fm-spawn.sh) owns relaunch flag inheritance and explicit default resets.
 - Batch spawns satisfy the same requirement with a shared `--harness`.
 - Secondmate spawns are exempt and still resolve through `config/secondmate-harness` and its optional model and effort tokens.
 
@@ -1283,7 +1296,7 @@ The worker helper uses a separate legacy mapping in the [shared quota library](.
 - OpenCode receives the effort as its default `build` agent's `variant`, keyed to the resolved model, inside the `OPENCODE_CONFIG_CONTENT` JSON its launch already writes (the per-model reasoning-effort field of the config schema, verified on opencode 1.18.32); with no model resolved, the effort is recorded in task metadata but omitted from the launch.
 - Every profile array selected through firstmate's natural-language intake is an implicit quota-aware choice resolved through `quota-array-dispatch`; deterministic label routing follows the separate header contract linked above.
 - If no dispatch rule fits, firstmate resolves `default` through the same object-or-array path before falling back to `config/crew-harness`.
-- Except for `ultra`, which refuses unsupported profiles under the native-effort contract above, an effort value the chosen harness does not accept is recorded as `effort=` in task meta for traceability but omitted from the launch flags.
+- Except for `ultra`, which refuses unsupported profiles under the native-effort contract above, an effort within spawn's accepted vocabulary that the chosen harness does not accept is recorded as `effort=` in task meta for traceability but omitted from the launch flags.
 - Bootstrap reports unsupported harness/model/effort combinations as a `CREW_DISPATCH` diagnostic when they are visible in the file.
 
 See [`docs/examples/crew-dispatch.json`](examples/crew-dispatch.json) for a starting point to copy into local `config/crew-dispatch.json`; its Pi default declares the `claude` provider required for typed resolution of that Anthropic model.

@@ -129,7 +129,12 @@
 #   --harness <name> is the explicit per-spawn harness/profile adapter. The old
 #   positional harness arg still works for back-compat.
 #   --model <name> and --effort <low|medium|high|xhigh|max|ultra> are concrete profile
-#   axes chosen by firstmate at intake. They are only threaded into harnesses whose
+#   axes chosen by firstmate at intake. Only with --relaunch, either flag also
+#   accepts default to request the harness default for that axis; empty values
+#   remain illegal. On a same-harness relaunch, each omitted axis inherits its
+#   recorded value. Explicit flags are kept through the dispatch pair decision;
+#   a resolved default is recorded as default but omitted from the harness argv.
+#   They are only threaded into harnesses whose
 #   installed CLIs were verified to support that axis; unsupported axes are omitted
 #   from that harness's launch rather than guessed. Ultra is the explicit
 #   exception: bin/fm-harness.sh validate-native-effort owns its model scope;
@@ -268,7 +273,10 @@
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
-#   profile consultation. A --secondmate spawn is exempt and resolves the SECONDMATE
+#   profile consultation. docs/configuration.md "Crew dispatch profiles" owns
+#   the accepted model/effort pairs, raw-command restrictions, and relaunch pair
+#   selection.
+#   A --secondmate spawn is exempt and resolves the SECONDMATE
 #   harness (config/secondmate-harness -> config/crew-harness -> own), so the
 #   secondmate-vs-crewmate split is DURABLE across every respawn (recovery,
 #   /updatefirstmate, restart). A bare adapter name (claude|codex|opencode|pi|pi-signed|grok|kimi|cursor|gemini|muse|rovo|omp|agy|devin)
@@ -668,6 +676,8 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 . "$SCRIPT_DIR/fm-config-inherit-lib.sh"
 # shellcheck source=bin/fm-exclude-tools-lib.sh
 . "$SCRIPT_DIR/fm-exclude-tools-lib.sh"
+# shellcheck source=bin/fm-dispatch-profile-lib.sh
+. "$SCRIPT_DIR/fm-dispatch-profile-lib.sh"
 if ! LAUNCH_ENV_ENABLED=$(fm_config_source_present "$CONFIG/launch-env-allowlist"); then
   exit 1
 fi
@@ -1013,8 +1023,12 @@ if [ "$TRACEPARENT_SET" -eq 1 ]; then
     exit 1
   }
 fi
+if [ "$RELAUNCH" -eq 0 ] && { [ "$MODEL" = default ] || [ "$EFFORT" = default ]; }; then
+  echo "error: default model or effort resets require --relaunch" >&2
+  exit 1
+fi
 case "$EFFORT" in
-'' | low | medium | high | xhigh | max | ultra) ;;
+'' | default | low | medium | high | xhigh | max | ultra) ;;
 *)
   echo "error: --effort must be one of low, medium, high, xhigh, max, ultra" >&2
   exit 1
@@ -2193,6 +2207,8 @@ RAW_LAUNCH=0
 # validation teardown uses, so a malformed, ambiguous, or foreign record
 # refuses here exactly as it refuses there.
 RELAUNCH_PRIOR_HARNESS=
+RELAUNCH_RECORDED_MODEL=default
+RELAUNCH_RECORDED_EFFORT=default
 # 1 when the recorded endpoint is authoritatively gone and this relaunch must
 # create a fresh one for the task rather than adopt its recorded address.
 RELAUNCH_REBIND=0
@@ -2341,6 +2357,10 @@ if [ "$RELAUNCH" -eq 1 ]; then
     echo "error: task $ID has no recorded harness; pass --harness to relaunch it" >&2
     exit 1
   }
+  RELAUNCH_RECORDED_MODEL=$(fm_meta_get "$RELAUNCH_META" model)
+  [ -n "$RELAUNCH_RECORDED_MODEL" ] || RELAUNCH_RECORDED_MODEL=default
+  RELAUNCH_RECORDED_EFFORT=$(fm_meta_get "$RELAUNCH_META" effort)
+  [ -n "$RELAUNCH_RECORDED_EFFORT" ] || RELAUNCH_RECORDED_EFFORT=default
 elif [ "$KIND" = secondmate ]; then
   case "${POS[1]:-}" in
   '' | claude | codex | opencode | pi | pi-signed | grok | kimi | cursor | gemini | muse | rovo | omp | agy | devin)
@@ -2369,6 +2389,57 @@ shell_quote() {
   printf "'"
   printf '%s' "$1" | sed "s/'/'\\\\''/g"
   printf "'"
+}
+
+# enforce_dispatch_profile: the pair half of the consultation backstop.
+# docs/configuration.md "Crew dispatch profiles" owns the acceptance rules.
+# bin/fm-dispatch-profile-lib.sh reads the file. Canonical flags cannot prove
+# what a raw command actually launches, so even matching flags cannot make a
+# raw command satisfy the named-harness check.
+enforce_dispatch_profile() {
+  local pairs pretty model effort eff_model eff_effort resolved resolved_model resolved_effort
+  [ "$KIND" != secondmate ] || return 0
+  # Control has already resolved both axes before stopping the worker. A second
+  # read could replace that decision after stop and disagree with its journal.
+  if [ "$RELAUNCH" -eq 1 ] && [ "$SPAWN_CONTROL_PARENT" = 1 ] \
+      && [ -n "${FM_CONTROL_RELAUNCH_TX:-}" ] \
+      && [ "$MODEL_SET" -eq 1 ] && [ "$EFFORT_SET" -eq 1 ]; then
+    return 0
+  fi
+  pairs=$(fm_dispatch_profile_read "$CONFIG" "$HARNESS") || exit 1
+  [ -n "$pairs" ] || return 0
+  pretty=$(fm_dispatch_profile_pairs_pretty "$pairs")
+  if [ "$RAW_LAUNCH" != 0 ]; then
+    echo "error: config/crew-dispatch.json is active - raw launch command for $HARNESS requires the canonical --harness $HARNESS launch with a dispatch profile (file: $pretty); pass the file pair for this harness with --model and --effort" >&2
+    exit 1
+  fi
+  eff_model=${MODEL:-default}
+  eff_effort=${EFFORT:-default}
+  if [ "$RELAUNCH" -eq 1 ]; then
+    resolved=$(fm_dispatch_relaunch_decide "$ID" "$HARNESS" "$eff_model" "$eff_effort" "$pairs") || exit 1
+    resolved_model=${resolved%%$'\n'*}
+    resolved_effort=${resolved#*$'\n'}
+    resolved_effort=${resolved_effort%%$'\n'*}
+    case "$resolved_effort" in
+      ''|default|low|medium|high|xhigh|max|ultra) ;;
+      *)
+        echo "error: dispatch profile for $HARNESS has invalid effort '$resolved_effort'; expected default, low, medium, high, xhigh, max, ultra" >&2
+        exit 1
+        ;;
+    esac
+    MODEL=$resolved_model
+    EFFORT=$resolved_effort
+    return 0
+  fi
+  while IFS="$(printf '\t')" read -r model effort; do
+    if [ "$model" = "$eff_model" ] && [ "$effort" = "$eff_effort" ]; then
+      return 0
+    fi
+  done <<EOF
+$pairs
+EOF
+  echo "error: config/crew-dispatch.json is active - spawn profile $HARNESS $eff_model $eff_effort matches no dispatch profile for $HARNESS (file: $pretty); pass the file pair for this harness" >&2
+  exit 1
 }
 
 resolve_pi_executable() {
@@ -2791,6 +2862,19 @@ case "$ARG3" in
   }
   ;;
 esac
+
+if [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" = "$RELAUNCH_PRIOR_HARNESS" ]; then
+  [ "$MODEL_SET" -eq 1 ] || MODEL=$RELAUNCH_RECORDED_MODEL
+  [ "$EFFORT_SET" -eq 1 ] || EFFORT=$RELAUNCH_RECORDED_EFFORT
+fi
+
+# Pair half of the consultation backstop, on the fully resolved harness,
+# model, and effort and before any endpoint or worktree provisioning. The
+# deterministic Cursor fallback below is exempt once it fires, because it
+# already prints its own reason and records it.
+enforce_dispatch_profile
+[ "$MODEL" != default ] || MODEL=
+[ "$EFFORT" != default ] || EFFORT=
 
 # Apply the quota-file fallback owned by bin/fm-cursor-guard.sh; its header
 # defines freshness, credit-room eligibility, and fallback selection.
