@@ -1241,21 +1241,26 @@ quiet_heartbeat_stays_fresh() { # <state> <account-home> <label>
   done
 }
 quiet_stage_completes() { # <state> <account-home> <touched> <label>
-  local began=$SECONDS elapsed
+  local attempt state
   (
     FM_REMOTE_JOB_STATE_ROOT="$1"
     FM_REMOTE_JOB_QUEUE_TIMEOUT=60
     FM_REMOTE_JOB_TIMEOUT=30
     fm_remote_job_stage "$2" "$REMOTE_ROOT" "$REMOTE_HOME" fm-touch-job.sh "$3" \
       < /dev/null > /dev/null || exit 1
+    # Bound pickup after publication, independently of staging, execution and
+    # cleanup. Poll attempts allow for the counting shims and host scheduling.
+    for ((attempt = 0; attempt < 100; attempt++)); do
+      fm_remote_job_read_state "$FM_REMOTE_JOB_JOBS/$FM_REMOTE_JOB_ID" state || exit 1
+      [ "$state" = queued ] || break
+      sleep 0.05
+    done
+    [ "$state" != queued ] || fail "the $4 worker did not claim the staged job"
     fm_remote_job_wait "$2" "$FM_REMOTE_JOB_ID" || exit 1
     [ "$FM_REMOTE_JOB_EXIT" -eq 0 ] || exit 1
     fm_remote_job_reap "$2" "$FM_REMOTE_JOB_ID"
   ) || fail "a job staged to the $4 worker did not complete"
-  elapsed=$((SECONDS - began))
   assert_present "$3" "the job staged to the $4 worker did not run"
-  [ "$elapsed" -le 5 ] \
-    || fail "a job staged to the $4 worker waited ${elapsed}s"
 }
 quiet_stop() { # <pid>
   kill -TERM "$1"
@@ -1274,10 +1279,10 @@ pass "an idle worker sleeps out a second between passes instead of busy-polling"
 quiet_heartbeat_stays_fresh "$QUIET_STATE" "$QUIET_HOME" idle
 pass "an idle worker keeps its readiness heartbeat fresh between passes"
 
-# The one-second idle bound is the pickup latency: a job staged to an idle
-# worker is claimed on its next pass and completes within a few seconds.
+# A job published to an idle worker is picked up on a later pass and runs to
+# successful result publication, even with the command-counting shims active.
 quiet_stage_completes "$QUIET_STATE" "$QUIET_HOME" "$QUIET_TOUCHED" idle
-pass "an idle worker claims and publishes a staged job within a few seconds"
+pass "an idle worker claims a staged job and publishes its successful result"
 
 # Hoisting setup out of every pass must not drop the worker's own repair of the
 # queue directories' 0700 modes: the periodic sweep still re-applies them with
