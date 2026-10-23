@@ -168,6 +168,22 @@
 # retains the lock until the accepted merge authority is persisted against the
 # still-matching task metadata.
 #
+# A home may add its own pre-merge gate for GitHub: an executable
+# config/merge-gate. When it exists, every GitHub merge runs it as
+# `config/merge-gate <canonical-url> <verified-head>` after the live checks
+# above pass and before the forge command, and only its exit 0 lets the merge
+# proceed. The head it judges is the one then bound by --match-head-commit, so
+# its verdict cannot outlive a push. A gate that is not an executable file,
+# exits non-zero, or runs past FM_PR_MERGE_GATE_TIMEOUT seconds (default 60,
+# also used for any value that is not a positive whole number) refuses the
+# merge, and its last output line, read from the last 64 KiB it wrote by the
+# time it exited, is quoted in the refusal. Only the gate's own exit counts: a
+# child it leaves running, even one still writing, does not hold the merge.
+# --attended-override does not skip it. With no config/merge-gate nothing
+# changes. A home uses it, for example, to require an approving review at the
+# exact head from someone other than the author, which GitHub's own settings do
+# not demand of a repository without that branch rule.
+#
 # Extra args must not include --repo or -R in any form, including a bundled
 # short-option cluster such as -yR, because the repository comes only from the
 # URL, nor --sha or --match-head-commit because the head comes only from the
@@ -208,6 +224,8 @@ STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 . "$SCRIPT_DIR/fm-merge-authority-lib.sh"
 # shellcheck source=bin/fm-afk-contract.sh
 . "$SCRIPT_DIR/fm-afk-contract.sh"
+# shellcheck source=bin/fm-timeout-lib.sh
+. "$SCRIPT_DIR/fm-timeout-lib.sh"
 
 if [ "$#" -lt 2 ]; then
   echo "error: invalid PR merge request" >&2
@@ -1410,6 +1428,48 @@ require_released_captain_hold() {
   esac
 }
 
+# config/merge-gate, the home's own pre-merge gate (header). Runs only once
+# the live read has verified FM_PR_MERGE_HEAD.
+github_require_merge_gate() {
+  local gate="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}/merge-gate" log status=0 last='' size skip=0
+  local seconds=${FM_PR_MERGE_GATE_TIMEOUT:-}
+  # fm_run_timed reads a bound of 0 as no deadline at all.
+  case "$seconds" in '' | 0* | *[!0-9]*) seconds=60 ;; esac
+  if [ ! -e "$gate" ] && [ ! -L "$gate" ]; then
+    return 0
+  fi
+  if [ ! -f "$gate" ] || [ ! -x "$gate" ]; then
+    echo "error: PR merge refused - config/merge-gate exists but is not an executable file; nothing was merged" >&2
+    return 1
+  fi
+  # A file, not a pipe: a child the gate leaves holding its output would keep
+  # a captured pipe open, and the merge and its locks waiting, past the bound.
+  if ! log=$(mktemp "${TMPDIR:-/tmp}/fm-merge-gate.XXXXXX"); then
+    echo "error: PR merge refused - config/merge-gate's output could not be captured; nothing was merged" >&2
+    return 1
+  fi
+  fm_run_timed "$seconds" "$gate" "$URL" "$FM_PR_MERGE_HEAD" >"$log" 2>&1 </dev/null || status=$?
+  # Only the last 64 KiB written by the gate's exit: a child it leaves writing
+  # moves the end of the log, so a reader that waited for that end never ends.
+  size=$(stat -c %s "$log" 2>/dev/null || stat -f %z "$log" 2>/dev/null) || size=0
+  case "$size" in '' | *[!0-9]*) size=0 ;; esac
+  [ "$size" -le 65536 ] || skip=$((size - 65536))
+  if [ "$size" -gt 0 ]; then
+    last=$(tail -c "+$((skip + 1))" "$log" | head -c "$((size - skip))" | sed '/^[[:space:]]*$/d' |
+      tail -n 1 | cut -c1-400)
+  fi
+  rm -f "$log"
+  [ "$status" -eq 0 ] && return 0
+  if fm_timed_out "$status"; then
+    printf 'error: PR merge refused - config/merge-gate did not answer within %s seconds; nothing was merged\n' \
+      "$seconds" >&2
+  else
+    printf 'error: PR merge refused by config/merge-gate (exit %s) at head %s: %s; nothing was merged\n' \
+      "$status" "$FM_PR_MERGE_HEAD" "${last:-no output}" >&2
+  fi
+  return 1
+}
+
 FM_PR_MERGE_AUTHORITY=
 # The authority read. bin/fm-merge-authority-lib.sh owns what the away-posture
 # record's presence means; this function owns what a merge run may do about it,
@@ -1718,6 +1778,7 @@ case "$PROVIDER" in
       fi
       exit 1
     fi
+    github_require_merge_gate || exit 1
     # The away record is locked first, so this last presence and authority read
     # and the forge command below share one live-owner critical section.
     hold_away_record_for_merge || exit 1

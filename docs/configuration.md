@@ -648,6 +648,17 @@ The flag is a home-local supervision-noise preference and is not inherited by se
 
 [`architecture.md`](architecture.md) owns the wait-evidence contract and which records may take the ladder away; `bin/fm-watch.sh`'s `wedge_wait_evidence` owns the exact derivation and its fail-closed boundaries.
 
+## Pre-merge gate (config/merge-gate)
+
+The optional local, gitignored `config/merge-gate` is an executable this home runs before every GitHub merge `bin/fm-pr-merge.sh` makes.
+It is run as `config/merge-gate <canonical-url> <verified-head>` after the live checks pass and before the forge command, and only its exit 0 lets the merge proceed.
+The head it judges is the head the merge then binds with `--match-head-commit`, so a push after the gate answers fails the merge instead of landing unjudged commits.
+
+A home uses it for a condition the repository's own settings do not enforce, for example an approving review at the exact head from an account other than the author.
+A gate that is not an executable file, exits non-zero, or is still running after `FM_PR_MERGE_GATE_TIMEOUT` seconds (default `60`) refuses the merge, and the refusal quotes its last output line.
+`--attended-override` does not skip it, and with no `config/merge-gate` merges behave exactly as before.
+GitLab and Forgejo merges do not run it.
+
 ## Gate defaults (.no-mistakes.yaml)
 
 The tracked `.no-mistakes.yaml` sets `test.evidence.store_in_repo: true` and pins `commands.lint` to `bin/fm-lint.sh`, the same owner CI invokes.
