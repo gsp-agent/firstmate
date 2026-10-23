@@ -151,6 +151,8 @@ fm_agent_process_snapshot() {
 # The snapshot is stdin in fm_agent_process_snapshot's format.
 # shells selects shell-classified descendants of the roots that sit outside
 # every root's process group, plus the processes those shells have started.
+# A root is walked only when this snapshot still classifies that pid as agent.
+# Any other owner of that pid selects nothing.
 # commands selects descendants whose args contain one listed command as a
 # whole token sequence, then the same shell closure. Roots themselves are
 # never selected. Prints nothing when there is nothing to stop.
@@ -211,9 +213,9 @@ fm_agent_process_background_pids() {  # <mode> <roots> <commands>
     }
     END {
       unsafe = 0
-      for (r in roots)
-        if (r in pgid_of) root_pgid[pgid_of[r]] = 1
       for (r in roots) {
+        if (!(r in class_of) || class_of[r] != "agent") continue
+        root_pgid[pgid_of[r]] = 1
         n = split(kids[r], arr, " ")
         for (i = 1; i <= n; i++) if (arr[i] != "") queue[++qn] = arr[i]
       }

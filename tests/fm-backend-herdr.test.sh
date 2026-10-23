@@ -567,6 +567,130 @@ test_stale_registration_ignores_status_and_reads_the_process() {
   pass "herdr stale registration: no registered status can outrank a shell-only process view"
 }
 
+# Cleanup roots come from fm_backend_herdr_agent_root_pids, not from the
+# registration classifier above. A pane process-info row can name a live pid
+# as a harness after that pid has been reused. The root must be the live
+# process, or nothing.
+
+herdr_root_pids_for() {  # <process-info-json>
+  local dir resp log fb
+  dir=$(mktemp -d "$TMP_ROOT/herdr-root.XXXXXX")
+  mkdir -p "$dir/responses"
+  resp="$dir/responses"
+  log="$dir/log"
+  : > "$log"
+  printf '%s\n' "$1" > "$resp/1.out"
+  fb=$(make_herdr_fakebin "$dir")
+  PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_agent_root_pids fmtest:w1:p2' "$ROOT"
+}
+
+herdr_foreground_process_info() {  # <shell-pid> <group-pid> <fg-pid> <name> <argv0>
+  printf '{"result":{"type":"pane_process_info","process_info":{"pane_id":"w1:p2","shell_pid":%s,"foreground_process_group_id":%s,"foreground_processes":[{"pid":%s,"name":"%s","argv0":"%s","argv":["%s"],"cmdline":"%s"}]}}}' \
+    "$1" "$2" "$3" "$4" "$5" "$5" "$5"
+}
+
+herdr_empty_foreground_info() {  # <shell-pid>
+  printf '{"result":{"type":"pane_process_info","process_info":{"pane_id":"w1:p2","shell_pid":%s,"foreground_process_group_id":%s,"foreground_processes":[]}}}' \
+    "$1" "$1"
+}
+
+herdr_wait_child_comm() {  # <parent-pid> <comm>
+  local parent=$1 want=$2 i=0 child_pid=''
+  while [ "$i" -lt 40 ]; do
+    child_pid=$(ps -axo pid=,ppid=,comm= | awk -v p="$parent" -v w="$want" '$2 == p && $3 == w { print $1; exit }')
+    if [ -n "$child_pid" ]; then
+      printf '%s' "$child_pid"
+      return 0
+    fi
+    i=$((i + 1))
+    /bin/sleep 0.05
+  done
+  return 1
+}
+
+herdr_stop_pid() {  # <pid>
+  [ -n "${1:-}" ] || return 0
+  kill "$1" 2>/dev/null || true
+  wait "$1" 2>/dev/null || true
+}
+
+test_herdr_root_rejects_a_live_sleep_labeled_claude() {
+  local sleep_bin pid out alive=no
+  sleep_bin=$(command -v sleep) || fail "sleep not found"
+  "$sleep_bin" 300 &
+  pid=$!
+  out=$(herdr_root_pids_for "$(herdr_foreground_process_info "$pid" "$pid" "$pid" claude claude)")
+  kill -0 "$pid" 2>/dev/null && alive=yes
+  herdr_stop_pid "$pid"
+  [ -z "$out" ] || fail "a live sleep labeled claude must not be a cleanup root, got '$out'"
+  [ "$alive" = yes ] || fail "the sleep labeled claude must still be running after root discovery"
+  pass "herdr cleanup root: a live sleep labeled claude is not a root and is not signaled"
+}
+
+test_herdr_root_accepts_a_live_process_whose_argv0_is_claude() {
+  local sleep_bin pid out comm='' i=0
+  sleep_bin=$(command -v sleep) || fail "sleep not found"
+  bash -c 'exec -a claude "$1" 300' _ "$sleep_bin" &
+  pid=$!
+  while [ "$i" -lt 40 ]; do
+    comm=$(ps -p "$pid" -o comm= 2>/dev/null | tr -d '[:space:]')
+    [ "$comm" = claude ] && break
+    i=$((i + 1))
+    /bin/sleep 0.05
+  done
+  out=$(herdr_root_pids_for "$(herdr_foreground_process_info "$pid" "$pid" "$pid" claude claude)")
+  herdr_stop_pid "$pid"
+  [ "$out" = "$pid" ] || fail "a live process whose argv0 is claude must be returned, got '$out'"
+  pass "herdr cleanup root: a live process whose argv0 is claude is still a root"
+}
+
+test_herdr_root_skips_agent_descendants_of_a_reused_shell_pid() {
+  local sleep_bin parent child out
+  sleep_bin=$(command -v sleep) || fail "sleep not found"
+  bash -c 'exec -a notshell bash -c "exec -a claude \"\$1\" 300 & wait" _ "$1"' _ "$sleep_bin" &
+  parent=$!
+  child=$(herdr_wait_child_comm "$parent" claude) || {
+    herdr_stop_pid "$parent"
+    fail "the reused shell pid did not start its claude child"
+  }
+  out=$(herdr_root_pids_for "$(herdr_empty_foreground_info "$parent")")
+  herdr_stop_pid "$child"
+  herdr_stop_pid "$parent"
+  [ -z "$out" ] || fail "an agent child of a pid that is no longer a shell must not be a root, got '$out'"
+  pass "herdr cleanup root: a reused shell pid that is not a shell contributes no roots"
+}
+
+test_herdr_root_keeps_an_agent_descendant_of_a_live_shell() {
+  local sleep_bin parent child out
+  sleep_bin=$(command -v sleep) || fail "sleep not found"
+  bash -c 'exec -a claude "$1" 300 & wait' _ "$sleep_bin" &
+  parent=$!
+  child=$(herdr_wait_child_comm "$parent" claude) || {
+    herdr_stop_pid "$parent"
+    fail "the pane shell did not start its claude child"
+  }
+  out=$(herdr_root_pids_for "$(herdr_empty_foreground_info "$parent")")
+  herdr_stop_pid "$child"
+  herdr_stop_pid "$parent"
+  [ "$out" = "$child" ] || fail "an agent descendant of a live pane shell must be a root, got '$out'"
+  pass "herdr cleanup root: an agent descendant of a live pane shell is still a root"
+}
+
+test_background_stop_ignores_a_reused_non_agent_root() {
+  local out
+  out=$(printf '10\t1\t10\tother\tsleep 300\n11\t10\t11\tshell\tbash -c sleep 300\n' | \
+    bash -c '. "$0/bin/fm-agent-process-lib.sh"; fm_agent_process_background_pids shells 10 ""' "$ROOT")
+  [ -z "$out" ] || fail "a root whose later snapshot class is not agent must select nothing, got '$out'"
+  out=$(printf '11\t10\t11\tshell\tbash -c sleep 300\n' | \
+    bash -c '. "$0/bin/fm-agent-process-lib.sh"; fm_agent_process_background_pids shells 10 ""' "$ROOT")
+  [ -z "$out" ] || fail "a root pid missing from the later snapshot must select nothing, got '$out'"
+  out=$(printf '10\t1\t10\tagent\tclaude\n11\t10\t11\tshell\tbash -c sleep 300\n' | \
+    bash -c '. "$0/bin/fm-agent-process-lib.sh"; fm_agent_process_background_pids shells 10 ""' "$ROOT")
+  [ "$out" = 11 ] || fail "an agent root must still select its shell child outside its process group, got '$out'"
+  pass "cleanup stop walk: a reused non-agent root selects nothing, and an agent root still selects its shell"
+}
+
 test_registered_agent_with_a_live_foreground_process_stays_alive() {
   local out
   # The real Pi shape on Herdr 0.9.0: the kernel name is the interpreter and
@@ -6102,6 +6226,11 @@ test_agent_state_bypasses_a_stale_client_shadowing_a_compatible_one
 test_recovery_grade_read_widens_only_at_its_own_boundary
 test_stale_registration_over_a_shell_only_pane_is_agent_free
 test_stale_registration_ignores_status_and_reads_the_process
+test_herdr_root_rejects_a_live_sleep_labeled_claude
+test_herdr_root_accepts_a_live_process_whose_argv0_is_claude
+test_herdr_root_skips_agent_descendants_of_a_reused_shell_pid
+test_herdr_root_keeps_an_agent_descendant_of_a_live_shell
+test_background_stop_ignores_a_reused_non_agent_root
 test_pane_agent_session_ref_reports_a_resumable_reference_with_its_agent
 test_pane_agent_session_ref_degrades_to_nothing_when_not_resumable
 test_registered_agent_with_a_live_foreground_process_stays_alive
