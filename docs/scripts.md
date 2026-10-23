@@ -99,7 +99,7 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-watch.sh`            | Singleton-safe watcher: absorb benign wakes, detect stalled local-secondmate wake queues, and exit on actionable ones |
 | [`fm-inactive-reconcile.sh`](../bin/fm-inactive-reconcile.sh) | Reconcile long-inactive direct crewmate terminal outcomes and close eligible Herdr panes; its header owns eligibility and recovery |
 | `fm-afk-contract.sh`     | Own the away-or-quiet record's posture, schema, entry, read-back, archive, and cross-subsystem authority lock |
-| `fm-afk-start.sh`        | Run the common sourceable away-mode daemon entry in the foreground                      |
+| [`fm-afk-start.sh`](../bin/fm-afk-start.sh) | Run the sourceable daemon entry in the foreground; its header owns attended and away starts |
 | `fm-afk-launch.sh`       | Own away/quiet entry (same-turn record write, then read-back), exit, rollback, and any backend terminal lifecycle |
 | `fm-afk-return.sh`       | Own deterministic return shutdown, the return brief, catch-up evidence, and the firstmate-actionable blocker gate |
 | `fm-supervisor-target-lib.sh` | Resolve the shared supervisor target and backend for the daemon and launcher       |

@@ -235,6 +235,17 @@ fm_control_exit_command() {  # <harness>
   esac
 }
 
+# The named key that dismisses Claude's background-task exit picker once its
+# listed shells are already stopped. Recorded footer, 2026-10-05: "Esc to
+# cancel". Enter stays forbidden because the selected row stops every task.
+# Every other harness returns nonzero; this picker is Claude's.
+fm_control_exit_picker_dismiss_key() {  # <harness>
+  case "${1-}" in
+    claude) printf 'Escape' ;;
+    *) return 1 ;;
+  esac
+}
+
 # The launch argument that makes a RELAUNCH of <harness> RESUME an exact agent
 # session instead of starting a fresh one, printed only when <registered-agent>
 # is the label that session reference belongs to; nothing otherwise.
