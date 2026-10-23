@@ -1,0 +1,54 @@
+TARGET DISAPPEARS AFTER WINDOW INVENTORY
+The private tmux after-list-windows hook renames primary:fm-live to fm-other.
+Returned roots: []
+ACTUAL WINDOW IDENTITY AFTER RACE
+primary:fm-other /dev/ttys101 2.1.309
+RAW TMUX RESOLUTION OF NOW-ABSENT TARGET
+primary:fm-other /dev/ttys101
+LIVE CLAUDE REMAINS AT THE SAME TRUST PROMPT
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Accessing workspace:
+
+ /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KD101301BF9AE3BKQ7BC33
+
+ Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source project, or work from
+ your team). If not, take a moment to review what's in this folder first.
+
+ Claude Code'll be able to read, edit, and execute files here.
+
+ Security guide
+
+ ❯ No, exit
+   Yes, I trust this folder
+
+ Enter to confirm · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRE-FIX ROOT LOOKUP AGAINST THE SAME ABSENT TARGET
+Pre-fix returned roots: [36387]
+36387 36387 36387 claude
+No signal or key was sent; this checks root discovery only.

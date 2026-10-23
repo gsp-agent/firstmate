@@ -1,0 +1,29 @@
+Named lab fm-lab-exit-shells-37054-21491, pane w1:p1
+env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE -u FM_CON
+FIG_OVERRIDE -u FM_PROJECTS_OVERRIDE -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT FM_HOME=/Users/dalecarman/.agent-scratch/n
+m-runs/a5e67f4ea77f/01M5KD101301BF9AE3BKQ7BC33/.nm-test-live/home claude --setting-sources '' --settings \{\"disableAll
+Hooks\":true\}
+
+╭─01M5KD101301BF9AE3BKQ7BC33 on 🌱 HEAD [?]
+╰─❯ env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE -u FM
+_CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT FM_HOME=/Users/dalecarman/.agent-scrat
+ch/nm-runs/a5e67f4ea77f/01M5KD101301BF9AE3BKQ7BC33/.nm-test-live/home claude --setting-sources '' --settings \{\"disabl
+eAllHooks\":true\}
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Accessing workspace:
+
+ /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KD101301BF9AE3BKQ7BC33
+
+ Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source
+ project, or work from your team). If not, take a moment to review what's in this folder first.
+
+ Claude Code'll be able to read, edit, and execute files here.
+
+ Security guide
+
+ ❯ No, exit
+   Yes, I trust this folder
+
+ Enter to confirm · Esc to cancel
+Real Claude again requires workspace trust; no key sent.
