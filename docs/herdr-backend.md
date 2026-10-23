@@ -259,6 +259,15 @@ Another parent with the same presentation label does not prevent publication or 
 The token is visible in the workspace title, because Herdr exposes no verified hidden persistent field.
 Neither token, title, nor journal authorizes send, capture, task ownership, Treehouse return, or general recovery.
 
+A presentation failure never refuses a spawn.
+When journal publication, launcher identity verification, or projected workspace creation fails, the spawn logs a warning and continues in the ordinary flat layout without its projection.
+A failed create cleans up only the exact panes its complete response proved safe to close.
+Its attempt journal is retired once no workspace label carries its token, and otherwise stays quarantined for the session-start sweep.
+
+A version 1 journal with no task record beside it is a dead attempt, because no worker ever launched from it.
+A later spawn retires that journal and continues flat instead of refusing.
+A journal beside a task record keeps the stricter recovery path: exact endpoint death must be proven before a flat fallback, and a live or unverifiable pane still refuses a duplicate launch.
+
 ### Owning parent and tabs
 
 The owning parent is the launcher's own exact workspace, resolved from the same identity the flat path uses.
