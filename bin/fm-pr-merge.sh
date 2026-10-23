@@ -182,8 +182,14 @@
 # before the optional -- separator, re-enables those forge flags for an
 # explicit captain instruction and never skips the live green check, the
 # away-record read, or a captain hold.
+# A caller that judged one head may pass --expect-head <sha>, once, before the
+# -- separator, as the full lowercase commit SHA (no prefix). It overrides
+# nothing: after this run's own verified read, a verified head other than that
+# SHA is refused, and the forge command stays bound to the verified head, so the
+# caller's head is merged or nothing is. An automated merger uses it so a head
+# pushed after its own judgment is not merged on that judgment.
 #
-# Usage: fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--allow-red <check-name>] [--allow-missing <check-name>] [-- <extra forge merge args>]
+# Usage: fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--allow-red <check-name>] [--allow-missing <check-name>] [--expect-head <sha>] [-- <extra forge merge args>]
 #
 # On GitLab, this script confirms the MR is actually merged before reporting it;
 # an auto-merge-queued or unconfirmed request leaves the poll armed and records
@@ -244,8 +250,19 @@ shift 2
 ATTENDED_OVERRIDE=false
 ALLOW_RED=()
 ALLOW_MISSING=()
+EXPECT_HEAD=
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --expect-head)
+      fm_pr_head_valid "${2:-}" || { echo "error: --expect-head requires the full commit SHA the merge must be at" >&2; exit 2; }
+      [ -z "$EXPECT_HEAD" ] || { echo "error: --expect-head may be specified only once" >&2; exit 2; }
+      EXPECT_HEAD=$2
+      shift 2
+      ;;
+    --expect-head=*)
+      echo "error: --expect-head requires a separate commit SHA argument" >&2
+      exit 2
+      ;;
     --attended-override)
       ATTENDED_OVERRIDE=true
       shift
@@ -308,6 +325,17 @@ if [ "${#ALLOW_MISSING[@]}" -gt 0 ]; then
       ;;
   esac
 fi
+
+# --expect-head refuses, and overrides nothing: once this run has verified a head
+# (FM_PR_MERGE_HEAD), that head must be exactly the caller's full SHA, and the
+# forge command stays bound to the verified head as always.
+require_expected_head() {
+  [ -n "$EXPECT_HEAD" ] || return 0
+  [ "$FM_PR_MERGE_HEAD" = "$EXPECT_HEAD" ] && return 0
+  printf 'error: the verified head of %s is %s, not the expected %s; refusing to merge a head the caller did not judge\n' \
+    "$URL" "$FM_PR_MERGE_HEAD" "$EXPECT_HEAD" >&2
+  return 1
+}
 
 caller_has_merge_method() {
   local arg
@@ -1718,6 +1746,7 @@ case "$PROVIDER" in
       fi
       exit 1
     fi
+    require_expected_head || exit 1
     # The away record is locked first, so this last presence and authority read
     # and the forge command below share one live-owner critical section.
     hold_away_record_for_merge || exit 1
@@ -1769,6 +1798,7 @@ case "$PROVIDER" in
     ;;
   gitlab)
     gitlab_verify_mergeable || exit 1
+    require_expected_head || exit 1
     # --sha binds the merge to the head this run verified, so a push that lands
     # in between is refused by GitLab instead of merged unverified. --yes only
     # skips the interactive confirmation, which no supervised run can answer;
@@ -1805,6 +1835,7 @@ case "$PROVIDER" in
     forgejo_method=$(caller_merge_method "$@")
     [ -n "$forgejo_method" ] || forgejo_method=$(forgejo_default_merge_style) || exit 1
     forgejo_verify_mergeable || exit 1
+    require_expected_head || exit 1
     # The away record is locked first, so this last presence and authority
     # read and the forge command below share one live-owner critical section.
     hold_away_record_for_merge || exit 1
