@@ -757,6 +757,7 @@ test_dispatch_entry_scopes_rows_and_renders_the_away_tail() {
   [ "$rc" -eq 3 ] || fail "a supplied mirror feed that cannot be read must exit 3, got $rc"
   [ -z "$out" ] || fail "a supplied mirror feed that cannot be read must render no prompt: $out"
 
+
   printf 'Away posture (recorded):\n  your words (verbatim):\n    merge nothing\n' > "$home/readback"
   out=$(printf 'signal: demo.status\n' | FM_HOME="$home" node "$DISPATCH" wake-prompt --report 'the bin/fm-branch-report.sh command' --away --readback-file "$home/readback")
   assert_contains "$out" "FIRSTMATE SUPERVISION WAKE: signal: demo.status" "the wake prompt must carry the reason"
@@ -765,6 +766,38 @@ test_dispatch_entry_scopes_rows_and_renders_the_away_tail() {
   assert_contains "$out" "    merge nothing" "the away tail must carry the record's read-back verbatim"
   pass "dispatch entry: the host reads branch eligibility, the offer rule, and the wake prompt from the Pi branch's own owner"
 }
+
+# A task with a live PM is that PM's alone (bin/fm-wake-lib.sh
+# fm_pm_live_task): the branch grant must exclude its rows even when the
+# watcher closed on a later row, or the branch and the PM work one task.
+test_dispatch_entry_excludes_live_pm_rows() {
+  local home state out
+  home="$TMP_ROOT/dispatch-pm-live"
+  state="$home/state"
+  mkdir -p "$state"
+  printf 'project=demo\nwindow=fm-pm-demo\n' > "$state/pm-demo.meta"
+  printf 'project=demo\nwindow=fm-demo\n' > "$state/demo.meta"
+  append_wake "$state" signal pm-demo.status "signal: $state/pm-demo.status"
+  append_wake "$state" signal demo.status "signal: $state/demo.status"
+  printf 'bead=test-bead\npid=%s\ntask=pm-demo\n' "$$" > "$state/.pm-live-pm-demo"
+
+  out=$(printf 'signal: %s\n' "$state/demo.status" | FM_HOME="$home" node "$DISPATCH" offer)
+  assert_contains "$out" "eligible=1" "a mixed queue with a claimable row must be the branch's"
+  assert_contains "$out" "rows=2" "the grant must claim only the non-PM row"
+  assert_contains "$out" "tasks=demo" "the grant must name only the non-PM task"
+  assert_not_contains "$out" "pm-demo" "a live PM's row must stay out of the branch grant"
+
+  out=$(FM_HOME="$home" node "$DISPATCH" scope --afk)
+  assert_contains "$out" "rows=2" "an away scan must still exclude a live PM's row"
+  assert_not_contains "$out" "pm-demo" "an away grant must name no live-PM task"
+
+  rm -f "$state/.wake-queue"
+  append_wake "$state" signal pm-demo.status "signal: $state/pm-demo.status"
+  out=$(FM_HOME="$home" node "$DISPATCH" scope)
+  assert_contains "$out" $'rows=\ntasks=\n' "a queue holding only a live PM's row leaves the branch nothing"
+  pass "dispatch entry: a live PM's queued rows stay out of the branch grant"
+}
+
 
 # --- host loop ----------------------------------------------------------------
 
@@ -3424,6 +3457,7 @@ supervision_host_lane_a() {
   test_report_surface_enforces_actor_turn_and_scope
   test_report_after_the_return_is_queued_for_main
   test_dispatch_entry_scopes_rows_and_renders_the_away_tail
+  test_dispatch_entry_excludes_live_pm_rows
   test_branch_outcomes_only_on_a_host_home_off_pi
   test_branch_outcomes_put_captain_first_and_collapse_routine_overflow
   test_branch_outcomes_collapse_repeated_captain_outcomes_per_task
