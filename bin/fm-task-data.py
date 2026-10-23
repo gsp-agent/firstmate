@@ -17,8 +17,10 @@ Without metadata, prepare reads the latest completed markdown backlog row,
 including the configured archive (legacy mode needs tomllib), when there is no
 cleanup record or the expired record holds a legacy row.
 Checked rows in the current backlog take precedence over archived rows.
-Within that source, completion dates order rows; missing or tied dates cannot
-resolve different projects or PRs, so those folders remain whole.
+Within that source, completion dates order rows; missing or tied dates leave
+conflicting owners unresolved under the rules below, so those folders remain whole.
+Compatible rows combine their references and preserve any non-empty PR for
+the owner check.
 PR identity and named beads come from the entire selected row, including its
 continuation notes; multiple distinct PRs retain the whole folder.
 Named repositories resolve below the backlog home's projects/; absolute repo
