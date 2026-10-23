@@ -17,6 +17,9 @@
 #   6. Marker non-regression: a control command to a kind=secondmate task
 #      carries NO from-firstmate marker and opens no pending-reply expectation,
 #      while fm-send's marking of the same task is untouched.
+#   7. Claude background shells: exit stops the agent's own background shells
+#      before /exit, recovers an open background-task picker, and still
+#      refuses a dialog it does not recognise.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -33,7 +36,15 @@ SEND="$ROOT/bin/fm-send.sh"
 TMP_ROOT=$(fm_test_tmproot fm-control)
 mkdir -p "$TMP_ROOT"
 TMP_ROOT=$(cd "$TMP_ROOT" && pwd)
-trap 'rm -rf "$TMP_ROOT"' EXIT
+trap 'if [ -f "$TMP_ROOT/nursery.pids" ]; then
+  while IFS= read -r _fm_pid; do
+    case "$_fm_pid" in
+      ""|*[!0-9]*) ;;
+      *) kill -KILL "$_fm_pid" 2>/dev/null || true ;;
+    esac
+  done < "$TMP_ROOT/nursery.pids"
+fi
+rm -rf "$TMP_ROOT"' EXIT
 
 VERIFIED_HARNESSES="claude codex opencode pi pi-signed grok kimi cursor muse omp devin"
 
@@ -130,6 +141,9 @@ case "${1:-}" in
       if [ -z "${FM_FAKE_NEVER_DIES:-}" ] \
          && { [ "$payload" = /exit ] || [ "$payload" = /quit ]; }; then
         printf 'zsh' > "$D/command"
+        if [ -f "$D/agent-pid" ]; then
+          kill "$(tr -d '[:space:]' < "$D/agent-pid")" 2>/dev/null || true
+        fi
       fi
       case "$payload" in
         *'encode launch-brief'* | *'Firstmate operational input waiting: read'*) cat "$D/becomes" > "$D/command" ;;
@@ -144,6 +158,10 @@ case "${1:-}" in
           primed) printf picker > "$D/devin" ;;
           picker) [ -n "${FM_FAKE_DEVIN_PICKER_STUCK:-}" ] || printf idle > "$D/devin" ;;
         esac
+      fi
+      if [ "$payload" = Escape ] && { [ -f "$D/pane" ] || [ -f "$D/after-enter" ]; }; then
+        : > "$D/picker-dismissed"
+        rm -f "$D/pane"
       fi
       if [ -n "${FM_FAKE_INTERRUPT_STOPS_AGENT:-}" ] \
          && { [ "$payload" = Escape ] || [ "$payload" = C-c ]; }; then
@@ -161,6 +179,14 @@ case "${1:-}" in
   display-message)
     for a in "$@"; do
       case "$a" in
+        *pane_tty*)
+          if [ -s "$D/tty" ]; then
+            tr -d '[:space:]' < "$D/tty"
+            printf '\n'
+          else
+            printf '\n'
+          fi
+          exit 0 ;;
         *cursor_y*)
           # A modelled Devin screen parks the cursor on its composer row.
           if [ -f "$D/devin" ]; then
@@ -175,6 +201,14 @@ case "${1:-}" in
     done
     printf 'fakepane\n'; exit 0 ;;
   capture-pane)
+    if [ -f "$D/picker-dismissed" ]; then
+      if [ -f "$D/devin" ]; then
+        devin_screen "$(cat "$D/devin")"
+      else
+        printf '╭────╮\n│    │\n╰────╯\n'
+      fi
+      exit 0
+    fi
     if [ -f "$D/after-enter" ] && [ -f "$D/keys" ] && grep -qx Enter "$D/keys"; then
       # after-enter-late holds how many captures after Enter still show the
       # ordinary pane, for a screen that renders after the submit has read it.
@@ -1172,6 +1206,241 @@ EOF
   pass "fm-control-lib: only a runtime's own recorded session has a relaunch resume form"
 }
 
+# A real process whose argv0 path ends in /claude, on a private pty, with one
+# background shell outside its process group. The shell's command line contains
+# "sleep 300", which is the task the exit picker lists. A second sleep 300 is
+# started here and is not a descendant, so exit must leave it alone.
+nursery_track() {  # <pid>
+  case "$1" in
+    ''|*[!0-9]*) return 0 ;;
+  esac
+  printf '%s\n' "$1" >> "$TMP_ROOT/nursery.pids"
+}
+
+pid_alive() {  # <pid>
+  local stat
+  kill -0 "$1" 2>/dev/null || return 1
+  stat=$(ps -o stat= -p "$1" 2>/dev/null) || return 1
+  stat=$(printf '%s' "$stat" | tr -d '[:space:]')
+  case "$stat" in
+    Z*) return 1 ;;
+  esac
+  return 0
+}
+
+start_claude_nursery() {  # <case-dir>
+  local dir=$1 holder i bash_pid sleep_pid sibling
+  mkdir -p "$dir/bin"
+  cat > "$dir/claude-agent.c" <<'EOF'
+#include <stdio.h>
+#include <unistd.h>
+int main(int argc, char **argv) {
+  FILE *f;
+  pid_t child;
+  if (argc < 3) return 2;
+  child = fork();
+  if (child < 0) return 1;
+  if (child == 0) {
+    if (setpgid(0, 0) != 0) _exit(1);
+    execvp(argv[2], argv + 2);
+    _exit(127);
+  }
+  setpgid(child, child);
+  f = fopen(argv[1], "w");
+  if (!f) return 1;
+  fprintf(f, "%ld\n", (long)child);
+  if (fclose(f) != 0) return 1;
+  for (;;) pause();
+}
+EOF
+  cc -O2 -o "$dir/bin/claude" "$dir/claude-agent.c" \
+    || fail "the fake claude binary did not compile"
+  cat > "$dir/hold.py" <<'PY'
+import fcntl, os, pty, sys, termios, time
+claude, bash_pid_path, agent_pid_path, tty_path = sys.argv[1:5]
+master, slave = pty.openpty()
+tty_name = os.ttyname(slave)
+pid = os.fork()
+if pid == 0:
+    os.close(master)
+    os.setsid()
+    fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+    os.dup2(slave, 0)
+    os.dup2(slave, 1)
+    os.dup2(slave, 2)
+    if slave > 2:
+        os.close(slave)
+    os.execv(claude, [claude, bash_pid_path, "bash", "-c", "trap '' HUP; sleep 300; echo done"])
+os.close(slave)
+open(agent_pid_path, "w").write("%d\n" % pid)
+open(tty_path, "w").write(tty_name + "\n")
+while True:
+    try:
+        wpid, _status = os.waitpid(pid, os.WNOHANG)
+    except OSError:
+        wpid = 0
+    if wpid == pid:
+        pid = 0
+    time.sleep(0.01)
+PY
+  python3 "$dir/hold.py" "$dir/bin/claude" "$dir/bash.pid" "$dir/fake/agent-pid" "$dir/fake/tty" >/dev/null 2>&1 &
+  holder=$!
+  nursery_track "$holder"
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    if [ -s "$dir/bash.pid" ] && [ -s "$dir/fake/agent-pid" ] && [ -s "$dir/fake/tty" ]; then
+      break
+    fi
+    sleep 0.05
+  done
+  [ -s "$dir/bash.pid" ] || fail "the background shell did not start"
+  bash_pid=$(tr -d '[:space:]' < "$dir/bash.pid")
+  nursery_track "$bash_pid"
+  nursery_track "$(tr -d '[:space:]' < "$dir/fake/agent-pid")"
+  sleep_pid=
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    sleep_pid=$(LC_ALL=C ps -axo pid=,ppid=,command= | awk -v p="$bash_pid" '$2 == p && index($0, "sleep 300") { print $1; exit }')
+    [ -n "$sleep_pid" ] && break
+    sleep 0.05
+  done
+  [ -n "$sleep_pid" ] || fail "the background shell's sleep did not start"
+  nursery_track "$sleep_pid"
+  printf '%s\n' "$sleep_pid" > "$dir/sleep.pid"
+  sleep 300 >/dev/null 2>&1 &
+  sibling=$!
+  nursery_track "$sibling"
+  printf '%s\n' "$sibling" > "$dir/sibling.pid"
+  pid_alive "$bash_pid" && pid_alive "$sleep_pid" && pid_alive "$sibling" \
+    || fail "the nursery processes were not alive"
+}
+
+run_exit_with_nursery() {  # <case-dir> [extra env]
+  local dir=$1
+  shift
+  env PATH="$dir/fakebin:$PATH" FM_HOME="$dir/home" FM_FAKE_DIR="$dir/fake" \
+    FM_CONTROL_POLL=0.01 FM_CONTROL_SETTLE_WAIT=0.05 \
+    FM_CONTROL_EXIT_WAIT=2 FM_CONTROL_LAUNCH_WAIT=0.05 \
+    "$@" \
+    "$CONTROL" t1 exit 2>&1
+}
+
+assert_worktree_unchanged() {  # <worktree> <head> <status>
+  local after_head after_status
+  after_head=$(git -C "$1" rev-parse HEAD)
+  after_status=$(git -C "$1" status --porcelain)
+  [ "$after_head" = "$2" ] || fail "exit changed the worktree HEAD"
+  [ "$after_status" = "$3" ] || fail "exit changed the worktree: $after_status"
+}
+
+assert_sibling_survived() {  # <case-dir>
+  local sibling
+  sibling=$(tr -d '[:space:]' < "$1/sibling.pid")
+  pid_alive "$sibling" || fail "a sleep 300 outside the agent tree was stopped"
+}
+
+assert_background_shell_stopped() {  # <case-dir>
+  local bash_pid sleep_pid
+  bash_pid=$(tr -d '[:space:]' < "$1/bash.pid")
+  sleep_pid=$(tr -d '[:space:]' < "$1/sleep.pid")
+  pid_alive "$bash_pid" && fail "the agent's background shell is still running"
+  pid_alive "$sleep_pid" && fail "the agent's background sleep is still running"
+  return 0
+}
+
+test_exit_stops_a_background_shell_before_exit() {
+  local dir out rc wt head status
+  dir=$(new_case bg-shell)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir"
+  wt=$dir/wt-t1
+  head=$(git -C "$wt" rev-parse HEAD)
+  status=$(git -C "$wt" status --porcelain)
+  out=$(run_exit_with_nursery "$dir"); rc=$?
+  expect_code 0 "$rc" "exit should stop the agent and its background shell"$'\n'"$out"
+  assert_background_shell_stopped "$dir"
+  assert_sibling_survived "$dir"
+  [ "$(literals "$dir")" = /exit ] || fail "exit should type /exit once, got: $(literals "$dir")"
+  [ -z "$(keys_sent "$dir")" ] || fail "a clean exit sends no Escape, got: $(keys_sent "$dir")"
+  assert_worktree_unchanged "$wt" "$head" "$status"
+  pass "fm-control exit: a running background shell is stopped before /exit"
+}
+
+test_exit_recovers_an_open_background_picker() {
+  local dir out rc wt head status enters
+  dir=$(new_case open-picker-live)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir"
+  exit_picker_screen > "$dir/fake/pane"
+  wt=$dir/wt-t1
+  head=$(git -C "$wt" rev-parse HEAD)
+  status=$(git -C "$wt" status --porcelain)
+  out=$(run_exit_with_nursery "$dir"); rc=$?
+  expect_code 0 "$rc" "exit should recover an open background-task picker"$'\n'"$out"
+  assert_background_shell_stopped "$dir"
+  assert_sibling_survived "$dir"
+  [ "$(literals "$dir")" = /exit ] || fail "exit should type /exit once, got: $(literals "$dir")"
+  [ "$(keys_sent "$dir")" = Escape ] || fail "recovery should send one Escape, got: $(keys_sent "$dir")"
+  enters=$(grep -c '^Enter$' "$dir/fake/keys" || true)
+  [ "$enters" -eq 1 ] || fail "only the submitting Enter should be sent, got $enters"
+  awk '
+    $0 == "Escape" && !esc { esc = NR }
+    $0 == "Enter" && !ent { ent = NR }
+    END { exit !(esc && ent && esc < ent) }
+  ' "$dir/fake/keys" || fail "Escape must dismiss the picker before /exit is submitted"
+  assert_worktree_unchanged "$wt" "$head" "$status"
+  pass "fm-control exit: an already-open background-task picker is recovered"
+}
+
+test_exit_recovers_a_picker_that_opens_on_submit() {
+  local dir out rc enters
+  dir=$(new_case submit-picker-live)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir"
+  exit_picker_screen > "$dir/fake/after-enter"
+  out=$(run_exit_with_nursery "$dir" FM_FAKE_NEVER_DIES=1 FM_CONTROL_EXIT_WAIT=0.2); rc=$?
+  expect_code 1 "$rc" "an agent that ignores /exit should still fail closed"$'\n'"$out"
+  assert_contains "$out" "exit=unconfirmed" "the failure should be an unconfirmed exit"
+  assert_not_contains "$out" "blocked on a prompt" "a picker whose shells are gone must not stay blocked"
+  assert_background_shell_stopped "$dir"
+  assert_sibling_survived "$dir"
+  [ "$(literals "$dir")" = $'/exit\n/exit' ] || fail "exit should be submitted again after Escape, got: $(literals "$dir")"
+  enters=$(grep -c '^Enter$' "$dir/fake/keys" || true)
+  [ "$enters" -eq 2 ] || fail "the resubmit should add one Enter, got $enters"
+  [ "$(keys_sent "$dir")" = Escape ] || fail "recovery should send one Escape, got: $(keys_sent "$dir")"
+  awk '
+    $0 == "Enter" { enters++ ; if (!first) first = NR }
+    $0 == "Escape" && !esc { esc = NR }
+    END { exit !(enters == 2 && esc && first && first < esc && esc < NR) }
+  ' "$dir/fake/keys" || fail "Escape must sit between the two submitting Enters, got: $(cat "$dir/fake/keys")"
+  pass "fm-control exit: a picker that opens on submit is dismissed and /exit is sent again"
+}
+
+test_exit_refuses_an_unrecognised_dialog() {
+  local dir out rc bash_pid
+  dir=$(new_case unknown-dialog)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir"
+  printf '%s\n' '╭────╮' '│ > stay │' '╰────╯' > "$dir/fake/pane"
+  bash_pid=$(tr -d '[:space:]' < "$dir/bash.pid")
+  out=$(run_exit_with_nursery "$dir"); rc=$?
+  expect_code 1 "$rc" "an unrecognised dialog should refuse"$'\n'"$out"
+  case "$out" in
+    *'pending text'*|*'not proven empty'*) ;;
+    *) fail "the refusal should name the pending or unproven composer, got: $out" ;;
+  esac
+  assert_not_contains "$out" "blocked on a prompt: Claude background-task exit picker" \
+    "quoted or ordinary composer text is not the exit picker"
+  pid_alive "$bash_pid" || fail "a refusal must not stop the agent's background shell"
+  assert_sibling_survived "$dir"
+  [ ! -s "$dir/fake/literal" ] || fail "an unrecognised dialog must not be typed into"
+  [ -z "$(keys_sent "$dir")" ] || fail "an unrecognised dialog must receive no control key, got: $(keys_sent "$dir")"
+  ! grep -qx Enter "$dir/fake/keys" || fail "an unrecognised dialog must receive no Enter"
+  pass "fm-control exit: a dialog the adapter does not recognise still refuses"
+}
+
 test_exit_types_each_harness_verified_command
 test_interrupt_sends_each_harness_verified_key
 test_devin_interrupt_invalidates_busy
@@ -1208,6 +1477,10 @@ test_exit_drops_meta_busy_gen_with_the_sidecar
 test_exit_refuses_an_open_background_picker
 test_exit_refuses_the_confirming_enter
 test_exit_names_a_picker_that_renders_after_the_submit
+test_exit_stops_a_background_shell_before_exit
+test_exit_recovers_an_open_background_picker
+test_exit_recovers_a_picker_that_opens_on_submit
+test_exit_refuses_an_unrecognised_dialog
 test_interrupt_without_acknowledgement_preserves_busy_state
 test_muse_interrupt_confirms_adapter_acknowledgement
 test_interrupt_revalidates_agent_after_acknowledgement_wait
