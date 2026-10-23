@@ -1182,6 +1182,7 @@ When it reports a live session, or cannot decide, `bin/fm-spawn.sh` launches no 
 A successful deferral prints a `deferred:` line carrying the detector's verdict and exits 75, so Firstmate tries again once the check reads clear.
 A refused relaunch preserves the task's recorded worktree; a fresh ship returns its prepared pool slot before retry, subject to the [spawn header's cleanup and ownership checks](../bin/fm-spawn.sh).
 If that cleanup refuses the claimed pool slot, the spawn exits 1 with the reason and retains the slot and claim rather than inviting an automatic retry.
+That refusal closes the fresh endpoint this attempt created.
 Every other checkout keeps the deferral so its own cleanup still runs.
 For the additional check before stopping an agent during a control-plane relaunch, see [Transactional relaunch](agent-control.md#transactional-relaunch).
 A secondmate spawn or relaunch is not checked.

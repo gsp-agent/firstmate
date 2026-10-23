@@ -282,10 +282,12 @@
 #   calling treehouse return --force. Return succeeds only when the ship
 #   branch is no longer current there; the pool directory may remain registered
 #   in place. A refusal of that claimed pool slot retains the checkout and
-#   claim, reports its reason, and exits 1 instead of 75. Orca and any
-#   checkout that is not a claimed pool slot keep exit 75 so their own cleanup
-#   still runs. A relaunch, a launch already sent, and any checkout that is
-#   not this spawn's ship branch are not returned here.
+#   claim, reports its reason, and exits 1 instead of 75. It also closes the
+#   fresh endpoint this attempt created, so a later dispatch is not stopped by
+#   that window name. Orca and any checkout that is not a claimed pool slot
+#   keep exit 75 so their own cleanup still runs. A relaunch, a launch already
+#   sent, and any checkout that is not this spawn's ship branch are not
+#   returned here.
 #   Regression coverage: tests/fm-spawn-defer-slot.test.sh and
 #   tests/fm-spawn-orca-worktree.test.sh.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
@@ -1511,6 +1513,7 @@ SPAWN_OVERSHARE_DIR=
 SPAWN_OVERSHARE_IDENTITY=
 SPAWN_OVERSHARE_AT=
 SPAWN_SLOT_CLAIMED=0
+SPAWN_SLOT_REFUSAL=0
 RELAUNCH_REPLACEMENT_PENDING=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
 RELAUNCH_REPLACEMENT_HARNESS=
@@ -1693,7 +1696,7 @@ spawn_return_checked_out_ship_slot() {
 
 spawn_abort_cleanup() {
   local status=$?
-  if [ "$status" -eq "$SPAWN_DEFER_EXIT" ] &&
+  if { [ "$status" -eq "$SPAWN_DEFER_EXIT" ] || [ "$SPAWN_SLOT_REFUSAL" = 1 ]; } &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_CREATED_ENDPOINT" ]; then
     if [ "$BACKEND" = orca ]; then
       ORCA_ABORT_CLEANUP=1
@@ -1701,7 +1704,7 @@ spawn_abort_cleanup() {
       if fm_backend_kill "$BACKEND" "$SPAWN_CREATED_ENDPOINT" "${ZELLIJ_TAB_ID:-}" "$W" 2>/dev/null; then
         SPAWN_ENDPOINT_CLOSED=1
       else
-        echo "warning: could not close endpoint $SPAWN_CREATED_ENDPOINT after deferring task $ID" >&2
+        echo "warning: could not close endpoint $SPAWN_CREATED_ENDPOINT after task $ID ended before launch" >&2
       fi
     fi
   fi
@@ -6582,12 +6585,14 @@ fi
 sleep 0.3
 if [ "$KIND" != secondmate ] &&
   ! LIVE_SESSION_DEFERRAL=$(fm_live_session_admit "$PROJ_ABS" "$(basename "$PROJ_ABS")"); then
-  # Exit 1 only for a claimed pool slot. The abort trap owns that refusal.
-  # Any other checkout keeps exit 75 so its own cleanup still runs.
+  # Exit 1 only for a claimed pool slot. The abort trap owns that refusal
+  # and closes the fresh endpoint. Any other checkout keeps exit 75 so its
+  # own cleanup still runs.
   if [ "$SPAWN_SLOT_CLAIMED" = 1 ] && [ -n "${WT:-}" ] &&
     fm_treehouse_pool_slot "$PROJ_ABS" "$WT" &&
     spawn_slot_checked_out_ship_branch &&
     spawn_slot_return_blocked_reason >/dev/null; then
+    SPAWN_SLOT_REFUSAL=1
     exit 1
   fi
   if [ "$RELAUNCH" -eq 1 ]; then
