@@ -6192,8 +6192,8 @@ SH
 test_task_data_completed_row_identity() {
   local case_dir task record kind variant checkout origin record_pr row_pr row_name changed rc
   for kind in archived legacy; do
-    for variant in path-text other-checkout other-checkout-no-pr review changed-repo changed-pr; do
-      case_dir=$(make_case "task-data-row-identity-$kind-$variant")
+    for variant in path-text other-checkout other-checkout-no-pr review changed-repo changed-repo-same-pr changed-pr; do
+      case_dir="$TMP_ROOT/task-data-row-identity-$kind-$variant"
       task="$case_dir/data/task-x1"
       record="$task/record/data-cleanup.json"
       origin=https://github.com/carmandale/agent-config.git
@@ -6215,11 +6215,14 @@ test_task_data_completed_row_identity() {
         changed-repo)
           checkout="$case_dir/dev/agent-config" record_pr='' row_pr='' row_name=agent-observer changed=true
           ;;
+        changed-repo-same-pr)
+          checkout="$case_dir/dev/agent-config" row_name=agent-observer changed=true
+          ;;
         changed-pr)
           checkout="$case_dir/projects/agent-config" row_pr=https://github.com/carmandale/agent-config/pull/186 changed=true
           ;;
       esac
-      mkdir -p "$task/record" "$case_dir/history"
+      mkdir -p "$task/record" "$case_dir/history" "$case_dir/state" "$case_dir/config" "$case_dir/fakebin"
       git init -q "$checkout"
       git -C "$checkout" remote add origin "$origin"
       printf 'row evidence\n' > "$task/row.png"
@@ -6244,8 +6247,14 @@ TOML
 [ "$1 $2 $3" = 'pr view 185' ] || exit 2
 printf 'body: the recorded pull request\n'
 SH
+      cat > "$case_dir/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2" = 'show task-x1' ] || exit 2
+printf 'code: NOT_FOUND\n'
+exit 1
+SH
       printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
-      chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/dcg"
+      chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/dcg"
       rc=0
       PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire \
         "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err" || rc=$?
@@ -6265,6 +6274,85 @@ SH
     done
   done
   pass "fm-teardown: a completed row changes its task's owner only for another repository or another non-empty PR"
+}
+
+test_task_data_completed_row_tied_identity() {
+  local case_dir task record kind variant checkout record_pr row_pr other_pr other_repo changed rc
+  for kind in legacy archived; do
+    for variant in path-text no-pr added-pr removed-pr changed-repo changed-pr conflicting-prs; do
+      case_dir="$TMP_ROOT/task-data-row-tied-identity-$kind-$variant"
+      task="$case_dir/data/task-x1"
+      record="$task/record/data-cleanup.json"
+      checkout="$case_dir/dev/agent-config"
+      record_pr=https://github.com/carmandale/agent-config/pull/185
+      row_pr=$record_pr other_pr=$record_pr other_repo=$checkout changed=false
+      case "$variant" in
+        no-pr) record_pr='' row_pr='' other_pr='' ;;
+        added-pr) record_pr='' row_pr='' ;;
+        removed-pr) record_pr='' other_pr='' ;;
+        changed-repo) other_repo=agent-observer changed=true ;;
+        changed-pr|conflicting-prs)
+          other_pr=https://github.com/carmandale/agent-config/pull/186 changed=true
+          ;;
+      esac
+      mkdir -p "$task/record" "$case_dir/history" "$case_dir/state" "$case_dir/config" "$case_dir/fakebin"
+      git init -q "$checkout"
+      git -C "$checkout" remote add origin https://github.com/carmandale/agent-config.git
+      printf 'row evidence\n' > "$task/row.png"
+      printf 'other evidence\n' > "$task/other.png"
+      printf 'scratch\n' > "$task/discard.bin"
+      cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+      printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+      printf '## Archived 2026-10-20\n- [x] task-x1 - finished %s (repo: agent-config) (merged 2026-10-20)\n  [capture](row.png)\n' \
+        "$row_pr" > "$case_dir/history/completed.md"
+      printf '%s\n' "- [x] task-x1 - finished $other_pr (repo: $other_repo) (merged 2026-10-20)" \
+        '  [capture](other.png)' >> "$case_dir/history/completed.md"
+      if [ "$variant" = conflicting-prs ]; then
+        printf '%s\n' '- [x] task-x1 - finished (repo: agent-config) (merged 2026-10-20)' \
+          >> "$case_dir/history/completed.md"
+      fi
+      jq -n --arg project "$checkout" --arg pr "$record_pr" --arg data "$case_dir/data" --arg kind "$kind" \
+        --arg text "$(cat "$case_dir/history/completed.md")" \
+        '{version: 1, task: "task-x1", complete: false, expired: false,
+          sources: [{project: $project, pr: $pr, beads: [],
+            backlog: ({data: $data, task: "task-x1"} + (if $kind == "legacy" then {legacy: true, text: $text} else {} end))}]}' \
+        > "$record"
+      cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2 $3" = 'pr view 185' ] || exit 2
+printf 'body: the recorded pull request\n'
+SH
+      cat > "$case_dir/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2" = 'show task-x1' ] || exit 2
+printf 'code: NOT_FOUND\n'
+exit 1
+SH
+      printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
+      chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/dcg"
+      rc=0
+      PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire \
+        "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err" || rc=$?
+      if [ "$changed" = true ]; then
+        expect_code 1 "$rc" "$kind $variant expired tied rows that disagree on their owner"
+        assert_present "$task/discard.bin" "$kind $variant moved scratch for tied rows that disagree on their owner"
+        assert_absent "$task/.cleanup-hold" "$kind $variant staged tied rows that disagree on their owner"
+      else
+        expect_code 0 "$rc" "$kind $variant kept tied rows with the same owner whole: $(cat "$case_dir/err")"
+        assert_present "$task/row.png" "$kind $variant lost the first completed row's evidence"
+        assert_present "$task/other.png" "$kind $variant lost the second completed row's evidence"
+        assert_absent "$task/discard.bin" "$kind $variant kept scratch for tied rows with the same owner"
+        jq -e --arg pr "$record_pr" '.expired == true and .sources[0].pr == $pr' "$record" >/dev/null \
+          || fail "$kind $variant changed the recorded owner: $(cat "$record")"
+      fi
+    done
+  done
+  pass "fm-teardown: tied completed rows compare repository identities and only conflicting non-empty PRs"
 }
 
 test_task_data_archived_unread_bead() {
@@ -9102,11 +9190,18 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-row-reread ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-row-identity ]; then
+  test_task_data_completed_row_identity
+  test_task_data_completed_row_tied_identity
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
   test_task_data_archived_bead_id_collision
   test_task_data_bead_id_filter
   test_task_data_archived_row_reference
   test_task_data_completed_row_identity
+  test_task_data_completed_row_tied_identity
   test_task_data_row_named_beads
   test_task_data_row_reread_archiving
   test_task_data_archived_unread_bead
@@ -9219,6 +9314,7 @@ test_task_data_expire_over_total_cap_reads_nothing
 test_task_data_bead_id_filter
 test_task_data_archived_row_reference
 test_task_data_completed_row_identity
+test_task_data_completed_row_tied_identity
 test_task_data_row_named_beads
 test_task_data_row_reread_archiving
 test_task_data_archived_unread_bead

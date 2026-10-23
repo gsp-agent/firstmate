@@ -367,7 +367,8 @@ def completed_source(data, task_id, limit=None):
     latest = max(row[1] for row in candidates)
     sources = [completed_row_source(data, title, text)
                for _, completed, title, text in candidates if not completed or completed == latest]
-    if len({(source["project"], source["pr"]) for source in sources}) > 1:
+    if any(not same_owner(row, source, limit)
+           for index, row in enumerate(sources) for source in sources[index + 1:]):
         raise ValueError("completed backlog rows have different projects or PRs with unproven order")
     source = sources[-1]
     source["text"] = "\n".join(item["text"] for item in sources)
@@ -414,10 +415,10 @@ def repository_names(project, limit=None):
 
 
 def same_owner(row, source, limit=None):
-    # A PR URL names its repository, so two PRs settle the owner by themselves.
-    if row["pr"] and source["pr"]:
-        return row["pr"] == source["pr"]
-    return not repository_names(row["repo"], limit).isdisjoint(repository_names(source["project"], limit))
+    if row["pr"] and source["pr"] and row["pr"] != source["pr"]:
+        return False
+    return not repository_names(row["repo"], limit).isdisjoint(
+        repository_names(source.get("repo", source["project"]), limit))
 
 
 def backlog_references(source, task_id, limit=None):
