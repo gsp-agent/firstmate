@@ -346,8 +346,8 @@ They measure requested launch options, configuration acceptance, catalogue refus
 Live fleet records are redacted.
 These measurements do not prove the removed shared settings, headless/plugin launch, cap, lock recovery or stream classification.
 Those portions are cut and archived; they are not approved by the old resolver measurements or matching blob hashes.
-The original cuts remain in their eight named branches, and archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts preserves this round's complete starting tree, including PR 26's plugin-pin branch.
-Recovery uses the existing Git bundle at archives/fork-cuts.bundle.
+Six of the original cuts remain in their named branches in the Git bundle at archives/fork-cuts.bundle.
+This round's complete starting tree 814465e1383e1654aea41db0544c28cd1f30fa92, including PR 26's plugin-pin branch, and the 59299234 and 8bd57783 branches are reachable from origin archive/fm-drift-nightly-b2216803 instead, because their history carries unredacted fleet records.
 The finalized source proof manifest records the complete patch sequence, including the mandatory corrective cuts; "Finalized shipped acceptance" below verifies the delivered effective tree without an installation-time proof rewrite.
 
 R16 retained behavior after cutting unsupported portions
