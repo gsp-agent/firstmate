@@ -1574,9 +1574,10 @@ spawn_lease_return_safe() { # <path>
   state="$pool/treehouse-state.json"
   command -v jq >/dev/null 2>&1 || return 1
   lease_line=$(jq -r --arg p "$slot" --arg n "$(basename "$(dirname "$slot")")" \
-    '.worktrees[]? | select(.path == $p or .name == $n) | "\(.owner_pid // "")"' \
+    '.worktrees[]? | select(.path == $p or .name == $n) | "owner=\(.owner_pid // "")"' \
     "$state" 2>/dev/null) || return 1
-  owner_pid=${lease_line%% *}
+  case "$lease_line" in owner=*) ;; *) return 1 ;; esac
+  owner_pid=${lease_line#owner=}
   if [ -n "$owner_pid" ] && fm_pid_alive "$owner_pid"; then
     return 1
   fi
@@ -1594,7 +1595,7 @@ spawn_release_skip_leases() {
   while IFS= read -r leased; do
     [ -n "$leased" ] || continue
     if spawn_lease_return_safe "$leased"; then
-      (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1) || true
+      (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1 </dev/null) || true
     fi
   done <<EOF
 $SPAWN_SKIP_LEASES
@@ -1605,14 +1606,6 @@ EOF
 spawn_abort_cleanup() {
   local status=$?
   spawn_release_skip_leases
-  # An own-clone slot leased or created for a spawn that never launched is
-  # handed back under the same proof of emptiness; a launched task's slot
-  # is its teardown's to return.
-  if [ -n "$SPAWN_TARGET_LEASE" ] && [ "$SPAWN_LAUNCH_SENT" = 0 ] &&
-    spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
-    (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$SPAWN_TARGET_LEASE" >/dev/null 2>&1) || true
-    SPAWN_TARGET_LEASE=
-  fi
   if [ "$status" -eq "$SPAWN_DEFER_EXIT" ] &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_CREATED_ENDPOINT" ]; then
     if [ "$BACKEND" = orca ]; then
@@ -1747,6 +1740,17 @@ spawn_abort_cleanup() {
     else
       echo "warning: leaving task $ID's slot claim on $WT in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it" >&2
     fi
+  fi
+  # An own-clone slot leased or created for a failed spawn that never
+  # launched is handed back under the same proof of emptiness, after the
+  # claim above has had its chance to be released; a launched task's slot
+  # is its teardown's to return, and a surviving task record's claim keeps
+  # this guard from touching its slot.
+  if [ "$status" -ne 0 ] && [ -n "$SPAWN_TARGET_LEASE" ] &&
+    [ "$SPAWN_LAUNCH_SENT" = 0 ] &&
+    spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
+    (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$SPAWN_TARGET_LEASE" >/dev/null 2>&1 </dev/null) || true
+    SPAWN_TARGET_LEASE=
   fi
   # An admitted extra start past project capacity that launched no worker
   # gives its window back (bin/fm-project-capacity-lib.sh owns the record).
@@ -5234,7 +5238,8 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # When none is free, the lease steering below makes Treehouse lease or
   # create an own-clone slot. Only when that steering gives up does the
   # plain `treehouse get` run, with the screening below as its guard.
-  SPAWN_ENTER_SLOT=$(fm_treehouse_free_own_slot "$PROJ_ABS" || true)
+  SPAWN_WT_SOURCE='treehouse get'
+  SPAWN_ENTER_SLOT=$(fm_treehouse_free_own_slot "$PROJ_ABS" "$BASE_BRANCH" || true)
   if [ -z "$SPAWN_ENTER_SLOT" ]; then
     # No free own-clone slot: lease the pool's free foreign slots one by one.
     # Treehouse's allocator hands out the first free slot and never re-hands
@@ -5249,7 +5254,7 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     SPAWN_LEASE_SEEN=
     SPAWN_LEASE_COUNT=0
     while [ "$SPAWN_LEASE_COUNT" -lt 64 ]; do
-      SPAWN_LEASED=$(cd "$PROJ_ABS" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch 2>/dev/null) || break
+      SPAWN_LEASED=$(cd "$PROJ_ABS" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch 2>/dev/null </dev/null) || break
       [ -n "$SPAWN_LEASED" ] || break
       if printf '%s' "$SPAWN_LEASE_SEEN" | grep -Fxq -- "$SPAWN_LEASED"; then
         break
@@ -5278,7 +5283,8 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   fi
   if [ -n "$SPAWN_ENTER_SLOT" ]; then
     SPAWN_ENTER_NAME=$(basename "$(dirname "$SPAWN_ENTER_SLOT")")
-    spawn_send_text_line "$WT_TARGET" "treehouse enter $(shell_quote "$SPAWN_ENTER_NAME")"
+    SPAWN_WT_SOURCE="treehouse enter $(shell_quote "$SPAWN_ENTER_NAME")"
+    spawn_send_text_line "$WT_TARGET" "$SPAWN_WT_SOURCE"
   else
     spawn_send_text_line "$WT_TARGET" 'treehouse get'
   fi
@@ -5336,11 +5342,11 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     sleep 1
   done
   if [ -z "$WT" ]; then
-    echo "error: treehouse get did not enter an isolated worktree within 60s (last seen '${last_seen:-none}': $last_reason; spawning project '$PROJ_ABS'); inspect window $T" >&2
+    echo "error: $SPAWN_WT_SOURCE did not enter an isolated worktree within 60s (last seen '${last_seen:-none}': $last_reason; spawning project '$PROJ_ABS'); inspect window $T" >&2
     exit 1
   fi
 
-  validate_spawn_worktree "treehouse get" "$T"
+  validate_spawn_worktree "$SPAWN_WT_SOURCE" "$T"
 
   # Claim the pool slot for this task. The interactive `treehouse get` sent to
   # the pane above records only a process lease (Treehouse's durable

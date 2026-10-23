@@ -466,6 +466,57 @@ SH
   pass "a claimed slot handed over by the allocator is never returned"
 }
 
+# A free own-clone slot with residue is not entered: Treehouse's allocator
+# would refuse to reuse it, and the spawn's base freshen would refuse to
+# discard the work. The spawn keeps the plain `treehouse get` path, which
+# can hand out or create a clean slot instead.
+test_dirty_own_slot_is_not_entered() {
+  local rec id out status pool pane_log
+  id=settle-pool-dirty-z10
+  rec=$(make_pool_case settle-pool-dirty "$id")
+  read_settle_record "$rec"
+  pool="$TMP_ROOT/settle-pool-dirty/pool"
+  pane_log="$TMP_ROOT/settle-pool-dirty/pane.log"
+  printf 'residue\n' > "$pool/2/repo/untracked-residue"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should succeed through treehouse get when the own slot is dirty"$'\n'"$out"
+  assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the settled clean worktree"
+  assert_grep 'treehouse get' "$pane_log" \
+    "spawn did not fall back to treehouse get when the own slot was dirty"
+  assert_no_grep 'treehouse enter' "$pane_log" \
+    "spawn entered a dirty own-clone slot the allocator would refuse"
+  pass "a dirty own-clone slot is not entered"
+}
+
+# A clean own-clone slot whose HEAD carries commits outside the reset
+# target is not entered either: entering it would let the base freshen
+# reset those commits away. Again the plain `treehouse get` path owns it.
+test_unmerged_own_slot_is_not_entered() {
+  local rec id out status pool pane_log
+  id=settle-pool-unmerged-z11
+  rec=$(make_pool_case settle-pool-unmerged "$id")
+  read_settle_record "$rec"
+  pool="$TMP_ROOT/settle-pool-unmerged/pool"
+  pane_log="$TMP_ROOT/settle-pool-unmerged/pane.log"
+  printf 'unmerged work\n' >> "$pool/2/repo/README.md"
+  git -C "$pool/2/repo" add README.md
+  git -C "$pool/2/repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm 'unmerged slot work'
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should succeed through treehouse get when the own slot is unmerged"$'\n'"$out"
+  assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the settled clean worktree"
+  assert_grep 'treehouse get' "$pane_log" \
+    "spawn did not fall back to treehouse get when the own slot was unmerged"
+  assert_no_grep 'treehouse enter' "$pane_log" \
+    "spawn entered an unmerged own-clone slot the allocator would refuse"
+  pass "an unmerged own-clone slot is not entered"
+}
+
 test_single_stale_first_read_is_not_accepted
 test_already_settled_pane_costs_one_confirm_read
 test_transient_primary_checkout_is_not_accepted
@@ -475,5 +526,7 @@ test_mixed_pool_enters_free_own_slot
 test_mixed_pool_claimed_own_slot_uses_treehouse_get
 test_mixed_pool_makes_new_own_slot_when_none_free
 test_allocator_claimed_slot_is_never_returned
+test_dirty_own_slot_is_not_entered
+test_unmerged_own_slot_is_not_entered
 
 echo "# all fm-spawn-worktree-settle tests passed"
