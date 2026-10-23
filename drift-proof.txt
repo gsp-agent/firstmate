@@ -73,3 +73,5 @@ pr: 92
 # Guard and proof files have no automatic exemption; their complete patches must match this sequence.
 # tests/fm-spawn-defer-slot.test.sh
 pending-pr: 98 .agent-config-onxre
+# Failing-first post-PR fix handoff regression in tests/fm-dod-lib.test.sh: test_post_pr_fix_handoff.
+pr: 97
