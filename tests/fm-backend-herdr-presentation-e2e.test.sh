@@ -1590,6 +1590,36 @@ pass "real Herdr lab: a dead version-1 attempt journal is recovered by a flat sp
 teardown_task deadjournal "$HOME_DIR" > "$TMP_ROOT/deadjournal-teardown.out" 2> "$TMP_ROOT/deadjournal-teardown.err" \
   || fail "deadjournal teardown failed: $(cat "$TMP_ROOT/deadjournal-teardown.err")"
 
+# Same dead version-1 journal, but a workspace still carries its token: the
+# spawn still launches flat, yet the journal is NOT retired - it is the
+# session-start sweep's only handle on that workspace, so retiring it here
+# would strand the workspace permanently.
+write_ship_brief "$HOME_DIR" deadkeep 'Dead attempt journal with live token workspace fixture.'
+DEADKEEP_TOKEN=BBBBBBBBBBBBBBBBBBBBBB
+[ "${#DEADKEEP_TOKEN}" -eq 22 ] || fail "deadkeep fixture token is not 22 characters"
+DEADKEEP_FIXTURE_OUT=$(lab workspace create --cwd "$PROJECT_DIR" --label "└ deadkeep · p:$DEADKEEP_TOKEN" --no-focus) \
+  || fail "could not create the deadkeep token-workspace fixture"
+DEADKEEP_FIXTURE_WSID=$(printf '%s' "$DEADKEEP_FIXTURE_OUT" | jq -r '.result.workspace.workspace_id // empty')
+[ -n "$DEADKEEP_FIXTURE_WSID" ] || fail "deadkeep token-workspace fixture returned no workspace id"
+printf 'version=1\ntask_id=deadkeep\nprojection_id=%s\n' "$DEADKEEP_TOKEN" \
+  > "$HOME_DIR/state/deadkeep.herdr-presentation"
+spawn_task deadkeep "$HOME_DIR" "$PROJECT_DIR" > "$TMP_ROOT/deadkeep.out" 2> "$TMP_ROOT/deadkeep.err" \
+  || fail "a dead version-1 attempt journal with a live token workspace stopped the spawn: $(cat "$TMP_ROOT/deadkeep.err")"
+remember_meta_worktree "$HOME_DIR/state/deadkeep.meta" >/dev/null
+DEADKEEP_WSID=$(grep '^herdr_workspace_id=' "$HOME_DIR/state/deadkeep.meta" | cut -d= -f2-)
+[ "$DEADKEEP_WSID" = "$FIRSTMATE_WSID" ] \
+  || fail "deadkeep did not land in the flat firstmate workspace (got '${DEADKEEP_WSID:-<empty>}')"
+[ -e "$HOME_DIR/state/deadkeep.herdr-presentation" ] \
+  || fail "dead version-1 journal was retired while its token workspace still exists; the session-start sweep would lose that workspace"
+lab workspace get "$DEADKEEP_FIXTURE_WSID" >/dev/null 2>&1 \
+  || fail "the deadkeep token workspace vanished during the flat spawn"
+pass "real Herdr lab: a dead version-1 journal whose token workspace still exists is kept for the sweep while the spawn proceeds flat"
+teardown_task deadkeep "$HOME_DIR" > "$TMP_ROOT/deadkeep-teardown.out" 2> "$TMP_ROOT/deadkeep-teardown.err" \
+  || fail "deadkeep teardown failed: $(cat "$TMP_ROOT/deadkeep-teardown.err")"
+lab workspace close "$DEADKEEP_FIXTURE_WSID" >/dev/null 2>&1 \
+  || fail "could not close the deadkeep token-workspace fixture"
+rm -f "$HOME_DIR/state/deadkeep.herdr-presentation"
+
 # A 38-character task id makes a 67-character projection label.
 # Herdr holds that label verbatim - workspace create returns it and the
 # workspace list reads it back intact - so the exact token-suffix lookups

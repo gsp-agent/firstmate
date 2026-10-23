@@ -265,7 +265,7 @@ A failed create cleans up only the exact panes its complete response proved safe
 Its attempt journal is retired once no workspace label carries its token, and otherwise stays quarantined for the session-start sweep.
 
 A version 1 journal with no task record beside it is a dead attempt, because no worker ever launched from it.
-A later spawn retires that journal and continues flat instead of refusing.
+A later spawn continues flat instead of refusing, and retires that journal only once no workspace carries its token; while its token workspace is present or unproven, the journal stays quarantined for the session-start sweep, which finds that workspace only through it.
 A journal beside a task record keeps the stricter recovery path: exact endpoint death must be proven before a flat fallback, and a live or unverifiable pane still refuses a duplicate launch.
 
 ### Owning parent and tabs
