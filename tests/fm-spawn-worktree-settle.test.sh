@@ -274,6 +274,11 @@ PY
   chmod +x "$FAKEBIN_DIR/herdr"
 }
 
+# A pool-full Herdr refusal in each layout: `flat` turns presentation off, so
+# the ordinary locked close runs; `contended` keeps it on while another holder
+# keeps the session's presentation lock past the bounded retry, so the spawn
+# falls back flat and its cleanup may not close the pane at all; `projected`
+# closes the projection it holds the lock for.
 # shellcheck disable=SC2030 # This test intentionally isolates its environment in a subshell.
 test_pool_full_herdr_cleanup_is_confirmed() (
   local layout=$1 close_mode=$2 rec id out status lock_path
@@ -282,7 +287,11 @@ test_pool_full_herdr_cleanup_is_confirmed() (
   read_settle_record "$rec"
   make_settle_herdr_fake
   fm_test_fake_sleep_noop "$FAKEBIN_DIR"
-  printf 'on\n' > "$HOME_DIR/config/herdr-presentation-spaces"
+  if [ "$layout" = flat ]; then
+    printf 'off\n' > "$HOME_DIR/config/herdr-presentation-spaces"
+  else
+    printf 'on\n' > "$HOME_DIR/config/herdr-presentation-spaces"
+  fi
   unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID HERDR_SOCKET_PATH
   export FM_HOME="$HOME_DIR" FM_STATE_OVERRIDE="$HOME_DIR/state" FM_BACKEND=herdr
   export HERDR_SESSION="$id" FM_FAKE_HERDR_DIR="$CASE_DIR" PATH="$FAKEBIN_DIR:$PATH"
@@ -291,23 +300,30 @@ test_pool_full_herdr_cleanup_is_confirmed() (
   . "$ROOT/bin/fm-backend.sh"
   fm_backend_source herdr || fail "could not load the Herdr adapter"
   lock_path=$(fm_backend_herdr_presentation_session_lock_path "$HERDR_SESSION") || fail "could not resolve the fake session's presentation lock"
-  if [ "$layout" = flat ]; then
+  if [ "$layout" = contended ]; then
     fm_lock_try_acquire "$lock_path" || fail "could not hold the presentation lock"
   fi
 
   out=$(FM_FAKE_TREEHOUSE=pool-full run_settle_spawn "$id")
   status=$?
-  if [ "$layout" = flat ]; then
+  case "$layout" in
+  contended)
     [ -e "$lock_path" ] || fail "spawn removed another process's presentation lock"
     fm_lock_release "$lock_path" || fail "could not release the presentation lock"
     assert_contains "$out" "presentation focus lock unavailable" "the spawn did not contend with the held lock"
-  else
+    ;;
+  projected)
     [ -f "$HOME_DIR/state/$id.herdr-presentation" ] || fail "the spawn did not create a projection"
-  fi
+    ;;
+  esac
   [ "$status" -ne 0 ] || fail "Herdr spawn launched on a full pool"$'\n'"$out"
   assert_contains "$out" "all 16 worktrees are in use or dirty (max_trees = 16)" "Herdr refusal lost treehouse's reason"$'\n'"$out"
   [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "Herdr refusal published task metadata"
-  if [ "$close_mode" = closed ]; then
+  if [ "$layout" = contended ]; then
+    jq -e --arg label "fm-$id" 'any(.tabs[]; .label == $label)' "$CASE_DIR/herdr.json" >/dev/null || fail "the refusal closed its tab without the session's presentation lock"$'\n'"$out"
+    assert_not_contains "$out" "was closed" "the refusal reported a close it was not allowed to make"$'\n'"$out"
+    assert_contains "$out" "could not confirm closure of its endpoint; inspect window $HERDR_SESSION:w1:p1" "the refusal did not name the exact endpoint it left"$'\n'"$out"
+  elif [ "$close_mode" = closed ]; then
     jq -e --arg label "fm-$id" 'all(.tabs[]; .label != $label) and (.workspaces | length) == 1 and (.panes | length) == 1 and .panes[0].pane_id == "w1:p0"' "$CASE_DIR/herdr.json" >/dev/null || fail "Herdr refusal left its tab, pane, or workspace behind"$'\n'"$out"
     assert_contains "$out" "was closed" "the refusal did not confirm the closed endpoint"
   else
@@ -318,7 +334,7 @@ test_pool_full_herdr_cleanup_is_confirmed() (
     assert_contains "$out" "could not confirm closure" "the refusal did not report the unconfirmed endpoint"$'\n'"$out"
     assert_contains "$out" "inspect window $HERDR_SESSION:" "the refusal did not identify the endpoint to inspect"
   fi
-  pass "a pool-full $layout Herdr refusal confirms $close_mode cleanup"
+  pass "a pool-full $layout Herdr refusal after a $close_mode close reports its endpoint truthfully"
 )
 
 # A single stale first read (the exact incident) must not be accepted: the
@@ -826,6 +842,7 @@ test_pool_full_herdr_cleanup_is_confirmed flat closed || exit 1
 test_pool_full_herdr_cleanup_is_confirmed flat refused || exit 1
 test_pool_full_herdr_cleanup_is_confirmed flat noop || exit 1
 test_pool_full_herdr_cleanup_is_confirmed flat unknown || exit 1
+test_pool_full_herdr_cleanup_is_confirmed contended closed || exit 1
 test_pool_full_herdr_cleanup_is_confirmed projected closed || exit 1
 test_pool_full_herdr_cleanup_is_confirmed projected noop || exit 1
 
