@@ -5635,7 +5635,7 @@ test_task_data_stage_limit_bounds_reference_reads() {
   task="$case_dir/data/task-x1"
   record="$task/record/data-cleanup.json"
   mkdir -p "$task"
-  printf 'Bead: tst-slow1\n' > "$task/brief.md"
+  printf 'Bead: obs-slow1\n' > "$task/brief.md"
   printf 'scratch\n' > "$task/scratch.bin"
   real_python=$(command -v python3)
   cat > "$case_dir/fakebin/python3" <<SH
@@ -5679,7 +5679,7 @@ test_task_data_slow_expire_releases_locks() {
   mkdir -p "$case_dir/project"
   for held in old-done young-done; do
     beads='[]'
-    [ "$held" = young-done ] || beads='["tst-slow1", "tst-slow2", "tst-slow3"]'
+    [ "$held" = young-done ] || beads='["obs-slow1", "obs-slow2", "obs-slow3"]'
     mkdir -p "$case_dir/data/$held/record" "$case_dir/data/$held/.cleanup-hold"
     printf 'held scratch\n' > "$case_dir/data/$held/.cleanup-hold/scratch.bin"
     jq -n --arg task "$held" --arg project "$case_dir/project" --arg data "$case_dir/data" --argjson beads "$beads" \
@@ -5978,7 +5978,7 @@ SH
 
   write_pending_hold "$case_dir" bb-huge
   record="$case_dir/data/bb-huge/record/data-cleanup.json"
-  jq '.complete = false | .expiry = "too-large" | .sources[0].beads = ["tst-unread1"]' "$record" > "$record.next" \
+  jq '.complete = false | .expiry = "too-large" | .sources[0].beads = ["obs-unread1"]' "$record" > "$record.next" \
     && mv "$record.next" "$record"
   printf 'unstaged scratch\n' > "$case_dir/data/bb-huge/late.bin"
   if PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" bb-huge \
@@ -6109,7 +6109,7 @@ test_task_data_bead_id_filter() {
   case_dir=$(make_case task-data-bead-filter)
   write_pending_hold "$case_dir" aa-filter
   record="$case_dir/data/aa-filter/record/data-cleanup.json"
-  jq '.sources[0].beads = ["09-30", "2026-09-29T21", "s-workflow", "proof-related"]' \
+  jq '.sources[0].beads = ["09-30", "2026-09-29T21", "s-workflow", "obs-proof"]' \
     "$record" > "$record.next" && mv "$record.next" "$record"
   printf 'Bead 09-30\nBead 2026-09-29T21\nbeads-workflow\n' \
     > "$case_dir/data/aa-filter/brief.md"
@@ -6118,9 +6118,9 @@ test_task_data_bead_id_filter() {
   printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-printf '%s\n' "$2" >> "$BR_CALLS"
-[ "$2" = proof-related ] || exit 1
-printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+printf '%s\n' "$4" >> "$BR_CALLS"
+[ "$4" = obs-proof ] || exit 1
+printf '[{"id":"obs-proof","description":"[capture](proof.png)"}]\n'
 SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
@@ -6131,11 +6131,11 @@ SH
     bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" aa-filter \
     > "$case_dir/out" 2> "$case_dir/err" \
     || fail "expiry with prose bead strings failed: $(cat "$case_dir/err")"
-  grep -Fxq proof-related "$case_dir/br-calls" || fail "the real bead was never read"
+  grep -Fxq obs-proof "$case_dir/br-calls" || fail "the real bead was never read"
   if grep -Fxq 09-30 "$case_dir/br-calls"; then fail "a date fragment was read as a bead"; fi
   if grep -Fxq 2026-09-29T21 "$case_dir/br-calls"; then fail "a timestamp was read as a bead"; fi
   if grep -Fxq s-workflow "$case_dir/br-calls"; then fail "a word fragment was read as a bead"; fi
-  jq -e '.expired == true and .sources[0].beads == ["proof-related"]' "$record" >/dev/null \
+  jq -e '.expired == true and .sources[0].beads == ["obs-proof"]' "$record" >/dev/null \
     || fail "the cleanup record kept prose bead strings: $(cat "$record")"
   assert_absent "$case_dir/data/aa-filter/.cleanup-hold" "the filtered hold did not expire"
   pass "fm-teardown: only real bead ids count as bead references, in new text and in saved records"
@@ -6160,7 +6160,7 @@ TOML
 ## Archived 2026-10-11
 - [x] task-x1 - finished (repo: demo) (done 2026-10-11)
   [capture](row.png)
-  Bead proof-related
+  Bead obs-proof
 MD
   mkdir -p "$task/record"
   jq -n --arg project "$case_dir/projects/demo" --arg data "$case_dir/data" \
@@ -6174,7 +6174,7 @@ cat >/dev/null
 SH
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+printf '[{"id":"obs-proof","description":"[capture](proof.png)"}]\n'
 SH
   chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/br"
   PATH="$case_dir/fakebin:$PATH" \
@@ -6184,9 +6184,181 @@ SH
   assert_present "$task/row.png" "the archived row's linked evidence was removed"
   assert_present "$task/proof.png" "the archived row's bead-linked evidence was removed"
   assert_absent "$task/discard.bin" "scratch stayed after the archived row resolved"
-  jq -e '.expired == true and .sources[0].beads == ["proof-related"]' "$record" >/dev/null \
+  jq -e '.expired == true and .sources[0].beads == ["obs-proof"]' "$record" >/dev/null \
     || fail "the archived-row hold did not expire: $(cat "$record")"
   pass "fm-teardown: a finished task whose row moved to the archive still resolves its references"
+}
+
+test_task_data_completed_row_identity() {
+  local case_dir task record kind variant checkout origin record_pr row_pr row_name changed rc
+  for kind in archived legacy; do
+    for variant in path-text other-checkout other-checkout-no-pr review changed-repo changed-repo-same-pr changed-pr; do
+      case_dir="$TMP_ROOT/task-data-row-identity-$kind-$variant"
+      task="$case_dir/data/task-x1"
+      record="$task/record/data-cleanup.json"
+      origin=https://github.com/carmandale/agent-config.git
+      record_pr=https://github.com/carmandale/agent-config/pull/185
+      row_pr=$record_pr
+      row_name=agent-config
+      changed=false
+      case "$variant" in
+        path-text) checkout="$case_dir/dev/agent-config" ;;
+        other-checkout) checkout="$case_dir/home/.agent-config" ;;
+        other-checkout-no-pr)
+          checkout="$case_dir/dev/firstmate-upstream" origin=https://github.com/gsp-agent/firstmate.git
+          record_pr='' row_pr='' row_name=firstmate
+          ;;
+        review)
+          checkout="$case_dir/projects/agent-config" record_pr=''
+          row_pr=https://github.com/carmandale/agent-config/pull/304
+          ;;
+        changed-repo)
+          checkout="$case_dir/dev/agent-config" record_pr='' row_pr='' row_name=agent-observer changed=true
+          ;;
+        changed-repo-same-pr)
+          checkout="$case_dir/dev/agent-config" row_name=agent-observer changed=true
+          ;;
+        changed-pr)
+          checkout="$case_dir/projects/agent-config" row_pr=https://github.com/carmandale/agent-config/pull/186 changed=true
+          ;;
+      esac
+      mkdir -p "$task/record" "$case_dir/history" "$case_dir/state" "$case_dir/config" "$case_dir/fakebin"
+      git init -q "$checkout"
+      git -C "$checkout" remote add origin "$origin"
+      printf 'row evidence\n' > "$task/row.png"
+      printf 'scratch\n' > "$task/discard.bin"
+      cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+      printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+      printf '## Archived 2026-10-20\n- [x] task-x1 - finished %s (repo: %s) (merged 2026-10-20)\n  [capture](row.png)\n' \
+        "$row_pr" "$row_name" > "$case_dir/history/completed.md"
+      jq -n --arg project "$checkout" --arg pr "$record_pr" --arg data "$case_dir/data" --arg kind "$kind" \
+        --arg text "$(sed -n 2,3p "$case_dir/history/completed.md")" \
+        '{version: 1, task: "task-x1", complete: false, expired: false,
+          sources: [{project: $project, pr: $pr, beads: [],
+            backlog: ({data: $data, task: "task-x1"} + (if $kind == "legacy" then {legacy: true, text: $text} else {} end))}]}' \
+        > "$record"
+      cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2 $3" = 'pr view 185' ] || exit 2
+printf 'body: the recorded pull request\n'
+SH
+      cat > "$case_dir/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2" = 'show task-x1' ] || exit 2
+printf 'code: NOT_FOUND\n'
+exit 1
+SH
+      printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
+      chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/dcg"
+      rc=0
+      PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire \
+        "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err" || rc=$?
+      if [ "$changed" = true ]; then
+        expect_code 1 "$rc" "$kind $variant expired a row that changed its owner"
+        assert_grep 'completed row task-x1 changed project or PR' "$case_dir/err" \
+          "$kind $variant did not name the changed owner"
+        assert_present "$task/discard.bin" "$kind $variant moved scratch for a row that changed its owner"
+        assert_absent "$task/.cleanup-hold" "$kind $variant staged data for a row that changed its owner"
+      else
+        expect_code 0 "$rc" "$kind $variant kept a row with the same owner whole: $(cat "$case_dir/err")"
+        assert_present "$task/row.png" "$kind $variant lost the completed row's evidence"
+        assert_absent "$task/discard.bin" "$kind $variant kept scratch for a row with the same owner"
+        jq -e --arg pr "$record_pr" '.expired == true and .sources[0].pr == $pr' "$record" >/dev/null \
+          || fail "$kind $variant did not expire under the recorded owner: $(cat "$record")"
+      fi
+    done
+  done
+  pass "fm-teardown: a completed row changes its task's owner only for another repository or another non-empty PR"
+}
+
+test_task_data_completed_row_tied_identity() {
+  local case_dir task record kind variant checkout record_pr row_pr other_pr other_repo changed rc
+  for kind in legacy archived; do
+    for variant in saved-pr-blank-last saved-pr-blank-first path-text no-pr added-pr removed-pr changed-repo changed-pr conflicting-prs; do
+      case_dir="$TMP_ROOT/task-data-row-tied-identity-$kind-$variant"
+      task="$case_dir/data/task-x1"
+      record="$task/record/data-cleanup.json"
+      checkout="$case_dir/dev/agent-config"
+      record_pr=https://github.com/carmandale/agent-config/pull/185
+      row_pr=$record_pr other_pr=$record_pr other_repo=$checkout changed=false
+      case "$variant" in
+        saved-pr-blank-last)
+          record_pr=https://github.com/carmandale/agent-config/pull/186 other_pr='' changed=true
+          ;;
+        saved-pr-blank-first)
+          record_pr=https://github.com/carmandale/agent-config/pull/186 row_pr='' changed=true
+          ;;
+        no-pr) record_pr='' row_pr='' other_pr='' ;;
+        added-pr) record_pr='' row_pr='' ;;
+        removed-pr) record_pr='' other_pr='' ;;
+        changed-repo) other_repo=agent-observer changed=true ;;
+        changed-pr|conflicting-prs)
+          other_pr=https://github.com/carmandale/agent-config/pull/186 changed=true
+          ;;
+      esac
+      mkdir -p "$task/record" "$case_dir/history" "$case_dir/state" "$case_dir/config" "$case_dir/fakebin"
+      git init -q "$checkout"
+      git -C "$checkout" remote add origin https://github.com/carmandale/agent-config.git
+      printf 'row evidence\n' > "$task/row.png"
+      printf 'other evidence\n' > "$task/other.png"
+      printf 'scratch\n' > "$task/discard.bin"
+      cat > "$case_dir/.tasks.toml" <<'TOML'
+backend = "markdown"
+[markdown]
+path = "data/backlog.md"
+archive = "history/completed.md"
+TOML
+      printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
+      printf '## Archived 2026-10-20\n- [x] task-x1 - finished %s (repo: agent-config) (merged 2026-10-20)\n  [capture](row.png)\n' \
+        "$row_pr" > "$case_dir/history/completed.md"
+      printf '%s\n' "- [x] task-x1 - finished $other_pr (repo: $other_repo) (merged 2026-10-20)" \
+        '  [capture](other.png)' >> "$case_dir/history/completed.md"
+      if [ "$variant" = conflicting-prs ]; then
+        printf '%s\n' '- [x] task-x1 - finished (repo: agent-config) (merged 2026-10-20)' \
+          >> "$case_dir/history/completed.md"
+      fi
+      jq -n --arg project "$checkout" --arg pr "$record_pr" --arg data "$case_dir/data" --arg kind "$kind" \
+        --arg text "$(cat "$case_dir/history/completed.md")" \
+        '{version: 1, task: "task-x1", complete: false, expired: false,
+          sources: [{project: $project, pr: $pr, beads: [],
+            backlog: ({data: $data, task: "task-x1"} + (if $kind == "legacy" then {legacy: true, text: $text} else {} end))}]}' \
+        > "$record"
+      cat > "$case_dir/fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2 $3" = 'pr view 185' ] || [ "$1 $2 $3" = 'pr view 186' ] || exit 2
+printf 'body: the recorded pull request\n'
+SH
+      cat > "$case_dir/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+[ "$1 $2" = 'show task-x1' ] || exit 2
+printf 'code: NOT_FOUND\n'
+exit 1
+SH
+      printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
+      chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/dcg"
+      rc=0
+      PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire \
+        "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/out" 2> "$case_dir/err" || rc=$?
+      if [ "$changed" = true ]; then
+        expect_code 1 "$rc" "$kind $variant expired tied rows that disagree on their owner"
+        assert_present "$task/discard.bin" "$kind $variant moved scratch for tied rows that disagree on their owner"
+        assert_absent "$task/.cleanup-hold" "$kind $variant staged tied rows that disagree on their owner"
+      else
+        expect_code 0 "$rc" "$kind $variant kept tied rows with the same owner whole: $(cat "$case_dir/err")"
+        assert_present "$task/row.png" "$kind $variant lost the first completed row's evidence"
+        assert_present "$task/other.png" "$kind $variant lost the second completed row's evidence"
+        assert_absent "$task/discard.bin" "$kind $variant kept scratch for tied rows with the same owner"
+        jq -e --arg pr "$record_pr" '.expired == true and .sources[0].pr == $pr' "$record" >/dev/null \
+          || fail "$kind $variant changed the recorded owner: $(cat "$record")"
+      fi
+    done
+  done
+  pass "fm-teardown: tied completed rows compare repository identities and only conflicting non-empty PRs"
 }
 
 test_task_data_archived_unread_bead() {
@@ -6203,7 +6375,7 @@ path = "data/backlog.md"
 archive = "history/completed.md"
 TOML
   printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
-  printf '## Archived 2026-10-11\n- [x] task-x1 - finished (repo: demo) (done 2026-10-11)\n  Bead proof-related\n' \
+  printf '## Archived 2026-10-11\n- [x] task-x1 - finished (repo: demo) (done 2026-10-11)\n  Bead obs-proof\n' \
     > "$case_dir/history/completed.md"
   record="$task/record/data-cleanup.json"
   jq -n --arg project "$case_dir/projects/demo" --arg data "$case_dir/data" \
@@ -6221,12 +6393,12 @@ TOML
     assert_present "$task/proof.png" "$action removed unread bead evidence from an archived row"
     assert_present "$task/scratch.bin" "$action moved scratch before reading the archived row's bead"
     assert_absent "$task/.cleanup-hold" "$action staged an unread archived-row reference"
-    jq -e '.complete == false and .sources[0].beads == ["proof-related"] and .sources[0].unread == ["proof-related"]' \
+    jq -e '.complete == false and .sources[0].beads == ["obs-proof"] and .sources[0].unread == ["obs-proof"]' \
       "$record" >/dev/null || fail "$action lost the archived row's unread bead: $(cat "$record")"
   done
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+printf '[{"id":"obs-proof","description":"[capture](proof.png)"}]\n'
 SH
   PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire \
     "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/retry.out" 2> "$case_dir/retry.err" \
@@ -6242,7 +6414,7 @@ test_task_data_archived_bead_id_collision() {
     for complete in true false; do
       for variant in new saved optional; do
         case_dir=$(make_case "task-data-archived-collision-$action-$complete-$variant")
-        task="$case_dir/data/task-x1"
+        task="$case_dir/data/obs-x1"
         location="$task"
         [ "$complete" != true ] || location="$task/.cleanup-hold"
         mkdir -p "$location" "$task/record" "$case_dir/history" "$case_dir/projects/demo"
@@ -6255,15 +6427,15 @@ path = "data/backlog.md"
 archive = "history/completed.md"
 TOML
         printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
-        printf '## Archived 2026-10-11\n- [x] task-x1 - finished (repo: demo) (done 2026-10-11)\n  Bead task-x1\n' \
+        printf '## Archived 2026-10-11\n- [x] obs-x1 - finished (repo: demo) (done 2026-10-11)\n  Bead obs-x1\n' \
           > "$case_dir/history/completed.md"
         record="$task/record/data-cleanup.json"
         jq -n --arg project "$case_dir/projects/demo" --arg data "$case_dir/data" \
           --arg variant "$variant" --argjson complete "$complete" \
-          '{version: 1, task: "task-x1", complete: $complete, expired: false,
+          '{version: 1, task: "obs-x1", complete: $complete, expired: false,
             sources: [{project: $project, pr: "",
-              beads: (if $variant == "new" then [] else ["task-x1"] end),
-              backlog: {data: $data, task: (if $variant == "optional" then null else "task-x1" end)}}]}' \
+              beads: (if $variant == "new" then [] else ["obs-x1"] end),
+              backlog: {data: $data, task: (if $variant == "optional" then null else "obs-x1" end)}}]}' \
           > "$record"
         printf '#!/usr/bin/env bash\nexit 1\n' > "$case_dir/fakebin/br"
         printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
@@ -6271,7 +6443,7 @@ TOML
         args=()
         [ "$action" != stage ] || args=("$case_dir/projects/demo" '')
         PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" "$action" \
-          "$case_dir/data" "$case_dir/state" task-x1 ${args[@]+"${args[@]}"} \
+          "$case_dir/data" "$case_dir/state" obs-x1 ${args[@]+"${args[@]}"} \
           > "$case_dir/unread.out" 2> "$case_dir/unread.err" || true
         assert_present "$location/proof.png" "$action lost evidence for an unread bead sharing the archived task id ($complete/$variant)"
         assert_present "$location/scratch.bin" "$action moved scratch with an unread bead sharing the archived task id ($complete/$variant)"
@@ -6279,14 +6451,14 @@ TOML
           assert_absent "$task/.cleanup-hold" "$action staged data with an unread bead sharing the archived task id ($variant)"
         fi
         jq -e --argjson complete "$complete" \
-          '.complete == $complete and .expired == false and .sources[0].beads == ["task-x1"] and .sources[0].unread == ["task-x1"]' \
+          '.complete == $complete and .expired == false and .sources[0].beads == ["obs-x1"] and .sources[0].unread == ["obs-x1"]' \
           "$record" >/dev/null || fail "$action cleared the colliding bead failure ($complete/$variant): $(cat "$record")"
         cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-printf '[{"id":"task-x1","description":"[capture](proof.png)"}]\n'
+printf '[{"id":"obs-x1","description":"[capture](proof.png)"}]\n'
 SH
         PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire \
-          "$case_dir/data" "$case_dir/state" task-x1 > "$case_dir/retry.out" 2> "$case_dir/retry.err" \
+          "$case_dir/data" "$case_dir/state" obs-x1 > "$case_dir/retry.out" 2> "$case_dir/retry.err" \
           || fail "expiry failed after the colliding bead recovered ($action/$complete/$variant): $(cat "$case_dir/retry.err")"
         assert_present "$task/proof.png" "expiry lost evidence after the colliding bead recovered ($action/$complete/$variant)"
         assert_absent "$task/scratch.bin" "scratch stayed after the colliding bead recovered ($action/$complete/$variant)"
@@ -6309,7 +6481,7 @@ test_task_data_row_named_beads() {
   printf 'Captain: ship the thing\n' > "$task/brief.md"
   fm_test_tasks_toml "$case_dir/.tasks.toml"
   printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
-  tasks-axi add task-x1 "Ship it. Bead proof-related" --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi add task-x1 "Ship it. Bead obs-proof" --file "$case_dir/data/backlog.md" >/dev/null
   tasks-axi start task-x1 --file "$case_dir/data/backlog.md" >/dev/null
   jq -n --arg project "$case_dir/project" --arg data "$case_dir/data" \
     '{version: 1, task: "task-x1", complete: false, expired: false,
@@ -6317,8 +6489,8 @@ test_task_data_row_named_beads() {
     > "$task/record/data-cleanup.json"
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-[ "$2" = proof-related ] || exit 1
-printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+[ "$4" = obs-proof ] || exit 1
+printf '[{"id":"obs-proof","description":"[capture](proof.png)"}]\n'
 SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
@@ -6331,7 +6503,7 @@ SH
     || fail "staging with a row-named bead failed: $(cat "$case_dir/err")"
   assert_present "$task/proof.png" "evidence linked only from the owning row's bead was staged as scratch"
   assert_present "$task/.cleanup-hold/scratch.bin" "unreferenced scratch was not staged as scratch"
-  jq -e '.sources[0].beads == ["proof-related"]' "$task/record/data-cleanup.json" >/dev/null \
+  jq -e '.sources[0].beads == ["obs-proof"]' "$task/record/data-cleanup.json" >/dev/null \
     || fail "the owning row's bead was not recorded: $(cat "$task/record/data-cleanup.json")"
   pass "fm-teardown: beads named by the readable owning row resolve before evidence is classified"
 }
@@ -6356,7 +6528,7 @@ test_task_data_row_reread_archiving() {
         printf 'bead evidence\n' > "$location/proof.png"
         printf 'scratch\n' > "$location/scratch.bin"
         fm_test_tasks_toml "$case_dir/.tasks.toml"
-        printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n- [x] task-x1 - finished. Bead proof-related (repo: %s) (done 2026-10-11)\n  [capture](row.png)\n' \
+        printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n- [x] task-x1 - finished. Bead obs-proof (repo: %s) (done 2026-10-11)\n  [capture](row.png)\n' \
           "$case_dir/project" > "$case_dir/data/backlog.md"
         destination="$case_dir/data/done-archive.md"
         [ "$variant" != missing ] || destination="$case_dir/unavailable-row.md"
@@ -6379,8 +6551,8 @@ fi
 SH
         cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-[ "$2" = proof-related ] || exit 1
-printf '[{"id":"proof-related","description":"[capture](proof.png)"}]\n'
+[ "$4" = obs-proof ] || exit 1
+printf '[{"id":"obs-proof","description":"[capture](proof.png)"}]\n'
 SH
         printf '#!/usr/bin/env bash\ncat >/dev/null\n' > "$case_dir/fakebin/dcg"
         chmod +x "$case_dir/fakebin/tasks-axi" "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
@@ -6408,7 +6580,7 @@ SH
           expect_code 0 "$rc" "$action could not recover the row archived during reread ($known): $(cat "$case_dir/err")"
           assert_present "$task/row.png" "$action lost evidence when its owning row was archived during reread ($known)"
           assert_present "$task/proof.png" "$action lost the archived row's bead evidence ($known)"
-          jq -e '.sources[0].beads == ["proof-related"] and .sources[0].unread == []' "$record" >/dev/null \
+          jq -e '.sources[0].beads == ["obs-proof"] and .sources[0].unread == []' "$record" >/dev/null \
             || fail "$action did not resolve the archived owning row's bead ($known): $(cat "$record")"
           case "$action" in
             expire)
@@ -6430,7 +6602,7 @@ test_task_data_unread_named_once() {
   case_dir=$(make_case task-data-unread-once)
   write_pending_hold "$case_dir" aa-unread
   record="$case_dir/data/aa-unread/record/data-cleanup.json"
-  jq '.sources[0].beads = ["tst-unread1"]' "$record" > "$record.next" && mv "$record.next" "$record"
+  jq '.sources[0].beads = ["obs-unread1"]' "$record" > "$record.next" && mv "$record.next" "$record"
   fm_test_tasks_toml "$case_dir/.tasks.toml"
   printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
   printf '#!/usr/bin/env bash\nexit 1\n' > "$case_dir/fakebin/br"
@@ -6445,7 +6617,7 @@ SH
   fi
   assert_contains "$(cat "$case_dir/err1")" "unread references" \
     "the first unread expiry did not name the reference"
-  assert_contains "$(cat "$case_dir/state/aa-unread.status")" "unread references: tst-unread1" \
+  assert_contains "$(cat "$case_dir/state/aa-unread.status")" "unread references: obs-unread1" \
     "the first unread expiry did not append the reference to status"
   if PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
       "$case_dir/data" "$case_dir/state" aa-unread > "$case_dir/out2" 2> "$case_dir/err2"; then
@@ -6457,11 +6629,11 @@ SH
   assert_present "$case_dir/data/aa-unread/.cleanup-hold/scratch.bin" "an unread hold lost its data"
   [ "$(wc -l < "$case_dir/state/aa-unread.status" | tr -d ' ')" = 1 ] \
     || fail "the second expiry appended the same unread reference to status again"
-  jq -e '.sources[0].unread == ["tst-unread1"] and .unread_named == ["tst-unread1"]' "$record" >/dev/null \
+  jq -e '.sources[0].unread == ["obs-unread1"] and .unread_named == ["obs-unread1"]' "$record" >/dev/null \
     || fail "the cleanup record lost the unread reference: $(cat "$record")"
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-printf '[{"id":"tst-unread1","description":"no linked files"}]\n'
+printf '[{"id":"obs-unread1","description":"no linked files"}]\n'
 SH
   PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
     "$case_dir/data" "$case_dir/state" aa-unread > "$case_dir/out3" 2> "$case_dir/err3" \
@@ -6479,8 +6651,8 @@ test_task_data_unread_status_failure_retries() {
     write_pending_hold "$case_dir" aa-unread
     record="$case_dir/data/aa-unread/record/data-cleanup.json"
     if [ "$variant" = bead ]; then
-      reference=tst-unread1
-      jq '.sources[0].beads = ["tst-unread1"]' "$record" > "$record.next" && mv "$record.next" "$record"
+      reference=obs-unread1
+      jq '.sources[0].beads = ["obs-unread1"]' "$record" > "$record.next" && mv "$record.next" "$record"
     else
       reference=https://github.com/example/demo/pull/1
       jq --arg pr "$reference" '.sources[0].pr = $pr' "$record" > "$record.next" && mv "$record.next" "$record"
@@ -6528,7 +6700,7 @@ test_task_data_sweep_expires_big_hold() {
   case_dir=$(make_case task-data-sweep-big)
   write_pending_hold "$case_dir" aa-big
   record="$case_dir/data/aa-big/record/data-cleanup.json"
-  jq '.sources[0].beads = ["tst-slow1"] | .expiry = "cut-off"' \
+  jq '.sources[0].beads = ["obs-slow1"] | .expiry = "cut-off"' \
     "$record" > "$record.next" && mv "$record.next" "$record"
   touch -t 202001010000 "$record"
   for other in bb-too-large cc-unstaged; do
@@ -6542,7 +6714,7 @@ test_task_data_sweep_expires_big_hold() {
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
 sleep 4
-printf '[{"id":"tst-slow1","description":"no linked files"}]\n'
+printf '[{"id":"obs-slow1","description":"no linked files"}]\n'
 SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
@@ -6576,14 +6748,14 @@ test_task_data_sweep_single_instance() {
   case_dir=$(make_case task-data-sweep-single)
   write_pending_hold "$case_dir" aa-slow
   record="$case_dir/data/aa-slow/record/data-cleanup.json"
-  jq '.sources[0].beads = ["tst-slow1"]' "$record" > "$record.next" && mv "$record.next" "$record"
+  jq '.sources[0].beads = ["obs-slow1"]' "$record" > "$record.next" && mv "$record.next" "$record"
   fm_test_tasks_toml "$case_dir/.tasks.toml"
   printf '# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n' > "$case_dir/data/backlog.md"
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
 printf 'call\n' >> "$BR_CALLS"
 sleep 5
-printf '[{"id":"tst-slow1","description":"no linked files"}]\n'
+printf '[{"id":"obs-slow1","description":"no linked files"}]\n'
 SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
@@ -6631,7 +6803,7 @@ test_task_data_sweep_requester_recovery() {
     "$record" > "$record.next" && mv "$record.next" "$record"
   write_pending_hold "$case_dir" bb-budget
   record="$case_dir/data/bb-budget/record/data-cleanup.json"
-  jq '.sources[0].beads = ["tst-budget1"]' \
+  jq '.sources[0].beads = ["obs-budget1"]' \
     "$record" > "$record.next" && mv "$record.next" "$record"
   touch -t 202001010000 "$case_dir/data/aa-slow/record/data-cleanup.json" "$record"
   mkfifo "$case_dir/expiry-gate"
@@ -6646,11 +6818,11 @@ exec "$real_python" "\$@"
 SH
   cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-case "${2:-}" in
-  tst-budget1) sleep 4 ;;
+case "${4:-}" in
+  obs-budget1) sleep 4 ;;
   *) exit 1 ;;
 esac
-printf '[{"id":"%s","description":"no linked files"}]\n' "$2"
+printf '[{"id":"%s","description":"no linked files"}]\n' "$4"
 SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
@@ -7466,26 +7638,46 @@ SH
 }
 
 test_task_data_named_bead_resolution() {
-  local case_dir task bead variant expected
-  for variant in agent-config gsp project fallback unread; do
+  local case_dir task bead home variant
+  for variant in agent-config gsp other-project missing-project fallback archived not-found unowned unreadable archive-unreadable timeout; do
     [ -z "${FM_TASK_DATA_REF_CASE:-}" ] || [ "$variant" = "$FM_TASK_DATA_REF_CASE" ] || continue
     case_dir=$(make_case "task-data-named-$variant")
     task="$case_dir/data/task-x1"
-    mkdir -p "$task" "$case_dir/home/.agent-config" "$case_dir/home/dev/gsp-beads"
+    home=
     case "$variant" in
-      agent-config) bead=.agent-config-ojg69; expected="$case_dir/home/.agent-config" ;;
-      gsp) bead=gsp-kstok; expected="$case_dir/home/dev/gsp-beads" ;;
-      *) bead=proof-related; expected="$case_dir/project" ;;
+      agent-config) bead=.agent-config-ojg69; home=.agent-config-beads ;;
+      gsp) bead=gsp-kstok; home=dev/gsp-beads ;;
+      other-project) bead=heru-add; home=dev/heru-vr-vision-sim ;;
+      missing-project|unreadable|timeout) bead=bd-0gpi; home=dev/be-still ;;
+      fallback) bead=proof-related ;;
+      archived|archive-unreadable) bead='task-y2' ;;
+      not-found) bead=.agent-config-zzzz9 ;;
+      unowned) bead=probe-fixture ;;
     esac
+    mkdir -p "$task" "$case_dir/project/.beads" "$case_dir/home/.agent-config-beads/.beads"
+    printf '.beads/\n' >> "$case_dir/project/.git/info/exclude"
+    printf '{"proj-a1": "Unrelated project bead"}\n' > "$case_dir/project/.beads/beads.db"
+    printf '{}\n' > "$case_dir/home/.agent-config-beads/.beads/beads.db"
+    if [ -n "$home" ] && [ "$variant" != unreadable ]; then
+      mkdir -p "$case_dir/home/$home/.beads"
+      jq -n --arg id "$bead" '{($id): "[capture](proof.png)"}' > "$case_dir/home/$home/.beads/beads.db"
+    fi
     printf 'Bead %s\n' "$bead" > "$task/brief.md"
+    [ "$variant" != unowned ] || printf 'Bead .probe-external\n' >> "$task/brief.md"
     printf 'linked evidence\n' > "$task/proof.png"
     printf 'scratch\n' > "$task/discard.bin"
-    write_meta "$case_dir" local-only ship
     seed_backlog_in_flight "$case_dir"
     fm_test_tasks_toml "$case_dir/.tasks.toml"
     if [ "$variant" = fallback ]; then
       tasks-axi add "$bead" 'named evidence' --body '[capture](proof.png)' \
         --file "$case_dir/data/backlog.md" >/dev/null
+    elif [ "$variant" = archived ]; then
+      printf '%s\n' '- [x] task-y2 - named and archived (done 2026-10-11)' '  [capture](proof.png)' \
+        > "$case_dir/data/done-archive.md"
+    elif [ "$variant" = archive-unreadable ]; then
+      printf '%s\n' '- [x] task-y2 - named and archived (done 2026-10-11)' '  [capture](proof.png)' \
+        > "$case_dir/archive.md"
+      ln -s "$case_dir/archive.md" "$case_dir/data/done-archive.md"
     fi
     cat > "$case_dir/fakebin/br" <<'PY'
 #!/usr/bin/env python3
@@ -7493,45 +7685,80 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 
 assert not any(name in os.environ for name in ("BEADS_DIR", "BEADS_DB", "BR_DB"))
-assert sys.argv[1] == "show"
-assert sys.argv[2] == os.environ["REF_BEAD"]
-assert Path.cwd() == Path(os.environ["REF_OWNER"])
-if os.environ["REF_CASE"] in ("fallback", "unread") and not Path("readable").exists():
-    print("not found", file=sys.stderr)
-    sys.exit(1)
-print(json.dumps([{"id": sys.argv[2], "description": "[capture](proof.png)"}]))
+args = sys.argv[1:]
+if args[:1] == ["--db"]:
+    db, args = Path(args[1]), args[2:]
+    if not db.is_file():
+        print(json.dumps({"error": {"code": "CONFIG_ERROR", "message": f"database override '{db}' not found"}}))
+        sys.exit(7)
+else:
+    db = Path.cwd() / ".beads/beads.db"
+    if not db.is_file():
+        print(json.dumps({"error": {"code": "NOT_INITIALIZED", "message": "Beads not initialized"}}))
+        sys.exit(2)
+assert args[0] == "show" and args[2:] == ["--json"]
+rows = json.loads(db.read_text())
+if os.environ.get("REF_SLOW") == "1" or args[1] not in rows:
+    print(json.dumps({"error": {"code": "ISSUE_NOT_FOUND", "message": f"Issue not found: {args[1]}"}}), flush=True)
+    if os.environ.get("REF_SLOW") == "1":
+        time.sleep(30)
+    sys.exit(3)
+print(json.dumps([{"id": args[1], "description": rows[args[1]]}]))
 PY
     cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
 SH
     chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
-    HOME="$case_dir/home" REF_BEAD="$bead" REF_OWNER="$expected" REF_CASE="$variant" \
-      BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong \
-      run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
-      || fail "$variant named-bead teardown failed: $(cat "$case_dir/err")"
-    [ "$(backlog_row_state "$case_dir")" = 'done' ] || fail "$variant backlog close pending"
-    assert_absent "$case_dir/state/task-x1.meta" "$variant metadata not retired"
-    assert_absent "$case_dir/state/task-x1.backlog-close" "$variant pending close remains"
-    [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant bead evidence moved"
-    if [ "$variant" = unread ]; then
-      [ "$(cat "$task/discard.bin")" = scratch ] || fail "unread bead moved scratch"
-      assert_absent "$task/.cleanup-hold" "unread bead staged data"
-      assert_grep "$bead" "$case_dir/err" "unread bead missing from teardown warning"
-      jq -e --arg bead "$bead" '.complete == false and .sources[0].unread == [$bead]' \
-        "$task/record/data-cleanup.json" >/dev/null || fail "unread bead missing from cleanup record"
-      printf 'available\n' > "$case_dir/project/readable"
-      HOME="$case_dir/home" REF_BEAD="$bead" REF_OWNER="$expected" REF_CASE="$variant" \
-        PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
-        "$case_dir/data" "$case_dir/state" task-x1 || fail "unread bead retry failed"
-      jq -e '.sources[0].unread == []' "$task/record/data-cleanup.json" >/dev/null \
-        || fail "readable retry kept stale unread reference"
+    if [ "$variant" = missing-project ]; then
+      HOME="$case_dir/home" BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong PATH="$case_dir/fakebin:$PATH" \
+        python3 "$ROOT/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" task-x1 \
+        "$case_dir/projects/be-still" '' > "$case_dir/out" 2> "$case_dir/err" \
+        || fail "missing-project named-bead stage failed: $(cat "$case_dir/err")"
+    else
+      write_meta "$case_dir" local-only ship
+      HOME="$case_dir/home" REF_SLOW=$([ "$variant" = timeout ] && echo 1) \
+        FM_TEARDOWN_DATA_STAGE_TIMEOUT=60 BEADS_DIR=/wrong BEADS_DB=/wrong BR_DB=/wrong \
+        run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+        || fail "$variant named-bead teardown failed: $(cat "$case_dir/err")"
+      [ "$(backlog_row_state "$case_dir")" = 'done' ] || fail "$variant backlog close pending"
+      assert_absent "$case_dir/state/task-x1.meta" "$variant metadata not retired"
+      assert_absent "$case_dir/state/task-x1.backlog-close" "$variant pending close remains"
     fi
+    case "$variant" in
+      unreadable|archive-unreadable|timeout)
+        [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant bead evidence moved"
+        [ "$(cat "$task/discard.bin")" = scratch ] || fail "$variant bead moved scratch"
+        assert_absent "$task/.cleanup-hold" "$variant bead staged data"
+        assert_grep "$bead" "$case_dir/err" "$variant bead missing from teardown warning"
+        jq -e --arg bead "$bead" '.complete == false and .sources[-1].unread == [$bead]' \
+          "$task/record/data-cleanup.json" >/dev/null || fail "$variant bead missing from cleanup record"
+        if [ "$variant" = archive-unreadable ]; then
+          mv -f "$case_dir/archive.md" "$case_dir/data/done-archive.md"
+        else
+          mkdir -p "$case_dir/home/$home/.beads"
+          jq -n --arg id "$bead" '{($id): "[capture](proof.png)"}' > "$case_dir/home/$home/.beads/beads.db"
+        fi
+        HOME="$case_dir/home" PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+          "$case_dir/data" "$case_dir/state" task-x1 || fail "$variant bead retry failed"
+        [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant retry lost bead evidence"
+        ;;
+      not-found|unowned)
+        [ "$(cat "$task/.cleanup-hold/proof.png")" = 'linked evidence' ] \
+          || fail "$variant bead that does not exist still protected an unlinked file"
+        assert_absent "$task/proof.png" "$variant bead that does not exist kept an unlinked file in place"
+        ;;
+      *)
+        [ "$(cat "$task/proof.png")" = 'linked evidence' ] || fail "$variant bead evidence moved"
+        ;;
+    esac
+    jq -e '.complete == true and .sources[-1].unread == []' "$task/record/data-cleanup.json" >/dev/null \
+      || fail "$variant bead left an unread reference: $(jq -c '.sources[-1].unread' "$task/record/data-cleanup.json")"
     assert_present "$task/.cleanup-hold/discard.bin" "$variant scratch missed recovery cycle"
-    assert_present "$task/proof.png" "$variant retry lost evidence"
-    pass "fm-teardown: $variant named bead resolves safely and backlog closes"
+    pass "fm-teardown: $variant named bead is read from the database that owns its prefix"
   done
 }
 
@@ -8366,7 +8593,7 @@ SH
 }
 
 test_task_data_legacy_rows() {
-  local case_dir task variant helper project pr row_file note refresh original
+  local case_dir task variant helper project pr row_file note refresh original changed_repo
   helper="$ROOT/bin/fm-task-data.py"
   for variant in archive current no-pr missing active gitlab-note gerrit-note ambiguous-note ambiguous-notes repeated-note; do
     case_dir=$(make_case "task-data-legacy-$variant")
@@ -8398,16 +8625,16 @@ TOML
 
 ## Archived 2026-10-11
 - [x] task-x1 - finished https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo) (done 2026-10-11)
-  Bead proof-related; [capture](row.png)
+  Bead obs-proof; [capture](row.png)
 MD
     fi
     if [ "$variant" = current ]; then
       printf '%s\n' '- [x] task-x1 - newest https://github.com/groovejones/groove-sight-platform/pull/4365 (repo: demo) (done 2026-10-12)' \
-        '  Bead proof-related; [capture](row.png)' >> "$case_dir/data/backlog.md"
+        '  Bead obs-proof; [capture](row.png)' >> "$case_dir/data/backlog.md"
     elif [ "$variant" = no-pr ]; then
       pr=''
       printf '%s\n' '- [x] task-x1 - newest without a PR (repo: demo) (done 2026-10-12)' \
-        '  Bead proof-related; [capture](row.png)' >> "$case_dir/data/backlog.md"
+        '  Bead obs-proof; [capture](row.png)' >> "$case_dir/data/backlog.md"
     elif [ "$variant" = active ]; then
       printf '# Backlog\n\n## In flight\n- [ ] task-x1 - reused (repo: demo)\n' > "$case_dir/data/backlog.md"
     elif [ "$variant" = gitlab-note ] || [ "$variant" = gerrit-note ] || [ "$variant" = ambiguous-notes ]; then
@@ -8419,7 +8646,7 @@ MD
         note="GitLab merge request $pr"
       fi
       printf '%s\n' '- [x] task-x1 - newest (repo: demo) (done 2026-10-12)' \
-        '  Bead proof-related; [capture](row.png)' "  $note" >> "$row_file"
+        '  Bead obs-proof; [capture](row.png)' "  $note" >> "$row_file"
       if [ "$variant" = ambiguous-notes ]; then
         printf '  Gerrit change https://review.internal/c/group/repo/+/7\n' >> "$row_file"
       fi
@@ -8430,8 +8657,8 @@ MD
     fi
     cat > "$case_dir/fakebin/br" <<'SH'
 #!/usr/bin/env bash
-[ "$PWD" = "$REF_PROJECT" ] && [ "$1 $2" = 'show proof-related' ] || exit 1
-printf '[{"id":"proof-related","description":"[capture](bead.png)"}]\n'
+[ "$*" = "--db $HOME/dev/agent-observer/.beads/beads.db show obs-proof --json" ] && [ "$PWD" = / ] || exit 1
+printf '[{"id":"obs-proof","description":"[capture](bead.png)"}]\n'
 SH
     cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
@@ -8457,7 +8684,7 @@ cat >/dev/null
 SH
     chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/glab" \
       "$case_dir/fakebin/gerrit-axi" "$case_dir/fakebin/dcg"
-    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
       python3 "$helper" prepare "$case_dir/data" "$case_dir/state" task-x1 \
       > "$case_dir/out" 2> "$case_dir/err" || fail "legacy $variant prepare failed: $(cat "$case_dir/err")"
     if [ "$variant" = missing ] || [ "$variant" = active ] \
@@ -8472,10 +8699,10 @@ SH
       continue
     fi
     jq -e --arg project "$project" --arg pr "$pr" \
-      '.sources[-1] | .project == $project and .pr == $pr and .beads == ["proof-related"]' \
+      '.sources[-1] | .project == $project and .pr == $pr and .beads == ["obs-proof"]' \
       "$task/record/data-cleanup.json" >/dev/null || fail "legacy $variant chose stale or incomplete sources"
     original=$(jq -r '.sources[-1].backlog.text' "$task/record/data-cleanup.json")
-    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
       python3 "$helper" stage "$case_dir/data" "$case_dir/state" task-x1 "$project" "$pr" \
       || fail "legacy $variant stage failed"
     assert_present "$task/row.png" "legacy $variant lost completed-row evidence"
@@ -8486,20 +8713,23 @@ SH
     assert_present "$task/.cleanup-hold/discard.bin" "legacy $variant did not stage scratch"
     cp "$case_dir/data/backlog.md" "$case_dir/saved-backlog.md"
     printf '# Backlog\n\n## In flight\n- [ ] task-x1 - reused (repo: demo)\n' > "$case_dir/data/backlog.md"
-    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
       python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
       > "$case_dir/out" 2> "$case_dir/err" || fail "active legacy retry failed the pass"
     assert_present "$task/.cleanup-hold/discard.bin" "legacy expiry ignored the active backlog row"
     for refresh in changed ambiguous; do
       [ "$refresh" != ambiguous ] || [ -n "$pr" ] || continue
       cp "$case_dir/saved-backlog.md" "$case_dir/data/backlog.md"
-      printf '%s\n' '- [x] task-x1 - changed (repo: demo) (done 2026-10-13)' \
+      # A PR the row adds to a PR-less record is a reference, so that record changes owner only by repository.
+      changed_repo=demo
+      [ -n "$pr" ] || changed_repo=elsewhere
+      printf '%s\n' "- [x] task-x1 - changed (repo: $changed_repo) (done 2026-10-13)" \
         '  Completed https://github.com/groovejones/groove-sight-platform/pull/4366' \
         >> "$case_dir/data/backlog.md"
       if [ "$refresh" = ambiguous ]; then
         printf '  Completed %s\n' "$pr" >> "$case_dir/data/backlog.md"
       fi
-      REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+      FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
         python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
         > "$case_dir/out" 2> "$case_dir/err" || fail "$refresh legacy source failed the pass"
       assert_present "$task/.cleanup-hold/discard.bin" "legacy expiry ignored the $refresh PR"
@@ -8512,7 +8742,7 @@ SH
     cp "$case_dir/saved-backlog.md" "$case_dir/data/backlog.md"
     printf 'later evidence\n' > "$task/.cleanup-hold/later.png"
     printf '  [later capture](later.png)\n' >> "$row_file"
-    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
       python3 "$helper" expire "$case_dir/data" "$case_dir/state" task-x1 \
       || fail "legacy $variant expiry failed"
     assert_present "$task/later.png" "legacy $variant did not refresh completed-row references"
@@ -8525,7 +8755,7 @@ SH
     fm_write_meta "$case_dir/state/task-x1.meta" "project=$project" 'kind=ship' \
       'pr=https://github.com/groovejones/groove-sight-platform/pull/4366'
     printf '# Backlog\n\n## In flight\n- [ ] task-x1 - reused (repo: demo)\n' > "$case_dir/data/backlog.md"
-    REF_PROJECT="$project" FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" \
       python3 "$helper" prepare "$case_dir/data" "$case_dir/state" task-x1 \
       || fail "reused legacy task could not record its new retirement"
     jq -e '.sources[-1].pr == "https://github.com/groovejones/groove-sight-platform/pull/4366"' \
@@ -8966,10 +9196,18 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-row-reread ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-row-identity ]; then
+  test_task_data_completed_row_identity
+  test_task_data_completed_row_tied_identity
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-refs ]; then
   test_task_data_archived_bead_id_collision
   test_task_data_bead_id_filter
   test_task_data_archived_row_reference
+  test_task_data_completed_row_identity
+  test_task_data_completed_row_tied_identity
   test_task_data_row_named_beads
   test_task_data_row_reread_archiving
   test_task_data_archived_unread_bead
@@ -9081,6 +9319,8 @@ test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
 test_task_data_expire_over_total_cap_reads_nothing
 test_task_data_bead_id_filter
 test_task_data_archived_row_reference
+test_task_data_completed_row_identity
+test_task_data_completed_row_tied_identity
 test_task_data_row_named_beads
 test_task_data_row_reread_archiving
 test_task_data_archived_unread_bead

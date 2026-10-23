@@ -17,8 +17,10 @@ Without metadata, prepare reads the latest completed markdown backlog row,
 including the configured archive (legacy mode needs tomllib), when there is no
 cleanup record or the expired record holds a legacy row.
 Checked rows in the current backlog take precedence over archived rows.
-Within that source, completion dates order rows; missing or tied dates cannot
-resolve different projects or PRs, so those folders remain whole.
+Within that source, completion dates order rows; missing or tied dates leave
+conflicting owners unresolved under the rules below, so those folders remain whole.
+Compatible rows combine their references and preserve any non-empty PR for
+the owner check.
 PR identity and named beads come from the entire selected row, including its
 continuation notes; multiple distinct PRs retain the whole folder.
 Named repositories resolve below the backlog home's projects/; absolute repo
@@ -26,7 +28,11 @@ paths remain absolute.
 Missing, ambiguous, or active rows retain the whole folder.
 Legacy row references in the open recovery cycle are refreshed before staging
 and expiry, with the original row retained as evidence in the cleanup record.
-A changed project or PR identity in that cycle retains the whole folder.
+A row that changes the task's owner in that cycle retains the whole folder.
+Only another repository, or another PR where both name one, changes the owner;
+a PR the row adds where the record has none is a reference.
+A row's bare repo name names a registered project, which a recorded checkout
+matches by its directory name or its origin repository's name.
 Expired legacy rows and their last refreshed references remain historical
 evidence and are no longer compared with the current row when the task id is reused.
 Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
@@ -48,9 +54,12 @@ Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
 the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
 Backlog sources retain their home addressing in the cleanup record.
-Named .agent-config-* and gsp-* beads use br from ~/.agent-config and
-~/dev/gsp-beads, respectively; other named beads try br from the task project
-before the owning Firstmate backlog.
+A named bead is read from the one database that owns its prefix, whatever
+project the task recorded; fm-task-data-lib.sh keeps that prefix map, and an
+id whose prefix is not in it is read from the owning Firstmate backlog,
+including its configured archive.
+A bead its owner reports not found links nothing and is not unread; only an
+owner that cannot be read, or a read that times out, leaves it unread.
 These br reads clear BEADS_DIR, BEADS_DB, and BR_DB so inherited addressing
 cannot select a different database.
 Only strings shaped like real bead ids count as bead references, in new
@@ -60,7 +69,7 @@ more hyphen-separated lowercase alphanumeric segments, and optional numeric
 child suffixes such as .1. Dates do not qualify.
 A finished task whose required backlog row moved to the configured archive
 resolves that row and its named beads from the completed rows, under the same
-project and PR identity check as the legacy refresh.
+owner check as the legacy refresh.
 Beads named by a readable owning row merge with the supplied beads and
 resolve before evidence is classified, the same way completed-row beads do.
 Unread task or bead ids appear in each source's unread list in
@@ -297,7 +306,7 @@ def local_references(root, files, repos, limit=None):
     return "\n".join(texts), oversized
 
 
-def completed_source(data, task_id, limit=None):
+def completed_rows(data, task_id, limit=None):
     try:
         import tomllib
     except ImportError as error:
@@ -349,15 +358,22 @@ def completed_source(data, task_id, limit=None):
             except ValueError:
                 completed = ""
             candidates.append((path == backlog, completed, match[4], "\n".join(lines[index:end])))
+    return candidates
+
+
+def completed_source(data, task_id, limit=None):
+    candidates = completed_rows(data, task_id, limit)
     if not candidates:
         raise ValueError("no completed backlog row")
     candidates = [row for row in candidates if row[0]] or candidates
     latest = max(row[1] for row in candidates)
     sources = [completed_row_source(data, title, text)
                for _, completed, title, text in candidates if not completed or completed == latest]
-    if len({(source["project"], source["pr"]) for source in sources}) > 1:
+    if any(not same_owner(row, source, limit)
+           for index, row in enumerate(sources) for source in sources[index + 1:]):
         raise ValueError("completed backlog rows have different projects or PRs with unproven order")
     source = sources[-1]
+    source["pr"] = next((item["pr"] for item in sources if item["pr"]), "")
     source["text"] = "\n".join(item["text"] for item in sources)
     if len(source["text"].encode()) > LIMIT:
         raise ValueError("completed backlog evidence exceeds 1 MiB")
@@ -369,7 +385,8 @@ def completed_row_source(data, title, text):
     repos = re.findall(r"\((?:[^()]*\+\s*)?repo:\s*([^)]+)\)", title)
     if not repos:
         raise ValueError("completed backlog row has no project")
-    project = Path(repos[-1].strip()).expanduser()
+    repo = repos[-1].strip()
+    project = Path(repo).expanduser()
     if not project.is_absolute():
         if len(project.parts) != 1 or str(project) in (".", ".."):
             raise ValueError("completed backlog row has an ambiguous project path")
@@ -380,7 +397,31 @@ def completed_row_source(data, title, text):
     if len(text.encode()) > LIMIT:
         raise ValueError("completed backlog row exceeds 1 MiB")
     beads = bead_ids(text)
-    return {"project": str(project), "pr": next(iter(prs), ""), "beads": beads, "text": text}
+    return {"project": str(project), "repo": repo, "pr": next(iter(prs), ""), "beads": beads, "text": text}
+
+
+def repository_names(project, limit=None):
+    path = Path(project).expanduser()
+    if not path.is_absolute():
+        return {project}
+    names = {path.name}
+    if not (path / ".git").exists():
+        return names
+    try:
+        url = read_command(["git", "-C", str(path), "remote", "get-url", "origin"], str(path), limit)
+    except StageLimit:
+        raise
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return names
+    names.add(re.sub(r"\.git$", "", re.split(r"[/:]", url.strip().rstrip("/"))[-1]))
+    return names
+
+
+def same_owner(row, source, limit=None):
+    if row["pr"] and source["pr"] and row["pr"] != source["pr"]:
+        return False
+    return not repository_names(row["repo"], limit).isdisjoint(
+        repository_names(source.get("repo", source["project"]), limit))
 
 
 def backlog_references(source, task_id, limit=None):
@@ -394,7 +435,7 @@ def backlog_references(source, task_id, limit=None):
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             source["unread"] = [task_id]
             raise RetainWhole(f"unread completed row {task_id}: {error}") from error
-        if (completed["project"], completed["pr"]) != (source["project"], source["pr"]):
+        if not same_owner(completed, source, limit):
             source["unread"] = [task_id]
             raise RetainWhole(f"completed row {task_id} changed project or PR")
         backlog["refreshed_text"] = completed["text"]
@@ -405,20 +446,31 @@ def backlog_references(source, task_id, limit=None):
             response = json.loads(read_command([
                 "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
                 "backlog-references", backlog["data"], task_id,
-                "1" if required else "0", source["project"], *source["beads"],
+                "1" if required else "0", *source["beads"],
             ], str(Path(backlog["data"]).parent), limit))
             if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
                     or response.get("task") not in (None, task_id)
                     or (required and response.get("task") != task_id)
                     or not isinstance(response.get("unread"), list)
-                    or any(not isinstance(item, str) for item in response["unread"])):
+                    or not isinstance(response.get("archived"), list)
+                    or any(not isinstance(item, str) for item in response["unread"] + response["archived"])):
                 raise ValueError("invalid backlog reference response")
-            return response
         except StageLimit:
             raise
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             source["unread"] = sorted(set([task_id, *source["beads"]]))
             raise UnreadReferences(f"unread references {', '.join(source['unread'])}: {error}") from error
+        # tasks-axi show cannot see archived rows, so the archive decides.
+        for bead in response["archived"]:
+            try:
+                rows = completed_rows(Path(backlog["data"]), bead, limit)
+            except StageLimit:
+                raise
+            except (OSError, ValueError, subprocess.SubprocessError):
+                response["unread"].append(bead)
+                continue
+            response["text"] += "".join(row[3] + "\n" for row in rows)
+        return response
 
     response = read_backlog(backlog["task"] is not None and not legacy)
     if not legacy:
@@ -439,7 +491,7 @@ def backlog_references(source, task_id, limit=None):
         except (OSError, ValueError, subprocess.SubprocessError):
             completed = None
         if completed is not None:
-            if (completed["project"], completed["pr"]) != (source["project"], source["pr"]):
+            if not same_owner(completed, source, limit):
                 raise RetainWhole(f"completed row {task_id} changed project or PR")
             archived_text = completed["text"]
             source["unread"].remove(task_id)
