@@ -291,8 +291,28 @@ fm_backend_tmux_foreground_pids() {  # <target>
 # shells. A background harness in the same pane is not a root: the foreground
 # group is the agent the pane is attributed to.
 fm_backend_tmux_agent_root_pids() {  # <target>
-  local target=$1 pid comm args argv0
-  while IFS= read -r pid; do
+  local target=$1 session window windows inventory_status pane identity tty
+  local pid pgid tpgid comm args argv0
+  case "$target" in
+    *:*:*|'':*|*:'') return 0 ;;
+    *:*) ;;
+    *) return 0 ;;
+  esac
+  session=${target%%:*}
+  window=${target#*:}
+  windows=$(fm_backend_tmux_window_inventory "$session")
+  inventory_status=$?
+  [ "$inventory_status" -eq 0 ] || return 0
+  printf '%s\n' "$windows" | grep -Fqx -- "$window" || return 0
+  pane=$(tmux display-message -p -t "$target" '#{session_name}:#{window_name} #{pane_tty}' 2>/dev/null) \
+    || return 0
+  read -r identity tty <<EOF
+$pane
+EOF
+  [ "$identity" = "$target" ] && [ -n "$tty" ] || return 0
+  while read -r pid pgid tpgid comm; do
+    [ -n "$comm" ] || continue
+    [ "$pgid" = "$tpgid" ] || continue
     case "$pid" in ''|*[!0-9]*) continue ;; esac
     comm=$(LC_ALL=C ps -p "$pid" -o comm= 2>/dev/null) || continue
     comm=${comm#"${comm%%[![:space:]]*}"}
@@ -304,7 +324,7 @@ fm_backend_tmux_agent_root_pids() {  # <target>
       printf '%s\n' "$pid"
     fi
   done <<EOF
-$(fm_backend_tmux_foreground_pids "$target")
+$(LC_ALL=C ps -t "${tty#/dev/}" -o pid=,pgid=,tpgid=,comm= 2>/dev/null)
 EOF
 }
 

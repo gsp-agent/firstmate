@@ -196,6 +196,18 @@ case "${1:-}" in
   display-message)
     for a in "$@"; do
       case "$a" in
+        *session_name*)
+          while [ "$#" -gt 0 ] && [ "$1" != -t ]; do
+            shift
+          done
+          target=${2:-}
+          [ ! -f "$D/fallback-window" ] || target=$(cat "$D/fallback-window")
+          printf '%s ' "$target"
+          if [ -s "$D/tty" ]; then
+            tr -d '[:space:]' < "$D/tty"
+          fi
+          printf '\n'
+          exit 0 ;;
         *pane_tty*)
           if [ -s "$D/tty" ]; then
             tr -d '[:space:]' < "$D/tty"
@@ -1412,6 +1424,30 @@ test_exit_stops_a_background_shell_before_exit() {
   pass "fm-control exit: a running background shell is stopped before /exit"
 }
 
+test_exit_refuses_roots_from_another_tmux_window() {
+  local dir out rc agent_pid bash_pid sleep_pid
+  dir=$(new_case fallback-window)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir"
+  exit_picker_screen > "$dir/fake/pane"
+  printf '%s\n' 'other:fm-t2' > "$dir/fake/fallback-window"
+  agent_pid=$(tr -d '[:space:]' < "$dir/fake/agent-pid")
+  bash_pid=$(tr -d '[:space:]' < "$dir/bash.pid")
+  sleep_pid=$(tr -d '[:space:]' < "$dir/sleep.pid")
+  out=$(run_exit_with_nursery "$dir"); rc=$?
+  expect_code 1 "$rc" "a mismatched tmux window should refuse recovery"$'\n'"$out"
+  assert_contains "$out" "blocked on a prompt: Claude background-task exit picker" \
+    "the refusal should name the dialog"
+  pid_alive "$agent_pid" || fail "a mismatched window's agent must stay alive"
+  pid_alive "$bash_pid" || fail "a mismatched window's background shell must stay alive"
+  pid_alive "$sleep_pid" || fail "a mismatched window's background command must stay alive"
+  assert_sibling_survived "$dir"
+  [ ! -s "$dir/fake/literal" ] || fail "a mismatched window must receive no text"
+  [ ! -s "$dir/fake/keys" ] || fail "a mismatched window must receive no Escape or Enter"
+  pass "fm-control exit: a mismatched tmux window stops no processes and receives no keys"
+}
+
 test_exit_recovers_an_open_background_picker() {
   local dir out rc wt head status enters
   dir=$(new_case open-picker-live)
@@ -1693,6 +1729,7 @@ test_exit_refuses_an_open_background_picker
 test_exit_refuses_the_confirming_enter
 test_exit_names_a_picker_that_renders_after_the_submit
 test_exit_stops_a_background_shell_before_exit
+test_exit_refuses_roots_from_another_tmux_window
 test_exit_recovers_an_open_background_picker
 test_exit_recovers_a_picker_that_opens_on_submit
 test_exit_recovers_a_picker_that_renders_after_the_stop_wait
