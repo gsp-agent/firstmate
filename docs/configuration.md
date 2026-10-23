@@ -1178,8 +1178,10 @@ When the machine has a live-session detector at `~/.agent-config/scripts/live-se
 Firstmate does not ship the detector; its own header documents what it observes and what it misses.
 The detector is asked about the project's checkout folder name, with symlinks resolved, rather than Firstmate's registered project name, because it matches the name against the folders a person's work happens in.
 The check runs immediately before dispatch, after launch preparation.
-When it reports a live session, or cannot decide, `bin/fm-spawn.sh` launches no worker, preserves the prior task record and backlog state, prints one `deferred:` line carrying the detector's verdict, and exits 75, so Firstmate tries again once the check reads clear.
-A refused relaunch preserves the task's recorded worktree; a fresh spawn may already have prepared a worktree and its ship branch before the check.
+When it reports a live session, or cannot decide, `bin/fm-spawn.sh` launches no worker and preserves the prior task record and backlog state.
+A successful deferral prints a `deferred:` line carrying the detector's verdict and exits 75, so Firstmate tries again once the check reads clear.
+A refused relaunch preserves the task's recorded worktree; a fresh ship returns its prepared pool slot before retry, subject to the [spawn header's cleanup and ownership checks](../bin/fm-spawn.sh).
+If that cleanup refuses, the spawn exits 1 with the reason and retains the slot and claim for inspection rather than inviting an automatic retry.
 For the additional check before stopping an agent during a control-plane relaunch, see [Transactional relaunch](agent-control.md#transactional-relaunch).
 A secondmate spawn or relaunch is not checked.
 Typing in a focused terminal pane that works inside the project's checkout reads as live for two minutes, so typing to a project's own agent seat, or to Firstmate itself when the project is this Firstmate repository, defers that project's spawns until a later dispatch.

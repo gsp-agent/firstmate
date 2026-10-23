@@ -269,14 +269,22 @@
 #   asked about, and the verdict), every ship or scout launch asks it about the
 #   project immediately before dispatch. A read that is live or cannot decide
 #   prints a `deferred:` line naming the detector's verdict and exits 75 before
-#   launch or a backlog move. A --secondmate spawn is never checked.
+#   launch or a backlog move, unless slot cleanup refuses as described below.
+#   A --secondmate spawn is never checked.
 #   A fresh ship that already checked out its branch in a pool slot, and that
 #   defers or aborts before the launch is sent, returns that slot when the
-#   checkout holds no unpushed commits and no uncommitted changes. A slot that
-#   holds either is left checked out and the spawn refuses with the reason,
-#   exiting 1 and not as a deferral, so a retry cannot collide with its own
-#   branch. A relaunch, a launch already sent, and any checkout that is not
-#   this spawn's ship branch are not returned here.
+#   checkout holds no uncommitted changes and no commits absent from origin's
+#   remote refs. Without origin refs, its commits must instead be contained
+#   in other local branches; no other branch means comparison is impossible
+#   and return is refused. The task and metadata locks stay held through the
+#   return attempt. Under the project lock, cleanup rechecks metadata absence,
+#   the ship branch, cleanliness, commits, and this task's owner claim before
+#   calling treehouse return --force. Return succeeds only when the ship
+#   branch is no longer current there; the pool directory may remain registered
+#   in place. A refusal retains the checkout and claim, reports its reason,
+#   and exits 1 instead of 75. A relaunch, a launch already sent, and any
+#   checkout that is not this spawn's ship branch are not returned here.
+#   Regression coverage: tests/fm-spawn-defer-slot.test.sh.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
