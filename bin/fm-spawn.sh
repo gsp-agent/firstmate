@@ -393,11 +393,11 @@
 #   naming the last path seen and why it was rejected. A `treehouse get` that
 #   exits without entering a worktree, such as on a full pool, refuses as soon
 #   as the pane shows it returned, quoting treehouse's own output and attempting
-#   to close the task endpoint. Herdr reports closure only after proving the
-#   endpoint is gone; otherwise the refusal warns that closure is unconfirmed
-#   and names the endpoint to inspect. Every other backend always prints that
-#   warning, even if cleanup succeeded. The refusal exits nonzero without
-#   launching a worker.
+#   to close the task endpoint. Herdr closes a pane only under its session's
+#   presentation lock and reports closure only after proving the endpoint is
+#   gone; otherwise the refusal warns that closure is unconfirmed and names the
+#   endpoint to inspect. Every other backend always prints that warning, even
+#   if cleanup succeeded. The refusal exits nonzero without launching a worker.
 #   That placement is proven only at launch. Every ship or scout pane therefore
 #   also receives `export FM_TASK_ID=<task-id>` before the launch command, on
 #   the same channel as GOTMPDIR, and bin/fm-test-run.sh refuses to execute the
@@ -5713,10 +5713,16 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
         if [ "$BACKEND" = herdr ]; then
           SPAWN_ENDPOINT_CLOSED=1
           treehouse_unclosed=
+          # A pane the cleanup above left open is closed here only while this
+          # spawn holds the session's presentation lock. Herdr's kill refuses an
+          # unlocked close, and one made anyway can delete a flat workspace's
+          # last tab under the lock holder's own operation, so a contended pane
+          # is reported instead.
           for treehouse_pane in "$HERDR_PANE_ID" "${HERDR_PROJECTION_ABORT_SEEDED_PANE:-}"; do
             [ -n "$treehouse_pane" ] || continue
             if ! fm_backend_herdr_endpoint_confirmed_gone "$HERDR_SES:$treehouse_pane" &&
-              ! fm_backend_herdr_explicit_close_pane_confirmed "$HERDR_SES" "$treehouse_pane"; then
+              { [ "$HERDR_PRESENTATION_ORDER_LOCK_HELD" != 1 ] ||
+                ! fm_backend_herdr_explicit_close_pane_confirmed "$HERDR_SES" "$treehouse_pane"; }; then
               SPAWN_ENDPOINT_CLOSED=0
               treehouse_unclosed="${treehouse_unclosed:+$treehouse_unclosed }$HERDR_SES:$treehouse_pane"
             fi
