@@ -535,38 +535,41 @@ window_is_busy() {  # <window> <tail40>
   [ "${verdict%% *}" = busy ]
 }
 
-window_kind() {
+window_kind() {  # <window> [<out-var>]
   local w=$1 meta kind
-  meta=$(fm_backend_meta_for_window "$w" "$STATE" 2>/dev/null || true)
+  fm_backend_meta_for_window "$w" "$STATE" meta || meta=
   if [ -n "$meta" ]; then
-    kind=$(grep '^kind=' "$meta" | cut -d= -f2- || true)
+    fm_meta_get "$meta" kind kind
     [ -n "$kind" ] || kind=ship
-    echo "$kind"
-    return 0
+  else
+    kind=unknown
   fi
-  echo unknown
+  if [ "$#" -gt 1 ]; then printf -v "$2" '%s' "$kind"
+  else printf '%s\n' "$kind"; fi
 }
 
 # window_backend: the backend recorded in the meta whose window= matches <w>,
 # defaulting to tmux (absent backend= means tmux; the P1 compatibility
 # contract) when no matching meta carries the field, or none matches at all.
-window_backend() {
+window_backend() {  # <window> [<out-var>]
   local w=$1 meta backend
-  meta=$(fm_backend_meta_for_window "$w" "$STATE" 2>/dev/null || true)
+  fm_backend_meta_for_window "$w" "$STATE" meta || meta=
   if [ -n "$meta" ]; then
-    backend=$(grep '^backend=' "$meta" | cut -d= -f2- || true)
+    fm_meta_get "$meta" backend backend
     [ -n "$backend" ] || backend=tmux
-    echo "$backend"
-    return 0
+  else
+    backend=tmux
   fi
-  echo tmux
+  if [ "$#" -gt 1 ]; then printf -v "$2" '%s' "$backend"
+  else printf '%s\n' "$backend"; fi
 }
 
-window_harness() {
-  local w=$1 meta
-  meta=$(fm_backend_meta_for_window "$w" "$STATE" 2>/dev/null || true)
-  [ -n "$meta" ] || return 0
-  grep '^harness=' "$meta" | cut -d= -f2- || true
+window_harness() {  # <window> [<out-var>]
+  local w=$1 meta harness=
+  fm_backend_meta_for_window "$w" "$STATE" meta || meta=
+  [ -z "$meta" ] || fm_meta_get "$meta" harness harness
+  if [ "$#" -gt 1 ]; then printf -v "$2" '%s' "$harness"
+  else printf '%s\n' "$harness"; fi
 }
 
 window_label() {
@@ -3002,6 +3005,11 @@ while :; do
   # Liveness beacon for fm-guard.sh: a fresh mtime here means a watcher is
   # alive. Supervision scripts warn when this goes stale with tasks in flight.
   touch "$STATE/.last-watcher-beat"
+
+  # One walk of the meta files for this poll. Later window lookups read it
+  # in this shell. Rebuilding every lookup is what forked the watcher
+  # (.agent-config-ks05d).
+  fm_backend_window_index_load "$STATE" || fm_backend_window_index_clear
 
   # Opt-in fleet activity ledger (docs/fleet-ledger.md): pick up newly appended
   # status lines before this cycle can exit on a wake. Off costs one file test.
