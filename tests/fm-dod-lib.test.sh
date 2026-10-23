@@ -499,6 +499,22 @@ test_firstmate_dod_skips_ci() {
   pass "firstmate gated run skips ci; other repos and direct delivery do not"
 }
 
+# .agent-config-8wnyx: after the PR opens, chip's change request hands the fix
+# to the worker directly; the brief must say so or the worker starts a new run.
+test_post_pr_fix_handoff() {
+  local out_file="$TMP_ROOT/dod-handoff.txt"
+  fm_dod_block no-mistakes fm-handoff fm/fm-handoff none '' '' '' '' carmandale/agent-config >"$out_file"
+  assert_grep 'Post-PR fix handoff' "$out_file" "no-mistakes DoD lacks the post-PR fix handoff"
+  assert_grep 'recover_custody' "$out_file" "handoff does not distinguish custody recovery from a new pipeline run"
+  assert_grep 'next action is deferred' "$out_file" "handoff starts a run before committing review fixes"
+  assert_grep '--skip review' "$out_file" "handoff lacks the skip-review run"
+  assert_grep "chip's findings guide the fix but are not captain intent." "$out_file" "handoff sends reviewer-authored findings as captain intent"
+  assert_grep 'Never push a fix round yourself' "$out_file" "handoff lacks the no-direct-push line"
+  fm_dod_block direct-PR fm-handoff fm/fm-handoff none '' '' '' '' carmandale/agent-config >"$out_file"
+  assert_no_grep 'Post-PR fix handoff' "$out_file" "direct-PR DoD got the no-mistakes handoff"
+  pass "post-PR fix handoff is in the no-mistakes DoD only"
+}
+
 test_repo_slug_reads_origins() {
   local d="$TMP_ROOT/slugproj"
   mkdir -p "$d"
@@ -530,6 +546,7 @@ test_dod_slug_from_meta_honors_state_override() {
 }
 
 test_firstmate_dod_skips_ci
+test_post_pr_fix_handoff
 test_repo_slug_reads_origins
 test_dod_slug_from_meta_honors_state_override
 
