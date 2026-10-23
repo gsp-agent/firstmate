@@ -2,7 +2,7 @@
 # Spawn a direct report: a crewmate in a treehouse or Orca worktree, or a
 # secondmate in its isolated firstmate home.
 # Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--upstream-consent <host>/<owner>/<repo>] [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
-#        fm-spawn.sh <task-id> <project-dir> --queue-start [--branch-prefix <prefix>] [--base-branch <branch>] [--backend <name>] [--herdr-resume-lock-wait]
+#        fm-spawn.sh <task-id> <project-dir> --queue-start [--queue-owner <request> --queue-project <project>] [--branch-prefix <prefix>] [--base-branch <branch>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
@@ -93,6 +93,18 @@
 #   read is a mid-task change, as for any hand start. A queue start that fails
 #   before its launch is sent removes the brief it wrote, unless it changed
 #   since, so the item is exactly as queued as before.
+#   An exact owned-send caller may also pass --queue-owner <request> and
+#   --queue-project <project> together. That caller owns live claim checks;
+#   these flags bind this locked backlog read to its task id, project and
+#   original pm-<request> intake. Only this form accepts one or more recorded
+#   captain releases around that intake. Each complete lifecycle envelope,
+#   decision digest and continuation identity must validate; other resolution
+#   modes, active hold stamps, extra prose and foreign identities refuse.
+#   The complete note, including decisions and history, fills the brief as
+#   quoted task data so its historical headers cannot become dispatch settings.
+#   An owned dispatch records queue_owner and the original queue_inbox in its
+#   existing task metadata, so its caller can recognize an acknowledged replay.
+#   Without both flags the whole-note template rule remains unchanged.
 #   Ship/scout launches always put fm-dod-lib.sh's current worker role scope
 #   first in the private launch-brief overlay, including the exact task-owned
 #   steering inbox. This never rewrites a project's instruction files or a
@@ -875,6 +887,11 @@ UPSTREAM_CONSENT_SET=0
 TRACEPARENT_SET=0
 RELAUNCH=0
 QUEUE_START=0
+QUEUE_OWNER=
+QUEUE_PROJECT=
+QUEUE_INBOX=
+QUEUE_OWNER_SET=0
+QUEUE_PROJECT_SET=0
 # Opt-in only: exact-resume presentation-order lock waits instead of refusing.
 # Absent/unset keeps upstream refuse-on-contention. See header.
 HERDR_RESUME_LOCK_WAIT=0
@@ -929,6 +946,8 @@ for a in "$@"; do
       TRACEPARENT_ARG=$a
       TRACEPARENT_SET=1
       ;;
+    queue-owner) QUEUE_OWNER=$a QUEUE_OWNER_SET=1 ;;
+    queue-project) QUEUE_PROJECT=$a QUEUE_PROJECT_SET=1 ;;
     *)
       echo "error: internal parser state for --$want_value" >&2
       exit 1
@@ -948,6 +967,8 @@ for a in "$@"; do
     ;;
   --relaunch) RELAUNCH=1 ;;
   --queue-start) QUEUE_START=1 ;;
+  --queue-owner) want_value=queue-owner ;;
+  --queue-project) want_value=queue-project ;;
   --herdr-resume-lock-wait) HERDR_RESUME_LOCK_WAIT=1 ;;
   --harness) want_value=harness ;;
   --harness=*)
@@ -1066,6 +1087,13 @@ esac
 # --queue-start (header above) is a fresh single ship whose delivery and
 # profile come from its own backlog note, read under the spawn lock below, so
 # every flag that would decide them here is refused.
+if [ "$QUEUE_OWNER_SET" -ne 0 ] || [ "$QUEUE_PROJECT_SET" -ne 0 ]; then
+  if [ "$QUEUE_START" -ne 1 ] || [ "$QUEUE_OWNER_SET" -ne 1 ] || [ "$QUEUE_PROJECT_SET" -ne 1 ] ||
+    [[ ! $QUEUE_OWNER =~ ^[A-Za-z0-9._-]+$ ]] || [[ ! $QUEUE_PROJECT =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "error: --queue-owner and --queue-project require nonempty identifiers and --queue-start together" >&2
+    exit 1
+  fi
+fi
 if [ "$QUEUE_START" -eq 1 ]; then
   [ "$RELAUNCH" -eq 0 ] && [ "$KIND_SET" -eq 0 ] || {
     echo "error: --queue-start is a fresh ship start; --relaunch, --scout and --secondmate cannot combine with it" >&2
@@ -2281,11 +2309,22 @@ SPAWN_TASK_LOCK_HELD=1
 # --queue-start (header above). QUEUE_START_PY decides from, and later fills
 # the brief from, the one `tasks-axi show --full` read taken here.
 IFS= read -r -d '' QUEUE_START_PY <<'PY' || true
-import json, re, sys
+import hashlib, json, re, sys
 
-TEMPLATE = (r"pm-[A-Za-z0-9._-]+ inbox [0-9]+-[A-Za-z0-9]+; done on the bead\. "
+TEMPLATE = (r"pm-(?P<owner>[A-Za-z0-9._-]+) inbox (?P<inbox>[0-9]+-[A-Za-z0-9]+); done on the bead\. "
             r"no-mistakes, yolo off; merge on the PM['\u2019]s word\. "
-            r"Default route(?: \(labels ([a-z0-9:._-]+(?:, [a-z0-9:._-]+)*)\))?\.")
+            r"Default route(?: \(labels (?P<labels>[a-z0-9:._-]+(?:, [a-z0-9:._-]+)*)\))?\.")
+RELEASE = re.compile(
+    r"Resolution recorded by fm-captain-hold\.\n"
+    r"Decision digest: ([0-9a-f]{64})\nResolution mode: released\n"
+    r"(?:Continuation task: ([A-Za-z0-9._-]+)\n)?\nCaptain decision:\n")
+# These are the historical fields emitted by fm-captain-hold's hold and
+# resolution writers. No unstructured prefix is discarded to find an intake.
+HISTORY = re.compile(
+    r"(?:Decision owner: captain\nHold timeout seconds: [0-9]+\n"
+    r"Hold reason: [^\n]+\n\n)?"
+    r"(?:Captain hold origin: ([A-Za-z0-9._-]+)\n\n)?"
+    r"Previous task body:\n([\s\S]+)")
 
 
 def refuse(why):
@@ -2296,9 +2335,11 @@ def refuse(why):
 def fields(text):
     out = {}
     for line in text.splitlines():
-        for key in ("state", "held", "blocked", "kind", "title", "body"):
+        for key in ("id", "repo", "state", "held", "blocked", "kind", "title", "body"):
             prefix = "  " + key + ": "
-            if key not in out and line.startswith(prefix):
+            if line.startswith(prefix):
+                if key in out:
+                    refuse("its backlog %s is ambiguous" % key)
                 raw = line[len(prefix):]
                 if raw.startswith('"'):
                     try:
@@ -2309,6 +2350,37 @@ def fields(text):
     return out
 
 
+def owned_intake(body, task_id, owner):
+    while True:
+        match = re.fullmatch(TEMPLATE, body)
+        if match:
+            if match['owner'] != owner:
+                refuse("its original PM intake belongs to another request")
+            return match
+        header = RELEASE.match(body)
+        if not header or header[2] not in (None, task_id):
+            refuse("its note is not a complete release of this PM intake")
+        payload = body[header.end():]
+        boundaries = []
+        # Decision text is free-form and may quote lifecycle headers. Its
+        # existing digest, over at most 8192 bytes with trailing newlines
+        # removed by the producer, owns the boundary; text searches do not.
+        for boundary in re.finditer(r"\n\n", payload):
+            decision = payload[:boundary.start()]
+            encoded = decision.encode('utf-8')
+            if len(encoded) > 8192:
+                break
+            if (decision and not decision.endswith('\n') and
+                    hashlib.sha256(encoded).hexdigest() == header[1]):
+                boundaries.append(boundary.end())
+        if len(boundaries) != 1:
+            refuse("its recorded decision digest does not identify one complete answer")
+        history = HISTORY.fullmatch(payload[boundaries[0]:])
+        if not history or history[1] not in (None, task_id):
+            refuse("its release history is incomplete or belongs to another task")
+        body = history[2]
+
+
 task = fields(sys.stdin.read())
 if sys.argv[1] == "decide":
     row = " ".join(task.get(key) or "?" for key in ("state", "held", "blocked"))
@@ -2316,16 +2388,27 @@ if sys.argv[1] == "decide":
         refuse("its backlog item reads %s, not queued, unheld and unblocked" % row)
     if task.get("kind") != "ship":
         refuse("it is a %s, and a queue start starts ships only" % (task.get("kind") or "task of no kind"))
-    match = re.fullmatch(TEMPLATE, (task.get("body") or "").strip())
+    body = (task.get("body") or "").strip()
+    task_id, owner, project = sys.argv[2:5]
+    if owner:
+        if task.get('id') != task_id or task.get('repo') != project:
+            refuse("its backlog identity does not match the owned request and project")
+        match = owned_intake(body, task_id, owner)
+    else:
+        match = re.fullmatch(TEMPLATE, body)
     if not match:
         refuse("its note is not the standard PM intake template; left to the captain")
-    print((match.group(1) or "").replace(", ", ","))
+    print((match['labels'] or "").replace(", ", ","))
+    if owner:
+        print(match['inbox'])
 else:
     brief, spec = sys.argv[2], sys.argv[3]
     title = (task.get("title") or "").strip()
     body = (task.get("body") or "").strip()
     if not title:
         refuse("its backlog item has no title")
+    if RELEASE.match(body):
+        body = "Recorded task history:\n\n" + "\n".join("> " + line for line in body.split('\n'))
     intent = title + ("\n\n" + body if body and body != "-" else "")
     text = open(brief).read()
     at_task, at_spec = text.find("{TASK}"), text.find("{FIRSTMATE_SPEC}")
@@ -2352,8 +2435,12 @@ spawn_queue_start_read() {
     spawn_queue_start_refuse "its backlog cannot be read: ${FM_BACKLOG_TRANSITION_ERROR:-no reason given}"
   out=$(fm_backlog_row_show "$data" "$ID" --full) ||
     spawn_queue_start_refuse "its backlog item cannot be read: $(printf '%s\n' "$out" | sed -n 1p)"
-  decided=$(printf '%s\n' "$out" | python3 -I -c "$QUEUE_START_PY" decide) ||
+  decided=$(printf '%s\n' "$out" | python3 -I -c "$QUEUE_START_PY" decide "$ID" "$QUEUE_OWNER" "$QUEUE_PROJECT") ||
     spawn_queue_start_refuse "${decided:-its backlog item cannot be read}"
+  if [ -n "$QUEUE_OWNER" ]; then
+    QUEUE_INBOX=${decided#*$'\n'}
+    decided=${decided%%$'\n'*}
+  fi
   if [ -e "$DATA/$ID/brief.md" ] || [ -L "$DATA/$ID/brief.md" ]; then
     spawn_queue_start_refuse "data/$ID/brief.md exists, so a hand start owns it; left to the captain"
   fi
@@ -6282,6 +6369,10 @@ preserve_relaunch_meta() {
   echo "harness=$HARNESS"
   echo "kind=$KIND"
   echo "decision_owner=$DECISION_OWNER"
+  if [ -n "$QUEUE_OWNER" ]; then
+    echo "queue_owner=$QUEUE_OWNER"
+    echo "queue_inbox=$QUEUE_INBOX"
+  fi
   [ -z "$MODE" ] || echo "mode=$MODE"
   [ -z "$YOLO" ] || echo "yolo=$YOLO"
   [ -z "${BRANCH:-}" ] || echo "branch=$BRANCH"

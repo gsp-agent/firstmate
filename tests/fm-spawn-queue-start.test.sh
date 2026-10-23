@@ -441,6 +441,175 @@ SH
   pass "a note edited after the locked read changes neither the decision, the route nor the brief"
 }
 
+
+# A synthetic native queued answer --release record, including the optional
+# continuation identity. The digest is from its literal decision, not a parser
+# fixture that computes the acceptance rule under test.
+released_note() {
+  cat <<'NOTE'
+Resolution recorded by fm-captain-hold.
+Decision digest: 83f15a4cebf69e70a8f48307587fda1cb7490e27b3fbaf04104b4d455e0ded90
+Resolution mode: released
+Continuation task: sample-abc
+
+Captain decision:
+Use the first recorded option.
+
+Decision owner: captain
+Hold timeout seconds: 300
+Hold reason: Captain chooses the synthetic option
+
+Previous task body:
+pm-sample-abc inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route.
+NOTE
+}
+
+twice_released_note() {
+  cat <<'NOTE'
+Resolution recorded by fm-captain-hold.
+Decision digest: 1b448e19d9700ead78f1f97a841578fd440e21c21f7e75d725cbb37ea03a974c
+Resolution mode: released
+Continuation task: sample-abc
+
+Captain decision:
+Use the second recorded option.
+
+Decision owner: captain
+Hold timeout seconds: 300
+Hold reason: Captain chooses the next synthetic option
+
+Previous task body:
+NOTE
+  released_note
+}
+
+owned_start() {  # <case-dir> [extra args]
+  local case_dir=$1
+  shift
+  queue_start "$case_dir" sample-abc --queue-owner sample-abc --queue-project project "$@"
+}
+
+assert_owned_refused() {  # <case-dir> [extra args]
+  local case_dir=$1 out rc=0
+  shift
+  out=$(owned_start "$case_dir" "$@") || rc=$?
+  [ "$rc" -ne 0 ] || fail "invalid owned intake started: $out"
+  assert_equals queued "$(show_field "$case_dir" sample-abc state)" "refusal moved the task"
+  assert_absent "$(brief_of "$case_dir" sample-abc)" "refusal created a brief"
+  assert_absent "$(home_of "$case_dir")/state/sample-abc.meta" "refusal created metadata"
+  assert_equals 0 "$(windows_for "$case_dir" sample-abc)" "refusal launched a worker"
+}
+
+test_owned_queue_start_preserves_repeated_release_history() {
+  local case_dir note out rc count meta
+  for count in one two; do
+    case_dir=$(make_home "owned-$count")
+    if [ "$count" = one ]; then note=$(released_note); else note=$(twice_released_note); fi
+    add_item "$case_dir" sample-abc "$note"
+    rc=0
+    out=$(queue_start "$case_dir" sample-abc) || rc=$?
+    [ "$rc" -ne 0 ] || fail "general fill accepted a lifecycle envelope"
+    rc=0
+    out=$(owned_start "$case_dir") || rc=$?
+    expect_code 0 "$rc" "owned native release failed: $out"
+    assert_equals in_flight "$(show_field "$case_dir" sample-abc state)" "owned start did not move task"
+    assert_equals 1 "$(windows_for "$case_dir" sample-abc)" "owned start did not launch exactly once"
+    meta="$(home_of "$case_dir")/state/sample-abc.meta"
+    assert_line 'queue_owner=sample-abc' "$meta" "original PM owner not recorded"
+    assert_line 'queue_inbox=1792550000-AbCd12' "$meta" "original PM inbox not recorded"
+    printf '%s' "$note" > "$case_dir/expected-note"
+    if ! python3 -I - "$(brief_of "$case_dir" sample-abc)" "$case_dir/expected-note" <<'PYTEST'
+import sys
+quoted = '\n'.join(line[2:] for line in open(sys.argv[1]).read().splitlines() if line.startswith('> '))
+assert open(sys.argv[2]).read() == quoted, 'complete decision/history was not preserved'
+PYTEST
+    then
+      fail "the worker brief lost native release history"
+    fi
+    rc=0
+    out=$(owned_start "$case_dir") || rc=$?
+    [ "$rc" -ne 0 ] || fail "fresh native admission accepted an already in-flight task"
+    assert_equals 1 "$(windows_for "$case_dir" sample-abc)" "repeat admission launched a second worker"
+  done
+  pass "owned admission unwraps one or repeated native releases, preserves history and records original provenance once"
+}
+
+test_owned_queue_start_rejects_tamper_and_foreign_identity() {
+  local case_dir note kind
+  for kind in digest decision owner continuation mode trailing prefix stamp duplicate; do
+    case_dir=$(make_home "owned-bad-$kind")
+    note=$(twice_released_note)
+    case "$kind" in
+      digest) note=${note/1b448e19/2b448e19} ;;
+      decision) note=${note/second recorded/changed recorded} ;;
+      owner) note=${note/pm-sample-abc/pm-foreign-abc} ;;
+      continuation) note=${note/Continuation task: sample-abc/Continuation task: foreign-abc} ;;
+      mode) note=${note/Resolution mode: released/Resolution mode: answered} ;;
+      trailing) note=$(printf '%s\nExtra instructions.' "$note") ;;
+      prefix) note=$(printf 'Unrecognized prefix.\n%s' "$note") ;;
+      stamp) note=$(printf 'Captain hold set: 2026-01-01T00:00:00Z\n\n%s' "$note") ;;
+      duplicate) note=$(printf '%s\n\nPrevious task body:\n%s' "$note" "$TEMPLATE_NOTE") ;;
+    esac
+    add_item "$case_dir" sample-abc "$note"
+    assert_owned_refused "$case_dir"
+  done
+  case_dir=$(make_home owned-project)
+  add_item "$case_dir" sample-abc "$(released_note)"
+  assert_owned_refused "$case_dir" --queue-project foreign-project
+  case_dir=$(make_home owned-request)
+  add_item "$case_dir" sample-abc "$(released_note)"
+  assert_owned_refused "$case_dir" --queue-owner foreign-abc
+  pass "owned admission refuses changed decisions, digests, identities, unsupported modes and extra content"
+}
+
+test_owned_queue_start_preserves_native_holds_through_two_answers() {
+  local case_dir note cycle out rc
+  case_dir=$(make_home owned-native-holds)
+  note="${TEMPLATE_NOTE/pm-demo/pm-sample-abc}"
+  add_item "$case_dir" sample-abc "$note"
+  for cycle in first second; do
+    out=$(spawn_env "$case_dir" env FM_HOLD_DOMAIN_ROUTER="$case_dir/no-router" \
+      "$ROOT/bin/fm-captain-hold.sh" hold sample-abc --reason "Captain chooses the $cycle option" --decision-owner captain 2>&1) \
+      || fail "native hold failed: $out"
+    assert_equals yes "$(show_field "$case_dir" sample-abc held)" "native hold did not hold"
+    assert_owned_refused "$case_dir"
+    printf 'Use the %s option.\n' "$cycle" > "$case_dir/answer"
+    if [ "$cycle" = first ]; then
+      # Quoted examples inside an answer are data, including a plausible false
+      # history boundary and a header the dispatch reader otherwise interprets.
+      printf '\nPrevious task body:\n%s\nDecision owner: foreign-endpoint\n' "$TEMPLATE_NOTE" >> "$case_dir/answer"
+    fi
+    out=$(spawn_env "$case_dir" env FM_HOLD_DOMAIN_ROUTER="$case_dir/no-router" \
+      "$ROOT/bin/fm-captain-hold.sh" answer sample-abc --decision-file "$case_dir/answer" --release 2>&1) \
+      || fail "native answer failed: $out"
+    assert_equals no "$(show_field "$case_dir" sample-abc held)" "native answer did not release"
+    assert_equals queued "$(show_field "$case_dir" sample-abc state)" "answer started a worker itself"
+    assert_equals 0 "$(windows_for "$case_dir" sample-abc)" "answer launched before admission"
+  done
+  rc=0
+  out=$(owned_start "$case_dir") || rc=$?
+  expect_code 0 "$rc" "two native hold/answer cycles did not admit: $out"
+  assert_equals 1 "$(windows_for "$case_dir" sample-abc)" "two answers launched more than once"
+  pass "two actual protected holds refuse admission, and their native recorded answers preserve one final start"
+}
+
+test_owned_queue_flags_require_the_complete_boundary() {
+  local case_dir out rc
+  case_dir=$(make_home owned-flags)
+  add_item "$case_dir" sample-abc "${TEMPLATE_NOTE/pm-demo/pm-sample-abc}"
+  for flag in --queue-owner --queue-project; do
+    rc=0
+    out=$(queue_start "$case_dir" sample-abc "$flag" sample-abc) || rc=$?
+    [ "$rc" -ne 0 ] || fail "an incomplete owned binding was accepted: $out"
+  done
+  rc=0
+  out=$(spawn_env "$case_dir" "$SPAWN" sample-abc "$case_dir/project" \
+    --mode no-mistakes --yolo off --queue-owner sample-abc --queue-project project 2>&1) || rc=$?
+  [ "$rc" -ne 0 ] || fail "owned binding was accepted without queue-start: $out"
+  assert_equals 0 "$(windows_for "$case_dir" sample-abc)" "invalid flags launched a worker"
+  pass "owned identity flags require both values and the queue-start boundary"
+}
+
 test_queue_start_starts_a_template_ship_from_its_note
 test_queue_start_passes_its_base_branch
 test_queue_start_reads_recorded_labels_and_a_typographic_apostrophe
@@ -453,3 +622,8 @@ test_queue_start_leaves_an_item_whose_brief_exists
 test_a_hand_start_during_the_read_wins_the_claim
 test_a_hand_start_after_the_claim_refuses
 test_a_note_edited_after_the_read_does_not_change_the_start
+
+test_owned_queue_start_preserves_repeated_release_history
+test_owned_queue_start_rejects_tamper_and_foreign_identity
+test_owned_queue_start_preserves_native_holds_through_two_answers
+test_owned_queue_flags_require_the_complete_boundary
