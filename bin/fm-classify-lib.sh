@@ -371,6 +371,25 @@ status_is_context_paused() {
   '
 }
 
+# A merge-only pause: the worker's one remaining wait is its own PR's merge, it
+# will push nothing more to that PR, and its next step starts after the merge.
+# A merge authority may read such a pause as no reason to hold that merge; any
+# other pause still holds, because a worker may pause with more pushes to come.
+# The marker is the exact field "[awaits=merge]" before the first colon of a
+# pause line, beside [at=], [key=] or corr tags in any order, read on the
+# unstamped head so a readable time's colons cannot move the boundary.
+# Another verb, another or misspelled value, a second awaits field, a colonless
+# line, or the words only in the note are an ordinary pause or no pause.
+# bin/fm-brief.sh owns when a worker writes it.
+status_awaits_merge() {  # <status-line>
+  local head
+  status_is_paused "$1" || return 1
+  _fm_status_unstamped "$1" head
+  case "$head" in *:*) head=${head%%:*} ;; *) return 1 ;; esac
+  case "$head" in *'[awaits=merge]'*) ;; *) return 1 ;; esac
+  case "${head#*\[awaits=}" in *\[awaits=*) return 1 ;; esac
+}
+
 # 0 if a status line's leading verb is the verified captain-held transfer verb.
 # The same pure verb read as status_is_paused, and the discriminator a supervisor
 # needs once a declared wait has already been recognized: the two declarations get
