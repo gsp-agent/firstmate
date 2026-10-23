@@ -1493,6 +1493,7 @@ SPAWN_OVERSHARE_DIR=
 SPAWN_OVERSHARE_IDENTITY=
 SPAWN_OVERSHARE_AT=
 SPAWN_SLOT_CLAIMED=0
+SPAWN_SKIP_LEASES=
 RELAUNCH_REPLACEMENT_PENDING=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
 RELAUNCH_REPLACEMENT_HARNESS=
@@ -1555,8 +1556,25 @@ spawn_hold_launched_item() {  # <exit-status>
   fi
 }
 
+# Release the foreign pool slots this spawn leased while steering the pool
+# allocator toward an own-clone slot (see the treehouse acquisition below).
+# Nothing ever ran in those slots, so returning them is safe; the list is
+# cleared so the exit trap's second call is a no-op.
+spawn_release_skip_leases() {
+  local leased
+  [ -n "$SPAWN_SKIP_LEASES" ] || return 0
+  while IFS= read -r leased; do
+    [ -n "$leased" ] || continue
+    (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1) || true
+  done <<EOF
+$SPAWN_SKIP_LEASES
+EOF
+  SPAWN_SKIP_LEASES=
+}
+
 spawn_abort_cleanup() {
   local status=$?
+  spawn_release_skip_leases
   if [ "$status" -eq "$SPAWN_DEFER_EXIT" ] &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_CREATED_ENDPOINT" ]; then
     if [ "$BACKEND" = orca ]; then
@@ -5175,10 +5193,46 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # below then refuses it). When a free slot of the project's own clone is
   # already in the pool, enter that exact slot by name instead; `treehouse
   # enter` opens the same process-leased subshell in the named worktree.
-  # With no free own slot, keep `treehouse get`: it grows a fresh slot from
-  # this clone when the pool has room, and the screening below is the guard
-  # when it hands out a foreign one instead.
+  # When none is free, the lease steering below makes Treehouse lease or
+  # create an own-clone slot. Only when that steering gives up does the
+  # plain `treehouse get` run, with the screening below as its guard.
   SPAWN_ENTER_SLOT=$(fm_treehouse_free_own_slot "$PROJ_ABS" || true)
+  if [ -z "$SPAWN_ENTER_SLOT" ]; then
+    # No free own-clone slot: lease the pool's free foreign slots one by one.
+    # Treehouse's allocator hands out the first free slot and never re-hands
+    # a leased one, so holding each foreign lease advances it until it
+    # leases - or, with no free slot left, creates - a slot of this clone.
+    # That slot is the target, entered by name below; the foreign leases are
+    # released once the pane settles, and the target's lease is released by
+    # the task's own teardown return like any other slot. A slot another
+    # task has claimed (its worker may be starting) is released at once and
+    # ends the steering: the plain `treehouse get` below, behind the same
+    # candidate screening, owns that case. 64 leases bound the loop.
+    SPAWN_LEASE_SEEN=
+    SPAWN_LEASE_COUNT=0
+    while [ "$SPAWN_LEASE_COUNT" -lt 64 ]; do
+      SPAWN_LEASED=$(cd "$PROJ_ABS" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch 2>/dev/null) || break
+      [ -n "$SPAWN_LEASED" ] || break
+      if printf '%s' "$SPAWN_LEASE_SEEN" | grep -Fxq -- "$SPAWN_LEASED"; then
+        break
+      fi
+      SPAWN_LEASE_SEEN="$SPAWN_LEASE_SEEN$SPAWN_LEASED
+"
+      SPAWN_LEASE_COUNT=$((SPAWN_LEASE_COUNT + 1))
+      SPAWN_LEASE_MARKER=$(fm_treehouse_slot_owner_marker "$SPAWN_LEASED" 2>/dev/null || true)
+      if [ -n "$SPAWN_LEASE_MARKER" ] &&
+        { [ -e "$SPAWN_LEASE_MARKER" ] || [ -L "$SPAWN_LEASE_MARKER" ]; }; then
+        (cd "$PROJ_ABS" && treehouse return "$SPAWN_LEASED" >/dev/null 2>&1) || true
+        break
+      fi
+      if fm_treehouse_pool_slot "$PROJ_ABS" "$SPAWN_LEASED"; then
+        SPAWN_ENTER_SLOT=$SPAWN_LEASED
+        break
+      fi
+      SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$SPAWN_LEASED
+"
+    done
+  fi
   if [ -n "$SPAWN_ENTER_SLOT" ]; then
     SPAWN_ENTER_NAME=$(basename "$(dirname "$SPAWN_ENTER_SLOT")")
     spawn_send_text_line "$WT_TARGET" "treehouse enter $(shell_quote "$SPAWN_ENTER_NAME")"
@@ -5264,6 +5318,10 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     fi
     SPAWN_SLOT_CLAIMED=1
   fi
+  # The pane has settled and the slot is claimed, so the foreign leases that
+  # steered the allocator here have done their work; the exit trap releases
+  # them on every failure path instead.
+  spawn_release_skip_leases
 fi
 if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
   freshen_spawn_worktree_base "$WT" "$BASE_BRANCH" || exit 1
