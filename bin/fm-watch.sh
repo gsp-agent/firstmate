@@ -2611,7 +2611,13 @@ if [ -n "$EVICTED_PID" ]; then
   echo "watcher: replaced stalled pid $EVICTED_PID (beacon ${EVICTED_BEAT_AGE}s past hard bound ${WATCHER_STALL_BOUND}s)"
 fi
 WATCHER_RECOVERY_PENDING=0
-WATCHER_RESURFACED=0
+# The reason resurface_after_downtime is about to close on, recorded before
+# wake() exits the cycle. watcher_cleanup preserves the recovery marker only
+# when that exact reason was delivered (FM_WATCH_DELIVERED_REASON, which
+# wake() sets only after its stdout write succeeds): a resurface whose wake
+# line never reached stdout delivered nothing, and its episode must go back
+# to pending so a later watcher closes on the row again.
+WATCHER_RESURFACE_REASON=
 if [ -n "${FM_LOCK_RECOVERED_PID:-}" ]; then
   WATCHER_RECOVERY_PENDING=1
 fi
@@ -2731,8 +2737,16 @@ watcher_cleanup() {
   if [ "$(cat "$WATCH_LOCK/pid" 2>/dev/null || true)" = "${WATCHER_PID:-}" ]; then
     owns_lock=1
     if [ "${WATCHER_RECOVERY_PENDING:-0}" -eq 1 ] \
-      && [ "${WATCHER_RESURFACED:-0}" -eq 1 ]; then
+      && [ -n "${WATCHER_RESURFACE_REASON:-}" ] \
+      && [ "${FM_WATCH_DELIVERED_REASON:-}" = "$WATCHER_RESURFACE_REASON" ]; then
       transition=release-lock-existing
+    elif [ "${WATCHER_RECOVERY_PENDING:-0}" -eq 1 ] \
+      && [ -n "${WATCHER_RESURFACE_REASON:-}" ]; then
+      # The resurface close was attempted but its wake line was not
+      # delivered: put the episode back to pending, because a foreground
+      # checkpoint keeps an announced episode stable and would never
+      # present the still-queued row again.
+      fm_recovery_marker_reopen_announced "$WATCHER_DOWNTIME_MARKER" || true
     fi
   fi
   fm_active_check_stop || cleanup_status=1
@@ -2986,14 +3000,14 @@ resurface_after_downtime() {
   if ! resurface_queue_has_main_only; then
     if [ -n "$RESURFACE_OLDEST_REASON" ] && [ "$RESURFACE_ALT_OWNER" -eq 1 ] \
       && ! daemon_owns_supervision; then
-      WATCHER_RESURFACED=1
+      WATCHER_RESURFACE_REASON=$RESURFACE_OLDEST_REASON
       wake "$RESURFACE_OLDEST_REASON"
     fi
     WATCHER_RECOVERY_PENDING=0
     triage_log "absorbed rearm-resurface (queue holds nothing only main can do)"
     return 0
   fi
-  WATCHER_RESURFACED=1
+  WATCHER_RESURFACE_REASON="check: rearm-resurface"
   wake "check: rearm-resurface"
 }
 

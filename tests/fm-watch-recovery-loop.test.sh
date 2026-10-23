@@ -305,7 +305,72 @@ test_plain_recovery_over_live_pm_rows_stays_quiet() {
   pass "a plain-home recovery over live-PM-owned rows stays in its poll loop"
 }
 
+# A resurface whose wake line never reached stdout (the checkpoint's output
+# is unwritable) delivered nothing, so cleanup must not preserve the marker
+# as announced: the episode goes back to pending and a later watcher closes
+# on the oldest row again.
+test_host_recovery_with_failed_output_retries_the_close() {
+  local dir home state child now out status
+  dir=$(make_case recovery-host-failed-output)
+  home="$dir/home"
+  state="$dir/state"
+  mkdir -p "$home/data" "$home/config"
+  : > "$home/config/supervision-host"
+  printf 'pending:downtime:host.2.bbb\n' > "$state/.watcher-down"
+  chmod 600 "$state/.watcher-down"
+  append_wake "$state" signal demo.status "signal: $state/demo.status" \
+    || fail "could not append the branch-owned durable wake"
+  mkfifo "$dir/watch.fifo"
+  ( trap '' PIPE
+    PATH="$dir/fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
+      FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=600 \
+      FM_DAEMON_OWNS_SUPERVISION='' exec "$WATCH" ) > "$dir/watch.fifo" 2> "$dir/watch.err" &
+  child=$!
+  # Unblock the writer's open, then leave it no reader: its wake write fails.
+  exec 9< "$dir/watch.fifo"
+  exec 9<&-
+  now=0
+  while [ "$now" -lt 40 ] && kill -0 "$child" 2>/dev/null; do
+    sleep 0.5
+    now=$((now + 1))
+  done
+  if kill -0 "$child" 2>/dev/null; then
+    kill -TERM "$child" 2>/dev/null || true
+    wait "$child" 2>/dev/null || true
+    fail "a host recovery with unwritable output did not exit: $(cat "$dir/watch.err")"
+  fi
+  status=0
+  wait "$child" || status=$?
+  [ "$status" -ne 0 ] \
+    || fail "a host recovery whose wake could not be written exited 0"
+  grep -q '^pending:downtime:' "$state/.watcher-down" \
+    || fail "a failed resurface left the episode announced instead of pending: $(cat "$state/.watcher-down")"
+  out="$dir/watch.out"
+  PATH="$dir/fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
+    FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=600 \
+    FM_WATCH_FOREGROUND_CHECKPOINT=1 \
+    FM_DAEMON_OWNS_SUPERVISION='' "$WATCH" > "$out" 2>&1 &
+  child=$!
+  now=0
+  while [ "$now" -lt 40 ] && kill -0 "$child" 2>/dev/null; do
+    sleep 0.5
+    now=$((now + 1))
+  done
+  if kill -0 "$child" 2>/dev/null; then
+    kill -TERM "$child" 2>/dev/null || true
+    wait "$child" 2>/dev/null || true
+    fail "the retried host recovery did not close: $(cat "$out")"
+  fi
+  status=0
+  wait "$child" || status=$?
+  expect_code 0 "$status" "retried host recovery watcher exit"
+  grep -qx "signal: $state/demo.status" "$out" \
+    || fail "the retried host recovery did not close on its oldest row: $(cat "$out")"
+  pass "a host recovery whose wake could not be written retries the close"
+}
+
 test_handling_successor_does_not_go_blind
 test_unacknowledged_recovery_is_announced_once_per_generation
 test_host_recovery_closes_on_its_oldest_branch_row
 test_plain_recovery_over_live_pm_rows_stays_quiet
+test_host_recovery_with_failed_output_retries_the_close
