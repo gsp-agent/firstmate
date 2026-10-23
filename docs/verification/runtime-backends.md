@@ -774,6 +774,34 @@ It captures the launch `bin/fm-spawn.sh` actually builds, replays those exact fl
 It spends no model tokens, so it runs by default wherever Codex is installed.
 The portable half, `tests/fm-spawn-dispatch-profile.test.sh`, pins the split the launch template makes: a crewmate launches hook-free while a secondmate, which runs a primary session on this repository's own project hooks, keeps them.
 
+## Codex usage-limit stop
+
+Verified 2026-10-21 on codex-cli 0.163.0, macOS arm64.
+`bin/fm-cursor-guard.sh route` reads the stop from the session rollout, because Codex keeps its TUI open after the limit and its turn-end notify payload carries no error.
+A local server answering every request with HTTP 429 and an `{"error":{"type":"usage_limit_reached",...}}` body stood in for the provider:
+
+```sh
+MOCK_KEY=dummy CODEX_HOME="$scratch/codexhome" codex exec --skip-git-repo-check -C "$scratch/work" \
+  -c 'model_provider="mock"' \
+  -c 'model_providers.mock={name="mock",base_url="http://127.0.0.1:<port>/v1",wire_api="responses",env_key="MOCK_KEY"}' \
+  -m gpt-5 "say hi"
+```
+
+Codex made one `POST /v1/responses`, exited 1, and wrote a rollout whose first line is `session_meta` naming the launch directory and whose last `task_complete` carries the stop:
+
+```text
+{"type":"session_meta","cwd":"<scratch>/work","cli_version":"0.163.0"}
+{"type":"task_complete","error":{"message":"You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 10:13 AM.","codex_error_info":"usage_limit_exceeded"}}
+```
+
+No `error` event is persisted for this stop.
+The same shape appears in a real interactive codex-cli 0.162.1 TUI session that hit the account limit on 2026-10-16.
+
+`tests/fm-codex-limit-live-e2e.test.sh` is the command that refreshes this record.
+It runs the installed Codex against that local server, then asks the route about a task recorded in that directory, and fails naming the harness and version unless the route writes `state/<id>.codex-limit` and answers `claude`.
+It spends no model tokens, so it runs by default wherever Codex is installed.
+The portable half, `tests/fm-cursor-guard.test.sh`, pins which session counts: only the task's own newest one since its launch, and only when its last turn ended on the limit.
+
 ## Composer classification matrix
 
 The shared composer classifier (`bin/fm-composer-lib.sh`, `fm_composer_classify_screen`) owns every composer shape fleet-wide; each backend contributes only a capture and a capability descriptor.
@@ -1401,9 +1429,11 @@ The picker is recognised by its recorded structure only: the heading on its own 
 The same strings quoted above a normal composer, as a diff, this note, or a test fixture shows them, are not a picker.
 Submit retries now stop after the Enter that opened the picker and report unknown.
 A typed submit to a pane that already shows the picker types nothing and sends no Enter.
-Exit reports that the worker is blocked on the Claude background-task exit picker and does not type another Enter.
-A submit can return before any read sees the picker, so exit reads the screen once more when its wait for the agent to stop times out, and names the picker there too.
-Exit does not report a stopped agent whose pane still shows the picker text as blocked on a prompt.
+As of 2026-10-22, [the exit contract](../agent-control.md#verbs) owns background-shell cleanup, once-only picker recovery, process ownership checks, and refusals.
+That behavior change was not verified by a new live Claude run; the 2026-10-05 capture above establishes only the picker structure and its Escape-to-cancel footer.
+`tests/fm-control.test.sh` covers a fake pane whose background shell exits cleanly, a pane already on the picker, a picker that opens on submit, a picker that appears only after the stop wait, delayed and persistent picker redraws after Escape, an exec'd waiter the picker lists, a recognised picker with no readable task, an unrecognised dialog that still refuses, no readable agent roots, a tmux identity mismatch that preserves the other pane's process, and stopped agents leaving picker text behind.
+The scrolled-screen cases in `tests/fm-backend-herdr.test.sh` exercise the current-screen source shared by classification, task extraction, and dismissal checks.
+The same file covers a canned process-info that names a live sleep as claude and returns no root, a live argv0 of claude that is still returned, a non-shell shell pid whose agent child is not a root, and a stop walk that ignores a root pid whose later snapshot is not an agent.
 The watcher does not read the picker: a pane parked on it keeps the ordinary stale triage.
 No recorded screen was available for a model-downgrade confirmation, an MCP approval, or a Claude exit confirmation other than this picker, so those dialogs are not covered.
 Refusing an Enter that would confirm a dialog restores an existing safety path, so it is not gated behind a flag.

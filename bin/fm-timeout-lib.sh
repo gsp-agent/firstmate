@@ -65,6 +65,17 @@
 #       no perl, timeout, or gtimeout on the host it refuses with 127 rather
 #       than run unbounded: there is no bash fallback, because a monitor-mode
 #       watchdog cannot replace the caller.
+#       With FM_EXEC_TIMED_MEMORY_KIB set to a positive KiB count, the perl
+#       watchdog also caps the memory of the command's process group. Once a
+#       second, starting a second after launch, it sums the group's memory:
+#       resident pages from ps, raised on macOS to the kernel's physical
+#       footprint, which counts compressed and swapped pages, and on Linux
+#       plus the swapped pages /proc reports. Past the cap it prints the
+#       reading, KILLs the group, and exits 123. A group it cannot see for
+#       three samples while the command runs is KILLed with 127 rather than
+#       left running unmeasured. A malformed cap exits 125, and a cap on a
+#       host without perl exits 127, because timeout cannot measure memory.
+#       The variable is removed from the command's environment.
 #
 #   fm_timed_out <status>
 #       0 iff <status> is how fm_run_timed or fm_exec_timed reports the bound.
@@ -291,7 +302,7 @@ fm_timed_out() {  # <status>
 # which keeps the bound off perl's platform-dependent syscall-restart signal
 # semantics and off the drift of counting sleep intervals.
 fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
-  local seconds=${1:-} grace=${2:-} value owner
+  local seconds=${1:-} grace=${2:-} memory_kib=${FM_EXEC_TIMED_MEMORY_KIB:-} value owner
   for value in "$seconds" "$grace"; do
     case "$value" in
       '' | 0* | *[!0-9]*)
@@ -305,11 +316,20 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
     echo "fm_exec_timed: usage: fm_exec_timed <positive-seconds> <positive-grace-seconds> <command> [args...]" >&2
     exit 125
   fi
+  case "$memory_kib" in
+    '') ;;
+    0* | *[!0-9]*)
+      echo "fm_exec_timed: FM_EXEC_TIMED_MEMORY_KIB must be a positive KiB count, got $memory_kib" >&2
+      exit 125
+      ;;
+  esac
+  unset FM_EXEC_TIMED_MEMORY_KIB
   owner=${FM_EXEC_TIMED_OWNER_PID:-$$}
   unset FM_EXEC_TIMED_OWNER_PID
   if command -v perl >/dev/null 2>&1; then
     exec perl -MPOSIX=WNOHANG,setpgid,sigprocmask,SIG_BLOCK,SIG_SETMASK,SIGTERM,SIGINT,SIGHUP -MTime::HiRes=time -e '
-      my ($bound, $grace, $owner, $shell_parent) = (shift, shift, shift, shift);
+      my ($bound, $grace, $owner, $shell_parent, $cap) = (shift, shift, shift, shift, shift);
+      (my $name = $ARGV[0]) =~ s{.*/}{};
       # exec preserves the shell PID, including in Bash 3.2 subshells where
       # BASHPID is unavailable. Keep the pre-exec parent for startup races.
       $owner = $shell_parent if $owner == $$;
@@ -373,6 +393,7 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
       sigprocmask(SIG_SETMASK, $mask);
       kill $pending, -$pid if $pending;
       my $deadline = time + $bound;
+      my ($next_sample, $blind) = (time + 1, 0);
       sub finish {
         my $status = shift;
         kill "KILL", -$pid if $kill_at;
@@ -381,10 +402,58 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
         exit 130 if $interrupted;
         exit(($status & 127) ? 128 + ($status & 127) : $status >> 8);
       }
+      sub kill_group {
+        kill "KILL", -$pid;
+        waitpid $pid, 0;
+        exit shift;
+      }
+      sub member_kib {
+        my ($member, $kib) = @_;
+        if ($^O eq "darwin") {
+          # proc_info(PROC_INFO_CALL_PIDRUSAGE, pid, RUSAGE_INFO_V0): the
+          # 64-bit phys_footprint field sits 72 bytes in.
+          my $info = "\0" x 96;
+          if ((eval { syscall(336, 9, $member + 0, 0, 0, $info, 96) } // -1) == 0) {
+            my $footprint = int(unpack("x72 Q<", $info) / 1024);
+            $kib = $footprint if $footprint > $kib;
+          }
+        } elsif (open(my $status, "<", "/proc/$member/status")) {
+          while (<$status>) { $kib += $1 if /^VmSwap:\s+(\d+)/ }
+        }
+        return $kib;
+      }
+      sub group_kib {
+        open(my $ps, "-|", "ps", "-A", "-o", "pid=", "-o", "pgid=", "-o", "rss=") or return -1;
+        my ($kib, $seen) = (0, 0);
+        while (<$ps>) {
+          my ($member, $group, $rss) = split;
+          next unless defined $rss && $group == $pid;
+          $seen = 1;
+          $kib += member_kib($member, $rss);
+        }
+        close $ps;
+        return $seen ? $kib : -1;
+      }
       while (1) {
         my $done = waitpid $pid, WNOHANG;
         finish($?) if $done == $pid;
         exit 127 if $done == -1;
+        if ($cap && time >= $next_sample) {
+          $next_sample = time + 1;
+          my $used = group_kib();
+          if ($used < 0) {
+            if (++$blind >= 3) {
+              print STDERR "fm_exec_timed: cannot read the memory of $name; killed rather than run it unmeasured past its $cap KiB cap\n";
+              kill_group(127);
+            }
+          } else {
+            $blind = 0;
+            if ($used > $cap) {
+              print STDERR "fm_exec_timed: $name used $used KiB of memory, past its $cap KiB cap; killed\n";
+              kill_group(123);
+            }
+          }
+        }
         if ($kill_at) {
           if (time >= $kill_at) {
             kill "KILL", -$pid;
@@ -401,7 +470,10 @@ fm_exec_timed() {  # <seconds> <grace-seconds> <command...>
         }
         select undef, undef, undef, 0.05;
       }
-    ' -- "$seconds" "$grace" "$owner" "$PPID" "$@"
+    ' -- "$seconds" "$grace" "$owner" "$PPID" "${memory_kib:-0}" "$@"
+  elif [ -n "$memory_kib" ]; then
+    printf 'fm_exec_timed: cannot cap the memory of %s: perl is not available to measure it\n' "${1##*/}" >&2
+    exit 127
   elif command -v timeout >/dev/null 2>&1; then
     exec timeout -k "$grace" "$seconds" "$@"
   elif command -v gtimeout >/dev/null 2>&1; then

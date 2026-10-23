@@ -1068,6 +1068,25 @@ test_cursor_fallback() {
   pass "cursor spawn falls back to claude when the bead's codex run hit its limit"
 }
 
+test_codex_limit_marker_routes_a_codex_spawn_to_claude() {
+  local rec id out status
+  id=profile-codex-limit-z6j
+  rec=$(make_spawn_case profile-codex-limit codex "$id")
+  read_case_record "$rec"
+  mkdir -p "$HOME_DIR/state"
+  printf 'codex run for %s hit its usage limit\n' "$id" > "$HOME_DIR/state/$id.codex-limit"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    --harness codex --model gpt-5)
+  status=$?
+  expect_code 0 "$status" "a marked codex spawn should succeed"
+  assert_contains "$out" "codex fallback: launching $id on the claude harness" "the claude route was not announced on stderr"
+  assert_contains "$(cat "$LAUNCH_LOG")" "claude " "a marked codex spawn did not launch on claude"
+  assert_contains "$(cat "$LAUNCH_LOG")" "--effort 'xhigh'" "the claude route did not carry --effort xhigh"
+  assert_not_contains "$(cat "$LAUNCH_LOG")" "gpt-5" "the claude route must not carry the codex model"
+  assert_grep 'harness=claude' "$HOME_DIR/state/$id.meta" "the claude route was not recorded"
+  pass "a codex spawn of a task marked by a codex usage limit launches on claude"
+}
+
 test_cursor_fallback_from_static_crew_harness() {
   local rec id out status
   id=profile-cursor-static-fallback-z6i
@@ -2583,6 +2602,7 @@ test_cursor_allowlist_launch_executes_and_preserves_exit
 test_cursor_crew_guard_pins_working_directory_and_refuses_ref_plumbing
 test_cursor_refuses_model_absent_from_live_catalog
 test_cursor_fallback
+test_codex_limit_marker_routes_a_codex_spawn_to_claude
 test_cursor_fallback_from_static_crew_harness
 test_cursor_failed_catalog_probe_blocks_spawn
 test_opencode_threads_model_and_effort_variant
