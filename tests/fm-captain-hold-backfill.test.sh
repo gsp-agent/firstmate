@@ -123,8 +123,38 @@ test_backfill_fails_on_unreadable_backlog() {
   pass "backfill fails when the backlog cannot be listed"
 }
 
+test_backfill_row_failure_does_not_strand_later_rows() {
+  local home out status=0 body id
+  home=$(make_home rowfail)
+  for id in first-widget bad-widget last-widget; do
+    tasks_in "$home" add "$id" "Ship the $id" --kind ship --repo sample >/dev/null
+    run_captain "$home" hold "$id" --reason "waiting on a go" >/dev/null
+  done
+  strip_owner_fields "$home"
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = update ] && [ "${2:-}" = bad-widget ]; then
+  echo "simulated backend failure" >&2
+  exit 1
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  out=$(run_captain "$home" backfill-owners 2>&1) || status=$?
+  [ "$status" != 0 ] || fail "backfill reported success when a row write failed: $out"
+  printf '%s\n' "$out" | grep -q 'bad-widget' \
+    || fail "failed row was not named: $out"
+  for id in first-widget last-widget; do
+    body=$(tasks_in "$home" show "$id" --full)
+    printf '%s\n' "$body" | grep -q 'Decision owner: ep-sample' \
+      || fail "row $id was stranded by the bad row: $out"
+  done
+  pass "a failed row is reported and later rows still backfill"
+}
+
 test_backfill_derives_owner
 test_backfill_named_seat_and_dale
 test_backfill_skips_row_without_stamp
 test_backfill_fails_on_unreadable_backlog
+test_backfill_row_failure_does_not_strand_later_rows
 echo "all fm-captain-hold-backfill tests passed"

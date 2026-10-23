@@ -2738,7 +2738,7 @@ backfill_one_owner() {  # <id> <dry>; caller owns the task control lock unless d
 }
 
 command_backfill_owners() {
-  local dry=0 ids rows id
+  local dry=0 ids rows id row_timeout=${FM_HOLD_ROUTE_TIMEOUT_SECS:-30} row_status rc=0
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --dry-run) dry=1 ;;
@@ -2754,15 +2754,32 @@ command_backfill_owners() {
   for id in $ids; do
     if [ "$dry" = 1 ]; then
       backfill_one_owner "$id" 1
+    elif [ -n "${FM_CAPTAIN_BACKFILL_ROW:-}" ]; then
+      backfill_row_locked "$id"
     else
-      # The body is read and rewritten under the task control lock, as in
-      # every other body writer here, so a concurrent route-due write to
-      # the same row cannot be overwritten by a stale copy.
-      acquire_task_control_lock "$id"
-      backfill_one_owner "$CAPTAIN_TASK_ID" 0
-      release_task_control_lock
+      # Use one process per row so a failed row cannot strand later holds,
+      # as command_route_due does: acquire/read/write failures inside the
+      # row process (the lock's read, the row read, the body write) are
+      # reported against that row and the sweep carries on.
+      row_status=0
+      ( export FM_TASKS_AXI_COMPATIBLE=1 FM_CAPTAIN_HOLD_CONTRACT=1 FM_CAPTAIN_BACKFILL_ROW=1
+        fm_exec_timed "$row_timeout" 1 "$SCRIPT_DIR/fm-captain-hold.sh" backfill-owners "$id" ) || row_status=$?
+      if [ "$row_status" -ne 0 ]; then
+        printf 'fm-captain-hold: backfill row %s failed (exit %s)\n' "$id" "$row_status" >&2
+        rc=1
+      fi
     fi
   done
+  return "$rc"
+}
+
+backfill_row_locked() {  # <id>: the row-child body of command_backfill_owners
+  # The body is read and rewritten under the task control lock, as in
+  # every other body writer here, so a concurrent route-due write to
+  # the same row cannot be overwritten by a stale copy.
+  acquire_task_control_lock "$1"
+  backfill_one_owner "$CAPTAIN_TASK_ID" 0
+  release_task_control_lock
 }
 
 case "${1:-}" in
