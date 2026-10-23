@@ -7650,7 +7650,7 @@ test_task_data_named_bead_resolution() {
       other-project) bead=heru-add; home=dev/heru-vr-vision-sim ;;
       missing-project|unreadable|timeout) bead=bd-0gpi; home=dev/be-still ;;
       fallback) bead=proof-related ;;
-      archived|archive-unreadable) bead=task-y2 ;;
+      archived|archive-unreadable) bead='task-y2' ;;
       not-found) bead=.agent-config-zzzz9 ;;
       unowned) bead=probe-fixture ;;
     esac
