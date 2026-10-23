@@ -483,6 +483,26 @@ NOTE
   released_note
 }
 
+agent_routed_note() {  # [tamper]; every variant has a recomputed digest
+  python3 -I - "${1:-valid}" "$(released_note)" <<'PYTEST'
+import hashlib, sys
+kind, previous = sys.argv[1:]
+task, owner, stamp = 'sample-abc', 'ep-project', '2026-01-01T00:00:00Z'
+reason = 'waiting on a go for update-branch.'
+if kind == 'task': task = 'foreign-abc'
+if kind == 'stamp': stamp = '2026-99-99T00:00:00Z'
+if kind == 'captain': owner = 'captain'
+evidence = 'Hold-domain receipt: %s\t%s\t%s\nRouted hold reason: %s' % (task, stamp, owner, reason)
+if kind == 'recipient': evidence = evidence.replace(owner+'\n', owner+'\tsession:fixture\n')
+digest = hashlib.sha256(evidence.encode()).hexdigest()
+label = 'Captain decision' if kind == 'label' else 'Agent routing evidence'
+print('Resolution recorded by fm-captain-hold.\nDecision digest: %s\nResolution mode: agent-routed\n\n%s:\n%s\n' % (digest,label,evidence))
+print('Decision owner: %s\nHold timeout seconds: 60\nHold reason: %s\n' % (
+    'foreign-owner' if kind == 'owner' else owner, 'changed reason' if kind == 'reason' else reason))
+print('Previous task body:\n'+previous)
+PYTEST
+}
+
 owned_start() {  # <case-dir> [extra args]
   local case_dir=$1
   shift
@@ -502,9 +522,13 @@ assert_owned_refused() {  # <case-dir> [extra args]
 
 test_owned_queue_start_preserves_repeated_release_history() {
   local case_dir note out rc count meta
-  for count in one two; do
+  for count in one two agent; do
     case_dir=$(make_home "owned-$count")
-    if [ "$count" = one ]; then note=$(released_note); else note=$(twice_released_note); fi
+    case "$count" in
+      one) note=$(released_note) ;;
+      two) note=$(twice_released_note) ;;
+      agent) note=$(agent_routed_note) ;;
+    esac
     add_item "$case_dir" sample-abc "$note"
     rc=0
     out=$(queue_start "$case_dir" sample-abc) || rc=$?
@@ -560,6 +584,16 @@ test_owned_queue_start_rejects_tamper_and_foreign_identity() {
   add_item "$case_dir" sample-abc "$(released_note)"
   assert_owned_refused "$case_dir" --queue-owner foreign-abc
   pass "owned admission refuses changed decisions, digests, identities, unsupported modes and extra content"
+}
+
+test_owned_queue_start_binds_agent_routing_evidence() {
+  local case_dir kind
+  for kind in task stamp captain recipient label owner reason; do
+    case_dir=$(make_home "agent-bad-$kind")
+    add_item "$case_dir" sample-abc "$(agent_routed_note "$kind")"
+    assert_owned_refused "$case_dir"
+  done
+  pass "agent routing requires its exact task, native evidence shape, technical owner and matching history despite a valid digest"
 }
 
 test_owned_queue_start_preserves_native_holds_through_two_answers() {
@@ -625,5 +659,6 @@ test_a_note_edited_after_the_read_does_not_change_the_start
 
 test_owned_queue_start_preserves_repeated_release_history
 test_owned_queue_start_rejects_tamper_and_foreign_identity
+test_owned_queue_start_binds_agent_routing_evidence
 test_owned_queue_start_preserves_native_holds_through_two_answers
 test_owned_queue_flags_require_the_complete_boundary

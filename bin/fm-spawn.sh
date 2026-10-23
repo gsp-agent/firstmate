@@ -97,8 +97,8 @@
 #   --queue-project <project> together. That caller owns live claim checks;
 #   these flags bind this locked backlog read to its task id, project and
 #   original pm-<request> intake. Only this form accepts one or more recorded
-#   captain releases around that intake. Each complete lifecycle envelope,
-#   decision digest and continuation identity must validate; other resolution
+#   captain releases or native agent-routing records around that intake. Each
+#   complete lifecycle envelope, evidence digest and identity must validate; other resolution
 #   modes, active hold stamps, extra prose and foreign identities refuse.
 #   The complete note, including decisions and history, fills the brief as
 #   quoted task data so its historical headers cannot become dispatch settings.
@@ -2309,22 +2309,27 @@ SPAWN_TASK_LOCK_HELD=1
 # --queue-start (header above). QUEUE_START_PY decides from, and later fills
 # the brief from, the one `tasks-axi show --full` read taken here.
 IFS= read -r -d '' QUEUE_START_PY <<'PY' || true
-import hashlib, json, re, sys
+import datetime, hashlib, json, re, sys
 
 TEMPLATE = (r"pm-(?P<owner>[A-Za-z0-9._-]+) inbox (?P<inbox>[0-9]+-[A-Za-z0-9]+); done on the bead\. "
             r"no-mistakes, yolo off; merge on the PM['\u2019]s word\. "
             r"Default route(?: \(labels (?P<labels>[a-z0-9:._-]+(?:, [a-z0-9:._-]+)*)\))?\.")
 RELEASE = re.compile(
     r"Resolution recorded by fm-captain-hold\.\n"
-    r"Decision digest: ([0-9a-f]{64})\nResolution mode: released\n"
-    r"(?:Continuation task: ([A-Za-z0-9._-]+)\n)?\nCaptain decision:\n")
+    r"Decision digest: (?P<digest>[0-9a-f]{64})\nResolution mode: (?P<mode>released|agent-routed)\n"
+    r"(?:Continuation task: (?P<continuation>[A-Za-z0-9._-]+)\n)?\n"
+    r"(?P<label>Captain decision|Agent routing evidence):\n")
 # These are the historical fields emitted by fm-captain-hold's hold and
 # resolution writers. No unstructured prefix is discarded to find an intake.
 HISTORY = re.compile(
-    r"(?:Decision owner: captain\nHold timeout seconds: [0-9]+\n"
-    r"Hold reason: [^\n]+\n\n)?"
-    r"(?:Captain hold origin: ([A-Za-z0-9._-]+)\n\n)?"
-    r"Previous task body:\n([\s\S]+)")
+    r"(?:Decision owner: (?P<owner>[A-Za-z0-9][A-Za-z0-9._-]{0,80})\nHold timeout seconds: [0-9]+\n"
+    r"Hold reason: (?P<reason>[^\n]+)\n\n)?"
+    r"(?:Captain hold origin: (?P<origin>[A-Za-z0-9._-]+)\n\n)?"
+    r"Previous task body:\n(?P<body>[\s\S]+)")
+ROUTED = re.compile(
+    r"Hold-domain receipt: (?P<task>[A-Za-z0-9._-]+)\t"
+    r"(?P<stamp>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)\t"
+    r"(?P<owner>[A-Za-z0-9][A-Za-z0-9._-]{0,80})\nRouted hold reason: (?P<reason>[^\n]+)")
 
 
 def refuse(why):
@@ -2358,8 +2363,12 @@ def owned_intake(body, task_id, owner):
                 refuse("its original PM intake belongs to another request")
             return match
         header = RELEASE.match(body)
-        if not header or header[2] not in (None, task_id):
+        if not header or header['continuation'] not in (None, task_id):
             refuse("its note is not a complete release of this PM intake")
+        routed = header['mode'] == 'agent-routed'
+        if (header['label'] != ('Agent routing evidence' if routed else 'Captain decision') or
+                (routed and header['continuation'] is not None)):
+            refuse("its resolution mode and evidence do not match")
         payload = body[header.end():]
         boundaries = []
         # Decision text is free-form and may quote lifecycle headers. Its
@@ -2371,14 +2380,26 @@ def owned_intake(body, task_id, owner):
             if len(encoded) > 8192:
                 break
             if (decision and not decision.endswith('\n') and
-                    hashlib.sha256(encoded).hexdigest() == header[1]):
-                boundaries.append(boundary.end())
+                    hashlib.sha256(encoded).hexdigest() == header['digest']):
+                boundaries.append((boundary.end(), decision))
         if len(boundaries) != 1:
             refuse("its recorded decision digest does not identify one complete answer")
-        history = HISTORY.fullmatch(payload[boundaries[0]:])
-        if not history or history[1] not in (None, task_id):
+        boundary, decision = boundaries[0]
+        history = HISTORY.fullmatch(payload[boundary:])
+        if not history or history['origin'] not in (None, task_id):
             refuse("its release history is incomplete or belongs to another task")
-        body = history[2]
+        if routed:
+            evidence = ROUTED.fullmatch(decision)
+            if (not evidence or evidence['task'] != task_id or evidence['owner'] == 'captain' or
+                    evidence['owner'] != history['owner'] or evidence['reason'] != history['reason']):
+                refuse("its routing evidence does not match this task and hold history")
+            try:
+                datetime.datetime.strptime(evidence['stamp'], '%Y-%m-%dT%H:%M:%SZ')
+            except ValueError:
+                refuse("its routing evidence has an invalid hold timestamp")
+        elif history['owner'] not in (None, 'captain'):
+            refuse("its captain release has a different decision owner")
+        body = history['body']
 
 
 task = fields(sys.stdin.read())
