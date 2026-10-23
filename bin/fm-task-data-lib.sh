@@ -1,23 +1,40 @@
 #!/usr/bin/env bash
-# Task-data staging runs only after teardown removes the task record, while its
-# meta lock is still held. Expiring other tasks' holds runs after teardown
+# Task-data staging runs at the shared retirement boundary, while the task's
+# protection and meta lock are still held. Expiring other tasks' holds runs after teardown
 # releases every lock. fm-task-data.py owns retention and recovery rules.
 # Callers source fm-wake-lib.sh for the same locks spawn uses to publish records.
+# The sweep drains pending holds one at a time with no expiry budget, under a
+# single-instance lock and each task's own meta lock; it holds no home-wide
+# lease. Teardown starts it in the background after releasing its own locks,
+# and FM_TASK_DATA_SWEEP=off suppresses that start.
+# Usage: bash fm-task-data-lib.sh expire DATA STATE ID
+#        bash fm-task-data-lib.sh sweep DATA STATE [REQUESTING_ID]
+# A named sweep request atomically replaces STATE/.task-data-sweep.rerun with that completion's id.
+# An active sweep takes another pass when that slot changes.
+# An explicit sweep omits REQUESTING_ID and never replaces an existing slot.
+# It creates an empty slot only when none exists.
+# Each pass excludes the slot's snapshotted requester.
+# Each locked expiry rechecks the latest requester before touching a hold.
+# That recheck protects the requester's fresh recovery.
+# A later, different completion may still expire an earlier hold.
 
-fm_task_data_cleanup() { # <data> <state> <id> <project> <pr>
-  local data=$1 state=$2 id=$3 project=$4 pr=$5 helper
-  helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
-  fm_task_id_path_safe "$id" || return 1
-  [ ! -e "$state/$id.meta" ] && [ ! -L "$state/$id.meta" ] || return 1
-  command -v python3 >/dev/null 2>&1 || {
-    echo "warning: task data retained: python3 is unavailable" >&2
-    return 1
-  }
-  python3 "$helper" stage "$data" "$state" "$id" "$project" "$pr"
+fm_task_data_sweep_request() {
+  local state=$1 id=$2 request
+  request=$(umask 077; mktemp "$state/.task-data-sweep.rerun.XXXXXX") || return 1
+  if printf '%s\n' "$id" > "$request"; then
+    if [ -n "$id" ]; then
+      mv -f -- "$request" "$state/.task-data-sweep.rerun" && return 0
+    elif ln -- "$request" "$state/.task-data-sweep.rerun" 2>/dev/null || [ -e "$state/.task-data-sweep.rerun" ]; then
+      rm -f -- "${request:?}"
+      return 0
+    fi
+  fi
+  rm -f -- "$request"
+  return 1
 }
 
 fm_task_data_expire_others() { # <data> <state> <id>
-  local data=$1 state=$2 id=$3 helper lib listed other expiry lock budget full start remaining limit status rc=0 i
+  local data=$1 state=$2 id=$3 requester helper lib listed other expiry lock budget full start remaining limit status rc=0 i
   local pending=() marks=() too_large=()
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data-lib.sh"
@@ -26,9 +43,10 @@ fm_task_data_expire_others() { # <data> <state> <id>
   case "$budget" in ''|0*|*[!0-9]*) budget=10 ;; esac
   full=${FM_TEARDOWN_DATA_FULL_EXPIRE_TIMEOUT:-60}
   case "$full" in ''|0*|*[!0-9]*) full=60 ;; esac
+  requester=$(cat "$state/.task-data-sweep.rerun") || return 1
   listed=$(python3 "$helper" pending "$data") || return 1
   while IFS=$'\t' read -r other expiry; do
-    if [ -z "$other" ] || [ "$other" = "$id" ] || ! fm_task_id_path_safe "$other"; then
+    if [ -z "$other" ] || [ "$other" = "$id" ] || [ "$other" = "$requester" ] || ! fm_task_id_path_safe "$other"; then
       continue
     elif [ "$expiry" = too-large ]; then
       too_large+=("$other")
@@ -55,7 +73,14 @@ fm_task_data_expire_others() { # <data> <state> <id>
     other=${pending[i]}
     lock=$(fm_meta_lock_path "$state/$other.meta") || continue
     fm_lock_try_acquire "$lock" || continue
-    if [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ]; then
+    if ! requester=$(cat "$state/.task-data-sweep.rerun"); then
+      fm_lock_release "$lock"
+      rc=1
+      continue
+    fi
+    if [ "$other" != "$id" ] && [ "$other" != "$requester" ] \
+        && [ ! -e "$state/$other.meta" ] && [ ! -L "$state/$other.meta" ] \
+        && [ ! -e "$state/$other.backlog-close" ] && [ ! -L "$state/$other.backlog-close" ]; then
       limit=$remaining
       [ "${marks[i]}" != cut-off ] || limit=$full
       touch -h -c "$data/$other/record/data-cleanup.json" 2>/dev/null || true
@@ -79,8 +104,8 @@ fm_task_data_expire_others() { # <data> <state> <id>
 # a held lock or a live task refuses. A run that only staged a never-staged
 # hold is followed by one more under the same lock, and a hold still not
 # expired at the end is an error.
-fm_task_data_expire_by_hand() { # <data> <state> <id>
-  local data=$1 state=$2 id=$3 lock record helper status=0 unstaged=0 again=0
+fm_task_data_expire_by_hand() { # <data> <state> <id> [request]
+  local data=$1 state=$2 id=$3 request=${4:-} requester lock record helper status=0 unstaged=0 again=0
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   record="$data/$id/record/data-cleanup.json"
   fm_task_id_path_safe "$id" || { echo "error: unsafe task id: $id" >&2; return 1; }
@@ -89,7 +114,18 @@ fm_task_data_expire_by_hand() { # <data> <state> <id>
     echo "error: task $id is locked by another process; nothing was expired, retry later" >&2
     return 1
   fi
-  if [ -e "$state/$id.meta" ] || [ -L "$state/$id.meta" ]; then
+  if [ -n "$request" ]; then
+    if ! requester=$(cat "$request"); then
+      fm_lock_release "$lock"
+      return 1
+    fi
+    if [ "$id" = "$requester" ]; then
+      fm_lock_release "$lock"
+      return 0
+    fi
+  fi
+  if [ -e "$state/$id.meta" ] || [ -L "$state/$id.meta" ] \
+      || [ -e "$state/$id.backlog-close" ] || [ -L "$state/$id.backlog-close" ]; then
     echo "error: task $id is live; nothing was expired" >&2
     status=1
   else
@@ -111,30 +147,124 @@ fm_task_data_expire_by_hand() { # <data> <state> <id>
   return "$status"
 }
 
-fm_task_data_bead_reference() { # <data> <project> <bead>
-  local data=$1 project=$2 bead=$3 owner out
-  case "$bead" in
-    .agent-config-*) owner="$HOME/.agent-config" ;;
-    gsp-*) owner="$HOME/dev/gsp-beads" ;;
-    *) owner=$project ;;
-  esac
-  if [ -n "$owner" ] && out=$(
-    unset BEADS_DIR BEADS_DB BR_DB
-    cd -- "$owner" 2>/dev/null || exit 1
-    fm_run_timed 10 br show "$bead" --json
-  ) && printf '%s\n' "$out" | jq -e --arg id "$bead" \
-      'type == "array" and length == 1 and .[0].id == $id' >/dev/null; then
+# Drain every pending hold once, least recently tried first, with no expiry
+# budget, including holds marked too large. A held meta lock or a live task
+# refuses inside the by-hand expiry and stays held. Requester exclusions are
+# owned by this file's header.
+fm_task_data_sweep() { # <data> <state>
+  local data=$1 state=$2 exclude helper lock rerun snapshot listed other _expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
+  helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
+  case "$stage_timeout" in ''|0*|*[!0-9]*) stage_timeout=3600 ;; esac
+  command -v python3 >/dev/null 2>&1 || return 1
+  lock="$state/.task-data-sweep.lock"
+  rerun="$state/.task-data-sweep.rerun"
+  if ! fm_lock_try_acquire "$lock"; then
+    echo "task-data sweep already running; requested another pass" >&2
+    return 0
+  fi
+  snapshot=$(umask 077; mktemp "$state/.task-data-sweep.snapshot.XXXXXX") || {
+    fm_lock_release "$lock"
+    return 1
+  }
+  export FM_TEARDOWN_DATA_STAGE_TIMEOUT=$stage_timeout
+  while :; do
+    if ! ln -f -- "$rerun" "$snapshot" || ! exclude=$(cat "$snapshot") \
+        || ! listed=$(python3 "$helper" pending "$data"); then
+      fm_lock_release "$lock"
+      rm -f -- "$snapshot"
+      return 1
+    fi
+    while IFS=$'\t' read -r other _expiry; do
+      [ -n "$other" ] || continue
+      [ "$other" = "$exclude" ] && continue
+      fm_task_id_path_safe "$other" || continue
+      fm_task_data_expire_by_hand "$data" "$state" "$other" "$rerun" || true
+    done <<< "$listed"
+    fm_lock_release "$lock"
+    [ "$rerun" -ef "$snapshot" ] && break
+    fm_lock_try_acquire "$lock" || break
+  done
+  rm -f -- "$snapshot"
+  return 0
+}
+
+# Start one sweep in the background.
+fm_task_data_sweep_start() { # <data> <state>
+  local lib
+  if [ ! -e "$2/.task-data-sweep.rerun" ]; then
+    fm_task_data_sweep_request "$2" '' || return 1
+  fi
+  [ "${FM_TASK_DATA_SWEEP:-on}" = off ] && return 0
+  lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data-lib.sh"
+  (
+    trap '' HUP
+    # shellcheck source=/dev/null
+    . "${lib%/*}/fm-wake-lib.sh" || exit 1
+    # shellcheck source=/dev/null
+    . "${lib%/*}/fm-pr-lib.sh" || exit 1
+    fm_task_data_sweep "$1" "$2"
+  ) >/dev/null 2>&1 </dev/null &
+}
+
+# The bead-prefix map: each home, under HOME, whose .beads/beads.db owns
+# the prefix after it. The longest matching prefix wins.
+fm_task_data_bead_database() { # <bead>
+  local bead=$1 prefix home best='' owner=''
+  while read -r home prefix; do
+    case "$bead" in
+      "$prefix"-*) [ "${#prefix}" -le "${#best}" ] || { best=$prefix; owner=$home; } ;;
+    esac
+  done <<'MAP'
+.agent-config-beads .agent-config
+dev/be-still bd
+dev/carman-compound carmanco
+dev/pfizer-clickless clickless
+dev/dale dale
+dev/gj-tool gj
+dev/gj-gitlab-config gj-gitlab-config
+dev/gj-magic-mirror gjmm
+dev/groove-jones-ops gjops
+dev/gsp-beads gsp
+dev/heru-vr-vision-sim heru
+dev/agent-observer obs
+MAP
+  [ -n "$owner" ] && printf '%s\n' "$HOME/$owner/.beads/beads.db"
+}
+
+# A named bead has one owner: the database its prefix maps to, else this
+# home's backlog for an id a task can carry. Prints the bead and returns 0,
+# returns 3 when the owner answered that it does not exist or nothing can own
+# it, returns 4 when a markdown backlog lacks the row so its archive decides,
+# and fails when the owner cannot be read or the read times out.
+# br runs from / so no database above the working directory can answer.
+fm_task_data_bead_reference() { # <data> <bead>
+  local data=$1 bead=$2 db out status=0
+  if db=$(fm_task_data_bead_database "$bead"); then
+    out=$(
+      unset BEADS_DIR BEADS_DB BR_DB
+      cd / && fm_run_timed 10 br --db "$db" show "$bead" --json
+    ) || status=$?
+    if [ "$status" = 3 ] && printf '%s\n' "$out" | jq -e '.error.code == "ISSUE_NOT_FOUND"' >/dev/null; then
+      return 3
+    fi
+    [ "$status" = 0 ] && printf '%s\n' "$out" | jq -e --arg id "$bead" \
+      'type == "array" and length == 1 and .[0].id == $id' >/dev/null || return 1
     printf '%s\n' "$out"
     return 0
   fi
-  case "$bead" in .agent-config-*|gsp-*) return 1 ;; esac
-  fm_backlog_row_probe "$data" "$bead" || return 1
-  fm_backlog_row_show "$data" "$bead" --full
+  fm_task_id_path_safe "$bead" || return 3
+  if fm_backlog_row_probe "$data" "$bead"; then
+    fm_backlog_row_show "$data" "$bead" --full || return 1
+    return 0
+  fi
+  [ "$FM_BACKLOG_ROW_RESULT" = not_found ] || return 1
+  [ -z "$FM_BACKLOG_AXI_FILE" ] || return 4
+  return 3
 }
 
-fm_task_data_backlog_references() { # <data> <id> <required> <project> [bead...]
-  local data=$1 id=$2 required=$3 project=$4 script_dir row out text='' task='' unread='[]'
-  shift 4
+fm_task_data_backlog_references() { # <data> <id> <required> [bead...]
+  local data=$1 id=$2 required=$3 script_dir row out status text='' task='' unread='[]' archived='[]'
+  shift 3
   script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || return 1
   # shellcheck source=bin/fm-tasks-axi-lib.sh
   . "$script_dir/fm-tasks-axi-lib.sh" || return 1
@@ -143,7 +273,7 @@ fm_task_data_backlog_references() { # <data> <id> <required> <project> [bead...]
   fm_backlog_tasks_axi_addressing "$data" || return 1
   if [ -n "$FM_BACKLOG_AXI_FILE" ] && [ ! -e "$FM_BACKLOG_AXI_FILE" ] && [ ! -L "$FM_BACKLOG_AXI_FILE" ] \
       && [ "$required" = 0 ] && [ "$#" -eq 0 ]; then
-    printf '{"task":null,"text":"","unread":[]}\n'
+    printf '{"task":null,"text":"","unread":[],"archived":[]}\n'
     return 0
   fi
   unset TASKS_AXI_FILE
@@ -160,14 +290,18 @@ fm_task_data_backlog_references() { # <data> <id> <required> <project> [bead...]
     unread=$(jq -cn --arg id "$id" '[$id]')
   fi
   for row in "$@"; do
-    if out=$(fm_task_data_bead_reference "$data" "$project" "$row" 2>/dev/null) && [ -n "$out" ]; then
+    status=0
+    out=$(fm_task_data_bead_reference "$data" "$row" 2>/dev/null) || status=$?
+    if [ "$status" = 0 ] && [ -n "$out" ]; then
       text="$text$out"$'\n'
-    else
+    elif [ "$status" = 4 ]; then
+      archived=$(printf '%s' "$archived" | jq -c --arg id "$row" '. + [$id]')
+    elif [ "$status" != 3 ]; then
       unread=$(printf '%s' "$unread" | jq -c --arg id "$row" '. + [$id]')
     fi
   done
-  printf '%s' "$text" | jq -Rs --arg task "$task" --argjson unread "$unread" \
-    '{task: (if $task == "" then null else $task end), text: ., unread: $unread}'
+  printf '%s' "$text" | jq -Rs --arg task "$task" --argjson unread "$unread" --argjson archived "$archived" \
+    '{task: (if $task == "" then null else $task end), text: ., unread: $unread, archived: $archived}'
 }
 
 fm_task_data_pr_references() {
@@ -243,17 +377,30 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       fm_task_data_pr_references "$2"
       ;;
     backlog-references)
-      [ "$#" -ge 5 ] || exit 1
+      [ "$#" -ge 4 ] || exit 1
       shift
       fm_task_data_backlog_references "$@"
       ;;
     expire)
       [ "$#" -eq 4 ] || exit 1
-      # shellcheck source=bin/fm-wake-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
-      # shellcheck source=bin/fm-pr-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
       fm_task_data_expire_by_hand "$2" "$3" "$4"
+      ;;
+    sweep)
+      [ "$#" -eq 3 ] || [ "$#" -eq 4 ] || exit 1
+      # shellcheck source=/dev/null
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
+      # shellcheck source=/dev/null
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
+      if [ -n "${4:-}" ]; then
+        fm_task_data_sweep_request "$3" "$4" || exit 1
+      elif [ ! -e "$3/.task-data-sweep.rerun" ]; then
+        fm_task_data_sweep_request "$3" '' || exit 1
+      fi
+      fm_task_data_sweep "$2" "$3"
       ;;
     *) exit 1 ;;
   esac

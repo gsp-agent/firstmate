@@ -132,10 +132,17 @@
 #                          payload names what to check. These three kinds are
 #                          joined with `;` when more than one surfaces in a cycle
 #   check: rejected unauthenticated state checks: <paths>
-#                          unsafe state checks were refused without execution
+#                          unsafe state checks were refused without execution.
+#                          Announced once per check id and fingerprint
+#                          (state/.rejected-check-<id>, bin/fm-check-lib.sh):
+#                          the wake names the owning task id, and the same
+#                          rejection stays silent until the check or its
+#                          trust record changes, authenticates, or disappears
 #   check: rejected unauthenticated PR poll retirement receipts: <paths>
 #                          invalid pending retirements were preserved without
-#                          running a check or removing poll artifacts
+#                          running a check or removing poll artifacts; the
+#                          same once-per-fingerprint rule applies, keyed by
+#                          state/.rejected-retirement-receipts
 #   heartbeat              fleet-scan backstop found an unsurfaced captain-relevant
 #                          status, unless afk is active
 #   check: inactive-outcome bounded poll-loop reconciliation found a suspicious
@@ -175,6 +182,15 @@
 #                          budget and is parked until a probe reads it live
 #                          again (FM_SECONDMATE_LIVENESS_MAX_ATTEMPTS and
 #                          FM_SECONDMATE_LIVENESS_WINDOW_SECS)
+# The periodic hold-domain sweep uses the tracked check runner with
+# FM_CHECK_TIMEOUT seconds (default 90 for this sweep). That bound is a slice:
+# fm-captain-hold.sh saves its place and the next pass continues. Exit 124 or
+# 137 with no row failure is that slice ending, and it does not wake. A row
+# failure, including one already printed when the bound then fires, queues a
+# `check: hold-domain routing failed: exit <code>` wake before ordinary checks
+# run; that reason closes the sweep's one collected delivery, after the other
+# check results. fm-captain-hold.sh owns row deadlines and resumable sweep
+# ordering.
 # For normal supervision, resume the session-start primary-harness protocol
 # after each printed reason. Direct duplicate invocations of this script still
 # no-op through the watcher singleton lock. A live holder whose beacon is stale
@@ -216,6 +232,10 @@ WATCH_HOME_EXISTED=0
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 # shellcheck source=bin/fm-supervision-lib.sh
 . "$SCRIPT_DIR/fm-supervision-lib.sh"
+# Only for the home-gate query (fm_supervision_host_enabled) the resurface
+# gate below asks; the engine turn machinery stays with the host.
+# shellcheck source=bin/fm-supervision-engine-lib.sh
+. "$SCRIPT_DIR/fm-supervision-engine-lib.sh"
 # Only for the arm-time check on FM_PROCEVENT_LAUNCH_CONFIRM_SECONDS below;
 # the per-cycle reconcile itself runs as a separate process.
 # shellcheck source=bin/fm-procevent-lib.sh
@@ -429,6 +449,14 @@ _event_cap_fails=0
 # digest/injection layer would never see the wake.
 afk_present() { [ -e "$STATE/.afk" ]; }
 
+# daemon_owns_supervision: 0 while the supervise daemon owns this watcher's
+# triage, in any posture (cut 4: routing ownership is decoupled from the away
+# posture). The daemon marks its own watcher child with
+# FM_DAEMON_OWNS_SUPERVISION=1; the away flag remains a compat signal for a
+# watcher started beside an already-running daemon. Decision semantics never
+# read this: they key on the away record (away_record_present below).
+daemon_owns_supervision() { [ "${FM_DAEMON_OWNS_SUPERVISION:-}" = 1 ] || afk_present; }
+
 # away_record_present: 0 while an away record exists (the captain is away, in
 # either supervision shape); quiet mode's record is a present captain, so it
 # reads 1 (fm_afk_contract_away_present). "The away-posture record exists"
@@ -444,6 +472,44 @@ away_record_present() { fm_afk_contract_away_present "$STATE"; }
 # silently instead of rechecking it.
 captain_held_silenced() {  # <status-line>
   status_is_captain_held "$1" && away_record_present
+}
+
+# Collect one rejected check for this sweep's announcement, unless the same
+# rejection was already announced once: a rejected check wakes main once,
+# naming its owning task id, then stays silent until its fingerprint
+# changes (bin/fm-check-lib.sh owns the marker and the fingerprint).
+# Appends to the caller's rejected_checks and rejected_marks globals.
+note_rejected_check() {  # <id> <path>
+  local rid=$1 rpath=$2 rfp
+  rfp=$(fm_rejected_check_fingerprint "$STATE" "$rid")
+  if fm_rejected_check_announced "$STATE" "$rid" "$rfp"; then
+    triage_log "absorbed rejected check (announced once, owner $rid): $rpath"
+    return 0
+  fi
+  rejected_checks="$rejected_checks $rpath"
+  rejected_marks="${rejected_marks}${rid}"$'\t'"${rfp}"$'\n'
+}
+
+# The PR-poll retirement-receipt rejection gets the same once-only rule,
+# keyed by the rejected set itself in state/.rejected-retirement-receipts.
+retirement_rejection_announced() {
+  local marker="$STATE/.rejected-retirement-receipts"
+  [ -f "$marker" ] && [ ! -L "$marker" ] \
+    && [ "$(cat "$marker" 2>/dev/null || true)" = "$FM_PR_POLL_RETIREMENT_REJECTED" ]
+}
+
+retirement_rejection_mark() {
+  local marker="$STATE/.rejected-retirement-receipts" tmp
+  tmp=$(umask 077; mktemp "$STATE/.rejected-retirement.XXXXXX") || return 1
+  if ! printf '%s' "$FM_PR_POLL_RETIREMENT_REJECTED" > "$tmp" \
+    || ! mv -f -- "$tmp" "$marker"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+}
+
+retirement_rejection_clear() {
+  rm -f -- "$STATE/.rejected-retirement-receipts"
 }
 
 hash_pane() {
@@ -472,38 +538,41 @@ window_is_busy() {  # <window> <tail40>
   [ "${verdict%% *}" = busy ]
 }
 
-window_kind() {
+window_kind() {  # <window> [<out-var>]
   local w=$1 meta kind
-  meta=$(fm_backend_meta_for_window "$w" "$STATE" 2>/dev/null || true)
+  fm_backend_meta_for_window "$w" "$STATE" meta || meta=
   if [ -n "$meta" ]; then
-    kind=$(grep '^kind=' "$meta" | cut -d= -f2- || true)
+    fm_meta_get "$meta" kind kind
     [ -n "$kind" ] || kind=ship
-    echo "$kind"
-    return 0
+  else
+    kind=unknown
   fi
-  echo unknown
+  if [ "$#" -gt 1 ]; then printf -v "$2" '%s' "$kind"
+  else printf '%s\n' "$kind"; fi
 }
 
 # window_backend: the backend recorded in the meta whose window= matches <w>,
 # defaulting to tmux (absent backend= means tmux; the P1 compatibility
 # contract) when no matching meta carries the field, or none matches at all.
-window_backend() {
+window_backend() {  # <window> [<out-var>]
   local w=$1 meta backend
-  meta=$(fm_backend_meta_for_window "$w" "$STATE" 2>/dev/null || true)
+  fm_backend_meta_for_window "$w" "$STATE" meta || meta=
   if [ -n "$meta" ]; then
-    backend=$(grep '^backend=' "$meta" | cut -d= -f2- || true)
+    fm_meta_get "$meta" backend backend
     [ -n "$backend" ] || backend=tmux
-    echo "$backend"
-    return 0
+  else
+    backend=tmux
   fi
-  echo tmux
+  if [ "$#" -gt 1 ]; then printf -v "$2" '%s' "$backend"
+  else printf '%s\n' "$backend"; fi
 }
 
-window_harness() {
-  local w=$1 meta
-  meta=$(fm_backend_meta_for_window "$w" "$STATE" 2>/dev/null || true)
-  [ -n "$meta" ] || return 0
-  grep '^harness=' "$meta" | cut -d= -f2- || true
+window_harness() {  # <window> [<out-var>]
+  local w=$1 meta harness=
+  fm_backend_meta_for_window "$w" "$STATE" meta || meta=
+  [ -z "$meta" ] || fm_meta_get "$meta" harness harness
+  if [ "$#" -gt 1 ]; then printf -v "$2" '%s' "$harness"
+  else printf '%s\n' "$harness"; fi
 }
 
 window_label() {
@@ -744,7 +813,7 @@ signal_turnend_panes_churned() {  # <file> ...
     snapshot_labels+=("$label")
   done
   # These linear lookups deliberately support stock macOS Bash 3.2.57, enforced
-  # by macos-stock-bash, and this repository uses no associative arrays in bin/
+  # by bin/fm-stock-bash-check.sh, and this repository uses no associative arrays in bin/
   # or tests/. A batch is normally one to three tasks and captures dominate its
   # cost; indexed lookup is the upgrade path if coalesced batches grow large.
   for task in "${signal_tasks[@]}"; do
@@ -853,6 +922,21 @@ recorded_windows() {
     seen="$seen|$w|"
     printf '%s\n' "$w"
   done
+}
+
+# The pane-stale loop's order: the least-recently-visited window first. wake()
+# exits the watcher, so a scan that always began at the first .meta never
+# reached a late window while earlier ones kept waking; on 10-21, 80 of 100 live
+# windows went unvisited for 6.5 h (.agent-config-6keoe). Every visit writes
+# .count-<key>, so its mtime is the last visit. A window never visited sorts
+# first, and ties keep the recorded order.
+stale_scan_windows() {
+  local w m i=0
+  while IFS= read -r w; do
+    m=$(stat_mtime "$STATE/.count-$(window_key "$w")") || m=0
+    printf '%s\t%s\t%s\n' "${m:-0}" "$i" "$w"
+    i=$((i + 1))
+  done < <(recorded_windows) | sort -t $'\t' -k1,1n -k2,2n | cut -f3-
 }
 
 # Print the oldest structurally valid ACTIONABLE row in a local secondmate's
@@ -1688,8 +1772,8 @@ busy_turn_bound_check() {  # <window> <task> <hash> <since-file> <escalation-fil
   local win=$1 task=$2 h=$3 since_file=$4 escalation_file=$5 key statusf declared
   statusf="$STATE/$task.status"
   if status_is_paused_or_captain_held "$(status_declared_wait_line "$statusf")"; then
-    if afk_present; then
-      # Away mode is daemon-owned, so this bound hands off the PLAIN wake identity
+    if daemon_owns_supervision; then
+      # Supervision is daemon-owned in every posture, so this bound hands off the PLAIN wake identity
       # and lets the daemon classify the declaration itself - the undecorated
       # identity the rest of this function's contract promises. Running the wedge
       # timer here instead would decorate the wake as a possible wedge, and that
@@ -2113,6 +2197,7 @@ procevent_surface_queued() {
 run_check_process() {
   local c=$1
   shift
+  [ "${FM_CHECK_CAPTURE_STDERR:-0}" != 1 ] || exec 2>&1
   # The merge-queue sweep bounds each GitHub page itself. An outer deadline
   # would kill the rest of a scan that is already making progress.
   if [ "${FM_CHECK_UNBOUNDED:-0}" = 1 ]; then
@@ -2354,6 +2439,7 @@ heartbeat_scan_finds_actionable() {
     [ -e "$f" ] || [ -L "$f" ] || continue
     [ "$f" = "$exclude" ] && continue
     task=$(basename "$f"); task="${task%.status}"
+    fm_pm_live_task "$STATE" "$task" && continue
     record=$(status_span_first_actionable_record "$f" "$(hb_surfaced_offset "$task")")
     rc=$?
     [ "$rc" -eq 1 ] && [ -z "$record" ] && continue
@@ -2525,6 +2611,13 @@ if [ -n "$EVICTED_PID" ]; then
   echo "watcher: replaced stalled pid $EVICTED_PID (beacon ${EVICTED_BEAT_AGE}s past hard bound ${WATCHER_STALL_BOUND}s)"
 fi
 WATCHER_RECOVERY_PENDING=0
+# The reason resurface_after_downtime is about to close on, recorded before
+# wake() exits the cycle. watcher_cleanup preserves the recovery marker only
+# when that exact reason was delivered (FM_WATCH_DELIVERED_REASON, which
+# wake() sets only after its stdout write succeeds): a resurface whose wake
+# line never reached stdout delivered nothing, and its episode must go back
+# to pending so a later watcher closes on the row again.
+WATCHER_RESURFACE_REASON=
 if [ -n "${FM_LOCK_RECOVERED_PID:-}" ]; then
   WATCHER_RECOVERY_PENDING=1
 fi
@@ -2546,22 +2639,14 @@ elif [ "$FM_RECOVERY_MARKER_ACTION" = recover ]; then
 fi
 # Side-band ledger publication, detached from the poll loop.
 #
-# The poll loop owns the liveness beacon below, and fm-guard.sh reads that
-# beacon's freshness as proof that supervision is alive. Publication is a
-# side-band nicety bounded by FM_HOME_SUMMARY_TIMEOUT, but that bound is far
-# larger than one poll and, in a home whose publication keeps failing, it is
-# paid on every poll - so running it inline puts up to a full publication
-# deadline between two beacon touches and can starve the guard's grace. Nothing
-# in the poll depends on the ledger, so start it and move on: the beacon keeps
-# advancing no matter how slow the publication is.
-#
-# The trade the detachment makes: a reader can briefly see a ledger that
-# predates the event this poll just surfaced, where the inline call published
-# first. Publication is eventually consistent by design and every reader
-# re-derives current state from the owning home anyway, while beacon freshness
-# is what the whole supervision chain rests on.
+# Publication must not delay the liveness beacon that fm-guard.sh reads as
+# supervision health. The ledger can lag an event until the coalesced refresh;
+# bin/fm-home-summary-refresh.sh's header owns request and cooldown semantics.
 HOME_SUMMARY_PID=
 home_summary_refresh_detached() {
+  # Skip the request process entirely when this home has no ledger reader.
+  [ -f "$FM_HOME/.fm-secondmate-home" ] || return 0
+  : >> "$STATE/.home-summary-dirty" 2>/dev/null || return 0
   if [ -n "$HOME_SUMMARY_PID" ]; then
     if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
       return 0
@@ -2569,8 +2654,7 @@ home_summary_refresh_detached() {
     wait "$HOME_SUMMARY_PID" 2>/dev/null || true
     HOME_SUMMARY_PID=
   fi
-  FM_HOME_SUMMARY_IF_IDLE=1 \
-    "$SCRIPT_DIR/fm-home-summary-refresh.sh" --best-effort </dev/null >/dev/null 2>&1 &
+  "$SCRIPT_DIR/fm-home-summary-refresh.sh" --request --wait </dev/null >/dev/null 2>&1 &
   HOME_SUMMARY_PID=$!
 }
 
@@ -2603,6 +2687,15 @@ reconcile_requests_detached() {
 
 PR_POLL_CONTROL_LOCK=
 PR_POLL_PUBLISH_LOCK=
+FM_PR_POLL_BATCH_CACHE=
+export FM_PR_POLL_BATCH_CACHE
+
+poll_batch_cache_clear() {
+  if [ -n "${FM_PR_POLL_BATCH_CACHE:-}" ]; then
+    rm -f -- "$FM_PR_POLL_BATCH_CACHE" || true
+  fi
+  FM_PR_POLL_BATCH_CACHE=
+}
 
 pr_poll_control_release() {
   [ -z "$PR_POLL_CONTROL_LOCK" ] || fm_lock_release "$PR_POLL_CONTROL_LOCK" || return 1
@@ -2632,22 +2725,47 @@ watcher_world_gone() {
 }
 
 watcher_cleanup() {
-  local exit_status=$? cleanup_status=0 owns_lock=0 transition=release-lock
+  local exit_status=$? cleanup_status=0 owns_lock=0 transition=release-lock fm_timed_signal=""
   # One place logs the world-gone reason, so a step that failed because its
   # world went away mid-poll names it exactly as the next poll's check would.
   if [ "$exit_status" -ne 0 ] && watcher_world_gone; then
     echo "watcher: exiting - $WATCHER_GONE" >&2
   fi
+  poll_batch_cache_clear
   pr_poll_publish_release || cleanup_status=1
   pr_poll_control_release || cleanup_status=1
   if [ "$(cat "$WATCH_LOCK/pid" 2>/dev/null || true)" = "${WATCHER_PID:-}" ]; then
     owns_lock=1
     if [ "${WATCHER_RECOVERY_PENDING:-0}" -eq 1 ] \
-      && [ "${FM_WATCH_DELIVERED_REASON:-}" = "check: rearm-resurface" ]; then
+      && [ -n "${WATCHER_RESURFACE_REASON:-}" ] \
+      && [ "${FM_WATCH_DELIVERED_REASON:-}" = "$WATCHER_RESURFACE_REASON" ]; then
       transition=release-lock-existing
+    elif [ "${WATCHER_RECOVERY_PENDING:-0}" -eq 1 ] \
+      && [ -n "${WATCHER_RESURFACE_REASON:-}" ]; then
+      # The resurface close was attempted but its wake line was not
+      # delivered: put the episode back to pending, because a foreground
+      # checkpoint keeps an announced episode stable and would never
+      # present the still-queued row again.
+      fm_recovery_marker_reopen_announced "$WATCHER_DOWNTIME_MARKER" || true
     fi
   fi
   fm_active_check_stop || cleanup_status=1
+  if [ -n "$HOME_SUMMARY_PID" ]; then
+    if [ "$exit_status" -eq 0 ] && [ -n "${FM_WATCH_DELIVERED_REASON:-}" ]; then
+      # A normal delivered close must let its status-triggered publication
+      # finish. Keep that bounded wait cancellable, including after wake()
+      # temporarily ignored signals while publishing its delivery.
+      trap 'fm_timed_signal=143' HUP INT TERM
+      fm_wait_timed "$HOME_SUMMARY_PID" 2>/dev/null || true
+      trap '' HUP INT TERM
+    else
+      if kill -0 "$HOME_SUMMARY_PID" 2>/dev/null; then
+        kill "$HOME_SUMMARY_PID" 2>/dev/null || true
+      fi
+      wait "$HOME_SUMMARY_PID" 2>/dev/null || true
+    fi
+    HOME_SUMMARY_PID=
+  fi
   fm_check_output_cleanup
   fm_capture_output_cleanup
   fm_custom_check_snapshot_cleanup
@@ -2686,10 +2804,15 @@ fi
 # Disable recovered runnable polls now; fm_pr_poll_retirement_ready in
 # bin/fm-pr-lib.sh owns retention of repository discovery evidence.
 if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh"; then
-  reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
-  fm_wake_append check pr-poll-retirement "$reason" || exit 1
-  touch "$STATE/.last-check"
-  wake "$reason"
+  if ! retirement_rejection_announced; then
+    reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
+    fm_wake_append check pr-poll-retirement "$reason" || exit 1
+    retirement_rejection_mark || true
+    touch "$STATE/.last-check"
+    wake "$reason"
+  fi
+else
+  retirement_rejection_clear
 fi
 
 # Shared by the terminal-result paths below so
@@ -2776,6 +2899,82 @@ rerecord_template_device_pr_poll() {  # <id>
   return 0
 }
 
+# 0 when another supervisor owns this home's ordinary rows: the away-mode
+# daemon, or the supervision host whose branch can claim them. On a plain
+# home main is the only supervisor, so ordinary queued rows stay main's and
+# the legacy resurface presentation is preserved exactly.
+resurface_alternate_owner() {
+  daemon_owns_supervision && return 0
+  fm_supervision_host_enabled "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
+}
+
+# A queued row only main can do: a check-kind row, a needs-decision signal,
+# a signal or stale row whose task still holds an open decision or a
+# captain-held declaration, or a row this reader cannot classify (fail
+# safe: main looks). Heartbeat rows and ordinary signal/stale rows are the
+# supervision branch's or a live PM's, never a reason to wake main - unless
+# this home has no alternate supervisor (RESURFACE_ALT_OWNER=0), where main
+# owns every row and the resurface presents them as it always has.
+# Sets RESURFACE_ROW_PM=1 when a live PM owns the row.
+resurface_row_main_only() {  # <kind> <key> <payload>
+  local kind=$1 key=$2 payload=$3 task status_file
+  RESURFACE_ROW_PM=0
+  case "$kind" in
+    check)
+      case "$payload" in
+        'check: merge landed: '*)
+          task=${payload#'check: merge landed: '}; task=${task%% *}
+          if fm_pm_live_task "$STATE" "$task"; then RESURFACE_ROW_PM=1; return 1; fi
+          ;;
+      esac
+      return 0 ;;
+    heartbeat) if [ "$RESURFACE_ALT_OWNER" -eq 1 ]; then return 1; fi; return 0 ;;
+    signal)
+      task=${key%.status}; task=${task%.turn-ended}
+      ;;
+    stale)
+      task=$(window_to_task "$key" "$STATE")
+      [ -n "$task" ] || return 0
+      ;;
+    *) return 0 ;;
+  esac
+  case "$task" in ''|*[!A-Za-z0-9._-]*) return 0 ;; esac
+  if fm_pm_live_task "$STATE" "$task"; then RESURFACE_ROW_PM=1; return 1; fi
+  if [ "$RESURFACE_ALT_OWNER" -ne 1 ]; then return 0; fi
+  if [ "$kind" = signal ]; then
+    case "$payload" in needs-decision:*) return 0 ;; esac
+  fi
+  status_file="$STATE/$task.status"
+  [ -f "$status_file" ] || return 1
+  status_has_open_needs_decision "$status_file" && return 0
+  status_is_captain_held "$(status_declared_wait_line "$status_file")" && return 0
+  return 1
+}
+
+# 0 when the durable wake queue holds at least one row only main can do.
+# Read under the queue lock so a concurrent append is never half-seen.
+# Leaves the oldest row's reason line in RESURFACE_OLDEST_REASON, passing
+# over rows a live PM owns.
+resurface_queue_has_main_only() {
+  local epoch seq kind key payload rest
+  RESURFACE_ALT_OWNER=1
+  RESURFACE_OLDEST_REASON=
+  resurface_alternate_owner || RESURFACE_ALT_OWNER=0
+  [ -s "$FM_WAKE_QUEUE" ] || return 1
+  fm_lock_acquire_wait "$FM_WAKE_QUEUE_LOCK" || return 0
+  while IFS="$(printf '\t')" read -r epoch seq kind key payload rest; do
+    [ -n "$kind" ] || continue
+    if resurface_row_main_only "$kind" "$key" "$payload"; then
+      fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+      return 0
+    fi
+    [ -n "$RESURFACE_OLDEST_REASON" ] || [ "$RESURFACE_ROW_PM" -eq 1 ] \
+      || RESURFACE_OLDEST_REASON=$payload
+  done < "$FM_WAKE_QUEUE"
+  fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+  return 1
+}
+
 resurface_after_downtime() {
   # Handling successors already have a predecessor-delivered wake on the way.
   # Re-announcing from this cycle is what turned a lost handshake into an
@@ -2790,6 +2989,25 @@ resurface_after_downtime() {
     fi
     [ "$FM_RECOVERY_MARKER_ACTION" = recover ] || return 0
   fi
+  # The recovery marker alone is not a wake: a covering watcher kept watch
+  # through the handling turn this downtime followed, so the queued rows
+  # were already seen by a live watcher. Resurface to main only when those
+  # rows hold something only main can do. The away daemon reads its rows
+  # from the queue itself, so its home stays in this poll loop. The
+  # supervision host starts an engine turn only on a watcher close, so its
+  # home closes on the oldest queued row as itself; the drain presents the rest.
+  # A live PM reads its own rows, and a plain home keeps its legacy resurface.
+  if ! resurface_queue_has_main_only; then
+    if [ -n "$RESURFACE_OLDEST_REASON" ] && [ "$RESURFACE_ALT_OWNER" -eq 1 ] \
+      && ! daemon_owns_supervision; then
+      WATCHER_RESURFACE_REASON=$RESURFACE_OLDEST_REASON
+      wake "$RESURFACE_OLDEST_REASON"
+    fi
+    WATCHER_RECOVERY_PENDING=0
+    triage_log "absorbed rearm-resurface (queue holds nothing only main can do)"
+    return 0
+  fi
+  WATCHER_RESURFACE_REASON="check: rearm-resurface"
   wake "check: rearm-resurface"
 }
 
@@ -2821,6 +3039,11 @@ while :; do
   # Liveness beacon for fm-guard.sh: a fresh mtime here means a watcher is
   # alive. Supervision scripts warn when this goes stale with tasks in flight.
   touch "$STATE/.last-watcher-beat"
+
+  # One walk of the meta files for this poll. Later window lookups read it
+  # in this shell. Rebuilding every lookup is what forked the watcher
+  # (.agent-config-ks05d).
+  fm_backend_window_index_load "$STATE" || fm_backend_window_index_clear
 
   # Opt-in fleet activity ledger (docs/fleet-ledger.md): pick up newly appended
   # status lines before this cycle can exit on a wake. Off costs one file test.
@@ -2881,6 +3104,8 @@ while :; do
   # was created, so quiet cycles never wake firstmate or consume model tokens.
   inactive_out=
   if inactive_out=$(FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
+    FM_INACTIVE_RECONCILE_SECS="${FM_INACTIVE_RECONCILE_SECS:-300}" \
+    FM_INACTIVE_RECONCILE_BUDGET_SECS="${FM_INACTIVE_RECONCILE_BUDGET_SECS:-30}" \
     "$SCRIPT_DIR/fm-inactive-reconcile.sh" scan 2>/dev/null); then
     if [ -n "$inactive_out" ]; then
       wake "check: inactive-outcome"
@@ -2897,9 +3122,43 @@ while :; do
   # never run until the fleet went quiet. Checks are due only every
   # CHECK_INTERVAL, so most cycles skip this block and fall straight through.
   if [ "$(age_of "$STATE/.last-check")" -ge "$CHECK_INTERVAL" ]; then
+    hold_route_reason=
+    if [ -d "$STATE/hold-domain" ]; then
+      CHECK_TIMEOUT=${FM_CHECK_TIMEOUT:-90} FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CHECK_CAPTURE_STDERR=1 \
+        run_check_capture "$SCRIPT_DIR/fm-captain-hold.sh" route-due || exit 1
+      if [ "$FM_CHECK_STATUS" -ne 0 ]; then
+        # 124 and 137 are the sweep bound (timeout, or the kill that follows
+        # it). A row that already failed is named in the captured output;
+        # anything else resumes from the sweep cursor on the next pass.
+        case "$FM_CHECK_STATUS" in
+          124|137)
+            case "$FM_CHECK_RESULT" in
+              *'fm-captain-hold: routing row '*) ;;
+              *)
+                triage_log "hold-domain sweep reached its bound and resumes next pass"
+                FM_CHECK_STATUS=0
+                ;;
+            esac
+            ;;
+        esac
+        if [ "$FM_CHECK_STATUS" -ne 0 ]; then
+          hold_route_reason="check: hold-domain routing failed: exit $FM_CHECK_STATUS${FM_CHECK_RESULT:+: $FM_CHECK_RESULT}"
+          fm_wake_append check hold-domain "$hold_route_reason" || exit 1
+        fi
+      fi
+    fi
     rejected_checks=
+    rejected_marks=
     contribution_check_output=
     check_sweep_output=
+    # A rejected check that disappeared takes its once-only marker with it,
+    # so the same bytes returning later announce again.
+    for rejected_marker in "$STATE"/.rejected-check-*; do
+      [ -e "$rejected_marker" ] || continue
+      rejected_marker_id=${rejected_marker##*/.rejected-check-}
+      [ -e "$STATE/$rejected_marker_id.check.sh" ] \
+        || fm_rejected_check_clear "$STATE" "$rejected_marker_id"
+    done
     FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
       run_check_capture "$SCRIPT_DIR/fm-tasks-axi.sh" list --state held --fields hold_kind,body || exit 1
     if [ "$FM_CHECK_STATUS" -eq 0 ]; then
@@ -2941,6 +3200,15 @@ $sweep_listed
 EOF
       fi
     fi
+    # bin/fm-pr-poll.sh reads every authenticated GitHub poll in this sweep in one query.
+    FM_PR_POLL_BATCH_CACHE=$(mktemp "$STATE/.fm-pr-poll-batch.XXXXXX") || exit 1
+    chmod 0600 "$FM_PR_POLL_BATCH_CACHE" || exit 1
+    # Authentication visits every candidate before querying GitHub, so allow
+    # one check budget per candidate plus one for the query.
+    pr_poll_batch_checks=("$STATE"/*.check.sh)
+    FM_PR_POLL_STATE="$STATE" CHECK_TIMEOUT=$((CHECK_TIMEOUT * (${#pr_poll_batch_checks[@]} + 1))) \
+      run_check_capture "$SCRIPT_DIR/fm-pr-poll.sh" --batch-prefetch "$STATE" || exit 1
+    pr_poll_batch_status=$FM_CHECK_STATUS
     for c in "$STATE"/*.check.sh; do
       [ -e "$c" ] || continue
       is_pr_poll=0
@@ -2949,8 +3217,9 @@ EOF
           && [ -f "$FM_ROOT/bin/fm-x-poll.sh" ] && [ ! -L "$FM_ROOT/bin/fm-x-poll.sh" ]; then
           FM_HOME="$FM_HOME" run_check_capture "$FM_ROOT/bin/fm-x-poll.sh" || exit 1
           out=$FM_CHECK_RESULT
+          fm_rejected_check_clear "$STATE" x-watch
         else
-          rejected_checks="$rejected_checks $c"
+          note_rejected_check x-watch "$c"
           continue
         fi
       else
@@ -2962,12 +3231,18 @@ EOF
             && fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; } \
           || { rerecord_template_device_pr_poll "$id" \
             && fm_pr_poll_snapshot_capture "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; }; then
+          fm_rejected_check_clear "$STATE" "$id"
           is_pr_poll=1
           provider=$FM_PR_POLL_SNAPSHOT_PROVIDER
           url=$FM_PR_POLL_SNAPSHOT_URL
           host=$FM_PR_POLL_SNAPSHOT_HOST
           path=$FM_PR_POLL_SNAPSHOT_PATH
           number=$FM_PR_POLL_SNAPSHOT_NUMBER
+          # An interrupted prefetch can leave uncovered cache keys. Keep that
+          # failed sweep silent rather than issuing an individual query.
+          if [ "$provider" = github ] && [ "$pr_poll_batch_status" -ne 0 ]; then
+            continue
+          fi
           PR_POLL_CONTROL_LOCK="$STATE/.control-$id.lock"
           fm_lock_acquire_wait "$PR_POLL_CONTROL_LOCK" || exit 1
           if ! fm_pr_poll_snapshot_matches "$STATE" "$id" "$SCRIPT_DIR/fm-pr-poll.sh"; then
@@ -2982,13 +3257,14 @@ EOF
             "$provider" "$url" "$host" "$path" "$number" || exit 1
           out=$FM_CHECK_RESULT
         elif fm_custom_check_snapshot_prepare "$STATE" "$id"; then
+          fm_rejected_check_clear "$STATE" "$id"
           custom_snapshot=$FM_CUSTOM_CHECK_SNAPSHOT
           run_check_capture "$custom_snapshot" || exit 1
           out=$FM_CHECK_RESULT
           fm_custom_check_snapshot_cleanup
         else
           fm_custom_check_snapshot_cleanup
-          rejected_checks="$rejected_checks $c"
+          note_rejected_check "$id" "$c"
           continue
         fi
       fi
@@ -3059,6 +3335,10 @@ EOF
             triage_log "absorbed duplicate merged PR poll result for $id"
             continue
           fi
+          if fm_pm_live_task "$STATE" "$id"; then
+            triage_log "absorbed merged check (live PM owns $id): $reason"
+            continue
+          fi
           check_sweep_output="${check_sweep_output}${reason}"$'\n'
           continue
         fi
@@ -3094,6 +3374,7 @@ EOF
       fi
       pr_poll_control_release || exit 1
     done
+    poll_batch_cache_clear
     # Open pull requests in a watched merge-queue repository. The sweep header
     # owns the line and the seen record.
     if [ -f "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ] && [ ! -L "$SCRIPT_DIR/fm-pr-queue-sweep.sh" ]; then
@@ -3146,9 +3427,14 @@ $sweep_raw
 EOF
       if [ "${FM_CHECK_STATUS:-1}" -eq 0 ]; then
         if ! fm_pr_poll_retirement_recover_all "$STATE" "$SCRIPT_DIR/fm-pr-poll.sh" "$sweep_queue_empty"; then
-          reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
-          fm_wake_append check pr-poll-retirement "$reason" || exit 1
-          check_sweep_output="${check_sweep_output}${reason}"$'\n'
+          if ! retirement_rejection_announced; then
+            reason="check: rejected unauthenticated PR poll retirement receipts:$FM_PR_POLL_RETIREMENT_REJECTED"
+            fm_wake_append check pr-poll-retirement "$reason" || exit 1
+            retirement_rejection_mark || true
+            check_sweep_output="${check_sweep_output}${reason}"$'\n'
+          fi
+        else
+          retirement_rejection_clear
         fi
         sweep_kept=
         while IFS= read -r sweep_repo || [ -n "$sweep_repo" ]; do
@@ -3171,10 +3457,18 @@ EOF
     if [ -n "$rejected_checks" ]; then
       reason="check: rejected unauthenticated state checks:$rejected_checks"
       fm_wake_append check unauthenticated-state-checks "$reason" || exit 1
+      while IFS=$(printf '\t') read -r rejected_id rejected_fp; do
+        [ -n "$rejected_id" ] || continue
+        fm_rejected_check_mark "$STATE" "$rejected_id" "$rejected_fp" \
+          || triage_log "rejected-check announcement marker could not be written for $rejected_id"
+      done <<EOF
+$rejected_marks
+EOF
       check_sweep_output="${check_sweep_output}${reason}"$'\n'
     fi
     touch "$STATE/.last-check"
     check_sweep_output="${check_sweep_output}${contribution_check_output}"
+    [ -z "$hold_route_reason" ] || check_sweep_output="${check_sweep_output}${hold_route_reason}"$'\n'
     if [ -n "$check_sweep_output" ]; then
       wake "${check_sweep_output%$'\n'}"
     fi
@@ -3189,9 +3483,31 @@ EOF
   if [ -n "$pending" ]; then
     sleep "$SIGNAL_GRACE"
     pending=$(printf '%s\n%s' "$pending" "$(scan_signals)")
+    # A task with a live PM reports to that PM alone: its PM's waiter reads
+    # the same status file, so advance this watcher's markers past the
+    # change and keep it out of main's wake. Other files in the batch are
+    # unaffected and surface below exactly as before.
+    pm_kept_pending=""
+    while IFS=$(printf '\t') read -r sf sig f; do
+      [ -n "$sf" ] || continue
+      pm_task=$(basename "$f"); pm_task=${pm_task%.status}; pm_task=${pm_task%.turn-ended}
+      if fm_pm_live_task "$STATE" "$pm_task"; then
+        case "$f" in
+          *.status) fm_wake_status_mark_current "$STATE" "$f" || true ;;
+          *) printf '%s' "$sig" > "$sf" ;;
+        esac
+        triage_log "absorbed signal (live PM owns $pm_task): $f"
+      else
+        pm_kept_pending="${pm_kept_pending}${sf}"$'\t'"${sig}"$'\t'"${f}"$'\n'
+      fi
+    done <<EOF
+$pending
+EOF
+    pending=${pm_kept_pending%$'\n'}
+    if [ -n "$pending" ]; then
     # The final coalesced signal set is the watcher-carried status-change
     # trigger for this home's published summary. Start it before either
-    # surfacing or absorbing the signal, but never wait on it: see
+    # surfacing or absorbing the signal, keeping the poll detached: see
     # home_summary_refresh_detached for why publication stays off the beacon's
     # path. Publication failure stays side-band.
     home_summary_refresh_detached
@@ -3242,7 +3558,7 @@ EOF
     # passes it to handle_wake (see the comment above handle_wake in
     # bin/fm-supervise-daemon.sh).
     # shellcheck disable=SC2086  # same space-separated status-path list
-    if afk_present || [ "$signal_actionable" -eq 0 ] \
+    if daemon_owns_supervision || [ "$signal_actionable" -eq 0 ] \
       || { ! signal_crew_provably_working $files && ! signal_turnend_panes_churned $files; }; then
       while IFS=$(printf '\t') read -r sf sig f; do
         [ -n "$sf" ] || continue
@@ -3303,6 +3619,7 @@ EOF
       fi
       triage_log "absorbed benign $reason"
     fi
+    fi
   fi
 
   # Layer 1 backbone: pane staleness. Two consecutive identical hashes with no busy
@@ -3341,6 +3658,19 @@ EOF
     ewf="$STATE/.wedge-escalations-$key"
     pf="$STATE/.paused-$key"   # flag: this key's stale is using the bounded pause cadence
     prev=$(cat "$hf" 2>/dev/null || true)
+    # A task with a live PM reports its stale pane to that PM alone (the PM's
+    # waiter sees the same status file): record this hash as seen, once per
+    # distinct hash, and never surface it to main.
+    if [ -n "$task" ] && fm_pm_live_task "$STATE" "$task"; then
+      if [ "$(cat "$sf" 2>/dev/null || true)" != "$h" ]; then
+        printf '%s' "$h" > "$sf"
+        triage_log "absorbed stale (live PM owns $task): $w"
+      fi
+      printf '%s' "$h" > "$hf"
+      echo 0 > "$cf"
+      rm -f "$ssf" "$ewf"
+      continue
+    fi
     # Busy match: a backend's native semantic state when available (herdr), else
     # the last 6 non-blank lines only (the TUI footer area, where every verified
     # harness renders its busy indicator) so busy-looking strings in displayed
@@ -3358,7 +3688,7 @@ EOF
             paused) handle_paused_stale "$w" "$task" "$h" ;;
             *)      clear_pause_tracking "$key" ;;
           esac
-        elif afk_present; then
+        elif daemon_owns_supervision; then
           # Daemon owns triage: one-shot per distinct stale hash, as before,
           # except that a captain-held pane is never handed over while the
           # away-posture record exists (captain_held_silenced).
@@ -3506,7 +3836,7 @@ EOF
         clear_write_tracking "$key"
       fi
       task=$(window_to_task "$w" "$STATE")
-      if ! afk_present && status_is_paused_or_captain_held "$(status_declared_wait_line "$STATE/$task.status")" && [ "$busy_now" -ne 0 ]; then
+      if ! daemon_owns_supervision && status_is_paused_or_captain_held "$(status_declared_wait_line "$STATE/$task.status")" && [ "$busy_now" -ne 0 ]; then
         case "$(pause_state_class "$w" "$task")" in
           paused) handle_paused_stale "$w" "$task" "$h" ;;
           # Inconclusive, but the declared wait itself still stands, so only the
@@ -3526,7 +3856,7 @@ EOF
         clear_pause_tracking "$key"
       fi
     fi
-  done < <(recorded_windows)
+  done < <(stale_scan_windows)
 
   # Heartbeat: the watcher runs a cheap fleet-scan at a regular cadence no matter
   # what. Time-based via .last-heartbeat mtime; interval doubles per consecutive
@@ -3542,7 +3872,7 @@ EOF
     # no-change case (advance the schedule and back off exactly as wake() would,
     # without exiting); the away-mode daemon, when present, owns triage and wants
     # every heartbeat.
-    if afk_present; then
+    if daemon_owns_supervision; then
       fm_wake_append heartbeat heartbeat heartbeat || exit 1
       touch "$STATE/.last-heartbeat"
       wake "heartbeat"

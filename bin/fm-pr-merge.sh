@@ -16,7 +16,7 @@
 # default_merge_style, read live, and a merge is refused when it cannot be read.
 # A GitHub merge is refused unless every pre-merge condition holds, each read
 # live at merge time rather than taken from recorded metadata: the pull request
-# is open, not a draft, mergeable, free of conflicts, every unwaived check
+# is open, not a draft, mergeable, free of conflicts, every applicable unwaived check
 # is green at the exact current head commit, where github_checks_not_green below
 # owns what makes a check green and judges each one by its current run, and
 # every unwaived check the forge requires for the base branch has reported at
@@ -25,6 +25,20 @@
 # re-checks every condition after a short bounded wait instead of refusing;
 # once that bound is spent it reports mergeability still pending rather than
 # unmergeable, with the same nonzero exit as any other refusal.
+# When the repository's Actions permissions read confirms Actions is disabled,
+# github_checks_not_green ignores CheckRun entries whose detailsUrl contains
+# /actions/runs/. Commit statuses, other check runs, and required-context
+# presence checks remain enforced; an unreadable permissions read exempts none.
+# Without --attended-override, GitHub also requires approval at the verified
+# head from FM_MERGE_REVIEWER (default carmanchip23-dev). Among that reviewer's
+# APPROVED, CHANGES_REQUESTED and COMMENTED reviews at that head in the response,
+# the last must be APPROVED, and any CHANGES_REQUESTED in that response vetoes
+# the head even if an approval follows; an unreadable response refuses the merge.
+# The check rollup is a second read, and only after the cheap fields show the
+# pull request is open, not a draft, and otherwise mergeable. A closed, draft,
+# conflicting, or still-UNKNOWN pull request never requests that rollup.
+# Its head must match the cheap read before either check set is evaluated.
+# UNKNOWN remains the bounded retry the caller already owns.
 # A required check that never reported is absent from the checks
 # list rather than red, so github_read_required_contexts below reads the
 # required set from classic branch protection and active rulesets. Check-run
@@ -41,7 +55,8 @@
 # source fails, so known missing checks and all read errors are reported together.
 # github_branch_rules_unavailable_on_plan owns the narrow plan-unavailable
 # exception; every other unreadable required source refuses.
-# Every failing condition is reported, not just the first.
+# Failing cheap conditions are reported together before any check reads;
+# after they pass, check failures are collected together.
 # The verified head is then passed to gh as
 # --match-head-commit, so a push that lands between that read and the merge
 # fails the merge instead of landing commits nothing verified. Reading that
@@ -167,8 +182,14 @@
 # before the optional -- separator, re-enables those forge flags for an
 # explicit captain instruction and never skips the live green check, the
 # away-record read, or a captain hold.
+# A caller that judged one head may pass --expect-head <sha>, once, before the
+# -- separator, as the full lowercase commit SHA (no prefix). It overrides
+# nothing: after this run's own verified read, a verified head other than that
+# SHA is refused, and the forge command stays bound to the verified head, so the
+# caller's head is merged or nothing is. An automated merger uses it so a head
+# pushed after its own judgment is not merged on that judgment.
 #
-# Usage: fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--allow-red <check-name>] [--allow-missing <check-name>] [-- <extra forge merge args>]
+# Usage: fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--allow-red <check-name>] [--allow-missing <check-name>] [--expect-head <sha>] [-- <extra forge merge args>]
 #
 # On GitLab, this script confirms the MR is actually merged before reporting it;
 # an auto-merge-queued or unconfirmed request leaves the poll armed and records
@@ -229,8 +250,19 @@ shift 2
 ATTENDED_OVERRIDE=false
 ALLOW_RED=()
 ALLOW_MISSING=()
+EXPECT_HEAD=
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --expect-head)
+      fm_pr_head_valid "${2:-}" || { echo "error: --expect-head requires the full commit SHA the merge must be at" >&2; exit 2; }
+      [ -z "$EXPECT_HEAD" ] || { echo "error: --expect-head may be specified only once" >&2; exit 2; }
+      EXPECT_HEAD=$2
+      shift 2
+      ;;
+    --expect-head=*)
+      echo "error: --expect-head requires a separate commit SHA argument" >&2
+      exit 2
+      ;;
     --attended-override)
       ATTENDED_OVERRIDE=true
       shift
@@ -293,6 +325,17 @@ if [ "${#ALLOW_MISSING[@]}" -gt 0 ]; then
       ;;
   esac
 fi
+
+# --expect-head refuses, and overrides nothing: once this run has verified a head
+# (FM_PR_MERGE_HEAD), that head must be exactly the caller's full SHA, and the
+# forge command stays bound to the verified head as always.
+require_expected_head() {
+  [ -n "$EXPECT_HEAD" ] || return 0
+  [ "$FM_PR_MERGE_HEAD" = "$EXPECT_HEAD" ] && return 0
+  printf 'error: the verified head of %s is %s, not the expected %s; refusing to merge a head the caller did not judge\n' \
+    "$URL" "$FM_PR_MERGE_HEAD" "$EXPECT_HEAD" >&2
+  return 1
+}
 
 caller_has_merge_method() {
   local arg
@@ -827,8 +870,35 @@ forgejo_default_merge_style() {
 # The reported name is also what --allow-red matches. An unnamed check run is
 # grouped alone and can neither supersede nor be superseded, because unrelated
 # unnamed checks must not be treated as one.
+# Dale 10-21 (.agent-config-ydbn7, decision c): nothing runs on GitHub CI for
+# a repo with Actions disabled, so its stale check runs mean nothing there.
+# 0 when Actions is disabled for $PR_OWNER/$PR_REPO (read once, then cached).
+FM_PR_ACTIONS_DISABLED=''
+github_actions_disabled() {
+  if [ -z "$FM_PR_ACTIONS_DISABLED" ]; then
+    if gh api "repos/$PR_OWNER/$PR_REPO/actions/permissions" 2>/dev/null \
+        | jq -e '.enabled == false' >/dev/null 2>&1; then
+      FM_PR_ACTIONS_DISABLED=true
+    else
+      FM_PR_ACTIONS_DISABLED=false
+    fi
+  fi
+  [ "$FM_PR_ACTIONS_DISABLED" = true ]
+}
+
 github_checks_not_green() {
   local json=$1
+  if github_actions_disabled; then
+    # Decision (c) waives only what Actions produced (chip review on #75):
+    # drop Actions check runs (their detailsUrl is an /actions/runs/ page);
+    # commit statuses and other apps' check runs stay enforced below.
+    json=$(printf '%s' "$json" | jq -c '
+      if (.statusCheckRollup | type) == "array" then
+        .statusCheckRollup |= map(
+          select(.__typename != "CheckRun"
+            or (((.detailsUrl // "") | contains("/actions/runs/")) | not)))
+      else . end') || return 1
+  fi
   printf '%s' "$json" | jq -r '
     def settled_at:
       if type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
@@ -972,8 +1042,9 @@ github_verify_mergeable() {
   local json fields line red name covered missing unreported producers runs
   local total=0 named=0 refusals='' mergeable_refusal=''
   local state='' draft='' mergeable='' merge_state='' live_head='' base=''
+  local rollup_json=''
 
-  if ! json=$(gh pr view "$URL" --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,statusCheckRollup 2>/dev/null) \
+  if ! json=$(gh pr view "$URL" --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName 2>/dev/null) \
     || [ -z "$json" ]; then
     echo "error: could not read the GitHub pull request state before merging" >&2
     return 1
@@ -1015,10 +1086,6 @@ FIELDS
     echo "error: could not read the GitHub pull request head commit before merging" >&2
     return 1
   fi
-  if ! red=$(github_checks_not_green "$json"); then
-    echo "error: could not read the GitHub pull request state before merging" >&2
-    return 1
-  fi
 
   case "$state" in
     [oO][pP][eE][nN]) ;;
@@ -1036,6 +1103,29 @@ FIELDS
   [ "$merge_state" != DIRTY ] \
     || refusals="$refusals  - mergeStateStatus is DIRTY (conflicts)
 "
+
+  if [ -n "$mergeable_refusal" ] && [ -z "$refusals" ] && [ "$mergeable" = UNKNOWN ]; then
+    return 3
+  fi
+  if [ -n "$refusals" ] || [ -n "$mergeable_refusal" ]; then
+    refusals="$refusals$mergeable_refusal"
+    printf 'error: refusing to merge %s\n' "$URL" >&2
+    printf '%s' "$refusals" >&2
+    return 1
+  fi
+  if ! rollup_json=$(gh pr view "$URL" --json headRefOid,statusCheckRollup 2>/dev/null) \
+    || [ -z "$rollup_json" ]; then
+    echo "error: could not read the GitHub pull request state before merging" >&2
+    return 1
+  fi
+  if ! printf '%s' "$rollup_json" | jq -e --arg head "$live_head" '.headRefOid == $head' >/dev/null 2>&1; then
+    echo "error: could not verify GitHub pull request checks at head $live_head before merging" >&2
+    return 1
+  fi
+  if ! red=$(github_checks_not_green "$rollup_json"); then
+    echo "error: could not read the GitHub pull request state before merging" >&2
+    return 1
+  fi
 
   uncovered=''
   while IFS= read -r name; do
@@ -1077,7 +1167,7 @@ EOF
 "
     fi
   fi
-  if ! missing=$(github_required_checks_missing "$json" "$FM_PR_GITHUB_REQUIRED" "$producers"); then
+  if ! missing=$(github_required_checks_missing "$rollup_json" "$FM_PR_GITHUB_REQUIRED" "$producers"); then
     refusals="$refusals  - the GitHub pull request check rollup could not be read
 "
   else
@@ -1092,11 +1182,20 @@ $missing
 EOF
   fi
 
-  if [ -n "$mergeable_refusal" ]; then
-    if [ -z "$refusals" ] && [ "$mergeable" = UNKNOWN ]; then
-      return 3
+  # Dale 10-21 (.agent-config-ydbn7): no merge without chip's approval at the
+  # exact head on any path through here (agent-config #312 merged unreviewed),
+  # and any chip CHANGES_REQUESTED at that head vetoes it even when an
+  # approval follows at the same head (change 11; a new head clears it).
+  # An attended override is the operator's explicit word and still binds head.
+  if [ "$ATTENDED_OVERRIDE" != true ]; then
+    if ! gh api "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/reviews?per_page=100" 2>/dev/null \
+        | jq -e --arg head "$live_head" --arg reviewer "${FM_MERGE_REVIEWER:-carmanchip23-dev}" '
+          ([.[] | select(.user.login == $reviewer and .commit_id == $head)] as $at
+           | (([$at[] | select(.state == "CHANGES_REQUESTED")] | length) == 0)
+             and (([$at[] | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "COMMENTED")] | last | .state) == "APPROVED"))' >/dev/null 2>&1; then
+      refusals="$refusals  - no approval by ${FM_MERGE_REVIEWER:-carmanchip23-dev} at head $live_head
+"
     fi
-    refusals="$refusals$mergeable_refusal"
   fi
 
   if [ -n "$refusals" ]; then
@@ -1647,6 +1746,7 @@ case "$PROVIDER" in
       fi
       exit 1
     fi
+    require_expected_head || exit 1
     # The away record is locked first, so this last presence and authority read
     # and the forge command below share one live-owner critical section.
     hold_away_record_for_merge || exit 1
@@ -1698,6 +1798,7 @@ case "$PROVIDER" in
     ;;
   gitlab)
     gitlab_verify_mergeable || exit 1
+    require_expected_head || exit 1
     # --sha binds the merge to the head this run verified, so a push that lands
     # in between is refused by GitLab instead of merged unverified. --yes only
     # skips the interactive confirmation, which no supervised run can answer;
@@ -1734,6 +1835,7 @@ case "$PROVIDER" in
     forgejo_method=$(caller_merge_method "$@")
     [ -n "$forgejo_method" ] || forgejo_method=$(forgejo_default_merge_style) || exit 1
     forgejo_verify_mergeable || exit 1
+    require_expected_head || exit 1
     # The away record is locked first, so this last presence and authority
     # read and the forge command below share one live-owner critical section.
     hold_away_record_for_merge || exit 1

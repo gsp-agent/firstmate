@@ -186,7 +186,7 @@ On macOS the pane command reflected the rewritable title while the full install 
 The classifier therefore accepts a harness basename first, then an exact harness path component in the full executable path, then the same component in argv[0], without depending on which field carries it on a given platform.
 
 The portable regression is CI-enforced.
-The real-harness drift guard spends no model tokens, so under the policy in `.agents/skills/firstmate-coding-guidelines/SKILL.md` it runs by default wherever tmux is installed and reports a capability skip elsewhere; `FM_HARNESS_LIVENESS_DRIFT=1` additionally turns an absent tool into a failure.
+The real-harness drift guard spends no model tokens, but it is opt-in because every launch writes the real HOME's harness configuration; portable serial CI opts in, and `FM_HARNESS_LIVENESS_DRIFT=1` both runs it and turns an absent tool into a failure.
 Run the live guard after any harness upgrade and before trusting or refreshing the table above:
 
 ```sh
@@ -537,20 +537,22 @@ Each signature below was live-verified against the real installed binary through
 An initial Pi signature sourced only from the installed binary's own UI strings ("Project trust", the internal panel-title component, never the dialog's own rendered heading) was wrong and never matched the real screen.
 This guard's first live run caught that before it shipped, which is the evidence for why this class of check must be driven end to end rather than read off strings or a component name.
 
-Verified 2026-09-22 on Claude Code 2.1.278, pi 0.86.1, and gemini 0.60.0.
+Verified 2026-10-20 on macOS with Claude Code 2.1.304, pi 0.85.0, gemini 0.50.0, and codex-cli 0.163.0, after a first run on 2026-09-22 with Claude Code 2.1.278, pi 0.86.1, and gemini 0.60.0.
 
 ```sh
 FM_LAUNCH_PROMPT_SIGNALS_LIVE=1 bash tests/fm-launch-prompt-signals-live-e2e.test.sh
 ```
 
 ```
-# live claude version: 2.1.278 (Claude Code)
+# live claude version: 2.1.304 (Claude Code)
 ok - claude: a real launch parked on its own rendered trust dialog surfaces through the watcher gate
-# live pi version: 0.86.1
+# live pi version: 0.85.0
 ok - pi, pi-signed, omp: a real Pi-engine launch parked on its own rendered trust dialog surfaces through the watcher gate
-# live gemini version: 0.60.0
+# live gemini version: 0.50.0
 ok - gemini: a real launch parked on its own rendered auth or trust dialog surfaces through the watcher gate
-# checked 3 launch-prompt signature(s) against real installed binaries
+# live codex version: codex-cli 0.163.0
+ok - codex: a real launch parked on its own rendered folder-access prompt surfaces through the watcher gate
+# checked 4 launch-prompt signature(s) against real installed binaries
 ```
 
 Claude, launched `--dangerously-skip-permissions` into a brand-new worktree under the operator's own already-onboarded config (the shape a real crewmate spawn produces):
@@ -612,8 +614,27 @@ Gemini, launched `GEMINI_CLI_TRUST_WORKSPACE=true gemini -y` with no `GEMINI_API
 
 The real pane renders this inside a bordered box, omitted here for readability; that border is exactly what proves the point below.
 
+Codex, launched `--dangerously-bypass-approvals-and-sandbox --disable hooks` into a fresh repository under an isolated `CODEX_HOME` that holds only a symlink to the operator's credential:
+
+```
+  Folder access
+  /tmp/fm-launch-prompt-codex.XXXXXX/wt
+
+  Trust this folder? Codex can read, edit, and run files here, subject to your
+  permission settings. Folder settings can run code automatically, even
+  without a model request. Continue only if you trust these files. Your trust
+  decision will be saved.
+
+› 1. Trust and continue
+  2. Quit
+
+  enter continue · esc quit
+```
+
+[codex.md](codex.md) owns the second, restricted-folder shape and why the spawn gate reads this signature before any session view.
+
 That capture demonstrated why each signature function matches the FULL captured tail rather than the Grok/Rovo/AGY busy-footer convention of the last 12 non-blank lines: a bordered dialog box renders many short lines of pure border and padding (`│  ...  │`) that are NOT whitespace-only, so the 12-line reduction pushed this exact heading text out of the window and silently defeated the match on the first attempt.
-None of these three runs ever answered its dialog (Escape only, never Enter), so no credential store was written to and no model tokens were spent.
+None of these runs ever answered its dialog (Escape only, never Enter), so no credential store was written to and no model tokens were spent.
 
 ## Worker account pin sign-in check
 
@@ -752,6 +773,34 @@ $ ls "$TURNEND"
 It captures the launch `bin/fm-spawn.sh` actually builds, replays those exact flags against the installed Codex, and fails naming the harness and version if the hook layer comes back on.
 It spends no model tokens, so it runs by default wherever Codex is installed.
 The portable half, `tests/fm-spawn-dispatch-profile.test.sh`, pins the split the launch template makes: a crewmate launches hook-free while a secondmate, which runs a primary session on this repository's own project hooks, keeps them.
+
+## Codex usage-limit stop
+
+Verified 2026-10-21 on codex-cli 0.163.0, macOS arm64.
+`bin/fm-cursor-guard.sh route` reads the stop from the session rollout, because Codex keeps its TUI open after the limit and its turn-end notify payload carries no error.
+A local server answering every request with HTTP 429 and an `{"error":{"type":"usage_limit_reached",...}}` body stood in for the provider:
+
+```sh
+MOCK_KEY=dummy CODEX_HOME="$scratch/codexhome" codex exec --skip-git-repo-check -C "$scratch/work" \
+  -c 'model_provider="mock"' \
+  -c 'model_providers.mock={name="mock",base_url="http://127.0.0.1:<port>/v1",wire_api="responses",env_key="MOCK_KEY"}' \
+  -m gpt-5 "say hi"
+```
+
+Codex made one `POST /v1/responses`, exited 1, and wrote a rollout whose first line is `session_meta` naming the launch directory and whose last `task_complete` carries the stop:
+
+```text
+{"type":"session_meta","cwd":"<scratch>/work","cli_version":"0.163.0"}
+{"type":"task_complete","error":{"message":"You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 10:13 AM.","codex_error_info":"usage_limit_exceeded"}}
+```
+
+No `error` event is persisted for this stop.
+The same shape appears in a real interactive codex-cli 0.162.1 TUI session that hit the account limit on 2026-10-16.
+
+`tests/fm-codex-limit-live-e2e.test.sh` is the command that refreshes this record.
+It runs the installed Codex against that local server, then asks the route about a task recorded in that directory, and fails naming the harness and version unless the route writes `state/<id>.codex-limit` and answers `claude`.
+It spends no model tokens, so it runs by default wherever Codex is installed.
+The portable half, `tests/fm-cursor-guard.test.sh`, pins which session counts: only the task's own newest one since its launch, and only when its last turn ended on the limit.
 
 ## Composer classification matrix
 
@@ -1380,9 +1429,11 @@ The picker is recognised by its recorded structure only: the heading on its own 
 The same strings quoted above a normal composer, as a diff, this note, or a test fixture shows them, are not a picker.
 Submit retries now stop after the Enter that opened the picker and report unknown.
 A typed submit to a pane that already shows the picker types nothing and sends no Enter.
-Exit reports that the worker is blocked on the Claude background-task exit picker and does not type another Enter.
-A submit can return before any read sees the picker, so exit reads the screen once more when its wait for the agent to stop times out, and names the picker there too.
-Exit does not report a stopped agent whose pane still shows the picker text as blocked on a prompt.
+As of 2026-10-22, [the exit contract](../agent-control.md#verbs) owns background-shell cleanup, once-only picker recovery, process ownership checks, and refusals.
+That behavior change was not verified by a new live Claude run; the 2026-10-05 capture above establishes only the picker structure and its Escape-to-cancel footer.
+`tests/fm-control.test.sh` covers a fake pane whose background shell exits cleanly, a pane already on the picker, a picker that opens on submit, a picker that appears only after the stop wait, delayed and persistent picker redraws after Escape, an exec'd waiter the picker lists, a recognised picker with no readable task, an unrecognised dialog that still refuses, no readable agent roots, a tmux identity mismatch that preserves the other pane's process, and stopped agents leaving picker text behind.
+The scrolled-screen cases in `tests/fm-backend-herdr.test.sh` exercise the current-screen source shared by classification, task extraction, and dismissal checks.
+The same file covers a canned process-info that names a live sleep as claude and returns no root, a live argv0 of claude that is still returned, a non-shell shell pid whose agent child is not a root, and a stop walk that ignores a root pid whose later snapshot is not an agent.
 The watcher does not read the picker: a pane parked on it keeps the ordinary stale triage.
 No recorded screen was available for a model-downgrade confirmation, an MCP approval, or a Claude exit confirmation other than this picker, so those dialogs are not covered.
 Refusing an Enter that would confirm a dialog restores an existing safety path, so it is not gated behind a flag.

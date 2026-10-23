@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Behavior tests for bin/fm-cursor-guard.sh usage fallback and for
+# Behavior tests for bin/fm-cursor-guard.sh launch routing (Cursor usage
+# fallback, the Codex usage-limit marker, override records) and for
 # bin/fm-cursor-crew-guard.mjs, the preToolUse hook a crew session loads.
 set -u
 # shellcheck source=tests/lib.sh
@@ -7,10 +8,10 @@ set -u
 
 TOOL="$ROOT/bin/fm-cursor-guard.sh"
 TMP_ROOT=$(fm_test_tmproot fm-cursor-guard)
-export FM_STATE_OVERRIDE="$TMP_ROOT/state" FM_CONFIG_OVERRIDE="$TMP_ROOT/config" FM_CURSOR_USAGE_DIR="$TMP_ROOT/usage"
+export FM_STATE_OVERRIDE="$TMP_ROOT/state" FM_CONFIG_OVERRIDE="$TMP_ROOT/config" FM_CURSOR_USAGE_DIR="$TMP_ROOT/usage" CODEX_HOME="$TMP_ROOT/codexhome"
 mkdir -p "$FM_STATE_OVERRIDE" "$FM_CONFIG_OVERRIDE" "$FM_CURSOR_USAGE_DIR"
 
-fb() { "$TOOL" fallback "$1" 2>/dev/null; }
+fb() { "$TOOL" route "$1" cursor 2>/dev/null; }
 [ "$(fb e1)" = "$(printf 'codex no Cursor spending file in %s' "$FM_CURSOR_USAGE_DIR")" ] || fail "missing file must fall back: $(fb e1)"
 printf 'cursor_models_pct=84\nother=1\n' > "$FM_CURSOR_USAGE_DIR/20261012-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "84% must stay on cursor: $(fb e1)"
@@ -60,6 +61,113 @@ printf 'cursor_models_pct=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
 [ "$(fb e1)" = cursor ] || fail "under the limit must stay on cursor: $(fb e1)"
 pass "fallback at 84/85/89, missing file, stale file, bad value; codex first, claude after a codex limit"
 
+printf 'cursor_models_pct=89\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+fb e9 >/dev/null
+[ "$(cat "$FM_STATE_OVERRIDE/e9.cursor-fallback")" = "Cursor Models at 89% (limit 85%) and no prepaid/on-demand credit room in 20261013-spending.txt" ] \
+  || fail "a Cursor fallback must record its reason: $(cat "$FM_STATE_OVERRIDE/e9.cursor-fallback" 2>&1)"
+printf 'cursor_models_pct=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+pass "a Cursor fallback records its reason in state/<id>.cursor-fallback"
+
+# codex_session <cwd> <name> <turn-end error info: usage_limit_exceeded or none>
+# writes the rollout shape codex-cli 0.163 persists under $CODEX_HOME/sessions:
+# a session_meta line naming the session cwd, then one task_complete per turn,
+# which carries an error object when the turn ended on one.
+codex_session() {
+  local f="$CODEX_HOME/sessions/2026/10/21/rollout-2026-10-21T10-00-00-$2.jsonl"
+  mkdir -p "${f%/*}"
+  jq -nc --arg cwd "$1" --arg id "$2" '{timestamp:"2026-10-21T15:00:00.000Z",ordinal:0,type:"session_meta",payload:{id:$id,cwd:$cwd,originator:"codex-tui",cli_version:"0.163.0"}}' > "$f"
+  jq -nc '{timestamp:"2026-10-21T15:00:01.000Z",ordinal:1,type:"event_msg",payload:{type:"task_complete",turn_id:"t1",last_agent_message:"done"}}' >> "$f"
+  if [ "$3" = usage_limit_exceeded ]; then
+    jq -nc --arg m "$limit_msg" '{timestamp:"2026-10-21T15:00:02.000Z",ordinal:2,type:"event_msg",payload:{type:"task_complete",turn_id:"t2",last_agent_message:null,error:{message:$m,codex_error_info:"usage_limit_exceeded"}}}' >> "$f"
+  fi
+  printf '%s\n' "$f"
+}
+# task_meta <id> <worktree>: the fields the route reads from state/<id>.meta,
+# for a launch ten minutes ago.
+task_meta() {
+  printf 'worktree=%s\nharness=%s\nspawn_gen=s%s.1.1\n' "$2" "${3:-codex}" "$(( $(date +%s) - 600 ))" > "$FM_STATE_OVERRIDE/$1.meta"
+}
+limit_msg="You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 22nd, 2026 10:13 AM."
+
+[ "$("$TOOL" route c1 codex)" = codex ] || fail "a codex task with no record must stay on codex"
+[ "$("$TOOL" route c1-prefixed codex-client)" = codex ] || fail "a prefixed Codex target with no limit must keep the Codex family"
+task_meta c1 "$TMP_ROOT/wt-c1"
+codex_session "$TMP_ROOT/wt-c1" 01a0c100-0000-7000-8000-000000000001 none >/dev/null
+[ "$("$TOOL" route c1 codex)" = codex ] || fail "a codex session whose turns ended cleanly must stay on codex"
+[ ! -e "$FM_STATE_OVERRIDE/c1.codex-limit" ] || fail "a clean codex session must not write the usage-limit marker"
+codex_session "$TMP_ROOT/wt-c1" 01a0c100-0000-7000-8000-000000000002 usage_limit_exceeded >/dev/null
+out=$("$TOOL" route c1 codex)
+[ "$out" = "claude codex run for c1 hit its usage limit: $limit_msg" ] || fail "a codex usage-limit stop in the task's worktree must route to claude: $out"
+[ "$(cat "$FM_STATE_OVERRIDE/c1.codex-limit")" = "codex run for c1 hit its usage limit: $limit_msg" ] \
+  || fail "a codex usage-limit stop must write state/<id>.codex-limit: $(cat "$FM_STATE_OVERRIDE/c1.codex-limit" 2>&1)"
+[ "$("$TOOL" route c1 codex-client)" = "claude codex run for c1 hit its usage limit: $limit_msg" ] \
+  || fail "a prefixed Codex target must follow its usage-limit marker"
+mv "$CODEX_HOME/sessions" "$CODEX_HOME/sessions.gone"
+[ "$("$TOOL" route c1 codex | cut -d' ' -f1)" = claude ] || fail "the marker must keep routing every later launch to claude"
+printf 'cursor_models_pct=89\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+case "$(fb c1)" in "claude Cursor Models at 89% (limit 85%)"*"; codex run for c1 hit its usage limit"*) ;; *) fail "a Cursor fallback for a marked task must go to claude: $(fb c1)" ;; esac
+printf 'cursor_models_pct=10\n' > "$FM_CURSOR_USAGE_DIR/20261013-spending.txt"
+pass "a codex usage-limit stop writes the marker, and the marker routes every later codex launch to claude"
+
+task_meta c2 "$TMP_ROOT/wt-c2"
+codex_session "$TMP_ROOT/wt-other" 01a0c200-0000-7000-8000-000000000001 usage_limit_exceeded >/dev/null
+[ "$("$TOOL" route c2 codex)" = codex ] || fail "another worktree's usage-limit stop must not move this task"
+task_meta c3 "$TMP_ROOT/wt-c3"
+f=$(codex_session "$TMP_ROOT/wt-c3" 01a0c300-0000-7000-8000-000000000001 usage_limit_exceeded)
+jq -nc '{type:"event_msg",payload:{type:"task_complete",turn_id:"t3",last_agent_message:"resumed"}}' >> "$f"
+[ "$("$TOOL" route c3 codex)" = codex ] || fail "a later clean turn must clear an earlier usage-limit stop"
+task_meta c4 "$TMP_ROOT/wt-c4"
+f=$(codex_session "$TMP_ROOT/wt-c4" 01a0c400-0000-7000-8000-000000000001 usage_limit_exceeded)
+touch -t 200001010000 "$f"
+[ "$("$TOOL" route c4 codex)" = codex ] || fail "a session from before the task's current launch must not count"
+[ ! -e "$FM_STATE_OVERRIDE/c2.codex-limit" ] && [ ! -e "$FM_STATE_OVERRIDE/c3.codex-limit" ] && [ ! -e "$FM_STATE_OVERRIDE/c4.codex-limit" ] \
+  || fail "an unmatched, cleared, or older session must not write the marker"
+pass "only the task's own newest codex session, ended on a usage limit since its launch, writes the marker"
+
+for replacement in claude:claude claude-client:claude cursor:cursor cursor-agent:cursor; do
+  target=${replacement%%:*}
+  family=${replacement#*:}
+  for recorded in codex codex-client ''; do
+    task_id="c5-$target-${recorded:-meta}"
+    wt="$TMP_ROOT/wt-$task_id"
+    meta_harness=claude
+    [ -n "$recorded" ] || meta_harness=codex-client
+    task_meta "$task_id" "$wt" "$meta_harness"
+    f=$(codex_session "$wt" "$task_id" usage_limit_exceeded)
+    python3 - "$f" <<'PY'
+import os
+import sys
+import time
+
+stamp = time.time() - 300
+os.utime(sys.argv[1], (stamp, stamp))
+PY
+    out=$("$TOOL" route "$task_id" "$target" "$recorded")
+    [ "$out" = "$family" ] || fail "a manual Codex-to-$target override must keep the requested family: $out"
+    [ "$(cat "$FM_STATE_OVERRIDE/$task_id.codex-limit" 2>/dev/null)" = "codex run for $task_id hit its usage limit: $limit_msg" ] \
+      || fail "a manual Codex-to-$target override must preserve the retiring Codex usage limit"
+    [ ! -e "$FM_STATE_OVERRIDE/$task_id.cursor-fallback" ] || fail "a manual Codex-to-$target override must not record a Cursor fallback"
+    printf 'worktree=%s\nharness=%s\nspawn_gen=s%s.1.1\n' "$wt" "$target" "$(date +%s)" > "$FM_STATE_OVERRIDE/$task_id.meta"
+    out=$("$TOOL" route "$task_id" codex "$target")
+    [ "$out" = "claude codex run for $task_id hit its usage limit: $limit_msg" ] \
+      || fail "a later Codex relaunch after a manual $target override must still route to Claude: $out"
+  done
+done
+pass "manual Codex overrides preserve usage limits across replacement generations, including healthy Cursor and meta-only records"
+
+[ "$("$TOOL" route o1 grok cursor)" = grok ] || fail "an explicit harness for a recorded cursor task must be kept"
+[ "$(cat "$FM_STATE_OVERRIDE/o1.cursor-fallback")" = "explicit --harness grok override of a recorded cursor task" ] \
+  || fail "an explicit override of a recorded cursor task must record it: $(cat "$FM_STATE_OVERRIDE/o1.cursor-fallback" 2>&1)"
+[ "$("$TOOL" route o2 claude)" = claude ] && [ "$("$TOOL" route o2 claude claude)" = claude ] \
+  || fail "any other harness must pass through unchanged"
+[ ! -e "$FM_STATE_OVERRIDE/o2.cursor-fallback" ] || fail "a harness that is neither cursor nor an override must record nothing"
+[ "$("$TOOL" route o3 cursor-agent cursor-agent)" = cursor ] || fail "keeping a prefixed Cursor family must return Cursor"
+[ ! -e "$FM_STATE_OVERRIDE/o3.cursor-fallback" ] || fail "keeping the Cursor family must not record an override"
+[ "$("$TOOL" route o4 claude-client cursor-agent)" = claude ] || fail "a prefixed Cursor override must return the replacement family"
+[ "$(cat "$FM_STATE_OVERRIDE/o4.cursor-fallback")" = "explicit --harness claude override of a recorded cursor task" ] \
+  || fail "a prefixed Cursor record must log a cross-family override"
+pass "an explicit override of a recorded cursor task is kept and recorded; other harnesses pass through"
+
 stat_bin="$TMP_ROOT/stat-bin"
 stat_usage="$TMP_ROOT/stat-usage"
 mkdir -p "$stat_bin" "$stat_usage"
@@ -77,12 +185,12 @@ esac
 SH
 chmod +x "$stat_bin/uname" "$stat_bin/stat"
 printf 'cursor_models_pct=10\n' > "$stat_usage/current-spending.txt"
-out=$(PATH="$stat_bin:$PATH" FM_CURSOR_USAGE_DIR="$stat_usage" "$TOOL" fallback linux-stat 2> "$TMP_ROOT/stat.err")
+out=$(PATH="$stat_bin:$PATH" FM_CURSOR_USAGE_DIR="$stat_usage" "$TOOL" route linux-stat cursor 2> "$TMP_ROOT/stat.err")
 expect_code 0 $? "GNU stat accepts a fresh spending file"
 [ "$out" = cursor ] || fail "GNU stat must keep fresh low usage on Cursor: $out"
 [ ! -s "$TMP_ROOT/stat.err" ] || fail "GNU stat emitted an age-arithmetic error: $(cat "$TMP_ROOT/stat.err")"
 touch -t 200001010000 "$stat_usage/current-spending.txt"
-out=$(PATH="$stat_bin:$PATH" FM_CURSOR_USAGE_DIR="$stat_usage" "$TOOL" fallback linux-stat 2> "$TMP_ROOT/stat.err")
+out=$(PATH="$stat_bin:$PATH" FM_CURSOR_USAGE_DIR="$stat_usage" "$TOOL" route linux-stat cursor 2> "$TMP_ROOT/stat.err")
 expect_code 0 $? "GNU stat detects stale spending evidence"
 case "$out" in "codex newest Cursor spending file is"*) ;; *) fail "GNU stat must reject stale evidence: $out" ;; esac
 pass "GNU stat supports spending-file age"

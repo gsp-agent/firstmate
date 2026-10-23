@@ -52,9 +52,10 @@
 #     that is unsafe or holds nothing for the branch) stay main's. That
 #     pass-through starts the successor watcher cycle and leaves it running
 #     before the close is printed, so supervision continues when the session
-#     drops the handoff. It confirms no handling handoff, so the recovery
-#     marker still reads downtime and the re-arm owner delivers the close to
-#     main. The host records that successor's arm before relinquishing it
+#     drops the handoff and, as a covering successor (bin/fm-watch-arm.sh
+#     FM_WATCH_COVER), through main's whole turn. It confirms no handling
+#     handoff, so the recovery marker still reads downtime and the re-arm
+#     owner delivers the close to main. The host records that successor's arm before relinquishing it
 #     (detach_successor owns the persistence check and failure path). The
 #     session's next park without --restart requests a take-over of its cycle
 #     rather than an ordinary attach; bin/fm-watch-arm.sh's --take-over header owns the
@@ -85,10 +86,9 @@
 # unprocessed captain outcome until main acknowledges it. Otherwise the host
 # parks on the successor.
 # Every other outcome exits with the close's own reason line plus one
-# "supervision-host:" line saying why main has this wake, after stopping the
-# successor cycle so main's next turn end starts from the same state as
-# without the host. Whenever the captain returned during an away engine turn
-# that recorded visible outcomes, handled or not, the return brief was rendered
+# "supervision-host:" line saying why main has this wake, leaving a covering
+# successor cycle for main's turn. Whenever the captain returned during an away
+# engine turn that recorded visible outcomes, handled or not, the return brief was rendered
 # before they existed, so the host exits with the close, one "supervision-host:"
 # line naming them, and one line per visible outcome, for main to relay. The
 # host injects nothing and has no delivery path of its own; the owner's
@@ -107,8 +107,9 @@
 # stop hook carries the same tracked 28800-second registration, and a host
 # that handles its own wakes is not shortened by them, so the host ends its
 # own park before that timeout: after FM_SUPERVISION_HOST_PARK_SECONDS (default
-# 27000, under the tracked 28800-second registration) it stops this home's
-# watcher and exits with one "supervision-host: cycle boundary" line, which the
+# 27000, under the tracked 28800-second registration) it ends its current cycle,
+# leaves a covering successor for main, and exits with one
+# "supervision-host: cycle boundary" line, which the
 # owner delivers as an ordinary wake; main drains, acknowledges, and ends its
 # turn, and that turn end starts the next park. The boundary is checked on
 # every loop pass, however many closes are already waiting, and an away close
@@ -518,10 +519,10 @@ turn_crosses_boundary() {
   [ $((PARK_ELAPSED + TURN_TIMEOUT + ENGINE_GRACE)) -ge "$PARK_LIMIT" ]
 }
 
-# End the park at the boundary: stop the current and successor arms and this
-# home's watcher, print any close already read so main drains it, then the
-# boundary line.
+# End the current cycles, then use the normal main hand-back to leave a
+# covering successor and print any close already read plus the boundary line.
 boundary_exit() {
+  [ -z "$ARM_PID" ] || CLOSED_ARM_PID=$ARM_PID
   retire_arm "$ARM_PID" "$ARM_OUT"
   retire_arm "$SUCCESSOR_PID" "$SUCCESSOR_OUT"
   ARM_PID=
@@ -531,8 +532,7 @@ boundary_exit() {
   "$SCRIPT_DIR/fm-watch-arm.sh" --stop >/dev/null 2>&1 || true
   park_elapsed
   log_line "boundary	after ${PARK_ELAPSED}s"
-  emit 'supervision-host: cycle boundary - the host ended its park at its bound; drain, acknowledge, and end the turn, and the next park starts on its own'
-  exit 0
+  exit_to_main 'cycle boundary - the host ended its park at its bound; drain, acknowledge, and end the turn, and the next park starts on its own'
 }
 
 # Print the first cycle's status line once the arm has written it in full.
@@ -591,22 +591,10 @@ emit() {  # [line...]
   [ -z "$text" ] || printf '%s\n' "$text"
 }
 
-# Stop the successor cycle: the state main's own turn end starts from without
-# the host.
-retire_successor() {
-  [ -n "$SUCCESSOR_PID" ] || return 0
-  retire_arm "$SUCCESSOR_PID" "$SUCCESSOR_OUT"
-  SUCCESSOR_PID=
-  SUCCESSOR_OUT=
-  "$SCRIPT_DIR/fm-watch-arm.sh" --stop >/dev/null 2>&1 || true
-}
-
-# Hand the close to main: stop the successor cycle, print the close, why, and
-# any further "supervision-host:" lines, and exit.
 exit_to_main() {  # <why> [further lines]
-  local lines=${2:-} rc=0
-  retire_successor
-  if [ -n "$SUCCESSOR_GENERATION" ] \
+  local lines=${2:-} rc=0 generation=$SUCCESSOR_GENERATION
+  leave_successor_for_main || rc=1
+  if [ -n "$generation$SUCCESSOR_GENERATION" ] \
     && ! fm_recovery_marker_publish "$STATE/.watcher-down" downtime >/dev/null 2>&1; then
     log_line "to-main	downtime-unrestored	$1"
     lines=${lines:+$lines$'\n'}"supervision-host: watcher downtime could not be restored for the main hand-back"
@@ -671,11 +659,13 @@ stand_down() {  # <why>
 
 # Start the successor cycle and wait until it proves a live watcher. Sets
 # SUCCESSOR_WATCHER and SUCCESSOR_GENERATION (empty when the arm attached).
+# It is a covering successor (bin/fm-watch-arm.sh FM_WATCH_COVER), so once this
+# host hands it to main, it keeps the home covered for the turn.
 start_successor() {  # <predecessor-arm-pid>
   local deadline line
   SUCCESSOR_WATCHER=
   SUCCESSOR_GENERATION=
-  start_arm "$1" || return 1
+  FM_WATCH_COVER=1 start_arm "$1" || return 1
   SUCCESSOR_PID=$STARTED_ARM_PID
   SUCCESSOR_OUT=$STARTED_ARM_OUT
   deadline=$(( $(date +%s) + READY_TIMEOUT ))
@@ -713,8 +703,12 @@ detach_successor() {
     || [ -L "$LEFT_RECORD" ] || [ ! -f "$LEFT_RECORD" ] \
     || [ "$(cat "$LEFT_RECORD" 2>/dev/null)" != "$SUCCESSOR_PID"$'\t'"$identity" ]; then
     [ -z "$tmp" ] || rm -f "$tmp" "$LEFT_RECORD/${tmp##*/}" 2>/dev/null || true
-    log_line "pass-through	successor-unrecorded	$(printf '%s\n' "$REASON" | head -n 1)"
+    log_line "pass-through	successor-unrecorded	$(printf '%s\n' "${REASON:-}" | head -n 1)"
     return 1
+  fi
+  if ! "$SCRIPT_DIR/fm-watch-arm.sh" --cover-handoff "$SUCCESSOR_PID" >/dev/null 2>&1; then
+    rm -f "$LEFT_RECORD" 2>/dev/null || true
+    return 2
   fi
   disown "$SUCCESSOR_PID" 2>/dev/null || true
   forget_process "$SUCCESSOR_PID"
@@ -727,11 +721,28 @@ detach_successor() {
 # downtime (autoarm_commit in bin/fm-claude-stop-autoarm.sh). A failed start
 # returns 1; the caller still prints the close unchanged.
 leave_successor_for_main() {
-  if ! ARM_OWN_GROUP=1 start_successor "$CLOSED_ARM_PID"; then
-    log_line "pass-through	successor-unverified	$(printf '%s\n' "$REASON" | head -n 1)"
-    return 1
-  fi
-  detach_successor
+  local deadline='' rc
+  while :; do
+    if ! fm_pid_alive "$SUCCESSOR_PID" \
+      || ! fm_watcher_healthy "$STATE" "$SCRIPT_DIR/fm-watch.sh" "$GRACE" "$FM_HOME"; then
+      retire_arm "$SUCCESSOR_PID" "$SUCCESSOR_OUT"
+      SUCCESSOR_PID=
+      SUCCESSOR_OUT=
+      if ! ARM_OWN_GROUP=1 start_successor "$CLOSED_ARM_PID"; then
+        log_line "pass-through	successor-unverified	$(printf '%s\n' "${REASON:-}" | head -n 1)"
+        return 1
+      fi
+    fi
+    detach_successor
+    rc=$?
+    [ "$rc" -ne 0 ] || return 0
+    [ "$rc" -eq 2 ] || return 1
+    [ -n "$deadline" ] || deadline=$(( $(date +%s) + READY_TIMEOUT ))
+    retire_arm "$SUCCESSOR_PID" "$SUCCESSOR_OUT"
+    SUCCESSOR_PID=
+    SUCCESSOR_OUT=
+    [ "$(date +%s)" -lt "$deadline" ] || return 1
+  done
 }
 
 # The engine conversation for this turn: the recorded one while it belongs to
@@ -1113,9 +1124,7 @@ while :; do
   if ! fm_afk_contract_away_present "$STATE"; then
     if ! attended_acceptor "$(printf '%s\n' "$REASON" | head -n 1)"; then
       log_line "pass-through	attended	$ATTENDED_WHY	$(printf '%s\n' "$REASON" | head -n 1)"
-      if [ "$ATTENDED_WHY" = main-only ]; then
-        leave_successor_for_main || true
-      fi
+      leave_successor_for_main || true
       emit
       exit 0
     fi
@@ -1155,9 +1164,7 @@ while :; do
   HANDLE_RC=$?
   if [ "$HANDLE_RC" -eq 2 ]; then
     log_line "pass-through	attended	$ATTENDED_WHY	$(printf '%s\n' "$REASON" | head -n 1)"
-    # The successor this turn already started and confirmed stays up. Retiring
-    # it is what left no watcher after a close that became main-only.
-    detach_successor
+    leave_successor_for_main || true
     # Main handles this close after all, so hand back the downtime the handoff
     # above consumed: the re-arm owner delivers the close only while the
     # recovery marker reads downtime (leave_successor_for_main).

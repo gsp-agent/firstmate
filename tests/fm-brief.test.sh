@@ -12,7 +12,8 @@
 # wrapper and eliminates the whole defect class regardless of future prose.
 # test_no_heredoc_in_command_substitution guards that structure directly.
 # Ambient `bash -n` here is Bash 5 and cannot see the bug, so the real
-# cross-version enforcement lives in the macos-stock-bash CI job.
+# cross-version enforcement lives in bin/fm-stock-bash-check.sh, the
+# stock-macos-bash no-mistakes gate.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -25,7 +26,8 @@ mkdir -p "$BRIEF_HOME/data"
 # The script itself must always parse under the ambient bash. That is Bash 5 in
 # CI and locally, where the issue #958/#1069 parser bug does not fire, so this
 # is a weak guard on its own; test_no_heredoc_in_command_substitution and the
-# macos-stock-bash CI job carry the real cross-version enforcement.
+# stock-macos-bash gate (bin/fm-stock-bash-check.sh) carry the real
+# cross-version enforcement.
 test_script_parses() {
   local out rc
   out=$(bash -n "$ROOT/bin/fm-brief.sh" 2>&1); rc=$?
@@ -337,7 +339,9 @@ test_ship_mode_is_explicit_not_registry() {
   brief="$home/data/brief-explicit-a5/brief.md"
   grep -qx "Delivery contract: mode=no-mistakes" "$brief" \
     || fail "registered direct-PR posture overrode the explicit --mode"
-  assert_grep "Firstmate will then instruct you to run /no-mistakes" "$brief" \
+  assert_grep "is laptop load, not an obstacle. Retry that same call with backoff" "$brief" \
+    "the brief does not tell the worker to retry a daemon reply timeout with backoff"
+  assert_grep "then run /no-mistakes at once to validate and ship a PR; do not wait for an instruction." "$brief" \
     "explicit no-mistakes brief did not render the pipeline definition of done"
   assert_grep "FM_HOME=$home $ROOT/bin/fm-pr-made-with.sh brief-explicit-a5 <PR url>" "$brief" \
     "the brief does not hand the worker the Made-with stamp for its own home"
@@ -992,6 +996,16 @@ SIGNALS
       "$kind brief did not require durable resolution when a blocker clears"
     assert_grep 'even when the answer is what started that work' "$brief" \
       "$kind brief did not warn that an answer-started done/working never closes a decision"
+    [ "$kind" != secondmate ] || continue
+    # The merge-only pause a worker is taught must be a line the classifier
+    # reads as one, under the configured pause verb.
+    # shellcheck disable=SC2016 # Match literal backticks in the generated interface.
+    template=$(grep -o '`[^`]*\[awaits=merge\][^`]*`' "$brief" | tr -d '`' | head -1)
+    [ -n "$template" ] || fail "$kind brief did not teach the merge-only pause"
+    line=$(printf '%s' "${template//<epoch>/$now}" | sed -e 's/{[^}]*}/one short line/g')
+    FM_CLASSIFY_PAUSED_VERB=awaiting bash -c '. "$1"; status_awaits_merge "$2"' _ \
+      "$ROOT/bin/fm-classify-lib.sh" "$line" \
+      || fail "$kind brief taught a merge-only pause the classifier does not read: $line"
   done
   pass "fm-brief.sh: custom pause verb renders in every scaffold"
 }
@@ -1457,9 +1471,12 @@ test_branch_prefix_value_is_validated() {
 test_branch_prefix_command_is_shell_safe() {
   local home id prefix marker brief command repo
   home="$TMP_ROOT/branch-prefix-shell-safe-home"
-  marker="$TMP_ROOT/branch-prefix-shell-safe-marker"
+  repo="$TMP_ROOT/branch-prefix-shell-safe-repo"
+  marker="$repo/branch-prefix-shell-safe-marker"
   id='brief-branch-safe-g3'
-  prefix="\$(touch\${IFS}$marker)"
+  # Absolute fixture paths can contain dot-prefixed directories forbidden in refs.
+  # shellcheck disable=SC2016 # The prefix must contain literal command substitution.
+  prefix='$(touch${IFS}branch-prefix-shell-safe-marker)'
   mkdir -p "$home/data"
   FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode local-only --branch-prefix "$prefix" >/dev/null 2>&1 \
     || fail "a ref-format-valid metacharacter prefix should scaffold safely"
@@ -1467,7 +1484,6 @@ test_branch_prefix_command_is_shell_safe() {
   # shellcheck disable=SC2016 # The sed expression intentionally contains literal backticks.
   command=$(sed -n 's/^1\. First action: confirm you are on your branch: `\([^`]*\)`\..*$/\1/p' "$brief")
   [ -n "$command" ] || fail "generated brief exposed no branch check command"
-  repo="$TMP_ROOT/branch-prefix-shell-safe-repo"
   git init -q "$repo" || fail "could not initialize shell-safety fixture repository"
   ( cd "$repo" && git checkout -q -b "$prefix$id" ) || fail "could not create the literal configured branch"
   ( cd "$repo" && eval "$command" ) || fail "generated branch check failed on the literal configured branch"
@@ -1484,6 +1500,36 @@ test_worker_role_scope
 # Rule 2 governs file edits rather than pool administration, so every crewmate
 # scaffold must prohibit the administrative act itself. The rule is emitted from
 # one shared string so the ship and scout copies cannot drift apart.
+# Two scaffolds for one task, or a scaffold and fm-spawn.sh --queue-start, can
+# both pass the existence test before either writes. A rival brief that lands
+# in that window - made deterministic by a mkdir that writes it the moment
+# the scaffold creates the task directory - must survive, and the late
+# scaffold must refuse with nothing written, because the write is the claim.
+test_scaffold_claims_the_brief_at_write_time() {
+  local home fakebin id out rc=0 real_mkdir
+  home="$TMP_ROOT/claim-race-home"
+  fakebin="$TMP_ROOT/claim-race-bin"
+  id='brief-claim-race'
+  mkdir -p "$home/data" "$fakebin"
+  real_mkdir=$(command -v mkdir)
+  cat > "$fakebin/mkdir" <<SH
+#!/usr/bin/env bash
+"$real_mkdir" "\$@" || exit \$?
+case "\$*" in
+  *"/data/$id")
+    [ -e "$home/data/$id/brief.md" ] || printf '%s\n' 'the rival brief' > "$home/data/$id/brief.md"
+    ;;
+esac
+SH
+  chmod +x "$fakebin/mkdir"
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "$id" some-proj --mode no-mistakes 2>&1) || rc=$?
+  assert_equals 'the rival brief' "$(cat "$home/data/$id/brief.md")" \
+    "a scaffold overwrote a brief that appeared after its existence test"
+  [ "$rc" -ne 0 ] || fail "a scaffold that lost the brief's claim reported success: $out"
+  assert_contains "$out" "already exists" "a scaffold that lost the claim did not say the brief exists"
+  pass "fm-brief.sh: the brief's exclusive create is the claim; a late scaffold refuses and leaves the winner's brief"
+}
+
 test_crewmate_scaffolds_forbid_pool_administration() {
   local home id brief mode ship_rule scout_rule
   home="$TMP_ROOT/pool-admin-home"
@@ -1549,6 +1595,23 @@ test_crewmate_scaffolds_forbid_pool_administration() {
 test_script_parses
 test_no_heredoc_in_command_substitution
 test_help_includes_entire_header
+test_decision_owner_is_explicit_and_validated() {
+  local owner_home="$TMP_ROOT/decision-owner" brief
+  mkdir -p "$owner_home/data"
+  FM_HOME="$owner_home" "$ROOT/bin/fm-brief.sh" owned sample --mode direct-PR --decision-owner ep-sample >/dev/null \
+    || fail 'brief with an owner failed'
+  brief="$owner_home/data/owned/brief.md"
+  assert_grep 'Decision owner: ep-sample' "$brief" 'brief lost the declared decision owner'
+  FM_HOME="$owner_home" "$ROOT/bin/fm-brief.sh" legacy sample --scout >/dev/null || fail 'legacy brief failed'
+  assert_grep 'Decision owner: captain' "$owner_home/data/legacy/brief.md" 'legacy brief inferred agent authority'
+  if FM_HOME="$owner_home" "$ROOT/bin/fm-brief.sh" invalid sample --scout --decision-owner '../outside' > "$owner_home/invalid.out" 2>&1; then
+    fail 'brief accepted an invalid owner'
+  fi
+  assert_absent "$owner_home/data/invalid/brief.md" 'invalid owner wrote a brief'
+  pass 'briefs name a decision owner and reject malformed endpoints before writing'
+}
+
+test_decision_owner_is_explicit_and_validated
 test_ship_modes_generate_clean_briefs
 test_forge_selection_renders_correct_cli
 test_ship_mode_is_required_and_closed_set
@@ -1583,4 +1646,34 @@ test_ship_branch_prefix_empty_override_yields_bare_task_id
 test_branch_prefix_is_refused_where_it_does_not_apply
 test_branch_prefix_value_is_validated
 test_branch_prefix_command_is_shell_safe
+# `.agent-config-ydbn7`: the --skip ci line follows the brief's own --project,
+# never the caller's working directory (this suite runs from a firstmate
+# checkout, which is exactly the cwd that must not leak into other briefs).
+test_skip_ci_follows_project_not_cwd() {
+  local home="$TMP_ROOT/skipci-home" fmproj="$TMP_ROOT/skipci-fmproj" otherproj="$TMP_ROOT/skipci-otherproj" status
+  write_registry "$home"
+  git init -q "$fmproj"
+  git -C "$fmproj" remote add origin git@github.com:gsp-agent/firstmate.git
+  git init -q "$otherproj"
+  git -C "$otherproj" remote add origin git@github.com:carmandale/agent-config.git
+
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-skipci-a1 some-proj --mode no-mistakes >/dev/null 2>&1; status=$?
+  expect_code 0 "$status" "fm-brief without --project should exit 0"
+  assert_no_grep '--skip ci' "$home/data/brief-skipci-a1/brief.md" \
+    "a brief without --project inherited the caller's firstmate checkout CI posture"
+
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-skipci-a2 some-proj --mode no-mistakes --project "$fmproj" >/dev/null 2>&1; status=$?
+  expect_code 0 "$status" "fm-brief with a firstmate --project should exit 0"
+  assert_grep '--skip ci' "$home/data/brief-skipci-a2/brief.md" \
+    "a brief for gsp-agent/firstmate lost its --skip ci line"
+
+  FM_HOME="$home" "$ROOT/bin/fm-brief.sh" brief-skipci-a3 some-proj --mode no-mistakes --project "$otherproj" >/dev/null 2>&1; status=$?
+  expect_code 0 "$status" "fm-brief with another --project should exit 0"
+  assert_no_grep '--skip ci' "$home/data/brief-skipci-a3/brief.md" \
+    "a brief for a repo with CI got a --skip ci line"
+  pass "fm-brief.sh: --skip ci follows --project, never the caller's working directory"
+}
+
+test_skip_ci_follows_project_not_cwd
 test_crewmate_scaffolds_forbid_pool_administration
+test_scaffold_claims_the_brief_at_write_time

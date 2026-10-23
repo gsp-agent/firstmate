@@ -324,6 +324,29 @@ function statusFileIdentity(path: string): string {
   return birthEpoch !== "0" && birth ? `strong:${ident}:${birth}` : `weak:${ident}`;
 }
 
+// bin/fm-wake-lib.sh fm_pm_live_task, read from here: a task with a live PM
+// is that PM's alone, so its queued rows stay out of the branch grant in
+// every posture, or the branch and the PM work one task. The proof is the
+// registration marker state/.pm-live-<task>: a regular file naming a numeric
+// pid=, refreshed within FM_PM_LIVE_MAX_AGE seconds (default 180). Any doubt
+// - absent, malformed, stale - reads as no live PM.
+function pmLiveTask(state: string, task: string): boolean {
+  if (!/^[A-Za-z0-9._-]+$/.test(task)) return false;
+  const rawMax = process.env.FM_PM_LIVE_MAX_AGE;
+  const maxAge = rawMax !== undefined && /^[0-9]+$/.test(rawMax) ? Number(rawMax) : 180;
+  const marker = join(state, `.pm-live-${task}`);
+  try {
+    const st = lstatSync(marker);
+    if (!st.isFile() || st.isSymbolicLink()) return false;
+    const pid = readFileSync(marker, "utf8").split(/\r?\n/).find((line) => line.startsWith("pid="))?.slice(4) ?? "";
+    if (!/^[0-9]+$/.test(pid)) return false;
+    const age = Math.floor((Date.now() - st.mtimeMs) / 1000);
+    return age >= 0 && age <= maxAge;
+  } catch {
+    return false;
+  }
+}
+
 // The per-task presentation-cursor rows (task, identity, presented offset,
 // backstop), in the format bin/fm-classify-lib.sh writes. Null when the cursor
 // is absent or malformed, so every span read falls back to the whole log.
@@ -542,6 +565,9 @@ export function scopeForUnreadWake(state: string, heartbeat: boolean, afk = fals
       }
     }
     if (!project || !task) return UNSAFE_SCOPE;
+    // A live PM reads its own task's rows; the branch claiming one would put
+    // two agents on that task. The row stays queued for the PM.
+    if (pmLiveTask(state, task)) continue;
     projects.add(project);
     eligibleTasks.add(task);
     eligibleSeqs.push(seq);

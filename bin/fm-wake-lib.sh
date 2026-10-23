@@ -23,7 +23,7 @@ mkdir -p "$STATE"
 # Load the classifier only when a status presentation helper is actually used.
 _fm_wake_require_classify() {
   command -v status_observed_signature >/dev/null 2>&1 && return 0
-  # shellcheck source=bin/fm-classify-lib.sh
+  # shellcheck source=/dev/null
   . "$FM_WAKE_LIB_DIR/fm-classify-lib.sh"
 }
 
@@ -120,6 +120,35 @@ fm_path_age() {
   m=$(fm_path_mtime "$path") || { echo 999999; return; }
   fm_epoch_seconds_to now
   echo $(( now - m ))
+}
+
+# fm_pm_live_task <state> <task-id>: 0 when a live PM owns this task, proven
+# by the registration its own waiter keeps in state/.pm-live-<task-id>: a
+# `pid=` line naming the writer and a file refreshed within
+# FM_PM_LIVE_MAX_AGE seconds (default 180). The writer is whichever captain
+# process watches the task's status file directly (refreshed on every wait
+# slice and removed on exit); this library only reads the proof, and any
+# doubt - absent,
+# malformed, stale, or a dead pid - reads as no live PM, so the ordinary
+# main-owned routing stays in charge. Tasks with a live PM get their status
+# signals, stale wakes, and merged outcomes from that PM alone; waking main
+# for them too puts two agents on one task.
+fm_pm_live_task() {  # <state> <task-id>
+  local state=$1 task=$2 marker pid age max_age=${FM_PM_LIVE_MAX_AGE:-180}
+  case "$task" in ''|*[!A-Za-z0-9._-]*) return 1 ;; esac
+  case "$max_age" in ''|*[!0-9]*) max_age=180 ;; esac
+  marker="$state/.pm-live-$task"
+  [ -f "$marker" ] && [ ! -L "$marker" ] || return 1
+  pid=$(sed -n 's/^pid=//p' "$marker" 2>/dev/null | head -n 1)
+  case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+  age=$(fm_path_age "$marker")
+  case "$age" in ''|*[!0-9-]*) return 1 ;; esac
+  # Freshness is the proof, for live and returned waiters alike: a waiting
+  # waiter refreshes every slice, so a marker older than the window means
+  # the writer hung, died, or its pid was reused - none of which may
+  # suppress supervision indefinitely. Inside the window a returned waiter
+  # still reads live, covering the captain's act-then-rearm gap.
+  [ "$age" -ge 0 ] && [ "$age" -le "$max_age" ]
 }
 
 # fm_poll_derived_grace [poll-seconds]
@@ -668,11 +697,11 @@ FM_WAKE_APPEND_RECOVERY_PUBLISHED_TOKEN=
 # docs/watcher-continuity.md owns the recovery-episode contract, including the
 # once-per-generation announcement rule for unacknowledged downtime.
 fm_recovery_marker_read() {
-  local marker=$1 line extra
+  local marker=$1 line _extra
   FM_RECOVERY_MARKER_TOKEN=
   [ -f "$marker" ] && [ ! -L "$marker" ] || return 1
   # Exactly one newline byte: the first line is terminated and no second is.
-  { IFS= read -r line && ! IFS= read -r extra; } < "$marker" || return 1
+  { IFS= read -r line && ! IFS= read -r _extra; } < "$marker" || return 1
   case "$line" in
     pending:handling:*|pending:downtime:*|announced:handling:*|announced:downtime:*|acked:handling:*|acked:downtime:*) ;;
     *) return 1 ;;
@@ -1614,6 +1643,91 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
   printf '%s/.fm-slot-owner\n' "$(dirname "$slot")"
 }
 
+# fm_treehouse_free_own_slot: print the worktree path of one free Treehouse
+# pool slot that belongs to the project's own clone, or nothing.
+#
+# One pool can hold slots from two clones of one origin (the clones share a
+# repository basename, so Treehouse gives them one pool), and a plain
+# `treehouse get` hands out the first free slot regardless of which clone
+# created it. A worktree of the project's own clone is listed by the
+# project's own `git worktree list`; a slot is free when Treehouse's state
+# records no live owner process and no durable lease for it, and no
+# Firstmate slot-owner claim names a task for it. It must also pass the
+# allocator's reuse test the caller cannot undo by entering it directly:
+# a clean worktree whose HEAD is already in the fetched reset target, so
+# the spawn's base freshen never has to refuse residue or reset away
+# commits. The lowest slot name wins so the choice is stable.
+# Any doubt - no jq, no pool layout, a live owner, an existing claim,
+# residue, or an unverifiable reset target - prints nothing, and the
+# caller keeps the plain `treehouse get` path, whose candidate screening
+# still refuses a foreign-clone slot.
+fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
+  local project=$1 base=${2:-} listed line wt slot pool state owner_pid marker name best="" best_key=""
+  local target_branch="" target_ref="" target_ready=0 status candidate
+  command -v jq >/dev/null 2>&1 || return 0
+  listed=$(git -C "$project" -c core.quotePath=false worktree list --porcelain 2>/dev/null) || return 0
+  while IFS= read -r line; do
+    case "$line" in
+      worktree\ *) wt=${line#worktree } ;;
+      *) continue ;;
+    esac
+    fm_treehouse_pool_slot "$project" "$wt" || continue
+    slot=$(CDPATH='' cd -- "$wt" 2>/dev/null && pwd -P) || continue
+    pool=$(dirname "$(dirname "$slot")")
+    state="$pool/treehouse-state.json"
+    name=$(basename "$(dirname "$slot")")
+    lease_line=$(jq -r --arg p "$slot" --arg n "$name" \
+      '.worktrees[]? | select(.path == $p or .name == $n) | "\(.owner_pid // "") \(.leased // false)"' \
+      "$state" 2>/dev/null) || continue
+    [ -n "$lease_line" ] || continue
+    owner_pid=${lease_line%% *}
+    if [ -n "$owner_pid" ] && fm_pid_alive "$owner_pid"; then
+      continue
+    fi
+    if [ "${lease_line##* }" = true ]; then
+      continue
+    fi
+    marker=$(fm_treehouse_slot_owner_marker "$wt") || continue
+    if [ -e "$marker" ] || [ -L "$marker" ]; then
+      continue
+    fi
+    if [ "$target_ready" -eq 0 ]; then
+      target_branch=$base
+      if [ -z "$target_branch" ]; then
+        target_branch=$(git -C "$project" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)
+        target_branch=${target_branch#origin/}
+      fi
+      if [ -z "$target_branch" ]; then
+        for candidate in main master; do
+          if git -C "$project" show-ref --verify --quiet "refs/heads/$candidate"; then
+            target_branch=$candidate
+            break
+          fi
+        done
+      fi
+      if [ -z "$target_branch" ] ||
+        ! git -C "$wt" fetch --quiet origin "+refs/heads/$target_branch:refs/remotes/origin/$target_branch" </dev/null 2>/dev/null; then
+        return 0
+      fi
+      target_ref="origin/$target_branch"
+      target_ready=1
+    fi
+    status=$(git -C "$wt" -c core.quotePath=false status --porcelain 2>/dev/null) || continue
+    [ -z "$status" ] || continue
+    git -C "$wt" merge-base --is-ancestor HEAD "$target_ref" 2>/dev/null || continue
+    case "$name" in
+      *[!0-9]* | "") name=999999 ;;
+    esac
+    if [ -z "$best" ] || [ "$name" -lt "$best_key" ]; then
+      best=$slot
+      best_key=$name
+    fi
+  done <<EOF
+$listed
+EOF
+  [ -z "$best" ] || printf '%s\n' "$best"
+}
+
 # Claim a pool slot for a task, replacing whatever the previous holder left.
 # The rename is atomic, so a reader either sees the old claim or the new one.
 fm_treehouse_slot_owner_claim() {  # <worktree> <task-id> <home>
@@ -1955,8 +2069,8 @@ fm_autoarm_write_owned() {  # <state-dir> <gen> <outcome> [marker-file] [session
   pid=${BASHPID:-$$}
   i=0
   while ! fm_lock_try_acquire "$lock"; do
-    [ "$i" -lt 20 ] || return 1
-    sleep 0.02
+    [ "$i" -lt 4 ] || return 1
+    sleep 0.1
     i=$((i + 1))
   done
   if ! fm_autoarm_ledger_read "$state" \
@@ -2388,14 +2502,14 @@ fm_wake_grant_rows_valid() {  # <rows-file>
 # not a match, so uncertainty reads as "no live owner".
 fm_wake_branch_owner_matches() {  # <owner-file> [<pid>] [<generation>]
   local file=$1 expected_pid=${2:-} expected_generation=${3:-}
-  local version pid identity generation current extra
+  local version pid identity generation current _extra
   [ -f "$file" ] && [ ! -L "$file" ] || return 1
   exec 8< "$file" || return 1
   IFS= read -r version <&8 || { exec 8<&-; return 1; }
   IFS= read -r pid <&8 || { exec 8<&-; return 1; }
   IFS= read -r identity <&8 || { exec 8<&-; return 1; }
   IFS= read -r generation <&8 || { exec 8<&-; return 1; }
-  if IFS= read -r extra <&8; then exec 8<&-; return 1; fi
+  if IFS= read -r _extra <&8; then exec 8<&-; return 1; fi
   exec 8<&-
   [ "$version" = fm-branch-eligible-owner-v1 ] || return 1
   case "$pid" in ''|*[!0-9]*|1) return 1 ;; esac
@@ -2691,7 +2805,7 @@ fm_wake_status_key_map() {  # <queue-key>
 
 fm_wake_annotation_manifest() {  # <deduped-raw-rows>
   local rows=$1 epoch seq kind key payload
-  while IFS=$(printf '\t') read -r epoch seq kind key payload; do
+  while IFS=$'\t' read -r epoch seq kind key payload; do
     [ "$kind" = signal ] || continue
     fm_wake_status_key_map "$key" || continue
     if [ "$FM_WAKE_STATUS_HISTORICAL" = true ]; then
@@ -2798,7 +2912,7 @@ fm_wake_print_annotations() {  # <deduped-raw-rows> [<presentation-snapshot>]
     *) sleep "$FM_WAKE_ENRICH_TEST_DELAY" ;;
   esac
 
-  while IFS=$(printf '\t') read -r status_key mode; do
+  while IFS=$'\t' read -r status_key mode; do
     [ -n "$status_key" ] || continue
     path="$STATE/$status_key"
     # A turn-ended-only (historical) row's annotation would show unread status
@@ -2818,7 +2932,7 @@ fm_wake_print_annotations() {  # <deduped-raw-rows> [<presentation-snapshot>]
     endpoint=
     if [ -n "$snapshot" ]; then
       task=${status_key%.status}
-      while IFS=$(printf '\t') read -r snapshot_task snapshot_endpoint _snapshot_ident; do
+      while IFS=$'\t' read -r snapshot_task snapshot_endpoint _snapshot_ident; do
         if [ "$snapshot_task" = "$task" ]; then endpoint=$snapshot_endpoint; break; fi
       done <<EOF
 $snapshot

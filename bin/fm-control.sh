@@ -51,6 +51,15 @@
 #              endpoint, so this verb cannot tell a destroyed window from one on
 #              a tmux server it cannot address, and it will not claim a stop it
 #              cannot see.
+#              A Claude exit stops that agent's own background shells before
+#              the exit command: shell descendants outside the agent's process
+#              group, and the commands those shells have started. The pids come
+#              from that agent's process tree only. A recognised background-task
+#              exit picker is cleared with Escape after the shells it lists are
+#              gone, then /exit is submitted. Enter is never sent into the
+#              picker. An unrecognised dialog still refuses, with no key and no
+#              signal. When that process tree cannot be read, the picker still
+#              refuses and no Escape is sent.
 #   relaunch   Transactionally replace the running agent with a new one, in the
 #              SAME worktree - and the same endpoint whenever that endpoint
 #              still exists - on the same or a newly chosen
@@ -64,12 +73,14 @@
 #              answer. Reclaim is HERDR-ONLY for the reason `exit` gives above:
 #              a tmux `missing` cannot be proven absent from a task record, so
 #              it refuses.
-#              An explicit `default` model or effort clears that
-#              axis for the replacement. With no explicit axis, a secondmate
+#              An explicit `default` model or effort requests the harness
+#              default for that axis, subject to the dispatch rules below.
+#              With no explicit axis, a secondmate
 #              re-resolves its durable config/secondmate-harness pin (harness
 #              plus its optional model and effort tokens) exactly as any other
 #              respawn does, while a ship or scout keeps the exact adapter
-#              already recorded for it.
+#              already recorded for it, then takes the launch route that
+#              bin/fm-cursor-guard.sh owns before the old agent stops.
 #              A prefixed raw-command basename cannot reconstruct its launch
 #              command, so relaunch requires an explicit --harness for it.
 #              A replacement Claude or Pi profile must also pass this home's
@@ -79,6 +90,10 @@
 #              The same pre-stop refusal applies to this home's worker tool
 #              exclusions (bin/fm-exclude-tools-lib.sh): a malformed list, or a
 #              replacement runtime that cannot hide the listed tools.
+#              A ship or scout relaunch also resolves config/crew-dispatch.json
+#              here, before the old agent stops (docs/configuration.md "Crew
+#              dispatch profiles"). The pair that file adopts is the pair the
+#              journal records.
 #              --note is required for a ship or scout, whose replacement
 #              inherits the local copy but none of the conversation; a
 #              secondmate reconciles its own home's records at startup, so its
@@ -91,9 +106,9 @@
 #              running.
 #
 # Teardown and discard are NOT verbs here and never will be. `exit` stops an
-# agent and preserves everything else; removing a worktree, killing an
-# endpoint, or discarding work stays with bin/fm-teardown.sh, which owns the
-# landed-work test.
+# agent and preserves everything else; removing a worktree or discarding work
+# stays with bin/fm-teardown.sh, which owns the landed-work test.
+# bin/fm-inactive-reconcile.sh owns automatic inactive pane closure.
 #
 # `resume` is not a verb: it is not deterministic across the verified adapters
 # (bin/fm-control-lib.sh's header owns that reasoning). `relaunch` covers the
@@ -123,6 +138,12 @@
 #     classified state acts.
 #   - A composer that visibly holds pending text refuses before an exit command
 #     is typed, so existing text is preserved instead of being concatenated.
+#   - Before a Claude exit command, that agent's own background shells are
+#     stopped and checked gone. A recognised background-task exit picker is
+#     cleared with Escape only after the shells it lists are gone, then /exit
+#     is submitted. Enter is never sent into the picker. An unrecognised
+#     dialog still refuses, with no key and no signal. A picker whose agent
+#     process tree cannot be seen still refuses, and no Escape is sent.
 #
 # Environment knobs (all bounded waits, seconds):
 #   FM_CONTROL_POLL              poll interval for postcondition waits (0.5)
@@ -181,6 +202,10 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 . "$SCRIPT_DIR/fm-worker-account-lib.sh"
 # shellcheck source=bin/fm-exclude-tools-lib.sh
 . "$SCRIPT_DIR/fm-exclude-tools-lib.sh"
+# shellcheck source=bin/fm-live-session-lib.sh
+. "$SCRIPT_DIR/fm-live-session-lib.sh"
+# shellcheck source=bin/fm-dispatch-profile-lib.sh
+. "$SCRIPT_DIR/fm-dispatch-profile-lib.sh"
 
 POLL=${FM_CONTROL_POLL:-0.5}
 SETTLE_WAIT=${FM_CONTROL_SETTLE_WAIT:-5}
@@ -632,10 +657,270 @@ retire_busy_incarnation() {
   fi
 }
 
+# A zombie still answers kill -0. It is not a shell that can keep the picker up.
+fm_control_pid_running() {  # <pid>
+  local pid=$1 stat
+  case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+  fm_pid_alive "$pid" || return 1
+  stat=$(ps -o stat= -p "$pid" 2>/dev/null) || return 1
+  stat=$(printf '%s' "$stat" | tr -d '[:space:]')
+  case "$stat" in
+    Z*) return 1 ;;
+  esac
+  return 0
+}
+
+fm_control_wait_pid_stopped() {  # <pid> <identity>
+  local pid=$1 identity=$2 i=0 current
+  while [ "$i" -lt 8 ]; do
+    fm_control_pid_running "$pid" || return 0
+    current=$(fm_pid_identity "$pid" 2>/dev/null) || return 0
+    [ "$current" = "$identity" ] || return 0
+    sleep 0.05
+    i=$((i + 1))
+  done
+  fm_control_pid_running "$pid" || return 0
+  current=$(fm_pid_identity "$pid" 2>/dev/null) || return 0
+  [ "$current" = "$identity" ] || return 0
+  return 1
+}
+
+fm_control_signal_pid() {  # <pid>
+  local pid=$1 identity current
+  fm_control_pid_running "$pid" || return 0
+  identity=$(fm_pid_identity "$pid" 2>/dev/null) || return 0
+  kill -TERM "$pid" 2>/dev/null || true
+  if fm_control_wait_pid_stopped "$pid" "$identity"; then
+    return 0
+  fi
+  current=$(fm_pid_identity "$pid" 2>/dev/null) || return 0
+  [ "$current" = "$identity" ] || return 0
+  fm_control_pid_running "$pid" || return 0
+  kill -KILL "$pid" 2>/dev/null || true
+  fm_control_wait_pid_stopped "$pid" "$identity"
+}
+
+# Group-signal a pgid only when every member is a target and the pgid is not
+# 0, 1, or this control process's own group. Otherwise name the individual
+# pids. X means a target is this process or its parent: refuse before any
+# signal. Snapshot rows are stdin.
+fm_control_signal_plan() {  # <targets> <own-pgid> <parent-pgid> <own-pid> <parent-pid>
+  local targets=$1 own_pgid=$2 parent_pgid=$3 own_pid=$4 parent_pid=$5
+  {
+    printf '%s\n' "$targets" | while IFS= read -r _fm_pid; do
+      case "$_fm_pid" in
+        ''|*[!0-9]*) ;;
+        *) printf 'T\t%s\n' "$_fm_pid" ;;
+      esac
+    done
+    cat
+  } | awk -F '\t' -v own_pgid="$own_pgid" -v parent_pgid="$parent_pgid" \
+      -v own_pid="$own_pid" -v parent_pid="$parent_pid" '
+    $1 == "T" { if ($2 ~ /^[0-9]+$/) target[$2] = 1; next }
+    $1 ~ /^[0-9]+$/ {
+      pgid_of[$1] = $3
+      members[$3] = members[$3] " " $1
+    }
+    END {
+      if (own_pgid ~ /^[0-9]+$/) skip[own_pgid] = 1
+      if (parent_pgid ~ /^[0-9]+$/) skip[parent_pgid] = 1
+      skip[0] = 1
+      skip[1] = 1
+      for (p in target) {
+        g = pgid_of[p]
+        if (g == "") { print "X " p; continue }
+        use[g] = 1
+      }
+      for (g in use) {
+        unsafe = (g in skip)
+        n = split(members[g], arr, " ")
+        for (i = 1; i <= n; i++) {
+          if (arr[i] == "") continue
+          if (!(arr[i] in target)) unsafe = 1
+        }
+        if (!unsafe) {
+          print "G " g
+          grouped[g] = 1
+        }
+      }
+      for (p in target) {
+        g = pgid_of[p]
+        if (g in grouped) continue
+        if (p == own_pid || p == parent_pid) { print "X " p; continue }
+        print "P " p
+      }
+    }
+  '
+}
+
+fm_control_pids_in_pgid() {  # <pgid> <targets> <snapshot>
+  local pgid=$1 targets=$2 snapshot=$3 pid ppid group class args
+  printf '%s\n' "$snapshot" | while IFS=$'\t' read -r pid ppid group class args; do
+    [ "$group" = "$pgid" ] || continue
+    case "
+$targets
+" in
+      *"
+$pid
+"*) printf '%s\n' "$pid" ;;
+    esac
+  done
+}
+
+fm_control_signal_pgid() {  # <pgid> <targets> <snapshot>
+  local pgid=$1 targets=$2 snapshot=$3 pid identity failed=0 idlist=
+  while IFS= read -r pid; do
+    case "$pid" in ''|*[!0-9]*) continue ;; esac
+    fm_control_pid_running "$pid" || continue
+    identity=$(fm_pid_identity "$pid" 2>/dev/null) || continue
+    idlist="${idlist}${pid}"$'\t'"${identity}"$'\n'
+  done <<EOF
+$(fm_control_pids_in_pgid "$pgid" "$targets" "$snapshot")
+EOF
+  kill -TERM -- "-$pgid" 2>/dev/null || true
+  while IFS=$'\t' read -r pid identity; do
+    [ -n "$pid" ] || continue
+    fm_control_wait_pid_stopped "$pid" "$identity" || failed=1
+  done <<EOF
+$idlist
+EOF
+  [ "$failed" -eq 0 ] && return 0
+  kill -KILL -- "-$pgid" 2>/dev/null || true
+  while IFS=$'\t' read -r pid identity; do
+    [ -n "$pid" ] || continue
+    fm_control_wait_pid_stopped "$pid" "$identity" || return 1
+  done <<EOF
+$idlist
+EOF
+}
+
+fm_control_signal_targets() {  # <targets> <snapshot>
+  local targets=$1 snapshot=$2 own parent plan line pgid pid
+  own=$(ps -o pgid= -p "$$" 2>/dev/null) || own=
+  own=$(printf '%s' "$own" | tr -d '[:space:]')
+  parent=$(ps -o pgid= -p "$PPID" 2>/dev/null) || parent=
+  parent=$(printf '%s' "$parent" | tr -d '[:space:]')
+  plan=$(printf '%s\n' "$snapshot" | fm_control_signal_plan "$targets" "$own" "$parent" "$$" "$PPID") \
+    || return 1
+  if printf '%s\n' "$plan" | grep -q '^X '; then
+    return 1
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "G "*)
+        pgid=${line#"G "}
+        fm_control_signal_pgid "$pgid" "$targets" "$snapshot" || return 1
+        ;;
+    esac
+  done <<EOF
+$plan
+EOF
+  while IFS= read -r line; do
+    case "$line" in
+      "P "*)
+        pid=${line#"P "}
+        fm_control_signal_pid "$pid" || return 1
+        ;;
+    esac
+  done <<EOF
+$plan
+EOF
+}
+
+# mode shells: every background shell under the agent. mode commands: only
+# descendants whose command line contains a picker task, plus their shell.
+# No roots on the picker path refuses. No roots otherwise is nothing to stop.
+fm_control_stop_claude_background() {  # <shells|commands> <commands>
+  local mode=$1 commands=$2 roots snapshot targets
+  [ "$HARNESS" = claude ] || return 0
+  # Root discovery runs in a command substitution, and that subshell's source
+  # of the backend does not define the process-table helpers here.
+  fm_backend_source "$BACKEND" || return 1
+  roots=$(fm_backend_agent_root_pids "$BACKEND" "$T" 2>/dev/null) || roots=
+  roots=$(printf '%s\n' "$roots" | grep -E '^[0-9]+$' || true)
+  if [ -z "$roots" ]; then
+    [ "$mode" = commands ] && return 1
+    return 0
+  fi
+  snapshot=$(fm_agent_process_snapshot) || return 1
+  targets=$(printf '%s\n' "$snapshot" | fm_agent_process_background_pids "$mode" "$roots" "$commands") \
+    || return 1
+  if printf '%s\n' "$targets" | grep -qx UNSAFE; then
+    return 1
+  fi
+  targets=$(printf '%s\n' "$targets" | grep -E '^[0-9]+$' || true)
+  [ -n "$targets" ] || return 0
+  fm_control_signal_targets "$targets" "$snapshot"
+}
+
+fm_control_dismiss_claude_exit_picker() {
+  local key screen tries=0
+  # The dialog predicate lives in the backend's composer library. A capture
+  # sources that library only inside its own command substitution.
+  fm_backend_source "$BACKEND" || return 1
+  key=$(fm_control_exit_picker_dismiss_key "$HARNESS") || return 1
+  fm_backend_send_key "$BACKEND" "$T" "$key" "$LABEL" || return 1
+  # Both transports enqueue the key and return before the pane redraws, so
+  # one immediate read can still show the picker. Read that same screen a
+  # few times before treating the dismissal as failed.
+  while [ "$tries" -lt 8 ]; do
+    screen=$(fm_backend_current_screen "$BACKEND" "$T" "$LABEL" 2>/dev/null) || return 1
+    if ! fm_composer_blocking_dialog "$screen" >/dev/null; then
+      return 0
+    fi
+    tries=$((tries + 1))
+    [ "$tries" -lt 8 ] || break
+    /bin/sleep 0.05
+  done
+  return 1
+}
+
+fm_control_recover_claude_exit_picker() {
+  local screen tasks
+  # The task list and the dismissal check share the screen the classifier
+  # used. An empty list, or a screen that is not the picker, is not success:
+  # Escape would close nothing while a listed waiter kept running.
+  # Source before the predicate: the capture below runs in a subshell.
+  fm_backend_source "$BACKEND" || return 1
+  screen=$(fm_backend_current_screen "$BACKEND" "$T" "$LABEL" 2>/dev/null) || return 1
+  fm_composer_blocking_dialog "$screen" >/dev/null || return 1
+  tasks=$(fm_composer_exit_picker_tasks "$screen")
+  [ -n "$tasks" ] || return 1
+  fm_control_stop_claude_background commands "$tasks" || return 1
+  fm_control_dismiss_claude_exit_picker
+}
+
+fm_control_reread_composer() {
+  : > "$FM_COMPOSER_DIALOG_SINK" \
+    || die "task $ID's dialog check could not be recorded"
+  composer_state=$(fm_backend_composer_state "$BACKEND" "$T" "$LABEL" 2>/dev/null) \
+    || composer_state=unknown
+}
+
+fm_control_submit_exit_command() {
+  local verdict
+  verdict=$(fm_backend_send_text_submit "$BACKEND" "$T" "$cmd" "$EXIT_RETRIES" "$POLL" 1.2 "$LABEL") \
+    || die "the exit command could not be sent to task $ID on $BACKEND"
+  [ "$verdict" != send-failed ] \
+    || die "the exit command could not be sent to task $ID on $BACKEND"
+}
+
+fm_control_require_empty_composer() {
+  case "$composer_state" in
+    empty) ;;
+    pending)
+      die "task $ID's composer visibly holds pending text; refusing to type the $cmd exit command because it would concatenate onto that text. Clear or submit the pending text, then retry '$VERB'"
+      ;;
+    *)
+      die "task $ID's composer state is '$composer_state', not proven empty; refusing to type the $cmd exit command because it could concatenate onto existing text. Clear the composer, then retry '$VERB'"
+      ;;
+  esac
+}
+
 # do_exit: stop the running agent, preserving endpoint and worktree. Prints
 # `already-stopped`, `endpoint-gone`, or `stopped`.
 do_exit() {
-  local state cmd hazard verdict composer_state cancel absence interrupt_result=not-needed dialog
+  local state cmd hazard verdict composer_state cancel absence interrupt_result=not-needed dialog claude_picker_recovered=0
   require_state_verified_backend exit
   state=$(agent_state)
   case "$state" in
@@ -702,54 +987,112 @@ do_exit() {
   if [ -n "$hazard" ] && rendered_matches "$hazard"; then
     die "task $ID shows the $HARNESS revert picker, where typed text becomes a search and Enter reverts file changes; refusing to type the $cmd exit command. Close it with $(fm_control_interrupt_key "$HARNESS"), never Enter, then retry '$VERB'"
   fi
-  : > "$FM_COMPOSER_DIALOG_SINK" \
-    || die "task $ID's dialog check could not be recorded"
-  composer_state=$(fm_backend_composer_state "$BACKEND" "$T" "$LABEL" 2>/dev/null) \
-    || composer_state=unknown
   # The classify that filled the sink ran in a subshell, so read the file
-  # rather than a function that subshell sourced.
+  # rather than a function that subshell sourced. A recognised Claude picker
+  # is recoverable from here. Any other named dialog refuses before a shell
+  # is stopped and before a key is sent.
+  fm_control_reread_composer
   if [ -s "${FM_COMPOSER_DIALOG_SINK:-}" ]; then
     dialog=$(cat "$FM_COMPOSER_DIALOG_SINK")
-    refuse_blocking_prompt "$dialog"
+    if [ "$dialog" = "Claude background-task exit picker" ] && [ "$HARNESS" = claude ]; then
+      if ! fm_control_recover_claude_exit_picker; then
+        refuse_blocking_prompt "$dialog"
+      fi
+      claude_picker_recovered=1
+      fm_control_reread_composer
+      if [ -s "${FM_COMPOSER_DIALOG_SINK:-}" ]; then
+        refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+      fi
+    else
+      refuse_blocking_prompt "$dialog"
+    fi
   fi
-  case "$composer_state" in
-    empty) ;;
-    pending)
-      die "task $ID's composer visibly holds pending text; refusing to type the $cmd exit command because it would concatenate onto that text. Clear or submit the pending text, then retry '$VERB'"
-      ;;
-    *)
-      die "task $ID's composer state is '$composer_state', not proven empty; refusing to type the $cmd exit command because it could concatenate onto existing text. Clear the composer, then retry '$VERB'"
-      ;;
-  esac
+  fm_control_require_empty_composer
+  if [ "$HARNESS" = claude ]; then
+    fm_control_stop_claude_background shells "" \
+      || die "task $ID's background shells could not be stopped before exit"
+  fi
   # The submit verdict is NOT the postcondition here: a successful exit command
   # destroys the composer the verdict is read from, so a post-exit read can
   # legitimately report anything. Only a hard transport failure aborts; the
   # authoritative proof is the agent-state wait below. The retried Enter still
   # matters, because a slash command opens a completion popup on some TUIs that
   # swallows the first Enter.
-  verdict=$(fm_backend_send_text_submit "$BACKEND" "$T" "$cmd" "$EXIT_RETRIES" "$POLL" 1.2 "$LABEL") \
-    || die "the exit command could not be sent to task $ID on $BACKEND"
-  [ "$verdict" != send-failed ] \
-    || die "the exit command could not be sent to task $ID on $BACKEND"
+  fm_control_submit_exit_command
   # The submitting Enter can open the picker. The agent is still alive, and
-  # another Enter would confirm the selected row. A dead agent may leave the
-  # same text behind; that is not a prompt still waiting.
+  # another Enter would confirm the selected row. Stop the shells that picker
+  # lists, dismiss it, and submit /exit once. A dead agent may leave the same
+  # text behind; that is not a prompt still waiting.
   if [ -s "${FM_COMPOSER_DIALOG_SINK:-}" ]; then
     dialog=$(cat "$FM_COMPOSER_DIALOG_SINK")
     if [ "$(agent_state)" != dead ]; then
-      refuse_blocking_prompt "$dialog"
+      if [ "$dialog" = "Claude background-task exit picker" ] && [ "$HARNESS" = claude ] \
+         && [ "$claude_picker_recovered" != 1 ]; then
+        if ! fm_control_recover_claude_exit_picker; then
+          refuse_blocking_prompt "$dialog"
+        fi
+        claude_picker_recovered=1
+        fm_control_reread_composer
+        if [ -s "${FM_COMPOSER_DIALOG_SINK:-}" ]; then
+          refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+        fi
+        fm_control_require_empty_composer
+        fm_control_submit_exit_command
+        if [ -s "${FM_COMPOSER_DIALOG_SINK:-}" ] && [ "$(agent_state)" != dead ]; then
+          refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+        fi
+      else
+        refuse_blocking_prompt "$dialog"
+      fi
     fi
   fi
   state=$(wait_agent_state "$EXIT_WAIT" dead) || {
     # A submit can return before any read sees the picker: a native busy
     # verdict needs no composer read, and a cleared composer can be read
-    # before the picker renders. Read the screen once more here.
-    : > "$FM_COMPOSER_DIALOG_SINK" || true
-    fm_backend_composer_state "$BACKEND" "$T" "$LABEL" >/dev/null 2>&1 || true
-    if [ -s "$FM_COMPOSER_DIALOG_SINK" ]; then
-      refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+    # before the picker renders. Read the screen once more here. The first
+    # time this exit sees the recognised picker, recover it once and wait
+    # again. A picker that is still open after that recovery refuses.
+    if [ "$(agent_state)" = dead ]; then
+      state=dead
+    else
+      : > "$FM_COMPOSER_DIALOG_SINK" || true
+      fm_backend_composer_state "$BACKEND" "$T" "$LABEL" >/dev/null 2>&1 || true
+      if [ -s "$FM_COMPOSER_DIALOG_SINK" ]; then
+        dialog=$(cat "$FM_COMPOSER_DIALOG_SINK")
+        if [ "$dialog" = "Claude background-task exit picker" ] && [ "$HARNESS" = claude ] \
+           && [ "$claude_picker_recovered" != 1 ]; then
+          if ! fm_control_recover_claude_exit_picker; then
+            refuse_blocking_prompt "$dialog"
+          fi
+          claude_picker_recovered=1
+          fm_control_reread_composer
+          if [ -s "${FM_COMPOSER_DIALOG_SINK:-}" ]; then
+            refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+          fi
+          fm_control_require_empty_composer
+          fm_control_submit_exit_command
+          if [ -s "${FM_COMPOSER_DIALOG_SINK:-}" ] && [ "$(agent_state)" != dead ]; then
+            refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+          fi
+          state=$(wait_agent_state "$EXIT_WAIT" dead) || {
+            if [ "$(agent_state)" = dead ]; then
+              state=dead
+            else
+              : > "$FM_COMPOSER_DIALOG_SINK" || true
+              fm_backend_composer_state "$BACKEND" "$T" "$LABEL" >/dev/null 2>&1 || true
+              if [ -s "$FM_COMPOSER_DIALOG_SINK" ]; then
+                refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+              fi
+              die "exit-delivered $ID interrupt=$interrupt_result exit-command=delivered agent-state=$state exit=unconfirmed; the agent did not stop within ${EXIT_WAIT}s"
+            fi
+          }
+        else
+          refuse_blocking_prompt "$dialog"
+        fi
+      else
+        die "exit-delivered $ID interrupt=$interrupt_result exit-command=delivered agent-state=$state exit=unconfirmed; the agent did not stop within ${EXIT_WAIT}s"
+      fi
     fi
-    die "exit-delivered $ID interrupt=$interrupt_result exit-command=delivered agent-state=$state exit=unconfirmed; the agent did not stop within ${EXIT_WAIT}s"
   }
   # The incarnation is over: retire its busy wiring so no stale record or
   # orphaned generation survives the agent that produced it.
@@ -784,6 +1127,7 @@ PRIOR_EFFORT=
 TARGET_HARNESS=$HARNESS
 TARGET_MODEL=
 TARGET_EFFORT=
+TARGET_ROUTE_FALLBACK=0
 
 journal_write() {  # <phase> [extra-line]...
   local phase=$1
@@ -951,6 +1295,45 @@ resolve_relaunch_profile() {
   else
     TARGET_EFFORT=default
   fi
+  # docs/configuration.md "Crew dispatch profiles" owns the pair rules. Resolve
+  # here so the journal and launch share one pre-stop decision; the control
+  # handoff prevents spawn from selecting again against a changed file.
+  if [ "$KIND" != secondmate ]; then
+    local dispatch_pair dispatch_model dispatch_effort route
+    local fallback_model='' fallback_effort=''
+    if [ "$TARGET_HARNESS" = "$PRIOR_RECORDED_HARNESS" ] \
+        && [ "$(fm_meta_get "$META" route_fallback)" = 1 ]; then
+      fallback_model=$PRIOR_MODEL
+      fallback_effort=$PRIOR_EFFORT
+      if [ "$TARGET_MODEL" = "$fallback_model" ] && [ "$TARGET_EFFORT" = "$fallback_effort" ]; then
+        TARGET_ROUTE_FALLBACK=1
+      fi
+    fi
+    dispatch_pair=$(fm_dispatch_relaunch_pair \
+      "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
+      "$ID" "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" \
+      "$fallback_model" "$fallback_effort") || return 1
+    dispatch_model=${dispatch_pair%%$'\n'*}
+    dispatch_effort=${dispatch_pair#*$'\n'}
+    dispatch_effort=${dispatch_effort%%$'\n'*}
+    [ -z "$dispatch_model" ] || TARGET_MODEL=$dispatch_model
+    [ -z "$dispatch_effort" ] || TARGET_EFFORT=$dispatch_effort
+    case "$TARGET_EFFORT" in
+      ''|default|low|medium|high|xhigh|max|ultra) ;;
+      *) die "dispatch profile for $TARGET_HARNESS has invalid effort '$TARGET_EFFORT'; expected default, low, medium, high, xhigh, max, ultra" ;;
+    esac
+    # Then the launch route bin/fm-cursor-guard.sh owns, before the stop, so
+    # the record, journal, and outcome name the harness that is actually
+    # launched; fm-spawn takes this choice as final. A route that changes the
+    # harness is exempt from the pair check, as it is on a fresh spawn.
+    route=$(FM_STATE_OVERRIDE="$STATE" "$SCRIPT_DIR/fm-cursor-guard.sh" route "$ID" "$TARGET_HARNESS" "$PRIOR_HARNESS") \
+      || die "the launch route for $ID on '$TARGET_HARNESS' could not be read (bin/fm-cursor-guard.sh); nothing was stopped"
+    if [ "${route%% *}" != "$TARGET_HARNESS" ]; then
+      echo "$TARGET_HARNESS fallback: relaunching $ID on the ${route%% *} harness (default model xhigh): ${route#* }" >&2
+      TARGET_HARNESS=${route%% *} TARGET_MODEL=default TARGET_EFFORT=xhigh
+      TARGET_ROUTE_FALLBACK=1
+    fi
+  fi
   if [ "$TARGET_EFFORT" = ultra ]; then
     "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1
   fi
@@ -1069,7 +1452,7 @@ record_note() {
 }
 
 do_relaunch() {
-  local exit_result state note_line
+  local exit_result state note_line project live_session_deferral
   local -a spawn_args
 
   require_state_verified_backend relaunch
@@ -1106,6 +1489,13 @@ do_relaunch() {
   record_note
   journal_write noted "${CHECKPOINT_LINES[@]}" "$note_line"
 
+  if [ "$KIND" != secondmate ]; then
+    project=$(fm_meta_get "$META" project)
+    if ! live_session_deferral=$(fm_live_session_admit "$project" "$(basename "$project")"); then
+      echo "deferred: $live_session_deferral; task $ID was not relaunched and its agent, instructions, and task record are unchanged - relaunch it again once the check reads clear" >&2
+      exit 75
+    fi
+  fi
   journal_write stopping "${CHECKPOINT_LINES[@]}" "$note_line"
   exit_result=$(do_exit)
   journal_write exited "${CHECKPOINT_LINES[@]}" "$note_line" "exit_result=$exit_result"
@@ -1114,10 +1504,10 @@ do_relaunch() {
   # per-task harness wiring before arming the new one, so nothing to do here.
   RELAUNCH_TX="${BASHPID:-$$}.$(date -u +%Y%m%dT%H%M%SZ).$RANDOM"
   journal_write launching "${CHECKPOINT_LINES[@]}" "$note_line" "relaunch_tx=$RELAUNCH_TX"
-  spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS")
-  [ "$TARGET_MODEL" = default ] || spawn_args+=(--model "$TARGET_MODEL")
-  [ "$TARGET_EFFORT" = default ] || spawn_args+=(--effort "$TARGET_EFFORT")
+  spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS"
+    --model "$TARGET_MODEL" --effort "$TARGET_EFFORT")
   if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
+      FM_CONTROL_ROUTE_FALLBACK="$TARGET_ROUTE_FALLBACK" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then
     RELAUNCH_META_PUBLISHED=1
     # $T was resolved from the record before the launch. When the recorded

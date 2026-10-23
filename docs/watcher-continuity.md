@@ -5,7 +5,8 @@ Read it when debugging a supervision gap or changing a harness's re-arm path.
 
 The watcher remains intentionally one-shot: one actionable reason closes one watcher cycle.
 Must-work continuity now lives above that process boundary instead of depending on the model remembering a re-arm step.
-In this document, an arm is one run of `bin/fm-watch-arm.sh`, which starts a watcher cycle or attaches to one and returns the cycle's reason.
+In this document, an arm is one run of `bin/fm-watch-arm.sh`, which starts a watcher cycle or attaches to one.
+An ordinary arm returns the cycle's reason; a [covering successor](#claude-handling-successor) can continue across actionable closes during main's turn.
 
 | Topic | Section |
 | --- | --- |
@@ -169,7 +170,7 @@ After an actionable foreground close, including an attached peer cycle that ende
 
 1. Launches `bin/fm-watch-arm.sh` with the closed arm's pid as `FM_WATCH_PREDECESSOR_ARM_PID`.
 2. Waits for that arm's one status line.
-3. Only then exits 2 with the wake.
+3. Records the coverage handover through `--cover-handoff`, then exits 2 with the wake.
 
 A child of the hook cannot outlive its exit-2 rewake.
 So that successor is the one deliberate detached launch in the continuity path:
@@ -180,7 +181,11 @@ So that successor is the one deliberate detached launch in the continuity path:
 
 This is the shape `bin/fm-startup-network.sh` uses, and [`verification/supervision.md`](verification/supervision.md#detached-session-open-workers-survive-the-hook) verified that it survives the hook.
 
-The next Stop's foreground arm attaches to that live cycle.
+That successor is a covering one, as is the successor the supervision host leaves for main: after its owner hands over responsibility or exits, a fleet event that closes its watcher starts the next handling-successor watcher in the same arm, so the home stays covered for the rest of main's turn while the wake waits in the durable queue.
+The handover and the arm's decision to chain or retire share a home lock, so a transfer cannot succeed after the arm commits to exiting.
+When a transfer is rejected, the owner retires that candidate and starts a fresh covering successor within a confirmation budget before handing control to main.
+The handover is recorded before the owner detaches, so coverage continues while that owner's exit cleanup waits on a lease lock.
+The next Stop's foreground arm reclaims the released covering arm; the [arm header](../bin/fm-watch-arm.sh) owns `FM_WATCH_COVER`, coverage for attached watchers, and whether reclamation takes over an owned watcher or follows a healthy peer.
 A successor that confirms no live watcher adds one line to the rewake banner and never withholds the wake.
 The next Stop then re-arms as before.
 
@@ -222,6 +227,11 @@ The first recovery marks that generation announced, and later empty-queue arms l
 A non-successor watcher start checks the durable queue and recovery marker under their locks.
 If an announced-but-unacknowledged episode has an empty queue, the arm leaves that generation announced, making repeated empty-queue arms idempotent while a long-poll source is merely alive.
 If a durable row arrived after the announcement, the arm opens a fresh pending downtime generation so buried work still resurfaces once.
+A recovery announcement is presented to main only when the durable queue holds a row only main can do (`resurface_row_main_only` in `bin/fm-watch.sh`: a check row, a needs-decision signal, a decision-owned signal or stale row, or a row that cannot be classified).
+An empty queue is absorbed in the poll loop instead, and so is a queue holding only branch-owned or live-PM-owned rows on the away-mode daemon's home, because the daemon reads those rows from the queue itself; the episode stays announced.
+On a supervision-host home such a queue closes the watcher on its oldest row's own reason instead, passing over rows a live PM owns, because the host starts an engine turn only on a watcher close and that turn's drain presents every row.
+That gate applies only where an alternate supervisor exists - the away-mode daemon or a home running the supervision host; on a plain home main owns every row, and the resurface presents them exactly as it always has.
+The marker alone never manufactures a main wake - that is what kept a covering watcher's handling turn from waking main to drain rows it had already watched.
 A Codex foreground checkpoint skips the announced-episode reopen transition, so an already-announced generation stays announced while the checkpoint continues its bounded supervision.
 Its ordinary arm check still announces a never-announced generation, including one made pending by a durable queue append during the checkpoint.
 
@@ -250,7 +260,7 @@ It is a non-fatal result that names its own remedy: re-drain, then acknowledge t
 
 The acknowledgement retires the marker only when no rows remain after sequence-bound consumption.
 A concurrently appended wake has a higher sequence, remains queued, and keeps the episode pending for presentation.
-Consequently, a watcher close during handling republishes the same generation as pending and forces one recovery turn even when no queue row remains, while the outstanding generation-bound acknowledgement stays valid.
+Consequently, a watcher close during handling republishes the same generation as pending and presents one recovery turn when the queue then holds a row only main can do (an empty queue is absorbed under the announcement rule above), while the outstanding generation-bound acknowledgement stays valid.
 An acknowledged episode does not freeze the generation, because the next downtime after it opens an episode of its own.
 
 ## Per-actor acknowledgement
@@ -366,6 +376,8 @@ Branch acknowledgement retiring the check-row receipts of exactly its granted se
 
 ### How an arm resolves a close
 
+The table describes an ordinary arm; [covering successors](#claude-handling-successor) continue across actionable closes after handover.
+
 | Child return | What the arm does |
 | --- | --- |
 | Actionable output | Returns that reason normally. |
@@ -456,6 +468,7 @@ They also prove that a legacy or handoff-phase watcher marker from an absent rep
 - The already-acknowledged confirmation no-op for a matching generation, with its mismatched-generation, dead-pid, and lock-mismatch rejections preserved.
 - The manual-restart generation churn that makes a confirmation for the churned generation report a mismatch, which an arm check without a reopen leaves in place.
 - A take-over that stays quiet after a confirmed TERM, still surfaces queued work and self-exit downtime, and attaches without stopping a cycle the named arm does not own.
+- A covering successor left for main that keeps one live watcher with a fresh beat through a mid-turn event, hands over to the turn-end arm or a take-over with exactly one watcher left, and closes on its wake as before while its owner still runs.
 - The disposable-checkout arm refusal.
 - The home-gone and state-gone watcher exits.
 - The test reaper that stops a watcher armed for a temporary home.

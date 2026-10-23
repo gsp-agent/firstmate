@@ -125,45 +125,43 @@ test_proof_sha_makes_that_path_ok_and_exits_0() {
   git -C "$repo" branch upstream
   printf 'custom\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "add notes"
+  fixture_commit "$repo" "add notes (#7)"
   sha=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$sha" > "$repo/proof.txt"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 0 "$CHECK_RC" "a proven file exits 0"
   assert_equals "behind: 0
 ahead: 1
 path-ok: notes.txt
-keep: $sha add notes" "$CHECK_OUT" "a proof sha marks the path and the commit"
-  pass "a proof sha makes that path ok and the check exits 0"
+keep: $sha add notes (#7)" "$CHECK_OUT" "a proof PR marks the path and the commit"
+  pass "a proof PR makes that path ok and the check exits 0"
 }
 
-test_manifest_accepts_its_own_commit_without_accepting_later_edits() {
-  local repo parent kept later
-  repo=$(fm_test_tmproot drift-self-proof)
+test_squash_merged_branch_carries_its_own_manifest_line() {
+  local repo sha
+  repo=$(fm_test_tmproot drift-squash-proof)
   fm_git_init_commit "$repo"
   git -C "$repo" branch upstream
-  parent=$(git -C "$repo" rev-parse HEAD)
-  mkdir -p "$repo/bin"
-  printf 'guard contract\n' > "$repo/bin/fm-drift-nightly.sh"
-  printf 'after: %s\n' "$parent" > "$repo/drift-proof.txt"
-  git -C "$repo" add bin/fm-drift-nightly.sh drift-proof.txt
-  fixture_commit "$repo" "finalized measured patches and proof"
-  kept=$(git -C "$repo" rev-parse HEAD)
-  run_check "$repo" --upstream upstream
-  expect_code 0 "$CHECK_RC" "the shipped manifest accepts its finalized patch: $CHECK_ERR"
-  assert_contains "$CHECK_OUT" 'path-ok: drift-proof.txt' "the proof file itself matches the accepted patch"
-  assert_contains "$CHECK_OUT" "keep: $kept finalized measured patches and proof" "the fixed parent resolves to the acceptance commit"
-  printf 'unproven guard edit\n' >> "$repo/bin/fm-drift-nightly.sh"
-  printf '# unproven proof edit\n' >> "$repo/drift-proof.txt"
-  git -C "$repo" add bin/fm-drift-nightly.sh drift-proof.txt
+  git -C "$repo" switch -q -c fm/feature
+  printf 'custom\n' > "$repo/notes.txt"
+  printf 'pr: 7\n' > "$repo/drift-proof.txt"
+  git -C "$repo" add notes.txt drift-proof.txt
+  fixture_commit "$repo" "add notes"
+  git -C "$repo" switch -q main
+  git -C "$repo" merge -q --squash fm/feature
+  fixture_commit "$repo" "add notes (#7)"
+  sha=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 0 "$CHECK_RC" "a squash carrying its own manifest line exits 0: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" 'path-ok: notes.txt' "the squashed path is accepted"
+  assert_contains "$CHECK_OUT" "keep: $sha add notes (#7)" "the squash commit is kept by its PR number"
+  printf 'unproven\n' >> "$repo/notes.txt"
+  git -C "$repo" add notes.txt
   fixture_commit "$repo" "later unproven edits"
-  later=$(git -C "$repo" rev-parse HEAD)
-  run_check "$repo" --upstream upstream
-  expect_code 1 "$CHECK_RC" "the same manifest rejects later guard and proof edits"
-  assert_contains "$CHECK_OUT" 'path-drift: bin/fm-drift-nightly.sh' "the guard has no exemption"
-  assert_contains "$CHECK_OUT" 'path-drift: drift-proof.txt' "the manifest has no exemption"
-  assert_contains "$CHECK_OUT" "unproven: $later later unproven edits" "acceptance stays pinned after another commit"
-  pass "a shipped proof accepts its own patch and rejects later edits"
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 1 "$CHECK_RC" "the same manifest rejects later edits"
+  assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "later edits have no exemption"
+  pass "a squash-merged branch carries its own manifest line and later edits fail"
 }
 
 test_default_proof_comes_from_the_committed_fork_tree() {
@@ -173,73 +171,27 @@ test_default_proof_comes_from_the_committed_fork_tree() {
   git -C "$repo" branch upstream
   printf 'custom\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "add notes"
+  fixture_commit "$repo" "add notes (#7)"
   sha=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$sha" > "$repo/drift-proof.txt"
+  printf 'pr: 7\n' > "$repo/drift-proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream
-  expect_code 1 "$CHECK_RC" "an untracked drift-proof.txt naming an unproven commit exits 1: $CHECK_ERR"
+  expect_code 1 "$CHECK_RC" "an untracked drift-proof.txt naming a proven PR exits 1: $CHECK_ERR"
   assert_equals "behind: 0
 ahead: 1
 path-drift: notes.txt
-unproven: $sha add notes" "$CHECK_OUT" "an untracked drift-proof.txt proves nothing"
-  printf 'after: %s\n' "$sha" > "$repo/drift-proof.txt"
+unproven: $sha add notes (#7)
+error: missing manifest entry for PR 7" "$CHECK_OUT" "an untracked drift-proof.txt proves nothing"
+  printf '# no proof\n' > "$repo/drift-proof.txt"
   git -C "$repo" add drift-proof.txt
-  fixture_commit "$repo" "add proof"
+  fixture_commit "$repo" "add empty proof (#8)"
   proof=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$sha" >> "$repo/drift-proof.txt"
+  printf 'pr: 7\npr: 8\n' >> "$repo/drift-proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream
-  expect_code 1 "$CHECK_RC" "an uncommitted edit to drift-proof.txt naming an unproven commit exits 1: $CHECK_ERR"
-  assert_equals "behind: 0
-ahead: 2
-path-ok: drift-proof.txt
-path-drift: notes.txt
-keep: $proof add proof
-unproven: $sha add notes" "$CHECK_OUT" "only the committed drift-proof.txt proves commits"
+  expect_code 1 "$CHECK_RC" "an uncommitted edit to drift-proof.txt exits 1: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "only the committed drift-proof.txt proves commits"
+  assert_contains "$CHECK_OUT" "unproven: $sha add notes (#7)" "the working-tree proof line is never read"
+  assert_contains "$CHECK_OUT" "unproven: $proof add empty proof (#8)" "the committed empty proof proves nothing"
   pass "the default proof is drift-proof.txt in the committed fork tree, never the working tree"
-}
-
-test_parent_proof_does_not_accept_inherited_unproven_changes() {
-  local repo parent
-  repo=$(fm_test_tmproot drift-parent-inherited)
-  fm_git_init_commit "$repo"
-  git -C "$repo" branch upstream
-  printf 'unproven\n' > "$repo/unproven.txt"
-  git -C "$repo" add unproven.txt
-  fixture_commit "$repo" "unproven earlier change"
-  parent=$(git -C "$repo" rev-parse HEAD)
-  printf 'after: %s\n' "$parent" > "$repo/drift-proof.txt"
-  git -C "$repo" add drift-proof.txt
-  fixture_commit "$repo" "accepted manifest patch"
-  run_check "$repo" --upstream upstream
-  expect_code 1 "$CHECK_RC" "parent proof accepts only the child patch: $CHECK_ERR"
-  assert_contains "$CHECK_OUT" 'path-ok: drift-proof.txt' "the accepted manifest patch is replayed"
-  assert_contains "$CHECK_OUT" 'path-drift: unproven.txt' "unproven parent content remains drift"
-  pass "parent proof does not approve inherited unproven content"
-}
-
-test_parent_proof_requires_one_direct_child() {
-  local repo parent
-  repo=$(fm_test_tmproot drift-parent-ambiguity)
-  fm_git_init_commit "$repo"
-  git -C "$repo" branch upstream
-  parent=$(git -C "$repo" rev-parse HEAD)
-  printf 'after: %s\n' "$parent" > "$repo/proof.txt"
-  run_check "$repo" --upstream upstream --proof "$repo/proof.txt"
-  expect_code 2 "$CHECK_RC" "an acceptance parent with no child is an error"
-  assert_contains "$CHECK_ERR" 'proof parent has no direct child:' "missing acceptance is actionable"
-  git -C "$repo" switch -q -c side
-  printf 'side\n' > "$repo/side.txt"
-  git -C "$repo" add side.txt
-  fixture_commit "$repo" "side child"
-  git -C "$repo" switch -q main
-  printf 'main\n' > "$repo/main.txt"
-  git -C "$repo" add main.txt
-  fixture_commit "$repo" "main child"
-  git -C "$repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' merge --no-ff -qm "merge both children" side
-  run_check "$repo" --upstream upstream --proof "$repo/proof.txt"
-  expect_code 2 "$CHECK_RC" "two reachable children cannot share an acceptance parent"
-  assert_contains "$CHECK_ERR" 'proof parent has multiple direct children:' "ambiguous acceptance fails closed"
-  pass "parent proof refuses missing or ambiguous acceptance commits"
 }
 
 test_guard_files_have_no_exemptions() {
@@ -253,7 +205,7 @@ test_guard_files_have_no_exemptions() {
   printf 'fixture docs\n' > "$repo/docs/scripts.md"
   printf '# fixture proof\n' > "$repo/drift-proof.txt"
   git -C "$repo" add bin/fm-drift-nightly.sh tests/fm-drift-nightly.test.sh docs/scripts.md drift-proof.txt
-  fixture_commit "$repo" "add guard files"
+  fixture_commit "$repo" "add guard files (#7)"
   sha=$(git -C "$repo" rev-parse HEAD)
   run_check "$repo" --fork HEAD --upstream upstream
   expect_code 1 "$CHECK_RC" "unproven guard files exit 1"
@@ -263,8 +215,9 @@ path-drift: bin/fm-drift-nightly.sh
 path-drift: docs/scripts.md
 path-drift: drift-proof.txt
 path-drift: tests/fm-drift-nightly.test.sh
-unproven: $sha add guard files" "$CHECK_OUT" "every unproven guard file drifts"
-  printf '%s\n' "$sha" > "$repo/proof.txt"
+unproven: $sha add guard files (#7)
+error: missing manifest entry for PR 7" "$CHECK_OUT" "every unproven guard file drifts"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 0 "$CHECK_RC" "exact proven guard patches exit 0: $CHECK_ERR"
   printf 'later edit\n' >> "$repo/bin/fm-drift-nightly.sh"
@@ -289,9 +242,9 @@ test_unproven_edit_to_proven_file_exits_1() {
   git -C "$repo" branch upstream
   printf 'custom\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "proven notes"
+  fixture_commit "$repo" "proven notes (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   printf 'unproven\n' >> "$repo/notes.txt"
   git -C "$repo" add notes.txt
   fixture_commit "$repo" "unproven edit"
@@ -302,7 +255,7 @@ test_unproven_edit_to_proven_file_exits_1() {
 ahead: 2
 path-drift: notes.txt
 unproven: $later unproven edit
-keep: $kept proven notes" "$CHECK_OUT" "the later edit cannot borrow the earlier proof"
+keep: $kept proven notes (#7)" "$CHECK_OUT" "the later edit cannot borrow the earlier proof"
   pass "an unproven edit to an already-proven file fails"
 }
 
@@ -317,9 +270,9 @@ test_unproven_deletion_cannot_rename_into_proven_file() {
   git -C "$repo" config diff.renames true
   cp "$repo/original.txt" "$repo/copy.txt"
   git -C "$repo" add copy.txt
-  fixture_commit "$repo" "proven copy"
+  fixture_commit "$repo" "proven copy (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   git -C "$repo" rm -q original.txt
   fixture_commit "$repo" "unproven deletion"
   later=$(git -C "$repo" rev-parse HEAD)
@@ -338,9 +291,9 @@ test_moving_ref_keeps_one_snapshot() {
   git -C "$repo" branch upstream
   printf 'proven\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "proven notes"
+  fixture_commit "$repo" "proven notes (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   git -C "$repo" switch -q -c future
   printf 'unproven\n' > "$repo/later.txt"
   git -C "$repo" add later.txt
@@ -379,7 +332,7 @@ EOF
   assert_equals "behind: 0
 ahead: 1
 path-ok: notes.txt
-keep: $kept proven notes" "$CHECK_OUT" "counts, paths, and commit reporting use the captured $name snapshot"
+keep: $kept proven notes (#7)" "$CHECK_OUT" "counts, paths, and commit reporting use the captured $name snapshot"
   pass "a moving $name ref cannot change the captured check or its report"
 }
 
@@ -393,9 +346,9 @@ test_snapshot_includes_fetched_upstream() {
   git -C "$repo" remote rename origin kunchenguid || fail "cannot configure the fetch fixture remote"
   printf 'proven\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "proven notes"
+  fixture_commit "$repo" "proven notes (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   printf 'upstream\n' > "$upstream_repo/upstream.txt"
   git -C "$upstream_repo" add upstream.txt
   fixture_commit "$upstream_repo" "new upstream commit"
@@ -406,25 +359,23 @@ test_snapshot_includes_fetched_upstream() {
   assert_equals "behind: 1
 ahead: 1
 path-ok: notes.txt
-keep: $kept proven notes" "$CHECK_OUT" "upstream is captured after the real fetch updates it"
+keep: $kept proven notes (#7)" "$CHECK_OUT" "upstream is captured after the real fetch updates it"
   assert_equals "$(git -C "$upstream_repo" rev-parse HEAD)" "$(git -C "$repo" rev-parse kunchenguid/main)" "the real fetch advanced the upstream ref"
   pass "the captured upstream includes updates from the completed fetch"
 }
 
 test_proven_patches_are_replayed_in_ancestry_order() {
-  local repo first second
+  local repo
   repo=$(fm_test_tmproot drift-ordered-proof)
   fm_git_init_commit "$repo"
   git -C "$repo" branch upstream
   printf 'first\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "first patch"
-  first=$(git -C "$repo" rev-parse HEAD)
+  fixture_commit "$repo" "first patch (#1)"
   printf 'second\n' >> "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "second patch"
-  second=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n%s\n' "$second" "$first" > "$repo/proof.txt"
+  fixture_commit "$repo" "second patch (#2)"
+  printf 'pr: 2\npr: 1\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 0 "$CHECK_RC" "dependent proven patches replay in ancestry order: $CHECK_ERR"
   assert_contains "$CHECK_OUT" 'path-ok: notes.txt' "the cumulative proven patch is accepted"
@@ -451,9 +402,9 @@ test_proven_commit_does_not_accept_earlier_unproven_content() {
     printf 'proven last line\n'
   } > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "proven last line"
+  fixture_commit "$repo" "proven last line (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 1 "$CHECK_RC" "a proven patch cannot accept unrelated inherited content: $CHECK_ERR"
   assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "earlier unproven content is still drift"
@@ -496,9 +447,9 @@ test_proven_change_can_also_cut_unproven_changes() {
   git -C "$repo" rm -q extra.txt
   printf 'proven\n' > "$repo/kept.txt"
   git -C "$repo" add notes.txt kept.txt
-  fixture_commit "$repo" "cut unproven changes and add proven patch"
+  fixture_commit "$repo" "cut unproven changes and add proven patch (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 0 "$CHECK_RC" "a proven patch with already-cut changes replays: $CHECK_ERR"
   assert_contains "$CHECK_OUT" 'path-ok: kept.txt' "the retained measured patch is accepted"
@@ -513,9 +464,9 @@ test_missing_proven_patch_is_drift() {
   git -C "$repo" branch upstream
   printf 'custom\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "proven notes"
+  fixture_commit "$repo" "proven notes (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   git -C "$repo" rm -q notes.txt
   fixture_commit "$repo" "remove proven notes"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
@@ -531,9 +482,9 @@ test_unproven_mode_change_is_drift() {
   git -C "$repo" branch upstream
   printf 'custom\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "proven notes"
+  fixture_commit "$repo" "proven notes (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n' "$kept" > "$repo/proof.txt"
+  printf 'pr: 7\n' > "$repo/proof.txt"
   chmod +x "$repo/notes.txt"
   git -C "$repo" add notes.txt
   fixture_commit "$repo" "unproven executable mode"
@@ -550,75 +501,156 @@ test_pending_commit_is_accepted_and_printed_with_its_bead() {
   git -C "$repo" branch upstream
   printf 'custom\n' > "$repo/notes.txt"
   git -C "$repo" add notes.txt
-  fixture_commit "$repo" "add notes"
+  fixture_commit "$repo" "add notes (#7)"
   sha=$(git -C "$repo" rev-parse HEAD)
-  printf 'pending: %s bead-7\n' "$sha" > "$repo/proof.txt"
+  printf 'pending-pr: 7 bead-7\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 0 "$CHECK_RC" "a pending commit is accepted: $CHECK_ERR"
   assert_equals "behind: 0
 ahead: 1
 path-ok: notes.txt
-pending: $sha bead-7 add notes" "$CHECK_OUT" "a pending commit is printed with its bead, not as keep"
-  printf 'pending: %s\n' "$sha" > "$repo/proof.txt"
+pending: $sha bead-7 add notes (#7)" "$CHECK_OUT" "a pending commit is printed with its bead, not as keep"
+  printf 'pending-pr: 7\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 2 "$CHECK_RC" "a pending line without a bead exits 2"
-  assert_contains "$CHECK_ERR" "pending line is not '<full sha> <bead>'" "a bead-less pending line is an actionable error"
+  assert_contains "$CHECK_ERR" "pending-pr line is not '<number> <bead>'" "a bead-less pending line is an actionable error"
   pass "a pending commit is accepted, printed with its bead on every run, and must name its bead"
 }
 
-test_accepted_merge_carries_only_proven_or_pending_commits() {
-  local repo kept proven pending merge
-  repo=$(fm_test_tmproot drift-carried)
+test_merge_merged_branch_carries_its_own_pending_line() {
+  local repo merge carried
+  repo=$(fm_test_tmproot drift-merge-pending)
   fm_git_init_commit "$repo"
-  printf 'upstream\n' > "$repo/shared.txt"
-  git -C "$repo" add shared.txt
-  fixture_commit "$repo" "upstream shared"
   git -C "$repo" branch upstream
-  git -C "$repo" branch side
-  printf 'fork\n' > "$repo/shared.txt"
-  git -C "$repo" add shared.txt
-  fixture_commit "$repo" "fork shared"
-  kept=$(git -C "$repo" rev-parse HEAD)
-  git -C "$repo" switch -q side
-  printf 'side\n' > "$repo/shared.txt"
-  git -C "$repo" add shared.txt
-  fixture_commit "$repo" "side shared"
-  proven=$(git -C "$repo" rev-parse HEAD)
-  printf 'side\n' > "$repo/side.txt"
-  git -C "$repo" add side.txt
-  fixture_commit "$repo" "side file"
-  pending=$(git -C "$repo" rev-parse HEAD)
+  git -C "$repo" switch -q -c fm/feature
+  printf 'custom\n' > "$repo/notes.txt"
+  printf 'pending-pr: 8 .agent-config-dtjsb\n' > "$repo/drift-proof.txt"
+  git -C "$repo" add notes.txt drift-proof.txt
+  fixture_commit "$repo" "add notes"
+  carried=$(git -C "$repo" rev-parse HEAD)
   git -C "$repo" switch -q main
-  git -C "$repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' merge -q --no-ff --no-commit side >/dev/null 2>&1 || true
-  printf 'fork\n' > "$repo/shared.txt"
-  git -C "$repo" add shared.txt side.txt
-  fixture_commit "$repo" "merge side keeping the fork's shared"
+  git -C "$repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' merge -q --no-ff -m "Merge pull request #8 from gsp-agent/fm/feature" fm/feature
   merge=$(git -C "$repo" rev-parse HEAD)
-  printf '%s\n%s\n%s\npending: %s bead-9\n' "$kept" "$merge" "$proven" "$pending" > "$repo/proof.txt"
-  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
-  expect_code 0 "$CHECK_RC" "a merge carrying proven and pending commits replays only its own patch: $CHECK_ERR"
-  assert_contains "$CHECK_OUT" 'path-ok: shared.txt' "the merge's resolution is accepted without replaying the carried patch"
-  assert_contains "$CHECK_OUT" 'path-ok: side.txt' "the carried pending change is accepted through the merge"
-  assert_contains "$CHECK_OUT" "pending: $pending bead-9 side file" "the carried pending commit is printed with its bead"
-  assert_contains "$CHECK_OUT" "keep: $proven side shared" "the carried proven commit is a keep"
-  printf '%s\n%s\n%s\n' "$kept" "$merge" "$proven" > "$repo/proof.txt"
-  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
-  expect_code 1 "$CHECK_RC" "a carried commit that is neither proven nor pending exits 1"
-  assert_contains "$CHECK_OUT" "carried-unproven: $pending side file" "the unlisted carried commit is named"
-  assert_not_contains "$CHECK_OUT" 'path-drift:' "the failure comes from the unlisted commit, not from its content"
-  pass "an accepted merge carries its commits only when each is proven or pending"
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 0 "$CHECK_RC" "a merge carrying its own pending line exits 0: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" "pending: $merge .agent-config-dtjsb Merge pull request #8 from gsp-agent/fm/feature" "the merge is pending by its PR number"
+  assert_contains "$CHECK_OUT" "pending: $carried .agent-config-dtjsb add notes" "the carried commit inherits the carrying PR's class"
+  pass "a merge-merged branch carries its own pending line and its carried commits inherit it"
 }
 
-test_unknown_proof_commit_is_an_error() {
-  local repo
-  repo=$(fm_test_tmproot drift-unknown-proof)
+test_forgotten_manifest_line_is_path_drift_and_unproven() {
+  local repo sha
+  repo=$(fm_test_tmproot drift-forgotten-line)
   fm_git_init_commit "$repo"
   git -C "$repo" branch upstream
-  printf '0000000000000000000000000000000000000000\n' > "$repo/proof.txt"
+  git -C "$repo" switch -q -c fm/feature
+  printf 'custom\n' > "$repo/notes.txt"
+  printf '# no line for this PR\n' > "$repo/drift-proof.txt"
+  git -C "$repo" add notes.txt drift-proof.txt
+  fixture_commit "$repo" "add notes"
+  git -C "$repo" switch -q main
+  git -C "$repo" merge -q --squash fm/feature
+  fixture_commit "$repo" "add notes (#7)"
+  sha=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 1 "$CHECK_RC" "a PR that forgets its manifest line exits 1"
+  assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "the forgotten PR's path drifts"
+  assert_contains "$CHECK_OUT" "unproven: $sha add notes (#7)" "the forgotten PR is unproven"
+  pass "a forgotten manifest line is path-drift and unproven"
+}
+
+test_wrong_proof_pr_number_stays_red_and_is_named() {
+  local repo sha
+  repo=$(fm_test_tmproot drift-wrongnum-proof)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'custom\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "add notes (#7)"
+  sha=$(git -C "$repo" rev-parse HEAD)
+  printf 'pr: 99\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
-  expect_code 2 "$CHECK_RC" "unknown proof commits exit 2"
-  assert_contains "$CHECK_ERR" 'proof commit not found:' "unknown proof is an actionable error"
-  pass "unknown proof commits cannot silently authorize changes"
+  expect_code 1 "$CHECK_RC" "a wrong PR number exits 1: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: $sha add notes (#7)
+error: missing manifest entry for PR 7
+unmatched: 99" "$CHECK_OUT" "the wrong number authorizes nothing and is named unmatched"
+  pass "a wrong proof PR number authorizes nothing, stays red, and is named unmatched"
+}
+
+test_reverted_numbered_pr_without_manifest_stays_red() {
+  local kind root repo entry
+  for kind in squash merge; do
+    root=$(fm_test_tmproot "drift-reverted-$kind")
+    nightly_fixture "$root"
+    repo=$root/repo
+    git -C "$repo" switch -q -c fm/feature
+    printf 'custom\n' > "$repo/notes.txt"
+    git -C "$repo" add notes.txt
+    fixture_commit "$repo" "add notes (#17)"
+    git -C "$repo" switch -q main
+    if [ "$kind" = squash ]; then
+      git -C "$repo" merge -q --squash fm/feature
+      fixture_commit "$repo" "add notes (#7)"
+    else
+      git -C "$repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' merge -q --no-ff -m "Merge pull request #7 from gsp-agent/fm/feature" fm/feature
+    fi
+    git -C "$repo" rm -q notes.txt
+    printf 'pr: 8\n' > "$repo/drift-proof.txt"
+    git -C "$repo" add drift-proof.txt
+    fixture_commit "$repo" "cut notes (#8)"
+    run_check "$repo" --upstream kunchenguid/main
+    expect_code 1 "$CHECK_RC" "a forgotten $kind PR stays red after a listed PR reverts it: $CHECK_ERR"
+    assert_not_contains "$CHECK_OUT" 'path-drift:' "the $kind replay matches the fork tree"
+    assert_contains "$CHECK_OUT" 'error: missing manifest entry for PR 7' "the forgotten $kind PR is named"
+    assert_not_contains "$CHECK_OUT" 'error: missing manifest entry for PR 17' "a carried PR is not a first-parent PR"
+    run_nightly "$root"
+    expect_code 1 "$NIGHTLY_RC" "the nightly stays red for the forgotten $kind PR"
+    assert_equals 1 "$(note_count "$root/home")" "the forgotten $kind PR sends one note"
+    assert_contains "$(note_body "$root/home")" 'error: missing manifest entry for PR 7' "the nightly note names the forgotten $kind PR"
+    for entry in 'pr: 7' 'pending-pr: 7 bead-7'; do
+      printf 'pr: 8\n%s\n' "$entry" > "$repo/proof.txt"
+      run_check "$repo" --upstream kunchenguid/main --proof "$repo/proof.txt"
+      expect_code 0 "$CHECK_RC" "the reverted $kind PR accepts $entry: $CHECK_ERR"
+      assert_not_contains "$CHECK_OUT" 'error:' "a listed $kind PR has no missing entry"
+    done
+  done
+  pass "reverted numbered squash and merge PRs require manifest entries and send nightly notes"
+}
+
+test_open_pr_own_line_is_unmatched_until_its_squash_lands() {
+  local repo branch squash
+  repo=$(fm_test_tmproot drift-open-pr)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  git -C "$repo" switch -q -c fm/feature
+  printf 'custom\n' > "$repo/notes.txt"
+  printf 'pr: 7\n' > "$repo/drift-proof.txt"
+  git -C "$repo" add notes.txt drift-proof.txt
+  fixture_commit "$repo" "add notes"
+  branch=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 1 "$CHECK_RC" "an open PR carrying its own line exits 1, not 2: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 1
+path-drift: drift-proof.txt
+path-drift: notes.txt
+unproven: $branch add notes
+unmatched: 7" "$CHECK_OUT" "the open branch reports its own unsquashed changes and its own line"
+  git -C "$repo" switch -q main
+  git -C "$repo" merge -q --squash fm/feature
+  fixture_commit "$repo" "add notes (#7)"
+  squash=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 0 "$CHECK_RC" "the same line passes once its squash lands: $CHECK_ERR"
+  assert_equals "behind: 0
+ahead: 1
+path-ok: drift-proof.txt
+path-ok: notes.txt
+keep: $squash add notes (#7)" "$CHECK_OUT" "the landed squash matches its line"
+  pass "an open PR's own line is reported unmatched without failing the check, and matches once its squash lands"
 }
 
 test_behind_count_is_reported_and_does_not_fail_alone() {
@@ -753,15 +785,17 @@ test_install_and_uninstall_round_trip() {
   assert_equals "installed: $plist" "$out" "install names the plist it wrote"
   assert_present "$plist" "install did not write the plist"
   assert_grep "bootstrap gui/$(id -u) $plist" "$log" "install did not bootstrap the agent"
-  assert_equals 3 "$(plist_value "$plist" StartCalendarInterval Hour)" "the plist hour is not 3"
-  assert_equals 17 "$(plist_value "$plist" StartCalendarInterval Minute)" "the plist minute is not 17"
-  assert_equals "/bin/bash
-$SCRIPT
-nightly
---repo
-$repo
---log
-$joblog" "$(plist_args "$plist")" "the plist has the expected script, repo and log arguments"
+  python3 -I - "$plist" "$SCRIPT" "$repo" "$joblog" <<'PY' || fail 'the plist schedule or command arguments are incorrect'
+import plistlib
+import sys
+
+with open(sys.argv[1], "rb") as stream:
+    job = plistlib.load(stream)
+assert job["StartCalendarInterval"] == {"Hour": 3, "Minute": 17}, job["StartCalendarInterval"]
+assert job["ProgramArguments"] == [
+    "/bin/bash", sys.argv[2], "nightly", "--repo", sys.argv[3], "--log", sys.argv[4]
+], job["ProgramArguments"]
+PY
   assert_present "$dir/logs" "install did not create the log directory launchd writes into"
   assert_equals "$joblog" "$(plist_value "$plist" StandardOutPath)" "the job's stdout does not go to the log"
   assert_equals "$joblog" "$(plist_value "$plist" StandardErrorPath)" "the job's stderr does not go to the log"
@@ -914,10 +948,8 @@ fi
 
 test_unproven_file_is_path_drift_and_exits_1
 test_proof_sha_makes_that_path_ok_and_exits_0
-test_manifest_accepts_its_own_commit_without_accepting_later_edits
+test_squash_merged_branch_carries_its_own_manifest_line
 test_default_proof_comes_from_the_committed_fork_tree
-test_parent_proof_does_not_accept_inherited_unproven_changes
-test_parent_proof_requires_one_direct_child
 test_guard_files_have_no_exemptions
 test_unproven_edit_to_proven_file_exits_1
 test_unproven_deletion_cannot_rename_into_proven_file
@@ -931,8 +963,11 @@ test_proven_change_can_also_cut_unproven_changes
 test_missing_proven_patch_is_drift
 test_unproven_mode_change_is_drift
 test_pending_commit_is_accepted_and_printed_with_its_bead
-test_accepted_merge_carries_only_proven_or_pending_commits
-test_unknown_proof_commit_is_an_error
+test_merge_merged_branch_carries_its_own_pending_line
+test_forgotten_manifest_line_is_path_drift_and_unproven
+test_wrong_proof_pr_number_stays_red_and_is_named
+test_reverted_numbered_pr_without_manifest_stays_red
+test_open_pr_own_line_is_unmatched_until_its_squash_lands
 test_behind_count_is_reported_and_does_not_fail_alone
 test_merge_commit_is_labeled_merge
 test_nightly_red_sends_one_note_a_day_and_green_sends_none

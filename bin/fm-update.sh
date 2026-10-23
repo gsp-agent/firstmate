@@ -62,7 +62,12 @@
 # fm-procevent-when.sh rebind-all to republish those bindings against the new
 # bytes; a failure there is swallowed rather than failing the update.
 #
-# Usage: fm-update.sh [--help]
+# A home checked out on upstream-lean follows origin/upstream-lean (bin/fm-ff-lib.sh owns
+# the rule). --primary-only updates just this firstmate repo and prints the same summary
+# with no secondmate named, so a scheduled pass never advances a secondmate it cannot
+# also restart; /updatefirstmate stays the whole-fleet path.
+#
+# Usage: fm-update.sh [--primary-only] [--help]
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -77,13 +82,17 @@ SECONDMATES_MD="$FM_HOME/data/secondmates.md"
 
 "$SCRIPT_DIR/fm-guard.sh" || true
 
-usage() { echo "usage: fm-update.sh [--help]" >&2; }
+usage() { echo "usage: fm-update.sh [--primary-only] [--help]" >&2; }
 
-if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
-  usage
-  exit 0
-fi
-[ $# -eq 0 ] || { usage; exit 1; }
+primary_only=no
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --help|-h) usage; exit 0 ;;
+    --primary-only) primary_only=yes ;;
+    *) usage; exit 1 ;;
+  esac
+  shift
+done
 
 # --- main firstmate repo ---------------------------------------------------
 
@@ -102,6 +111,19 @@ if [ "$FF_STATUS" = "updated" ]; then
   # always where this very script file happens to live (FM_ROOT_OVERRIDE, as
   # this test suite uses to point fm-update.sh at a fixture checkout).
   FM_HOME="$FM_HOME" FM_ROOT_OVERRIDE="$FM_ROOT" "$SCRIPT_DIR/fm-procevent-when.sh" rebind-all || true
+fi
+
+print_summary() {
+  echo "reread-firstmate: $reread_firstmate"
+  echo "restart-secondmates:${FF_RESTART_WINDOWS:- none}"
+  echo "nudge-secondmates:${FF_STEER_WINDOWS:- none}"
+}
+
+if [ "$primary_only" = yes ]; then
+  FF_RESTART_WINDOWS=""
+  FF_STEER_WINDOWS=""
+  print_summary
+  exit 0
 fi
 
 # --- secondmates -----------------------------------------------------------
@@ -241,6 +263,4 @@ fi
 # two lines below are disjoint by construction: no mate is ever restarted and
 # then also steered about the instructions it just relaunched on.
 
-echo "reread-firstmate: $reread_firstmate"
-echo "restart-secondmates:${FF_RESTART_WINDOWS:- none}"
-echo "nudge-secondmates:${FF_STEER_WINDOWS:- none}"
+print_summary

@@ -3,9 +3,10 @@
 # TERM to the command's process group at the bound, KILL once the grace has
 # passed, a forwarded signal, the caller replaced rather than wrapped, and a
 # refusal instead of an unbounded run when nothing on the host can enforce the
-# bound. Most cases pin the perl watchdog, the preferred mechanism and the only
-# one a stock macOS host has, under a PATH that holds no timeout variant; the
-# GNU fallback case runs only where a real timeout exists.
+# bound, and fm_exec_timed's memory cap. Most cases pin the perl
+# watchdog, the preferred mechanism and the only one a stock macOS host has,
+# under a PATH that holds no timeout variant; the GNU fallback case runs only
+# where a real timeout exists.
 # shellcheck disable=SC2016 # each bounded bash -c script expands its own arguments
 set -u
 
@@ -201,31 +202,64 @@ test_a_signal_to_the_bounding_process_reaches_the_command() {
   pass "fm_exec_timed forwards a TERM it receives to the bounded command"
 }
 
+# An INT is different: a caller started in the background by a non-interactive
+# shell inherits INT ignored and never sees it, so the bounding process reports
+# the interruption as 130 even when the command handled it and exited 0.
+test_an_interrupt_is_reported_as_130() {
+  local dir watchdog rc=0
+  dir="$TMP_ROOT/interrupt"
+  mkdir -p "$dir"
+  # shellcheck disable=SC2016
+  (
+    . "$ROOT/bin/fm-timeout-lib.sh"
+    PATH=$PERL_ONLY
+    fm_exec_timed 60 30 bash -c '
+      trap "echo interrupted > \"\$2\"; exit 0" INT
+      echo $$ > "$1"
+      while :; do sleep 0.1; done
+    ' _ "$dir/pid" "$dir/int"
+  ) 2>/dev/null &
+  watchdog=$!
+  wait_for_file "$dir/pid"
+  kill -INT "$watchdog" || fail "could not signal the bounding process"
+  wait "$watchdog" || rc=$?
+  [ "$(cat "$dir/int" 2>/dev/null)" = interrupted ] || fail "the INT never reached the bounded command"
+  [ "$rc" -eq 130 ] || fail "an INT to the bounding process was reported as $rc, not 130"
+  pass "fm_exec_timed forwards an INT and reports it as 130"
+}
+
 # A caller that names its owner before launching the watchdog is watched even
 # when that owner died while the watchdog was still starting: the watchdog's
 # parent is then not the named owner, so the escalation starts at once rather
-# than at the bound.
+# than at the bound. That TERM usually lands while the command is still being
+# started, and must end it there instead of being lost to the grace's KILL.
+# Only some launches put it in the few Perl ops before the forked child resets
+# its handlers, so a hundred launches make a lost TERM show as 137, not 143.
 test_a_named_owner_that_is_gone_ends_the_command() {
-  local dir gone rc=0 started elapsed pid
+  local dir gone rc started elapsed pid launch
   dir="$TMP_ROOT/owner"
   mkdir -p "$dir"
   sleep 0 &
   gone=$!
   wait "$gone" 2>/dev/null || true
-  started=$SECONDS
-  (
-    . "$ROOT/bin/fm-timeout-lib.sh"
-    PATH=$PERL_ONLY FM_EXEC_TIMED_OWNER_PID=$gone \
-      fm_exec_timed 60 1 bash -c 'echo $$ > "$1"; exec sleep 300' _ "$dir/pid"
-  ) || rc=$?
-  elapsed=$((SECONDS - started))
-  [ "$elapsed" -lt 15 ] || fail "a watchdog whose named owner was gone ran to its bound (${elapsed}s)"
-  [ "$rc" -ne 0 ] || fail "a command ended by its owner's death reported success"
-  if [ -s "$dir/pid" ]; then
-    pid=$(cat "$dir/pid")
-    ! kill -0 "$pid" 2>/dev/null || fail "the bounded command outlived its named owner"
-  fi
-  pass "fm_exec_timed ends the command when its named owner is already gone"
+  for ((launch = 1; launch <= 100; launch++)); do
+    rm -f "$dir/pid"
+    rc=0
+    started=$SECONDS
+    (
+      . "$ROOT/bin/fm-timeout-lib.sh"
+      PATH=$PERL_ONLY FM_EXEC_TIMED_OWNER_PID=$gone \
+        fm_exec_timed 60 1 bash -c 'echo $$ > "$1"; exec sleep 300' _ "$dir/pid"
+    ) || rc=$?
+    elapsed=$((SECONDS - started))
+    [ "$elapsed" -lt 15 ] || fail "a watchdog whose named owner was gone ran to its bound (${elapsed}s)"
+    [ "$rc" -eq 143 ] || fail "launch $launch whose named owner was gone did not end at its TERM (rc=$rc)"
+    if [ -s "$dir/pid" ]; then
+      pid=$(cat "$dir/pid")
+      ! kill -0 "$pid" 2>/dev/null || fail "the bounded command outlived its named owner"
+    fi
+  done
+  pass "fm_exec_timed ends the command at its TERM when its named owner is already gone"
 }
 
 # With no named owner the calling script is captured before the watchdog
@@ -297,6 +331,45 @@ test_a_top_level_parent_that_dies_during_startup_ends_the_command() {
   pass "fm_exec_timed preserves a top-level shell's parent across exec startup"
 }
 
+# The watchdog stays in its caller's process group so that group's signals
+# reach it, so a KILL to that whole group - an outer timeout or cancellation
+# escalating - kills the watchdog with its caller. The command's own group must
+# still get its TERM, and then the KILL after the grace, instead of running on
+# with nobody left to end it.
+test_a_kill_to_the_callers_group_still_ends_the_command() {
+  local dir caller started pids
+  dir="$TMP_ROOT/group-kill"
+  mkdir -p "$dir"
+  cat > "$dir/command.sh" <<'SH'
+trap 'echo cleaned > "$2"; exit 143' TERM
+sleep 300 &
+echo "$$ $!" > "$1"
+wait
+SH
+  PATH=$PERL_ONLY perl -e 'setpgrp(0, 0); exec @ARGV' bash -c '
+    . "$1/bin/fm-timeout-lib.sh"
+    (fm_exec_timed 60 2 bash "$2/command.sh" "$2/pids" "$2/cleaned")
+  ' _ "$ROOT" "$dir" >/dev/null 2>&1 &
+  caller=$!
+  wait_for_file "$dir/pids"
+  kill -KILL -- "-$caller"
+  wait "$caller" 2>/dev/null || true
+  pids=$(cat "$dir/pids")
+  started=$SECONDS
+  # shellcheck disable=SC2086
+  while kill -0 $pids 2>/dev/null; do
+    if [ "$((SECONDS - started))" -ge 10 ]; then
+      # shellcheck disable=SC2086
+      kill -KILL $pids 2>/dev/null || true
+      fail "a KILL to the caller's group left the bounded command or its child running ($pids)"
+    fi
+    sleep 0.05
+  done
+  [ "$(cat "$dir/cleaned" 2>/dev/null)" = cleaned ] \
+    || fail "a KILL to the caller's group ended the bounded command without its TERM"
+  pass "fm_exec_timed ends the command at its TERM when the caller's whole group is KILLed"
+}
+
 # perl is preferred whenever it exists, because only its watchdog can reap a
 # leftover descendant after replacing the caller.
 test_perl_is_preferred_over_timeout() {
@@ -342,6 +415,71 @@ test_rejects_malformed_bounds_before_running_anything() {
   [ "$rc" -eq 125 ] || fail "a call with no command was not rejected (rc=$rc: $out)"
   assert_contains "$out" "usage: fm_exec_timed" "the rejection did not print the usage"
   pass "fm_exec_timed rejects a zero, padded, non-numeric, or missing bound and a missing command"
+}
+
+# A PATH like PERL_ONLY plus ps, which the memory cap samples.
+RSS_PATH="$TMP_ROOT/rss-bin"
+mkdir -p "$RSS_PATH"
+for tool in perl bash sleep ps; do
+  ln -s "$(command -v "$tool")" "$RSS_PATH/$tool"
+done
+
+test_a_memory_cap_kills_the_group_past_its_cap() {
+  local dir out rc=0 started elapsed hog_pid
+  dir="$TMP_ROOT/memory-cap"
+  mkdir -p "$dir"
+  # The allocator is a descendant of the bounded shell, so the cap must count
+  # the whole process group, not only the command it started.
+  started=$SECONDS
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=65536 exec_timed "$RSS_PATH" 20 1 bash -c '
+    perl -e "open(my \$f, q(>), \$ARGV[0]); print \$f \$\$; close \$f; my \$s = q(x) x (256 * 1048576); sleep 60" "$1"
+    exit 0' _ "$dir/hog.pid" 2>&1) || rc=$?
+  elapsed=$((SECONDS - started))
+  [ "$rc" -eq 123 ] || fail "a group past its memory cap did not end with the cap status (rc=$rc: $out)"
+  [ "$elapsed" -lt 15 ] || fail "the memory cap waited for the deadline instead of firing (${elapsed}s)"
+  assert_contains "$out" "past its 65536 KiB cap" "the memory kill did not name the cap"
+  hog_pid=$(cat "$dir/hog.pid" 2>/dev/null) || fail "the allocator never recorded its pid"
+  ! kill -0 "$hog_pid" 2>/dev/null || fail "the allocator survived the memory kill"
+
+  rc=0
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=1048576 exec_timed "$RSS_PATH" 20 1 bash -c 'sleep 1.2; exit 7' 2>&1) || rc=$?
+  [ "$rc" -eq 7 ] || fail "a command under its memory cap lost its own status (rc=$rc: $out)"
+  pass "fm_exec_timed KILLs a process group past its memory cap and reports 123"
+}
+
+test_an_unmeasurable_memory_cap_kills_rather_than_runs_uncapped() {
+  local dir out rc=0 started elapsed
+  dir="$TMP_ROOT/memory-blind"
+  mkdir -p "$dir/bin"
+  for tool in perl bash sleep; do
+    ln -s "$(command -v "$tool")" "$dir/bin/$tool"
+  done
+  printf '#!/bin/sh\nexit 0\n' > "$dir/bin/ps"
+  chmod +x "$dir/bin/ps"
+  started=$SECONDS
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=1048576 exec_timed "$dir/bin" 20 1 sleep 60 2>&1) || rc=$?
+  elapsed=$((SECONDS - started))
+  [ "$rc" -eq 127 ] || fail "a memory cap that could not see its group did not refuse (rc=$rc: $out)"
+  [ "$elapsed" -lt 15 ] || fail "an unmeasurable memory cap ran on to the deadline (${elapsed}s)"
+  assert_contains "$out" "cannot read the memory" "the refusal did not say what it could not measure"
+
+  rc=0
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=065536 exec_timed "$RSS_PATH" 5 1 bash -c ': > "$1"' _ "$dir/ran" 2>&1) || rc=$?
+  [ "$rc" -eq 125 ] || fail "a malformed memory cap was not rejected (rc=$rc: $out)"
+  [ ! -e "$dir/ran" ] || fail "a malformed memory cap still ran the command"
+
+  # GNU timeout can bound time but not memory, so a capped call with no perl
+  # refuses instead of running on a deadline alone.
+  mkdir -p "$dir/no-perl"
+  ln -s "$(command -v bash)" "$dir/no-perl/bash"
+  printf '#!/bin/sh\nshift 3\nexec "$@"\n' > "$dir/no-perl/timeout"
+  chmod +x "$dir/no-perl/timeout"
+  rc=0
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=1048576 exec_timed "$dir/no-perl" 5 1 bash -c ': > "$1"' _ "$dir/ran" 2>&1) || rc=$?
+  [ "$rc" -eq 127 ] || fail "a memory cap with no perl did not refuse (rc=$rc: $out)"
+  assert_contains "$out" "cannot cap the memory of bash" "the refusal did not say what it could not cap"
+  [ ! -e "$dir/ran" ] || fail "a memory cap with no perl still ran the command"
+  pass "fm_exec_timed KILLs a group whose memory it cannot read and refuses a cap it cannot enforce"
 }
 
 test_gnu_timeout_kills_a_term_ignoring_command_after_the_grace() {
@@ -403,11 +541,15 @@ test_kill_ends_a_term_ignoring_command_after_the_grace
 test_the_bound_replaces_the_calling_shell
 test_a_descendant_holding_the_output_cannot_outlast_the_bound
 test_a_signal_to_the_bounding_process_reaches_the_command
+test_an_interrupt_is_reported_as_130
 test_a_named_owner_that_is_gone_ends_the_command
 test_an_owner_that_dies_during_startup_ends_the_command
 test_a_top_level_parent_that_dies_during_startup_ends_the_command
+test_a_kill_to_the_callers_group_still_ends_the_command
 test_perl_is_preferred_over_timeout
 test_refuses_rather_than_running_unbounded
 test_rejects_malformed_bounds_before_running_anything
+test_a_memory_cap_kills_the_group_past_its_cap
+test_an_unmeasurable_memory_cap_kills_rather_than_runs_uncapped
 test_gnu_timeout_kills_a_term_ignoring_command_after_the_grace
 test_timed_out_names_exactly_the_bound_statuses

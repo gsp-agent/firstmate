@@ -45,7 +45,7 @@ relaunch_cleanup() {
   for d in "${TASK_TMPS[@]:-}"; do
     [ -n "$d" ] && rm -rf "$d"
   done
-  rm -rf "$TMP_ROOT"
+  fm_test_remove_tree "$TMP_ROOT"
 }
 trap relaunch_cleanup EXIT
 
@@ -79,6 +79,9 @@ case "${1:-}" in
       case "$payload" in
         /exit|/quit)
           printf 'zsh' > "$D/command"
+          if [ -f "$D/dispatch-on-exit.json" ]; then
+            cp "$D/dispatch-on-exit.json" "$FM_HOME/config/crew-dispatch.json" || exit 1
+          fi
           [ -z "${FM_FAKE_EXIT_TRANSPORT_FAIL_AFTER_STOP:-}" ] || exit 1
           ;;
         *'encode launch-brief'* | *'Firstmate operational input waiting: read'*)
@@ -122,6 +125,7 @@ case "${1:-}" in
     else
       printf '╭────╮\n│    │\n╰────╯\n'
     fi
+    [ "$(cat "$D/command")" != codex ] || printf '%s\n' '• Working (1s • esc to interrupt)'
     exit 0 ;;
   list-windows)
     # The three shapes real tmux answers a per-session inventory with. The
@@ -231,14 +235,16 @@ EOF
 
 run_control() {  # <case-dir> <args...>
   local dir=$1; shift
-  # A claude spawn pre-registers workspace trust in the launching user's own
-  # store (bin/fm-claude-trust.sh), and a relaunch reaches it through fm-control.sh, so this runs against a throwaway HOME;
-  # without it this suite would write the developer's real ~/.claude.json.
+  # A claude or codex spawn pre-registers folder trust in the launching user's
+  # own store (bin/fm-claude-trust.sh, bin/fm-codex-trust.sh), and a relaunch
+  # reaches it through fm-control.sh, so this runs against a throwaway HOME;
+  # without it this suite would write the developer's real ~/.claude.json or
+  # ~/.codex/config.toml.
   mkdir -p "$dir/user-home"
   env -u HERDR_ENV -u HERDR_PANE_ID -u HERDR_SESSION -u HERDR_SOCKET_PATH \
     -u HERDR_TAB_ID -u HERDR_WORKSPACE_ID \
     PATH="$dir/fakebin:$PATH" FM_HOME="$dir/home" FM_FAKE_DIR="$dir/fake" \
-    HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' \
+    HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' CODEX_HOME='' \
     FM_SPAWN_NO_GUARD=1 GROK_HOME="$dir/grokhome" \
     FM_CONTROL_POLL=0.01 FM_CONTROL_EXIT_WAIT=0.05 FM_CONTROL_LAUNCH_WAIT=0.05 \
     FM_REAL_GIT="${FM_REAL_GIT:-}" FM_FAKE_GIT_FAILURE="${FM_FAKE_GIT_FAILURE:-}" \
@@ -253,14 +259,15 @@ run_control() {  # <case-dir> <args...>
 
 run_spawn() {  # <case-dir> <args...>
   local dir=$1; shift
-  # A claude spawn pre-registers workspace trust in the launching user's own
-  # store (bin/fm-claude-trust.sh), so it runs against a throwaway HOME;
-  # without it this suite would write the developer's real ~/.claude.json.
+  # A claude or codex spawn pre-registers folder trust in the launching user's
+  # own store (bin/fm-claude-trust.sh, bin/fm-codex-trust.sh), so it runs
+  # against a throwaway HOME; without it this suite would write the developer's
+  # real ~/.claude.json or ~/.codex/config.toml.
   mkdir -p "$dir/user-home"
   env -u HERDR_ENV -u HERDR_PANE_ID -u HERDR_SESSION -u HERDR_SOCKET_PATH \
     -u HERDR_TAB_ID -u HERDR_WORKSPACE_ID \
     PATH="$dir/fakebin:$PATH" FM_HOME="$dir/home" FM_FAKE_DIR="$dir/fake" \
-    HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' \
+    HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' CODEX_HOME='' \
     FM_SPAWN_NO_GUARD=1 GROK_HOME="$dir/grokhome" \
     "$SPAWN" "$@" 2>&1
 }
@@ -1175,6 +1182,406 @@ test_spawn_relaunch_without_a_harness_reuses_the_recorded_one() {
 # its brief is the scout scaffold: it never gained a Ship branch line, and a
 # relaunch cannot regenerate the brief (--branch-prefix is refused there). The
 # recorded branch is authoritative, so the relaunch must proceed on it.
+test_spawn_relaunch_adopts_the_single_dispatch_pair() {
+  local dir out
+  dir=$(new_case dispatchadopt rl43)
+  add_ship_task "$dir" rl43 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl43.meta"
+  printf 'effort=medium\n' >> "$dir/home/state/rl43.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/becomes"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl43 --relaunch)
+  [ "$(meta_field "$dir" rl43 model)" = grok-4.7 ] \
+    || fail "relaunch should record the dispatch file model, got '$(meta_field "$dir" rl43 model)'"
+  [ "$(meta_field "$dir" rl43 effort)" = xhigh ] \
+    || fail "relaunch should adopt the dispatch file effort xhigh, got '$(meta_field "$dir" rl43 effort)'"
+  assert_contains "$out" "spawned rl43 harness=grok" "the relaunch should report grok"
+  pass "fm-spawn --relaunch: a recorded pair matching no dispatch profile launches on the file pair and records it"
+}
+
+test_spawn_relaunch_refuses_when_the_file_offers_two_pairs() {
+  local dir out rc
+  dir=$(new_case dispatchmulti rl44)
+  add_ship_task "$dir" rl44 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl44.meta"
+  printf 'effort=medium\n' >> "$dir/home/state/rl44.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}],"default":{"harness":"grok","model":"grok-4.7","effort":"high"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/becomes"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl44 --relaunch); rc=$?
+  [ "$rc" -ne 0 ] || fail "relaunch with two dispatch pairs to choose from should refuse"
+  assert_contains "$out" "xhigh" "refusal did not print the first dispatch pair"
+  assert_contains "$out" "high" "refusal did not print the second dispatch pair"
+  [ "$(meta_field "$dir" rl44 effort)" = medium ] \
+    || fail "refused relaunch should keep the recorded effort, got '$(meta_field "$dir" rl44 effort)'"
+  pass "fm-spawn --relaunch: more than one dispatch pair for the harness refuses rather than guessing"
+}
+
+# The two-pair refusal has to happen on the relaunch verb, before exit. Driving
+# fm-spawn --relaunch directly never stops an agent, so it cannot see this.
+test_relaunch_refuses_an_ambiguous_dispatch_pair_before_the_agent_stops() {
+  local dir out rc brief
+  dir=$(new_case dispatchrefuse rl45)
+  add_ship_task "$dir" rl45 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl45.meta"
+  printf 'effort=medium\n' >> "$dir/home/state/rl45.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}],"default":{"harness":"grok","model":"grok-4.7","effort":"high"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/command"
+  printf 'grok' > "$dir/fake/becomes"
+  brief=$(cat "$dir/home/data/rl45/brief.md")
+  out=$(run_control "$dir" rl45 relaunch --note "keep the worker"); rc=$?
+  expect_code 1 "$rc" "an ambiguous dispatch pair must refuse the relaunch"$'\n'"$out"
+  assert_contains "$out" "grok-4.7 high" "the refusal must print the default pair"
+  assert_contains "$out" "grok-4.7 xhigh" "the refusal must print the rule pair"
+  [ "$(cat "$dir/fake/command")" = grok ] \
+    || fail "a refused relaunch stopped the worker, command is $(cat "$dir/fake/command")"
+  [ ! -s "$dir/fake/literal" ] \
+    || fail "a refused relaunch sent lifecycle input: $(cat "$dir/fake/literal")"
+  [ "$(meta_field "$dir" rl45 effort)" = medium ] \
+    || fail "a refused relaunch changed the recorded effort"
+  [ ! -e "$dir/home/state/rl45.control-relaunch" ] \
+    || fail "a refused relaunch wrote a journal"
+  [ "$(cat "$dir/home/data/rl45/brief.md")" = "$brief" ] \
+    || fail "a refused relaunch rewrote the instructions"
+  pass "fm-control relaunch: an ambiguous dispatch pair refuses before the worker is stopped"
+}
+
+test_relaunch_journal_records_the_adopted_dispatch_pair() {
+  local dir out rc
+  dir=$(new_case dispatchjournal rl46)
+  add_ship_task "$dir" rl46 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl46.meta"
+  printf 'effort=medium\n' >> "$dir/home/state/rl46.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"livecheck","use":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/command"
+  printf 'grok' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl46 relaunch --note "adopt the file pair"); rc=$?
+  expect_code 0 "$rc" "a single dispatch pair should relaunch"$'\n'"$out"
+  [ "$(journal_field "$dir" rl46 to_model)" = grok-4.7 ] \
+    || fail "journal recorded to_model=$(journal_field "$dir" rl46 to_model)"
+  [ "$(journal_field "$dir" rl46 to_effort)" = xhigh ] \
+    || fail "journal recorded to_effort=$(journal_field "$dir" rl46 to_effort) instead of the launched pair"
+  [ "$(meta_field "$dir" rl46 model)" = grok-4.7 ] \
+    || fail "the task record kept model $(meta_field "$dir" rl46 model)"
+  [ "$(meta_field "$dir" rl46 effort)" = xhigh ] \
+    || fail "the task record kept effort $(meta_field "$dir" rl46 effort)"
+  assert_contains "$out" "model=grok-4.7 effort=xhigh" \
+    "the operator line must name the pair that launched"
+  pass "fm-control relaunch: the journal records the dispatch pair the replacement launched"
+}
+
+test_relaunch_refuses_an_unknown_adopted_effort_before_the_agent_stops() {
+  local dir out rc id=rl-adopt-typo
+  dir=$(new_case dispatch-typo "$id")
+  add_ship_task "$dir" "$id" grok
+  printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"typo"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf grok > "$dir/fake/command"
+  printf grok > "$dir/fake/becomes"
+  cp "$dir/home/state/$id.meta" "$dir/meta-before"
+  out=$(run_control "$dir" "$id" relaunch --note "reject the invalid adopted effort"); rc=$?
+  expect_code 1 "$rc" "an unknown adopted effort must refuse: $out"
+  [ "$(cat "$dir/fake/command")" = grok ] || fail "an unknown adopted effort stopped the worker"
+  [ ! -s "$dir/fake/literal" ] || fail "an unknown adopted effort sent lifecycle input"
+  [ ! -e "$dir/home/state/$id.control-relaunch" ] || fail "an unknown adopted effort wrote a journal"
+  cmp -s "$dir/meta-before" "$dir/home/state/$id.meta" || fail "an unknown adopted effort changed the task record"
+  assert_contains "$out" "invalid effort 'typo'" "the refusal must identify the adopted effort"
+  pass "fm-control relaunch: an unknown adopted effort refuses before stopping the worker"
+}
+
+test_spawn_relaunch_refuses_an_unknown_adopted_effort() {
+  local dir out rc id=rl-spawn-typo
+  dir=$(new_case spawn-dispatch-typo "$id")
+  add_ship_task "$dir" "$id" grok
+  printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"typo"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf zsh > "$dir/fake/command"
+  printf grok > "$dir/fake/becomes"
+  cp "$dir/home/state/$id.meta" "$dir/meta-before"
+  out=$(run_spawn "$dir" "$id" --relaunch); rc=$?
+  expect_code 1 "$rc" "a direct relaunch must refuse an unknown adopted effort: $out"
+  [ "$(cat "$dir/fake/command")" = zsh ] || fail "an unknown adopted effort launched a replacement"
+  [ ! -s "$dir/fake/literal" ] || fail "an unknown adopted effort sent launch input"
+  cmp -s "$dir/meta-before" "$dir/home/state/$id.meta" || fail "an unknown adopted effort was recorded"
+  assert_contains "$out" "invalid effort 'typo'" "the refusal must identify the adopted effort"
+  pass "fm-spawn --relaunch: an unknown adopted effort refuses before launch or publication"
+}
+
+test_relaunch_keeps_the_prestop_pair_when_dispatch_changes() {
+  local dir out rc id=rl-dispatch-change
+  dir=$(new_case dispatch-change "$id")
+  add_ship_task "$dir" "$id" grok
+  printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"high"}}' \
+    > "$dir/fake/dispatch-on-exit.json"
+  printf grok > "$dir/fake/command"
+  printf grok > "$dir/fake/becomes"
+  out=$(run_control "$dir" "$id" relaunch --model grok-4.7 --effort xhigh --note "keep the pre-stop pair"); rc=$?
+  expect_code 0 "$rc" "a changed dispatch file must not replace the control decision: $out"
+  [ "$(jq -r '.default.effort' "$dir/home/config/crew-dispatch.json")" = high ] \
+    || fail "the fixture did not change dispatch at the control handoff"
+  [ "$(meta_field "$dir" "$id" model)" = grok-4.7 ] || fail "the replacement lost the pre-stop model"
+  [ "$(meta_field "$dir" "$id" effort)" = xhigh ] || fail "the replacement lost the pre-stop effort"
+  [ "$(journal_field "$dir" "$id" to_model)" = grok-4.7 ] || fail "the journal lost the pre-stop model"
+  [ "$(journal_field "$dir" "$id" to_effort)" = xhigh ] || fail "the journal lost the pre-stop effort"
+  [ "$(journal_field "$dir" "$id" phase)" = complete ] || fail "the control relaunch did not complete"
+  [ "$(cat "$dir/fake/command")" = grok ] || fail "the replacement is not running"
+  assert_contains "$(cat "$dir/fake/literal")" "--reasoning-effort 'xhigh'" "the launch lost the pre-stop effort"
+  assert_not_contains "$(cat "$dir/fake/literal")" "--reasoning-effort 'high'" "the launch adopted the changed file pair"
+  pass "fm-control relaunch: a dispatch change after stopping preserves the pre-stop launch pair"
+}
+
+test_spawn_relaunch_with_explicit_axes_still_adopts_the_file_pair() {
+  local dir out rc id=rl-direct-axes
+  dir=$(new_case direct-dispatch-axes "$id")
+  add_ship_task "$dir" "$id" grok
+  printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"high"}}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf zsh > "$dir/fake/command"
+  printf grok > "$dir/fake/becomes"
+  out=$(run_spawn "$dir" "$id" --relaunch --harness grok --model grok-4.7 --effort xhigh); rc=$?
+  expect_code 0 "$rc" "a direct relaunch must still adopt the sole file pair: $out"
+  [ "$(meta_field "$dir" "$id" model)" = grok-4.7 ] || fail "a direct relaunch lost the adopted model"
+  [ "$(meta_field "$dir" "$id" effort)" = high ] || fail "a direct relaunch skipped dispatch adoption"
+  assert_contains "$(cat "$dir/fake/literal")" "--reasoning-effort 'high'" "a direct relaunch did not launch the adopted effort"
+  pass "fm-spawn --relaunch: explicit axes without a control handoff still adopt the sole file pair"
+}
+
+test_relaunch_validates_the_adopted_profile_before_the_agent_stops() {
+  local dir out rc check id
+  for check in pin effort; do
+    id="rl-adopt-$check"
+    dir=$(new_case "dispatch-$check" "$id")
+    add_ship_task "$dir" "$id" pi
+    printf 'model=anthropic/claude-sonnet-4-6\neffort=high\n' >> "$dir/home/state/$id.meta"
+    printf pi > "$dir/fake/command"
+    printf pi > "$dir/fake/becomes"
+    cat > "$dir/fakebin/pi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = auth ]; then
+  printf '%s\n' '{"status":"ready"}'
+else
+  printf 'Options: --tui-mode\n'
+fi
+SH
+    chmod +x "$dir/fakebin/pi"
+    mkdir -p "$dir/home/config" "$dir/account"
+    printf '%s\n' "$dir/account" anthropic > "$dir/home/config/pi-account"
+    if [ "$check" = pin ]; then
+      printf '%s\n' '{"default":{"harness":"pi","model":"codex-native/gpt-6-astra","effort":"high"}}'
+    else
+      printf '%s\n' '{"default":{"harness":"pi","model":"anthropic/claude-sonnet-4-6","effort":"ultra"}}'
+    fi > "$dir/home/config/crew-dispatch.json"
+    cp "$dir/home/state/$id.meta" "$dir/meta-before"
+    out=$(run_control "$dir" "$id" relaunch --note "validate the adopted pair"); rc=$?
+    expect_code 1 "$rc" "an invalid adopted $check must refuse before stopping: $out"
+    assert_contains "$out" "adopts the dispatch file pair" "the recorded profile did not reach dispatch adoption"
+    if [ "$check" = pin ]; then
+      assert_contains "$out" "names provider 'codex-native'" "the adopted provider must fail the account pin"
+    else
+      assert_contains "$out" "ultra effort requires pi or pi-signed" "the adopted effort must fail native validation"
+    fi
+    [ "$(cat "$dir/fake/command")" = pi ] || fail "invalid adopted $check stopped the running worker"
+    [ ! -s "$dir/fake/literal" ] || fail "invalid adopted $check sent lifecycle input"
+    [ ! -e "$dir/home/state/$id.control-relaunch" ] || fail "invalid adopted $check wrote a relaunch journal"
+    cmp -s "$dir/meta-before" "$dir/home/state/$id.meta" || fail "invalid adopted $check changed the task record"
+  done
+  pass "fm-control relaunch: adopted profiles pass account and native-effort checks before stopping"
+}
+
+test_relaunch_preserves_explicit_default_resets() {
+  local dir out rc reset id model effort literal
+  local -a reset_args
+  for reset in both model effort adopted; do
+    id="rl-reset-$reset"
+    dir=$(new_case "dispatch-reset-$reset" "$id")
+    add_ship_task "$dir" "$id" grok
+    printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+    mkdir -p "$dir/home/config"
+    printf '%s\n' '{"default":[{"harness":"grok"},{"harness":"grok","effort":"xhigh"},{"harness":"grok","model":"grok-4.7"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"}]}' \
+      > "$dir/home/config/crew-dispatch.json"
+    model=grok-4.7 effort=xhigh
+    case "$reset" in
+      both) reset_args=(--model default --effort default); model=default effort=default ;;
+      model) reset_args=(--model=default); model=default ;;
+      effort) reset_args=(--effort=default); effort=default ;;
+      adopted)
+        reset_args=(--model default --effort default)
+        printf '%s\n' '{"default":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}}' \
+          > "$dir/home/config/crew-dispatch.json"
+        ;;
+    esac
+    printf grok > "$dir/fake/command"
+    printf grok > "$dir/fake/becomes"
+    out=$(run_control "$dir" "$id" relaunch "${reset_args[@]}" --note "reset $reset"); rc=$?
+    expect_code 0 "$rc" "a $reset reset should relaunch on the resolved pair: $out"
+    [ "$(cat "$dir/fake/command")" = grok ] || fail "$reset reset left no replacement running"
+    [ "$(journal_field "$dir" "$id" phase)" = complete ] || fail "$reset reset did not complete"
+    [ "$(journal_field "$dir" "$id" to_model)" = "$model" ] || fail "$reset reset journal lost the model"
+    [ "$(journal_field "$dir" "$id" to_effort)" = "$effort" ] || fail "$reset reset journal lost the effort"
+    [ "$(meta_field "$dir" "$id" model)" = "$model" ] || fail "$reset reset restored the recorded model"
+    [ "$(meta_field "$dir" "$id" effort)" = "$effort" ] || fail "$reset reset restored the recorded effort"
+    assert_contains "$out" "model=$model effort=$effort" "the result must report the resolved pair"
+    literal=$(cat "$dir/fake/literal")
+    assert_not_contains "$literal" "'default'" "a reset token reached the launch command"
+    if [ "$model" = default ]; then
+      assert_not_contains "$literal" "--model " "a model reset must omit the harness flag"
+    else
+      assert_contains "$literal" "--model '$model'" "a reset lost the resolved model flag"
+    fi
+    if [ "$effort" = default ]; then
+      assert_not_contains "$literal" "--reasoning-effort " "an effort reset must omit the harness flag"
+    else
+      assert_contains "$literal" "--reasoning-effort '$effort'" "a reset lost the resolved effort flag"
+    fi
+  done
+  pass "fm-control relaunch: full and partial default resets preserve the resolved pair through launch"
+}
+
+test_relaunch_refuses_unmatched_partial_resets_before_stopping() {
+  local dir out rc axis id
+  for axis in model effort; do
+    id="rl-partial-$axis"
+    dir=$(new_case "dispatch-partial-$axis" "$id")
+    add_ship_task "$dir" "$id" grok
+    printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+    mkdir -p "$dir/home/config"
+    printf '%s\n' '{"default":[{"harness":"grok"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"}]}' \
+      > "$dir/home/config/crew-dispatch.json"
+    printf grok > "$dir/fake/command"
+    printf grok > "$dir/fake/becomes"
+    cp "$dir/home/state/$id.meta" "$dir/meta-before"
+    out=$(run_control "$dir" "$id" relaunch "--$axis" default --note "refuse unmatched reset"); rc=$?
+    expect_code 1 "$rc" "an unmatched $axis reset must refuse: $out"
+    assert_contains "$out" "matches no dispatch profile" "the partial reset must reach pair matching"
+    assert_contains "$out" "default default" "the refusal must list the default pair"
+    assert_contains "$out" "grok-4.7 xhigh" "the refusal must list the concrete pair"
+    [ "$(cat "$dir/fake/command")" = grok ] || fail "unmatched $axis reset stopped the worker"
+    [ ! -s "$dir/fake/literal" ] || fail "unmatched $axis reset sent lifecycle input"
+    [ ! -e "$dir/home/state/$id.control-relaunch" ] || fail "unmatched $axis reset wrote a journal"
+    cmp -s "$dir/meta-before" "$dir/home/state/$id.meta" || fail "unmatched $axis reset changed the record"
+  done
+  pass "fm-control relaunch: unmatched partial resets refuse before stopping the worker"
+}
+
+test_relaunch_default_resets_without_named_dispatch_profiles() {
+  local dir out rc config id literal
+  for config in absent unnamed; do
+    id="rl-exempt-$config"
+    dir=$(new_case "reset-$config" "$id")
+    add_ship_task "$dir" "$id" grok
+    printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+    if [ "$config" = unnamed ]; then
+      mkdir -p "$dir/home/config"
+      printf '%s\n' '{"default":{"harness":"codex","model":"gpt-6-astra","effort":"xhigh"}}' \
+        > "$dir/home/config/crew-dispatch.json"
+    fi
+    printf grok > "$dir/fake/command"
+    printf grok > "$dir/fake/becomes"
+    out=$(run_control "$dir" "$id" relaunch --model default --effort default --note "reset without a named pair"); rc=$?
+    expect_code 0 "$rc" "resets should work with $config dispatch profiles: $out"
+    [ "$(meta_field "$dir" "$id" model)" = default ] || fail "$config dispatch reset lost the default model"
+    [ "$(meta_field "$dir" "$id" effort)" = default ] || fail "$config dispatch reset lost the default effort"
+    [ "$(journal_field "$dir" "$id" to_model)" = default ] || fail "$config dispatch journal lost the default model"
+    [ "$(journal_field "$dir" "$id" to_effort)" = default ] || fail "$config dispatch journal lost the default effort"
+    literal=$(cat "$dir/fake/literal")
+    assert_not_contains "$literal" "'default'" "an exempt reset token reached the launch command"
+    assert_not_contains "$literal" "--model " "an exempt model reset must omit the flag"
+    assert_not_contains "$literal" "--reasoning-effort " "an exempt effort reset must omit the flag"
+  done
+  pass "fm-control relaunch: defaults reset with an absent dispatch file or an unnamed harness"
+}
+
+test_spawn_relaunch_without_profile_flags_inherits_the_recorded_pair() {
+  local dir out rc config id literal
+  for config in named absent unnamed; do
+    id="rl-inherit-$config"
+    dir=$(new_case "inherit-$config" "$id")
+    add_ship_task "$dir" "$id" grok
+    printf 'model=grok-4.7\neffort=xhigh\n' >> "$dir/home/state/$id.meta"
+    mkdir -p "$dir/home/config"
+    case "$config" in
+      named)
+        printf '%s\n' '{"default":[{"harness":"grok"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"}]}' \
+          > "$dir/home/config/crew-dispatch.json"
+        ;;
+      unnamed)
+        printf '%s\n' '{"default":{"harness":"codex","model":"gpt-6-astra","effort":"xhigh"}}' \
+          > "$dir/home/config/crew-dispatch.json"
+        ;;
+    esac
+    printf zsh > "$dir/fake/command"
+    printf grok > "$dir/fake/becomes"
+    out=$(run_spawn "$dir" "$id" --relaunch); rc=$?
+    expect_code 0 "$rc" "an omitted profile should inherit with $config dispatch profiles: $out"
+    [ "$(meta_field "$dir" "$id" model)" = grok-4.7 ] || fail "$config dispatch lost the inherited model"
+    [ "$(meta_field "$dir" "$id" effort)" = xhigh ] || fail "$config dispatch lost the inherited effort"
+    literal=$(cat "$dir/fake/literal")
+    assert_contains "$literal" "--model 'grok-4.7'" "the launch lost the inherited model"
+    assert_contains "$literal" "--reasoning-effort 'xhigh'" "the launch lost the inherited effort"
+  done
+  pass "fm-spawn --relaunch: omitted profile flags keep the recorded pair"
+}
+
+test_spawn_rejects_fresh_default_resets_and_empty_profile_values() {
+  local dir out rc axis
+  for axis in model effort; do
+    dir=$(new_case "invalid-reset-$axis" "rl-invalid-$axis")
+    out=$(run_spawn "$dir" "rl-invalid-$axis" "$dir/proj" --scout --harness grok "--$axis" default); rc=$?
+    expect_code 1 "$rc" "a fresh --$axis default must refuse"
+    assert_contains "$out" "resets require --relaunch" "a fresh default reset must name the relaunch restriction"
+    out=$(run_spawn "$dir" "rl-invalid-$axis" --relaunch "--$axis" ''); rc=$?
+    expect_code 1 "$rc" "an empty --$axis value must refuse"
+    assert_contains "$out" "--$axis requires a non-empty value" "an empty profile value was accepted"
+    out=$(run_spawn "$dir" "rl-invalid-$axis" --relaunch "--$axis="); rc=$?
+    expect_code 1 "$rc" "an empty --$axis= value must refuse"
+    assert_contains "$out" "--$axis requires a non-empty value" "an empty equals profile value was accepted"
+    [ ! -s "$dir/fake/literal" ] || fail "an invalid $axis value sent lifecycle input"
+    [ ! -e "$dir/home/state/rl-invalid-$axis.meta" ] || fail "an invalid $axis value published a task record"
+  done
+  pass "fm-spawn: default resets require relaunch and empty profile values remain illegal"
+}
+
+test_relaunch_refuses_an_unreadable_dispatch_file_before_the_agent_stops() {
+  local dir out rc
+  dir=$(new_case dispatchbad rl47)
+  add_ship_task "$dir" rl47 grok
+  printf 'model=grok-4.7\n' >> "$dir/home/state/rl47.meta"
+  printf 'effort=xhigh\n' >> "$dir/home/state/rl47.meta"
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{' > "$dir/home/config/crew-dispatch.json"
+  printf 'grok' > "$dir/fake/command"
+  printf 'grok' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl47 relaunch --note "bad file"); rc=$?
+  expect_code 1 "$rc" "a malformed dispatch file must refuse the relaunch"$'\n'"$out"
+  assert_contains "$out" "parse error" "the refusal must include jq's parse diagnostic"
+  assert_contains "$out" "line 2" "the refusal must include the line jq names"
+  assert_contains "$out" "could not read its dispatch profiles" "the refusal must name the file"
+  [ "$(cat "$dir/fake/command")" = grok ] \
+    || fail "a malformed dispatch file stopped the worker, command is $(cat "$dir/fake/command")"
+  [ ! -s "$dir/fake/literal" ] \
+    || fail "a malformed dispatch file sent lifecycle input: $(cat "$dir/fake/literal")"
+  pass "fm-control relaunch: a malformed dispatch file refuses before the worker stops and shows where it is broken"
+}
+
 test_spawn_relaunch_of_promoted_scout_uses_the_recorded_branch() {
   local dir out
   dir=$(new_case promotebranch rl42)
@@ -1311,6 +1718,254 @@ test_cursor_session_binding_is_retired_on_a_harness_switch() {
   [ ! -e "$dir/home/state/rl35.cursor-session" ] \
     || fail "the retired cursor incarnation's session binding must not outlive it"
   pass "fm-spawn --relaunch: switching away from cursor retires its session binding"
+}
+
+# codex_limit_session <case-dir> <id>: the task's current launch, ten minutes
+# ago, ran codex in its worktree and the session's last turn ended on the usage
+# limit, in the rollout shape codex-cli 0.163 persists.
+codex_limit_session() {
+  local dir=$1 id=$2 f
+  printf 'spawn_gen=s%s.1.1\n' "$(( $(date +%s) - 600 ))" >> "$dir/home/state/$id.meta"
+  f="$dir/user-home/.codex/sessions/2026/10/21/rollout-2026-10-21T10-00-00-01a0c0de-0000-7000-8000-000000000001.jsonl"
+  mkdir -p "${f%/*}"
+  jq -nc --arg cwd "$dir/wt" '{type:"session_meta",payload:{id:"01a0c0de-0000-7000-8000-000000000001",cwd:$cwd,cli_version:"0.163.0"}}' > "$f"
+  jq -nc '{type:"event_msg",payload:{type:"task_complete",turn_id:"t1",last_agent_message:null,error:{message:"You have hit your usage limit.",codex_error_info:"usage_limit_exceeded"}}}' >> "$f"
+}
+
+test_raw_relaunch_preserves_retiring_codex_limit_for_later_routes() {
+  local dir out rc gen_before
+  dir=$(new_case rawcodexlimit rl80)
+  add_ship_task "$dir" rl80 codex-client
+  codex_limit_session "$dir" rl80
+  gen_before=$(meta_field "$dir" rl80 spawn_gen)
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl80 --relaunch --harness 'claude-client --model sonnet'); rc=$?
+  expect_code 0 "$rc" "a raw Claude override should keep its launch command"$'\n'"$out"
+  assert_contains "$out" "spawned rl80 harness=claude-client" "the raw override must keep its executable identity"
+  assert_contains "$(cat "$dir/fake/literal")" "claude-client --model sonnet" "the raw command must be preserved"
+  [ "$(meta_field "$dir" rl80 harness)" = claude-client ] || fail "the raw override must record its executable identity"
+  [ "$(meta_field "$dir" rl80 spawn_gen)" != "$gen_before" ] || fail "the raw relaunch must replace the generation"
+  [ "$(cat "$dir/home/state/rl80.codex-limit" 2>/dev/null)" = "codex run for rl80 hit its usage limit: You have hit your usage limit." ] \
+    || fail "the raw override must preserve the retiring Codex limit before replacing its generation"
+
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl80 --relaunch --harness codex); rc=$?
+  expect_code 0 "$rc" "a later canonical Codex relaunch should follow the preserved limit"$'\n'"$out"
+  assert_contains "$out" "spawned rl80 harness=claude" "the later Codex relaunch must route to Claude"
+  [ "$(meta_field "$dir" rl80 harness)" = claude ] || fail "the later relaunch must record Claude"
+  [ "$(meta_field "$dir" rl80 effort)" = xhigh ] || fail "the later relaunch must use the routed effort"
+  pass "fm-spawn --relaunch: a raw override preserves the retiring Codex limit for later canonical routes"
+}
+
+test_raw_relaunch_refuses_route_changes_without_replacing_generation() {
+  local dir id harness route out rc before raw executable
+  for raw in 'cursor-agent --trust' 'codex --model custom' 'codex-client --model custom' 'cursor --model custom'; do
+    executable=${raw%% *}
+    case "$executable" in
+      cursor|cursor-agent) harness=cursor ;;
+      *) harness=codex ;;
+    esac
+    id="rl81-$executable"
+    dir=$(new_case "rawroute-$harness" "$id")
+    add_ship_task "$dir" "$id" "$harness"
+    printf 'spawn_gen=s%s.1.1\n' "$(( $(date +%s) - 600 ))" >> "$dir/home/state/$id.meta"
+    if [ "$harness" = codex ]; then
+      route=claude
+      printf 'codex run hit its usage limit\n' > "$dir/home/state/$id.codex-limit"
+    else
+      route=codex
+      mkdir -p "$dir/user-home/.agent-state/a3ov3/cursor-usage"
+      printf 'cursor_models_pct=90\n' > "$dir/user-home/.agent-state/a3ov3/cursor-usage/test-spending.txt"
+    fi
+    before=$(cat "$dir/home/state/$id.meta")
+    printf 'zsh' > "$dir/fake/command"
+    out=$(FM_CURSOR_USAGE_DIR="$dir/user-home/.agent-state/a3ov3/cursor-usage" \
+      run_spawn "$dir" "$id" --relaunch --harness "$raw"); rc=$?
+    expect_code 1 "$rc" "a raw $harness command must refuse a route to $route"$'\n'"$out"
+    assert_contains "$out" "route to $route" "the refusal must name the selected harness"
+    assert_contains "$out" "canonical --harness $harness" "the refusal must request a canonical launch"
+    [ "$(cat "$dir/home/state/$id.meta")" = "$before" ] || fail "a raw route refusal must preserve the record and generation"
+    [ ! -s "$dir/fake/literal" ] || fail "a raw route refusal must not send a launch command"
+    [ ! -s "$dir/fake/keys" ] || fail "a raw route refusal must not prepare the endpoint"
+    [ "$(cat "$dir/fake/command")" = zsh ] || fail "a raw route refusal must not start an agent"
+  done
+  pass "fm-spawn --relaunch: raw Codex and Cursor commands refuse changed routes without replacing the task generation"
+}
+
+test_raw_cursor_family_is_kept_when_usage_is_healthy() {
+  local dir out rc
+  dir=$(new_case rawcursorhealthy rl83)
+  add_ship_task "$dir" rl83 cursor
+  mkdir -p "$dir/user-home/.agent-state/a3ov3/cursor-usage"
+  printf 'cursor_models_pct=10\n' > "$dir/user-home/.agent-state/a3ov3/cursor-usage/test-spending.txt"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(FM_CURSOR_USAGE_DIR="$dir/user-home/.agent-state/a3ov3/cursor-usage" \
+    run_spawn "$dir" rl83 --relaunch --harness 'cursor-agent --trust'); rc=$?
+  expect_code 0 "$rc" "a healthy raw Cursor command must keep its family"$'\n'"$out"
+  assert_contains "$out" "spawned rl83 harness=cursor-agent" "the raw executable identity must be preserved"
+  assert_contains "$(cat "$dir/fake/literal")" "cursor-agent --trust" "the raw Cursor command must be preserved"
+  [ "$(meta_field "$dir" rl83 harness)" = cursor-agent ] || fail "the record must keep the raw executable identity"
+  [ ! -e "$dir/home/state/rl83.cursor-fallback" ] || fail "keeping the Cursor family must not record an override"
+  pass "fm-spawn --relaunch: healthy raw Cursor keeps its command and executable identity without an override"
+}
+
+test_raw_cursor_override_is_recorded() {
+  local dir out rc
+  dir=$(new_case rawcursoroverride rl82)
+  add_ship_task "$dir" rl82 cursor
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl82 --relaunch --harness 'claude --model sonnet'); rc=$?
+  expect_code 0 "$rc" "a raw override of Cursor should keep its launch command"$'\n'"$out"
+  assert_contains "$(cat "$dir/fake/literal")" "claude --model sonnet" "the raw override must be preserved"
+  [ "$(meta_field "$dir" rl82 harness)" = claude ] || fail "the raw override must record Claude"
+  [ "$(cat "$dir/home/state/rl82.cursor-fallback" 2>/dev/null)" = "explicit --harness claude override of a recorded cursor task" ] \
+    || fail "a raw override must record the Cursor replacement"
+  pass "fm-spawn --relaunch: a raw Cursor override records its replacement harness"
+}
+
+test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude() {
+  local dir out rc
+  dir=$(new_case codexlimit rl73)
+  add_ship_task "$dir" rl73 codex
+  codex_limit_session "$dir" rl73
+  printf 'codex' > "$dir/fake/command"
+  out=$(run_control "$dir" rl73 relaunch --note "codex hit its usage limit"); rc=$?
+  expect_code 0 "$rc" "relaunching a usage-limited codex task should succeed"$'\n'"$out"
+  assert_contains "$out" "relaunched rl73 harness=claude from=codex" "the outcome should name the claude replacement"
+  [ "$(meta_field "$dir" rl73 harness)" = claude ] || fail "the record should name claude, got '$(meta_field "$dir" rl73 harness)'"
+  [ "$(meta_field "$dir" rl73 effort)" = xhigh ] || fail "the claude replacement should run at xhigh, got '$(meta_field "$dir" rl73 effort)'"
+  [ "$(journal_field "$dir" rl73 to_harness)" = claude ] || fail "the journal should name claude as the target"
+  [ "$(cat "$dir/home/state/rl73.codex-limit" 2>/dev/null)" = "codex run for rl73 hit its usage limit: You have hit your usage limit." ] \
+    || fail "the usage-limit stop must be recorded in state/<id>.codex-limit: $(cat "$dir/home/state/rl73.codex-limit" 2>&1)"
+  pass "fm-control relaunch: a codex task whose session ended on its usage limit is relaunched on claude and marked"
+}
+
+test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs() {
+  local dir out rc route_fallback
+  dir=$(new_case codexlimitpairs rl79)
+  add_ship_task "$dir" rl79 codex
+  codex_limit_session "$dir" rl79
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"review","use":{"harness":"claude","model":"opus","effort":"high"}}],"default":[{"harness":"codex"},{"harness":"claude","model":"sonnet","effort":"medium"}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'codex' > "$dir/fake/command"
+  out=$(run_control "$dir" rl79 relaunch --note "codex hit its usage limit"); rc=$?
+  expect_code 0 "$rc" "a usage-limit route to claude must not be refused by the claude dispatch pairs"$'\n'"$out"
+  assert_contains "$out" "relaunched rl79 harness=claude from=codex" "the outcome should name the claude replacement"
+  [ "$(meta_field "$dir" rl79 model)" = default ] || fail "the claude replacement should run the default model, got '$(meta_field "$dir" rl79 model)'"
+  [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "the claude replacement should run at xhigh, got '$(meta_field "$dir" rl79 effort)'"
+  route_fallback=$(meta_field "$dir" rl79 route_fallback)
+  out=$(run_control "$dir" rl79 relaunch --note "continue on the fallback profile"); rc=$?
+  expect_code 0 "$rc" "an ordinary relaunch must keep the recorded fallback pair"$'\n'"$out"
+  assert_contains "$out" "relaunched rl79 harness=claude from=claude model=default effort=xhigh" "the next relaunch must keep the fallback profile"
+  [ "$route_fallback" = 1 ] || fail "the first routed launch must record its fallback profile"
+  [ "$(meta_field "$dir" rl79 harness)" = claude ] || fail "the next relaunch must keep claude"
+  [ "$(meta_field "$dir" rl79 model)" = default ] || fail "the next relaunch must keep the default model"
+  [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "the next relaunch must keep xhigh"
+  [ "$(meta_field "$dir" rl79 route_fallback)" = 1 ] || fail "keeping the fallback pair must carry its provenance"
+
+  out=$(run_control "$dir" rl79 relaunch --effort high --note "request an unmatched pair"); rc=$?
+  expect_code 1 "$rc" "fallback provenance must not exempt a different pair"$'\n'"$out"
+  assert_contains "$out" "matches no dispatch profile" "an unmatched change must still refuse"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "the unmatched change must not stop the agent"
+  [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "a refusal must keep the recorded fallback pair"
+
+  out=$(run_control "$dir" rl79 relaunch --model opus --effort high --note "choose a named profile"); rc=$?
+  expect_code 0 "$rc" "an explicit named pair must still relaunch"$'\n'"$out"
+  [ "$(meta_field "$dir" rl79 model)" = opus ] || fail "the explicit model must be recorded"
+  [ "$(meta_field "$dir" rl79 effort)" = high ] || fail "the explicit effort must be recorded"
+  [ -z "$(meta_field "$dir" rl79 route_fallback)" ] || fail "choosing another pair must clear fallback provenance"
+  pass "fm-control relaunch: a routed fallback pair survives the next relaunch and only that pair is exempt"
+}
+
+test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude() {
+  local dir out rc
+  dir=$(new_case codexmarked rl74)
+  add_ship_task "$dir" rl74 codex
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":[{"harness":"codex"},{"harness":"claude","model":"sonnet","effort":"medium"}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'codex run for rl74 hit its usage limit\n' > "$dir/home/state/rl74.codex-limit"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl74 --relaunch)
+  assert_contains "$out" "spawned rl74 harness=claude" "a marked codex task must relaunch on claude"$'\n'"$out"
+  [ "$(meta_field "$dir" rl74 harness)" = claude ] || fail "the record should name claude, got '$(meta_field "$dir" rl74 harness)'"
+  [ "$(meta_field "$dir" rl74 effort)" = xhigh ] || fail "the claude replacement should run at xhigh"
+  [ "$(meta_field "$dir" rl74 route_fallback)" = 1 ] || fail "the direct fallback must record its provenance"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl74 --relaunch); rc=$?
+  expect_code 0 "$rc" "the direct relaunch must keep its fallback pair"$'\n'"$out"
+  [ "$(meta_field "$dir" rl74 model)" = default ] || fail "a fallback pair must not adopt the file's single model"
+  [ "$(meta_field "$dir" rl74 effort)" = xhigh ] || fail "a fallback pair must not adopt the file's single effort"
+  [ "$(meta_field "$dir" rl74 route_fallback)" = 1 ] || fail "the direct relaunch must carry fallback provenance"
+
+  printf 'zsh' > "$dir/fake/command"
+  out=$(FM_CONTROL_ROUTE_FALLBACK=1 run_spawn "$dir" rl74 --relaunch --effort high); rc=$?
+  expect_code 0 "$rc" "a changed pair must still adopt the single file pair"$'\n'"$out"
+  [ "$(meta_field "$dir" rl74 model)" = sonnet ] || fail "the fallback must not count as another adoption candidate"
+  [ "$(meta_field "$dir" rl74 effort)" = medium ] || fail "the adopted effort must be recorded"
+  [ -z "$(meta_field "$dir" rl74 route_fallback)" ] || fail "adopting another pair must clear provenance and ignore an untrusted control handoff"
+  pass "fm-spawn --relaunch: fallback pairs survive relaunch and do not change single-pair adoption"
+}
+
+test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched() {
+  local dir out rc
+  dir=$(new_case cursorroute rl75)
+  add_ship_task "$dir" rl75 cursor
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"review","use":{"harness":"codex","model":"gpt-5","effort":"high"}}],"default":[{"harness":"cursor"},{"harness":"codex","model":"gpt-5","effort":"medium"}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'cursor-agent' > "$dir/fake/command"
+  printf 'codex' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl75 relaunch --note "cursor pool unknown"); rc=$?
+  expect_code 0 "$rc" "relaunching a cursor task with no usage evidence should succeed"$'\n'"$out"
+  assert_contains "$out" "relaunched rl75 harness=codex from=cursor" "the outcome should name the harness actually launched"
+  [ "$(meta_field "$dir" rl75 harness)" = codex ] || fail "the record should name codex, got '$(meta_field "$dir" rl75 harness)'"
+  [ "$(journal_field "$dir" rl75 to_harness)" = codex ] || fail "the journal should name the harness actually launched, got '$(journal_field "$dir" rl75 to_harness)'"
+  assert_contains "$(cat "$dir/home/state/rl75.cursor-fallback" 2>/dev/null)" "no Cursor spending file" "the fallback reason should be recorded"
+  [ "$(meta_field "$dir" rl75 route_fallback)" = 1 ] || fail "the Cursor fallback must record its provenance"
+  out=$(run_control "$dir" rl75 relaunch --note "continue on codex"); rc=$?
+  expect_code 0 "$rc" "a Cursor fallback pair must remain eligible on codex"$'\n'"$out"
+  assert_contains "$out" "relaunched rl75 harness=codex from=codex model=default effort=xhigh" "the next relaunch must keep the Cursor fallback pair"
+  [ "$(meta_field "$dir" rl75 route_fallback)" = 1 ] || fail "the next relaunch must carry Cursor fallback provenance"
+  pass "fm-control relaunch: a cursor fallback records the actual harness and keeps its pair on the next relaunch"
+}
+
+test_explicit_override_of_a_cursor_task_is_recorded() {
+  local dir out rc
+  dir=$(new_case cursoroverride rl76)
+  add_ship_task "$dir" rl76 cursor
+  printf 'cursor-agent' > "$dir/fake/command"
+  printf 'grok' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl76 relaunch --harness grok --note "operator moved it"); rc=$?
+  expect_code 0 "$rc" "an explicit override relaunch should succeed"$'\n'"$out"
+  [ "$(meta_field "$dir" rl76 harness)" = grok ] || fail "the explicit harness must be kept"
+  [ "$(cat "$dir/home/state/rl76.cursor-fallback" 2>/dev/null)" = "explicit --harness grok override of a recorded cursor task" ] \
+    || fail "fm-control relaunch must record an explicit override of a cursor task: $(cat "$dir/home/state/rl76.cursor-fallback" 2>&1)"
+
+  dir=$(new_case cursoroverridespawn rl77)
+  add_ship_task "$dir" rl77 cursor
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl77 --relaunch --harness grok)
+  assert_contains "$out" "spawned rl77 harness=grok" "the explicit harness must be kept"$'\n'"$out"
+  [ "$(cat "$dir/home/state/rl77.cursor-fallback" 2>/dev/null)" = "explicit --harness grok override of a recorded cursor task" ] \
+    || fail "fm-spawn --relaunch must record an explicit override of a cursor task: $(cat "$dir/home/state/rl77.cursor-fallback" 2>&1)"
+  pass "an explicit --harness relaunch of a cursor task is kept and recorded in state/<id>.cursor-fallback"
+}
+
+test_spawn_relaunch_keeps_the_recorded_profile_axes() {
+  local dir out
+  dir=$(new_case spawnprofile rl78)
+  add_ship_task "$dir" rl78 claude
+  sed 's/^model=default$/model=opus/; s/^effort=default$/effort=high/' \
+    "$dir/home/state/rl78.meta" > "$dir/home/state/rl78.meta.tmp"
+  mv "$dir/home/state/rl78.meta.tmp" "$dir/home/state/rl78.meta"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl78 --relaunch)
+  assert_contains "$out" "spawned rl78 harness=claude" "the relaunch should keep the recorded harness"$'\n'"$out"
+  [ "$(meta_field "$dir" rl78 model)" = opus ] || fail "an omitted --model must keep the recorded model, got '$(meta_field "$dir" rl78 model)'"
+  [ "$(meta_field "$dir" rl78 effort)" = high ] || fail "an omitted --effort must keep the recorded effort, got '$(meta_field "$dir" rl78 effort)'"
+  pass "fm-spawn --relaunch: omitted --model and --effort keep the recorded axes"
 }
 
 # --- 3 and 4. refusals before the agent is touched ---------------------------
@@ -2529,6 +3184,7 @@ SH
   pass "fm-control exit removes the dialog file before it releases the control lock"
 }
 
+test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
@@ -2562,11 +3218,35 @@ test_secondmate_relaunch_onto_a_crewmate_only_adapter_refuses_before_stop
 test_explicit_secondmate_harness_ignores_configured_profile_axes
 test_ship_relaunch_ignores_the_crew_harness_config
 test_spawn_relaunch_without_a_harness_reuses_the_recorded_one
+test_spawn_relaunch_adopts_the_single_dispatch_pair
+test_spawn_relaunch_refuses_when_the_file_offers_two_pairs
+test_relaunch_refuses_an_ambiguous_dispatch_pair_before_the_agent_stops
+test_relaunch_journal_records_the_adopted_dispatch_pair
+test_relaunch_refuses_an_unknown_adopted_effort_before_the_agent_stops
+test_spawn_relaunch_refuses_an_unknown_adopted_effort
+test_relaunch_keeps_the_prestop_pair_when_dispatch_changes
+test_spawn_relaunch_with_explicit_axes_still_adopts_the_file_pair
+test_relaunch_validates_the_adopted_profile_before_the_agent_stops
+test_relaunch_preserves_explicit_default_resets
+test_relaunch_refuses_unmatched_partial_resets_before_stopping
+test_relaunch_default_resets_without_named_dispatch_profiles
+test_spawn_relaunch_without_profile_flags_inherits_the_recorded_pair
+test_spawn_rejects_fresh_default_resets_and_empty_profile_values
+test_relaunch_refuses_an_unreadable_dispatch_file_before_the_agent_stops
 test_spawn_relaunch_of_promoted_scout_uses_the_recorded_branch
 test_promoted_scout_relaunch_receives_the_current_delivery_contract
 test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_session_binding_is_retired_on_a_harness_switch
+test_raw_relaunch_preserves_retiring_codex_limit_for_later_routes
+test_raw_relaunch_refuses_route_changes_without_replacing_generation
+test_raw_cursor_family_is_kept_when_usage_is_healthy
+test_raw_cursor_override_is_recorded
+test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude
+test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude
+test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched
+test_explicit_override_of_a_cursor_task_is_recorded
+test_spawn_relaunch_keeps_the_recorded_profile_axes
 test_missing_worktree_refuses_before_stopping_anything
 test_missing_instructions_refuse_before_stopping_anything
 test_checkpoint_refusal_leaves_the_record_byte_identical

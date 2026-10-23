@@ -14,9 +14,9 @@
 # charters still use a single `{TASK}` charter fill. Firstmate may adjust other
 # sections when the task genuinely deviates (e.g. working an existing external
 # PR instead of shipping a new one).
-# Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--project <dir>] [--upstream-consent <host>/<owner>/<repo>] [--branch-prefix <prefix>] [--base-branch <branch>] [--forge <none|gerrit|forgejo> [--shape squash]] [--herdr-lab]
-#        fm-brief.sh <task-id> <repo-name> --scout [--base-branch <branch>] [--herdr-lab]
-#        fm-brief.sh <task-id> --secondmate {<project>...|--no-projects}
+# Usage: fm-brief.sh <task-id> <repo-name> --mode <no-mistakes|direct-PR|local-only> [--project <dir>] [--upstream-consent <host>/<owner>/<repo>] [--branch-prefix <prefix>] [--base-branch <branch>] [--forge <none|gerrit|forgejo> [--shape squash]] [--herdr-lab] [--decision-owner <endpoint>]
+#        fm-brief.sh <task-id> <repo-name> --scout [--base-branch <branch>] [--herdr-lab] [--decision-owner <endpoint>]
+#        fm-brief.sh <task-id> --secondmate {<project>...|--no-projects} [--decision-owner <endpoint>]
 #   --scout writes the scout contract instead: the deliverable is a report at
 #   data/<task-id>/report.md (no branch, no push, no PR) and the worktree is scratch.
 #   It offers the Lavish review loop only when `fm-bootstrap.sh lavish-compatible`
@@ -81,6 +81,10 @@
 # membership pinned when its watch is armed, because the merge watch follows one
 # change.
 # It defaults to squash on gerrit and is refused without it.
+# --decision-owner names the endpoint responsible for technical hold decisions.
+# It defaults to captain for compatibility; no agent authority is inferred.
+# fm-spawn records the value in decision_owner metadata for hold inheritance.
+#
 # --upstream-consent <host>/<owner>/<repo> records the captain's one-off
 # approval for this one task to publish to that repository when it is
 # firstmate's own upstream. It renders as an `upstream-consent=` token on the
@@ -115,6 +119,9 @@
 # "blocked:": pause for a known wait expected to clear on its own, including
 # the worker's own background work, pipeline or long command; blocked when
 # firstmate must act. The first-sight alert remains; repeats use the long cadence.
+# Ship and scout scaffolds also teach the merge-only pause, marked [awaits=merge]
+# when the worker's one remaining wait is its own PR's merge; status_awaits_merge
+# in bin/fm-classify-lib.sh owns that marker's grammar.
 # Emission-time syntax and legacy unknown-time handling are owned by
 # bin/fm-classify-lib.sh; each scaffold renders the stamp as a literal <epoch>
 # placeholder the worker replaces with a numeric Unix time as it appends, so a
@@ -142,6 +149,10 @@
 # regular file, or text carrying its own "Delivery contract: mode=" line (which
 # a later scout promotion could not outrank), stops the scaffold before
 # anything is written. Secondmate charters never take it.
+# The brief is created exclusively (noclobber, so O_EXCL): of two scaffolds
+# racing for one task - or a scaffold and bin/fm-spawn.sh --queue-start, which
+# scaffolds through this script - exactly one creates it and the other exits 1
+# with nothing written, so that creation is the brief's ownership claim.
 # Refuses to overwrite an existing brief.
 set -eu
 
@@ -175,6 +186,8 @@ IFS= read -r -d '' CREWMATE_PAUSE_INSTRUCTIONS <<EOF || true
    Do not declare active implementation or reasoning as a wait.
    Firstmate may still raise one first-sight alert; the declared wait then uses the existing long recheck cadence instead of repeated possible-wedge alarms.
    When you know when the wait clears, include \`until <YYYY-MM-DDTHH:MMZ>\` (UTC) for a recheck at that time.
+   When the only thing you wait on is your own PR's merge, append \`$PAUSED_VERB [at=<epoch>] [awaits=merge]: {PR url and the step that follows the merge}\` instead.
+   That marker means merge it now: you will push nothing more to that PR and your next step starts after the merge, so never write it while more commits or any other wait remain.
    Follow the resolution rule below when the wait clears, then resume the task.
    Use \`blocked:\` when you are stuck and need help.
 EOF
@@ -206,6 +219,7 @@ fi
 CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 case "$CONFIG" in /*) ;; *) CONFIG="$PWD/$CONFIG" ;; esac
 KIND=ship
+DECISION_OWNER=captain
 HERDR_LAB=0
 NO_PROJECTS=0
 MODE=
@@ -231,6 +245,7 @@ for a in "$@"; do
     esac
     case "$want_value" in
       mode) MODE=$a; MODE_SET=1 ;;
+      decision-owner) DECISION_OWNER=$a ;;
       branch-prefix) BRANCH_PREFIX=$a; BRANCH_PREFIX_SET=1 ;;
       base-branch) BASE_BRANCH=$a; BASE_BRANCH_SET=1 ;;
       forge) FORGE=$a; FORGE_SET=1 ;;
@@ -248,6 +263,8 @@ for a in "$@"; do
     --herdr-lab) HERDR_LAB=1 ;;
     --no-projects) NO_PROJECTS=1 ;;
     --mode) want_value=mode ;;
+    --decision-owner) want_value=decision-owner ;;
+    --decision-owner=*) DECISION_OWNER=${a#--decision-owner=} ;;
     --mode=*) MODE=${a#--mode=}; MODE_SET=1 ;;
     --branch-prefix) want_value="branch-prefix" ;;
     --branch-prefix=*) BRANCH_PREFIX=${a#--branch-prefix=}; BRANCH_PREFIX_SET=1 ;;
@@ -269,6 +286,10 @@ for a in "$@"; do
   esac
 done
 [ -z "$want_value" ] || { echo "error: --$want_value requires a value" >&2; exit 1; }
+if ! [[ "$DECISION_OWNER" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$ ]]; then
+  echo "error: --decision-owner must be an endpoint slug of at most 81 characters" >&2
+  exit 1
+fi
 
 # Ship delivery mode is an explicit per-task decision (AGENTS.md section 7). A
 # missing or invalid value stops the scaffold rather than silently defaulting.
@@ -421,6 +442,19 @@ BRIEF="$DATA/$ID/brief.md"
 [ -e "$BRIEF" ] && { echo "error: $BRIEF already exists" >&2; exit 1; }
 mkdir -p "$DATA/$ID"
 
+# The test above only fails fast. The claim is the write: stdin becomes the
+# brief only if no brief exists when it is opened (header above).
+write_new_brief() {
+  if ! (set -C; cat >"$BRIEF") 2>/dev/null; then
+    if [ -e "$BRIEF" ] || [ -L "$BRIEF" ]; then
+      echo "error: $BRIEF already exists" >&2
+    else
+      echo "error: could not write $BRIEF" >&2
+    fi
+    exit 1
+  fi
+}
+
 ASK_USER_BLOCK=
 if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
   ASK_USER_BLOCK=$(fm_ask_user_escalation_block "$DATA" "$ID")
@@ -505,8 +539,10 @@ else
   PROJECT_CLONES_BODY=$(printf '%s\n' "$SECONDMATE_PROJECTS" | tr ' ' '\n' | sed 's/^/- /')
   PROJECT_CLONES_NOTE="The projects above are local clones for work you supervise; they are not an exclusive ownership claim."
 fi
-cat > "$BRIEF" <<EOF
+write_new_brief <<EOF
 You are a persistent second mate managed by the main firstmate. Work on your own; do not wait for a human.
+
+Decision owner: $DECISION_OWNER
 
 # Charter
 $SECONDMATE_CHARTER
@@ -629,6 +665,7 @@ IFS= read -r -d '' TASK_SECTION <<'EOF' || true
 {FIRSTMATE_SPEC}
 EOF
 TASK_SECTION=${TASK_SECTION%$'\n'}
+TASK_SECTION=$(printf 'Decision owner: %s\n\n%s' "$DECISION_OWNER" "$TASK_SECTION")
 
 # One shared string keeps the ship and scout infrastructure rule identical.
 # Rule 2 governs file edits, so it does not prohibit pool administration.
@@ -673,7 +710,7 @@ if "$SCRIPT_DIR/fm-bootstrap.sh" lavish-compatible >/dev/null 2>&1; then
 else
   LAVISH_LINE='Lavish is unavailable (lavish-axi is missing or below its supported version floor), so deliver your findings as a text report without Lavish, even for a visual deliverable.'
 fi
-cat > "$BRIEF" <<EOF
+write_new_brief <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.
 
 $TASK_SECTION
@@ -702,6 +739,7 @@ The report is the only thing that survives, so anything worth keeping must be in
    copies that URL from your line rather than assembling one.
 $CREWMATE_PAUSE_INSTRUCTIONS
 5. If you hit the same obstacle twice, append \`blocked [at=<epoch>]: {why}\` and stop; firstmate will help.
+   One exception: a no-mistakes daemon reply that misses its deadline (an error containing \`did not reply within\`) is laptop load, not an obstacle. Retry that same call with backoff (1, 2, 4, 8 minutes, then every 10) for up to 60 minutes before you report blocked.
 6. If a decision belongs to a human (product choices, destructive actions),
    append \`needs-decision [at=<epoch>]: {summary of options}\` and stop. Firstmate will reply with the decision.
    A decision or blocker you opened stays open until a \`resolved\` line carrying its exact key lands; a later \`done:\` or \`working:\` line never closes it, even when the answer is what started that work.
@@ -742,9 +780,15 @@ case "$MODE" in
     ;;
 esac
 RULE1=$(fm_ship_rule_one "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH") || exit 1
-DOD=$(fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$FM_HOME" "$FM_ROOT") || exit 1
+# The repo slug comes only from an explicitly passed --project: falling back
+# to the caller's working directory would read the captain's own checkout
+# (usually a firstmate clone) and stamp its CI posture onto any project's
+# brief. No --project means no slug, and the DoD simply carries no skip line.
+REPO_SLUG=
+[ "$PROJECT_DIR_SET" -eq 0 ] || REPO_SLUG=$(fm_dod_repo_slug "$PROJECT_DIR")
+DOD=$(fm_dod_block "$MODE" "$ID" "$BRANCH" "$FORGE" "$BASE_BRANCH" "$UPSTREAM_CONSENT" "$FM_HOME" "$FM_ROOT" "$REPO_SLUG") || exit 1
 
-cat > "$BRIEF" <<EOF
+write_new_brief <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.
 
 $TASK_SECTION
@@ -781,6 +825,7 @@ $RULE1
    turn after it; continue the same stage until a defined \`done:\` gate under Definition of done.
 $CREWMATE_PAUSE_INSTRUCTIONS
 5. If you hit the same obstacle twice, append \`blocked [at=<epoch>]: {why}\` and stop; firstmate will help.
+   One exception: a no-mistakes daemon reply that misses its deadline (an error containing \`did not reply within\`) is laptop load, not an obstacle. Retry that same call with backoff (1, 2, 4, 8 minutes, then every 10) for up to 60 minutes before you report blocked.
 6. If a decision belongs above the implementation worker (product choices, destructive actions),
    append \`needs-decision [at=<epoch>]: {summary of options}\` and stop. Firstmate will reply with the decision.
 $ASK_USER_BLOCK

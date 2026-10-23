@@ -261,8 +261,8 @@ case "${1:-}" in
       esac
       printf '%s\n' "$payload" >> "$D/literal"
       case "$payload" in
-        /exit|/quit) printf 'zsh' > "$D/command" ;;
-        *'encode launch-brief'*) printf 'codex' > "$D/command" ;;
+        /exit|/quit) printf 'zsh' > "$D/command"; rm -f "$D/launched" ;;
+        *'encode launch-brief'*) printf 'codex' > "$D/command"; : > "$D/launched" ;;
       esac
     else
       printf '%s\n' "$payload" >> "$D/keys"
@@ -277,7 +277,10 @@ case "${1:-}" in
       esac
     done
     printf 'fakepane\n'; exit 0 ;;
-  capture-pane) printf '╭────╮\n│    │\n╰────╯\n'; exit 0 ;;
+  capture-pane)
+    printf '╭────╮\n│    │\n╰────╯\n'
+    [ ! -e "$D/launched" ] || printf '%s\n' '• Working (1s • esc to interrupt)'
+    exit 0 ;;
   list-windows) [ -f "$D/windows" ] && cat "$D/windows"; exit 0 ;;
 esac
 exit 0
@@ -325,7 +328,7 @@ test_relaunch_rebuilds_the_switch() {
 
     mkdir -p "$dir/user-home"
     out=$(env PATH="$dir/fakebin:$PATH" FM_HOME="$home" FM_FAKE_DIR="$dir/fake" \
-      HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' FM_SPAWN_NO_GUARD=1 \
+      HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' CODEX_HOME='' FM_SPAWN_NO_GUARD=1 \
       FM_CONTROL_POLL=0.01 FM_CONTROL_EXIT_WAIT=0.05 FM_CONTROL_LAUNCH_WAIT=0.05 \
       "$CONTROL" "$id" relaunch --note 'replacement continues the same task' 2>&1)
     status=$?

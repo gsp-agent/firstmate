@@ -21,6 +21,10 @@
 # distinct in queue presentation. The outcome is published before the marker
 # is committed, so a failed commit stays eligible for at-least-once retry and
 # may rarely duplicate rather than leave a merge silent.
+# A live PM instead receives a non-completion event in the task status stream
+# its waiter already watches, before the marker is committed. Replaying an old
+# marker repairs a missing PM event. Publication is a handoff to the existing
+# owner for activation and live verification, never proof those steps finished.
 #
 # Sourced by bin/fm-pr-merge.sh, bin/fm-watch.sh, and tests. No side effects on
 # source beyond its sourced libraries.
@@ -33,6 +37,33 @@ _FM_MERGE_OUTCOME_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC2034 # Public result consumed by sourcing callers.
 FM_MERGE_OUTCOME_ALREADY_RECORDED=false
+
+# Called under the merge-notification lock. The task metadata lock protects
+# the PR/incarnation read and status append from teardown or a replacement.
+# Reuse the canonical PR and generation readers; neither an old PR nor an
+# ambiguous task record may announce work against the current task.
+fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url>
+  local state=$1 id=$2 url=$3 meta lock generation line rc=0
+  meta="$state/$id.meta"
+  lock=$(fm_meta_lock_path "$meta") || return 1
+  fm_lock_acquire_wait "$lock" || return 1
+  if ! command -v fm_backlog_meta_spawn_gen_optional >/dev/null 2>&1; then
+    # shellcheck source=bin/fm-backlog-transition-lib.sh
+    . "$_FM_MERGE_OUTCOME_LIB_DIR/fm-backlog-transition-lib.sh"
+  fi
+  if ! fm_pr_metadata_identity_parse "$meta" \
+    || [ "$FM_PR_META_URL" != "$url" ] \
+    || ! fm_backlog_meta_spawn_gen_optional "$meta" "$state"; then
+    printf 'error: merge handoff for %s has missing, changed, or ambiguous task/PR identity\n' "$id" >&2
+    rc=1
+  else
+    generation=${FM_BACKLOG_META_SPAWN_GEN:-legacy}
+    line="note [key=merged-$id]: merged $id $url spawn_gen=$generation; activation and live verification pending with the existing owner"
+    fm_parent_channel_append_once "$state/$id.status" "$(status_stamp_line "$line")" || rc=1
+  fi
+  fm_lock_release "$lock" || rc=1
+  return "$rc"
+}
 
 # fm_merge_outcome_report <home> <state> <task-id> <pr-url> <origin> [authority]
 #
@@ -58,7 +89,7 @@ fm_merge_outcome_report() {  # <home> <state> <task-id> <pr-url> <origin> [autho
   local home=$1 state=$2 id=$3 url=$4 origin=$5
   local authority=${6-} suffix=
   local self_rc=0 destination='' line lock status=0
-  local provider host path number
+  local provider host path number canonical_url pm_live=false
   # shellcheck disable=SC2034 # Sourced wake helpers consume these scoped globals.
   local STATE FM_WAKE_QUEUE FM_WAKE_QUEUE_LOCK
   FM_MERGE_OUTCOME_ALREADY_RECORDED=false
@@ -74,10 +105,11 @@ fm_merge_outcome_report() {  # <home> <state> <task-id> <pr-url> <origin> [autho
   host=$FM_PR_HOST
   path=$FM_PR_PATH
   number=$FM_PR_NUMBER
+  canonical_url=$FM_PR_URL
   [ -d "$state" ] && [ ! -L "$state" ] || return 1
 
   if destination=$(fm_parent_channel_destination "$home" "$state"); then
-    line="done [key=merged-$id]: merged $id $FM_PR_URL$suffix"
+    line="done [key=merged-$id]: merged $id $canonical_url$suffix"
   else
     self_rc=$?
     [ "$self_rc" -eq 1 ] || return 3
@@ -89,6 +121,15 @@ fm_merge_outcome_report() {  # <home> <state> <task-id> <pr-url> <origin> [autho
   . "$_FM_MERGE_OUTCOME_LIB_DIR/fm-wake-lib.sh"
   lock="$state/$id.pr-poll-merge-notified.lock"
   fm_lock_acquire_wait "$lock" || return 1
+  if fm_pm_live_task "$state" "$id"; then
+    pm_live=true
+    # This must also run for a matching marker written by an older version
+    # that suppressed main without publishing anything the PM could observe.
+    if ! fm_merge_outcome_pm_handoff "$state" "$id" "$canonical_url"; then
+      fm_lock_release "$lock"
+      return 1
+    fi
+  fi
   if fm_pr_poll_merge_already_notified "$state" "$id" \
     "$provider" "$host" "$path" "$number"; then
     # shellcheck disable=SC2034 # Public result consumed by sourcing callers.
@@ -100,16 +141,17 @@ fm_merge_outcome_report() {  # <home> <state> <task-id> <pr-url> <origin> [autho
   if [ -n "$destination" ]; then
     fm_parent_channel_append_once "$destination" "$(status_stamp_line "$line")" || status=1
   fi
-  if [ "$status" -eq 0 ] && { [ "$origin" = poll ] || [ -z "$destination" ]; }; then
-    fm_wake_append check "merged-$id-$FM_PR_URL" \
-      "check: merge landed: $id $FM_PR_URL$suffix" || status=1
+  if [ "$status" -eq 0 ] && { [ "$origin" = poll ] || [ -z "$destination" ]; } \
+    && [ "$pm_live" = false ]; then
+    fm_wake_append check "merged-$id-$canonical_url" \
+      "check: merge landed: $id $canonical_url$suffix" || status=1
   fi
   if [ "$status" -eq 0 ]; then
     fm_pr_poll_merge_mark_notified "$state" "$id" \
       "$provider" "$host" "$path" "$number" || status=1
   fi
-  fm_lock_release "$lock"
+  fm_lock_release "$lock" || status=1
   # Opt-in fleet activity ledger (docs/fleet-ledger.md); off costs one file test.
-  [ ! -e "${FM_CONFIG_OVERRIDE:-$home/config}/fleet-ledger" ] || [ "$status" -ne 0 ] || FM_HOME=$home FM_STATE_OVERRIDE=$state "$_FM_MERGE_OUTCOME_LIB_DIR/fm-fleet-ledger.sh" merged "$id" pr "$FM_PR_URL" || true
+  [ ! -e "${FM_CONFIG_OVERRIDE:-$home/config}/fleet-ledger" ] || [ "$status" -ne 0 ] || FM_HOME=$home FM_STATE_OVERRIDE=$state "$_FM_MERGE_OUTCOME_LIB_DIR/fm-fleet-ledger.sh" merged "$id" pr "$canonical_url" || true
   return "$status"
 }

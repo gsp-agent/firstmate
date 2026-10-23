@@ -126,6 +126,11 @@ row_state() {  # <case-dir> <id>
     sed -n 's/^  state: *//p' | head -1
 }
 
+row_field() {  # <case-dir> <id> <field>
+  tasks-axi show "$2" --file "$(backlog_of "$1")" 2>/dev/null |
+    sed -n "s/^  $3: *//p" | head -1
+}
+
 configure_env_backend_tasks_axi() {  # <case-dir>
   local case_dir=$1
   rm -f "$(backlog_of "$case_dir")"
@@ -489,7 +494,9 @@ SH
 
 interrupt_kimi_readiness() {  # <case-dir>
   local case_dir=$1 home
-  home=$(home_of "$case_dir")
+  # run_spawn's HOME is the case's throwaway user-home, where the Kimi
+  # turn-end hook looks for its config.
+  home="$case_dir/user-home"
   mkdir -p "$home/.kimi-code"
   printf '# test config\n' > "$home/.kimi-code/config.toml"
   fm_fake_exit0 "$case_dir/fakebin" kimi
@@ -511,6 +518,61 @@ case "\${1:-}" in
     printf 'shell starting\\n$ \\n'
     exit 0
     ;;
+esac
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/tmux"
+}
+
+# TERM the spawn as its launch command reaches the pane, when a worker may
+# already be starting. The stub signals the top-most fm-spawn.sh ancestor, the
+# spawn itself rather than one of its subshells.
+interrupt_spawn_at_launch_send() {  # <case-dir>
+  local case_dir=$1
+  cat > "$case_dir/fakebin/tmux" <<SH
+#!/usr/bin/env bash
+case "\$*" in *"#{pane_current_path}"*) printf '%s\\n' "\${FM_FAKE_PANE_PATH:-}"; exit 0 ;; esac
+case "\${1:-}" in
+  display-message) printf 'firstmate\\n'; exit 0 ;;
+  send-keys)
+    case "\$*" in
+      *"/launch."*".sh'"*)
+        if [ ! -f "$case_dir/launch-interrupted" ]; then
+          : > "$case_dir/launch-interrupted"
+          pid=\$PPID
+          spawn_pid=
+          while [ -n "\$pid" ] && [ "\$pid" -gt 1 ]; do
+            case "\$(ps -o command= -p "\$pid" 2>/dev/null)" in *bin/fm-spawn.sh*) spawn_pid=\$pid ;; esac
+            pid=\$(ps -o ppid= -p "\$pid" 2>/dev/null | tr -d ' ')
+          done
+          [ -z "\$spawn_pid" ] || kill -TERM "\$spawn_pid"
+        fi
+        ;;
+    esac
+    ;;
+esac
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/tmux"
+}
+
+# A Kimi launch whose readiness is never confirmed: the spawn fails after its
+# launch was sent, and the fake endpoint is never closed.
+kimi_never_ready() {  # <case-dir>
+  local case_dir=$1 home
+  home="$case_dir/user-home"
+  mkdir -p "$home/.kimi-code"
+  printf '# test config\n' > "$home/.kimi-code/config.toml"
+  fm_fake_exit0 "$case_dir/fakebin" kimi
+  cat > "$case_dir/fakebin/tmux" <<'SH'
+#!/usr/bin/env bash
+case "$*" in
+  *"#{pane_current_path}"*) printf '%s\n' "${FM_FAKE_PANE_PATH:-}"; exit 0 ;;
+  *"#{cursor_y}"*) printf '1\n'; exit 0 ;;
+esac
+case "${1:-}" in
+  display-message) printf 'firstmate\n'; exit 0 ;;
+  capture-pane) printf 'shell starting\n$ \n'; exit 0 ;;
 esac
 exit 0
 SH
@@ -1504,6 +1566,48 @@ test_deferred_signal_verification_outlives_an_unresponsive_tasks_axi() {
   pass "a signal-deferred spawn bounds its verification so an unresponsive tasks-axi cannot hold the meta lock forever"
 }
 
+test_dispatch_interrupted_at_launch_send_still_commits() {
+  local case_dir id out rc=0
+  id=atomic-dispatch-launch-signal-b5
+  case_dir=$(make_home dispatch-launch-signal "$id")
+  add_item "$case_dir" "$id"
+  interrupt_spawn_at_launch_send "$case_dir"
+
+  out=$(run_ship_spawn "$case_dir" "$id") || rc=$?
+  assert_present "$case_dir/launch-interrupted" "the fixture never interrupted the launch send"
+  [ "$rc" -ne 0 ] || fail "a spawn interrupted at its launch send reported success"
+  [ "$(row_state "$case_dir" "$id")" = in_flight ] \
+    || fail "a spawn interrupted as its launch was sent left its backlog row $(row_state "$case_dir" "$id"), so a retry would start a second worker: $out"
+  assert_present "$(home_of "$case_dir")/state/$id.meta" \
+    "a spawn interrupted as its launch was sent removed the record of a worker that may be running"
+  assert_contains "$out" "interrupted after launch delivery began" \
+    "a spawn interrupted at its launch send did not report the deferred signal"
+  pass "a spawn interrupted as its launch is sent defers the signal and still moves its item In flight"
+}
+
+test_dispatch_holds_a_launched_item_whose_window_stays_open() {
+  local case_dir home id out rc=0
+  id=atomic-dispatch-launched-hold-b5
+  case_dir=$(make_home dispatch-launched-hold "$id")
+  home=$(home_of "$case_dir")
+  add_item "$case_dir" "$id"
+  kimi_never_ready "$case_dir"
+
+  out=$(HOME="$home" FM_KIMI_READY_POLLS=2 FM_KIMI_POLL_INTERVAL=0 \
+    run_spawn "$case_dir" "$id" "$case_dir/project" --harness kimi \
+      --mode no-mistakes --yolo off) || rc=$?
+  [ "$rc" -ne 0 ] || fail "a spawn whose Kimi readiness never came reported success"
+  assert_absent "$home/state/$id.meta" "a failed launch kept its provisional record"
+  [ "$(row_state "$case_dir" "$id")" = queued ] \
+    || fail "a failed launch committed its item: $(row_state "$case_dir" "$id")"
+  [ "$(row_field "$case_dir" "$id" held)" = yes ] \
+    || fail "a spawn that failed after sending its launch, its window still open, left the item ready for a retry that would start a second worker: $out"
+  [ "$(row_field "$case_dir" "$id" hold_kind)" = captain ] \
+    || fail "the launched item was not held for the captain: $(row_field "$case_dir" "$id" hold_kind)"
+  assert_contains "$out" "held for the captain" "the spawn did not say it held the launched item"
+  pass "a spawn that fails after sending its launch, with its window open, holds the item for the captain"
+}
+
 test_dispatch_interruption_during_kimi_readiness_fails_before_commit() {
   local case_dir home id out rc=0
   id=atomic-dispatch-kimi-readiness-signal-b5
@@ -1520,7 +1624,9 @@ test_dispatch_interruption_during_kimi_readiness_fails_before_commit() {
     "Kimi readiness interruption retained an unconfirmed task record"
   [ "$(row_state "$case_dir" "$id")" = queued ] \
     || fail "Kimi readiness interruption committed unconfirmed work In flight: $out"
-  pass "Kimi readiness interruptions fail before backlog commit"
+  [ "$(row_field "$case_dir" "$id" held)" = yes ] \
+    || fail "Kimi readiness interruption left a launched item ready for a duplicate start: $out"
+  pass "Kimi readiness interruptions fail before backlog commit and hold the launched item"
 }
 
 test_dispatch_does_not_resurrect_a_row_closed_after_preflight() {
@@ -1694,8 +1800,8 @@ test_space_containing_scout_report_marker_replays() {
   out=$(FM_DATA_OVERRIDE="$data" run_teardown "$case_dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "space-path scout teardown unexpectedly completed"
   assert_present "$marker" "space-path scout teardown recorded no pending close"
-  assert_absent "$(home_of "$case_dir")/state/$id.meta" \
-    "space-path scout teardown retained meta after recording its close"
+  assert_present "$(home_of "$case_dir")/state/$id.meta" \
+    "failed space-path scout close removed the task's recovery protection"
   rm -f "$case_dir/fakebin/tasks-axi"
 
   out=$(FM_DATA_OVERRIDE="$data" run_bootstrap "$case_dir")
@@ -1704,6 +1810,8 @@ test_space_containing_scout_report_marker_replays() {
   assert_grep "data/$id/report.md" "$backlog" \
     "report path from a space-containing data directory was lost during replay"
   assert_absent "$marker" "space-containing report marker remained after replay"
+  assert_absent "$(home_of "$case_dir")/state/$id.meta" \
+    "successful space-path scout replay retained the task record"
   pass "space-containing scout report paths round-trip through recovery"
 }
 
@@ -1788,8 +1896,8 @@ test_completion_preserves_records_when_meta_removal_fails() {
     "teardown did not report task-record removal failure"
   assert_present "$meta" "teardown lost meta after its removal failed"
   assert_present "$marker" "teardown discarded recovery after meta removal failed"
-  [ "$(row_state "$case_dir" "$id")" = in_flight ] \
-    || fail "teardown closed the row before verifying meta removal"
+  [ "$(row_state "$case_dir" "$id")" = "done" ] \
+    || fail "teardown lost the successful backlog close while retaining task protection"
   pass "completion preserves recovery state when task-record removal fails"
 }
 
@@ -2133,8 +2241,8 @@ test_recovery_retry_preserves_incomplete_cleanup_warning() {
   break_verb "$case_dir" show
 
   out=$(run_bootstrap "$case_dir")
-  assert_absent "$home/state/$id.meta" \
-    "failed replay did not cross the task-record removal boundary"
+  assert_present "$home/state/$id.meta" \
+    "failed replay removed the task's recovery protection"
   assert_present "$marker" "failed replay discarded its pending close"
   rm -f "$case_dir/fakebin/tasks-axi"
 
@@ -2211,8 +2319,8 @@ test_recovery_preserves_both_records_when_meta_removal_fails() {
   assert_present "$meta" "failed recovery removed the task record"
   assert_present "$(home_of "$case_dir")/state/$id.backlog-close" \
     "failed recovery discarded the pending close"
-  [ "$(row_state "$case_dir" "$id")" = in_flight ] \
-    || fail "failed recovery closed the backlog before removing meta"
+  [ "$(row_state "$case_dir" "$id")" = "done" ] \
+    || fail "failed meta removal lost the successful backlog close"
 
   rm -f "$case_dir/fakebin/rm"
   out=$(run_bootstrap "$case_dir")
@@ -3089,6 +3197,8 @@ test_fm_tasks_axi_fallback_bounds_the_call_without_a_timeout_binary
 test_fm_tasks_axi_fallback_passes_the_child_status_and_output_through
 test_fm_tasks_axi_fails_closed_when_nothing_can_bound_the_call
 test_fm_tasks_axi_gnu_timeout_forces_termination_of_a_sigterm_ignoring_child
+test_dispatch_interrupted_at_launch_send_still_commits
+test_dispatch_holds_a_launched_item_whose_window_stays_open
 test_dispatch_interruption_during_kimi_readiness_fails_before_commit
 test_dispatch_does_not_resurrect_a_row_closed_after_preflight
 test_dispatch_fails_when_its_row_vanishes_after_preflight

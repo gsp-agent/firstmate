@@ -259,6 +259,15 @@ Another parent with the same presentation label does not prevent publication or 
 The token is visible in the workspace title, because Herdr exposes no verified hidden persistent field.
 Neither token, title, nor journal authorizes send, capture, task ownership, Treehouse return, or general recovery.
 
+A presentation failure never refuses a spawn.
+When journal publication, launcher identity verification, or projected workspace creation fails, the spawn logs a warning and continues in the ordinary flat layout without its projection.
+A failed create cleans up only the exact panes its complete response proved safe to close.
+Its attempt journal is retired once no workspace label carries its token, and otherwise stays quarantined for the session-start sweep.
+
+A version 1 journal with no task record beside it is a dead attempt, because no worker ever launched from it.
+A later spawn continues flat instead of refusing, and retires that journal only once no workspace carries its token; while its token workspace is present or unproven, the journal stays quarantined for the session-start sweep, which finds that workspace only through it.
+A journal beside a task record keeps the stricter recovery path: exact endpoint death must be proven before a flat fallback, and a live or unverifiable pane still refuses a duplicate launch.
+
 ### Owning parent and tabs
 
 The owning parent is the launcher's own exact workspace, resolved from the same identity the flat path uses.
@@ -402,7 +411,7 @@ Locked session start has one narrower cleanup for a restored projected child tha
 It runs only when the current home has at least one ordinary presentation journal, and it considers only that home.
 A primary never recursively sweeps a secondmate home.
 
-Discovery starts from the exact current `└ <concise-task> · p:<22-character-token>` grammar, but a title or token alone is never mutation authority.
+Discovery matches all workspaces with the exact current `└ <concise-task> · p:<22-character-token>` grammar against one snapshot pass over the home's journals, but a title or token alone is never mutation authority.
 A candidate must meet all of these conditions:
 
 - The title must contain exactly one token occurrence across the named-session snapshot.
@@ -418,7 +427,7 @@ Firstmate then cleans up the candidate in this order:
 3. Require one unambiguous non-target focus and the exact title, token, tab, and pane shape.
 4. Positively confirm no registered agent.
 5. Read Herdr's process information for the exact named-session pane and apply the process proof below.
-6. Immediately revalidate the same journal, metadata absence, workspace title and token uniqueness, one-tab and one-pane topology, exact pane relationship, absent agent, process proof, and non-target focus.
+6. Immediately revalidate the same unique journal, metadata absence, workspace title and token uniqueness, one-tab and one-pane topology, exact pane relationship, absent agent, process proof, and non-target focus.
 7. Call the existing exact-pane focus-preserving close helper.
    It closes only that pane, never a workspace.
 8. Retire the matching journal only after the exact pane is positively confirmed gone.
@@ -480,7 +489,7 @@ Any of these preserves the candidate and lets session startup continue with at m
 | Test | What it covers |
 | --- | --- |
 | `tests/fm-backend-herdr-presentation-e2e.test.sh` | Multi-home ordering, concurrency, lock contention, legacy coexistence, focus preservation, exact same-identity restart replacement, ambiguous bindings and tokens, and exact-pane cleanup through the guarded lab path. |
-| `tests/fm-herdr-session-cleanup.test.sh` | Every discovery, ownership, topology, process, locking, revalidation, focus, retirement, and continue-on-error boundary. |
+| `tests/fm-herdr-session-cleanup.test.sh` | Batch-matching call counts, journal collisions introduced after discovery, and every discovery, ownership, topology, process, locking, revalidation, focus, retirement, and continue-on-error boundary. |
 | `tests/fm-herdr-session-cleanup-e2e.test.sh` | The restored-shell cleanup in a guarded non-default named lab. |
 | `tests/fm-backend-herdr-focus-flash-e2e.test.sh` | Reproduces the raw explicit-close focus steal on the installed release, and proves the focus-safe emptying-close plan removes a doomed workspace with no wrong-focus interval. |
 | `tests/fm-backend-herdr-stale-active-tab-e2e.test.sh` | Proves a persisted-focused tab still closes when no foreground client is attached. |

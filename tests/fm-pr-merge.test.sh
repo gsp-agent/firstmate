@@ -185,12 +185,37 @@ case "${1:-} ${2:-}" in
   "pr view")
     case " $* " in
       *statusCheckRollup*)
+        if [ -f "$FM_TEST_GH_VIEW_JSON.rollup" ]; then
+          jq -c --arg fields "${!#}" \
+            'with_entries(select(.key as $key | $fields | split(",") | index($key)))' \
+            "$FM_TEST_GH_VIEW_JSON.rollup"
+          exit $?
+        fi
+        if [ -n "${FM_TEST_GH_MERGEABLE_SEQUENCE:-}" ]; then
+          call_n=$(cat "$FM_TEST_GH_MERGEABLE_CALLS" 2>/dev/null || echo 0)
+          call_m=$(sed -n "${call_n}p" "$FM_TEST_GH_MERGEABLE_SEQUENCE")
+          [ -n "$call_m" ] || call_m=$(tail -n1 "$FM_TEST_GH_MERGEABLE_SEQUENCE")
+          # The cheap read already consumed this line. A second word is the
+          # conclusion observed once the pull request is otherwise mergeable.
+          read -r _call_m call_c <<< "$call_m"
+          if [ -n "${call_c:-}" ]; then
+            jq -c --arg c "$call_c" \
+              '.statusCheckRollup[0].conclusion = $c' \
+              "$FM_TEST_GH_VIEW_JSON"
+          else
+            cat "$FM_TEST_GH_VIEW_JSON"
+          fi
+        else
+          cat "$FM_TEST_GH_VIEW_JSON"
+        fi
+        exit 0
+        ;;
+      *mergeable*|*mergeStateStatus*)
         if [ -n "${FM_TEST_GH_MERGEABLE_SEQUENCE:-}" ]; then
           call_n=$(( $(cat "$FM_TEST_GH_MERGEABLE_CALLS" 2>/dev/null || echo 0) + 1 ))
           printf '%s\n' "$call_n" > "$FM_TEST_GH_MERGEABLE_CALLS"
           call_m=$(sed -n "${call_n}p" "$FM_TEST_GH_MERGEABLE_SEQUENCE")
           [ -n "$call_m" ] || call_m=$(tail -n1 "$FM_TEST_GH_MERGEABLE_SEQUENCE")
-          # An optional second word overrides the first check's conclusion.
           read -r call_m call_c <<< "$call_m"
           jq -c --arg m "$call_m" --arg c "${call_c:-}" \
             '.mergeable = $m | if $c != "" then .statusCheckRollup[0].conclusion = $c else . end' \
@@ -255,6 +280,13 @@ case "${1:-} ${2:-}" in
     # The required-check reads: the branch itself, and its rules read without
     # the merge-queue filter the queue reader below applies.
     case " $* " in
+      *" repos/"*"/pulls/"*"/reviews"*)
+        # The approval at the head this mock reports, which every merge without
+        # --attended-override requires (bin/fm-pr-merge.sh's reviewer rule).
+        printf '[{"user":{"login":"carmanchip23-dev"},"state":"APPROVED","commit_id":"%s"}]\n' \
+          "$(cat "$FM_TEST_GH_HEAD")"
+        exit 0
+        ;;
       *" repos/"*"/commits/"*"/check-runs"*)
         case "$*" in
           *"/commits/$(cat "$FM_TEST_GH_HEAD")/check-runs"*) ;;
@@ -877,8 +909,10 @@ test_github_mergeable_unknown_retries_then_succeeds() {
   set -e
 
   expect_code 0 "$rc" "github-mergeable-unknown-then-mergeable: a merge should succeed once mergeable resolves"
-  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")" -eq 2 ] \
-    || fail "github-mergeable-unknown-then-mergeable: expected exactly 2 mergeable reads, got $(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")"
+  [ "$(grep -c '^pr view .*mergeable' "$case_dir/gh.log")" -eq 2 ] \
+    || fail "github-mergeable-unknown-then-mergeable: expected exactly 2 cheap reads, got $(grep -c '^pr view .*mergeable' "$case_dir/gh.log" || true)"
+  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")" -eq 1 ] \
+    || fail "github-mergeable-unknown-then-mergeable: expected the check rollup once mergeable resolved, got $(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log" || true)"
   assert_logged_gh_merge "$case_dir" 83 example/repo --squash
   [ "$(grep -c '^pr merge ' "$case_dir/gh.log")" -eq 1 ] \
     || fail "github-mergeable-unknown-then-mergeable: the wrapper attempted more than one merge"
@@ -909,8 +943,10 @@ test_github_mergeable_unknown_exhausts_bound_and_reports_pending() {
   set -e
 
   expect_code 1 "$rc" "github-mergeable-unknown-exhausted: a mergeable read that never resolves must still fail"
-  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")" -eq 5 ] \
-    || fail "github-mergeable-unknown-exhausted: expected exactly 5 bounded mergeable reads, got $(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")"
+  [ "$(grep -c '^pr view .*mergeable' "$case_dir/gh.log")" -eq 5 ] \
+    || fail "github-mergeable-unknown-exhausted: expected exactly 5 bounded cheap reads, got $(grep -c '^pr view .*mergeable' "$case_dir/gh.log" || true)"
+  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log" || true)" -eq 0 ] \
+    || fail "github-mergeable-unknown-exhausted: an unresolved mergeable read requested the check rollup"
   assert_no_grep 'pr merge' "$case_dir/gh.log" \
     "github-mergeable-unknown-exhausted: a merge was attempted while mergeable never resolved"
   assert_grep "mergeability for https://github.com/example/repo/pull/84 is still being computed by GitHub; retry shortly" \
@@ -927,7 +963,7 @@ test_github_mergeable_unknown_retry_rechecks_checks() {
   case_dir=$(make_case github-mergeable-unknown-check-turns-red)
   mkdir -p "$case_dir/wt"
   add_gh_mocks "$case_dir" "$head"
-  printf '%s\n' UNKNOWN 'UNKNOWN FAILURE' > "$case_dir/mergeable-sequence"
+  printf '%s\n' UNKNOWN 'MERGEABLE FAILURE' > "$case_dir/mergeable-sequence"
   : > "$case_dir/gh-axi.log"
   : > "$case_dir/gh.log"
 
@@ -940,8 +976,10 @@ test_github_mergeable_unknown_retry_rechecks_checks() {
   set -e
 
   expect_code 1 "$rc" "github-mergeable-unknown-check-turns-red: a check that turned red must refuse"
-  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")" -eq 2 ] \
-    || fail "github-mergeable-unknown-check-turns-red: expected exactly 2 reads, got $(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")"
+  [ "$(grep -c '^pr view .*mergeable' "$case_dir/gh.log")" -eq 2 ] \
+    || fail "github-mergeable-unknown-check-turns-red: expected exactly 2 cheap reads, got $(grep -c '^pr view .*mergeable' "$case_dir/gh.log" || true)"
+  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")" -eq 1 ] \
+    || fail "github-mergeable-unknown-check-turns-red: expected the check rollup once the pull request was otherwise mergeable, got $(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log" || true)"
   assert_grep "check 'ci' is not green" "$case_dir/stderr" \
     "github-mergeable-unknown-check-turns-red: the re-check did not refuse the red check"
   assert_no_grep 'still being computed' "$case_dir/stderr" \
@@ -949,6 +987,58 @@ test_github_mergeable_unknown_retry_rechecks_checks() {
   assert_no_grep 'pr merge' "$case_dir/gh.log" \
     "github-mergeable-unknown-check-turns-red: gh pr merge ran after a check turned red"
   pass "fm-pr-merge refuses on the UNKNOWN re-check when a check turned red between reads"
+}
+
+test_github_rollup_requires_the_verified_head() {
+  local case_dir rc head rollup_head variant sequence_file
+  head=4646464646464646464646464646464646464646
+  for variant in changed changed-after-unknown missing same; do
+    case_dir=$(make_case "github-rollup-head-$variant")
+    add_gh_mocks "$case_dir" "$head"
+    write_github_red_json "$case_dir" "$head" lint
+    write_github_required "$case_dir" classic:ci
+    rollup_head=$head
+    sequence_file=''
+    case "$variant" in
+      changed|changed-after-unknown) rollup_head=4747474747474747474747474747474747474747 ;;
+      missing) rollup_head='' ;;
+    esac
+    if [ "$variant" = changed-after-unknown ]; then
+      sequence_file="$case_dir/mergeable-sequence"
+      printf '%s\n' UNKNOWN MERGEABLE > "$sequence_file"
+    fi
+    jq -c --arg head "$rollup_head" '
+      .headRefOid = $head
+      | .statusCheckRollup = [{"__typename":"CheckRun","name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]
+      | if $head == "" then del(.headRefOid) else . end
+    ' "$case_dir/github-view.json" > "$case_dir/github-view.json.rollup"
+
+    set +e
+    FM_TEST_GH_MERGEABLE_SEQUENCE="$sequence_file" \
+    FM_PR_GITHUB_MERGEABLE_RETRY_DELAY=0 \
+      run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/87 \
+      > "$case_dir/stdout" 2> "$case_dir/stderr"
+    rc=$?
+    set -e
+
+    if [ "$variant" = changed-after-unknown ]; then
+      [ "$(grep -c '^pr view .*mergeable' "$case_dir/gh.log")" -eq 2 ] \
+        || fail "rollup-head-$variant: the UNKNOWN retry did not re-read the pull request"
+    fi
+    if [ "$variant" = same ]; then
+      expect_code 0 "$rc" "rollup-head-$variant: checks at the verified head must merge: $(cat "$case_dir/stderr")"
+      assert_logged_gh_merge "$case_dir" 87 example/repo --squash
+    else
+      expect_code 1 "$rc" "rollup-head-$variant: checks without the verified head must refuse"
+      assert_grep "could not verify GitHub pull request checks at head $head" \
+        "$case_dir/stderr" "rollup-head-$variant: the unverified checks were not reported"
+      assert_no_grep 'pr merge' "$case_dir/gh.log" "rollup-head-$variant: unverified checks reached merge"
+      assert_no_grep '^api .*repos/example/repo/branches/' "$case_dir/gh.log" \
+        "rollup-head-$variant: unverified checks reached required-check evaluation"
+      assert_no_grep 'verified: ' "$case_dir/stderr" "rollup-head-$variant: an unverified head was accepted"
+    fi
+  done
+  pass "fm-pr-merge requires the check rollup to belong to the verified head, including after UNKNOWN"
 }
 
 # A real conflict (mergeable=CONFLICTING) is a different condition from GitHub
@@ -972,8 +1062,10 @@ test_github_mergeable_conflicting_is_not_retried() {
   set -e
 
   expect_code 1 "$rc" "github-mergeable-conflicting: a genuine conflict must refuse"
-  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")" -eq 1 ] \
+  [ "$(grep -c '^pr view .*mergeable' "$case_dir/gh.log")" -eq 1 ] \
     || fail "github-mergeable-conflicting: a genuine conflict was retried instead of refused immediately"
+  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log" || true)" -eq 0 ] \
+    || fail "github-mergeable-conflicting: a conflicting pull request requested the check rollup"
   assert_grep 'mergeable is "CONFLICTING", not MERGEABLE' "$case_dir/stderr" \
     "github-mergeable-conflicting: the conflict was not named"
   assert_no_grep 'still being computed' "$case_dir/stderr" \
@@ -2620,6 +2712,111 @@ test_github_still_forwards_sha_arg() {
   pass "fm-pr-merge refuses a caller --sha on GitHub because the head comes from the live read"
 }
 
+# --expect-head <sha> overrides nothing: the live read still decides the head the
+# forge is bound to, and the flag only refuses when that verified head is not the
+# exact one the caller judged.
+test_expect_head_merges_only_the_expected_head() {
+  local case_dir rc head=4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e moved=5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f
+
+  case_dir=$(make_case github-expect-head-match)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$head"
+  : > "$case_dir/gh-axi.log"
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/45 --expect-head "$head" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "expect-head-match: the verified head equals the expected one, so it merges"
+  assert_logged_gh_merge "$case_dir" 45 example/repo --squash
+
+  case_dir=$(make_case github-expect-head-moved)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$moved"
+  : > "$case_dir/gh-axi.log"
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/46 --expect-head "$head" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "expect-head-moved: a verified head other than the expected one must be refused"
+  assert_grep "verified head of https://github.com/example/repo/pull/46 is $moved, not the expected $head" "$case_dir/stderr" \
+    "expect-head-moved: the refusal did not name both heads"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "expect-head-moved: gh pr merge ran for a head the caller did not expect"
+
+  case_dir=$(make_gitlab_case gitlab-expect-head-moved)
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$MR_URL" --expect-head "$MR_STALE_HEAD" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "gitlab-expect-head-moved: a verified head other than the expected one must be refused"
+  assert_grep "is $MR_HEAD, not the expected $MR_STALE_HEAD" "$case_dir/stderr" \
+    "gitlab-expect-head-moved: the refusal did not name both heads"
+  [ -z "$(glab_merge_line "$case_dir/glab.log")" ] \
+    || fail "gitlab-expect-head-moved: glab merged a head the caller did not expect"
+
+  case_dir=$(make_forgejo_case forgejo-expect-head-moved)
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$FJ_URL" --expect-head "$FJ_STALE_HEAD" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "forgejo-expect-head-moved: a verified head other than the expected one must be refused"
+  assert_grep "is $FJ_HEAD, not the expected $FJ_STALE_HEAD" "$case_dir/stderr" \
+    "forgejo-expect-head-moved: the refusal did not name both heads"
+  [ -z "$(tea_merge_line "$case_dir/tea.log")" ] \
+    || fail "forgejo-expect-head-moved: a merge was attempted for a head the caller did not expect"
+  pass "fm-pr-merge --expect-head merges the expected head and refuses a verified head that moved, on every forge"
+}
+
+test_expect_head_requires_one_full_sha() {
+  local case_dir rc value
+  for value in 4e4e4e4e4e4e '' 4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E; do
+    case_dir=$(make_case "github-expect-head-invalid-${#value}")
+    mkdir -p "$case_dir/wt"
+    add_gh_mocks "$case_dir" 4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e
+    set +e
+    run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/47 --expect-head "$value" \
+      > "$case_dir/stdout" 2> "$case_dir/stderr"
+    rc=$?
+    set -e
+    expect_code 2 "$rc" "expect-head-invalid: '$value' is not a full lowercase commit SHA"
+    assert_grep '--expect-head requires the full commit SHA' "$case_dir/stderr" \
+      "expect-head-invalid: the refusal did not name the full-SHA rule for '$value'"
+    assert_no_grep 'pr=https://github.com/example/repo/pull/47' "$case_dir/state/task-x1.meta" \
+      "expect-head-invalid: the URL was recorded before the argument was refused"
+    assert_no_grep 'pr merge' "$case_dir/gh.log" "expect-head-invalid: gh pr merge ran for '$value'"
+  done
+
+  case_dir=$(make_case github-expect-head-equals)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" 4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/48 \
+    --expect-head=4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 2 "$rc" "expect-head-equals: the equals form must be refused"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" "expect-head-equals: gh pr merge ran for the equals form"
+
+  case_dir=$(make_case github-expect-head-twice)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" 4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/49 \
+    --expect-head 4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e --expect-head 5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 2 "$rc" "expect-head-twice: a second expected head must be refused"
+  assert_grep '--expect-head may be specified only once' "$case_dir/stderr" \
+    "expect-head-twice: the refusal did not say single use"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" "expect-head-twice: gh pr merge ran for two expected heads"
+  pass "fm-pr-merge --expect-head takes exactly one full commit SHA, as a separate argument"
+}
+
 # --- durable merge outcome ---------------------------------------------------
 # A merge that lands must leave a record outside the merging agent's memory.
 # bin/fm-merge-outcome-lib.sh owns where that record goes; these cases pin the
@@ -2933,6 +3130,7 @@ test_github_open_unqueued_outcome_refuses
 test_github_mergeable_unknown_retries_then_succeeds
 test_github_mergeable_unknown_exhausts_bound_and_reports_pending
 test_github_mergeable_unknown_retry_rechecks_checks
+test_github_rollup_requires_the_verified_head
 test_github_mergeable_conflicting_is_not_retried
 test_github_unreadable_outcome_keeps_pr_bookkeeping
 test_github_refusal_quotes_the_forge_output
@@ -2965,6 +3163,8 @@ test_explicit_merge_method_not_overridden
 test_method_equals_merge_method_not_overridden
 test_parses_pr_url_for_gh_axi
 test_github_still_forwards_sha_arg
+test_expect_head_merges_only_the_expected_head
+test_expect_head_requires_one_full_sha
 test_gitlab_url_resolves_and_merges
 test_gitlab_host_comes_from_the_url
 test_gitlab_imposes_no_merge_method
@@ -3218,12 +3418,40 @@ test_github_draft_or_unreadable_draft_state_refuses() {
       "github-$label: the draft state was not named"
     assert_no_grep 'pr merge' "$case_dir/gh.log" \
       "github-$label: gh pr merge ran without a non-draft reading"
+    [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log" || true)" -eq 0 ] \
+      || fail "github-$label: a draft refusal requested statusCheckRollup"
     assert_no_grep 'declare a wait instead of done' "$case_dir/stderr" \
       "github-$label: the arm-time draft refusal preempted the merge refusal"
     grep -qxF 'pr=https://github.com/example/repo/pull/82' "$case_dir/state/task-x1.meta" \
       || fail "github-$label: pr= was not recorded before the merge refusal"
   done
   pass "fm-pr-merge refuses a draft pull request and one with no boolean draft state"
+}
+
+test_github_closed_state_refuses_without_check_rollup() {
+  local case_dir rc head
+  head=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+  case_dir=$(make_case github-closed-state)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$head"
+  jq -c '.state = "CLOSED"' "$case_dir/github-view.json" > "$case_dir/github-view.tmp"
+  mv "$case_dir/github-view.tmp" "$case_dir/github-view.json"
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/87 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "github-closed-state: a closed pull request must refuse"
+  assert_grep 'state is "CLOSED", not open' "$case_dir/stderr" \
+    "github-closed-state: the closed state was not named"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "github-closed-state: gh pr merge ran on a closed pull request"
+  [ "$(grep -c '^pr view .*mergeable' "$case_dir/gh.log")" -eq 1 ] \
+    || fail "github-closed-state: expected one cheap read, got $(grep -c '^pr view .*mergeable' "$case_dir/gh.log" || true)"
+  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log" || true)" -eq 0 ] \
+    || fail "github-closed-state: a closed pull request requested statusCheckRollup"
+  pass "fm-pr-merge refuses a closed GitHub pull request without reading its check rollup"
 }
 
 # When the base branch advances, GitHub cancels a pull request's in-flight run
@@ -4207,13 +4435,9 @@ test_red_and_unreported_checks_are_reported_together() {
   add_gh_mocks "$case_dir" "$head"
   write_github_rollup_json "$case_dir" "$head" \
     "$(check_run lint COMPLETED FAILURE)"
-  sed 's/"isDraft":false/"isDraft":true/' "$case_dir/github-view.json" > "$case_dir/view.tmp"
-  mv "$case_dir/view.tmp" "$case_dir/github-view.json"
   write_github_required "$case_dir" classic:lint ruleset:validate
   run_required_case "$case_dir" 92
   expect_code 1 "$RC" "red-and-unreported: must refuse"
-  assert_grep 'the pull request is a draft' "$case_dir/stderr" \
-    "red-and-unreported: the draft condition was dropped"
   assert_grep "check 'lint' is not green" "$case_dir/stderr" \
     "red-and-unreported: the red check was dropped"
   assert_grep "required check 'validate' has not reported" "$case_dir/stderr" \
@@ -4224,7 +4448,11 @@ test_red_and_unreported_checks_are_reported_together() {
     "red-and-unreported: the unreported summary was dropped"
   assert_no_grep 'pr merge' "$case_dir/gh.log" \
     "red-and-unreported: gh pr merge ran"
-  pass "fm-pr-merge reports a red check and an unreported required check together with every other failure"
+  [ "$(grep -c '^pr view .*mergeable' "$case_dir/gh.log")" -eq 1 ] \
+    || fail "red-and-unreported: expected one cheap read"
+  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")" -eq 1 ] \
+    || fail "red-and-unreported: an open mergeable pull request did not read its check rollup"
+  pass "fm-pr-merge reports a red check and an unreported required check together"
 }
 
 test_unreadable_required_set_refuses() {
@@ -4459,6 +4687,7 @@ test_absent_user_backend_config_directory_and_backlog_still_merge
 test_backend_override_bypasses_unreadable_user_config
 test_github_red_checks_refuse_and_allow_red_waives_named
 test_github_draft_or_unreadable_draft_state_refuses
+test_github_closed_state_refuses_without_check_rollup
 test_superseded_failed_check_run_no_longer_refuses
 test_check_runs_never_supersede_status_contexts
 test_current_failed_check_run_still_refuses

@@ -234,6 +234,7 @@ case "${1:-}" in
   display-message) printf 'firstmate\n'; exit 0 ;;
   new-window) printf '%s\n' "@spawnwid"; exit 0 ;;
   list-windows) exit 0 ;;
+  capture-pane) printf '%s\n' '• Working (1s • esc to interrupt)'; exit 0 ;;
   has-session|new-session|send-keys|set-window-option) exit 0 ;;
 esac
 exit 0

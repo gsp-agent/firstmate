@@ -17,6 +17,11 @@ GRANT="$ROOT/bin/fm-wake-grant.sh"
 GUARD="$ROOT/bin/fm-guard.sh"
 
 TMP_ROOT=$(fm_test_tmproot fm-wake-tests)
+bound_home_summary_refresh "$TMP_ROOT"
+# The Claude stores a leaked trust write would land in, read before any test
+# runs; test_liveness_relaunch_trust_write_stays_in_the_sandbox checks them.
+REAL_HOME_CLAUDE_STORE="${HOME:-}/.claude.json"
+REAL_CONFIG_CLAUDE_STORE="${CLAUDE_CONFIG_DIR:-${HOME:-}}/.claude.json"
 
 
 test_concurrent_append_and_drain() {
@@ -3020,7 +3025,7 @@ make_secondmate_liveness_case() {
   # The mate home must sit OUTSIDE the watcher's FM_HOME: fm-spawn.sh refuses
   # a secondmate home nested inside the active home that would supervise it.
   home="$TMP_ROOT/$name-mate"
-  mkdir -p "$dir/state" "$dir/config" "$dir/data" "$fakebin" \
+  mkdir -p "$dir/state" "$dir/config" "$dir/data" "$dir/user-home" "$fakebin" \
     "$home/bin" "$home/data" "$home/state" "$home/config" "$home/projects"
   # A secondmate home is a git checkout: the AI-trailer strip hook refuses a
   # launch whose worktree is not git.
@@ -3078,11 +3083,14 @@ SH
 # The watcher exits 0 on its first wake, so a leg that should wake ends via
 # wait_for_exit and a leg that should stay quiet is polled then killed. The
 # pid lands in LIVENESS_PID - capturing it through $(...) would orphan the
-# watcher and break wait_for_exit's ownership check.
+# watcher and break wait_for_exit's ownership check. A relaunch reaches the real
+# fm-spawn.sh, whose Claude trust write goes to ${CLAUDE_CONFIG_DIR:-$HOME}, so
+# both are pinned to the case for the reason tests/fixtures.sh gives.
 run_liveness_leg() {
   local dir=$1 tag=$2
   shift 2
   env PATH="$dir/fakebin:$PATH" FM_HOME="$dir" FM_ROOT_OVERRIDE="$ROOT" \
+    HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' \
     FM_STATE_OVERRIDE="$dir/state" FM_CREW_STATE_BIN="$dir/fakebin/fm-crew-state.sh" \
     TMUX='' FM_BACKEND=tmux \
     FM_TMUX_CALL_LOG="$dir/tmux.log" FM_SECONDMATE_LIVENESS_SECS=1 \
@@ -3150,6 +3158,30 @@ test_secondmate_liveness_tick_relaunches_dead_endpoint_once() {
   [ "$(grep -c 'secondmate-relaunch-sm1' "$state/.wake-queue" 2>/dev/null || true)" -eq 0 ] \
     || fail "a live post-relaunch probe produced a second wake: $(cat "$state/.wake-queue")"
   pass "watch liveness: a dead secondmate is relaunched once, ledgered, and quiet afterwards"
+}
+
+# A secondmate that relaunches as Claude registers workspace trust for its home.
+# That write must land in the case's own HOME, and no store the developer runs
+# Claude from may gain a key under this suite's temp root. Runs last so the key
+# check also covers every earlier leg.
+test_liveness_relaunch_trust_write_stays_in_the_sandbox() {
+  local dir pid mate store leaked
+  dir=$(make_secondmate_liveness_case liveness-claude)
+  printf 'claude\n' > "$dir/config/secondmate-harness"
+  mate=$(cd "$TMP_ROOT/liveness-claude-mate" && pwd -P)
+
+  run_liveness_leg "$dir" claude FM_FAKE_TMUX_CURRENT_COMMAND=zsh; pid=$LIVENESS_PID
+  wait_for_exit "$pid" 300 || fail "the watcher did not exit on the Claude relaunch wake"
+  grep -F 'check: secondmate sm1 auto-relaunched' "$dir/watch-claude.out" >/dev/null \
+    || fail "the dead Claude secondmate was not relaunched: $(cat "$dir/watch-claude.out" "$dir/watch-claude.err")"
+  grep -F "\"$mate\"" "$dir/user-home/.claude.json" >/dev/null 2>&1 \
+    || fail "the Claude relaunch recorded no trust in the case HOME, so the sandbox went unexercised: $(cat "$dir/watch-claude.err")"
+  for store in "$REAL_HOME_CLAUDE_STORE" "$REAL_CONFIG_CLAUDE_STORE"; do
+    [ -f "$store" ] || continue
+    leaked=$(grep -o "\"[^\"]*/$(basename "$TMP_ROOT")/[^\"]*\"" "$store" | head -3 || true)
+    [ -z "$leaked" ] || fail "a liveness leg wrote this suite's fixture paths into $store: $leaked"
+  done
+  pass "watch liveness: a Claude relaunch writes trust only inside the case HOME"
 }
 
 test_secondmate_liveness_tick_relaunches_missing_endpoint() {
@@ -3569,3 +3601,4 @@ test_secondmate_liveness_tick_error_keeps_scanning_and_wakes
 test_secondmate_liveness_tick_unqueued_outcome_is_an_error_not_a_wake
 test_secondmate_liveness_tick_skips_mate_whose_lock_is_held
 test_secondmate_liveness_tick_preserves_unreachable_remote
+test_liveness_relaunch_trust_write_stays_in_the_sandbox

@@ -61,7 +61,7 @@
 #     docs/verification/supervision.md records the survival check). The hook
 #     waits for the successor's one status line, adds one banner line when no
 #     live watcher was confirmed, and never withholds the wake for it; the
-#     next Stop's foreground arm attaches to that live cycle. The supervision
+#     next Stop's foreground arm takes that covering cycle over. The supervision
 #     host owns its own successors, so its path is unchanged.
 #   - Supervision host: a home that runs it (by default on this Claude
 #     primary; docs/configuration.md "Supervision host" owns the gate and its
@@ -359,38 +359,52 @@ run_arm() {  # <output file, or empty for none>
 # successor receives the closed arm's pid as FM_WATCH_PREDECESSOR_ARM_PID; it
 # must outlive this hook's exit, so it is detached three ways: nohup, stdio
 # away from the hook's pipes, and its own process group. Its one status line
-# is awaited within the arm's own confirmation budget plus slack. Sets
+# is awaited within the arm's own confirmation budget plus slack. It is a
+# covering successor (bin/fm-watch-arm.sh FM_WATCH_COVER), so a fleet event
+# during the handling turn does not leave the home uncovered. Sets
 # SUCCESSOR_FAILURE to the banner line for an unconfirmed successor.
 SUCCESSOR_FAILURE=
 start_handling_successor() {  # <closed-arm-pid>
-  local out pid deadline budget line monitor_was_on=0
+  local out pid deadline budget line monitor_was_on=0 handoff_deadline=
   budget=${FM_ARM_CONFIRM_TIMEOUT:-30}
   case "$budget" in ''|*[!0-9]*) budget=30 ;; esac
-  if ! out=$(mktemp "$STATE/.claude-autoarm-successor.XXXXXX"); then
-    SUCCESSOR_FAILURE='The handling successor did not confirm a live watcher (its output file could not be created); this handling turn runs uncovered until the next turn end re-arms.'
-    return 1
-  fi
   case $- in *m*) monitor_was_on=1 ;; esac
-  set -m 2>/dev/null || true
-  FM_WATCH_PREDECESSOR_ARM_PID=$1 FM_GUARD_GRACE="$GRACE" \
-    nohup "$SCRIPT_DIR/fm-watch-arm.sh" >"$out" 2>&1 </dev/null &
-  pid=$!
-  [ "$monitor_was_on" -eq 1 ] || set +m 2>/dev/null || true
-  deadline=$(( $(date +%s) + budget + 2 ))
   while :; do
-    if grep -Eq '^watcher: (started|attached) pid=[0-9]+' "$out" 2>/dev/null; then
-      rm -f "$out" 2>/dev/null || true
-      return 0
+    if ! out=$(mktemp "$STATE/.claude-autoarm-successor.XXXXXX"); then
+      SUCCESSOR_FAILURE='The handling successor did not confirm a live watcher (its output file could not be created); this handling turn runs uncovered until the next turn end re-arms.'
+      return 1
     fi
-    grep -q '^watcher: FAILED' "$out" 2>/dev/null && break
-    [ "$(date +%s)" -ge "$deadline" ] && break
-    sleep 0.2
+    set -m 2>/dev/null || true
+    FM_WATCH_COVER=1 FM_WATCH_PREDECESSOR_ARM_PID=$1 FM_GUARD_GRACE="$GRACE" \
+      nohup "$SCRIPT_DIR/fm-watch-arm.sh" >"$out" 2>&1 </dev/null &
+    pid=$!
+    [ "$monitor_was_on" -eq 1 ] || set +m 2>/dev/null || true
+    deadline=$(( $(date +%s) + budget + 2 ))
+    while :; do
+      grep -Eq '^watcher: (started|attached) pid=[0-9]+' "$out" 2>/dev/null && break
+      grep -q '^watcher: FAILED' "$out" 2>/dev/null && break
+      [ "$(date +%s)" -ge "$deadline" ] && break
+      sleep 0.2
+    done
+    if grep -Eq '^watcher: (started|attached) pid=[0-9]+' "$out" 2>/dev/null; then
+      if "$SCRIPT_DIR/fm-watch-arm.sh" --cover-handoff "$pid" >/dev/null 2>&1; then
+        rm -f "$out" 2>/dev/null || true
+        return 0
+      fi
+      [ -n "$handoff_deadline" ] || handoff_deadline=$(( $(date +%s) + budget + 2 ))
+      kill -TERM "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      rm -f "$out" 2>/dev/null || true
+      [ "$(date +%s)" -lt "$handoff_deadline" ] && continue
+      SUCCESSOR_FAILURE="The handling successor pid=$pid could not record its coverage handover."
+      return 1
+    fi
+    line=$(grep '^watcher: FAILED' "$out" 2>/dev/null | head -n 1 || true)
+    rm -f "$out" 2>/dev/null || true
+    [ -z "$line" ] || line=" ($line)"
+    SUCCESSOR_FAILURE="The handling successor pid=$pid did not confirm a live watcher$line; this handling turn runs uncovered until the next turn end re-arms."
+    return 1
   done
-  line=$(grep '^watcher: FAILED' "$out" 2>/dev/null | head -n 1 || true)
-  rm -f "$out" 2>/dev/null || true
-  [ -z "$line" ] || line=" ($line)"
-  SUCCESSOR_FAILURE="The handling successor pid=$pid did not confirm a live watcher$line; this handling turn runs uncovered until the next turn end re-arms."
-  return 1
 }
 
 OUT=
@@ -514,7 +528,6 @@ if [ "$ACTIONABLE" -eq 1 ]; then
     [ -z "$OUT" ] || rm -f "$OUT" 2>/dev/null || true
     exit 0
   fi
-  # The host owns its own successors and stops its cycle before handing back.
   if [ "$HOST_MODE" -eq 0 ]; then
     start_handling_successor "$CLOSED_ARM_PID" || true
   fi
@@ -538,8 +551,7 @@ if [ "$ACTIONABLE" -eq 1 ]; then
   fi
   if [ "$HOST_MODE" -eq 1 ] && fm_autoarm_still_owner "$STATE" "$MY_GEN" \
     && fm_recovery_marker_snapshot "$STATE/.watcher-down" \
-    && [[ "$FM_RECOVERY_MARKER_TOKEN" == pending:handling:* || "$FM_RECOVERY_MARKER_TOKEN" == announced:handling:* ]] \
-    && ! fm_watcher_healthy "$STATE" "$SCRIPT_DIR/fm-watch.sh" "$GRACE" "$FM_HOME"; then
+    && [[ "$FM_RECOVERY_MARKER_TOKEN" == pending:handling:* || "$FM_RECOVERY_MARKER_TOKEN" == announced:handling:* ]]; then
     LOST_HANDBACK_COMMITTED=0
     if [ ! -e "$FAILURE_NOTICE" ]; then
       printf 'firstmate watcher auto-arm FAILED - the supervision host returned an actionable wake, but its rewake could not be committed.\n' >&2

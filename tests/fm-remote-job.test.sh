@@ -392,26 +392,59 @@ fm_remote_job_ensure_worker "$REMOTE_ROOT" "$ACCOUNT_HOME" || fail "$FM_REMOTE_J
 NEW_WORKER_PID=$(cat "$STATE_ROOT/worker.pid")
 pass "worker identity binds the canonical configured code root"
 
-CRASHED_WORKER_PID=$NEW_WORKER_PID
-kill -KILL "$CRASHED_WORKER_PID"
-wait "$CRASHED_WORKER_PID" 2>/dev/null || true
-assert_present "$STATE_ROOT/worker.lock" "an unclean exit did not retain the worker ownership lock"
-sleep 20 &
-OTHER_PID=$!
-printf '%s\n' "$OTHER_PID" > "$STATE_ROOT/worker.pid"
-printf '%s\n' "$OTHER_PID" > "$STATE_ROOT/worker.lock/pid"
-touch -t 200001010000 "$STATE_ROOT/worker.ready" "$STATE_ROOT/worker.lock"
-fm_remote_job_ensure_worker "$REMOTE_ROOT" "$ACCOUNT_HOME" \
-  || fail "$FM_REMOTE_JOB_ERROR"
-kill -0 "$OTHER_PID" 2>/dev/null || fail "stale worker state caused an unrelated process to be signaled"
-NEW_WORKER_PID=$(cat "$STATE_ROOT/worker.pid")
-[ "$NEW_WORKER_PID" != "$OTHER_PID" ] || fail "the replacement adopted an unrelated persisted pid"
-fm_remote_job_worker_identity_matches "$REMOTE_ROOT" "$ACCOUNT_HOME" \
-  || fail "stale ownership recovery did not start the current worker"
-kill "$OTHER_PID" 2>/dev/null || true
-wait "$OTHER_PID" 2>/dev/null || true
-OTHER_PID=
+# Crash the serving worker and leave its ownership records naming an unrelated
+# live process, as a reused pid would after an unclean exit.
+crash_worker_leaving_unrelated_owner() {
+  local crashed supervisor
+  crashed=$(cat "$STATE_ROOT/worker.pid")
+  # Prevent automatic restart from publishing a live replacement whose owner
+  # records the fixture would overwrite while simulating the dead worker's PID.
+  supervisor=$(fm_remote_job_worker_process_group "$crashed") \
+    || fail "the crash fixture could not identify its restart supervisor"
+  kill -KILL "$supervisor"
+  wait "$supervisor" 2>/dev/null || true
+  kill -KILL "$crashed"
+  wait "$crashed" 2>/dev/null || true
+  assert_present "$STATE_ROOT/worker.lock" "an unclean exit did not retain the worker ownership lock"
+  sleep 300 &
+  OTHER_PID=$!
+  printf '%s\n' "$OTHER_PID" > "$STATE_ROOT/worker.pid"
+  printf '%s\n' "$OTHER_PID" > "$STATE_ROOT/worker.lock/pid"
+  touch -t 200001010000 "$STATE_ROOT/worker.ready" "$STATE_ROOT/worker.lock"
+}
+
+assert_unrelated_owner_replaced() {
+  fm_remote_job_ensure_worker "$REMOTE_ROOT" "$ACCOUNT_HOME" \
+    || fail "$FM_REMOTE_JOB_ERROR"
+  kill -0 "$OTHER_PID" 2>/dev/null || fail "stale worker state caused an unrelated process to be signaled"
+  NEW_WORKER_PID=$(cat "$STATE_ROOT/worker.pid")
+  [ "$NEW_WORKER_PID" != "$OTHER_PID" ] || fail "the replacement adopted an unrelated persisted pid"
+  fm_remote_job_worker_identity_matches "$REMOTE_ROOT" "$ACCOUNT_HOME" \
+    || fail "stale ownership recovery did not start the current worker"
+  fm_remote_job_stage "$ACCOUNT_HOME" "$REMOTE_ROOT" "$REMOTE_HOME" fm-probe-job.sh \
+    < /dev/null > /dev/null || fail "$FM_REMOTE_JOB_ERROR"
+  fm_remote_job_wait "$ACCOUNT_HOME" "$FM_REMOTE_JOB_ID" || fail "$FM_REMOTE_JOB_ERROR"
+  [ "$FM_REMOTE_JOB_EXIT" -eq 0 ] || fail "the replacement worker could not execute a queued command
+FM_REMOTE_JOB_EXIT=$FM_REMOTE_JOB_EXIT
+state=$(fm_remote_job_read_state "$STATE_ROOT/jobs/$FM_REMOTE_JOB_ID")
+stderr: $(<"$FM_REMOTE_JOB_STDERR")
+stdout: $(<"$FM_REMOTE_JOB_STDOUT")"
+  fm_remote_job_reap "$ACCOUNT_HOME" "$FM_REMOTE_JOB_ID" \
+    || fail "the replacement worker's completed command could not be reaped"
+  kill "$OTHER_PID" 2>/dev/null || true
+  wait "$OTHER_PID" 2>/dev/null || true
+  OTHER_PID=
+}
+
+crash_worker_leaving_unrelated_owner
+assert_unrelated_owner_replaced
 pass "stale ownership is reclaimed without signaling a reused pid"
+
+crash_worker_leaving_unrelated_owner
+# The killed worker's heartbeat can land one last refresh after the crash.
+touch -c "$STATE_ROOT/worker.ready"
+assert_unrelated_owner_replaced
+pass "a late heartbeat from a crashed worker does not stand in for its replacement"
 
 FM_REMOTE_JOB_TIMEOUT=1
 fm_remote_job_stage "$ACCOUNT_HOME" "$REMOTE_ROOT" "$REMOTE_HOME" fm-timeout-job.sh < /dev/null > /dev/null

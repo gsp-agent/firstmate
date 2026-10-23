@@ -105,6 +105,7 @@ write_arm_fixture() {
   # fails while state/successor-fail exists.
   cat > "$dir/bin/fm-watch-arm.sh" <<'SH'
 #!/usr/bin/env bash
+[ "${1:-}" != --cover-handoff ] || exit 0
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
   printf 'arm=%s predecessor=%s\n' "$$" "$FM_WATCH_PREDECESSOR_ARM_PID" >> "$FM_HOME/state/successor-ran"
   if [ -e "$FM_HOME/state/successor-fail" ]; then
@@ -492,6 +493,15 @@ test_arms_for_captain_probe_hold_without_inflight() {
   [ -z "$out" ] || fail "the final probe release notification was repeated: $out"
   [ "$(wc -l < "$dir/state/arm-ran" | tr -d ' ')" -eq 2 ] \
     || fail "the released probe hold armed the watcher again"
+  "${captain[@]}" hold probe --reason 'choose the next action' >/dev/null \
+    || fail "could not re-hold the released probe task without a Dale step"
+  (
+    # shellcheck source=bin/fm-supervision-lib.sh
+    . "$dir/bin/fm-supervision-lib.sh"
+    if FM_HOME="$dir" FM_DATA_OVERRIDE="$dir/data" fm_supervision_needed "$dir/state"; then
+      fail "an archived probe line kept an ordinary re-hold supervised"
+    fi
+  ) || fail "the shared predicate read a probe below the history header"
   pass "auto-arm: a standalone captain probe hold arms and delivers its final release notification once"
 }
 
@@ -1793,6 +1803,8 @@ if [ -n "${FM_TEST_ONLY:-}" ]; then
   "$FM_TEST_ONLY"
   exit
 fi
+
+[ "${BASH_SOURCE[0]}" = "$0" ] || return 0
 
 test_inert_in_child_worktree
 test_inert_without_session_lock

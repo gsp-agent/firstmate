@@ -21,6 +21,15 @@
 # (bin/fm-project-capacity-lib.sh).
 # A registered GitHub pull request is also stamped with the engines that wrote
 # it through bin/fm-pr-made-with.sh, except on the merge-time re-record.
+# An optional home-owned config/pr-ready-callback executable receives
+# <owner/repo> <positive-pr-number> <40hex-head> after the canonical record and
+# static poll are published, before optional extras, except at merge time.
+# The call is bounded to ten seconds. Only exit 0 and a final stdout JSON line
+# with schema=pr-review-router.event.v1, exact repo/pr(integer)/head,
+# accepted=true and disposition=handled|stale|closed|ignored acknowledge it.
+# Failure is reported as pending without changing registration's status or
+# records. Re-running this command retries delivery, never PR publication;
+# the callback consumer must deduplicate the identity. An absent hook is inert.
 # Usage: fm-pr-check.sh <task-id> <pr-url>
 set -eu
 
@@ -249,6 +258,28 @@ else
   PR_POLL_PUBLISH_LOCK_HELD=0
   echo "error: could not publish PR poll" >&2
   exit 1
+fi
+# Use the existing canonical record as recovery input, not a second publication
+# queue. A callback cannot unwind the registration or cause another forge POST.
+PR_READY_CALLBACK="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}/pr-ready-callback"
+if [ "$PROVIDER" = github ] && [ "${FM_PR_CHECK_MERGE:-}" != 1 ] \
+  && [ -n "$PR_HEAD" ] && [ -e "$PR_READY_CALLBACK" ]; then
+  PR_READY_ACK=0
+  if [ -x "$PR_READY_CALLBACK" ] && command -v jq >/dev/null 2>&1; then
+    # shellcheck source=bin/fm-timeout-lib.sh
+    . "$SCRIPT_DIR/fm-timeout-lib.sh"
+    if PR_READY_RECEIPT=$(fm_run_timed 10 "$PR_READY_CALLBACK" "$PROJECT_PATH" "$NUMBER" "$PR_HEAD" </dev/null 2>/dev/null) \
+      && printf '%s\n' "$PR_READY_RECEIPT" | tail -n 1 | jq -se --arg repo "$PROJECT_PATH" --argjson pr "$NUMBER" --arg head "$PR_HEAD" '
+        length == 1 and (.[0] | .schema == "pr-review-router.event.v1" and .repo == $repo and .pr == $pr
+        and .head == $head and .accepted == true
+        and (.disposition | IN("handled", "stale", "closed", "ignored")))' >/dev/null 2>&1; then
+      PR_READY_ACK=1
+    fi
+  fi
+  if [ "$PR_READY_ACK" != 1 ]; then
+    printf 'actionable: PR %s is registered; review callback pending for %s #%s at %s; rerun bin/fm-pr-check.sh %s %s\n' \
+      "$URL" "$PROJECT_PATH" "$NUMBER" "$PR_HEAD" "$ID" "$URL" >&2
+  fi
 fi
 # A GitHub pull request is stamped with the engines that wrote it
 # (bin/fm-pr-made-with.sh), repeating the worker's own stamp because a later

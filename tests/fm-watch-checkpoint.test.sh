@@ -135,6 +135,8 @@ test_never_announced_recovery_is_announced_once() {
   out="$home/out.txt"
   err="$home/err.txt"
   printf 'pending:downtime:unreported.1.aaa\n' > "$home/state/.watcher-down"
+  append_wake "$home/state" check buried 'check: unacknowledged durable wake' \
+    || fail "could not append the main-only durable wake"
 
   status=0
   FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=999999 \
@@ -146,6 +148,63 @@ test_never_announced_recovery_is_announced_once() {
   [ "$(cat "$home/state/.watcher-down")" = 'announced:downtime:unreported.1.aaa' ] \
     || fail "never-announced recovery did not retain its announced generation"
   pass "a never-announced recovery still surfaces once from a foreground checkpoint"
+}
+
+test_pending_recovery_with_only_branch_rows_stays_quiet() {
+  local home out err status
+  home=$(make_home pending-branch-only)
+  out="$home/out.txt"
+  err="$home/err.txt"
+  printf 'pending:downtime:unreported.2.bbb\n' > "$home/state/.watcher-down"
+  append_wake "$home/state" signal demo.status "signal: $home/state/demo.status" \
+    || fail "could not append the branch-owned durable wake"
+
+  status=0
+  FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=999999 \
+    FM_DAEMON_OWNS_SUPERVISION=1 \
+    "$CHECKPOINT" --seconds 10 >"$out" 2>"$err" || status=$?
+  expect_code 124 "$status" "branch-only recovery checkpoint exit"
+  assert_not_contains "$(cat "$out")" "check: rearm-resurface" \
+    "a resurface whose queue holds nothing only main can do reached the checkpoint"
+  grep "$(printf '\tsignal\tdemo.status\t')" "$home/state/.wake-queue" >/dev/null \
+    || fail "branch-owned durable wake was not retained for its owner"
+  pass "a pending recovery whose queue holds only branch-owned rows stays quiet"
+}
+
+test_pending_recovery_with_a_needs_decision_row_resurfaces() {
+  local home out err status
+  home=$(make_home pending-needs-decision)
+  out="$home/out.txt"
+  err="$home/err.txt"
+  printf 'pending:downtime:unreported.3.ccc\n' > "$home/state/.watcher-down"
+  append_wake "$home/state" signal demo.status "needs-decision: $home/state/demo.status" \
+    || fail "could not append the needs-decision durable wake"
+
+  status=0
+  FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=999999 \
+    "$CHECKPOINT" --seconds 5 >"$out" 2>"$err" || status=$?
+  expect_code 0 "$status" "needs-decision recovery checkpoint exit"
+  assert_contains "$(cat "$out")" "check: rearm-resurface" \
+    "a resurface holding a needs-decision row did not reach main"
+  pass "a pending recovery holding a needs-decision row resurfaces to main"
+}
+
+test_pending_recovery_on_a_plain_home_still_resurfaces() {
+  local home out err status
+  home=$(make_home pending-plain-home)
+  out="$home/out.txt"
+  err="$home/err.txt"
+  printf 'pending:downtime:unreported.4.ddd\n' > "$home/state/.watcher-down"
+  append_wake "$home/state" signal demo.status "signal: $home/state/demo.status" \
+    || fail "could not append the plain-home durable wake"
+
+  status=0
+  FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=999999 \
+    FM_TEST_HARNESS=codex "$CHECKPOINT" --seconds 30 >"$out" 2>"$err" || status=$?
+  expect_code 0 "$status" "plain-home recovery checkpoint exit"
+  assert_contains "$(cat "$out")" "check: rearm-resurface" \
+    "a plain home's resurface did not present its queued rows to main"
+  pass "a pending recovery on a plain home still resurfaces to main"
 }
 
 test_queue_append_during_checkpoint_still_resurfaces() {
@@ -174,6 +233,81 @@ test_queue_append_during_checkpoint_still_resurfaces() {
     "$home/state/.wake-queue" >/dev/null \
     || fail "queue append was not retained durably after checkpoint recovery"
   pass "a queue append during a foreground checkpoint still resurfaces"
+}
+
+test_rejected_check_wakes_once_then_stays_silent() {
+  local home out err status ack_seq ack_gen rejected_rows
+  home=$(make_home rejected-once)
+  out="$home/out.txt"
+  err="$home/err.txt"
+  printf '#!/usr/bin/env bash\nprintf "never runs\\n"\n' > "$home/state/demo.check.sh"
+  chmod 0700 "$home/state/demo.check.sh"
+
+  status=0
+  FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=1 \
+    "$CHECKPOINT" --seconds 30 >"$out" 2>"$err" || status=$?
+  expect_code 0 "$status" "first rejected-check checkpoint exit"
+  assert_contains "$(cat "$out")" "check: rejected unauthenticated state checks:" \
+    "the first rejection did not wake"
+  assert_contains "$(cat "$out")" "demo.check.sh" \
+    "the first rejection did not name the owning check"
+  [ -f "$home/state/.rejected-check-demo" ] \
+    || fail "the first rejection left no once-only marker"
+  # The handling turn consumes and acknowledges the wake, as main's drain
+  # does; only then is the next sweep the same rejection with no audience.
+  FM_HOME="$home" "$ROOT/bin/fm-wake-drain.sh" >/dev/null 2>"$home/drain.err" \
+    || fail "the first rejection's wake could not be drained"
+  ack_seq=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through \([0-9][0-9]*\) .*/\1/p' "$home/drain.err")
+  ack_gen=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--recovery-generation \([A-Za-z0-9._-]*\)$/\1/p' "$home/drain.err")
+  [ -n "$ack_seq" ] && [ -n "$ack_gen" ] || fail "the drain printed no acknowledgement boundary"
+  FM_HOME="$home" "$ROOT/bin/fm-wake-drain.sh" --ack-through "$ack_seq" \
+    --recovery-generation "$ack_gen" >/dev/null \
+    || fail "the first rejection's wake could not be acknowledged"
+  [ ! -s "$home/state/.wake-queue" ] || fail "acknowledgement left the rejection queued"
+
+  rm -f "$home/state/.last-check"
+  status=0
+  FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=1 \
+    "$CHECKPOINT" --seconds 10 >"$out" 2>"$err" || status=$?
+  expect_code 124 "$status" "second rejected-check checkpoint exit"
+  assert_not_contains "$(cat "$out")" "rejected unauthenticated" \
+    "the same rejection woke a second time"
+  rejected_rows=$(grep -c 'unauthenticated-state-checks' "$home/state/.wake-queue" 2>/dev/null || true)
+  [ "${rejected_rows:-0}" -eq 0 ] \
+    || fail "the same rejection queued a second wake row"
+
+  printf '# changed bytes\n' >> "$home/state/demo.check.sh"
+  rm -f "$home/state/.last-check"
+  status=0
+  FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=1 \
+    "$CHECKPOINT" --seconds 30 >"$out" 2>"$err" || status=$?
+  expect_code 0 "$status" "changed rejected-check checkpoint exit"
+  assert_contains "$(cat "$out")" "check: rejected unauthenticated state checks:" \
+    "a changed rejection did not wake again"
+  pass "a rejected check wakes once naming its owner, stays silent, and re-wakes on change"
+}
+
+test_live_pm_signal_is_absorbed_and_plain_signal_still_wakes() {
+  local home out err status
+  home=$(make_home pm-signal)
+  out="$home/out.txt"
+  err="$home/err.txt"
+  printf 'done: pm-owned task finished\n' > "$home/state/pm-demo.status"
+  printf 'done: plain task finished\n' > "$home/state/demo.status"
+  printf 'bead=test-bead\npid=%s\ntask=pm-demo\n' "$$" > "$home/state/.pm-live-pm-demo"
+
+  status=0
+  FM_HOME="$home" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=999999 \
+    "$CHECKPOINT" --seconds 20 >"$out" 2>"$err" || status=$?
+  expect_code 0 "$status" "pm signal checkpoint exit"
+  assert_contains "$(cat "$out")" "signal:" "the plain task's signal did not wake"
+  assert_contains "$(cat "$out")" "demo.status" "the plain task's signal named the wrong file"
+  assert_not_contains "$(cat "$out")" "pm-demo" \
+    "a live PM's task reached the watcher wake beside its PM"
+  if grep -F 'pm-demo' "$home/state/.wake-queue" >/dev/null 2>&1; then
+    fail "a live PM's task queued a wake row for main"
+  fi
+  pass "a live PM's status signal is absorbed at the watcher; a plain task's still wakes"
 }
 
 test_signal_passes_through_and_exits_zero() {
@@ -348,7 +482,12 @@ test_quiet_checkpoint_exits_124_cleanly
 test_perl_timeout_fallback_honors_cleanup_bound_before_escalating
 test_announced_recovery_is_not_reannounced_by_next_checkpoint
 test_never_announced_recovery_is_announced_once
+test_pending_recovery_with_only_branch_rows_stays_quiet
+test_pending_recovery_with_a_needs_decision_row_resurfaces
+test_pending_recovery_on_a_plain_home_still_resurfaces
 test_queue_append_during_checkpoint_still_resurfaces
+test_rejected_check_wakes_once_then_stays_silent
+test_live_pm_signal_is_absorbed_and_plain_signal_still_wakes
 test_signal_passes_through_and_exits_zero
 test_registered_check_uses_preserved_watcher_environment
 test_existing_singleton_watcher_is_not_success

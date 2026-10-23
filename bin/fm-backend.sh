@@ -562,17 +562,67 @@ fm_backend_validate_task_endpoint() {  # <meta-file> <task-id>
   return 0
 }
 
-fm_backend_meta_for_window() {  # <target> <state-dir>
-  local target=$1 state=$2 meta window terminal
+# One poll's window-to-meta list, built by fm_backend_window_index_load.
+# Empty means each lookup walks the meta files itself. The list is
+# "target<TAB>path" lines in the same order as "$state"/*.meta, first match
+# wins, so a loaded index and a walk agree. Lookups read it in this shell.
+# They do not fork: the old walk ran two command substitutions per meta per
+# window, and a poll did that for every window (.agent-config-ks05d).
+FM_BACKEND_WINDOW_INDEX_STATE=
+FM_BACKEND_WINDOW_INDEX_DATA=
+
+fm_backend_window_index_load() {  # <state-dir>
+  local state=$1 meta window terminal
+  # A missing dir is not a loaded index. Leaving the previous one in place
+  # would answer a later lookup from the wrong snapshot.
+  FM_BACKEND_WINDOW_INDEX_STATE=
+  FM_BACKEND_WINDOW_INDEX_DATA=
+  [ -d "$state" ] || return 1
+  FM_BACKEND_WINDOW_INDEX_STATE=$state
   for meta in "$state"/*.meta; do
-    [ -e "$meta" ] || continue
-    window=$(fm_meta_get "$meta" window)
-    terminal=$(fm_meta_get "$meta" terminal)
-    { [ -n "$window" ] && [ "$window" = "$target" ]; } || { [ -n "$terminal" ] && [ "$terminal" = "$target" ]; } || continue
-    printf '%s' "$meta"
-    return 0
+    [ -f "$meta" ] || continue
+    fm_meta_get "$meta" window window
+    fm_meta_get "$meta" terminal terminal
+    [ -n "$window" ] && FM_BACKEND_WINDOW_INDEX_DATA="${FM_BACKEND_WINDOW_INDEX_DATA}${window}"$'\t'"${meta}"$'\n'
+    if [ -n "$terminal" ] && [ "$terminal" != "$window" ]; then
+      FM_BACKEND_WINDOW_INDEX_DATA="${FM_BACKEND_WINDOW_INDEX_DATA}${terminal}"$'\t'"${meta}"$'\n'
+    fi
   done
-  return 1
+  return 0
+}
+
+fm_backend_window_index_clear() {
+  FM_BACKEND_WINDOW_INDEX_STATE=
+  FM_BACKEND_WINDOW_INDEX_DATA=
+}
+
+fm_backend_meta_for_window() {  # <target> <state-dir> [<out-var>]
+  # Locals are prefixed. printf -v writes the caller's variable, and the
+  # watcher passes "meta"; a local of that name would swallow the path.
+  local fm_target=$1 fm_state=$2 fm_meta fm_window fm_terminal fm_found='' fm_key
+  if [ -n "${FM_BACKEND_WINDOW_INDEX_STATE:-}" ] && [ "$FM_BACKEND_WINDOW_INDEX_STATE" = "$fm_state" ]; then
+    while IFS=$'\t' read -r fm_key fm_meta || [ -n "$fm_key" ]; do
+      [ "$fm_key" = "$fm_target" ] || continue
+      fm_found=$fm_meta
+      break
+    done <<< "$FM_BACKEND_WINDOW_INDEX_DATA"
+  else
+    for fm_meta in "$fm_state"/*.meta; do
+      [ -e "$fm_meta" ] || continue
+      fm_meta_get "$fm_meta" window fm_window
+      fm_meta_get "$fm_meta" terminal fm_terminal
+      { [ -n "$fm_window" ] && [ "$fm_window" = "$fm_target" ]; } || { [ -n "$fm_terminal" ] && [ "$fm_terminal" = "$fm_target" ]; } || continue
+      fm_found=$fm_meta
+      break
+    done
+  fi
+  if [ -z "$fm_found" ]; then
+    [ "$#" -le 2 ] || printf -v "$3" '%s' ''
+    return 1
+  fi
+  if [ "$#" -gt 2 ]; then printf -v "$3" '%s' "$fm_found"
+  else printf '%s' "$fm_found"; fi
+  return 0
 }
 
 fm_backend_task_id_for_selector() {  # <raw-target> <state-dir>
@@ -803,6 +853,20 @@ fm_backend_visible_capture() {  # <backend> <target> [expected-label]
   "fm_backend_${backend}_visible_capture" "$@"
 }
 
+# fm_backend_current_screen: the screen the composer classifier just read.
+# Herdr's visible viewport on a scrolled pane is old chat, so Herdr answers
+# with the composer capture. Every other backend's visible capture is that
+# screen. Callers that list a dialog's tasks or confirm it closed use this,
+# not a second viewport read that can disagree with the classifier.
+fm_backend_current_screen() {  # <backend> <target> [expected-label]
+  local backend=$1 target=$2
+  fm_backend_source "$backend" || return 1
+  case "$backend" in
+    herdr) fm_backend_herdr_composer_capture "$target" ;;
+    *) fm_backend_visible_capture "$backend" "$target" "${3:-}" ;;
+  esac
+}
+
 # fm_backend_send_key: one backend-supported named special key.
 fm_backend_send_key() {  # <backend> <target> <key> [expected-label]
   local backend=$1
@@ -1021,6 +1085,20 @@ fm_backend_target_exists() {  # <backend> <target> [expected-label]
 # `missing` only in this recovery-grade view. Zellij remains unverified because
 # its secondmate ghost-tab and agent-process recovery path has not been
 # empirically validated. Orca and cmux do not support secondmate spawns.
+# Pids of the harness agent in <target>, one per line. Claude exit walks only
+# these processes' descendants when it stops that agent's background shells.
+# tmux uses the foreground process group. Herdr uses process-info, then
+# harness descendants of the pane shell when the foreground group is not one.
+# Other backends print nothing.
+fm_backend_agent_root_pids() {  # <backend> <target>
+  local backend=$1 target=$2
+  fm_backend_source "$backend" || return 0
+  case "$backend" in
+    tmux) fm_backend_tmux_agent_root_pids "$target" ;;
+    herdr) fm_backend_herdr_agent_root_pids "$target" ;;
+  esac
+}
+
 fm_backend_agent_state() {  # <backend> <target>
   local backend=$1 target=$2
   fm_backend_source "$backend" || { printf 'unverified'; return 0; }
