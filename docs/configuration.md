@@ -1201,6 +1201,7 @@ Firstmate resolves the rule's profile object or array under `AGENTS.md` section 
 - A rung skip uses the canonical `--harness`, `--model`, and `--effort` launch form.
 - A harness the file never names and a secondmate spawn are exempt from the pair check, including raw launch commands.
 - A relaunch keeps its requested or recorded pair when that pair matches a profile for its harness.
+- A pair recorded from the launch route's Cursor quota or Codex usage-limit fallback counts as a named profile for that task's recorded harness; keeping that pair carries `route_fallback=1` forward in the task record, while choosing or adopting another pair clears it.
 - Otherwise, the relaunch adopts and records the file's only distinct pair for that harness, or refuses and prints the alternatives when multiple distinct pairs exist, because choosing among profile candidates stays with firstmate intake.
 - `fm-control.sh relaunch` resolves that pair before stopping the old agent and journals the resolved pair; an adopted effort outside spawn's accepted vocabulary refuses at this step, and the adopted pair must pass native-effort and worker-account pin checks too.
   Spawn uses the model and effort handed off by that control transaction without reading the dispatch file again, so a later file change cannot replace the journaled pair or cause a dispatch-file refusal after the old agent stops.
@@ -1249,7 +1250,8 @@ This section is the single owner of the canonical schema and its per-field seman
 | Profile `model` and `effort`; rule `why` | Optional. |
 
 [`fm-dispatch-resolve.sh --labels`](../bin/fm-dispatch-resolve.sh) uses `label_routes` without a brief or API key; its header owns label precedence, the quota-aware default-array walk, and conflict refusals.
-Cursor crewmate and scout launches consult the quota-file guard before Cursor preflight; [`fm-spawn.sh`](../bin/fm-spawn.sh) owns the substituted launch profile and the secondmate exclusion.
+Crewmate and scout launches and relaunches follow the [launch-route guard](../bin/fm-cursor-guard.sh); [`fm-spawn.sh`](../bin/fm-spawn.sh) owns the substituted launch profile and the secondmate exclusion, and [transactional relaunch](agent-control.md#transactional-relaunch) covers control-plane ordering.
+Raw commands run the same guard and launch unchanged when it keeps their harness family; when it selects another family, the launch refuses before publishing a task record and requests the canonical `--harness` form.
 
 **Fields applied only by brief-mode resolution**
 

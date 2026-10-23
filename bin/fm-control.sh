@@ -79,7 +79,8 @@
 #              re-resolves its durable config/secondmate-harness pin (harness
 #              plus its optional model and effort tokens) exactly as any other
 #              respawn does, while a ship or scout keeps the exact adapter
-#              already recorded for it.
+#              already recorded for it, then takes the launch route that
+#              bin/fm-cursor-guard.sh owns before the old agent stops.
 #              A prefixed raw-command basename cannot reconstruct its launch
 #              command, so relaunch requires an explicit --harness for it.
 #              A replacement Claude or Pi profile must also pass this home's
@@ -1126,6 +1127,7 @@ PRIOR_EFFORT=
 TARGET_HARNESS=$HARNESS
 TARGET_MODEL=
 TARGET_EFFORT=
+TARGET_ROUTE_FALLBACK=0
 
 journal_write() {  # <phase> [extra-line]...
   local phase=$1
@@ -1293,6 +1295,45 @@ resolve_relaunch_profile() {
   else
     TARGET_EFFORT=default
   fi
+  # docs/configuration.md "Crew dispatch profiles" owns the pair rules. Resolve
+  # here so the journal and launch share one pre-stop decision; the control
+  # handoff prevents spawn from selecting again against a changed file.
+  if [ "$KIND" != secondmate ]; then
+    local dispatch_pair dispatch_model dispatch_effort route
+    local fallback_model='' fallback_effort=''
+    if [ "$TARGET_HARNESS" = "$PRIOR_RECORDED_HARNESS" ] \
+        && [ "$(fm_meta_get "$META" route_fallback)" = 1 ]; then
+      fallback_model=$PRIOR_MODEL
+      fallback_effort=$PRIOR_EFFORT
+      if [ "$TARGET_MODEL" = "$fallback_model" ] && [ "$TARGET_EFFORT" = "$fallback_effort" ]; then
+        TARGET_ROUTE_FALLBACK=1
+      fi
+    fi
+    dispatch_pair=$(fm_dispatch_relaunch_pair \
+      "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
+      "$ID" "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" \
+      "$fallback_model" "$fallback_effort") || return 1
+    dispatch_model=${dispatch_pair%%$'\n'*}
+    dispatch_effort=${dispatch_pair#*$'\n'}
+    dispatch_effort=${dispatch_effort%%$'\n'*}
+    [ -z "$dispatch_model" ] || TARGET_MODEL=$dispatch_model
+    [ -z "$dispatch_effort" ] || TARGET_EFFORT=$dispatch_effort
+    case "$TARGET_EFFORT" in
+      ''|default|low|medium|high|xhigh|max|ultra) ;;
+      *) die "dispatch profile for $TARGET_HARNESS has invalid effort '$TARGET_EFFORT'; expected default, low, medium, high, xhigh, max, ultra" ;;
+    esac
+    # Then the launch route bin/fm-cursor-guard.sh owns, before the stop, so
+    # the record, journal, and outcome name the harness that is actually
+    # launched; fm-spawn takes this choice as final. A route that changes the
+    # harness is exempt from the pair check, as it is on a fresh spawn.
+    route=$(FM_STATE_OVERRIDE="$STATE" "$SCRIPT_DIR/fm-cursor-guard.sh" route "$ID" "$TARGET_HARNESS" "$PRIOR_HARNESS") \
+      || die "the launch route for $ID on '$TARGET_HARNESS' could not be read (bin/fm-cursor-guard.sh); nothing was stopped"
+    if [ "${route%% *}" != "$TARGET_HARNESS" ]; then
+      echo "$TARGET_HARNESS fallback: relaunching $ID on the ${route%% *} harness (default model xhigh): ${route#* }" >&2
+      TARGET_HARNESS=${route%% *} TARGET_MODEL=default TARGET_EFFORT=xhigh
+      TARGET_ROUTE_FALLBACK=1
+    fi
+  fi
   if [ "$TARGET_EFFORT" = ultra ]; then
     "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1
   fi
@@ -1308,31 +1349,6 @@ resolve_relaunch_profile() {
   # agent stops. Secondmate agents are not covered.
   if [ "$KIND" != secondmate ]; then
     fm_exclude_tools_check "$TARGET_HARNESS" 0 "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" >/dev/null || return 1
-  fi
-  # docs/configuration.md "Crew dispatch profiles" owns the pair rules. Resolve
-  # here so the journal and launch share one pre-stop decision; the control
-  # handoff prevents spawn from selecting again against a changed file.
-  if [ "$KIND" != secondmate ]; then
-    local dispatch_pair dispatch_model dispatch_effort
-    dispatch_pair=$(fm_dispatch_relaunch_pair \
-      "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
-      "$ID" "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT") || return 1
-    dispatch_model=${dispatch_pair%%$'\n'*}
-    dispatch_effort=${dispatch_pair#*$'\n'}
-    dispatch_effort=${dispatch_effort%%$'\n'*}
-    [ -z "$dispatch_model" ] || TARGET_MODEL=$dispatch_model
-    [ -z "$dispatch_effort" ] || TARGET_EFFORT=$dispatch_effort
-    case "$TARGET_EFFORT" in
-      ''|default|low|medium|high|xhigh|max|ultra) ;;
-      *) die "dispatch profile for $TARGET_HARNESS has invalid effort '$TARGET_EFFORT'; expected default, low, medium, high, xhigh, max, ultra" ;;
-    esac
-    if [ "$TARGET_EFFORT" = ultra ]; then
-      "$SCRIPT_DIR/fm-harness.sh" validate-native-effort "$TARGET_HARNESS" "$TARGET_MODEL" "$TARGET_EFFORT" || return 1
-    fi
-    account_model=$TARGET_MODEL
-    [ "$account_model" != default ] || account_model=
-    fm_worker_account_select "$TARGET_HARNESS" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
-      "$account_model" "$TARGET_HARNESS" >/dev/null || return 1
   fi
 }
 
@@ -1491,6 +1507,7 @@ do_relaunch() {
   spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS"
     --model "$TARGET_MODEL" --effort "$TARGET_EFFORT")
   if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
+      FM_CONTROL_ROUTE_FALLBACK="$TARGET_ROUTE_FALLBACK" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then
     RELAUNCH_META_PUBLISHED=1
     # $T was resolved from the record before the launch. When the recorded

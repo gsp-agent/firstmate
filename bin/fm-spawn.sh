@@ -109,10 +109,12 @@
 #   validated state/<id>.meta, so --backend, --scout, --secondmate, a project
 #   positional, and batch pairs are all refused alongside it; only harness,
 #   model, and effort may change, which is what makes a harness switch one
-#   ordinary relaunch. It refuses unless the recorded endpoint is positively
-#   agent-free on a backend with a recovery-grade agent-state classifier (tmux
-#   or herdr), and clears the previous harness's per-task wiring before arming
-#   the new incarnation. Two verdicts are agent-free: a `dead` endpoint is
+#   ordinary relaunch. A ship or scout relaunch takes the launch route that
+#   bin/fm-cursor-guard.sh owns, as every fresh one does. It refuses
+#   unless the recorded endpoint is positively agent-free on a backend with a
+#   recovery-grade agent-state classifier (tmux or herdr), and clears the
+#   previous harness's per-task wiring before arming the new incarnation.
+#   Two verdicts are agent-free: a `dead` endpoint is
 #   ADOPTED as-is, while an endpoint PROVEN gone is RE-CREATED in the recorded
 #   worktree and the republished record rebinds the task to it. That proof is
 #   its own step, because a backend's `missing` also covers an endpoint that is
@@ -2285,6 +2287,7 @@ PROJ=
 ARG3=
 FIRSTMATE_HOME=
 RAW_LAUNCH=0
+ROUTE_FALLBACK=0
 
 # --relaunch adoption: every identity axis comes from the task's own validated
 # durable record, never from the command line, so a relaunch can only ever
@@ -2483,13 +2486,25 @@ shell_quote() {
 # raw command satisfy the named-harness check.
 enforce_dispatch_profile() {
   local pairs pretty model effort eff_model eff_effort resolved resolved_model resolved_effort
+  local fallback_model='' fallback_effort=''
   [ "$KIND" != secondmate ] || return 0
   # Control has already resolved both axes before stopping the worker. A second
   # read could replace that decision after stop and disagree with its journal.
   if [ "$RELAUNCH" -eq 1 ] && [ "$SPAWN_CONTROL_PARENT" = 1 ] \
       && [ -n "${FM_CONTROL_RELAUNCH_TX:-}" ] \
       && [ "$MODEL_SET" -eq 1 ] && [ "$EFFORT_SET" -eq 1 ]; then
+    [ "${FM_CONTROL_ROUTE_FALLBACK:-0}" != 1 ] || ROUTE_FALLBACK=1
     return 0
+  fi
+  eff_model=${MODEL:-default}
+  eff_effort=${EFFORT:-default}
+  if [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" = "$RELAUNCH_PRIOR_HARNESS" ] \
+      && [ "$(fm_meta_get "$RELAUNCH_META" route_fallback)" = 1 ]; then
+    fallback_model=$RELAUNCH_RECORDED_MODEL
+    fallback_effort=$RELAUNCH_RECORDED_EFFORT
+    if [ "$eff_model" = "$fallback_model" ] && [ "$eff_effort" = "$fallback_effort" ]; then
+      ROUTE_FALLBACK=1
+    fi
   fi
   pairs=$(fm_dispatch_profile_read "$CONFIG" "$HARNESS") || exit 1
   [ -n "$pairs" ] || return 0
@@ -2498,10 +2513,9 @@ enforce_dispatch_profile() {
     echo "error: config/crew-dispatch.json is active - raw launch command for $HARNESS requires the canonical --harness $HARNESS launch with a dispatch profile (file: $pretty); pass the file pair for this harness with --model and --effort" >&2
     exit 1
   fi
-  eff_model=${MODEL:-default}
-  eff_effort=${EFFORT:-default}
   if [ "$RELAUNCH" -eq 1 ]; then
-    resolved=$(fm_dispatch_relaunch_decide "$ID" "$HARNESS" "$eff_model" "$eff_effort" "$pairs") || exit 1
+    resolved=$(fm_dispatch_relaunch_decide "$ID" "$HARNESS" "$eff_model" "$eff_effort" "$pairs" \
+      "$fallback_model" "$fallback_effort") || exit 1
     resolved_model=${resolved%%$'\n'*}
     resolved_effort=${resolved#*$'\n'}
     resolved_effort=${resolved_effort%%$'\n'*}
@@ -2955,27 +2969,34 @@ fi
 
 # Pair half of the consultation backstop, on the fully resolved harness,
 # model, and effort and before any endpoint or worktree provisioning. The
-# deterministic Cursor fallback below is exempt once it fires, because it
+# launch route below is exempt once it changes the harness, because it
 # already prints its own reason and records it.
 enforce_dispatch_profile
 [ "$MODEL" != default ] || MODEL=
 [ "$EFFORT" != default ] || EFFORT=
 
-# Apply the quota-file fallback owned by bin/fm-cursor-guard.sh; its header
-# defines freshness, credit-room eligibility, and fallback selection.
-if [ "$HARNESS" = cursor ] && [ "$RAW_LAUNCH" = 0 ] && [ "$KIND" != secondmate ]; then
-  CURSOR_FALLBACK=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" fallback "$ID") || CURSOR_FALLBACK="codex fallback check failed"
-  case "$CURSOR_FALLBACK" in
-  codex* | claude*)
-    HARNESS=${CURSOR_FALLBACK%% *} MODEL='' EFFORT=xhigh
+# Every crewmate or scout launch takes the route owned by bin/fm-cursor-guard.sh;
+# its header defines the Cursor fallback and the Codex usage-limit marker. A
+# control-driven relaunch arrives already routed by bin/fm-control.sh.
+if [ "$KIND" != secondmate ] && [ "$SPAWN_CONTROL_PARENT" = 0 ]; then
+  ROUTE_HARNESS=$(fm_control_harness_family "$HARNESS") || ROUTE_HARNESS=$HARNESS
+  LAUNCH_ROUTE=$(FM_STATE_OVERRIDE="$STATE" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-cursor-guard.sh" route "$ID" "$ROUTE_HARNESS" "$RELAUNCH_PRIOR_HARNESS") || {
+    echo "error: the launch route for $ID on '$HARNESS' could not be read (bin/fm-cursor-guard.sh); nothing was launched" >&2
+    exit 1
+  }
+  if [ "${LAUNCH_ROUTE%% *}" != "$ROUTE_HARNESS" ]; then
+    if [ "$RAW_LAUNCH" != 0 ]; then
+      echo "error: raw launch command for $HARNESS would route to ${LAUNCH_ROUTE%% *}; use the canonical --harness $ROUTE_HARNESS launch" >&2
+      exit 1
+    fi
+    echo "$HARNESS fallback: launching $ID on the ${LAUNCH_ROUTE%% *} harness (default model xhigh): ${LAUNCH_ROUTE#* }" >&2
+    HARNESS=${LAUNCH_ROUTE%% *} MODEL='' EFFORT=xhigh
+    ROUTE_FALLBACK=1
     LAUNCH=$(launch_template "$HARNESS" "$KIND") || {
-      echo "error: no launch template for the cursor fallback harness '$HARNESS'" >&2
+      echo "error: no launch template for the fallback harness '$HARNESS'" >&2
       exit 1
     }
-    echo "cursor fallback: launching $ID on the $HARNESS harness (${MODEL:-default model} xhigh): ${CURSOR_FALLBACK#* }" >&2
-    printf '%s\n' "${CURSOR_FALLBACK#* }" > "$STATE/$ID.cursor-fallback"
-    ;;
-  esac
+  fi
 fi
 
 # muse, gemini, agy, and devin are verified as CREWMATE/SCOUT adapters only. A secondmate is
@@ -6100,7 +6121,7 @@ SPAWN_META_PATH=$SPAWN_META_TMP
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness kind decision_owner mode yolo branch tasktmp base_branch upstream_consent model effort account account_provider busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
+      split("window endpoint_task_id worktree project harness kind decision_owner mode yolo branch tasktmp base_branch upstream_consent model effort route_fallback account account_provider busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -6122,6 +6143,7 @@ preserve_relaunch_meta() {
   [ -z "$UPSTREAM_CONSENT" ] || echo "upstream_consent=$UPSTREAM_CONSENT"
   echo "model=${MODEL:-default}"
   echo "effort=${EFFORT:-default}"
+  [ "$ROUTE_FALLBACK" != 1 ] || echo "route_fallback=1"
   # The worker account pin, only when this home declares one, so an unpinned
   # task record stays byte-identical.
   [ -z "$WORKER_ACCOUNT" ] || echo "account=$WORKER_ACCOUNT_DECLARED"

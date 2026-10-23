@@ -45,7 +45,7 @@ relaunch_cleanup() {
   for d in "${TASK_TMPS[@]:-}"; do
     [ -n "$d" ] && rm -rf "$d"
   done
-  rm -rf "$TMP_ROOT"
+  fm_test_remove_tree "$TMP_ROOT"
 }
 trap relaunch_cleanup EXIT
 
@@ -1720,6 +1720,254 @@ test_cursor_session_binding_is_retired_on_a_harness_switch() {
   pass "fm-spawn --relaunch: switching away from cursor retires its session binding"
 }
 
+# codex_limit_session <case-dir> <id>: the task's current launch, ten minutes
+# ago, ran codex in its worktree and the session's last turn ended on the usage
+# limit, in the rollout shape codex-cli 0.163 persists.
+codex_limit_session() {
+  local dir=$1 id=$2 f
+  printf 'spawn_gen=s%s.1.1\n' "$(( $(date +%s) - 600 ))" >> "$dir/home/state/$id.meta"
+  f="$dir/user-home/.codex/sessions/2026/10/21/rollout-2026-10-21T10-00-00-01a0c0de-0000-7000-8000-000000000001.jsonl"
+  mkdir -p "${f%/*}"
+  jq -nc --arg cwd "$dir/wt" '{type:"session_meta",payload:{id:"01a0c0de-0000-7000-8000-000000000001",cwd:$cwd,cli_version:"0.163.0"}}' > "$f"
+  jq -nc '{type:"event_msg",payload:{type:"task_complete",turn_id:"t1",last_agent_message:null,error:{message:"You have hit your usage limit.",codex_error_info:"usage_limit_exceeded"}}}' >> "$f"
+}
+
+test_raw_relaunch_preserves_retiring_codex_limit_for_later_routes() {
+  local dir out rc gen_before
+  dir=$(new_case rawcodexlimit rl80)
+  add_ship_task "$dir" rl80 codex-client
+  codex_limit_session "$dir" rl80
+  gen_before=$(meta_field "$dir" rl80 spawn_gen)
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl80 --relaunch --harness 'claude-client --model sonnet'); rc=$?
+  expect_code 0 "$rc" "a raw Claude override should keep its launch command"$'\n'"$out"
+  assert_contains "$out" "spawned rl80 harness=claude-client" "the raw override must keep its executable identity"
+  assert_contains "$(cat "$dir/fake/literal")" "claude-client --model sonnet" "the raw command must be preserved"
+  [ "$(meta_field "$dir" rl80 harness)" = claude-client ] || fail "the raw override must record its executable identity"
+  [ "$(meta_field "$dir" rl80 spawn_gen)" != "$gen_before" ] || fail "the raw relaunch must replace the generation"
+  [ "$(cat "$dir/home/state/rl80.codex-limit" 2>/dev/null)" = "codex run for rl80 hit its usage limit: You have hit your usage limit." ] \
+    || fail "the raw override must preserve the retiring Codex limit before replacing its generation"
+
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl80 --relaunch --harness codex); rc=$?
+  expect_code 0 "$rc" "a later canonical Codex relaunch should follow the preserved limit"$'\n'"$out"
+  assert_contains "$out" "spawned rl80 harness=claude" "the later Codex relaunch must route to Claude"
+  [ "$(meta_field "$dir" rl80 harness)" = claude ] || fail "the later relaunch must record Claude"
+  [ "$(meta_field "$dir" rl80 effort)" = xhigh ] || fail "the later relaunch must use the routed effort"
+  pass "fm-spawn --relaunch: a raw override preserves the retiring Codex limit for later canonical routes"
+}
+
+test_raw_relaunch_refuses_route_changes_without_replacing_generation() {
+  local dir id harness route out rc before raw executable
+  for raw in 'cursor-agent --trust' 'codex --model custom' 'codex-client --model custom' 'cursor --model custom'; do
+    executable=${raw%% *}
+    case "$executable" in
+      cursor|cursor-agent) harness=cursor ;;
+      *) harness=codex ;;
+    esac
+    id="rl81-$executable"
+    dir=$(new_case "rawroute-$harness" "$id")
+    add_ship_task "$dir" "$id" "$harness"
+    printf 'spawn_gen=s%s.1.1\n' "$(( $(date +%s) - 600 ))" >> "$dir/home/state/$id.meta"
+    if [ "$harness" = codex ]; then
+      route=claude
+      printf 'codex run hit its usage limit\n' > "$dir/home/state/$id.codex-limit"
+    else
+      route=codex
+      mkdir -p "$dir/user-home/.agent-state/a3ov3/cursor-usage"
+      printf 'cursor_models_pct=90\n' > "$dir/user-home/.agent-state/a3ov3/cursor-usage/test-spending.txt"
+    fi
+    before=$(cat "$dir/home/state/$id.meta")
+    printf 'zsh' > "$dir/fake/command"
+    out=$(FM_CURSOR_USAGE_DIR="$dir/user-home/.agent-state/a3ov3/cursor-usage" \
+      run_spawn "$dir" "$id" --relaunch --harness "$raw"); rc=$?
+    expect_code 1 "$rc" "a raw $harness command must refuse a route to $route"$'\n'"$out"
+    assert_contains "$out" "route to $route" "the refusal must name the selected harness"
+    assert_contains "$out" "canonical --harness $harness" "the refusal must request a canonical launch"
+    [ "$(cat "$dir/home/state/$id.meta")" = "$before" ] || fail "a raw route refusal must preserve the record and generation"
+    [ ! -s "$dir/fake/literal" ] || fail "a raw route refusal must not send a launch command"
+    [ ! -s "$dir/fake/keys" ] || fail "a raw route refusal must not prepare the endpoint"
+    [ "$(cat "$dir/fake/command")" = zsh ] || fail "a raw route refusal must not start an agent"
+  done
+  pass "fm-spawn --relaunch: raw Codex and Cursor commands refuse changed routes without replacing the task generation"
+}
+
+test_raw_cursor_family_is_kept_when_usage_is_healthy() {
+  local dir out rc
+  dir=$(new_case rawcursorhealthy rl83)
+  add_ship_task "$dir" rl83 cursor
+  mkdir -p "$dir/user-home/.agent-state/a3ov3/cursor-usage"
+  printf 'cursor_models_pct=10\n' > "$dir/user-home/.agent-state/a3ov3/cursor-usage/test-spending.txt"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(FM_CURSOR_USAGE_DIR="$dir/user-home/.agent-state/a3ov3/cursor-usage" \
+    run_spawn "$dir" rl83 --relaunch --harness 'cursor-agent --trust'); rc=$?
+  expect_code 0 "$rc" "a healthy raw Cursor command must keep its family"$'\n'"$out"
+  assert_contains "$out" "spawned rl83 harness=cursor-agent" "the raw executable identity must be preserved"
+  assert_contains "$(cat "$dir/fake/literal")" "cursor-agent --trust" "the raw Cursor command must be preserved"
+  [ "$(meta_field "$dir" rl83 harness)" = cursor-agent ] || fail "the record must keep the raw executable identity"
+  [ ! -e "$dir/home/state/rl83.cursor-fallback" ] || fail "keeping the Cursor family must not record an override"
+  pass "fm-spawn --relaunch: healthy raw Cursor keeps its command and executable identity without an override"
+}
+
+test_raw_cursor_override_is_recorded() {
+  local dir out rc
+  dir=$(new_case rawcursoroverride rl82)
+  add_ship_task "$dir" rl82 cursor
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl82 --relaunch --harness 'claude --model sonnet'); rc=$?
+  expect_code 0 "$rc" "a raw override of Cursor should keep its launch command"$'\n'"$out"
+  assert_contains "$(cat "$dir/fake/literal")" "claude --model sonnet" "the raw override must be preserved"
+  [ "$(meta_field "$dir" rl82 harness)" = claude ] || fail "the raw override must record Claude"
+  [ "$(cat "$dir/home/state/rl82.cursor-fallback" 2>/dev/null)" = "explicit --harness claude override of a recorded cursor task" ] \
+    || fail "a raw override must record the Cursor replacement"
+  pass "fm-spawn --relaunch: a raw Cursor override records its replacement harness"
+}
+
+test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude() {
+  local dir out rc
+  dir=$(new_case codexlimit rl73)
+  add_ship_task "$dir" rl73 codex
+  codex_limit_session "$dir" rl73
+  printf 'codex' > "$dir/fake/command"
+  out=$(run_control "$dir" rl73 relaunch --note "codex hit its usage limit"); rc=$?
+  expect_code 0 "$rc" "relaunching a usage-limited codex task should succeed"$'\n'"$out"
+  assert_contains "$out" "relaunched rl73 harness=claude from=codex" "the outcome should name the claude replacement"
+  [ "$(meta_field "$dir" rl73 harness)" = claude ] || fail "the record should name claude, got '$(meta_field "$dir" rl73 harness)'"
+  [ "$(meta_field "$dir" rl73 effort)" = xhigh ] || fail "the claude replacement should run at xhigh, got '$(meta_field "$dir" rl73 effort)'"
+  [ "$(journal_field "$dir" rl73 to_harness)" = claude ] || fail "the journal should name claude as the target"
+  [ "$(cat "$dir/home/state/rl73.codex-limit" 2>/dev/null)" = "codex run for rl73 hit its usage limit: You have hit your usage limit." ] \
+    || fail "the usage-limit stop must be recorded in state/<id>.codex-limit: $(cat "$dir/home/state/rl73.codex-limit" 2>&1)"
+  pass "fm-control relaunch: a codex task whose session ended on its usage limit is relaunched on claude and marked"
+}
+
+test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs() {
+  local dir out rc route_fallback
+  dir=$(new_case codexlimitpairs rl79)
+  add_ship_task "$dir" rl79 codex
+  codex_limit_session "$dir" rl79
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"review","use":{"harness":"claude","model":"opus","effort":"high"}}],"default":[{"harness":"codex"},{"harness":"claude","model":"sonnet","effort":"medium"}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'codex' > "$dir/fake/command"
+  out=$(run_control "$dir" rl79 relaunch --note "codex hit its usage limit"); rc=$?
+  expect_code 0 "$rc" "a usage-limit route to claude must not be refused by the claude dispatch pairs"$'\n'"$out"
+  assert_contains "$out" "relaunched rl79 harness=claude from=codex" "the outcome should name the claude replacement"
+  [ "$(meta_field "$dir" rl79 model)" = default ] || fail "the claude replacement should run the default model, got '$(meta_field "$dir" rl79 model)'"
+  [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "the claude replacement should run at xhigh, got '$(meta_field "$dir" rl79 effort)'"
+  route_fallback=$(meta_field "$dir" rl79 route_fallback)
+  out=$(run_control "$dir" rl79 relaunch --note "continue on the fallback profile"); rc=$?
+  expect_code 0 "$rc" "an ordinary relaunch must keep the recorded fallback pair"$'\n'"$out"
+  assert_contains "$out" "relaunched rl79 harness=claude from=claude model=default effort=xhigh" "the next relaunch must keep the fallback profile"
+  [ "$route_fallback" = 1 ] || fail "the first routed launch must record its fallback profile"
+  [ "$(meta_field "$dir" rl79 harness)" = claude ] || fail "the next relaunch must keep claude"
+  [ "$(meta_field "$dir" rl79 model)" = default ] || fail "the next relaunch must keep the default model"
+  [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "the next relaunch must keep xhigh"
+  [ "$(meta_field "$dir" rl79 route_fallback)" = 1 ] || fail "keeping the fallback pair must carry its provenance"
+
+  out=$(run_control "$dir" rl79 relaunch --effort high --note "request an unmatched pair"); rc=$?
+  expect_code 1 "$rc" "fallback provenance must not exempt a different pair"$'\n'"$out"
+  assert_contains "$out" "matches no dispatch profile" "an unmatched change must still refuse"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "the unmatched change must not stop the agent"
+  [ "$(meta_field "$dir" rl79 effort)" = xhigh ] || fail "a refusal must keep the recorded fallback pair"
+
+  out=$(run_control "$dir" rl79 relaunch --model opus --effort high --note "choose a named profile"); rc=$?
+  expect_code 0 "$rc" "an explicit named pair must still relaunch"$'\n'"$out"
+  [ "$(meta_field "$dir" rl79 model)" = opus ] || fail "the explicit model must be recorded"
+  [ "$(meta_field "$dir" rl79 effort)" = high ] || fail "the explicit effort must be recorded"
+  [ -z "$(meta_field "$dir" rl79 route_fallback)" ] || fail "choosing another pair must clear fallback provenance"
+  pass "fm-control relaunch: a routed fallback pair survives the next relaunch and only that pair is exempt"
+}
+
+test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude() {
+  local dir out rc
+  dir=$(new_case codexmarked rl74)
+  add_ship_task "$dir" rl74 codex
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"default":[{"harness":"codex"},{"harness":"claude","model":"sonnet","effort":"medium"}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'codex run for rl74 hit its usage limit\n' > "$dir/home/state/rl74.codex-limit"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl74 --relaunch)
+  assert_contains "$out" "spawned rl74 harness=claude" "a marked codex task must relaunch on claude"$'\n'"$out"
+  [ "$(meta_field "$dir" rl74 harness)" = claude ] || fail "the record should name claude, got '$(meta_field "$dir" rl74 harness)'"
+  [ "$(meta_field "$dir" rl74 effort)" = xhigh ] || fail "the claude replacement should run at xhigh"
+  [ "$(meta_field "$dir" rl74 route_fallback)" = 1 ] || fail "the direct fallback must record its provenance"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl74 --relaunch); rc=$?
+  expect_code 0 "$rc" "the direct relaunch must keep its fallback pair"$'\n'"$out"
+  [ "$(meta_field "$dir" rl74 model)" = default ] || fail "a fallback pair must not adopt the file's single model"
+  [ "$(meta_field "$dir" rl74 effort)" = xhigh ] || fail "a fallback pair must not adopt the file's single effort"
+  [ "$(meta_field "$dir" rl74 route_fallback)" = 1 ] || fail "the direct relaunch must carry fallback provenance"
+
+  printf 'zsh' > "$dir/fake/command"
+  out=$(FM_CONTROL_ROUTE_FALLBACK=1 run_spawn "$dir" rl74 --relaunch --effort high); rc=$?
+  expect_code 0 "$rc" "a changed pair must still adopt the single file pair"$'\n'"$out"
+  [ "$(meta_field "$dir" rl74 model)" = sonnet ] || fail "the fallback must not count as another adoption candidate"
+  [ "$(meta_field "$dir" rl74 effort)" = medium ] || fail "the adopted effort must be recorded"
+  [ -z "$(meta_field "$dir" rl74 route_fallback)" ] || fail "adopting another pair must clear provenance and ignore an untrusted control handoff"
+  pass "fm-spawn --relaunch: fallback pairs survive relaunch and do not change single-pair adoption"
+}
+
+test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched() {
+  local dir out rc
+  dir=$(new_case cursorroute rl75)
+  add_ship_task "$dir" rl75 cursor
+  mkdir -p "$dir/home/config"
+  printf '%s\n' '{"rules":[{"when":"review","use":{"harness":"codex","model":"gpt-5","effort":"high"}}],"default":[{"harness":"cursor"},{"harness":"codex","model":"gpt-5","effort":"medium"}]}' \
+    > "$dir/home/config/crew-dispatch.json"
+  printf 'cursor-agent' > "$dir/fake/command"
+  printf 'codex' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl75 relaunch --note "cursor pool unknown"); rc=$?
+  expect_code 0 "$rc" "relaunching a cursor task with no usage evidence should succeed"$'\n'"$out"
+  assert_contains "$out" "relaunched rl75 harness=codex from=cursor" "the outcome should name the harness actually launched"
+  [ "$(meta_field "$dir" rl75 harness)" = codex ] || fail "the record should name codex, got '$(meta_field "$dir" rl75 harness)'"
+  [ "$(journal_field "$dir" rl75 to_harness)" = codex ] || fail "the journal should name the harness actually launched, got '$(journal_field "$dir" rl75 to_harness)'"
+  assert_contains "$(cat "$dir/home/state/rl75.cursor-fallback" 2>/dev/null)" "no Cursor spending file" "the fallback reason should be recorded"
+  [ "$(meta_field "$dir" rl75 route_fallback)" = 1 ] || fail "the Cursor fallback must record its provenance"
+  out=$(run_control "$dir" rl75 relaunch --note "continue on codex"); rc=$?
+  expect_code 0 "$rc" "a Cursor fallback pair must remain eligible on codex"$'\n'"$out"
+  assert_contains "$out" "relaunched rl75 harness=codex from=codex model=default effort=xhigh" "the next relaunch must keep the Cursor fallback pair"
+  [ "$(meta_field "$dir" rl75 route_fallback)" = 1 ] || fail "the next relaunch must carry Cursor fallback provenance"
+  pass "fm-control relaunch: a cursor fallback records the actual harness and keeps its pair on the next relaunch"
+}
+
+test_explicit_override_of_a_cursor_task_is_recorded() {
+  local dir out rc
+  dir=$(new_case cursoroverride rl76)
+  add_ship_task "$dir" rl76 cursor
+  printf 'cursor-agent' > "$dir/fake/command"
+  printf 'grok' > "$dir/fake/becomes"
+  out=$(run_control "$dir" rl76 relaunch --harness grok --note "operator moved it"); rc=$?
+  expect_code 0 "$rc" "an explicit override relaunch should succeed"$'\n'"$out"
+  [ "$(meta_field "$dir" rl76 harness)" = grok ] || fail "the explicit harness must be kept"
+  [ "$(cat "$dir/home/state/rl76.cursor-fallback" 2>/dev/null)" = "explicit --harness grok override of a recorded cursor task" ] \
+    || fail "fm-control relaunch must record an explicit override of a cursor task: $(cat "$dir/home/state/rl76.cursor-fallback" 2>&1)"
+
+  dir=$(new_case cursoroverridespawn rl77)
+  add_ship_task "$dir" rl77 cursor
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl77 --relaunch --harness grok)
+  assert_contains "$out" "spawned rl77 harness=grok" "the explicit harness must be kept"$'\n'"$out"
+  [ "$(cat "$dir/home/state/rl77.cursor-fallback" 2>/dev/null)" = "explicit --harness grok override of a recorded cursor task" ] \
+    || fail "fm-spawn --relaunch must record an explicit override of a cursor task: $(cat "$dir/home/state/rl77.cursor-fallback" 2>&1)"
+  pass "an explicit --harness relaunch of a cursor task is kept and recorded in state/<id>.cursor-fallback"
+}
+
+test_spawn_relaunch_keeps_the_recorded_profile_axes() {
+  local dir out
+  dir=$(new_case spawnprofile rl78)
+  add_ship_task "$dir" rl78 claude
+  sed 's/^model=default$/model=opus/; s/^effort=default$/effort=high/' \
+    "$dir/home/state/rl78.meta" > "$dir/home/state/rl78.meta.tmp"
+  mv "$dir/home/state/rl78.meta.tmp" "$dir/home/state/rl78.meta"
+  printf 'zsh' > "$dir/fake/command"
+  out=$(run_spawn "$dir" rl78 --relaunch)
+  assert_contains "$out" "spawned rl78 harness=claude" "the relaunch should keep the recorded harness"$'\n'"$out"
+  [ "$(meta_field "$dir" rl78 model)" = opus ] || fail "an omitted --model must keep the recorded model, got '$(meta_field "$dir" rl78 model)'"
+  [ "$(meta_field "$dir" rl78 effort)" = high ] || fail "an omitted --effort must keep the recorded effort, got '$(meta_field "$dir" rl78 effort)'"
+  pass "fm-spawn --relaunch: omitted --model and --effort keep the recorded axes"
+}
+
 # --- 3 and 4. refusals before the agent is touched ---------------------------
 
 test_missing_worktree_refuses_before_stopping_anything() {
@@ -2936,6 +3184,7 @@ SH
   pass "fm-control exit removes the dialog file before it releases the control lock"
 }
 
+test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
@@ -2989,6 +3238,15 @@ test_promoted_scout_relaunch_receives_the_current_delivery_contract
 test_prefixed_prior_harness_wiring_is_still_retired
 test_muse_session_binding_is_retired_on_a_harness_switch
 test_cursor_session_binding_is_retired_on_a_harness_switch
+test_raw_relaunch_preserves_retiring_codex_limit_for_later_routes
+test_raw_relaunch_refuses_route_changes_without_replacing_generation
+test_raw_cursor_family_is_kept_when_usage_is_healthy
+test_raw_cursor_override_is_recorded
+test_control_relaunch_of_a_usage_limited_codex_task_lands_on_claude
+test_spawn_relaunch_of_a_marked_codex_task_lands_on_claude
+test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched
+test_explicit_override_of_a_cursor_task_is_recorded
+test_spawn_relaunch_keeps_the_recorded_profile_axes
 test_missing_worktree_refuses_before_stopping_anything
 test_missing_instructions_refuse_before_stopping_anything
 test_checkpoint_refusal_leaves_the_record_byte_identical
