@@ -74,7 +74,7 @@ puts YAML.load_file(ARGV[0]).fetch("jobs").fetch(ARGV[1]).fetch("timeout-minutes
 # must join a tier, and a job-level value outside these tiers is exactly the
 # one-off number the policy removed.
 FAST_TIER_JOBS='test-coverage invariants tests-timing-aggregate'
-NORMAL_TIER_JOBS='lint tests-portable-parallel-1 tests-portable-parallel-2 tests-portable-serial macos-stock-bash'
+NORMAL_TIER_JOBS='lint tests-portable-parallel-1 tests-portable-parallel-2 tests-portable-serial'
 HEAVY_TIER_JOBS='tests-herdr'
 
 # Print the one timeout every listed job shares; fail on any disagreement.
@@ -249,6 +249,32 @@ RUBY
   pass "CI matrices cover every executable serial lane and canonical lint root exactly once"
 }
 
+# This fork runs no hosted macOS job: the fork's macOS runners queue for hours
+# or are never acquired, and a cancelled check holds every PR. The stock Bash
+# 3.2 check runs on the Mac before push instead (bin/fm-stock-bash-check.sh as
+# the no-mistakes stock-macos-bash gate). Fails if an upstream ci.yml merge
+# brings a macOS job back into any workflow that runs on a PR or a push.
+test_no_pr_or_push_job_runs_on_a_hosted_mac() {
+  local reported
+  reported=$(ruby -ryaml -e '
+ARGV.each do |path|
+  doc = YAML.load_file(path)
+  events = doc["on"] || doc[true]
+  events = events.is_a?(Hash) ? events.keys : Array(events)
+  next unless events.any? { |e| %w[pull_request pull_request_target push].include?(e.to_s) }
+  doc.fetch("jobs").each do |name, job|
+    runners = [job["runs-on"]]
+    matrix = (job["strategy"] || {})["matrix"]
+    runners << matrix.values if matrix.is_a?(Hash)
+    hit = runners.flatten.compact.map(&:to_s).grep(/macos/i)
+    puts "#{File.basename(path)} #{name}: #{hit.join(" ")}" unless hit.empty?
+  end
+end
+' "$ROOT"/.github/workflows/*.yml) || fail "could not read runners from .github/workflows"
+  [ -z "$reported" ] || fail "these PR or push jobs need a hosted macOS runner; run the check through bin/fm-stock-bash-check.sh instead:"$'\n'"$reported"
+  pass "no PR or push workflow job waits on a hosted macOS runner"
+}
+
 test_ci_matrices_match_executable_partitions
 test_pr_pushes_supersede_within_one_pr
 test_separate_prs_do_not_cancel_each_other
@@ -258,3 +284,4 @@ test_every_job_belongs_to_exactly_one_timeout_tier
 test_fast_tier_shares_one_short_tripwire
 test_normal_tier_shares_one_budget
 test_heavy_tier_keeps_a_step_tripwire_under_a_job_backstop
+test_no_pr_or_push_job_runs_on_a_hosted_mac
