@@ -55,8 +55,13 @@ Before that command, a Claude exit stops the agent's own background shells and c
 Those shells are the shell-classified descendants of that agent that sit outside its process group, plus the commands those shells have started.
 The processes are taken from that agent's own process tree.
 A pane that already shows Claude's background-task exit picker, or whose submitting Enter opens it, is recovered by the same verb.
+The same recovery runs once when the wait for the agent to stop times out and that re-read is the first time this exit sees the picker.
 The shells the picker lists are stopped, Escape closes the picker, and `/exit` is submitted once the picker is gone.
+Escape is followed by a short reread of that screen, about eight tries a twentieth of a second apart, before a dismissal that has not redrawn yet is treated as still open.
+The screen that lists those shells and confirms the picker has closed is the current screen the composer classifier used.
+On a scrolled Herdr pane that screen is the composer capture, because the visible viewport is old chat, and an empty task list does not count as the picker being clear.
 Enter is never sent into the picker.
+A picker that is still open after that one recovery refuses.
 When that process tree cannot be seen, the picker still refuses with `blocked on a prompt` and no Escape is sent.
 An unrecognised dialog still refuses, with no key and no signal.
 A stopped agent whose pane still shows the dialog text is not refused.

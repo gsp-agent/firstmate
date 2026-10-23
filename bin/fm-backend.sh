@@ -803,6 +803,20 @@ fm_backend_visible_capture() {  # <backend> <target> [expected-label]
   "fm_backend_${backend}_visible_capture" "$@"
 }
 
+# fm_backend_current_screen: the screen the composer classifier just read.
+# Herdr's visible viewport on a scrolled pane is old chat, so Herdr answers
+# with the composer capture. Every other backend's visible capture is that
+# screen. Callers that list a dialog's tasks or confirm it closed use this,
+# not a second viewport read that can disagree with the classifier.
+fm_backend_current_screen() {  # <backend> <target> [expected-label]
+  local backend=$1 target=$2
+  fm_backend_source "$backend" || return 1
+  case "$backend" in
+    herdr) fm_backend_herdr_composer_capture "$target" ;;
+    *) fm_backend_visible_capture "$backend" "$target" "${3:-}" ;;
+  esac
+}
+
 # fm_backend_send_key: one backend-supported named special key.
 fm_backend_send_key() {  # <backend> <target> <key> [expected-label]
   local backend=$1

@@ -18,8 +18,9 @@
 #      carries NO from-firstmate marker and opens no pending-reply expectation,
 #      while fm-send's marking of the same task is untouched.
 #   7. Claude background shells: exit stops the agent's own background shells
-#      before /exit, recovers an open background-task picker, and still
-#      refuses a dialog it does not recognise.
+#      before /exit, recovers an open background-task picker including one
+#      that appears only after the stop wait, waits out a late redraw after
+#      Escape, and still refuses a dialog it does not recognise.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -172,8 +173,12 @@ case "${1:-}" in
         esac
       fi
       if [ "$payload" = Escape ] && { [ -f "$D/pane" ] || [ -f "$D/after-enter" ]; }; then
-        : > "$D/picker-dismissed"
-        rm -f "$D/pane"
+        # escape-dismiss-late holds how many captures after Escape still show
+        # the picker, for a redraw that lands after the key has been queued.
+        if [ ! -f "$D/escape-dismiss-late" ]; then
+          : > "$D/picker-dismissed"
+          rm -f "$D/pane"
+        fi
       fi
       if [ -n "${FM_FAKE_INTERRUPT_STOPS_AGENT:-}" ] \
          && { [ "$payload" = Escape ] || [ "$payload" = C-c ]; }; then
@@ -213,6 +218,18 @@ case "${1:-}" in
     done
     printf 'fakepane\n'; exit 0 ;;
   capture-pane)
+    if [ -f "$D/escape-dismiss-late" ] && [ ! -f "$D/picker-dismissed" ] \
+       && [ -f "$D/keys" ] && grep -qx Escape "$D/keys"; then
+      late=0
+      late=$(cat "$D/escape-dismiss-late")
+      case "$late" in ''|*[!0-9]*) late=0 ;; esac
+      if [ "$late" -gt 0 ]; then
+        printf '%s' "$((late - 1))" > "$D/escape-dismiss-late"
+      else
+        : > "$D/picker-dismissed"
+        rm -f "$D/pane"
+      fi
+    fi
     if [ -f "$D/picker-dismissed" ]; then
       if [ -f "$D/devin" ]; then
         devin_screen "$(cat "$D/devin")"
@@ -1220,8 +1237,10 @@ EOF
 
 # A real process whose argv0 path ends in /claude, on a private pty, with one
 # background shell outside its process group. The shell's command line contains
-# "sleep 300", which is the task the exit picker lists. A second sleep 300 is
-# started here and is not a descendant, so exit must leave it alone.
+# "sleep 300", which is the task the exit picker lists. Pass "direct" to exec
+# sleep itself in that process group instead of a shell, which is the waiter a
+# shell-only selection misses. A second sleep 300 is started here and is not a
+# descendant, so exit must leave it alone.
 nursery_track() {  # <pid>
   case "$1" in
     ''|*[!0-9]*) return 0 ;;
@@ -1270,6 +1289,7 @@ EOF
   cat > "$dir/hold.py" <<'PY'
 import fcntl, os, pty, sys, termios, time
 claude, bash_pid_path, agent_pid_path, tty_path = sys.argv[1:5]
+mode = sys.argv[5] if len(sys.argv) > 5 else "shell"
 master, slave = pty.openpty()
 tty_name = os.ttyname(slave)
 pid = os.fork()
@@ -1282,7 +1302,10 @@ if pid == 0:
     os.dup2(slave, 2)
     if slave > 2:
         os.close(slave)
-    os.execv(claude, [claude, bash_pid_path, "bash", "-c", "trap '' HUP; sleep 300; echo done"])
+    if mode == "direct":
+        os.execv(claude, [claude, bash_pid_path, "sleep", "300"])
+    else:
+        os.execv(claude, [claude, bash_pid_path, "bash", "-c", "trap '' HUP; sleep 300; echo done"])
 os.close(slave)
 open(agent_pid_path, "w").write("%d\n" % pid)
 open(tty_path, "w").write(tty_name + "\n")
@@ -1295,7 +1318,7 @@ while True:
         pid = 0
     time.sleep(0.01)
 PY
-  python3 "$dir/hold.py" "$dir/bin/claude" "$dir/bash.pid" "$dir/fake/agent-pid" "$dir/fake/tty" >/dev/null 2>&1 &
+  python3 "$dir/hold.py" "$dir/bin/claude" "$dir/bash.pid" "$dir/fake/agent-pid" "$dir/fake/tty" "${2:-shell}" >/dev/null 2>&1 &
   holder=$!
   nursery_track "$holder"
   for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
@@ -1309,12 +1332,23 @@ PY
   nursery_track "$bash_pid"
   nursery_track "$(tr -d '[:space:]' < "$dir/fake/agent-pid")"
   sleep_pid=
-  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-    sleep_pid=$(LC_ALL=C ps -axo pid=,ppid=,command= | awk -v p="$bash_pid" '$2 == p && index($0, "sleep 300") { print $1; exit }')
-    [ -n "$sleep_pid" ] && break
-    sleep 0.05
-  done
-  [ -n "$sleep_pid" ] || fail "the background shell's sleep did not start"
+  if [ "${2:-}" = direct ]; then
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+      if LC_ALL=C ps -p "$bash_pid" -o command= 2>/dev/null | grep -q 'sleep 300'; then
+        sleep_pid=$bash_pid
+        break
+      fi
+      sleep 0.05
+    done
+    [ -n "$sleep_pid" ] || fail "the exec'd sleep did not start"
+  else
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+      sleep_pid=$(LC_ALL=C ps -axo pid=,ppid=,command= | awk -v p="$bash_pid" '$2 == p && index($0, "sleep 300") { print $1; exit }')
+      [ -n "$sleep_pid" ] && break
+      sleep 0.05
+    done
+    [ -n "$sleep_pid" ] || fail "the background shell's sleep did not start"
+  fi
   nursery_track "$sleep_pid"
   printf '%s\n' "$sleep_pid" > "$dir/sleep.pid"
   sleep 300 >/dev/null 2>&1 &
@@ -1430,6 +1464,174 @@ test_exit_recovers_a_picker_that_opens_on_submit() {
   pass "fm-control exit: a picker that opens on submit is dismissed and /exit is sent again"
 }
 
+# The stop wait can time out before any read sees the picker. With a real
+# agent tree, that re-read recovers once. Without one, the same re-read still
+# refuses and sends no Escape.
+test_exit_recovers_a_picker_that_renders_after_the_stop_wait() {
+  local dir out rc enters
+  dir=$(new_case late-picker-live)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir"
+  exit_picker_screen > "$dir/fake/after-enter"
+  printf '1' > "$dir/fake/after-enter-late"
+  out=$(run_exit_with_nursery "$dir" FM_FAKE_NEVER_DIES=1 FM_CONTROL_EXIT_WAIT=0.2); rc=$?
+  expect_code 1 "$rc" "an agent that ignores /exit should still fail closed"$'\n'"$out"
+  [ "$(cat "$dir/fake/after-enter-late")" = 0 ] \
+    || fail "the submit should have read the ordinary pane once after Enter"
+  assert_contains "$out" "exit=unconfirmed" "the failure should be an unconfirmed exit"
+  assert_not_contains "$out" "blocked on a prompt" "a picker whose shells are gone must not stay blocked"
+  assert_background_shell_stopped "$dir"
+  assert_sibling_survived "$dir"
+  [ "$(literals "$dir")" = $'/exit\n/exit' ] || fail "exit should be submitted again after Escape, got: $(literals "$dir")"
+  enters=$(grep -c '^Enter$' "$dir/fake/keys" || true)
+  [ "$enters" -eq 2 ] || fail "the resubmit should add one Enter, got $enters"
+  [ "$(keys_sent "$dir")" = Escape ] || fail "recovery should send one Escape, got: $(keys_sent "$dir")"
+  awk '
+    $0 == "Enter" { enters++ ; if (!first) first = NR }
+    $0 == "Escape" && !esc { esc = NR }
+    END { exit !(enters == 2 && esc && first && first < esc && esc < NR) }
+  ' "$dir/fake/keys" || fail "Escape must sit between the two submitting Enters, got: $(cat "$dir/fake/keys")"
+  pass "fm-control exit: a picker that renders after the stop wait is dismissed and /exit is sent again"
+}
+
+test_exit_completes_when_the_picker_redraws_after_escape() {
+  local dir out rc enters
+  dir=$(new_case escape-late)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir"
+  exit_picker_screen > "$dir/fake/pane"
+  printf '1' > "$dir/fake/escape-dismiss-late"
+  out=$(run_exit_with_nursery "$dir"); rc=$?
+  expect_code 0 "$rc" "a late redraw after Escape should still exit"$'\n'"$out"
+  [ "$(cat "$dir/fake/escape-dismiss-late")" = 0 ] \
+    || fail "the first capture after Escape should still have shown the picker"
+  assert_background_shell_stopped "$dir"
+  assert_sibling_survived "$dir"
+  [ "$(literals "$dir")" = /exit ] || fail "exit should type /exit once, got: $(literals "$dir")"
+  [ "$(keys_sent "$dir")" = Escape ] || fail "recovery should send one Escape, got: $(keys_sent "$dir")"
+  enters=$(grep -c '^Enter$' "$dir/fake/keys" || true)
+  [ "$enters" -eq 1 ] || fail "only the submitting Enter should be sent, got $enters"
+  awk '
+    $0 == "Escape" && !esc { esc = NR }
+    $0 == "Enter" && !ent { ent = NR }
+    END { exit !(esc && ent && esc < ent) }
+  ' "$dir/fake/keys" || fail "Escape must dismiss the picker before /exit is submitted"
+  pass "fm-control exit: a picker that is still visible on the first read after Escape still closes"
+}
+
+test_exit_refuses_when_escape_does_not_close_the_picker() {
+  local dir out rc
+  dir=$(new_case escape-stuck)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir"
+  exit_picker_screen > "$dir/fake/pane"
+  printf '8' > "$dir/fake/escape-dismiss-late"
+  out=$(run_exit_with_nursery "$dir"); rc=$?
+  expect_code 1 "$rc" "a picker that stays open after Escape should refuse"$'\n'"$out"
+  assert_contains "$out" "blocked on a prompt: Claude background-task exit picker" \
+    "the refusal should name the dialog"
+  assert_not_contains "$out" "did not stop within" \
+    "a picker that stays open must not fall back to the generic timeout message"
+  assert_background_shell_stopped "$dir"
+  assert_sibling_survived "$dir"
+  [ ! -s "$dir/fake/literal" ] || fail "a picker that stays open must not be typed into, got: $(literals "$dir")"
+  [ "$(keys_sent "$dir")" = Escape ] || fail "recovery should send one Escape and stop, got: $(keys_sent "$dir")"
+  ! grep -qx Enter "$dir/fake/keys" || fail "a picker that stays open must receive no Enter"
+  pass "fm-control exit: a picker that stays open after one Escape still refuses"
+}
+
+test_exit_stops_an_execd_waiter_the_picker_lists() {
+  local dir out rc
+  dir=$(new_case exec-waiter)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir" direct
+  exit_picker_screen > "$dir/fake/pane"
+  out=$(run_exit_with_nursery "$dir"); rc=$?
+  expect_code 0 "$rc" "exit should stop an exec'd waiter the picker lists"$'\n'"$out"
+  assert_background_shell_stopped "$dir"
+  assert_sibling_survived "$dir"
+  [ "$(literals "$dir")" = /exit ] || fail "exit should type /exit once, got: $(literals "$dir")"
+  [ "$(keys_sent "$dir")" = Escape ] || fail "recovery should send one Escape, got: $(keys_sent "$dir")"
+  pass "fm-control exit: a waiter the owned shell has exec'd is stopped from the picker"
+}
+
+exit_picker_without_a_task_row() {
+  printf '%s\n' \
+    'Background work is running' \
+    '❯ 1. Exit and stop tasks' \
+    'The following will stop when you exit:' \
+    'shell - sleep 300' \
+    '  2. Move to background and exit' \
+    '  3. Stay' \
+    'Enter to confirm · Esc to cancel'
+}
+
+test_exit_refuses_a_picker_whose_tasks_cannot_be_read() {
+  local dir out rc bash_pid
+  dir=$(new_case empty-tasks)
+  add_task "$dir" t1 claude
+  alive_as "$dir" claude
+  start_claude_nursery "$dir"
+  exit_picker_without_a_task_row > "$dir/fake/pane"
+  bash_pid=$(tr -d '[:space:]' < "$dir/bash.pid")
+  out=$(run_exit_with_nursery "$dir"); rc=$?
+  expect_code 1 "$rc" "a picker with no readable task should refuse"$'\n'"$out"
+  assert_contains "$out" "blocked on a prompt: Claude background-task exit picker" \
+    "the refusal should name the dialog"
+  assert_not_contains "$out" "Esc" "the refusal must not name a dismissal key"
+  pid_alive "$bash_pid" || fail "a picker with no readable task must not stop the agent's background shell"
+  assert_sibling_survived "$dir"
+  [ ! -s "$dir/fake/literal" ] || fail "a picker with no readable task must not be typed into"
+  [ -z "$(keys_sent "$dir")" ] || fail "a picker with no readable task must receive no key, got: $(keys_sent "$dir")"
+  pass "fm-control exit: a recognised picker with no readable task is not dismissed"
+}
+
+test_current_screen_on_a_scrolled_herdr_pane_is_not_the_viewport() {
+  local dir fb out
+  dir=$(new_case herdr-screen)
+  fb="$dir/fakebin"
+  printf 'OLD CHAT viewport\n' > "$dir/fake/visible"
+  printf '%s\n' \
+    'Background work is running' \
+    'shell · sleep 300' \
+    'Enter to confirm · Esc to cancel' > "$dir/fake/recent"
+  cat > "$fb/herdr" <<'SH'
+#!/usr/bin/env bash
+set -u
+visible=${FM_HERDR_VISIBLE:?}
+recent=${FM_HERDR_RECENT:?}
+if [ "${1:-}" = status ] && [ "${2:-}" = --json ]; then
+  printf '%s\n' '{"server":{"running":true}}'
+  exit 0
+fi
+if [ "${1:-}" = pane ] && [ "${2:-}" = get ]; then
+  printf '%s\n' '{"result":{"pane":{"scroll":{"offset_from_bottom":4,"viewport_rows":3}}}}'
+  exit 0
+fi
+if [ "${1:-}" = pane ] && [ "${2:-}" = read ]; then
+  joined="$*"
+  case "$joined" in
+    *"--source visible"*) cat "$visible" ;;
+    *"--source recent"*) cat "$recent" ;;
+    *) exit 1 ;;
+  esac
+  exit 0
+fi
+exit 0
+SH
+  chmod +x "$fb/herdr"
+  out=$(PATH="$fb:$PATH" FM_HERDR_VISIBLE="$dir/fake/visible" FM_HERDR_RECENT="$dir/fake/recent" \
+    bash -c '. "$1/bin/fm-backend.sh"; fm_backend_current_screen herdr "lab:w1:p1"' bash "$ROOT") \
+    || fail "the current screen of a scrolled Herdr pane should be readable"
+  assert_contains "$out" "shell · sleep 300" "the current screen should list the waiter"
+  assert_not_contains "$out" "OLD CHAT" "the visible viewport is old chat and is not the current screen"
+  pass "fm-backend current screen: a scrolled Herdr pane reads the composer capture, not the viewport"
+}
+
 test_exit_refuses_an_unrecognised_dialog() {
   local dir out rc bash_pid
   dir=$(new_case unknown-dialog)
@@ -1493,6 +1695,12 @@ test_exit_names_a_picker_that_renders_after_the_submit
 test_exit_stops_a_background_shell_before_exit
 test_exit_recovers_an_open_background_picker
 test_exit_recovers_a_picker_that_opens_on_submit
+test_exit_recovers_a_picker_that_renders_after_the_stop_wait
+test_exit_completes_when_the_picker_redraws_after_escape
+test_exit_refuses_when_escape_does_not_close_the_picker
+test_exit_stops_an_execd_waiter_the_picker_lists
+test_exit_refuses_a_picker_whose_tasks_cannot_be_read
+test_current_screen_on_a_scrolled_herdr_pane_is_not_the_viewport
 test_exit_refuses_an_unrecognised_dialog
 test_interrupt_without_acknowledgement_preserves_busy_state
 test_muse_interrupt_confirms_adapter_acknowledgement

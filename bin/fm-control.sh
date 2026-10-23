@@ -853,20 +853,38 @@ fm_control_stop_claude_background() {  # <shells|commands> <commands>
 }
 
 fm_control_dismiss_claude_exit_picker() {
-  local key screen
+  local key screen tries=0
+  # The dialog predicate lives in the backend's composer library. A capture
+  # sources that library only inside its own command substitution.
+  fm_backend_source "$BACKEND" || return 1
   key=$(fm_control_exit_picker_dismiss_key "$HARNESS") || return 1
   fm_backend_send_key "$BACKEND" "$T" "$key" "$LABEL" || return 1
-  screen=$(fm_backend_visible_capture "$BACKEND" "$T" "$LABEL" 2>/dev/null) || return 1
-  if fm_composer_blocking_dialog "$screen" >/dev/null; then
-    return 1
-  fi
-  return 0
+  # Both transports enqueue the key and return before the pane redraws, so
+  # one immediate read can still show the picker. Read that same screen a
+  # few times before treating the dismissal as failed.
+  while [ "$tries" -lt 8 ]; do
+    screen=$(fm_backend_current_screen "$BACKEND" "$T" "$LABEL" 2>/dev/null) || return 1
+    if ! fm_composer_blocking_dialog "$screen" >/dev/null; then
+      return 0
+    fi
+    tries=$((tries + 1))
+    [ "$tries" -lt 8 ] || break
+    /bin/sleep 0.05
+  done
+  return 1
 }
 
 fm_control_recover_claude_exit_picker() {
   local screen tasks
-  screen=$(fm_backend_visible_capture "$BACKEND" "$T" "$LABEL" 2>/dev/null) || screen=
+  # The task list and the dismissal check share the screen the classifier
+  # used. An empty list, or a screen that is not the picker, is not success:
+  # Escape would close nothing while a listed waiter kept running.
+  # Source before the predicate: the capture below runs in a subshell.
+  fm_backend_source "$BACKEND" || return 1
+  screen=$(fm_backend_current_screen "$BACKEND" "$T" "$LABEL" 2>/dev/null) || return 1
+  fm_composer_blocking_dialog "$screen" >/dev/null || return 1
   tasks=$(fm_composer_exit_picker_tasks "$screen")
+  [ -n "$tasks" ] || return 1
   fm_control_stop_claude_background commands "$tasks" || return 1
   fm_control_dismiss_claude_exit_picker
 }
@@ -1030,13 +1048,50 @@ do_exit() {
   state=$(wait_agent_state "$EXIT_WAIT" dead) || {
     # A submit can return before any read sees the picker: a native busy
     # verdict needs no composer read, and a cleared composer can be read
-    # before the picker renders. Read the screen once more here.
-    : > "$FM_COMPOSER_DIALOG_SINK" || true
-    fm_backend_composer_state "$BACKEND" "$T" "$LABEL" >/dev/null 2>&1 || true
-    if [ -s "$FM_COMPOSER_DIALOG_SINK" ]; then
-      refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+    # before the picker renders. Read the screen once more here. The first
+    # time this exit sees the recognised picker, recover it once and wait
+    # again. A picker that is still open after that recovery refuses.
+    if [ "$(agent_state)" = dead ]; then
+      state=dead
+    else
+      : > "$FM_COMPOSER_DIALOG_SINK" || true
+      fm_backend_composer_state "$BACKEND" "$T" "$LABEL" >/dev/null 2>&1 || true
+      if [ -s "$FM_COMPOSER_DIALOG_SINK" ]; then
+        dialog=$(cat "$FM_COMPOSER_DIALOG_SINK")
+        if [ "$dialog" = "Claude background-task exit picker" ] && [ "$HARNESS" = claude ] \
+           && [ "$claude_picker_recovered" != 1 ]; then
+          if ! fm_control_recover_claude_exit_picker; then
+            refuse_blocking_prompt "$dialog"
+          fi
+          claude_picker_recovered=1
+          fm_control_reread_composer
+          if [ -s "${FM_COMPOSER_DIALOG_SINK:-}" ]; then
+            refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+          fi
+          fm_control_require_empty_composer
+          fm_control_submit_exit_command
+          if [ -s "${FM_COMPOSER_DIALOG_SINK:-}" ] && [ "$(agent_state)" != dead ]; then
+            refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+          fi
+          state=$(wait_agent_state "$EXIT_WAIT" dead) || {
+            if [ "$(agent_state)" = dead ]; then
+              state=dead
+            else
+              : > "$FM_COMPOSER_DIALOG_SINK" || true
+              fm_backend_composer_state "$BACKEND" "$T" "$LABEL" >/dev/null 2>&1 || true
+              if [ -s "$FM_COMPOSER_DIALOG_SINK" ]; then
+                refuse_blocking_prompt "$(cat "$FM_COMPOSER_DIALOG_SINK")"
+              fi
+              die "exit-delivered $ID interrupt=$interrupt_result exit-command=delivered agent-state=$state exit=unconfirmed; the agent did not stop within ${EXIT_WAIT}s"
+            fi
+          }
+        else
+          refuse_blocking_prompt "$dialog"
+        fi
+      else
+        die "exit-delivered $ID interrupt=$interrupt_result exit-command=delivered agent-state=$state exit=unconfirmed; the agent did not stop within ${EXIT_WAIT}s"
+      fi
     fi
-    die "exit-delivered $ID interrupt=$interrupt_result exit-command=delivered agent-state=$state exit=unconfirmed; the agent did not stop within ${EXIT_WAIT}s"
   }
   # The incarnation is over: retire its busy wiring so no stale record or
   # orphaned generation survives the agent that produced it.
