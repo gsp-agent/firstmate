@@ -75,3 +75,5 @@ pr: 92
 pending-pr: 98 .agent-config-onxre
 # Redaction scan on https://github.com/gsp-agent/firstmate/pull/109: no home-folder path in drift-measurements.txt or in any object archives/fork-cuts.bundle carries; test_documented_cut_recovery_restores_a_cut_from_the_bundle in tests/fm-drift-nightly.test.sh recovers a cut from the rebuilt bundle.
 pr: 109
+# Failing-first active-worker answer delivery and duplicate fm-send continuation regressions in tests/fm-captain-hold-lifecycle.test.sh (FM_TEST_HOLD_ROUTING_REGRESSION=answer-delivery); current-generation and single-occurrence receipt checks keep interrupted delivery pending.
+pr: 115
