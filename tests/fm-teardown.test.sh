@@ -5910,7 +5910,7 @@ SH
   [ $((SECONDS - started)) -ge 4 ] || fail "the full attempt stopped before its 4s cap"
   assert_contains "$(cat "$case_dir/task-next.err")" "task data aa-huge expiry stopped after its one full 4s attempt" \
     "the second cut-off did not name the full attempt"
-  assert_contains "$(cat "$case_dir/task-next.err")" "too large to expire automatically, so later teardowns skip it" \
+  assert_contains "$(cat "$case_dir/task-next.err")" "later foreground passes skip it while the background sweep retries when enabled" \
     "the second cut-off did not say later teardowns skip the hold"
   [ "$(jq -r '.expiry' "$record")" = too-large ] || fail "the record did not mark the hold too large"
 
@@ -5918,7 +5918,7 @@ SH
     || fail "third teardown failed: $(cat "$case_dir/task-last.err")"
   [ "$(wc -l < "$case_dir/attempts" | tr -d ' ')" = 2 ] || fail "a hold marked too large was tried again"
   assert_contains "$(cat "$case_dir/task-last.err")" \
-    "holds too large to expire automatically, skipped and kept for expiry by hand: aa-huge" \
+    "holds exceed the foreground expiry budget, deferred to the background sweep when enabled: aa-huge" \
     "a later teardown did not name the hold it skipped"
   assert_present "$case_dir/data/aa-huge/.cleanup-hold/scratch.bin" "a hold too large to expire lost its data"
   [ "$(jq -r '.expiry' "$record")" = too-large ] || fail "skipping the hold cleared its too-large mark"
@@ -6033,7 +6033,8 @@ SH
   task="$case_dir/data/aa-big"
   record="$task/record/data-cleanup.json"
   # Two sparse logs, each under the 16 MiB per-file limit and together over
-  # the 16 MiB total, plus a small note. None of them may be opened.
+  # the 16 MiB total, plus a small note. Foreground preparation stays bounded;
+  # expiry must read every file successfully before it can move or delete.
   python3 - "$task/record/run-1.log" "$task/record/run-2.log" <<'PY'
 import sys
 
@@ -6044,32 +6045,33 @@ PY
   printf 'plain notes\n' > "$task/notes.md"
   chmod 000 "$task/record/run-1.log" "$task/record/run-2.log" "$task/notes.md"
   cap_note="kept text totals 18874380 bytes, over its 16 MiB cap, so none of it was read"
-  if PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" aa-big \
-      > "$case_dir/out" 2> "$case_dir/err"; then
-    fail "by-hand expiry reported success for a hold over the total cap"
-  fi
-  assert_not_contains "$(cat "$case_dir/err")" "Permission denied" "expiry opened kept text over the total cap"
+  PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" prepare \
+    "$case_dir/data" "$case_dir/state" aa-big > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "bounded preparation failed"
+  assert_not_contains "$(cat "$case_dir/err")" "Permission denied" "preparation opened kept text over the total cap"
   assert_contains "$(cat "$case_dir/err")" "task data aa-big retained whole and marked too-large: $cap_note" \
-    "expiry did not refuse kept text over the total cap"
-  assert_contains "$(cat "$case_dir/err")" "task data aa-big is not expired" \
-    "by-hand expiry did not name the hold over the total cap"
+    "preparation did not defer kept text over the total cap"
   jq -e --arg note "$cap_note" '.expiry == "too-large" and .retained == $note
       and .complete == true and .expired == false' "$record" >/dev/null \
     || fail "the record did not mark the hold over the total cap too large: $(cat "$record")"
   assert_present "$task/.cleanup-hold/scratch.bin" "expiry over the total cap deleted held scratch"
   assert_present "$task/record/run-2.log" "expiry over the total cap deleted kept text"
 
+  if PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" aa-big \
+      > "$case_dir/unread.out" 2> "$case_dir/unread.err"; then
+    fail "expiry reported success without reading the protected evidence"
+  fi
+  assert_present "$task/.cleanup-hold/scratch.bin" "expiry deleted scratch with unread evidence"
+
   chmod 644 "$task/record/run-1.log" "$task/record/run-2.log" "$task/notes.md"
-  : > "$task/record/run-1.log"
-  : > "$task/record/run-2.log"
   PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" expire "$case_dir/data" "$case_dir/state" aa-big \
     > "$case_dir/next.out" 2> "$case_dir/next.err" \
-    || fail "by-hand expiry failed once the kept text fell under the cap: $(cat "$case_dir/next.err")"
-  assert_absent "$task/.cleanup-hold" "the hold did not expire once the kept text fell under the cap"
+    || fail "by-hand expiry failed with readable text over the aggregate cap: $(cat "$case_dir/next.err")"
+  assert_absent "$task/.cleanup-hold" "the hold did not expire with bounded evidence batches"
   assert_present "$task/notes.md" "expiry deleted kept text"
   jq -e '.expired == true and (has("expiry") | not) and (has("retained") | not)' "$record" >/dev/null \
     || fail "expiry under the cap kept the too-large mark: $(cat "$record")"
-  pass "fm-teardown: expiry sizes kept text before reading it, marks a hold over the 16 MiB total too large without opening a file, and expires it once the text shrinks"
+  pass "fm-teardown: preparation defers excessive text; expiry keeps unread evidence and drains readable bounded batches"
 }
 
 test_task_data_full_attempt_uses_its_own_limit() {
@@ -6741,6 +6743,162 @@ SH
     assert_absent "$case_dir/data/$other/scratch.bin" "the sweep left $other scratch unstaged"
   done
   pass "fm-teardown: the sweep expires newly promoted and saved too-large holds, staged or unstaged"
+}
+
+test_task_data_sweep_outlives_launcher_group() {
+  local case_dir
+  case_dir=$(make_case task-data-sweep-launcher-group)
+  write_pending_hold "$case_dir" aa-held
+  write_expiry_tools "$case_dir"
+  cat > "$case_dir/launcher.sh" <<'SH'
+#!/usr/bin/env bash
+set -eu
+cd "$CASE_DIR" || exit 1
+. "$CODE_ROOT/bin/fm-task-data-lib.sh"
+fm_task_data_sweep_start "$CASE_DIR/data" "$CASE_DIR/state"
+printf '%s\n' "$!" > "$CASE_DIR/sweep-pid"
+wait
+SH
+  cat > "$case_dir/fakebin/dcg" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+touch "$CASE_DIR/removal-ready"
+while [ ! -e "$CASE_DIR/release" ]; do sleep 0.1; done
+SH
+  CASE_DIR="$case_dir" CODE_ROOT="$ROOT" FM_HOME="$case_dir" FM_TASK_DATA_SWEEP=on \
+    PATH="$case_dir/fakebin:$PATH" python3 - "$case_dir" <<'PY' \
+    || fail "the automatic drain died with its launcher's process group"
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
+
+root = Path(sys.argv[1])
+with (root / "launcher.log").open("w") as out:
+    parent = subprocess.Popen(["bash", str(root / "launcher.sh")], start_new_session=True,
+                              stdout=out, stderr=out)
+try:
+    for _ in range(300):
+        if (root / "removal-ready").exists():
+            break
+        time.sleep(.1)
+    assert (root / "removal-ready").exists(), "sweep never reached removal"
+    os.killpg(parent.pid, signal.SIGTERM)
+    parent.wait(timeout=10)
+    (root / "release").touch()
+    for _ in range(300):
+        record = json.loads((root / "data/aa-held/record/data-cleanup.json").read_text())
+        if (record.get("expired") and not (root / "state/.task-data-sweep.lock").exists()
+                and not list((root / "state").glob(".task-data-sweep.snapshot.*"))):
+            break
+        time.sleep(.1)
+    assert record.get("expired"), "launcher exit killed the sweep, leaving its hold and lock"
+    assert not list((root / "state").glob(".task-data-sweep.snapshot.*")), "snapshot leaked"
+finally:
+    (root / "release").touch()
+    if parent.poll() is None:
+        os.killpg(parent.pid, signal.SIGTERM)
+        parent.wait(timeout=10)
+PY
+  pass "fm-teardown: the automatic drain survives cleanup of its launcher's process group"
+}
+
+test_task_data_sweep_streams_kept_text() {
+  local case_dir task record
+  case_dir=$(make_case task-data-sweep-streams-text)
+  write_pending_hold "$case_dir" aa-big
+  write_expiry_tools "$case_dir"
+  task="$case_dir/data/aa-big"
+  record="$task/record/data-cleanup.json"
+  jq '.expiry = "too-large" | .complete = false' "$record" > "$record.next" \
+    && mv "$record.next" "$record"
+  mv "$task/.cleanup-hold/scratch.bin" "$task/scratch.bin"
+  printf 'keep linked evidence\n' > "$task/.cleanup-hold/capture.png"
+  printf 'overlapping basename\n' > "$task/.cleanup-hold/capture"
+  printf 'terminal prefix\n' > "$task/.cleanup-hold/cap"
+  printf 'escaped Unicode name\n' > "$task/.cleanup-hold/café.png"
+  printf 'unlinked near match\n' > "$task/.cleanup-hold/aptured.bin"
+  python3 - "$task" <<'PY'
+from pathlib import Path
+import sys
+root = Path(sys.argv[1])
+for name in ("first.log", "last.log"):
+    with (root / "record" / name).open("w") as stream:
+        for _ in range(9 * 1024):
+            stream.write("x" * 1023 + "\n")
+        if name == "last.log":
+            stream.write("[proof](capture.png) caf\\u00e9.png\n")
+PY
+  PATH="$case_dir/fakebin:$PATH" python3 - "$ROOT/bin/fm-task-data.py" "$case_dir" <<'PY' \
+    || fail "read-only expiry plan changed the fixture or misclassified scratch"
+import json
+from pathlib import Path
+import subprocess
+import sys
+helper, home = sys.argv[1], Path(sys.argv[2])
+def snapshot():
+    return {str(p): (p.lstat().st_mtime_ns, p.lstat().st_size)
+            for folder in ("data", "state") for p in (home / folder).rglob("*")}
+before = snapshot()
+result = subprocess.check_output(["python3", helper, "plan", str(home / "data"),
+                                  str(home / "state"), "aa-big"], text=True)
+plan = json.loads(result)
+assert plan["eligible"] and plan["scratch_files"] == 2, plan
+assert before == snapshot(), "plan wrote into data or state"
+PY
+  PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" sweep \
+    "$case_dir/data" "$case_dir/state" > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "sweep failed: $(cat "$case_dir/err")"
+  jq -e '.expired == true and (has("expiry") | not)' "$record" >/dev/null \
+    || fail "aggregate text cap permanently retained an eligible hold: $(cat "$case_dir/err")"
+  assert_absent "$task/.cleanup-hold" "streamed expiry left recovery scratch"
+  assert_absent "$task/scratch.bin" "streamed expiry left unstaged scratch"
+  assert_present "$task/capture.png" "streamed expiry missed a link after 18 MiB of kept text"
+  assert_present "$task/capture" "filename matching missed an overlapping basename"
+  assert_present "$task/cap" "filename matching missed a terminal prefix"
+  assert_present "$task/café.png" "filename matching missed an escaped Unicode basename"
+  assert_absent "$task/aptured.bin" "filename matching retained an unlinked near match"
+  [ "$(wc -c < "$task/record/first.log" | tr -d ' ')" = 9437184 ] \
+    || fail "streamed expiry changed kept evidence"
+  pass "fm-teardown: the sweep streams text beyond the aggregate cap and keeps late references"
+}
+
+test_task_data_sweep_recovers_dead_owner() {
+  local case_dir owner id
+  case_dir=$(make_case task-data-sweep-dead-owner)
+  write_expiry_tools "$case_dir"
+  for id in aa-old bb-cut cc-big dd-live ee-close ff-requester gg-unknown; do
+    write_pending_hold "$case_dir" "$id"
+  done
+  python3 "$ROOT/bin/fm-task-data.py" mark "$case_dir/data" bb-cut cut-off
+  python3 "$ROOT/bin/fm-task-data.py" mark "$case_dir/data" cc-big too-large
+  printf 'kind=ship\n' > "$case_dir/state/dd-live.meta"
+  touch "$case_dir/state/ee-close.backlog-close"
+  printf 'ff-requester\n' > "$case_dir/state/.task-data-sweep.rerun"
+  jq '.sources[0].backlog.task = "gg-unknown"' \
+    "$case_dir/data/gg-unknown/record/data-cleanup.json" > "$case_dir/record.next"
+  mv "$case_dir/record.next" "$case_dir/data/gg-unknown/record/data-cleanup.json"
+  owner=$(mktemp -d "$case_dir/state/.task-data-sweep.lock.owner.XXXXXX")
+  # A real exited process, rather than assuming an arbitrary pid is unused.
+  bash /dev/null &
+  printf '%s\n' "$!" > "$owner/pid"
+  wait "$!"
+  ln -s "$owner" "$case_dir/state/.task-data-sweep.lock"
+  PATH="$case_dir/fakebin:$PATH" bash "$ROOT/bin/fm-task-data-lib.sh" sweep \
+    "$case_dir/data" "$case_dir/state" > "$case_dir/out" 2> "$case_dir/err" \
+    || fail "stale sweep recovery failed: $(cat "$case_dir/err")"
+  for id in aa-old bb-cut cc-big; do
+    assert_absent "$case_dir/data/$id/.cleanup-hold" "stale-owner takeover left $id"
+  done
+  for id in dd-live ee-close ff-requester gg-unknown; do
+    assert_present "$case_dir/data/$id/.cleanup-hold/scratch.bin" "sweep deleted protected $id"
+  done
+  assert_absent "$case_dir/state/.task-data-sweep.lock" "recovered sweep left its lock"
+  assert_absent "$owner" "stale sweep owner was not reclaimed"
+  pass "fm-teardown: stale-owner takeover drains every mark while keeping live, pending, fresh and unresolved tasks"
 }
 
 test_task_data_sweep_single_instance() {
@@ -7635,6 +7793,38 @@ SH
   [ "$(cat "$task/named.png")" = 'named Bead evidence' ] || fail "retry lost named Bead evidence"
   assert_absent "$task/.cleanup-hold" "resumed Bead recovery remains"
   pass "fm-teardown: owning and named Bead links use the configured graph across retirement, replay, staging, expiry and unavailable-backend retries"
+}
+
+test_task_data_named_bead_alias_resolution() {
+  local case_dir variant status PATH=$PATH REF_RESPONSE
+  case_dir=$(make_case task-data-bead-alias)
+  . "$ROOT/bin/fm-timeout-lib.sh"
+  . "$ROOT/bin/fm-task-data-lib.sh"
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+[ "$1" = --db ] && [ "$3" = show ] && [ "$4" = .agent-config-2q4v ] || exit 1
+cat "$REF_RESPONSE"
+SH
+  chmod +x "$case_dir/fakebin/br"
+  export PATH="$case_dir/fakebin:$PATH" REF_RESPONSE="$case_dir/response.json"
+  for variant in canonical ambiguous wrong-owner wrong-suffix malformed; do
+    case "$variant" in
+      canonical) printf '[{"id":".agent-config-stash-missing-from-index-family-2q4v","description":"[proof](proof.png)"}]\n' ;;
+      ambiguous) printf '[{"id":".agent-config-one-2q4v"},{"id":".agent-config-two-2q4v"}]\n' ;;
+      wrong-owner) printf '[{"id":"gsp-something-2q4v"}]\n' ;;
+      wrong-suffix) printf '[{"id":".agent-config-something-2q4x"}]\n' ;;
+      malformed) printf '[{"id":null}]\n' ;;
+    esac > "$REF_RESPONSE"
+    status=0
+    fm_task_data_bead_reference "$case_dir/data" .agent-config-2q4v > "$case_dir/result" || status=$?
+    if [ "$variant" = canonical ]; then
+      [ "$status" = 0 ] || fail "unique canonical bead in the owning database was rejected"
+      assert_grep 'proof.png' "$case_dir/result" "canonical bead lost its evidence links"
+    else
+      [ "$status" != 0 ] || fail "$variant bead answer was accepted"
+    fi
+  done
+  pass "fm-teardown: unique short bead IDs resolve in their owning database; ambiguous and mismatched answers refuse"
 }
 
 test_task_data_named_bead_resolution() {
@@ -9190,6 +9380,10 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-named-beads ]; then
   test_task_data_named_bead_resolution
   exit 0
 fi
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-bead-alias ]; then
+  test_task_data_named_bead_alias_resolution
+  exit 0
+fi
 
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-row-reread ]; then
   test_task_data_row_reread_archiving "${1:-$ROOT/bin/fm-task-data.py}"
@@ -9268,6 +9462,32 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-retiring ]; then
   exit 0
 fi
 
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-launch ]; then
+  test_task_data_sweep_outlives_launcher_group
+  exit 0
+fi
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-text ]; then
+  test_task_data_sweep_streams_kept_text
+  exit 0
+fi
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-stale ]; then
+  test_task_data_sweep_recovers_dead_owner
+  exit 0
+fi
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-safety ]; then
+  test_task_data_refusals
+  test_task_data_references_and_guard
+  test_task_data_symlink_targets
+  test_task_data_linked_directories
+  test_task_data_reference_spellings
+  test_task_data_filesystem_name_aliases
+  test_task_data_symlink_ancestor_aliases "$ROOT/bin/fm-task-data.py"
+  test_task_data_collision_progress
+  test_task_data_completed_row_identity
+  test_task_data_completed_row_tied_identity
+  test_task_data_by_hand_expiry_keeps_scratch_reheld_from_a_staged_hold
+  exit 0
+fi
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-sweep ]; then
   test_task_data_unread_named_once
   test_task_data_unread_status_failure_retries
@@ -9328,6 +9548,9 @@ test_task_data_archived_bead_id_collision
 test_task_data_unread_named_once
 test_task_data_unread_status_failure_retries
 test_task_data_sweep_expires_big_hold
+test_task_data_sweep_outlives_launcher_group
+test_task_data_sweep_streams_kept_text
+test_task_data_sweep_recovers_dead_owner
 test_task_data_sweep_single_instance
 test_task_data_sweep_requester_recovery
 test_task_data_explicit_sweep_keeps_retiring_hold
@@ -9339,6 +9562,7 @@ test_task_data_full_attempt_uses_its_own_limit
 test_task_data_refusals
 test_task_data_references_and_guard
 test_task_data_bead_backlog_sources
+test_task_data_named_bead_alias_resolution
 test_task_data_named_bead_resolution
 test_task_data_reused_id
 test_task_data_expired_sources

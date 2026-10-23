@@ -6,11 +6,15 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py stage DATA STATE ID PROJECT PR
        fm-task-data.py expire DATA STATE ID
        fm-task-data.py pending DATA
+       fm-task-data.py plan DATA STATE ID
        fm-task-data.py mark DATA ID cut-off|too-large
 Prepare, retire, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
 lock also used by spawn.
 Pending takes no lock and prints, in one pass, each unexpired cleanup record's
 task id and expiry mark, tab-separated, least recently tried first.
+Plan runs expiry's reference and ownership decisions without writing, locking,
+moving or removing anything; its JSON reports allocated scratch bytes, not a
+promise of APFS free space (clones and hard links can share blocks).
 Prepare records the obligation before retirement; stage and expire refuse live tasks.
 Retire stages under the retiring task's existing protection; expiry also refuses pending closes.
 Without metadata, prepare reads the latest completed markdown backlog row,
@@ -44,12 +48,13 @@ and read those files and record/'s .txt/.md/.log/.json files for references up t
 16 MiB each. A larger one is an unread reference: the folder stays whole and the
 file is named in the warning and record.
 Also keep .txt/.md/.log/.json files up to 1 MiB outside nested repositories.
-Before reading any of that kept text, every action adds up its sizes from lstat.
-Over 16 MiB in total, nothing is read, moved or deleted: the record is marked
-"too-large" and its retained field and the warning name the total. By-hand
-expiry and the sweep refuse it the same way until the kept text shrinks.
-Matching holds several copies of the text at once, so this cap is what bounds
-its memory.
+Before reading kept text, preparation and staging add up its sizes from lstat.
+Over 16 MiB in total, those foreground actions defer it with a "too-large" mark.
+Expiry (including the sweep) reads and matches batches of at most 16 MiB,
+unions their retained paths, and finishes every reference read before moving
+or deleting anything. Repeated filenames share matching work within a batch.
+The per-file unread-evidence rule still applies. Named beads are read in batches
+of 32 so a large set does not share one reference-command timeout or text buffer.
 Other nested-repository files are scratch unless referenced.
 Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
 the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
@@ -137,6 +142,7 @@ does not fail the cleanup pass; later cleanup retries it before moving any data.
 """
 
 from array import array
+import copy
 from datetime import date
 import html
 import json
@@ -304,6 +310,84 @@ def local_references(root, files, repos, limit=None):
         check_limit(limit)
         texts.append(path.read_text(errors="replace"))
     return "\n".join(texts), oversized
+
+
+def local_reference_batches(root, files, repos, source, limit=None):
+    """Expiry reads the same evidence, one bounded batch at a time."""
+    paths, oversized = [], []
+    for rel in files:
+        check_limit(limit)
+        path = root / rel
+        if (rel.parts[0] != HOLD and str(rel) != RECEIPT
+                and not path.is_symlink()
+                and (path.suffix.lower() in TEXT or path.name in ("status", "findings", "review"))
+                and ordinary_evidence(path, rel, repos)):
+            if path.lstat().st_size > KEPT_LIMIT:
+                oversized.append(str(rel))
+            else:
+                paths.append(path)
+    if oversized:
+        source["unread"] = sorted(set(source.get("unread", [])) | set(oversized))
+        raise RetainWhole(f"kept evidence over 16 MiB: {', '.join(oversized)}")
+    texts, size = [], 0
+    for path in paths:
+        check_limit(limit)
+        with path.open("rb") as stream:
+            payload = stream.read(KEPT_LIMIT + 1)
+        length = len(payload)
+        if length > KEPT_LIMIT:
+            source["unread"] = sorted(set(source.get("unread", [])) | {str(path.relative_to(root))})
+            raise RetainWhole(f"kept evidence grew over 16 MiB: {path.relative_to(root)}")
+        if texts and size + length > TOTAL_LIMIT:
+            yield unquote(html.unescape("\n".join(texts)))
+            texts, size = [], 0
+        texts.append(payload.decode(errors="replace"))
+        size += length
+    if texts:
+        yield unquote(html.unescape("\n".join(texts)))
+
+
+def expiry_reference_batches(views, sources, task_id, limit=None):
+    # Resolve ownership and named references before spending matching time on
+    # a large archive. Reading local evidence twice keeps both passes bounded;
+    # a newly introduced bead on the second read defers the entire expiry.
+    for view in views:
+        for text in local_reference_batches(*view, sources[-1], limit):
+            sources[-1]["beads"] = sorted(set(sources[-1]["beads"]) | set(bead_ids(text)))
+    for source in sources:
+        # Each bead read has its own bound. Do not put thousands of those
+        # serial reads inside a single 60s subprocess or join all their text.
+        pending_beads, read_beads = set(source["beads"]), set()
+        first = True
+        while first or pending_beads:
+            first = False
+            chunk = sorted(pending_beads)[:32]
+            batch = copy.deepcopy(source)
+            batch["beads"] = chunk
+            try:
+                text = backlog_references(batch, task_id, limit)
+            finally:
+                source["backlog"] = batch["backlog"]
+                source["unread"] = batch.get("unread", [])
+                source["beads"] = sorted(set(source["beads"]) | set(batch["beads"]))
+            read_beads.update(chunk)
+            pending_beads = set(source["beads"]) - read_beads
+            yield unquote(html.unescape(text))
+        if source["pr"]:
+            try:
+                yield unquote(html.unescape(read_command([
+                    "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
+                    "references", source["pr"]], source["project"], limit)))
+            except StageLimit:
+                raise
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                source["unread"] = sorted(set(source.get("unread", [])) | {source["pr"]})
+                raise RetainWhole(f"unread PR {source['pr']}: {error}") from error
+    for view in views:
+        for text in local_reference_batches(*view, sources[-1], limit):
+            if set(bead_ids(text)) - set(sources[-1]["beads"]):
+                raise RetainWhole("local evidence changed during reference reads; retry required")
+            yield text
 
 
 def completed_rows(data, task_id, limit=None):
@@ -529,21 +613,84 @@ def references(views, sources, task_id, limit=None):
     return unquote(html.unescape("\n".join(texts)))
 
 
-def linked(rel, text, directory, normalized, offsets):
+def folded_name(name):
+    # Dotless i is re.IGNORECASE's extra equivalence beyond casefold.
+    return unicodedata.normalize("NFD", name).casefold().replace("\u0131", "i")
+
+
+def filename_matcher(names):
+    """Find candidate basenames in one scan, then let linked verify aliases.
+
+    A prefix trie keeps the regex from trying every filename at each character.
+    Lookahead finds overlapping names; terminal prefixes of the longest match
+    also count (both 'capture' and 'capture.png' retain their original rules).
+    """
+    trie = {}
+    for name in set(names):
+        key = folded_name(name)
+        for spelling in (key, folded_name(json.dumps(name)[1:-1])):
+            node = trie
+            for char in spelling:
+                node = node.setdefault(char, {})
+            node.setdefault(None, set()).add(key)
+
+    def pattern(node):
+        prefix = ""
+        while None not in node and len(node) == 1:
+            char, node = next(iter(node.items()))
+            prefix += re.escape(char)
+        branches = [re.escape(char) + pattern(child) for char, child in node.items() if char is not None]
+        if not branches:
+            return prefix
+        suffix = branches[0] if len(branches) == 1 else "(?:" + "|".join(branches) + ")"
+        return prefix + ("(?:" + suffix + ")?" if None in node else suffix)
+
+    matcher = re.compile("(?=(" + pattern(trie) + "))") if trie else None
+
+    def candidates(text):
+        found = set()
+        if matcher is None:
+            return found
+        for spelling in {match[1] for match in matcher.finditer(text)}:
+            node = trie
+            for char in spelling:
+                node = node[char]
+                found.update(node.get(None, ()))
+        return found
+
+    return candidates
+
+
+def linked(rel, text, directory, normalized, offsets, cache=None, candidates=None):
     # Basename matching also protects relative Markdown links and escaped JSON
     # paths without guessing which directory a PR or bead used as its base.
-    if not directory and (rel.name in text or json.dumps(rel.name)[1:-1] in text):
+    key = (rel.name, directory)
+    matches = cache.get(key) if cache is not None else None
+    if matches is None:
+        if candidates is not None and folded_name(rel.name) not in candidates:
+            if cache is not None:
+                cache[key] = set()
+            return False
+        if not directory and (rel.name in text or json.dumps(rel.name)[1:-1] in text):
+            matches = True
+        else:
+            name = unicodedata.normalize("NFD", rel.name)
+            pattern = "(" + re.escape(name) + ")"
+            if directory:
+                prefix = r'''(?:(?<=[/(`<"'])|:[ \t]+|(?<![\w.-])(?=''' + re.escape(name) + r"/))"
+                pattern = prefix + pattern + r'''(?=/?(?:$|[\s)\]}>'",;?#]))'''
+            matches = set()
+            for match in re.finditer(pattern, normalized, re.IGNORECASE):
+                start, end = match.span(1)
+                if offsets is not None:
+                    start, end = offsets[start], offsets[end - 1] + 1
+                matches.add(text[start:end])
+        if cache is not None:
+            cache[key] = matches
+    if matches is True:
         return True
-    name = unicodedata.normalize("NFD", rel.name)
-    pattern = "(" + re.escape(name) + ")"
-    if directory:
-        prefix = r'''(?:(?<=[/(`<"'])|:[ \t]+|(?<![\w.-])(?=''' + re.escape(name) + r"/))"
-        pattern = prefix + pattern + r'''(?=/?(?:$|[\s)\]}>'",;?#]))'''
-    for match in re.finditer(pattern, normalized, re.IGNORECASE):
-        start, end = match.span(1)
-        if offsets is not None:
-            start, end = offsets[start], offsets[end - 1] + 1
-        alias = rel.with_name(text[start:end])
+    for spelling in matches:
+        alias = rel.with_name(spelling)
         try:
             if os.path.samestat(alias.lstat(), rel.lstat()):
                 return True
@@ -559,25 +706,7 @@ def protected(path, targets):
 def retention_paths(root, files, all_directories, repos, text, limit=None):
     check_limit(limit)
     targets, directories = set(), set()
-    decoded = []
-    for match in re.finditer(r'"(?:[^"\\]|\\.)*"', text):
-        try:
-            decoded.append(json.loads(match.group()))
-        except ValueError:
-            pass
-    text = "\n".join([text, *decoded])
-    text += "\n" + re.sub(r"\\([" + re.escape(string.punctuation) + r"])", r"\1", text)
-    check_limit(limit)
-    normalized = unicodedata.normalize("NFD", text)
-    offsets = None
-    if normalized != text:
-        offsets = array("l")
-        for start in range(0, len(text), CHUNK):
-            check_limit(limit)
-            piece = text[start:start + CHUNK]
-            offsets.extend(range(start, start + len(piece)) if unicodedata.is_normalized("NFD", piece) else (
-                index for index, character in enumerate(piece, start) for _ in unicodedata.normalize("NFD", character)))
-    check_limit(limit)
+    batches = (text,) if isinstance(text, str) else text
     entries = {root / rel: (root / rel).lstat() for rel in files + all_directories}
     children = {}
     for path, info in entries.items():
@@ -620,17 +749,52 @@ def retention_paths(root, files, all_directories, repos, text, limit=None):
             pass
         return None, path, path
 
-    for rel in files + all_directories:
+    for rel in files:
+        if rel.parts[0] != HOLD and ordinary_evidence(root / rel, rel, repos):
+            targets.add(root / rel)
+    remaining = files + all_directories
+    find_names = filename_matcher(rel.name for rel in remaining)
+    for text in batches:
         check_limit(limit)
-        if rel == Path(HOLD):
+        if not remaining:
             continue
-        actual = root / rel
-        is_directory = stat.S_ISDIR(entries[actual].st_mode)
-        if linked(actual, text, is_directory, normalized, offsets) or (
-                not is_directory and rel.parts[0] != HOLD and ordinary_evidence(actual, rel, repos)):
-            targets.add(virtual_path(actual))
-            if is_directory:
-                directories.add(virtual_path(actual))
+        decoded = []
+        for match in re.finditer(r'"(?:[^"\\]|\\.)*"', text):
+            try:
+                decoded.append(json.loads(match.group()))
+            except ValueError:
+                pass
+        text = "\n".join([text, *decoded])
+        text += "\n" + re.sub(r"\\([" + re.escape(string.punctuation) + r"])", r"\1", text)
+        check_limit(limit)
+        normalized = unicodedata.normalize("NFD", text)
+        candidates = find_names(normalized.casefold().replace("\u0131", "i"))
+        offsets = None
+        if normalized != text:
+            offsets = array("l")
+            for start in range(0, len(text), CHUNK):
+                check_limit(limit)
+                piece = text[start:start + CHUNK]
+                offsets.extend(range(start, start + len(piece)) if unicodedata.is_normalized("NFD", piece) else (
+                    index for index, character in enumerate(piece, start) for _ in unicodedata.normalize("NFD", character)))
+        cache = {}
+        unmatched = []
+        for rel in remaining:
+            check_limit(limit)
+            if rel == Path(HOLD):
+                continue
+            actual = root / rel
+            virtual = root / rel.relative_to(HOLD) if rel.parts[0] == HOLD else actual
+            if protected(virtual, targets):
+                continue
+            is_directory = stat.S_ISDIR(entries[actual].st_mode)
+            if linked(actual, text, is_directory, normalized, offsets, cache, candidates):
+                targets.add(virtual)
+                if is_directory:
+                    directories.add(virtual)
+            else:
+                unmatched.append(rel)
+        remaining = unmatched
 
     pending_links = [root / rel for rel in files if (root / rel).is_symlink()]
     while pending_links:
@@ -779,10 +943,35 @@ def stage_limit():
 
 
 def cleanup(action, data, state, task_id, project="", pr=""):
+    dry_run = action == "plan"
+    if dry_run:
+        action = "expire"
+
+    def save(root, record):
+        if not dry_run:
+            write_record(root, record)
+
     if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
     limit = stage_limit() if action in ("stage", "retire") else None
     data, state = real_directory(data), real_directory(state)
+    if dry_run:
+        request = state / ".task-data-sweep.rerun"
+        if request.exists() and request.read_text().strip() == task_id:
+            raise RetainWhole("latest completion keeps its recovery until a different task completes")
+        lock = state / f".meta-{task_id}.lock"
+        if lock.exists() or lock.is_symlink():
+            try:
+                pid = int((lock / "pid").read_text().strip())
+                if pid <= 0:
+                    raise ValueError("invalid lock owner")
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                pass
+            except (OSError, ValueError) as error:
+                raise RetainWhole(f"task lock owner is unresolved: {error}") from error
+            else:
+                raise RetainWhole("task meta lock is held by a live process")
     meta = state / f"{task_id}.meta"
     values = None
     if action in ("prepare", "retire"):
@@ -836,6 +1025,8 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         for source in record["sources"]:
             source["beads"] = sorted({bead for bead in source["beads"] if is_bead_id(bead)})
         if action == "expire" and record.get("expired"):
+            if dry_run:
+                print(json.dumps({"task": task_id, "eligible": False, "reason": "already expired", "reclaim_bytes": 0}))
             return
     elif action in ("expire", "retire"):
         return
@@ -848,6 +1039,8 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         try:
             legacy = completed_source(data, task_id, limit)
         except (OSError, ValueError, subprocess.SubprocessError) as error:
+            if dry_run:
+                raise
             print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
             return
     if action in ("prepare", "retire") and values is None:
@@ -865,11 +1058,12 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     too_large = ""
     try:
         check_limit(limit)
-        local = unquote(html.unescape(local_references(root, files, repos, limit)[0]))
+        local = ("" if action == "expire" else
+                 unquote(html.unescape(local_references(root, files, repos, limit)[0])))
     except StageLimit as error:
         if record is not None:
             record["retained"] = str(error)
-            write_record(root, record)
+            save(root, record)
         print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         return
     except TooLarge as error:
@@ -902,7 +1096,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     record.pop("retained", None)
     if too_large:
         record.update(expiry="too-large", retained=too_large)
-    write_record(root, record)
+    save(root, record)
     if too_large:
         print(f"warning: task data {task_id} retained whole and marked too-large: {too_large}", file=sys.stderr)
         return
@@ -912,35 +1106,54 @@ def cleanup(action, data, state, task_id, project="", pr=""):
         except UnreadReferences as error:
             print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         finally:
-            write_record(root, record)
+            save(root, record)
         return
     if shutil.which("dcg") is None:
         raise ValueError("dcg is unavailable")
     try:
-        text = references(views, record["sources"], task_id, limit)
+        text = (expiry_reference_batches(views, record["sources"], task_id, limit) if action == "expire"
+                else references(views, record["sources"], task_id, limit))
+        targets, directories = retention_paths(root, files, all_directories, repos, text, limit)
     except StageLimit as error:
+        if dry_run:
+            raise
         record["retained"] = str(error)
         print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         return
     except RetainWhole as error:
+        if dry_run:
+            raise
         if action != "expire" or not unread_named(record, state, task_id, error):
             print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         return
     except UnreadReferences as error:
+        if dry_run:
+            raise
         if action != "expire" or not unread_named(record, state, task_id, error):
             print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
         raise SystemExit(1) from error
     finally:
-        write_record(root, record)
+        save(root, record)
     record.pop("unread_named", None)
-    try:
-        targets, directories = retention_paths(root, files, all_directories, repos, text, limit)
-    except StageLimit as error:
-        record["retained"] = str(error)
-        write_record(root, record)
-        print(f"warning: task data {task_id} retained whole for retry: {error}", file=sys.stderr)
+    if dry_run:
+        reclaim, kept, count = 0, 0, 0
+        seen = set()
+        for rel in files:
+            virtual = rel.relative_to(HOLD) if rel.parts[0] == HOLD else rel
+            info = (root / rel).lstat()
+            inode = (info.st_dev, info.st_ino)
+            if inode in seen:
+                continue
+            seen.add(inode)
+            allocated = info.st_blocks * 512
+            if virtual.parts[0] == "record" or protected(root / virtual, targets):
+                kept += allocated
+            else:
+                reclaim += allocated
+                count += 1
+        print(json.dumps({"task": task_id, "eligible": True, "reclaim_bytes": reclaim,
+                          "kept_bytes": kept, "scratch_files": count}))
         return
-
     scratch = [(path, [rel for rel in leaves if rel.parts[0] not in (HOLD, "record")
                       and not protected(path / rel, targets)]) for path, leaves, _ in views]
     if action == "expire" and record["complete"]:
@@ -1007,7 +1220,7 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(0)
     try:
-        arities = {"prepare": {5, 6}, "retire": {5, 6}, "stage": {7}, "expire": {5}, "pending": {3}, "mark": {5}}
+        arities = {"prepare": {5, 6}, "retire": {5, 6}, "stage": {7}, "expire": {5}, "plan": {5}, "pending": {3}, "mark": {5}}
         if len(sys.argv) < 2 or len(sys.argv) not in arities.get(sys.argv[1], ()):
             raise ValueError(__doc__)
         if sys.argv[1] == "pending":
@@ -1019,5 +1232,8 @@ if __name__ == "__main__":
         else:
             cleanup(*sys.argv[1:])
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+        if sys.argv[1:2] == ["plan"]:
+            print(json.dumps({"task": sys.argv[4], "eligible": False, "reason": str(error), "reclaim_bytes": 0}))
+            sys.exit(0)
         print(f"warning: task data retained for recovery: {error}", file=sys.stderr)
         sys.exit(1)
