@@ -1651,8 +1651,9 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
 # `treehouse get` hands out the first free slot regardless of which clone
 # created it. A worktree of the project's own clone is listed by the
 # project's own `git worktree list`; a slot is free when Treehouse's state
-# records no live owner process for it and no Firstmate slot-owner claim
-# names a task for it. The lowest slot name wins so the choice is stable.
+# records no live owner process and no durable lease for it, and no
+# Firstmate slot-owner claim names a task for it. The lowest slot name
+# wins so the choice is stable.
 # Any doubt - no jq, no pool layout, a live owner, an existing claim -
 # prints nothing, and the caller keeps the plain `treehouse get` path,
 # whose candidate screening still refuses a foreign-clone slot.
@@ -1670,10 +1671,15 @@ fm_treehouse_free_own_slot() {  # <project-dir>
     pool=$(dirname "$(dirname "$slot")")
     state="$pool/treehouse-state.json"
     name=$(basename "$(dirname "$slot")")
-    owner_pid=$(jq -r --arg p "$slot" --arg n "$name" \
-      '.worktrees[]? | select(.path == $p or .name == $n) | .owner_pid // empty' \
-      "$state" 2>/dev/null | head -n 1)
+    lease_line=$(jq -r --arg p "$slot" --arg n "$name" \
+      '.worktrees[]? | select(.path == $p or .name == $n) | "\(.owner_pid // "") \(.leased // false)"' \
+      "$state" 2>/dev/null) || continue
+    [ -n "$lease_line" ] || continue
+    owner_pid=${lease_line%% *}
     if [ -n "$owner_pid" ] && fm_pid_alive "$owner_pid"; then
+      continue
+    fi
+    if [ "${lease_line##* }" = true ]; then
       continue
     fi
     marker=$(fm_treehouse_slot_owner_marker "$wt") || continue

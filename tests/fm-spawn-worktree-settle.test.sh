@@ -427,6 +427,45 @@ test_mixed_pool_makes_new_own_slot_when_none_free() {
   pass "no free own-clone slot: the allocator is leased forward until Treehouse makes one"
 }
 
+# When the allocator hands the spawn a slot another task has claimed,
+# the spawn must never hand it back: `treehouse return` terminates the
+# processes inside its worktree, and the claiming task's worker may be
+# starting there. The lease is left for that task's own teardown return.
+test_allocator_claimed_slot_is_never_returned() {
+  local rec id out status pool pane_log th_log
+  id=settle-pool-claimed-lease-z9
+  rec=$(make_pool_case settle-pool-claimed-lease "$id")
+  read_settle_record "$rec"
+  pool="$TMP_ROOT/settle-pool-claimed-lease/pool"
+  pane_log="$TMP_ROOT/settle-pool-claimed-lease/pane.log"
+  th_log="$TMP_ROOT/settle-pool-claimed-lease/treehouse.log"
+  printf 'task=some-other-task\nhome=%s\n' "$HOME_DIR" > "$pool/2/.fm-slot-owner"
+  cat > "$FAKEBIN_DIR/treehouse" <<'SH'
+#!/usr/bin/env bash
+set -u
+printf '%s\n' "$*" >> "${FM_TREEHOUSE_LOG:-/dev/null}"
+case "$*" in
+  *"get --lease"*) printf '%s\n' "$FM_TREEHOUSE_CLAIMED_SLOT"; exit 0 ;;
+esac
+exit 0
+SH
+  chmod +x "$FAKEBIN_DIR/treehouse"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" \
+    FM_TREEHOUSE_LOG="$th_log" \
+    FM_TREEHOUSE_CLAIMED_SLOT="$pool/2/repo" \
+    run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should still succeed through treehouse get"$'\n'"$out"
+  assert_grep 'get --lease' "$th_log" \
+    "spawn did not consult the allocator before falling back"
+  assert_no_grep 'return ' "$th_log" \
+    "spawn returned a slot another task has claimed (treehouse return kills its processes)"
+  assert_grep 'treehouse get' "$pane_log" \
+    "spawn did not fall back to treehouse get after the claimed slot"
+  pass "a claimed slot handed over by the allocator is never returned"
+}
+
 test_single_stale_first_read_is_not_accepted
 test_already_settled_pane_costs_one_confirm_read
 test_transient_primary_checkout_is_not_accepted
@@ -435,5 +474,6 @@ test_foreign_clone_slot_is_never_accepted
 test_mixed_pool_enters_free_own_slot
 test_mixed_pool_claimed_own_slot_uses_treehouse_get
 test_mixed_pool_makes_new_own_slot_when_none_free
+test_allocator_claimed_slot_is_never_returned
 
 echo "# all fm-spawn-worktree-settle tests passed"
