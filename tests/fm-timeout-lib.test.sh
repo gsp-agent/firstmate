@@ -3,9 +3,10 @@
 # TERM to the command's process group at the bound, KILL once the grace has
 # passed, a forwarded signal, the caller replaced rather than wrapped, and a
 # refusal instead of an unbounded run when nothing on the host can enforce the
-# bound. Most cases pin the perl watchdog, the preferred mechanism and the only
-# one a stock macOS host has, under a PATH that holds no timeout variant; the
-# GNU fallback case runs only where a real timeout exists.
+# bound, and fm_exec_timed's memory cap. Most cases pin the perl
+# watchdog, the preferred mechanism and the only one a stock macOS host has,
+# under a PATH that holds no timeout variant; the GNU fallback case runs only
+# where a real timeout exists.
 # shellcheck disable=SC2016 # each bounded bash -c script expands its own arguments
 set -u
 
@@ -416,6 +417,71 @@ test_rejects_malformed_bounds_before_running_anything() {
   pass "fm_exec_timed rejects a zero, padded, non-numeric, or missing bound and a missing command"
 }
 
+# A PATH like PERL_ONLY plus ps, which the memory cap samples.
+RSS_PATH="$TMP_ROOT/rss-bin"
+mkdir -p "$RSS_PATH"
+for tool in perl bash sleep ps; do
+  ln -s "$(command -v "$tool")" "$RSS_PATH/$tool"
+done
+
+test_a_memory_cap_kills_the_group_past_its_cap() {
+  local dir out rc=0 started elapsed hog_pid
+  dir="$TMP_ROOT/memory-cap"
+  mkdir -p "$dir"
+  # The allocator is a descendant of the bounded shell, so the cap must count
+  # the whole process group, not only the command it started.
+  started=$SECONDS
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=65536 exec_timed "$RSS_PATH" 20 1 bash -c '
+    perl -e "open(my \$f, q(>), \$ARGV[0]); print \$f \$\$; close \$f; my \$s = q(x) x (256 * 1048576); sleep 60" "$1"
+    exit 0' _ "$dir/hog.pid" 2>&1) || rc=$?
+  elapsed=$((SECONDS - started))
+  [ "$rc" -eq 123 ] || fail "a group past its memory cap did not end with the cap status (rc=$rc: $out)"
+  [ "$elapsed" -lt 15 ] || fail "the memory cap waited for the deadline instead of firing (${elapsed}s)"
+  assert_contains "$out" "past its 65536 KiB cap" "the memory kill did not name the cap"
+  hog_pid=$(cat "$dir/hog.pid" 2>/dev/null) || fail "the allocator never recorded its pid"
+  ! kill -0 "$hog_pid" 2>/dev/null || fail "the allocator survived the memory kill"
+
+  rc=0
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=1048576 exec_timed "$RSS_PATH" 20 1 bash -c 'sleep 1.2; exit 7' 2>&1) || rc=$?
+  [ "$rc" -eq 7 ] || fail "a command under its memory cap lost its own status (rc=$rc: $out)"
+  pass "fm_exec_timed KILLs a process group past its memory cap and reports 123"
+}
+
+test_an_unmeasurable_memory_cap_kills_rather_than_runs_uncapped() {
+  local dir out rc=0 started elapsed
+  dir="$TMP_ROOT/memory-blind"
+  mkdir -p "$dir/bin"
+  for tool in perl bash sleep; do
+    ln -s "$(command -v "$tool")" "$dir/bin/$tool"
+  done
+  printf '#!/bin/sh\nexit 0\n' > "$dir/bin/ps"
+  chmod +x "$dir/bin/ps"
+  started=$SECONDS
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=1048576 exec_timed "$dir/bin" 20 1 sleep 60 2>&1) || rc=$?
+  elapsed=$((SECONDS - started))
+  [ "$rc" -eq 127 ] || fail "a memory cap that could not see its group did not refuse (rc=$rc: $out)"
+  [ "$elapsed" -lt 15 ] || fail "an unmeasurable memory cap ran on to the deadline (${elapsed}s)"
+  assert_contains "$out" "cannot read the memory" "the refusal did not say what it could not measure"
+
+  rc=0
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=065536 exec_timed "$RSS_PATH" 5 1 bash -c ': > "$1"' _ "$dir/ran" 2>&1) || rc=$?
+  [ "$rc" -eq 125 ] || fail "a malformed memory cap was not rejected (rc=$rc: $out)"
+  [ ! -e "$dir/ran" ] || fail "a malformed memory cap still ran the command"
+
+  # GNU timeout can bound time but not memory, so a capped call with no perl
+  # refuses instead of running on a deadline alone.
+  mkdir -p "$dir/no-perl"
+  ln -s "$(command -v bash)" "$dir/no-perl/bash"
+  printf '#!/bin/sh\nshift 3\nexec "$@"\n' > "$dir/no-perl/timeout"
+  chmod +x "$dir/no-perl/timeout"
+  rc=0
+  out=$(FM_EXEC_TIMED_MEMORY_KIB=1048576 exec_timed "$dir/no-perl" 5 1 bash -c ': > "$1"' _ "$dir/ran" 2>&1) || rc=$?
+  [ "$rc" -eq 127 ] || fail "a memory cap with no perl did not refuse (rc=$rc: $out)"
+  assert_contains "$out" "cannot cap the memory of bash" "the refusal did not say what it could not cap"
+  [ ! -e "$dir/ran" ] || fail "a memory cap with no perl still ran the command"
+  pass "fm_exec_timed KILLs a group whose memory it cannot read and refuses a cap it cannot enforce"
+}
+
 test_gnu_timeout_kills_a_term_ignoring_command_after_the_grace() {
   local dir fb rc=0 started elapsed verdict
   if ! command -v timeout >/dev/null 2>&1; then
@@ -483,5 +549,7 @@ test_a_kill_to_the_callers_group_still_ends_the_command
 test_perl_is_preferred_over_timeout
 test_refuses_rather_than_running_unbounded
 test_rejects_malformed_bounds_before_running_anything
+test_a_memory_cap_kills_the_group_past_its_cap
+test_an_unmeasurable_memory_cap_kills_rather_than_runs_uncapped
 test_gnu_timeout_kills_a_term_ignoring_command_after_the_grace
 test_timed_out_names_exactly_the_bound_statuses
