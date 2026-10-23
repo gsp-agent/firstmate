@@ -4023,7 +4023,9 @@ real_path_or_raw() { # <path>
 
 # True when <path> is an isolated worktree of the spawning project: a real
 # directory that is its own worktree root, is not the spawning project itself,
-# and does not share the project repository's common git dir. SPAWN_WT_TOP is
+# shares the project repository's common git dir (so it is a worktree of this
+# clone, never of another clone of the same origin), and is not the
+# repository's primary checkout. SPAWN_WT_TOP is
 # left holding the worktree root the check read, and SPAWN_WT_REASON a short
 # phrase naming why a rejected path failed, both for the refusal messages.
 #
@@ -4038,7 +4040,7 @@ real_path_or_raw() { # <path>
 SPAWN_WT_TOP=
 SPAWN_WT_REASON=
 spawn_worktree_isolated() { # <path>
-  local path=$1 wt_real wt_top_real wt_git_dir proj_common
+  local path=$1 wt_real wt_top_real wt_git_dir proj_common wt_common
   SPAWN_WT_TOP=
   SPAWN_WT_REASON=
   wt_real=
@@ -4077,8 +4079,20 @@ spawn_worktree_isolated() { # <path>
     wt_git_dir=$(cd "$wt_git_dir" 2>/dev/null && pwd -P) || wt_git_dir=
   proj_common=$(git -C "$PROJ_ABS" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) &&
     proj_common=$(cd "$proj_common" 2>/dev/null && pwd -P) || proj_common=
-  if [ -z "$wt_git_dir" ] || [ -z "$proj_common" ]; then
+  wt_common=$(git -C "$path" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) &&
+    wt_common=$(cd "$wt_common" 2>/dev/null && pwd -P) || wt_common=
+  if [ -z "$wt_git_dir" ] || [ -z "$proj_common" ] || [ -z "$wt_common" ]; then
     SPAWN_WT_REASON="its git directory could not be resolved"
+    return 1
+  fi
+  # A worktree of a DIFFERENT clone of the same project - the mixed Treehouse
+  # pool shape, where one pool holds slots from two clones of one origin - is
+  # not this project's worktree at all: its trust registration refuses it and
+  # a worker that skips trust would work in the wrong clone. Only a worktree
+  # sharing the spawning project's own git common dir may ever be adopted,
+  # which is the same test the trust scripts apply (bin/fm-claude-trust.sh).
+  if [ "$wt_common" != "$proj_common" ]; then
+    SPAWN_WT_REASON="it is a worktree of a different clone (its git common dir is '$wt_common', not the spawning project's '$proj_common')"
     return 1
   fi
   if [ "$wt_git_dir" = "$proj_common" ]; then
@@ -5155,7 +5169,22 @@ elif [ "$RELAUNCH" -eq 1 ]; then
   fi
   [ "$KIND" = secondmate ] || validate_spawn_worktree "relaunch" "$T"
 elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
-  spawn_send_text_line "$WT_TARGET" 'treehouse get'
+  # A plain `treehouse get` hands out the pool's first free slot, and one pool
+  # can hold slots from two clones of one origin, so that slot can belong to
+  # a different clone than the spawning project (the candidate screening
+  # below then refuses it). When a free slot of the project's own clone is
+  # already in the pool, enter that exact slot by name instead; `treehouse
+  # enter` opens the same process-leased subshell in the named worktree.
+  # With no free own slot, keep `treehouse get`: it grows a fresh slot from
+  # this clone when the pool has room, and the screening below is the guard
+  # when it hands out a foreign one instead.
+  SPAWN_ENTER_SLOT=$(fm_treehouse_free_own_slot "$PROJ_ABS" || true)
+  if [ -n "$SPAWN_ENTER_SLOT" ]; then
+    SPAWN_ENTER_NAME=$(basename "$(dirname "$SPAWN_ENTER_SLOT")")
+    spawn_send_text_line "$WT_TARGET" "treehouse enter $(shell_quote "$SPAWN_ENTER_NAME")"
+  else
+    spawn_send_text_line "$WT_TARGET" 'treehouse get'
+  fi
 
   # Wait for the treehouse subshell: the pane's cwd moves from the project to the worktree.
   # Target the stable window id, not the name: if the name is ever lost (e.g. an

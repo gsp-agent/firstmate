@@ -1643,6 +1643,56 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
   printf '%s/.fm-slot-owner\n' "$(dirname "$slot")"
 }
 
+# fm_treehouse_free_own_slot: print the worktree path of one free Treehouse
+# pool slot that belongs to the project's own clone, or nothing.
+#
+# One pool can hold slots from two clones of one origin (the clones share a
+# repository basename, so Treehouse gives them one pool), and a plain
+# `treehouse get` hands out the first free slot regardless of which clone
+# created it. A worktree of the project's own clone is listed by the
+# project's own `git worktree list`; a slot is free when Treehouse's state
+# records no live owner process for it and no Firstmate slot-owner claim
+# names a task for it. The lowest slot name wins so the choice is stable.
+# Any doubt - no jq, no pool layout, a live owner, an existing claim -
+# prints nothing, and the caller keeps the plain `treehouse get` path,
+# whose candidate screening still refuses a foreign-clone slot.
+fm_treehouse_free_own_slot() {  # <project-dir>
+  local project=$1 listed line wt slot pool state owner_pid marker name best="" best_key=""
+  command -v jq >/dev/null 2>&1 || return 0
+  listed=$(git -C "$project" -c core.quotePath=false worktree list --porcelain 2>/dev/null) || return 0
+  while IFS= read -r line; do
+    case "$line" in
+      worktree\ *) wt=${line#worktree } ;;
+      *) continue ;;
+    esac
+    fm_treehouse_pool_slot "$project" "$wt" || continue
+    slot=$(CDPATH='' cd -- "$wt" 2>/dev/null && pwd -P) || continue
+    pool=$(dirname "$(dirname "$slot")")
+    state="$pool/treehouse-state.json"
+    name=$(basename "$(dirname "$slot")")
+    owner_pid=$(jq -r --arg p "$slot" --arg n "$name" \
+      '.worktrees[]? | select(.path == $p or .name == $n) | .owner_pid // empty' \
+      "$state" 2>/dev/null | head -n 1)
+    if [ -n "$owner_pid" ] && fm_pid_alive "$owner_pid"; then
+      continue
+    fi
+    marker=$(fm_treehouse_slot_owner_marker "$wt") || continue
+    if [ -e "$marker" ] || [ -L "$marker" ]; then
+      continue
+    fi
+    case "$name" in
+      *[!0-9]* | "") name=999999 ;;
+    esac
+    if [ -z "$best" ] || [ "$name" -lt "$best_key" ]; then
+      best=$slot
+      best_key=$name
+    fi
+  done <<EOF
+$listed
+EOF
+  [ -z "$best" ] || printf '%s\n' "$best"
+}
+
 # Claim a pool slot for a task, replacing whatever the previous holder left.
 # The rename is atomic, so a reader either sees the old claim or the new one.
 fm_treehouse_slot_owner_claim() {  # <worktree> <task-id> <home>

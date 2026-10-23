@@ -56,7 +56,7 @@ case "${1:-}" in
   display-message) printf 'firstmate\n'; exit 0 ;;
   list-windows) exit 0 ;;
   has-session|new-session|new-window|kill-window) exit 0 ;;
-  send-keys) exit 0 ;;
+  send-keys) [ -z "${FM_FAKE_PANE_LOG:-}" ] || printf '%s\n' "$*" >> "$FM_FAKE_PANE_LOG"; exit 0 ;;
   capture-pane) printf '%s\n' '• Working (1s • esc to interrupt)'; exit 0 ;;
 esac
 exit 0
@@ -230,9 +230,128 @@ test_primary_checkout_that_never_settles_fails_at_the_deadline() {
   pass "a pane stuck on the primary checkout fails loudly at the deadline"
 }
 
+# A pane that settles in a worktree of a DIFFERENT clone of the project -
+# the mixed Treehouse pool shape, where one pool holds slots from two clones
+# of one origin - must never be adopted: its git common dir is the other
+# clone's, so a Claude worker there is refused by trust and a worker that
+# skips trust works in the wrong clone. The spawn fails at the deadline
+# naming the mismatch, and records nothing.
+make_foreign_clone_case() {
+  local name=$1 id=$2 case_dir home proj wt foreign_clone foreign_wt fakebin countfile
+  case_dir="$TMP_ROOT/$name"
+  home="$case_dir/home"
+  proj="$case_dir/project"
+  wt="$case_dir/wt"
+  foreign_clone="$case_dir/foreign-clone"
+  foreign_wt="$case_dir/foreign-slot"
+  countfile="$case_dir/pane-call-count"
+  fakebin=$(make_settle_fakebin "$case_dir/fake")
+  fm_test_spawn_home "$home" codex
+  fm_git_worktree "$proj" "$wt" "wt-$name"
+  git clone --quiet "$proj" "$foreign_clone"
+  git -C "$foreign_clone" worktree add --quiet -b "slot-$name" "$foreign_wt"
+  fm_test_spawn_brief "$home" "$id" "Exercise foreign-clone slot rejection for $id."
+  printf '%s\n' "$case_dir|$home|$proj|$foreign_wt|$foreign_wt|$fakebin|$countfile|0"
+}
+
+test_foreign_clone_slot_is_never_accepted() {
+  local rec id out status
+  id=settle-foreign-clone-z5
+  rec=$(make_foreign_clone_case settle-foreign-clone "$id")
+  read_settle_record "$rec"
+  fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+
+  out=$(run_settle_spawn "$id")
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn accepted a worktree of a different clone"$'\n'"$out"
+  assert_contains "$out" "did not enter an isolated worktree" \
+    "spawn did not explain that the pane never reached an isolated worktree"
+  assert_contains "$out" "different clone" \
+    "the refusal did not name the foreign-clone mismatch"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "foreign-clone spawn published task metadata"
+  pass "a pane settled in a different clone's worktree is never accepted as the worktree"
+}
+
+# make_pool_case <name> <id> builds the mixed-pool shape: one Treehouse pool
+# holds slot 1 as a worktree of a foreign clone of the project and slot 2 as
+# a worktree of the project itself, both free in Treehouse's state. The pane
+# is told whichever path the case's record carries.
+make_pool_case() {
+  local name=$1 id=$2 case_dir home proj wt pool foreign fakebin countfile
+  case_dir="$TMP_ROOT/$name"
+  home="$case_dir/home"
+  proj="$case_dir/project"
+  wt="$case_dir/wt"
+  pool="$case_dir/pool"
+  foreign="$case_dir/foreign-clone"
+  countfile="$case_dir/pane-call-count"
+  fakebin=$(make_settle_fakebin "$case_dir/fake")
+  fm_test_spawn_home "$home" codex
+  fm_git_worktree "$proj" "$wt" "wt-$name"
+  mkdir -p "$pool/1" "$pool/2"
+  git -C "$proj" worktree add --quiet -b "ownslot-$name" "$pool/2/repo"
+  git clone --quiet "$proj" "$foreign"
+  git -C "$foreign" worktree add --quiet -b "foreignslot-$name" "$pool/1/repo"
+  printf '{"worktrees":[{"name":"1","path":"%s"},{"name":"2","path":"%s"}]}' \
+    "$pool/1/repo" "$pool/2/repo" > "$pool/treehouse-state.json"
+  fm_test_spawn_brief "$home" "$id" "Exercise mixed-pool slot steering for $id."
+  printf '%s\n' "$case_dir|$home|$proj|$wt|$wt|$fakebin|$countfile|0"
+}
+
+# With a free slot of the project's own clone already in a mixed pool, the
+# spawn enters that exact slot by name instead of taking the pool's first
+# free slot from `treehouse get`, which belongs to the foreign clone.
+test_mixed_pool_enters_free_own_slot() {
+  local rec id out status pool own_slot pane_log
+  id=settle-pool-own-slot-z6
+  rec=$(make_pool_case settle-pool-own "$id")
+  read_settle_record "$rec"
+  pool="$TMP_ROOT/settle-pool-own/pool"
+  own_slot="$pool/2/repo"
+  pane_log="$TMP_ROOT/settle-pool-own/pane.log"
+  WT_DIR="$own_slot"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should succeed in the pool's own-clone slot"$'\n'"$out"
+  assert_grep "worktree=$own_slot" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the pool's own-clone slot"
+  assert_grep 'treehouse enter' "$pane_log" \
+    "spawn did not enter the free own-clone slot by name"
+  assert_no_grep 'treehouse get' "$pane_log" \
+    "spawn used treehouse get despite a free own-clone slot"
+  pass "a mixed pool with a free own-clone slot is entered by exact slot name"
+}
+
+# When the pool's own-clone slot is already claimed by another task, the
+# spawn keeps the plain `treehouse get` path and lands where the pane settles.
+test_mixed_pool_claimed_own_slot_uses_treehouse_get() {
+  local rec id out status pool pane_log
+  id=settle-pool-claimed-z7
+  rec=$(make_pool_case settle-pool-claimed "$id")
+  read_settle_record "$rec"
+  pool="$TMP_ROOT/settle-pool-claimed/pool"
+  pane_log="$TMP_ROOT/settle-pool-claimed/pane.log"
+  printf 'task=some-other-task\nhome=%s\n' "$HOME_DIR" > "$pool/2/.fm-slot-owner"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should succeed through treehouse get when the own slot is claimed"$'\n'"$out"
+  assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the settled worktree"
+  assert_grep 'treehouse get' "$pane_log" \
+    "spawn did not fall back to treehouse get when the own slot was claimed"
+  assert_no_grep 'treehouse enter' "$pane_log" \
+    "spawn entered a slot another task has claimed"
+  pass "a claimed own-clone slot is left alone and treehouse get is used instead"
+}
+
 test_single_stale_first_read_is_not_accepted
 test_already_settled_pane_costs_one_confirm_read
 test_transient_primary_checkout_is_not_accepted
 test_primary_checkout_that_never_settles_fails_at_the_deadline
+test_foreign_clone_slot_is_never_accepted
+test_mixed_pool_enters_free_own_slot
+test_mixed_pool_claimed_own_slot_uses_treehouse_get
 
 echo "# all fm-spawn-worktree-settle tests passed"
