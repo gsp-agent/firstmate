@@ -281,10 +281,13 @@
 #   the ship branch, cleanliness, commits, and this task's owner claim before
 #   calling treehouse return --force. Return succeeds only when the ship
 #   branch is no longer current there; the pool directory may remain registered
-#   in place. A refusal retains the checkout and claim, reports its reason,
-#   and exits 1 instead of 75. A relaunch, a launch already sent, and any
-#   checkout that is not this spawn's ship branch are not returned here.
-#   Regression coverage: tests/fm-spawn-defer-slot.test.sh.
+#   in place. A refusal of that claimed pool slot retains the checkout and
+#   claim, reports its reason, and exits 1 instead of 75. Orca and any
+#   checkout that is not a claimed pool slot keep exit 75 so their own cleanup
+#   still runs. A relaunch, a launch already sent, and any checkout that is
+#   not this spawn's ship branch are not returned here.
+#   Regression coverage: tests/fm-spawn-defer-slot.test.sh and
+#   tests/fm-spawn-orca-worktree.test.sh.
 #   With no harness arg, a crewmate/scout spawn resolves the CREW harness only when
 #   config/crew-dispatch.json is absent. When that file exists, crewmate/scout
 #   spawns require an explicit harness so firstmate cannot silently skip dispatch
@@ -6579,9 +6582,11 @@ fi
 sleep 0.3
 if [ "$KIND" != secondmate ] &&
   ! LIVE_SESSION_DEFERRAL=$(fm_live_session_admit "$PROJ_ABS" "$(basename "$PROJ_ABS")"); then
-  # The abort trap owns the refusal text. Exiting 1 here keeps that refusal
-  # from being announced as a deferral the caller would dispatch again.
-  if spawn_slot_checked_out_ship_branch &&
+  # Exit 1 only for a claimed pool slot. The abort trap owns that refusal.
+  # Any other checkout keeps exit 75 so its own cleanup still runs.
+  if [ "$SPAWN_SLOT_CLAIMED" = 1 ] && [ -n "${WT:-}" ] &&
+    fm_treehouse_pool_slot "$PROJ_ABS" "$WT" &&
+    spawn_slot_checked_out_ship_branch &&
     spawn_slot_return_blocked_reason >/dev/null; then
     exit 1
   fi
