@@ -4593,55 +4593,80 @@ else
       HERDR_SES=$(fm_backend_herdr_session)
       HERDR_PARENT_LABEL=$(FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_workspace_label)
       if [ -e "$HERDR_PRESENTATION_JOURNAL" ] || [ -L "$HERDR_PRESENTATION_JOURNAL" ]; then
-        fm_backend_herdr_server_ensure "$HERDR_SES" || {
-          echo "error: herdr presentation recovery could not ensure its exact named session" >&2
-          exit 1
-        }
-        # Refuse-by-default on contention. Wait only when the caller opted in
-        # with --herdr-resume-lock-wait (see header).
-        if [ "$HERDR_RESUME_LOCK_WAIT" = 1 ]; then
-          spawn_herdr_presentation_order_lock_acquire "$HERDR_SES" wait || {
-            echo "error: herdr presentation recovery could not resolve its session lock" >&2
-            exit 1
-          }
+        # A version 1 journal is only an attempt record: it binds no endpoint,
+        # and when no task record exists beside it no worker ever launched from
+        # that attempt, so nothing live can be duplicated. Take the ordinary
+        # flat layout rather than refusing every retry forever.
+        HERDR_DEAD_V1=0
+        if [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ] \
+          && fm_backend_herdr_projection_journal_snapshot "$HERDR_PRESENTATION_JOURNAL" "$ID" \
+          && [ "${FM_BACKEND_HERDR_JOURNAL_VERSION:-}" = 1 ]; then
+          HERDR_DEAD_V1=1
+        fi
+        if [ "$HERDR_DEAD_V1" -eq 1 ]; then
+          # The flat fallback is unconditional, but the journal is the
+          # session-start sweep's only handle on a workspace the failed
+          # attempt may still have created. Retire the journal only once no
+          # workspace carries its token - the same gate teardown applies -
+          # and otherwise leave it quarantined for that sweep.
+          if fm_backend_herdr_server_ensure "$HERDR_SES" \
+            && fm_backend_herdr_projection_token_workspace_gone "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID"; then
+            echo "warning: herdr presentation journal for $ID is a dead version 1 attempt with no task record; retiring it and using the ordinary flat layout without projection" >&2
+            rm -f "$HERDR_PRESENTATION_JOURNAL" || true
+          else
+            echo "warning: herdr presentation journal for $ID is a dead version 1 attempt with no task record, but its token workspace is not proven gone; leaving it for the session-start sweep and using the ordinary flat layout without projection" >&2
+          fi
         else
-          spawn_herdr_presentation_order_lock_acquire "$HERDR_SES" || {
-            echo "error: herdr presentation recovery could not acquire its session lock; refusing a concurrent resume" >&2
+          fm_backend_herdr_server_ensure "$HERDR_SES" || {
+            echo "error: herdr presentation recovery could not ensure its exact named session" >&2
             exit 1
           }
-        fi
-        if [ -e "$STATE/$ID.meta" ] || [ -L "$STATE/$ID.meta" ]; then
-          herdr_projection_existing_meta_allows_flat "$STATE/$ID.meta" || exit 1
-        fi
-        fm_backend_herdr_projection_recovery_allows_flat \
-          "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID" || exit 1
-        if [ "${HERDR_RECOVERY_BACKEND:-}" = herdr ]; then
-          set +e
-          FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_reclaim_task \
-            "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID" "$HERDR_LABEL_HOME" \
-            "$HERDR_RECOVERY_WORKSPACE_ID" "$HERDR_RECOVERY_TAB_ID" "$HERDR_RECOVERY_PANE_ID" \
-            "$HERDR_PARENT_LABEL" "$W" "$PROJ_ABS"
-          HERDR_RECLAIM_STATUS=$?
-          set -e
-          case "$HERDR_RECLAIM_STATUS" in
-          0)
-            HERDR_PROJECTED=1
-            HERDR_WORKSPACE_ID=$HERDR_RECOVERY_WORKSPACE_ID
-            HERDR_SEEDED_DEFAULT_TAB_ID=""
-            HERDR_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_TAB_ID
-            HERDR_PANE_ID=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
-            HERDR_PROJECTION_ABORT_CLEANUP=1
-            HERDR_PROJECTION_ABORT_SESSION=$HERDR_SES
-            HERDR_PROJECTION_ABORT_TASK_PANE=$HERDR_PANE_ID
-            HERDR_PROJECTION_ABORT_SEEDED_PANE=""
-            ;;
-          2)
+          # Refuse-by-default on contention. Wait only when the caller opted in
+          # with --herdr-resume-lock-wait (see header).
+          if [ "$HERDR_RESUME_LOCK_WAIT" = 1 ]; then
+            spawn_herdr_presentation_order_lock_acquire "$HERDR_SES" wait || {
+              echo "error: herdr presentation recovery could not resolve its session lock" >&2
+              exit 1
+            }
+          else
+            spawn_herdr_presentation_order_lock_acquire "$HERDR_SES" || {
+              echo "error: herdr presentation recovery could not acquire its session lock; refusing a concurrent resume" >&2
+              exit 1
+            }
+          fi
+          if [ -e "$STATE/$ID.meta" ] || [ -L "$STATE/$ID.meta" ]; then
+            herdr_projection_existing_meta_allows_flat "$STATE/$ID.meta" || exit 1
+          fi
+          fm_backend_herdr_projection_recovery_allows_flat \
+            "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID" || exit 1
+          if [ "${HERDR_RECOVERY_BACKEND:-}" = herdr ]; then
+            set +e
+            FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_reclaim_task \
+              "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID" "$HERDR_LABEL_HOME" \
+              "$HERDR_RECOVERY_WORKSPACE_ID" "$HERDR_RECOVERY_TAB_ID" "$HERDR_RECOVERY_PANE_ID" \
+              "$HERDR_PARENT_LABEL" "$W" "$PROJ_ABS"
+            HERDR_RECLAIM_STATUS=$?
+            set -e
+            case "$HERDR_RECLAIM_STATUS" in
+            0)
+              HERDR_PROJECTED=1
+              HERDR_WORKSPACE_ID=$HERDR_RECOVERY_WORKSPACE_ID
+              HERDR_SEEDED_DEFAULT_TAB_ID=""
+              HERDR_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_TAB_ID
+              HERDR_PANE_ID=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
+              HERDR_PROJECTION_ABORT_CLEANUP=1
+              HERDR_PROJECTION_ABORT_SESSION=$HERDR_SES
+              HERDR_PROJECTION_ABORT_TASK_PANE=$HERDR_PANE_ID
+              HERDR_PROJECTION_ABORT_SEEDED_PANE=""
+              ;;
+            2)
+              spawn_herdr_presentation_order_lock_release
+              ;;
+            *) exit 1 ;;
+            esac
+          else
             spawn_herdr_presentation_order_lock_release
-            ;;
-          *) exit 1 ;;
-          esac
-        else
-          spawn_herdr_presentation_order_lock_release
+          fi
         fi
       elif [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; then
         # Session lock path resolution and exact parent binding both need a
@@ -4655,8 +4680,9 @@ else
           # The projected child is placed and bound UNDER this launcher's exact
           # parent workspace. Its own herdr pane identity names that workspace
           # directly; the label lookup is only the fallback for a launcher with
-          # no herdr ancestry at all. A claimed-but-broken identity refuses here
-          # rather than projecting under a guessed parent.
+          # no herdr ancestry at all. A claimed-but-broken identity never
+          # projects under a guessed parent: it takes the ordinary flat layout
+          # below, whose container resolution makes its own identity call.
           set +e
           fm_backend_herdr_launcher_identity "$HERDR_SES"
           HERDR_LAUNCHER_STATUS=$?
@@ -4666,51 +4692,66 @@ else
           2) HERDR_PARENT_WORKSPACE_ID=$(fm_backend_herdr_projection_parent_workspace_exact \
             "$HERDR_SES" "$HERDR_PARENT_LABEL" 2>/dev/null || true) ;;
           *)
-            spawn_herdr_presentation_order_lock_release
-            exit 1
+            echo "warning: herdr presentation launcher identity could not be verified; using the ordinary flat layout without projection" >&2
+            HERDR_PARENT_WORKSPACE_ID=""
             ;;
           esac
           if [ -z "$HERDR_PARENT_WORKSPACE_ID" ]; then
             echo "warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection" >&2
             spawn_herdr_presentation_order_lock_release
           else
-            HERDR_PROJECTION_ID=$(fm_backend_herdr_projection_journal_create "$STATE" "$ID") || exit 1
-            HERDR_PROJECTION_LABEL=$(fm_backend_herdr_projection_workspace_label "$ID" "$HERDR_PROJECTION_ID")
-            if ! FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_create_task \
-              "$PROJ_ABS" "$HERDR_PROJECTION_LABEL" "$W"; then
-              if [ "${FM_BACKEND_HERDR_PROJECTION_CLEANUP_SAFE:-0}" = 1 ]; then
-                HERDR_PROJECTION_ABORT_CLEANUP=1
-                HERDR_PROJECTION_ABORT_SESSION=$FM_BACKEND_HERDR_PROJECTION_SESSION
-                HERDR_PROJECTION_ABORT_TASK_PANE=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
-                HERDR_PROJECTION_ABORT_SEEDED_PANE=$FM_BACKEND_HERDR_PROJECTION_SEEDED_PANE_ID
-              fi
-              exit 1
-            fi
-            HERDR_PROJECTED=1
-            HERDR_SES=$FM_BACKEND_HERDR_PROJECTION_SESSION
-            HERDR_WORKSPACE_ID=$FM_BACKEND_HERDR_PROJECTION_WORKSPACE_ID
-            HERDR_SEEDED_DEFAULT_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_SEEDED_TAB_ID
-            HERDR_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_TAB_ID
-            HERDR_PANE_ID=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
-            HERDR_PROJECTION_ABORT_CLEANUP=1
-            HERDR_PROJECTION_ABORT_SESSION=$HERDR_SES
-            HERDR_PROJECTION_ABORT_TASK_PANE=$HERDR_PANE_ID
-            HERDR_PROJECTION_ABORT_SEEDED_PANE=$FM_BACKEND_HERDR_PROJECTION_SEEDED_PANE_ID
-            fm_backend_herdr_projection_order_best_effort \
-              "$HERDR_SES" "$HERDR_WORKSPACE_ID" "$HERDR_PARENT_LABEL" "$HERDR_PARENT_WORKSPACE_ID"
-            HERDR_HOME_ID=$(fm_backend_herdr_projection_home_identity "$HERDR_LABEL_HOME" 2>/dev/null || true)
-            if [ -n "$HERDR_HOME_ID" ] &&
-              fm_backend_herdr_projection_live_binding_matches \
-                "$HERDR_SES" "$HERDR_PROJECTION_ID" "$HERDR_WORKSPACE_ID" \
-                "$HERDR_TAB_ID" "$HERDR_PANE_ID" "$HERDR_PARENT_WORKSPACE_ID" \
-                "$HERDR_PARENT_LABEL" "$HERDR_PROJECTION_LABEL" "$W" &&
-              fm_backend_herdr_projection_journal_bind \
-                "$HERDR_PRESENTATION_JOURNAL" "$ID" "$HERDR_HOME_ID" "$HERDR_SES" \
-                "$HERDR_WORKSPACE_ID" "$HERDR_TAB_ID" "$HERDR_PANE_ID" \
-                "$HERDR_PARENT_WORKSPACE_ID" "$HERDR_PARENT_LABEL" "$HERDR_PROJECTION_LABEL" "$W"; then
-              :
+            HERDR_PROJECTION_ID=$(fm_backend_herdr_projection_journal_create "$STATE" "$ID") || HERDR_PROJECTION_ID=""
+            if [ -z "$HERDR_PROJECTION_ID" ]; then
+              # Presentation is display only: a journal that cannot be
+              # published degrades to the flat layout, never a refused spawn.
+              echo "warning: herdr presentation journal could not be published for $ID; using the ordinary flat layout without projection" >&2
+              spawn_herdr_presentation_order_lock_release
             else
-              echo "warning: herdr presentation could not publish an exact restart binding; this task will use flat fallback after a restart" >&2
+              HERDR_PROJECTION_LABEL=$(fm_backend_herdr_projection_workspace_label "$ID" "$HERDR_PROJECTION_ID")
+              if ! FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_create_task \
+                "$PROJ_ABS" "$HERDR_PROJECTION_LABEL" "$W"; then
+                # A display failure never stops a spawn: clean up only what the
+                # create proved safe to close, retire the attempt journal once
+                # its token workspace is proven gone, then fall back flat.
+                echo "warning: herdr presentation projection failed for $ID; using the ordinary flat layout without projection" >&2
+                if [ "${FM_BACKEND_HERDR_PROJECTION_CLEANUP_SAFE:-0}" = 1 ]; then
+                  fm_backend_herdr_projection_cleanup_exact \
+                    "$HERDR_SES" \
+                    "$FM_BACKEND_HERDR_PROJECTION_PANE_ID" \
+                    "$FM_BACKEND_HERDR_PROJECTION_SEEDED_PANE_ID" || true
+                fi
+                if fm_backend_herdr_projection_token_workspace_gone "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID"; then
+                  rm -f "$HERDR_PRESENTATION_JOURNAL" || true
+                fi
+                spawn_herdr_presentation_order_lock_release
+              else
+                HERDR_PROJECTED=1
+                HERDR_SES=$FM_BACKEND_HERDR_PROJECTION_SESSION
+                HERDR_WORKSPACE_ID=$FM_BACKEND_HERDR_PROJECTION_WORKSPACE_ID
+                HERDR_SEEDED_DEFAULT_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_SEEDED_TAB_ID
+                HERDR_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_TAB_ID
+                HERDR_PANE_ID=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
+                HERDR_PROJECTION_ABORT_CLEANUP=1
+                HERDR_PROJECTION_ABORT_SESSION=$HERDR_SES
+                HERDR_PROJECTION_ABORT_TASK_PANE=$HERDR_PANE_ID
+                HERDR_PROJECTION_ABORT_SEEDED_PANE=$FM_BACKEND_HERDR_PROJECTION_SEEDED_PANE_ID
+                fm_backend_herdr_projection_order_best_effort \
+                  "$HERDR_SES" "$HERDR_WORKSPACE_ID" "$HERDR_PARENT_LABEL" "$HERDR_PARENT_WORKSPACE_ID"
+                HERDR_HOME_ID=$(fm_backend_herdr_projection_home_identity "$HERDR_LABEL_HOME" 2>/dev/null || true)
+                if [ -n "$HERDR_HOME_ID" ] &&
+                  fm_backend_herdr_projection_live_binding_matches \
+                    "$HERDR_SES" "$HERDR_PROJECTION_ID" "$HERDR_WORKSPACE_ID" \
+                    "$HERDR_TAB_ID" "$HERDR_PANE_ID" "$HERDR_PARENT_WORKSPACE_ID" \
+                    "$HERDR_PARENT_LABEL" "$HERDR_PROJECTION_LABEL" "$W" &&
+                  fm_backend_herdr_projection_journal_bind \
+                    "$HERDR_PRESENTATION_JOURNAL" "$ID" "$HERDR_HOME_ID" "$HERDR_SES" \
+                    "$HERDR_WORKSPACE_ID" "$HERDR_TAB_ID" "$HERDR_PANE_ID" \
+                    "$HERDR_PARENT_WORKSPACE_ID" "$HERDR_PARENT_LABEL" "$HERDR_PROJECTION_LABEL" "$W"; then
+                  :
+                else
+                  echo "warning: herdr presentation could not publish an exact restart binding; this task will use flat fallback after a restart" >&2
+                fi
+              fi
             fi
           fi
         else

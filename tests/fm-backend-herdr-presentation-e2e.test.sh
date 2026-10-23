@@ -114,6 +114,14 @@ arg_value() {
 }
 
 label=$(arg_value --label "$@" || true)
+if [ "${1:-} ${2:-}" = "workspace create" ]; then
+  case "$label" in
+    $'└ projfail · p:'*)
+      echo "test wrapper: injected herdr workspace create failure for projfail" >&2
+      exit 1
+      ;;
+  esac
+fi
 if [ "${1:-} ${2:-}" = "workspace list" ] && [ -d "$ACTIVE_SEEDED_CONTROL" ]; then
   stage=$(cat "$ACTIVE_SEEDED_CONTROL/stage" 2>/dev/null || true)
   if [ "$stage" = task-created ]; then
@@ -559,7 +567,17 @@ FIRSTMATE_WSID=$(grep '^herdr_workspace_id=' "$ANCHOR_META" | cut -d= -f2-)
 
 # The same task id and project run once opted out and once projected, so
 # Treehouse commands and metadata can be compared after normalizing endpoint
-# IDs and the deliberately fresh per-spawn incarnation.
+# IDs and the deliberately fresh per-spawn incarnation. The metadata byte
+# comparison further down requires both spawns to land in the SAME worktree,
+# so seed one free own-clone pool slot now: both spawns must adopt exactly
+# this slot (the premise is asserted where the worktrees are read), which
+# also puts both on the same Treehouse acquisition path.
+SEED_SLOT=$(cd "$PROJECT_DIR" && treehouse get --lease --lease-holder pres-e2e-seed --no-fetch </dev/null) \
+  || fail "could not seed a free pool slot for the opted-out/projected comparison"
+[ -n "$SEED_SLOT" ] || fail "seeding a free pool slot returned no path"
+(cd "$PROJECT_DIR" && treehouse return "$SEED_SLOT" >/dev/null 2>&1 </dev/null) \
+  || fail "could not release the seeded pool slot back to free"
+
 : > "$TREEHOUSE_CALL_LOG"
 OFF_HERDR_START=$(log_line_count)
 OFF_MOVE_START=$(wc -l < "$MOVE_CALL_LOG" | tr -d '[:space:]')
@@ -645,6 +663,11 @@ SECOND_ORDER_BEFORE=$(printf '%s\n%s\n' "$SECOND_ONE_WSID" "$SECOND_TWO_WSID")
 CAPTAIN_FOCUS="$SECOND_TWO_WSID/$SECOND_TWO_TAB"
 assert_focus_is "$CAPTAIN_FOCUS" "focused secondmate fixture"
 
+# The projected spawn below must face the same pool state as the opted-out
+# spawn did: the seeded slot is free again (both intermediate teardowns
+# returned it), so this spawn should adopt it too. The premise is asserted
+# where the comparison happens.
+
 : > "$TREEHOUSE_CALL_LOG"
 # The historical presence-based opt-in was an empty file; it must still project,
 # so no home that had already enabled the projection is turned off by the default.
@@ -657,6 +680,14 @@ assert_raw_presentation_mutations_preserved_since "$SHAPE_FOCUS_AUDIT_START" "pr
 ON_META="$TMP_ROOT/on.meta"
 cp "$HOME_DIR/state/shape.meta" "$ON_META"
 ON_WT=$(remember_meta_worktree "$ON_META")
+# Premise: both compared spawns adopted the one seeded free slot, so they
+# faced the same pool state and the same acquisition path. If a later change
+# steers either spawn to a different slot or path, this fails here instead of
+# the sequence comparison passing (or failing) on unlike states by accident.
+[ "$OFF_WT" = "$SEED_SLOT" ] \
+  || fail "opted-out spawn did not adopt the seeded free slot ('$OFF_WT' vs '$SEED_SLOT'); the sequence comparison premise does not hold"
+[ "$ON_WT" = "$SEED_SLOT" ] \
+  || fail "projected spawn did not adopt the seeded free slot ('$ON_WT' vs '$SEED_SLOT'); the sequence comparison premise does not hold"
 cmp -s "$TMP_ROOT/off-treehouse.log" "$TREEHOUSE_CALL_LOG" \
   || fail "Treehouse command sequence changed between opted-out and projected spawns"
 JOURNAL="$HOME_DIR/state/shape.herdr-presentation"
@@ -1520,6 +1551,96 @@ do
 done
 assert_focus_is "$CAPTAIN_FOCUS" "multi-home teardown"
 pass "real Herdr lab: multi-home exact-pane teardowns restore captain focus without workspace close authority"
+
+# A presentation (display) failure never stops a spawn: when the projected
+# workspace create fails, the worker launches in the ordinary flat layout,
+# the failure is logged, and the dead attempt journal is retired once its
+# token workspace is proven gone.
+: > "$HOME_DIR/config/herdr-presentation-spaces"
+write_ship_brief "$HOME_DIR" projfail 'Projection create failure fixture.'
+write_ship_brief "$HOME_DIR" deadjournal 'Dead attempt journal fixture.'
+spawn_task projfail "$HOME_DIR" "$PROJECT_DIR" > "$TMP_ROOT/projfail.out" 2> "$TMP_ROOT/projfail.err" \
+  || fail "a failed projected workspace create stopped the spawn: $(cat "$TMP_ROOT/projfail.err")"
+remember_meta_worktree "$HOME_DIR/state/projfail.meta" >/dev/null
+PROJFAIL_WSID=$(grep '^herdr_workspace_id=' "$HOME_DIR/state/projfail.meta" | cut -d= -f2-)
+[ "$PROJFAIL_WSID" = "$FIRSTMATE_WSID" ] \
+  || fail "a failed projected workspace create did not fall back to the flat firstmate workspace (got '${PROJFAIL_WSID:-<empty>}')"
+grep -q 'without projection' "$TMP_ROOT/projfail.err" \
+  || fail "the projection failure fallback was not logged: $(cat "$TMP_ROOT/projfail.err")"
+[ ! -e "$HOME_DIR/state/projfail.herdr-presentation" ] \
+  || fail "a failed projected create left its dead attempt journal behind"
+pass "real Herdr lab: a failed projected workspace create spawns flat without projection and retires its journal"
+teardown_task projfail "$HOME_DIR" > "$TMP_ROOT/projfail-teardown.out" 2> "$TMP_ROOT/projfail-teardown.err" \
+  || fail "projfail teardown failed: $(cat "$TMP_ROOT/projfail-teardown.err")"
+
+# A dead version-1 attempt journal left by a failed attempt - with no task
+# record, so no worker ever launched from it - is recovered, not a permanent
+# refusal: the next spawn launches flat and retires the journal.
+printf 'version=1\ntask_id=deadjournal\nprojection_id=AAAAAAAAAAAAAAAAAAAAAA\n' \
+  > "$HOME_DIR/state/deadjournal.herdr-presentation"
+spawn_task deadjournal "$HOME_DIR" "$PROJECT_DIR" > "$TMP_ROOT/deadjournal.out" 2> "$TMP_ROOT/deadjournal.err" \
+  || fail "a dead version-1 attempt journal stopped the spawn: $(cat "$TMP_ROOT/deadjournal.err")"
+remember_meta_worktree "$HOME_DIR/state/deadjournal.meta" >/dev/null
+DEADJOURNAL_WSID=$(grep '^herdr_workspace_id=' "$HOME_DIR/state/deadjournal.meta" | cut -d= -f2-)
+[ "$DEADJOURNAL_WSID" = "$FIRSTMATE_WSID" ] \
+  || fail "dead-journal recovery did not land in the flat firstmate workspace (got '${DEADJOURNAL_WSID:-<empty>}')"
+[ ! -e "$HOME_DIR/state/deadjournal.herdr-presentation" ] \
+  || fail "dead version-1 attempt journal was not retired by its recovery spawn"
+pass "real Herdr lab: a dead version-1 attempt journal is recovered by a flat spawn, not a permanent refusal"
+teardown_task deadjournal "$HOME_DIR" > "$TMP_ROOT/deadjournal-teardown.out" 2> "$TMP_ROOT/deadjournal-teardown.err" \
+  || fail "deadjournal teardown failed: $(cat "$TMP_ROOT/deadjournal-teardown.err")"
+
+# Same dead version-1 journal, but a workspace still carries its token: the
+# spawn still launches flat, yet the journal is NOT retired - it is the
+# session-start sweep's only handle on that workspace, so retiring it here
+# would strand the workspace permanently.
+write_ship_brief "$HOME_DIR" deadkeep 'Dead attempt journal with live token workspace fixture.'
+DEADKEEP_TOKEN=BBBBBBBBBBBBBBBBBBBBBB
+[ "${#DEADKEEP_TOKEN}" -eq 22 ] || fail "deadkeep fixture token is not 22 characters"
+DEADKEEP_FIXTURE_OUT=$(lab workspace create --cwd "$PROJECT_DIR" --label "└ deadkeep · p:$DEADKEEP_TOKEN" --no-focus) \
+  || fail "could not create the deadkeep token-workspace fixture"
+DEADKEEP_FIXTURE_WSID=$(printf '%s' "$DEADKEEP_FIXTURE_OUT" | jq -r '.result.workspace.workspace_id // empty')
+[ -n "$DEADKEEP_FIXTURE_WSID" ] || fail "deadkeep token-workspace fixture returned no workspace id"
+printf 'version=1\ntask_id=deadkeep\nprojection_id=%s\n' "$DEADKEEP_TOKEN" \
+  > "$HOME_DIR/state/deadkeep.herdr-presentation"
+spawn_task deadkeep "$HOME_DIR" "$PROJECT_DIR" > "$TMP_ROOT/deadkeep.out" 2> "$TMP_ROOT/deadkeep.err" \
+  || fail "a dead version-1 attempt journal with a live token workspace stopped the spawn: $(cat "$TMP_ROOT/deadkeep.err")"
+remember_meta_worktree "$HOME_DIR/state/deadkeep.meta" >/dev/null
+DEADKEEP_WSID=$(grep '^herdr_workspace_id=' "$HOME_DIR/state/deadkeep.meta" | cut -d= -f2-)
+[ "$DEADKEEP_WSID" = "$FIRSTMATE_WSID" ] \
+  || fail "deadkeep did not land in the flat firstmate workspace (got '${DEADKEEP_WSID:-<empty>}')"
+[ -e "$HOME_DIR/state/deadkeep.herdr-presentation" ] \
+  || fail "dead version-1 journal was retired while its token workspace still exists; the session-start sweep would lose that workspace"
+lab workspace get "$DEADKEEP_FIXTURE_WSID" >/dev/null 2>&1 \
+  || fail "the deadkeep token workspace vanished during the flat spawn"
+pass "real Herdr lab: a dead version-1 journal whose token workspace still exists is kept for the sweep while the spawn proceeds flat"
+teardown_task deadkeep "$HOME_DIR" > "$TMP_ROOT/deadkeep-teardown.out" 2> "$TMP_ROOT/deadkeep-teardown.err" \
+  || fail "deadkeep teardown failed: $(cat "$TMP_ROOT/deadkeep-teardown.err")"
+lab workspace close "$DEADKEEP_FIXTURE_WSID" >/dev/null 2>&1 \
+  || fail "could not close the deadkeep token-workspace fixture"
+rm -f "$HOME_DIR/state/deadkeep.herdr-presentation"
+
+# A 38-character task id makes a 67-character projection label.
+# Herdr holds that label verbatim - workspace create returns it and the
+# workspace list reads it back intact - so the exact token-suffix lookups
+# keep working and a long id projects like any other.
+LONGLABEL_ID=gsp-confluence-notion-into-gsp-mxyav4x
+[ "${#LONGLABEL_ID}" -eq 38 ] || fail "long-label fixture id is not 38 characters"
+write_ship_brief "$HOME_DIR" "$LONGLABEL_ID" 'Long projection label fixture.'
+spawn_task "$LONGLABEL_ID" "$HOME_DIR" "$PROJECT_DIR" > "$TMP_ROOT/longlabel.out" 2> "$TMP_ROOT/longlabel.err" \
+  || fail "long-label projected spawn failed: $(cat "$TMP_ROOT/longlabel.err")"
+remember_meta_worktree "$HOME_DIR/state/$LONGLABEL_ID.meta" >/dev/null
+LONGLABEL_JOURNAL="$HOME_DIR/state/$LONGLABEL_ID.herdr-presentation"
+[ -f "$LONGLABEL_JOURNAL" ] || fail "long-label spawn did not publish its presentation journal"
+LONGLABEL_TOKEN=$(grep '^projection_id=' "$LONGLABEL_JOURNAL" | cut -d= -f2-)
+LONGLABEL_WSID=$(grep '^herdr_workspace_id=' "$HOME_DIR/state/$LONGLABEL_ID.meta" | cut -d= -f2-)
+LONGLABEL_INFO=$(lab workspace get "$LONGLABEL_WSID") || fail "could not inspect the long-label workspace"
+LONGLABEL_LABEL=$(printf '%s' "$LONGLABEL_INFO" | jq -r '.result.workspace.label // empty')
+[ "$LONGLABEL_LABEL" = "└ $LONGLABEL_ID · p:$LONGLABEL_TOKEN" ] \
+  || fail "long-label workspace label was not held verbatim: $LONGLABEL_LABEL"
+pass "real Herdr lab: a 67-character projection label is held verbatim and the long-id spawn projects"
+teardown_task "$LONGLABEL_ID" "$HOME_DIR" > "$TMP_ROOT/longlabel-teardown.out" 2> "$TMP_ROOT/longlabel-teardown.err" \
+  || fail "long-label teardown failed: $(cat "$TMP_ROOT/longlabel-teardown.err")"
 
 # Missing, renamed, and duplicate tokens are read-only recovery diagnostics.
 # The duplicate case allows flat fallback only when every matching pane is
