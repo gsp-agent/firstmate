@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Tests for the live-PM registration: fm_pm_live_task's proof reading and
-# the merged-outcome suppression that keeps a live PM's task off main's
-# wake queue (its PM reports the merge itself).
+# the merged-outcome handoff to that PM's existing task status stream.
 set -u
 
 # shellcheck source=tests/lib.sh disable=SC1091
@@ -18,6 +17,23 @@ make_state() {
   dir="$TMP_ROOT/$name"
   mkdir -p "$dir/home/state" "$dir/home/config" "$dir/home/data"
   printf '%s\n' "$dir"
+}
+
+write_pm_task() {  # <state> <url> [spawn-generation]
+  local state=$1 url=$2 generation=${3:-first}
+  printf 'project=example\nspawn_gen=%s\npr=%s\n' "$generation" "$url" > "$state/demo.meta"
+  printf 'bead=example-acceptance\npid=%s\ntask=demo\n' "$$" > "$state/.pm-live-demo"
+  [ -e "$state/demo.status" ] || printf 'done: PR ready for merge\n' > "$state/demo.status"
+}
+
+assert_pm_handoff() {  # <state> <url> [spawn-generation]
+  local state=$1 url=$2 generation=${3:-first} line
+  line=$(tail -n 1 "$state/demo.status")
+  [ "$(status_line_verb "$line")" = note ] || fail "merge handoff falsely declared task completion: $line"
+  case "$line" in
+    *"merged demo $url spawn_gen=$generation; activation and live verification pending"*) ;;
+    *) fail "PM did not receive the current task/PR/incarnation handoff: $line" ;;
+  esac
 }
 
 test_pm_live_proof_reading() {
@@ -53,7 +69,7 @@ test_merged_outcome_skips_main_queue_for_live_pm() {
   dir=$(make_state merged-pm)
   state="$dir/home/state"
   url=https://github.com/example/repo/pull/71
-  printf 'bead=b1\npid=%s\ntask=demo\n' "$$" > "$state/.pm-live-demo"
+  write_pm_task "$state" "$url"
 
   FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll \
     || fail "the live-PM merge outcome was not recorded"
@@ -61,11 +77,14 @@ test_merged_outcome_skips_main_queue_for_live_pm() {
     || fail "a live PM's merged outcome queued a wake row for main: $(cat "$state/.wake-queue")"
   [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = false ] \
     || fail "the first live-PM merge outcome read as already recorded"
+  assert_pm_handoff "$state" "$url"
   FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll \
     || fail "the repeated live-PM merge outcome was not recorded"
   [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = true ] \
     || fail "the repeated live-PM merge outcome was not deduplicated by its notified marker"
-  pass "a live PM's merged outcome is recorded and deduplicated without a main queue row"
+  [ "$(wc -l < "$state/demo.status" | tr -d ' ')" = 2 ] \
+    || fail "a duplicate merge delivered a second PM handoff"
+  pass "a live PM receives one pending-verification status handoff without a main queue row"
 }
 
 test_merged_outcome_still_queues_for_plain_task() {
@@ -81,6 +100,139 @@ test_merged_outcome_still_queues_for_plain_task() {
   pass "a plain task's merged outcome still queues the merge-landed wake for main"
 }
 
+test_failed_handoff_remains_retryable() {
+  local dir state url
+  dir=$(make_state failed-handoff)
+  state="$dir/home/state"
+  url=https://github.com/example/repo/pull/73
+  write_pm_task "$state" "$url"
+  mv "$state/demo.status" "$state/original.status"
+  mkdir "$state/demo.status"
+  if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" self; then
+    fail "an unwritable PM stream was acknowledged as delivered"
+  fi
+  [ ! -e "$state/demo.pr-poll-merge-notified" ] || fail "failed delivery committed its notification marker"
+  [ ! -s "$state/.wake-queue" ] || fail "failed PM delivery created a second owner on main"
+  mv "$state/demo.status" "$state/failed-destination"
+  mv "$state/original.status" "$state/demo.status"
+  FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll \
+    || fail "a repaired PM destination did not retry on the same task"
+  assert_pm_handoff "$state" "$url"
+  pass "a failed PM handoff stays unacknowledged and retries on the same task"
+}
+
+test_failed_marker_does_not_duplicate_handoff() {
+  local dir state url
+  dir=$(make_state failed-marker)
+  state="$dir/home/state"
+  url=https://github.com/example/repo/pull/74
+  write_pm_task "$state" "$url"
+  mkdir "$state/demo.pr-poll-merge-notified"
+  if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" self; then
+    fail "failed notification acknowledgement returned success"
+  fi
+  assert_pm_handoff "$state" "$url"
+  mv "$state/demo.pr-poll-merge-notified" "$state/failed-marker"
+  FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll \
+    || fail "notification acknowledgement did not retry"
+  [ "$(wc -l < "$state/demo.status" | tr -d ' ')" = 2 ] \
+    || fail "retry after failed acknowledgement duplicated the owner handoff"
+  pass "a failed acknowledgement preserves the delivered event and retry deduplicates it"
+}
+
+test_existing_marker_repairs_missing_pm_event() {
+  local dir state url
+  dir=$(make_state old-marker)
+  state="$dir/home/state"
+  url=https://github.com/example/repo/pull/75
+  write_pm_task "$state" "$url"
+  fm_pr_poll_merge_mark_notified "$state" demo github github.com example/repo 75 \
+    || fail "could not seed a legacy suppressed notification"
+  FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll \
+    || fail "an existing marker hid the missing PM handoff"
+  assert_pm_handoff "$state" "$url"
+  [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = true ] || fail "the repaired notification lost its existing marker identity"
+  pass "replay repairs the PM event even when a legacy notification marker already exists"
+}
+
+test_stale_pr_and_reused_task_identity() {
+  local dir state old_url new_url snapshot
+  dir=$(make_state reused-task)
+  state="$dir/home/state"
+  old_url=https://github.com/example/repo/pull/76
+  new_url=https://github.com/example/other/pull/77
+  write_pm_task "$state" "$old_url" old
+  FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$old_url" self \
+    || fail "first incarnation did not receive its handoff"
+  write_pm_task "$state" "$new_url" replacement
+  snapshot=$(cat "$state/demo.status")
+  if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$old_url" poll; then
+    fail "an older PR was delivered against a replacement task"
+  fi
+  [ "$(cat "$state/demo.status")" = "$snapshot" ] || fail "stale PR wrote an event for the wrong incarnation"
+  FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$new_url" poll \
+    || fail "replacement task did not receive its own PR"
+  assert_pm_handoff "$state" "$new_url" replacement
+  [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = false ] || fail "an older task marker swallowed a different PR"
+  write_pm_task "$state" "$new_url" next
+  FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$new_url" poll \
+    || fail "new incarnation could not receive its own identity-bound handoff"
+  assert_pm_handoff "$state" "$new_url" next
+  [ "$(wc -l < "$state/demo.status" | tr -d ' ')" = 4 ] \
+    || fail "reused identities either duplicated or suppressed an incarnation"
+  mv "$state/demo.meta" "$state/retired.meta"
+  snapshot=$(cat "$state/demo.status")
+  if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$old_url" poll; then
+    fail "absent metadata widened handoff identity to an older PR"
+  fi
+  [ "$(cat "$state/demo.status")" = "$snapshot" ] || fail "absent metadata created a wrong-task event"
+  pass "stale PRs and missing records are refused; reused tasks receive explicit current incarnation/PR identity"
+}
+
+test_restart_and_concurrent_delivery() {
+  local dir state url runner
+  dir=$(make_state restart)
+  state="$dir/home/state"
+  url=https://github.com/example/repo/pull/78
+  write_pm_task "$state" "$url"
+  runner="$dir/report.sh"
+  cat > "$runner" <<'SH'
+#!/usr/bin/env bash
+set -eu
+. "$1/bin/fm-merge-outcome-lib.sh"
+fm_merge_outcome_report "$FM_HOME" "$FM_STATE_OVERRIDE" demo "$2" self
+SH
+  # Independent processes stand in for redelivery after a crash, with no
+  # watcher, periodic sweep, updater or second verification worker running.
+  if ! FM_HOME="$dir/home" FM_STATE_OVERRIDE="$state" python3 - "$runner" "$ROOT" "$url" <<'PY'
+import subprocess
+import sys
+children = [subprocess.Popen(["bash", *sys.argv[1:]]) for _ in range(3)]
+codes = [child.wait() for child in children]
+if any(codes):
+    raise SystemExit("redelivery failed: " + repr(codes))
+PY
+  then
+    fail "concurrent merge delivery failed"
+  fi
+  assert_pm_handoff "$state" "$url"
+  [ "$(wc -l < "$state/demo.status" | tr -d ' ')" = 2 ] || fail "restart or concurrent delivery duplicated the event"
+  # Verification failure belongs to the same owner and must not be replaced
+  # with another merge notification or inferred success on replay.
+  printf 'blocked: activation failed; same owner must retry\n' >> "$state/demo.status"
+  FM_HOME="$dir/home" FM_STATE_OVERRIDE="$state" bash "$runner" "$ROOT" "$url" \
+    || fail "restart could not read the persisted handoff"
+  [ "$(tail -n 1 "$state/demo.status")" = 'blocked: activation failed; same owner must retry' ] \
+    || fail "merge replay replaced an activation failure with completion"
+  [ ! -s "$state/.wake-queue" ] || fail "redelivery created a second main owner"
+  pass "restart and concurrent delivery keep one event and leave activation failures with the existing owner"
+}
+
 test_pm_live_proof_reading
 test_merged_outcome_skips_main_queue_for_live_pm
 test_merged_outcome_still_queues_for_plain_task
+test_failed_handoff_remains_retryable
+test_failed_marker_does_not_duplicate_handoff
+test_existing_marker_repairs_missing_pm_event
+test_stale_pr_and_reused_task_identity
+test_restart_and_concurrent_delivery
