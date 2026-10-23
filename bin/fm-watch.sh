@@ -2611,6 +2611,13 @@ if [ -n "$EVICTED_PID" ]; then
   echo "watcher: replaced stalled pid $EVICTED_PID (beacon ${EVICTED_BEAT_AGE}s past hard bound ${WATCHER_STALL_BOUND}s)"
 fi
 WATCHER_RECOVERY_PENDING=0
+# The reason resurface_after_downtime is about to close on, recorded before
+# wake() exits the cycle. watcher_cleanup preserves the recovery marker only
+# when that exact reason was delivered (FM_WATCH_DELIVERED_REASON, which
+# wake() sets only after its stdout write succeeds): a resurface whose wake
+# line never reached stdout delivered nothing, and its episode must go back
+# to pending so a later watcher closes on the row again.
+WATCHER_RESURFACE_REASON=
 if [ -n "${FM_LOCK_RECOVERED_PID:-}" ]; then
   WATCHER_RECOVERY_PENDING=1
 fi
@@ -2730,8 +2737,16 @@ watcher_cleanup() {
   if [ "$(cat "$WATCH_LOCK/pid" 2>/dev/null || true)" = "${WATCHER_PID:-}" ]; then
     owns_lock=1
     if [ "${WATCHER_RECOVERY_PENDING:-0}" -eq 1 ] \
-      && [ "${FM_WATCH_DELIVERED_REASON:-}" = "check: rearm-resurface" ]; then
+      && [ -n "${WATCHER_RESURFACE_REASON:-}" ] \
+      && [ "${FM_WATCH_DELIVERED_REASON:-}" = "$WATCHER_RESURFACE_REASON" ]; then
       transition=release-lock-existing
+    elif [ "${WATCHER_RECOVERY_PENDING:-0}" -eq 1 ] \
+      && [ -n "${WATCHER_RESURFACE_REASON:-}" ]; then
+      # The resurface close was attempted but its wake line was not
+      # delivered: put the episode back to pending, because a foreground
+      # checkpoint keeps an announced episode stable and would never
+      # present the still-queued row again.
+      fm_recovery_marker_reopen_announced "$WATCHER_DOWNTIME_MARKER" || true
     fi
   fi
   fm_active_check_stop || cleanup_status=1
@@ -2900,14 +2915,16 @@ resurface_alternate_owner() {
 # supervision branch's or a live PM's, never a reason to wake main - unless
 # this home has no alternate supervisor (RESURFACE_ALT_OWNER=0), where main
 # owns every row and the resurface presents them as it always has.
+# Sets RESURFACE_ROW_PM=1 when a live PM owns the row.
 resurface_row_main_only() {  # <kind> <key> <payload>
   local kind=$1 key=$2 payload=$3 task status_file
+  RESURFACE_ROW_PM=0
   case "$kind" in
     check)
       case "$payload" in
         'check: merge landed: '*)
           task=${payload#'check: merge landed: '}; task=${task%% *}
-          fm_pm_live_task "$STATE" "$task" && return 1
+          if fm_pm_live_task "$STATE" "$task"; then RESURFACE_ROW_PM=1; return 1; fi
           ;;
       esac
       return 0 ;;
@@ -2922,7 +2939,7 @@ resurface_row_main_only() {  # <kind> <key> <payload>
     *) return 0 ;;
   esac
   case "$task" in ''|*[!A-Za-z0-9._-]*) return 0 ;; esac
-  fm_pm_live_task "$STATE" "$task" && return 1
+  if fm_pm_live_task "$STATE" "$task"; then RESURFACE_ROW_PM=1; return 1; fi
   if [ "$RESURFACE_ALT_OWNER" -ne 1 ]; then return 0; fi
   if [ "$kind" = signal ]; then
     case "$payload" in needs-decision:*) return 0 ;; esac
@@ -2936,9 +2953,12 @@ resurface_row_main_only() {  # <kind> <key> <payload>
 
 # 0 when the durable wake queue holds at least one row only main can do.
 # Read under the queue lock so a concurrent append is never half-seen.
+# Leaves the oldest row's reason line in RESURFACE_OLDEST_REASON, passing
+# over rows a live PM owns.
 resurface_queue_has_main_only() {
   local epoch seq kind key payload rest
   RESURFACE_ALT_OWNER=1
+  RESURFACE_OLDEST_REASON=
   resurface_alternate_owner || RESURFACE_ALT_OWNER=0
   [ -s "$FM_WAKE_QUEUE" ] || return 1
   fm_lock_acquire_wait "$FM_WAKE_QUEUE_LOCK" || return 0
@@ -2948,6 +2968,8 @@ resurface_queue_has_main_only() {
       fm_lock_release "$FM_WAKE_QUEUE_LOCK"
       return 0
     fi
+    [ -n "$RESURFACE_OLDEST_REASON" ] || [ "$RESURFACE_ROW_PM" -eq 1 ] \
+      || RESURFACE_OLDEST_REASON=$payload
   done < "$FM_WAKE_QUEUE"
   fm_lock_release "$FM_WAKE_QUEUE_LOCK"
   return 1
@@ -2970,13 +2992,22 @@ resurface_after_downtime() {
   # The recovery marker alone is not a wake: a covering watcher kept watch
   # through the handling turn this downtime followed, so the queued rows
   # were already seen by a live watcher. Resurface to main only when those
-  # rows hold something only main can do; otherwise stay in this poll loop,
-  # where the same rows surface by their own reasons to their own owners.
+  # rows hold something only main can do. The away daemon reads its rows
+  # from the queue itself, so its home stays in this poll loop. The
+  # supervision host starts an engine turn only on a watcher close, so its
+  # home closes on the oldest queued row as itself; the drain presents the rest.
+  # A live PM reads its own rows, and a plain home keeps its legacy resurface.
   if ! resurface_queue_has_main_only; then
+    if [ -n "$RESURFACE_OLDEST_REASON" ] && [ "$RESURFACE_ALT_OWNER" -eq 1 ] \
+      && ! daemon_owns_supervision; then
+      WATCHER_RESURFACE_REASON=$RESURFACE_OLDEST_REASON
+      wake "$RESURFACE_OLDEST_REASON"
+    fi
     WATCHER_RECOVERY_PENDING=0
     triage_log "absorbed rearm-resurface (queue holds nothing only main can do)"
     return 0
   fi
+  WATCHER_RESURFACE_REASON="check: rearm-resurface"
   wake "check: rearm-resurface"
 }
 
