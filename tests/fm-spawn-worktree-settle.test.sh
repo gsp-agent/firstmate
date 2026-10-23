@@ -196,6 +196,7 @@ state = json.loads(state_path.read_text()) if state_path.exists() else {
 }
 action = tuple(args[:2])
 close_mode = os.environ.get("FM_FAKE_HERDR_CLOSE", "closed")
+viewport_rows = int(os.environ.get("FM_FAKE_HERDR_VIEWPORT_ROWS") or 0)
 
 def emit(result):
     print(json.dumps({"result": result}))
@@ -241,6 +242,8 @@ elif action in (("tab", "get"), ("pane", "get")):
     kind = args[0]
     item = next((item for item in state[kind + "s"] if item[kind + "_id"] == args[2]), None)
     if item:
+        if kind == "pane" and viewport_rows and os.environ.get("FM_FAKE_HERDR_NO_SCROLL") != "1":
+            item = dict(item, scroll={"offset_from_bottom": 0, "viewport_rows": viewport_rows})
         emit({kind: item})
     else:
         code = "unavailable" if close_mode == "unknown" and (root / "treehouse-returned").exists() else kind + "_not_found"
@@ -255,6 +258,8 @@ elif action == ("pane", "run"):
         (root / "treehouse-returned").touch()
 elif action == ("pane", "read"):
     log = Path(os.environ["FM_FAKE_PANE_LOG"])
+    if "--lines" in args and option("--source") == "recent" and int(option("--lines")) < viewport_rows:
+        sys.exit(0)
     print(log.read_text() if log.exists() else "", end="")
 elif action == ("pane", "close"):
     if (root / "treehouse-returned").exists() and close_mode == "refused":
@@ -274,15 +279,18 @@ PY
   chmod +x "$FAKEBIN_DIR/herdr"
 }
 
-# A pool-full Herdr refusal in each layout: `flat` turns presentation off, so
+# A pool-full Herdr refusal in each layout, on a pane of the default height or,
+# with `tall`, one 300 rows high, where Herdr returns an empty recent read for
+# any line count below the viewport height; `tall-noscroll` is that pane on a
+# Herdr whose `pane get` reports no viewport height. `flat` turns presentation off, so
 # the ordinary locked close runs; `contended` keeps it on while another holder
 # keeps the session's presentation lock past the bounded retry, so the spawn
 # falls back flat and its cleanup may not close the pane at all; `projected`
 # closes the projection it holds the lock for.
 # shellcheck disable=SC2030 # This test intentionally isolates its environment in a subshell.
 test_pool_full_herdr_cleanup_is_confirmed() (
-  local layout=$1 close_mode=$2 rec id out status lock_path
-  id="settle-herdr-$layout-$close_mode"
+  local layout=$1 close_mode=$2 pane_shape=${3:-} rec id out status lock_path
+  id="settle-herdr-$layout-$close_mode${pane_shape:+-$pane_shape}"
   rec=$(make_settle_case "$id" "$id" 100000)
   read_settle_record "$rec"
   make_settle_herdr_fake
@@ -296,6 +304,10 @@ test_pool_full_herdr_cleanup_is_confirmed() (
   export FM_HOME="$HOME_DIR" FM_STATE_OVERRIDE="$HOME_DIR/state" FM_BACKEND=herdr
   export HERDR_SESSION="$id" FM_FAKE_HERDR_DIR="$CASE_DIR" PATH="$FAKEBIN_DIR:$PATH"
   export FM_FAKE_HERDR_CLOSE="$close_mode" FM_FAKE_HERDR_FOCUS_UNREADABLE=1
+  case "$pane_shape" in
+  tall) export FM_FAKE_HERDR_VIEWPORT_ROWS=300 ;;
+  tall-noscroll) export FM_FAKE_HERDR_VIEWPORT_ROWS=300 FM_FAKE_HERDR_NO_SCROLL=1 ;;
+  esac
   . "$ROOT/bin/fm-wake-lib.sh"
   . "$ROOT/bin/fm-backend.sh"
   fm_backend_source herdr || fail "could not load the Herdr adapter"
@@ -334,7 +346,7 @@ test_pool_full_herdr_cleanup_is_confirmed() (
     assert_contains "$out" "could not confirm closure" "the refusal did not report the unconfirmed endpoint"$'\n'"$out"
     assert_contains "$out" "inspect window $HERDR_SESSION:" "the refusal did not identify the endpoint to inspect"
   fi
-  pass "a pool-full $layout Herdr refusal after a $close_mode close reports its endpoint truthfully"
+  pass "a pool-full $layout${pane_shape:+ $pane_shape} Herdr refusal after a $close_mode close reports its endpoint truthfully"
 )
 
 # A single stale first read (the exact incident) must not be accepted: the
@@ -843,6 +855,8 @@ test_pool_full_herdr_cleanup_is_confirmed flat refused || exit 1
 test_pool_full_herdr_cleanup_is_confirmed flat noop || exit 1
 test_pool_full_herdr_cleanup_is_confirmed flat unknown || exit 1
 test_pool_full_herdr_cleanup_is_confirmed contended closed || exit 1
+test_pool_full_herdr_cleanup_is_confirmed flat closed tall || exit 1
+test_pool_full_herdr_cleanup_is_confirmed flat closed tall-noscroll || exit 1
 test_pool_full_herdr_cleanup_is_confirmed projected closed || exit 1
 test_pool_full_herdr_cleanup_is_confirmed projected noop || exit 1
 
