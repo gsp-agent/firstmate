@@ -79,3 +79,5 @@ pr: 109
 pr: 114
 # Failing-first native publication callback test in tests/fm-pr-ready-callback.test.sh: successful registration previously emitted zero callbacks, now one exact event.
 pr: 117
+# Native released PM intake baseline refused both one and repeated releases; tests/fm-spawn-queue-start.test.sh covers owned history, tamper, protected holds and replay.
+pr: 116
