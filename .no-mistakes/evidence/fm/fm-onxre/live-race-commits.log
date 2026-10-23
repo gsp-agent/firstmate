@@ -1,0 +1,34 @@
+COMMAND: fm-spawn nm-onxre-73324 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/home
+notice: nm-onxre-73324 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-73324 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+error: task nm-onxre-73324 checked out fm/nm-onxre-73324 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/pool/.treehouse/project-46264b/1/project, and that slot was not returned because it holds commits origin does not have (0275f1f72ed83bee5aaa68cc1bf4e832592a6987)
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/project
+HEAD 7fb89f1a78625b58c554ad554d3bf61bbd3ae05e
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/pool/.treehouse/project-46264b/1/project
+HEAD 0275f1f72ed83bee5aaa68cc1bf4e832592a6987
+branch refs/heads/fm/nm-onxre-73324
+
+RETAINED CLAIM: task=nm-onxre-73324
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/home
+
+
+RETAINED BRANCH: fm/nm-onxre-73324
+
+RETAINED COMMIT: task-work preserve task commit
+
+
+CONCURRENT LOCK HOLDER: state=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/home/state
+spawn-pid=76046
+observed cleanup waiting for project lock
+held spawn
+held meta
+replacement mutation complete
+
+
+PRIVATE SERVER CLEANUP: 0

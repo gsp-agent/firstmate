@@ -1,0 +1,56 @@
+COMMAND: fm-spawn nm-onxre-32456 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/home
+notice: nm-onxre-32456 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-32456 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+EXIT: 75
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/project
+HEAD 10a70c451b49b9d5b44547a347c6babe5524f601
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/pool/.treehouse/project-f2ec80/1/project
+HEAD 10a70c451b49b9d5b44547a347c6babe5524f601
+detached
+
+COMMAND: fm-spawn nm-onxre-32456 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: retry
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/home
+notice: nm-onxre-32456 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nm-onxre-32456 harness=python3 kind=ship mode=local-only yolo=off window=fm-lab-onxre:fm-nm-onxre-32456 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/pool/.treehouse/project-f2ec80/1/project
+EXIT: 0
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/project
+HEAD 10a70c451b49b9d5b44547a347c6babe5524f601
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/pool/.treehouse/project-f2ec80/1/project
+HEAD 10a70c451b49b9d5b44547a347c6babe5524f601
+branch refs/heads/fm/nm-onxre-32456
+
+WORKER OBSERVATION: {"cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/pool/.treehouse/project-f2ec80/1/project", "branch": "fm/nm-onxre-32456"}
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/li
+ve/pool/.treehouse/project-f2ec80/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/poo
+l/.treehouse/project-f2ec80/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nm-onxre-32456/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nm-onxre-32456
+bash-3.2$ . '/tmp/fm-nm-onxre-32456+0eb50bc6af63e77b499760c075451c8cbec91f931fac2641c6a9441c2cb53a37/launch.s1792721072.
+46138.19826.sh'
+DIAGNOSTIC WORKER STARTED
+
+PRIVATE SERVER CLEANUP: 0

@@ -1,0 +1,25 @@
+COMMAND: fm-spawn nm-onxre-73625 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/home
+notice: nm-onxre-73625 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: task nm-onxre-73625 checked out fm/nm-onxre-73625 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/pool/.treehouse/project-cd204c/1/project, and that slot was not returned because it holds commits origin does not have (487b02a48ee236bdce3fc2f873273d131e18cbbe)
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/project
+HEAD 53b21e89041315b4154710584a808cda0289a236
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/pool/.treehouse/project-cd204c/1/project
+HEAD 487b02a48ee236bdce3fc2f873273d131e18cbbe
+branch refs/heads/fm/nm-onxre-73625
+
+RETAINED CLAIM: task=nm-onxre-73625
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/home
+
+
+RETAINED BRANCH: fm/nm-onxre-73625
+
+RETAINED COMMIT: task-work preserve task commit
+
+
+PRIVATE SERVER CLEANUP: 0

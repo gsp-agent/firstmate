@@ -1,0 +1,20 @@
+COMMAND: fm-spawn nm-onxre-35195 --mode local-only --yolo off --backend tmux --harness codex
+PHASE: abort
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/home
+notice: nm-onxre-35195 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/codex/config.toml records trust_level = 'untrusted' for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/project, an explicit decision this will not override
+error: refusing to pre-register codex trust: could not record trust for '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/project' in '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/codex/config.toml'
+error: could not pre-register Codex folder trust for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/pool/.treehouse/project-03b63f/1/project; refusing to launch a codex worker that would park on the trust prompt; inspect window fm-lab-onxre:fm-nm-onxre-35195
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/project
+HEAD 3aeba05e8229066f33b93b02d6a1ac446bb0f93f
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/pool/.treehouse/project-03b63f/1/project
+HEAD 3aeba05e8229066f33b93b02d6a1ac446bb0f93f
+detached
+
+AFTER ABORT: ship branch released, task record absent, slot claim absent
+
+PRIVATE SERVER CLEANUP: 0

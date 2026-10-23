@@ -1,0 +1,25 @@
+COMMAND: fm-spawn nm-onxre-73609 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/home
+notice: nm-onxre-73609 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: task nm-onxre-73609 checked out fm/nm-onxre-73609 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/pool/.treehouse/project-ff735b/1/project, and that slot was not returned because it holds uncommitted changes
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/project
+HEAD d35387bde344160b660a563cc4debce0c5092937
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/pool/.treehouse/project-ff735b/1/project
+HEAD d35387bde344160b660a563cc4debce0c5092937
+branch refs/heads/fm/nm-onxre-73609
+
+RETAINED CLAIM: task=nm-onxre-73609
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/home
+
+
+RETAINED BRANCH: fm/nm-onxre-73609
+
+RETAINED FILE: preserve dirty work
+
+
+PRIVATE SERVER CLEANUP: 0

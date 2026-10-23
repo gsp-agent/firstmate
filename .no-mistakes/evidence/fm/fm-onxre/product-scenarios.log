@@ -1,0 +1,439 @@
+Real fm-spawn CLI, Treehouse 2.3.0, Git, and isolated tmux servers at 120 columns x 40 rows. Disposable marked homes and repositories; no operator home used. Retry launch uses a bounded Python diagnostic worker, not an authenticated LLM.
+
+Setup correction: the initial metadata-race driver mutated before cleanup rollback. Replaced its delay with an observed project-lock wait. One synchronization attempt missed the 10-second lock deadline; the repeated synchronized scenario passed. Final concurrency transcripts below each confirm the observed wait and held task locks.
+
+===== live-before-fix.log =====
+COMMAND: fm-spawn nm-onxre-16339 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-before-fix/home
+notice: nm-onxre-16339 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-16339 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task nm-onxre-16339's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-before-fix/pool/.treehouse/project-87163b/1/project in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+EXIT: 75
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-before-fix/project
+HEAD a204a43d1ed658bf0c6395b8354f8b03821b1b50
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-before-fix/pool/.treehouse/project-87163b/1/project
+HEAD a204a43d1ed658bf0c6395b8354f8b03821b1b50
+branch refs/heads/fm/nm-onxre-16339
+
+BASELINE REPRODUCED: late deferral left ship branch checked out
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-defer-retry.log =====
+COMMAND: fm-spawn nm-onxre-32456 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/home
+notice: nm-onxre-32456 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-32456 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+EXIT: 75
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/project
+HEAD 10a70c451b49b9d5b44547a347c6babe5524f601
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/pool/.treehouse/project-f2ec80/1/project
+HEAD 10a70c451b49b9d5b44547a347c6babe5524f601
+detached
+
+COMMAND: fm-spawn nm-onxre-32456 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: retry
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/home
+notice: nm-onxre-32456 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nm-onxre-32456 harness=python3 kind=ship mode=local-only yolo=off window=fm-lab-onxre:fm-nm-onxre-32456 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/pool/.treehouse/project-f2ec80/1/project
+EXIT: 0
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/project
+HEAD 10a70c451b49b9d5b44547a347c6babe5524f601
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/pool/.treehouse/project-f2ec80/1/project
+HEAD 10a70c451b49b9d5b44547a347c6babe5524f601
+branch refs/heads/fm/nm-onxre-32456
+
+WORKER OBSERVATION: {"cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/pool/.treehouse/project-f2ec80/1/project", "branch": "fm/nm-onxre-32456"}
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/li
+ve/pool/.treehouse/project-f2ec80/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live/poo
+l/.treehouse/project-f2ec80/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nm-onxre-32456/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nm-onxre-32456
+bash-3.2$ . '/tmp/fm-nm-onxre-32456+0eb50bc6af63e77b499760c075451c8cbec91f931fac2641c6a9441c2cb53a37/launch.s1792721072.
+46138.19826.sh'
+DIAGNOSTIC WORKER STARTED
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-originless.log =====
+COMMAND: fm-spawn nm-onxre-10402 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless/home
+notice: nm-onxre-10402 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-10402 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task nm-onxre-10402's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless/pool/.treehouse/project-e31822/1/project in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+EXIT: 75
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless/project
+HEAD cd0e1411819d6e4d6bea4d129db425d272db814c
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless/pool/.treehouse/project-e31822/1/project
+HEAD cd0e1411819d6e4d6bea4d129db425d272db814c
+detached
+
+COMMAND: fm-spawn nm-onxre-10402 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: retry
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless/home
+notice: nm-onxre-10402 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned nm-onxre-10402 harness=python3 kind=ship mode=local-only yolo=off window=fm-lab-onxre:fm-nm-onxre-10402 worktree=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless/pool/.treehouse/project-e31822/1/project
+EXIT: 0
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless/project
+HEAD cd0e1411819d6e4d6bea4d129db425d272db814c
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless/pool/.treehouse/project-e31822/1/project
+HEAD cd0e1411819d6e4d6bea4d129db425d272db814c
+branch refs/heads/fm/nm-onxre-10402
+
+WORKER OBSERVATION: {"cwd": "/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless/pool/.treehouse/project-e31822/1/project", "branch": "fm/nm-onxre-10402"}
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+Dales-MacBook-Pro-M4-7:project dalecarman$ treehouse get
+A new version of treehouse is available: v2.3.0 → v3.1.5
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/li
+ve-originless/pool/.treehouse/project-e31822/1/project. Type 'exit' to return.
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ cd -- '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-ori
+ginless/pool/.treehouse/project-e31822/1/project'
+bash-3.2$ export GOTMPDIR=/tmp/fm-nm-onxre-10402/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=nm-onxre-10402
+bash-3.2$ . '/tmp/fm-nm-onxre-10402+0ce13bc84200168f2963fc8cb4fcbc8b7c602479c4af14745370070d58cdad6b/launch.s1792721301.
+16097.2994.sh'
+DIAGNOSTIC WORKER STARTED
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-abort.log =====
+COMMAND: fm-spawn nm-onxre-35195 --mode local-only --yolo off --backend tmux --harness codex
+PHASE: abort
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/home
+notice: nm-onxre-35195 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/codex/config.toml records trust_level = 'untrusted' for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/project, an explicit decision this will not override
+error: refusing to pre-register codex trust: could not record trust for '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/project' in '/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/codex/config.toml'
+error: could not pre-register Codex folder trust for /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/pool/.treehouse/project-03b63f/1/project; refusing to launch a codex worker that would park on the trust prompt; inspect window fm-lab-onxre:fm-nm-onxre-35195
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/project
+HEAD 3aeba05e8229066f33b93b02d6a1ac446bb0f93f
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-abort/pool/.treehouse/project-03b63f/1/project
+HEAD 3aeba05e8229066f33b93b02d6a1ac446bb0f93f
+detached
+
+AFTER ABORT: ship branch released, task record absent, slot claim absent
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-dirty.log =====
+COMMAND: fm-spawn nm-onxre-73609 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/home
+notice: nm-onxre-73609 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: task nm-onxre-73609 checked out fm/nm-onxre-73609 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/pool/.treehouse/project-ff735b/1/project, and that slot was not returned because it holds uncommitted changes
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/project
+HEAD d35387bde344160b660a563cc4debce0c5092937
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/pool/.treehouse/project-ff735b/1/project
+HEAD d35387bde344160b660a563cc4debce0c5092937
+branch refs/heads/fm/nm-onxre-73609
+
+RETAINED CLAIM: task=nm-onxre-73609
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-dirty/home
+
+
+RETAINED BRANCH: fm/nm-onxre-73609
+
+RETAINED FILE: preserve dirty work
+
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-commits.log =====
+COMMAND: fm-spawn nm-onxre-73625 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/home
+notice: nm-onxre-73625 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: task nm-onxre-73625 checked out fm/nm-onxre-73625 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/pool/.treehouse/project-cd204c/1/project, and that slot was not returned because it holds commits origin does not have (487b02a48ee236bdce3fc2f873273d131e18cbbe)
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/project
+HEAD 53b21e89041315b4154710584a808cda0289a236
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/pool/.treehouse/project-cd204c/1/project
+HEAD 487b02a48ee236bdce3fc2f873273d131e18cbbe
+branch refs/heads/fm/nm-onxre-73625
+
+RETAINED CLAIM: task=nm-onxre-73625
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-commits/home
+
+
+RETAINED BRANCH: fm/nm-onxre-73625
+
+RETAINED COMMIT: task-work preserve task commit
+
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-originless-commits.log =====
+COMMAND: fm-spawn nm-onxre-69333 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless-commits/home
+notice: nm-onxre-69333 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: task nm-onxre-69333 checked out fm/nm-onxre-69333 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless-commits/pool/.treehouse/project-323eb4/1/project, and that slot was not returned because it holds commits origin does not have (1124b191bb8d23d1b8aa72b8466297ab7765cc4e)
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless-commits/project
+HEAD 653062cd2d159ca5f3d6bca8f7c3ce6a2a5a4ba3
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless-commits/pool/.treehouse/project-323eb4/1/project
+HEAD 1124b191bb8d23d1b8aa72b8466297ab7765cc4e
+branch refs/heads/fm/nm-onxre-69333
+
+RETAINED CLAIM: task=nm-onxre-69333
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-originless-commits/home
+
+
+RETAINED BRANCH: fm/nm-onxre-69333
+
+RETAINED COMMIT: task-work preserve task commit
+
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-no-peer.log =====
+COMMAND: fm-spawn nm-onxre-77868 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-no-peer/home
+notice: nm-onxre-77868 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: task nm-onxre-77868 checked out fm/nm-onxre-77868 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-no-peer/pool/.treehouse/project-285a71/1/project, and that slot was not returned because its commits could not be compared with origin
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-no-peer/project
+HEAD 78049bf31446a12ac46294ff9434462dd36f34f5
+detached
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-no-peer/pool/.treehouse/project-285a71/1/project
+HEAD 78049bf31446a12ac46294ff9434462dd36f34f5
+branch refs/heads/fm/nm-onxre-77868
+
+RETAINED CLAIM: task=nm-onxre-77868
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-no-peer/home
+
+
+RETAINED BRANCH: fm/nm-onxre-77868
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-race-meta.log =====
+COMMAND: fm-spawn nm-onxre-97774 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-meta-sync2/home
+notice: nm-onxre-97774 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-97774 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+error: task nm-onxre-97774 checked out fm/nm-onxre-97774 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-meta-sync2/pool/.treehouse/project-170256/1/project, and that slot was not returned because its task record is still present
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-meta-sync2/project
+HEAD 4214dbe64309ee46db7e4376e328c265d005ee4d
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-meta-sync2/pool/.treehouse/project-170256/1/project
+HEAD 4214dbe64309ee46db7e4376e328c265d005ee4d
+branch refs/heads/fm/nm-onxre-97774
+
+RETAINED CLAIM: task=nm-onxre-97774
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-meta-sync2/home
+
+
+RETAINED BRANCH: fm/nm-onxre-97774
+
+CONCURRENT LOCK HOLDER: state=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-meta-sync2/home/state
+spawn-pid=5069
+observed cleanup waiting for project lock
+held spawn
+held meta
+replacement mutation complete
+
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-race-branch.log =====
+COMMAND: fm-spawn nm-onxre-98581 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/home
+notice: nm-onxre-98581 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-98581 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+error: task nm-onxre-98581 checked out fm/nm-onxre-98581 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/pool/.treehouse/project-d49d37/1/project, and that slot was not returned because its ship branch is no longer checked out
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/project
+HEAD c864de037f5f64fec6016aae8bed76b660a58eb5
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/pool/.treehouse/project-d49d37/1/project
+HEAD c864de037f5f64fec6016aae8bed76b660a58eb5
+branch refs/heads/replacement
+
+RETAINED CLAIM: task=nm-onxre-98581
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/home
+
+
+RETAINED BRANCH: replacement
+
+CONCURRENT LOCK HOLDER: state=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/home/state
+spawn-pid=2591
+observed cleanup waiting for project lock
+held spawn
+held meta
+replacement mutation complete
+
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-race-dirty.log =====
+COMMAND: fm-spawn nm-onxre-98592 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-dirty-sync/home
+notice: nm-onxre-98592 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-98592 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+error: task nm-onxre-98592 checked out fm/nm-onxre-98592 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-dirty-sync/pool/.treehouse/project-fa386a/1/project, and that slot was not returned because it holds uncommitted changes
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-dirty-sync/project
+HEAD f66bfc620fccbc32027d9b07a9995a46507bb010
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-dirty-sync/pool/.treehouse/project-fa386a/1/project
+HEAD f66bfc620fccbc32027d9b07a9995a46507bb010
+branch refs/heads/fm/nm-onxre-98592
+
+RETAINED CLAIM: task=nm-onxre-98592
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-dirty-sync/home
+
+
+RETAINED BRANCH: fm/nm-onxre-98592
+
+RETAINED FILE: preserve dirty work
+
+
+CONCURRENT LOCK HOLDER: state=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-dirty-sync/home/state
+spawn-pid=3552
+observed cleanup waiting for project lock
+held spawn
+held meta
+replacement mutation complete
+
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-race-commits.log =====
+COMMAND: fm-spawn nm-onxre-73324 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/home
+notice: nm-onxre-73324 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-73324 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+error: task nm-onxre-73324 checked out fm/nm-onxre-73324 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/pool/.treehouse/project-46264b/1/project, and that slot was not returned because it holds commits origin does not have (0275f1f72ed83bee5aaa68cc1bf4e832592a6987)
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/project
+HEAD 7fb89f1a78625b58c554ad554d3bf61bbd3ae05e
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/pool/.treehouse/project-46264b/1/project
+HEAD 0275f1f72ed83bee5aaa68cc1bf4e832592a6987
+branch refs/heads/fm/nm-onxre-73324
+
+RETAINED CLAIM: task=nm-onxre-73324
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/home
+
+
+RETAINED BRANCH: fm/nm-onxre-73324
+
+RETAINED COMMIT: task-work preserve task commit
+
+
+CONCURRENT LOCK HOLDER: state=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-commits-sync/home/state
+spawn-pid=76046
+observed cleanup waiting for project lock
+held spawn
+held meta
+replacement mutation complete
+
+
+PRIVATE SERVER CLEANUP: 0
+
+===== live-race-owner.log =====
+COMMAND: fm-spawn nm-onxre-76086 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-owner-sync/home
+notice: nm-onxre-76086 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-76086 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+error: task nm-onxre-76086 checked out fm/nm-onxre-76086 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-owner-sync/pool/.treehouse/project-8345a1/1/project, and that slot was not returned because its claim reads other
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-owner-sync/project
+HEAD 65c1a94f0365bff173fc5c4c8a707cdc18ae7ba6
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-owner-sync/pool/.treehouse/project-8345a1/1/project
+HEAD 65c1a94f0365bff173fc5c4c8a707cdc18ae7ba6
+branch refs/heads/fm/nm-onxre-76086
+
+RETAINED CLAIM: task=replacement
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-owner-sync/home
+
+
+RETAINED BRANCH: fm/nm-onxre-76086
+
+CONCURRENT LOCK HOLDER: state=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-owner-sync/home/state
+spawn-pid=77597
+observed cleanup waiting for project lock
+held spawn
+held meta
+replacement mutation complete
+
+
+PRIVATE SERVER CLEANUP: 0

@@ -1,0 +1,31 @@
+COMMAND: fm-spawn nm-onxre-98581 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/home
+notice: nm-onxre-98581 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-98581 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+error: task nm-onxre-98581 checked out fm/nm-onxre-98581 in pool slot /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/pool/.treehouse/project-d49d37/1/project, and that slot was not returned because its ship branch is no longer checked out
+EXIT: 1
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/project
+HEAD c864de037f5f64fec6016aae8bed76b660a58eb5
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/pool/.treehouse/project-d49d37/1/project
+HEAD c864de037f5f64fec6016aae8bed76b660a58eb5
+branch refs/heads/replacement
+
+RETAINED CLAIM: task=nm-onxre-98581
+home=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/home
+
+
+RETAINED BRANCH: replacement
+
+CONCURRENT LOCK HOLDER: state=/Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-race-branch-sync/home/state
+spawn-pid=2591
+observed cleanup waiting for project lock
+held spawn
+held meta
+replacement mutation complete
+
+
+PRIVATE SERVER CLEANUP: 0

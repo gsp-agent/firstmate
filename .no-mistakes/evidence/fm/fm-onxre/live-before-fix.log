@@ -1,0 +1,19 @@
+COMMAND: fm-spawn nm-onxre-16339 --mode local-only --yolo off --backend tmux [diagnostic worker]
+PHASE: defer
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-before-fix/home
+notice: nm-onxre-16339 ships mode=local-only while the standing posture for project is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=disposable-lab), and a live session is run by the project's own agent, never by Firstmate; task nm-onxre-16339 was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+warning: leaving task nm-onxre-16339's slot claim on /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-before-fix/pool/.treehouse/project-87163b/1/project in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+EXIT: 75
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-before-fix/project
+HEAD a204a43d1ed658bf0c6395b8354f8b03821b1b50
+branch refs/heads/main
+
+worktree /Users/dalecarman/.no-mistakes/worktrees/a5e67f4ea77f/01M5K3X4E6P8S1F60B3JBXYBNS/.test-runtime/live-before-fix/pool/.treehouse/project-87163b/1/project
+HEAD a204a43d1ed658bf0c6395b8354f8b03821b1b50
+branch refs/heads/fm/nm-onxre-16339
+
+BASELINE REPRODUCED: late deferral left ship branch checked out
+
+PRIVATE SERVER CLEANUP: 0
