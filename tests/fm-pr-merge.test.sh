@@ -280,6 +280,13 @@ case "${1:-} ${2:-}" in
     # The required-check reads: the branch itself, and its rules read without
     # the merge-queue filter the queue reader below applies.
     case " $* " in
+      *" repos/"*"/pulls/"*"/reviews"*)
+        # The approval at the head this mock reports, which every merge without
+        # --attended-override requires (bin/fm-pr-merge.sh's reviewer rule).
+        printf '[{"user":{"login":"carmanchip23-dev"},"state":"APPROVED","commit_id":"%s"}]\n' \
+          "$(cat "$FM_TEST_GH_HEAD")"
+        exit 0
+        ;;
       *" repos/"*"/commits/"*"/check-runs"*)
         case "$*" in
           *"/commits/$(cat "$FM_TEST_GH_HEAD")/check-runs"*) ;;
@@ -2705,6 +2712,111 @@ test_github_still_forwards_sha_arg() {
   pass "fm-pr-merge refuses a caller --sha on GitHub because the head comes from the live read"
 }
 
+# --expect-head <sha> overrides nothing: the live read still decides the head the
+# forge is bound to, and the flag only refuses when that verified head is not the
+# exact one the caller judged.
+test_expect_head_merges_only_the_expected_head() {
+  local case_dir rc head=4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e moved=5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f
+
+  case_dir=$(make_case github-expect-head-match)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$head"
+  : > "$case_dir/gh-axi.log"
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/45 --expect-head "$head" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "expect-head-match: the verified head equals the expected one, so it merges"
+  assert_logged_gh_merge "$case_dir" 45 example/repo --squash
+
+  case_dir=$(make_case github-expect-head-moved)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$moved"
+  : > "$case_dir/gh-axi.log"
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/46 --expect-head "$head" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "expect-head-moved: a verified head other than the expected one must be refused"
+  assert_grep "verified head of https://github.com/example/repo/pull/46 is $moved, not the expected $head" "$case_dir/stderr" \
+    "expect-head-moved: the refusal did not name both heads"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "expect-head-moved: gh pr merge ran for a head the caller did not expect"
+
+  case_dir=$(make_gitlab_case gitlab-expect-head-moved)
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$MR_URL" --expect-head "$MR_STALE_HEAD" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "gitlab-expect-head-moved: a verified head other than the expected one must be refused"
+  assert_grep "is $MR_HEAD, not the expected $MR_STALE_HEAD" "$case_dir/stderr" \
+    "gitlab-expect-head-moved: the refusal did not name both heads"
+  [ -z "$(glab_merge_line "$case_dir/glab.log")" ] \
+    || fail "gitlab-expect-head-moved: glab merged a head the caller did not expect"
+
+  case_dir=$(make_forgejo_case forgejo-expect-head-moved)
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$FJ_URL" --expect-head "$FJ_STALE_HEAD" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "forgejo-expect-head-moved: a verified head other than the expected one must be refused"
+  assert_grep "is $FJ_HEAD, not the expected $FJ_STALE_HEAD" "$case_dir/stderr" \
+    "forgejo-expect-head-moved: the refusal did not name both heads"
+  [ -z "$(tea_merge_line "$case_dir/tea.log")" ] \
+    || fail "forgejo-expect-head-moved: a merge was attempted for a head the caller did not expect"
+  pass "fm-pr-merge --expect-head merges the expected head and refuses a verified head that moved, on every forge"
+}
+
+test_expect_head_requires_one_full_sha() {
+  local case_dir rc value
+  for value in 4e4e4e4e4e4e '' 4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E; do
+    case_dir=$(make_case "github-expect-head-invalid-${#value}")
+    mkdir -p "$case_dir/wt"
+    add_gh_mocks "$case_dir" 4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e
+    set +e
+    run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/47 --expect-head "$value" \
+      > "$case_dir/stdout" 2> "$case_dir/stderr"
+    rc=$?
+    set -e
+    expect_code 2 "$rc" "expect-head-invalid: '$value' is not a full lowercase commit SHA"
+    assert_grep '--expect-head requires the full commit SHA' "$case_dir/stderr" \
+      "expect-head-invalid: the refusal did not name the full-SHA rule for '$value'"
+    assert_no_grep 'pr=https://github.com/example/repo/pull/47' "$case_dir/state/task-x1.meta" \
+      "expect-head-invalid: the URL was recorded before the argument was refused"
+    assert_no_grep 'pr merge' "$case_dir/gh.log" "expect-head-invalid: gh pr merge ran for '$value'"
+  done
+
+  case_dir=$(make_case github-expect-head-equals)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" 4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/48 \
+    --expect-head=4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 2 "$rc" "expect-head-equals: the equals form must be refused"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" "expect-head-equals: gh pr merge ran for the equals form"
+
+  case_dir=$(make_case github-expect-head-twice)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" 4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/49 \
+    --expect-head 4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e --expect-head 5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 2 "$rc" "expect-head-twice: a second expected head must be refused"
+  assert_grep '--expect-head may be specified only once' "$case_dir/stderr" \
+    "expect-head-twice: the refusal did not say single use"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" "expect-head-twice: gh pr merge ran for two expected heads"
+  pass "fm-pr-merge --expect-head takes exactly one full commit SHA, as a separate argument"
+}
+
 # --- durable merge outcome ---------------------------------------------------
 # A merge that lands must leave a record outside the merging agent's memory.
 # bin/fm-merge-outcome-lib.sh owns where that record goes; these cases pin the
@@ -3051,6 +3163,8 @@ test_explicit_merge_method_not_overridden
 test_method_equals_merge_method_not_overridden
 test_parses_pr_url_for_gh_axi
 test_github_still_forwards_sha_arg
+test_expect_head_merges_only_the_expected_head
+test_expect_head_requires_one_full_sha
 test_gitlab_url_resolves_and_merges
 test_gitlab_host_comes_from_the_url
 test_gitlab_imposes_no_merge_method
