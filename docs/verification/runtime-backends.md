@@ -1401,9 +1401,11 @@ The picker is recognised by its recorded structure only: the heading on its own 
 The same strings quoted above a normal composer, as a diff, this note, or a test fixture shows them, are not a picker.
 Submit retries now stop after the Enter that opened the picker and report unknown.
 A typed submit to a pane that already shows the picker types nothing and sends no Enter.
-Exit reports that the worker is blocked on the Claude background-task exit picker and does not type another Enter.
-A submit can return before any read sees the picker, so exit reads the screen once more when its wait for the agent to stop times out, and names the picker there too.
-Exit does not report a stopped agent whose pane still shows the picker text as blocked on a prompt.
+As of 2026-10-22, [the exit contract](../agent-control.md#verbs) owns background-shell cleanup, once-only picker recovery, process ownership checks, and refusals.
+That behavior change was not verified by a new live Claude run; the 2026-10-05 capture above establishes only the picker structure and its Escape-to-cancel footer.
+`tests/fm-control.test.sh` covers a fake pane whose background shell exits cleanly, a pane already on the picker, a picker that opens on submit, a picker that appears only after the stop wait, delayed and persistent picker redraws after Escape, an exec'd waiter the picker lists, a recognised picker with no readable task, an unrecognised dialog that still refuses, no readable agent roots, a tmux identity mismatch that preserves the other pane's process, and stopped agents leaving picker text behind.
+The scrolled-screen cases in `tests/fm-backend-herdr.test.sh` exercise the current-screen source shared by classification, task extraction, and dismissal checks.
+The same file covers a canned process-info that names a live sleep as claude and returns no root, a live argv0 of claude that is still returned, a non-shell shell pid whose agent child is not a root, and a stop walk that ignores a root pid whose later snapshot is not an agent.
 The watcher does not read the picker: a pane parked on it keeps the ordinary stale triage.
 No recorded screen was available for a model-downgrade confirmation, an MCP approval, or a Claude exit confirmation other than this picker, so those dialogs are not covered.
 Refusing an Enter that would confirm a dialog restores an existing safety path, so it is not gated behind a flag.

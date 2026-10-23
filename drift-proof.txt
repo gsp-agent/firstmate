@@ -59,6 +59,8 @@ pending-pr: 76 .agent-config-dtjsb
 pr: 53
 # Failing-first memory- and time-cap regressions in tests/fm-lint.test.sh and tests/fm-timeout-lib.test.sh.
 pr: 92
+# Claude exit stops the agent's own background shells before /exit and recovers the background-task picker. Failing-first tests in tests/fm-control.test.sh: test_exit_stops_a_background_shell_before_exit, test_exit_recovers_an_open_background_picker, test_exit_recovers_a_picker_that_opens_on_submit, test_exit_recovers_a_picker_that_renders_after_the_stop_wait, test_exit_completes_when_the_picker_redraws_after_escape, test_exit_stops_an_execd_waiter_the_picker_lists, test_exit_refuses_a_picker_whose_tasks_cannot_be_read, test_current_screen_on_a_scrolled_herdr_pane_is_not_the_viewport, and test_exit_refuses_an_unrecognised_dialog.
+# Herdr cleanup roots keep a live harness identity. Tests in tests/fm-backend-herdr.test.sh: test_herdr_root_rejects_a_live_sleep_labeled_claude, test_herdr_root_accepts_a_live_process_whose_argv0_is_claude, test_herdr_root_skips_agent_descendants_of_a_reused_shell_pid, test_herdr_root_keeps_an_agent_descendant_of_a_live_shell, and test_background_stop_ignores_a_reused_non_agent_root.
 # Cut completely: 745991e8's cap/tee changes and 8193b236's stream classifier.
 # Cut portions: cce0ab3a's headless/plugin launch and shared Cursor settings; ece80a35's cap, lock recovery, post-run stream state and plugin fallback; 98242c4f's plugin-pin branch.
 # Every cut commit is reachable from the snapshot ref archive/814465e1383e1654aea41db0544c28cd1f30fa92-before-r16-proof-cuts in archives/fork-cuts.bundle.

@@ -49,10 +49,26 @@ An interrupt is not complete until the composer is empty.
 muse is the one verified adapter that restores the cancelled prompt back into its composer as real text, so its interrupt key is followed by a Ctrl+U clear; without it the next submitted line - including this plane's own exit command - would concatenate onto the restored prompt and submit both as one line.
 The clear is refused before anything is sent when the recorded backend cannot deliver it.
 
-`exit` reads the composer's state before typing the exit command and requires the exact `empty` verdict; a `pending` verdict refuses by naming the pending text, and any other verdict (`unknown`, `pending-unproven`, or an unreadable read) refuses as not proven empty, matching the fail-safe contract every other consumer that can overwrite composer input follows.
-`exit` also refuses, naming the dialog as `blocked on a prompt`, when the screen shows a recognised dialog that a further Enter would answer, whether the dialog was open before the exit command was typed or the submitting Enter opened it; it sends no Escape and chooses no option, so closing the dialog is left to the operator.
+`exit` reads the composer's state before typing the exit command and requires the exact `empty` verdict.
+A `pending` verdict refuses by naming the pending text, and any other verdict (`unknown`, `pending-unproven`, or an unreadable read) refuses as not proven empty, matching the fail-safe contract every other consumer that can overwrite composer input follows.
+Before that command, a Claude exit stops the agent's own background shells and checks that they are gone.
+Those shells are the shell-classified descendants of that agent that sit outside its process group, plus the commands those shells have started.
+The processes are taken from that agent's own process tree.
+Root discovery confirms the named tmux window and reads that pane's tty in the same check, and a mismatch stops no processes.
+A Herdr root is accepted only when the live process still has the harness identity that pane reported, and a later process table that shows a different owner of that pid stops nothing.
+A pane that already shows Claude's background-task exit picker, or whose submitting Enter opens it, is recovered by the same verb.
+The same recovery runs once when the wait for the agent to stop times out and that re-read is the first time this exit sees the picker.
+The shells the picker lists are stopped, Escape closes the picker, and `/exit` is submitted once the picker is gone.
+Escape is followed by a short reread of that screen, about eight tries a twentieth of a second apart, before a dismissal that has not redrawn yet is treated as still open.
+The screen that lists those shells and confirms the picker has closed is the current screen the composer classifier used.
+On a scrolled Herdr pane that screen is the composer capture, because the visible viewport is old chat, and an empty task list does not count as the picker being clear.
+Enter is never sent into the picker.
+A picker that is still open after that one recovery refuses.
+When that process tree cannot be seen, the picker still refuses with `blocked on a prompt` and no Escape is sent.
+An unrecognised dialog still refuses, with no key and no signal.
 A stopped agent whose pane still shows the dialog text is not refused.
-[`fm_composer_blocking_dialog`](../bin/fm-composer-lib.sh) owns the recognised set, which today is only Claude's background-task exit picker; [its verification record](verification/runtime-backends.md#claude-background-task-exit-picker) lists the dialogs that are not covered.
+[`fm_composer_blocking_dialog`](../bin/fm-composer-lib.sh) owns the recognised set, which today is only Claude's background-task exit picker.
+[Its verification record](verification/runtime-backends.md#claude-background-task-exit-picker) lists the dialogs that are not covered.
 
 **Teardown and discard are not verbs and will not become verbs.**
 `exit` stops an agent and preserves everything else.

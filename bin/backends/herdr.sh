@@ -2222,6 +2222,125 @@ EOF
   printf 'shell'
 }
 
+# A foreground pid is a cleanup root only when the live process still has the
+# harness identity that pane process-info row reported. Herdr's name and argv0
+# are not proof: a pid reused after that read must print nothing.
+# Basename comparison strips one leading dash and one directory prefix, the
+# same shape fm_agent_process_classify_name uses, so a truncated comm can still
+# match through the live argv0.
+fm_backend_herdr_foreground_pid_is_reported_agent() {  # <pid> <name> <argv0>
+  local pid=$1 reported_name=${2:-} reported_argv0=${3:-}
+  local ps_bin live_comm live_args live_argv0 verdict
+  local reported_name_base reported_argv0_base live_comm_base live_argv0_base
+  case "$pid" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  ps_bin=${FM_HERDR_PS_BIN:-ps}
+  command -v "$ps_bin" >/dev/null 2>&1 || return 1
+  live_comm=$(LC_ALL=C "$ps_bin" -p "$pid" -o comm= 2>/dev/null) || return 1
+  live_args=$(LC_ALL=C "$ps_bin" -p "$pid" -o args= 2>/dev/null) || return 1
+  live_comm=${live_comm#"${live_comm%%[![:space:]]*}"}
+  live_comm=${live_comm%"${live_comm##*[![:space:]]}"}
+  live_args=${live_args#"${live_args%%[![:space:]]*}"}
+  live_args=${live_args%"${live_args##*[![:space:]]}"}
+  [ -n "$live_comm" ] || return 1
+  [ -n "$live_args" ] || return 1
+  live_argv0=${live_args%%[[:space:]]*}
+  verdict=$(fm_agent_process_classify "$live_comm" "$live_argv0" "$live_args" "$pid")
+  [ "$verdict" = agent ] || return 1
+  reported_name_base=${reported_name##*/}
+  reported_name_base=${reported_name_base#-}
+  reported_argv0_base=${reported_argv0##*/}
+  reported_argv0_base=${reported_argv0_base#-}
+  live_comm_base=${live_comm##*/}
+  live_comm_base=${live_comm_base#-}
+  live_argv0_base=${live_argv0##*/}
+  live_argv0_base=${live_argv0_base#-}
+  if [ -n "$reported_name_base" ]; then
+    if [ "$live_comm_base" = "$reported_name_base" ]; then
+      return 0
+    fi
+    if [ "$live_argv0_base" = "$reported_name_base" ]; then
+      return 0
+    fi
+  fi
+  if [ -n "$reported_argv0_base" ]; then
+    if [ "$live_comm_base" = "$reported_argv0_base" ]; then
+      return 0
+    fi
+    if [ "$live_argv0_base" = "$reported_argv0_base" ]; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
+# Foreground harness pids for this pane, or, when the foreground group is not
+# a harness, harness descendants of the pane shell. Exit walks these pids and
+# never the pane shell: stopping the pane shell would take the agent with it.
+# Prints nothing when process-info cannot be read. The shell fallback walks
+# only while that pid's live snapshot class is still shell.
+fm_backend_herdr_agent_root_pids() {  # <target>
+  local target=$1 info shell_pid count i pid name argv0 found=0 snapshot
+  fm_backend_herdr_parse_target "$target" || return 0
+  info=$(fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane process-info --pane "$FM_BACKEND_HERDR_PANE" 2>/dev/null) \
+    || return 0
+  printf '%s' "$info" | jq -e --arg pane "$FM_BACKEND_HERDR_PANE" '
+    .result.type == "pane_process_info"
+    and .result.process_info.pane_id == $pane
+  ' >/dev/null 2>&1 || return 0
+  count=$(printf '%s' "$info" | jq -er \
+    '.result.process_info.foreground_processes | select(type == "array") | length' 2>/dev/null) \
+    || return 0
+  i=0
+  while [ "$i" -lt "$count" ]; do
+    pid=$(printf '%s' "$info" | jq -r --argjson i "$i" \
+      '.result.process_info.foreground_processes[$i].pid | select(type == "number") | floor' 2>/dev/null)
+    name=$(printf '%s' "$info" | jq -r --argjson i "$i" \
+      '.result.process_info.foreground_processes[$i].name // empty' 2>/dev/null)
+    argv0=$(printf '%s' "$info" | jq -r --argjson i "$i" '
+      .result.process_info.foreground_processes[$i] as $p
+      | (($p.argv // [])[0]) // $p.argv0 // empty' 2>/dev/null)
+    case "$pid" in
+      ''|*[!0-9]*) ;;
+      *)
+        if fm_backend_herdr_foreground_pid_is_reported_agent "$pid" "$name" "$argv0"; then
+          printf '%s\n' "$pid"
+          found=1
+        fi
+        ;;
+    esac
+    i=$((i + 1))
+  done
+  [ "$found" -eq 0 ] || return 0
+  shell_pid=$(printf '%s' "$info" | jq -er \
+    '.result.process_info.shell_pid | select(type == "number" and . > 1) | floor' 2>/dev/null) \
+    || return 0
+  snapshot=$(fm_agent_process_snapshot) || return 0
+  printf '%s\n' "$snapshot" | awk -F '\t' -v shell="$shell_pid" '
+    $1 ~ /^[0-9]+$/ {
+      ppid_of[$1] = $2
+      class_of[$1] = $4
+      kids[$2] = kids[$2] " " $1
+    }
+    END {
+      if (!(shell in class_of) || class_of[shell] != "shell") exit
+      n = split(kids[shell], arr, " ")
+      for (i = 1; i <= n; i++) if (arr[i] != "") queue[++qn] = arr[i]
+      qi = 1
+      while (qi <= qn) {
+        cur = queue[qi++]
+        if (cur in seen) continue
+        seen[cur] = 1
+        if (class_of[cur] == "agent") print cur
+        n = split(kids[cur], arr, " ")
+        for (i = 1; i <= n; i++)
+          if (arr[i] != "" && !(arr[i] in seen)) queue[++qn] = arr[i]
+      }
+    }
+  '
+}
+
 # fm_backend_herdr_pane_agent_state: classify <pane_id> in <session> as one of
 # dead|no-agent|stale-agent|live|unknown, from the JSON body of two read-only
 # calls plus, for a registered agent, the pane's process-level view - never

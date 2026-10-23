@@ -72,13 +72,14 @@ It also requires `AGENTS.md`, `bin/`, and the effective state directory.
 
 ### Supervision need
 
-For an in-scope primary, the guard counts in-flight work from `state/*.meta`.
+For an in-scope primary, the guard uses `bin/fm-supervision-lib.sh`'s shared predicate, which counts in-flight work from `state/*.meta`.
 These sources also count toward supervision need:
 
 - Registered `state/procevent/*.source` records require supervision even though they have no task metadata.
 - Every mode treats `state/x-watch.check.sh` as supervision need, so Relay polling remains guarded without an in-flight task.
 - A custom check registered with `bin/fm-check-register.sh` counts the same way, so an operator's home-level poll keeps running after the last task is torn down.
-- A captain-held task with a `Hold probe:` body line counts even when the home has no in-flight work, event sources, or registered checks.
+- Pending [technical hold routing](captain-hold-lifecycle.md#technical-hold-routing) keeps the guard active even after the last unrelated task retires.
+- A captain-held task whose active hold fields carry a `Hold probe:` line counts even when the home has no in-flight work, event sources, or registered checks.
 
 The default cross-harness mode exits silently with no supervision need.
 

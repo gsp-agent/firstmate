@@ -71,10 +71,14 @@
 #   of the task (tasks-axi show --full), made under this task's spawn lock: the
 #   row must read queued, unheld and unblocked and be a ship; the template sets
 #   mode no-mistakes and yolo off; its labels go to bin/fm-dispatch-resolve.sh
-#   --labels, which must answer clear from its default route, and that profile
-#   is the launch's harness, model and effort. Any other note, a label route, a
-#   scout or another state refuses with exit 1 and leaves the item for the
-#   captain. --mode, --yolo, --harness, --model, --effort and
+#   --labels, which must answer clear, through either its default route or a
+#   label route picked from those same recorded labels, and that profile is
+#   the launch's harness, model and effort. The note lists the exact labels
+#   the resolver receives, so a label route it picks is the routing it
+#   records, not a silent mismatch. A route answering anything but clear
+#   (escalated, refused, or unreadable) refuses. Any other note, a scout or
+#   another state refuses with exit 1 and leaves the item for the captain.
+#   --mode, --yolo, --harness, --model, --effort and
 #   --upstream-consent are refused with it; without --branch-prefix the branch
 #   takes the project's registered prefix (bin/fm-project-mode.sh).
 #   data/<task-id>/brief.md is the claim on the item. One that already exists
@@ -1159,6 +1163,21 @@ else
   fi
 fi
 
+spawn_decision_owner() {
+  local brief=$1 meta=$2 owner=''
+  if [ "$RELAUNCH" -eq 1 ]; then
+    owner=$(fm_meta_get "$meta" decision_owner)
+  elif [ -f "$brief" ]; then
+    owner=$(sed -n 's/^Decision owner: //p' "$brief")
+  fi
+  owner=${owner:-captain}
+  if ! [[ "$owner" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$ ]]; then
+    echo "error: $brief must name one valid Decision owner endpoint" >&2
+    return 1
+  fi
+  printf '%s' "$owner"
+}
+
 spawn_remote_secondmate() {
   local id=$1 remote host root home harness positional model effort backend out rc meta tmp
   local remote_backend remote_target remote_harness remote_herdr_session registry_lock remote_lock remote_generation
@@ -1267,6 +1286,11 @@ spawn_remote_secondmate() {
       echo "error: existing metadata for $id does not identify this remote secondmate route" >&2
       return 1
     fi
+  fi
+  if ! DECISION_OWNER=$(spawn_decision_owner "$DATA/$id/brief.md" "$meta"); then
+    fm_lock_release "$registry_lock" || true
+    fm_lock_release "$SPAWN_TASK_LOCK" || true
+    return 1
   fi
   # Gate the host before anything is published or transferred, so a host that
   # cannot hold a durable Herdr endpoint refuses here rather than half-way
@@ -1403,6 +1427,7 @@ spawn_remote_secondmate() {
     echo "project=$root"
     echo "harness=$harness"
     echo "kind=secondmate"
+    echo "decision_owner=$DECISION_OWNER"
     echo "mode=secondmate"
     echo "yolo=off"
     echo "tasktmp="
@@ -1474,6 +1499,8 @@ SPAWN_OVERSHARE_DIR=
 SPAWN_OVERSHARE_IDENTITY=
 SPAWN_OVERSHARE_AT=
 SPAWN_SLOT_CLAIMED=0
+SPAWN_SKIP_LEASES=
+SPAWN_TARGET_LEASE=
 RELAUNCH_REPLACEMENT_PENDING=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
 RELAUNCH_REPLACEMENT_HARNESS=
@@ -1536,8 +1563,55 @@ spawn_hold_launched_item() {  # <exit-status>
   fi
 }
 
+# True when this spawn may hand a leased pool slot back to Treehouse: no
+# Firstmate slot-owner claim names a task for it and Treehouse's state
+# records no live owner process. `treehouse return` terminates the
+# processes inside its worktree, so a slot this check cannot prove empty
+# is never returned; a lease left behind on an owned slot is cleared by
+# that task's own teardown return, which returns by path.
+spawn_lease_return_safe() { # <path>
+  local path=$1 marker slot pool state lease_line owner_pid
+  marker=$(fm_treehouse_slot_owner_marker "$path" 2>/dev/null || true)
+  if [ -n "$marker" ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
+    return 1
+  fi
+  slot=$(CDPATH='' cd -- "$path" 2>/dev/null && pwd -P) || return 1
+  pool=$(dirname "$(dirname "$slot")")
+  state="$pool/treehouse-state.json"
+  command -v jq >/dev/null 2>&1 || return 1
+  lease_line=$(jq -r --arg p "$slot" --arg n "$(basename "$(dirname "$slot")")" \
+    '.worktrees[]? | select(.path == $p or .name == $n) | "owner=\(.owner_pid // "")"' \
+    "$state" 2>/dev/null) || return 1
+  case "$lease_line" in owner=*) ;; *) return 1 ;; esac
+  owner_pid=${lease_line#owner=}
+  if [ -n "$owner_pid" ] && fm_pid_alive "$owner_pid"; then
+    return 1
+  fi
+  return 0
+}
+
+# Release the foreign pool slots this spawn leased while steering the pool
+# allocator toward an own-clone slot (see the treehouse acquisition below).
+# Each one is returned only when it still proves empty, because another
+# task can have claimed or entered a slot since it was leased; the list
+# is cleared so the exit trap's second call is a no-op.
+spawn_release_skip_leases() {
+  local leased
+  [ -n "$SPAWN_SKIP_LEASES" ] || return 0
+  while IFS= read -r leased; do
+    [ -n "$leased" ] || continue
+    if spawn_lease_return_safe "$leased"; then
+      (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1 </dev/null) || true
+    fi
+  done <<EOF
+$SPAWN_SKIP_LEASES
+EOF
+  SPAWN_SKIP_LEASES=
+}
+
 spawn_abort_cleanup() {
   local status=$?
+  spawn_release_skip_leases
   if [ "$status" -eq "$SPAWN_DEFER_EXIT" ] &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_CREATED_ENDPOINT" ]; then
     if [ "$BACKEND" = orca ]; then
@@ -1672,6 +1746,17 @@ spawn_abort_cleanup() {
     else
       echo "warning: leaving task $ID's slot claim on $WT in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it" >&2
     fi
+  fi
+  # An own-clone slot leased or created for a failed spawn that never
+  # launched is handed back under the same proof of emptiness, after the
+  # claim above has had its chance to be released; a launched task's slot
+  # is its teardown's to return, and a surviving task record's claim keeps
+  # this guard from touching its slot.
+  if [ "$status" -ne 0 ] && [ -n "$SPAWN_TARGET_LEASE" ] &&
+    [ "$SPAWN_LAUNCH_SENT" = 0 ] &&
+    spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
+    (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$SPAWN_TARGET_LEASE" >/dev/null 2>&1 </dev/null) || true
+    SPAWN_TARGET_LEASE=
   fi
   # An admitted extra start past project capacity that launched no worker
   # gives its window back (bin/fm-project-capacity-lib.sh owns the record).
@@ -2135,8 +2220,8 @@ spawn_queue_start_read() {
   [ "$status" = clear ] ||
     spawn_queue_start_refuse "its route resolves ${status:-unread}, not clear; left to the captain"
   case "$route_source" in
-  default*) ;;
-  *) spawn_queue_start_refuse "its labels ($decided) take a label route, not the default route its note records; left to the captain" ;;
+  default* | label*) ;;
+  *) spawn_queue_start_refuse "its labels ($decided) resolve through route source '$route_source', not a default or label route; left to the captain" ;;
   esac
   line=$(printf '%s\n' "$resolved" | sed -n 's/^ *profile: //p' | head -1)
   re="^[[:space:]]*--(harness|model|effort)[[:space:]]+'([^']*)'(.*)$"
@@ -3776,6 +3861,9 @@ fi
   echo "error: task $ID has no brief at inaccessible data path $BRIEF" >&2
   exit 1
 }
+# The brief owns the declared decision endpoint. Legacy briefs stay with the
+# captain; relaunch preserves the original dispatch's authority.
+DECISION_OWNER=$(spawn_decision_owner "$BRIEF" "$STATE/$ID.meta") || exit 1
 if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   if fm_brief_task_placeholders_present "$BRIEF"; then
     echo "error: $BRIEF still contains {TASK} or {FIRSTMATE_SPEC}; fill ## Captain's intent and ## Firstmate spec before spawn" >&2
@@ -3825,7 +3913,7 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   BRIEF_TMP="$DATA/$ID/.launch-brief.md.${BASHPID:-$$}"
   {
     fm_brief_worker_role "$STATE" "$ID" "$FM_ROOT" &&
-      printf '\n' &&
+      printf '\nDecision owner for this dispatch: %s\n\n' "$DECISION_OWNER" &&
       cat "$SOURCE_BRIEF" &&
       if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
         fm_brief_intent_overlay "$CAPTAIN_INTENT"
@@ -4001,7 +4089,9 @@ real_path_or_raw() { # <path>
 
 # True when <path> is an isolated worktree of the spawning project: a real
 # directory that is its own worktree root, is not the spawning project itself,
-# and does not share the project repository's common git dir. SPAWN_WT_TOP is
+# shares the project repository's common git dir (so it is a worktree of this
+# clone, never of another clone of the same origin), and is not the
+# repository's primary checkout. SPAWN_WT_TOP is
 # left holding the worktree root the check read, and SPAWN_WT_REASON a short
 # phrase naming why a rejected path failed, both for the refusal messages.
 #
@@ -4016,7 +4106,7 @@ real_path_or_raw() { # <path>
 SPAWN_WT_TOP=
 SPAWN_WT_REASON=
 spawn_worktree_isolated() { # <path>
-  local path=$1 wt_real wt_top_real wt_git_dir proj_common
+  local path=$1 wt_real wt_top_real wt_git_dir proj_common wt_common
   SPAWN_WT_TOP=
   SPAWN_WT_REASON=
   wt_real=
@@ -4055,8 +4145,20 @@ spawn_worktree_isolated() { # <path>
     wt_git_dir=$(cd "$wt_git_dir" 2>/dev/null && pwd -P) || wt_git_dir=
   proj_common=$(git -C "$PROJ_ABS" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) &&
     proj_common=$(cd "$proj_common" 2>/dev/null && pwd -P) || proj_common=
-  if [ -z "$wt_git_dir" ] || [ -z "$proj_common" ]; then
+  wt_common=$(git -C "$path" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) &&
+    wt_common=$(cd "$wt_common" 2>/dev/null && pwd -P) || wt_common=
+  if [ -z "$wt_git_dir" ] || [ -z "$proj_common" ] || [ -z "$wt_common" ]; then
     SPAWN_WT_REASON="its git directory could not be resolved"
+    return 1
+  fi
+  # A worktree of a DIFFERENT clone of the same project - the mixed Treehouse
+  # pool shape, where one pool holds slots from two clones of one origin - is
+  # not this project's worktree at all: its trust registration refuses it and
+  # a worker that skips trust would work in the wrong clone. Only a worktree
+  # sharing the spawning project's own git common dir may ever be adopted,
+  # which is the same test the trust scripts apply (bin/fm-claude-trust.sh).
+  if [ "$wt_common" != "$proj_common" ]; then
+    SPAWN_WT_REASON="it is a worktree of a different clone (its git common dir is '$wt_common', not the spawning project's '$proj_common')"
     return 1
   fi
   if [ "$wt_git_dir" = "$proj_common" ]; then
@@ -4493,55 +4595,80 @@ else
       HERDR_SES=$(fm_backend_herdr_session)
       HERDR_PARENT_LABEL=$(FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_workspace_label)
       if [ -e "$HERDR_PRESENTATION_JOURNAL" ] || [ -L "$HERDR_PRESENTATION_JOURNAL" ]; then
-        fm_backend_herdr_server_ensure "$HERDR_SES" || {
-          echo "error: herdr presentation recovery could not ensure its exact named session" >&2
-          exit 1
-        }
-        # Refuse-by-default on contention. Wait only when the caller opted in
-        # with --herdr-resume-lock-wait (see header).
-        if [ "$HERDR_RESUME_LOCK_WAIT" = 1 ]; then
-          spawn_herdr_presentation_order_lock_acquire "$HERDR_SES" wait || {
-            echo "error: herdr presentation recovery could not resolve its session lock" >&2
-            exit 1
-          }
+        # A version 1 journal is only an attempt record: it binds no endpoint,
+        # and when no task record exists beside it no worker ever launched from
+        # that attempt, so nothing live can be duplicated. Take the ordinary
+        # flat layout rather than refusing every retry forever.
+        HERDR_DEAD_V1=0
+        if [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ] \
+          && fm_backend_herdr_projection_journal_snapshot "$HERDR_PRESENTATION_JOURNAL" "$ID" \
+          && [ "${FM_BACKEND_HERDR_JOURNAL_VERSION:-}" = 1 ]; then
+          HERDR_DEAD_V1=1
+        fi
+        if [ "$HERDR_DEAD_V1" -eq 1 ]; then
+          # The flat fallback is unconditional, but the journal is the
+          # session-start sweep's only handle on a workspace the failed
+          # attempt may still have created. Retire the journal only once no
+          # workspace carries its token - the same gate teardown applies -
+          # and otherwise leave it quarantined for that sweep.
+          if fm_backend_herdr_server_ensure "$HERDR_SES" \
+            && fm_backend_herdr_projection_token_workspace_gone "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID"; then
+            echo "warning: herdr presentation journal for $ID is a dead version 1 attempt with no task record; retiring it and using the ordinary flat layout without projection" >&2
+            rm -f "$HERDR_PRESENTATION_JOURNAL" || true
+          else
+            echo "warning: herdr presentation journal for $ID is a dead version 1 attempt with no task record, but its token workspace is not proven gone; leaving it for the session-start sweep and using the ordinary flat layout without projection" >&2
+          fi
         else
-          spawn_herdr_presentation_order_lock_acquire "$HERDR_SES" || {
-            echo "error: herdr presentation recovery could not acquire its session lock; refusing a concurrent resume" >&2
+          fm_backend_herdr_server_ensure "$HERDR_SES" || {
+            echo "error: herdr presentation recovery could not ensure its exact named session" >&2
             exit 1
           }
-        fi
-        if [ -e "$STATE/$ID.meta" ] || [ -L "$STATE/$ID.meta" ]; then
-          herdr_projection_existing_meta_allows_flat "$STATE/$ID.meta" || exit 1
-        fi
-        fm_backend_herdr_projection_recovery_allows_flat \
-          "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID" || exit 1
-        if [ "${HERDR_RECOVERY_BACKEND:-}" = herdr ]; then
-          set +e
-          FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_reclaim_task \
-            "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID" "$HERDR_LABEL_HOME" \
-            "$HERDR_RECOVERY_WORKSPACE_ID" "$HERDR_RECOVERY_TAB_ID" "$HERDR_RECOVERY_PANE_ID" \
-            "$HERDR_PARENT_LABEL" "$W" "$PROJ_ABS"
-          HERDR_RECLAIM_STATUS=$?
-          set -e
-          case "$HERDR_RECLAIM_STATUS" in
-          0)
-            HERDR_PROJECTED=1
-            HERDR_WORKSPACE_ID=$HERDR_RECOVERY_WORKSPACE_ID
-            HERDR_SEEDED_DEFAULT_TAB_ID=""
-            HERDR_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_TAB_ID
-            HERDR_PANE_ID=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
-            HERDR_PROJECTION_ABORT_CLEANUP=1
-            HERDR_PROJECTION_ABORT_SESSION=$HERDR_SES
-            HERDR_PROJECTION_ABORT_TASK_PANE=$HERDR_PANE_ID
-            HERDR_PROJECTION_ABORT_SEEDED_PANE=""
-            ;;
-          2)
+          # Refuse-by-default on contention. Wait only when the caller opted in
+          # with --herdr-resume-lock-wait (see header).
+          if [ "$HERDR_RESUME_LOCK_WAIT" = 1 ]; then
+            spawn_herdr_presentation_order_lock_acquire "$HERDR_SES" wait || {
+              echo "error: herdr presentation recovery could not resolve its session lock" >&2
+              exit 1
+            }
+          else
+            spawn_herdr_presentation_order_lock_acquire "$HERDR_SES" || {
+              echo "error: herdr presentation recovery could not acquire its session lock; refusing a concurrent resume" >&2
+              exit 1
+            }
+          fi
+          if [ -e "$STATE/$ID.meta" ] || [ -L "$STATE/$ID.meta" ]; then
+            herdr_projection_existing_meta_allows_flat "$STATE/$ID.meta" || exit 1
+          fi
+          fm_backend_herdr_projection_recovery_allows_flat \
+            "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID" || exit 1
+          if [ "${HERDR_RECOVERY_BACKEND:-}" = herdr ]; then
+            set +e
+            FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_reclaim_task \
+              "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID" "$HERDR_LABEL_HOME" \
+              "$HERDR_RECOVERY_WORKSPACE_ID" "$HERDR_RECOVERY_TAB_ID" "$HERDR_RECOVERY_PANE_ID" \
+              "$HERDR_PARENT_LABEL" "$W" "$PROJ_ABS"
+            HERDR_RECLAIM_STATUS=$?
+            set -e
+            case "$HERDR_RECLAIM_STATUS" in
+            0)
+              HERDR_PROJECTED=1
+              HERDR_WORKSPACE_ID=$HERDR_RECOVERY_WORKSPACE_ID
+              HERDR_SEEDED_DEFAULT_TAB_ID=""
+              HERDR_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_TAB_ID
+              HERDR_PANE_ID=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
+              HERDR_PROJECTION_ABORT_CLEANUP=1
+              HERDR_PROJECTION_ABORT_SESSION=$HERDR_SES
+              HERDR_PROJECTION_ABORT_TASK_PANE=$HERDR_PANE_ID
+              HERDR_PROJECTION_ABORT_SEEDED_PANE=""
+              ;;
+            2)
+              spawn_herdr_presentation_order_lock_release
+              ;;
+            *) exit 1 ;;
+            esac
+          else
             spawn_herdr_presentation_order_lock_release
-            ;;
-          *) exit 1 ;;
-          esac
-        else
-          spawn_herdr_presentation_order_lock_release
+          fi
         fi
       elif [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; then
         # Session lock path resolution and exact parent binding both need a
@@ -4555,8 +4682,9 @@ else
           # The projected child is placed and bound UNDER this launcher's exact
           # parent workspace. Its own herdr pane identity names that workspace
           # directly; the label lookup is only the fallback for a launcher with
-          # no herdr ancestry at all. A claimed-but-broken identity refuses here
-          # rather than projecting under a guessed parent.
+          # no herdr ancestry at all. A claimed-but-broken identity never
+          # projects under a guessed parent: it takes the ordinary flat layout
+          # below, whose container resolution makes its own identity call.
           set +e
           fm_backend_herdr_launcher_identity "$HERDR_SES"
           HERDR_LAUNCHER_STATUS=$?
@@ -4566,51 +4694,66 @@ else
           2) HERDR_PARENT_WORKSPACE_ID=$(fm_backend_herdr_projection_parent_workspace_exact \
             "$HERDR_SES" "$HERDR_PARENT_LABEL" 2>/dev/null || true) ;;
           *)
-            spawn_herdr_presentation_order_lock_release
-            exit 1
+            echo "warning: herdr presentation launcher identity could not be verified; using the ordinary flat layout without projection" >&2
+            HERDR_PARENT_WORKSPACE_ID=""
             ;;
           esac
           if [ -z "$HERDR_PARENT_WORKSPACE_ID" ]; then
             echo "warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection" >&2
             spawn_herdr_presentation_order_lock_release
           else
-            HERDR_PROJECTION_ID=$(fm_backend_herdr_projection_journal_create "$STATE" "$ID") || exit 1
-            HERDR_PROJECTION_LABEL=$(fm_backend_herdr_projection_workspace_label "$ID" "$HERDR_PROJECTION_ID")
-            if ! FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_create_task \
-              "$PROJ_ABS" "$HERDR_PROJECTION_LABEL" "$W"; then
-              if [ "${FM_BACKEND_HERDR_PROJECTION_CLEANUP_SAFE:-0}" = 1 ]; then
-                HERDR_PROJECTION_ABORT_CLEANUP=1
-                HERDR_PROJECTION_ABORT_SESSION=$FM_BACKEND_HERDR_PROJECTION_SESSION
-                HERDR_PROJECTION_ABORT_TASK_PANE=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
-                HERDR_PROJECTION_ABORT_SEEDED_PANE=$FM_BACKEND_HERDR_PROJECTION_SEEDED_PANE_ID
-              fi
-              exit 1
-            fi
-            HERDR_PROJECTED=1
-            HERDR_SES=$FM_BACKEND_HERDR_PROJECTION_SESSION
-            HERDR_WORKSPACE_ID=$FM_BACKEND_HERDR_PROJECTION_WORKSPACE_ID
-            HERDR_SEEDED_DEFAULT_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_SEEDED_TAB_ID
-            HERDR_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_TAB_ID
-            HERDR_PANE_ID=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
-            HERDR_PROJECTION_ABORT_CLEANUP=1
-            HERDR_PROJECTION_ABORT_SESSION=$HERDR_SES
-            HERDR_PROJECTION_ABORT_TASK_PANE=$HERDR_PANE_ID
-            HERDR_PROJECTION_ABORT_SEEDED_PANE=$FM_BACKEND_HERDR_PROJECTION_SEEDED_PANE_ID
-            fm_backend_herdr_projection_order_best_effort \
-              "$HERDR_SES" "$HERDR_WORKSPACE_ID" "$HERDR_PARENT_LABEL" "$HERDR_PARENT_WORKSPACE_ID"
-            HERDR_HOME_ID=$(fm_backend_herdr_projection_home_identity "$HERDR_LABEL_HOME" 2>/dev/null || true)
-            if [ -n "$HERDR_HOME_ID" ] &&
-              fm_backend_herdr_projection_live_binding_matches \
-                "$HERDR_SES" "$HERDR_PROJECTION_ID" "$HERDR_WORKSPACE_ID" \
-                "$HERDR_TAB_ID" "$HERDR_PANE_ID" "$HERDR_PARENT_WORKSPACE_ID" \
-                "$HERDR_PARENT_LABEL" "$HERDR_PROJECTION_LABEL" "$W" &&
-              fm_backend_herdr_projection_journal_bind \
-                "$HERDR_PRESENTATION_JOURNAL" "$ID" "$HERDR_HOME_ID" "$HERDR_SES" \
-                "$HERDR_WORKSPACE_ID" "$HERDR_TAB_ID" "$HERDR_PANE_ID" \
-                "$HERDR_PARENT_WORKSPACE_ID" "$HERDR_PARENT_LABEL" "$HERDR_PROJECTION_LABEL" "$W"; then
-              :
+            HERDR_PROJECTION_ID=$(fm_backend_herdr_projection_journal_create "$STATE" "$ID") || HERDR_PROJECTION_ID=""
+            if [ -z "$HERDR_PROJECTION_ID" ]; then
+              # Presentation is display only: a journal that cannot be
+              # published degrades to the flat layout, never a refused spawn.
+              echo "warning: herdr presentation journal could not be published for $ID; using the ordinary flat layout without projection" >&2
+              spawn_herdr_presentation_order_lock_release
             else
-              echo "warning: herdr presentation could not publish an exact restart binding; this task will use flat fallback after a restart" >&2
+              HERDR_PROJECTION_LABEL=$(fm_backend_herdr_projection_workspace_label "$ID" "$HERDR_PROJECTION_ID")
+              if ! FM_HOME="$HERDR_LABEL_HOME" fm_backend_herdr_projection_create_task \
+                "$PROJ_ABS" "$HERDR_PROJECTION_LABEL" "$W"; then
+                # A display failure never stops a spawn: clean up only what the
+                # create proved safe to close, retire the attempt journal once
+                # its token workspace is proven gone, then fall back flat.
+                echo "warning: herdr presentation projection failed for $ID; using the ordinary flat layout without projection" >&2
+                if [ "${FM_BACKEND_HERDR_PROJECTION_CLEANUP_SAFE:-0}" = 1 ]; then
+                  fm_backend_herdr_projection_cleanup_exact \
+                    "$HERDR_SES" \
+                    "$FM_BACKEND_HERDR_PROJECTION_PANE_ID" \
+                    "$FM_BACKEND_HERDR_PROJECTION_SEEDED_PANE_ID" || true
+                fi
+                if fm_backend_herdr_projection_token_workspace_gone "$HERDR_SES" "$HERDR_PRESENTATION_JOURNAL" "$ID"; then
+                  rm -f "$HERDR_PRESENTATION_JOURNAL" || true
+                fi
+                spawn_herdr_presentation_order_lock_release
+              else
+                HERDR_PROJECTED=1
+                HERDR_SES=$FM_BACKEND_HERDR_PROJECTION_SESSION
+                HERDR_WORKSPACE_ID=$FM_BACKEND_HERDR_PROJECTION_WORKSPACE_ID
+                HERDR_SEEDED_DEFAULT_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_SEEDED_TAB_ID
+                HERDR_TAB_ID=$FM_BACKEND_HERDR_PROJECTION_TAB_ID
+                HERDR_PANE_ID=$FM_BACKEND_HERDR_PROJECTION_PANE_ID
+                HERDR_PROJECTION_ABORT_CLEANUP=1
+                HERDR_PROJECTION_ABORT_SESSION=$HERDR_SES
+                HERDR_PROJECTION_ABORT_TASK_PANE=$HERDR_PANE_ID
+                HERDR_PROJECTION_ABORT_SEEDED_PANE=$FM_BACKEND_HERDR_PROJECTION_SEEDED_PANE_ID
+                fm_backend_herdr_projection_order_best_effort \
+                  "$HERDR_SES" "$HERDR_WORKSPACE_ID" "$HERDR_PARENT_LABEL" "$HERDR_PARENT_WORKSPACE_ID"
+                HERDR_HOME_ID=$(fm_backend_herdr_projection_home_identity "$HERDR_LABEL_HOME" 2>/dev/null || true)
+                if [ -n "$HERDR_HOME_ID" ] &&
+                  fm_backend_herdr_projection_live_binding_matches \
+                    "$HERDR_SES" "$HERDR_PROJECTION_ID" "$HERDR_WORKSPACE_ID" \
+                    "$HERDR_TAB_ID" "$HERDR_PANE_ID" "$HERDR_PARENT_WORKSPACE_ID" \
+                    "$HERDR_PARENT_LABEL" "$HERDR_PROJECTION_LABEL" "$W" &&
+                  fm_backend_herdr_projection_journal_bind \
+                    "$HERDR_PRESENTATION_JOURNAL" "$ID" "$HERDR_HOME_ID" "$HERDR_SES" \
+                    "$HERDR_WORKSPACE_ID" "$HERDR_TAB_ID" "$HERDR_PANE_ID" \
+                    "$HERDR_PARENT_WORKSPACE_ID" "$HERDR_PARENT_LABEL" "$HERDR_PROJECTION_LABEL" "$W"; then
+                  :
+                else
+                  echo "warning: herdr presentation could not publish an exact restart binding; this task will use flat fallback after a restart" >&2
+                fi
+              fi
             fi
           fi
         else
@@ -5133,7 +5276,65 @@ elif [ "$RELAUNCH" -eq 1 ]; then
   fi
   [ "$KIND" = secondmate ] || validate_spawn_worktree "relaunch" "$T"
 elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
-  spawn_send_text_line "$WT_TARGET" 'treehouse get'
+  # A plain `treehouse get` hands out the pool's first free slot, and one pool
+  # can hold slots from two clones of one origin, so that slot can belong to
+  # a different clone than the spawning project (the candidate screening
+  # below then refuses it). When a free slot of the project's own clone is
+  # already in the pool, enter that exact slot by name instead; `treehouse
+  # enter` opens the same process-leased subshell in the named worktree.
+  # When none is free, the lease steering below makes Treehouse lease or
+  # create an own-clone slot. Only when that steering gives up does the
+  # plain `treehouse get` run, with the screening below as its guard.
+  SPAWN_WT_SOURCE='treehouse get'
+  SPAWN_ENTER_SLOT=$(fm_treehouse_free_own_slot "$PROJ_ABS" "$BASE_BRANCH" || true)
+  if [ -z "$SPAWN_ENTER_SLOT" ]; then
+    # No free own-clone slot: lease the pool's free foreign slots one by one.
+    # Treehouse's allocator hands out the first free slot and never re-hands
+    # a leased one, so holding each foreign lease advances it until it
+    # leases - or, with no free slot left, creates - a slot of this clone.
+    # That slot is the target, entered by name below; the foreign leases are
+    # released once the pane settles, and the target's lease is released by
+    # the task's own teardown return like any other slot. A slot another
+    # task has claimed (its worker may be starting) is released at once and
+    # ends the steering: the plain `treehouse get` below, behind the same
+    # candidate screening, owns that case. 64 leases bound the loop.
+    SPAWN_LEASE_SEEN=
+    SPAWN_LEASE_COUNT=0
+    while [ "$SPAWN_LEASE_COUNT" -lt 64 ]; do
+      SPAWN_LEASED=$(cd "$PROJ_ABS" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch 2>/dev/null </dev/null) || break
+      [ -n "$SPAWN_LEASED" ] || break
+      if printf '%s' "$SPAWN_LEASE_SEEN" | grep -Fxq -- "$SPAWN_LEASED"; then
+        break
+      fi
+      SPAWN_LEASE_SEEN="$SPAWN_LEASE_SEEN$SPAWN_LEASED
+"
+      SPAWN_LEASE_COUNT=$((SPAWN_LEASE_COUNT + 1))
+      SPAWN_LEASE_MARKER=$(fm_treehouse_slot_owner_marker "$SPAWN_LEASED" 2>/dev/null || true)
+      if [ -n "$SPAWN_LEASE_MARKER" ] &&
+        { [ -e "$SPAWN_LEASE_MARKER" ] || [ -L "$SPAWN_LEASE_MARKER" ]; }; then
+        # Another task's slot: never returned here (`treehouse return`
+        # kills the processes inside it). It joins the skip list, whose
+        # guarded release leaves an owned slot alone.
+        SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$SPAWN_LEASED
+"
+        break
+      fi
+      if fm_treehouse_pool_slot "$PROJ_ABS" "$SPAWN_LEASED"; then
+        SPAWN_ENTER_SLOT=$SPAWN_LEASED
+        SPAWN_TARGET_LEASE=$SPAWN_LEASED
+        break
+      fi
+      SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$SPAWN_LEASED
+"
+    done
+  fi
+  if [ -n "$SPAWN_ENTER_SLOT" ]; then
+    SPAWN_ENTER_NAME=$(basename "$(dirname "$SPAWN_ENTER_SLOT")")
+    SPAWN_WT_SOURCE="treehouse enter $(shell_quote "$SPAWN_ENTER_NAME")"
+    spawn_send_text_line "$WT_TARGET" "$SPAWN_WT_SOURCE"
+  else
+    spawn_send_text_line "$WT_TARGET" 'treehouse get'
+  fi
 
   # Wait for the treehouse subshell: the pane's cwd moves from the project to the worktree.
   # Target the stable window id, not the name: if the name is ever lost (e.g. an
@@ -5188,11 +5389,11 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     sleep 1
   done
   if [ -z "$WT" ]; then
-    echo "error: treehouse get did not enter an isolated worktree within 60s (last seen '${last_seen:-none}': $last_reason; spawning project '$PROJ_ABS'); inspect window $T" >&2
+    echo "error: $SPAWN_WT_SOURCE did not enter an isolated worktree within 60s (last seen '${last_seen:-none}': $last_reason; spawning project '$PROJ_ABS'); inspect window $T" >&2
     exit 1
   fi
 
-  validate_spawn_worktree "treehouse get" "$T"
+  validate_spawn_worktree "$SPAWN_WT_SOURCE" "$T"
 
   # Claim the pool slot for this task. The interactive `treehouse get` sent to
   # the pane above records only a process lease (Treehouse's durable
@@ -5213,6 +5414,10 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     fi
     SPAWN_SLOT_CLAIMED=1
   fi
+  # The pane has settled and the slot is claimed, so the foreign leases that
+  # steered the allocator here have done their work; the exit trap releases
+  # them on every failure path instead.
+  spawn_release_skip_leases
 fi
 if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
   freshen_spawn_worktree_base "$WT" "$BASE_BRANCH" || exit 1
@@ -5897,7 +6102,7 @@ SPAWN_META_PATH=$SPAWN_META_TMP
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness kind mode yolo branch tasktmp base_branch upstream_consent model effort account account_provider busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
+      split("window endpoint_task_id worktree project harness kind decision_owner mode yolo branch tasktmp base_branch upstream_consent model effort account account_provider busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -5910,6 +6115,7 @@ preserve_relaunch_meta() {
   echo "project=$PROJ_ABS"
   echo "harness=$HARNESS"
   echo "kind=$KIND"
+  echo "decision_owner=$DECISION_OWNER"
   [ -z "$MODE" ] || echo "mode=$MODE"
   [ -z "$YOLO" ] || echo "yolo=$YOLO"
   [ -z "${BRANCH:-}" ] || echo "branch=$BRANCH"
