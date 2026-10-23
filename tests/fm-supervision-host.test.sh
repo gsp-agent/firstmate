@@ -2208,46 +2208,6 @@ SH
   pass "host: the dialog mirror, its feed, and the wake file are owner-only"
 }
 
-# Park again after a host was stopped mid-park: the new cycle's first close is
-# the watcher's downtime resurface, which main drains before the next park.
-# That close can end the park before its cycle is ever seen live, so this
-# waits for the exit itself.
-# The resurface pass-through leaves its successor running. Stop that watcher
-# and acknowledge the downtime its exit records, so the next park starts a
-# watcher it owns. Attaching instead would not observe the exit until the
-# beacon went stale, and this fixture's turn budget would already be gone.
-quiet_pass_through_successor() {  # <home>
-  local home=$1 pid i gen
-  pid=$(cat "$home/state/.watch.lock/pid" 2>/dev/null || true)
-  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-    kill -TERM "$pid" 2>/dev/null || true
-    i=0
-    while [ "$i" -lt 50 ] && kill -0 "$pid" 2>/dev/null; do
-      sleep 0.1
-      i=$((i + 1))
-    done
-    kill -0 "$pid" 2>/dev/null && fail "fixture: the pass-through successor did not stop"
-  fi
-  gen=$(cat "$home/state/.watcher-down" 2>/dev/null || true)
-  gen=${gen##*:}
-  [ -n "$gen" ] || return 0
-  FM_HOME="$home" bash -c '
-    . "$1"
-    fm_recovery_marker_ack "$2" "$3"
-  ' _ "$ROOT/bin/fm-wake-lib.sh" "$home/state/.watcher-down" "$gen" \
-    || fail "fixture: could not acknowledge the successor downtime"
-}
-
-park_after_stop() {  # <home>
-  rm -f "$1/host.rc"
-  : > "$1/park.go"
-  wait_until 150 host_exited "$1" || fail "the watcher's downtime resurface did not reach main: $(cat "$1/host.out")"
-  assert_re '^check: rearm-resurface' "$1/host.out" "fixture: the first close after the watcher stopped was not its resurface"
-  main_drain_and_ack "$1"
-  quiet_pass_through_successor "$1"
-  park_again "$1"
-}
-
 # Dialog counts as delivered only once the turn that carried it is accepted
 # with its report. A host that reaches its park boundary after feeding the
 # mirror but before the turn, or is stopped mid-turn, leaves the conversation
@@ -2278,7 +2238,7 @@ SH
   printf '{"hook_event_name":"UserPromptSubmit","prompt_id":"p2","prompt":"second ask, never handed over"}' > "$home/mirror-seed.2"
   : > "$home/slow-render"
   echo 0 > "$home/park-clock"
-  park_after_stop "$home"
+  park_again "$home"
   append_status "$home" 'reaches the boundary'
   wait_until 400 host_exited "$home" || fail "mirror boundary: the host did not end its park"
   assert_re '^supervision-host: cycle boundary - ' "$home/host.out" "fixture: the second host did not exit at its boundary"
@@ -2300,17 +2260,19 @@ SH
   kill -TERM "$(awk -F '\t' '$1 == "host" { print $2 }' "$home/state/.supervision-host")"
   wait_until 200 host_exited "$home" || fail "mirror boundary: the second handling host did not stop on TERM"
   echo hang > "$home/stub-mode"
-  park_after_stop "$home"
+  park_again "$home"
   append_status "$home" 'stopped mid-turn'
   wait_until 250 test -e "$home/engine-call.3" || fail "mirror boundary: the stopped turn never started"
   assert_re '^\[captain\] third ask, turn stopped$' "$home/engine-call.3" "fixture: the stopped turn did not carry the third dialog"
   kill -TERM "$(awk -F '\t' '$1 == "host" { print $2 }' "$home/state/.supervision-host")"
   wait_until 200 host_exited "$home" || fail "mirror boundary: the host did not stop mid-turn on TERM"
   echo handle > "$home/stub-mode"
-  park_after_stop "$home"
-  append_status "$home" 'handled after the stop'
-  wait_until 250 handled_at_least "$home" 3 || fail "mirror boundary: the wake after the stop was not handled: $(cat "$home/state/.supervision-host.log")"
+  # The stopped turn never acknowledged its wake, so the next park closes on
+  # that queued row as itself, with no newer status to carry it.
+  park_again "$home"
+  wait_until 250 handled_at_least "$home" 3 || fail "mirror boundary: the stopped turn's queued wake was not handled: $(cat "$home/state/.supervision-host.log")"
   third="$home/engine-call.4"
+  assert_re '^FIRSTMATE SUPERVISION WAKE: signal: .*/demo\.status$' "$third" "the stopped turn's queued wake must reach the next turn as itself"
   assert_re '^arg=--resume$' "$third" "fixture: the turn after the stop did not resume the conversation"
   assert_re '^\[captain\] third ask, turn stopped$' "$third" "dialog of a turn stopped before its report must reach the next turn"
   assert_no_re '^\[captain\] second ask' "$third" "a resumed conversation must not be fed dialog a handled turn delivered"
@@ -2319,7 +2281,7 @@ SH
   kill -TERM "$(awk -F '\t' '$1 == "host" { print $2 }' "$home/state/.supervision-host")"
   wait_until 200 host_exited "$home" || fail "mirror boundary: the third handling host did not stop on TERM"
   echo noreport > "$home/stub-mode"
-  park_after_stop "$home"
+  park_again "$home"
   append_status "$home" 'no report'
   wait_until 250 host_exited "$home" || fail "mirror boundary: the unreported turn did not hand its wake back"
   assert_re '^\[captain\] fourth ask, turn unreported$' "$home/engine-call.5" "fixture: the unreported turn did not carry the fourth dialog"
